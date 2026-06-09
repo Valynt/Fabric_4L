@@ -77,7 +77,6 @@ export default function GovernanceChangeHistory() {
                 <SelectValue placeholder="Select a truth object…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Select a truth object…</SelectItem>
                 {(truthData?.items ?? []).map(truth => (
                   <SelectItem key={truth.id} value={truth.id}>
                     {truth.id.slice(0, 10)} — {truth.claim.slice(0, 60)}

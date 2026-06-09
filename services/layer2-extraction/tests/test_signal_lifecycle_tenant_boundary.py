@@ -30,12 +30,15 @@ def signal_lifecycle_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
         account_id = request.headers.get("X-Test-Account-ID")
         user_id = request.headers.get("X-Test-User-ID")
         if tenant_id or account_id or user_id:
-            request.state.governance_context = SimpleNamespace(
+            ctx = SimpleNamespace(
                 tenant_id=tenant_id,
                 account_id=account_id,
                 user_id=user_id,
                 subject=user_id,
+                auth_source="jwt",
             )
+            ctx.is_auth_source_valid = lambda: True
+            request.state.governance_context = ctx
         return await call_next(request)
 
     app.include_router(signal_lifecycle.router)

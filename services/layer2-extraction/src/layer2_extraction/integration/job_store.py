@@ -54,8 +54,11 @@ class InMemoryJobStore:
             raise KeyError(job_id)
         return job
 
-    async def get(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob:
-        return await self.get_job(job_id, tenant_id=tenant_id)
+    async def get(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob | None:
+        try:
+            return await self.get_job(job_id, tenant_id=tenant_id)
+        except KeyError:
+            return None
 
     async def set_job(self, job: PipelineJob) -> None:
         self._jobs[job.job_id] = job
@@ -87,12 +90,6 @@ class InMemoryJobStore:
         if tenant_id is not None:
             jobs = [j for j in jobs if j.tenant_id == tenant_id]
         return jobs
-
-    async def get(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob | None:
-        try:
-            return await self.get_job(job_id, tenant_id=tenant_id)
-        except KeyError:
-            return None
 
 
 class RedisJobStore:

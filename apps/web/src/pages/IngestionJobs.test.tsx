@@ -191,8 +191,9 @@ describe("IngestionJobs", () => {
   it("renders job queue table with data", async () => {
     renderPage();
 
+    // Wait for data to load before asserting on table structure
     await waitFor(() => {
-      expect(screen.getAllByText("Job Queue").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("https://example.com").length).toBeGreaterThan(0);
     });
 
     // Check table headers
@@ -201,11 +202,6 @@ describe("IngestionJobs", () => {
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Progress")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
-
-    // Check job data is rendered
-    await waitFor(() => {
-      expect(screen.getAllByText("https://example.com").length).toBeGreaterThan(0);
-    });
   });
 
   it("shows empty state when no jobs", async () => {
@@ -218,11 +214,13 @@ describe("IngestionJobs", () => {
     render(<IngestionJobs />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText("No jobs found — create a new job to get started")).toBeInTheDocument();
+      expect(screen.getByText("No jobs found")).toBeInTheDocument();
     });
+    expect(screen.getByText("Create a new job to get started")).toBeInTheDocument();
   });
 
   it("shows filtered empty state when filters applied", async () => {
+    const user = userEvent.setup();
     vi.mocked(apiClient.get).mockResolvedValueOnce(createMockResponse(mockJobListResponse));
     vi.mocked(apiClient.get).mockResolvedValueOnce(createMockResponse({
       data: [],
@@ -237,10 +235,11 @@ describe("IngestionJobs", () => {
       expect(screen.getByText("Filter Controls")).toBeInTheDocument();
     });
 
-    // Change status filter using querySelector
-    const filterSection = screen.getByText("Filter Controls").parentElement!;
-    const statusSelect = filterSection.querySelector('select') as HTMLSelectElement;
-    await userEvent.selectOptions(statusSelect, "failed");
+    // Change status filter using shadcn Select (combobox)
+    const statusSelect = screen.getAllByRole('combobox')[0];
+    await user.click(statusSelect);
+    await waitFor(() => screen.getByRole('option', { name: /failed/i }));
+    await user.click(screen.getByRole('option', { name: /failed/i }));
 
     // Use a function matcher for flexible text matching
     await waitFor(() => {
@@ -257,10 +256,11 @@ describe("IngestionJobs", () => {
       expect(screen.getByText("Failed to load jobs")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Try again")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Retry$/i })).toBeInTheDocument();
   });
 
   it("filters by status", async () => {
+    const user = userEvent.setup();
     vi.mocked(apiClient.get).mockResolvedValueOnce(createMockResponse(mockJobListResponse));
 
     render(<IngestionJobs />, { wrapper: createWrapper() });
@@ -269,10 +269,11 @@ describe("IngestionJobs", () => {
       expect(screen.getByText("Filter Controls")).toBeInTheDocument();
     });
 
-    // Find the status select using querySelector
-    const filterSection = screen.getByText("Filter Controls").parentElement!;
-    const statusSelect = filterSection.querySelector('select') as HTMLSelectElement;
-    await userEvent.selectOptions(statusSelect, "completed");
+    // Find the status select using shadcn Select (combobox)
+    const statusSelect = screen.getAllByRole('combobox')[0];
+    await user.click(statusSelect);
+    await waitFor(() => screen.getByRole('option', { name: /processed/i }));
+    await user.click(screen.getByRole('option', { name: /processed/i }));
 
     await waitFor(() => {
       expect(apiClient.get).toHaveBeenCalledWith("l1", expect.stringContaining("status=COMPLETED"));

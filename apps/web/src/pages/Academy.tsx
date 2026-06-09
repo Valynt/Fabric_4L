@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useNavigation } from "@/hooks/useNavigation";
 import { BookOpen, Trophy, TrendingUp } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageShell } from "@/components/layout/PageShell";
@@ -23,7 +24,7 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 
 function Academy() {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { user } = useAuthContext();
   const tenantId = user?.tenantId ?? null;
@@ -39,16 +40,16 @@ function Academy() {
 
   const handleLearn = useCallback(
     (pillarId: string) => {
-      navigate(`/t/${tenantSlug}/academy/pillars/${pillarId}`);
+      navigateTo(`/t/${tenantSlug}/academy/pillars/${pillarId}`);
     },
-    [navigate, tenantSlug]
+    [navigateTo, tenantSlug]
   );
 
   const handleQuiz = useCallback(
     (pillarId: string) => {
-      navigate(`/t/${tenantSlug}/academy/pillars/${pillarId}/quiz`);
+      navigateTo(`/t/${tenantSlug}/academy/pillars/${pillarId}/quiz`);
     },
-    [navigate, tenantSlug]
+    [navigateTo, tenantSlug]
   );
 
   const isLoading = pillarsLoading || progressLoading || certsLoading;
@@ -150,11 +151,11 @@ function Academy() {
               <CardTitle className="text-base">Quick Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start" onClick={() => navigate(`/t/${tenantSlug}/academy/resources`)}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo(`/t/${tenantSlug}/academy/resources`)}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Resources Library
               </Button>
-              <Button variant="ghost" className="w-full justify-start" onClick={() => navigate(`/t/${tenantSlug}/academy/profile`)}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo(`/t/${tenantSlug}/academy/profile`)}>
                 <Trophy className="mr-2 h-4 w-4" />
                 My Profile
               </Button>

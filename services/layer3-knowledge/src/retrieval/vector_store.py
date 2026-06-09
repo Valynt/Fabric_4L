@@ -165,7 +165,7 @@ class Neo4jVectorStore:
                 f"Unknown entity type '{entity_type}'. Supported: {VECTOR_ENTITY_TYPES}"
             )
 
-        tenant = self._resolve_tenant_id(tenant_id or (metadata or {}).get("tenant_id"))
+        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else (metadata or {}).get("tenant_id"))
         embedding = self._embed(text)
         clean_metadata = {
             k: v
@@ -221,7 +221,7 @@ class Neo4jVectorStore:
         if not entities:
             return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": 0, "failed": []})
 
-        tenant = self._resolve_tenant_id(tenant_id or entities[0].get("tenant_id"))
+        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else entities[0].get("tenant_id"))
         texts = [e.get("text", e.get("name", "")) for e in entities]
         embeddings = self._embed_batch(texts)
 

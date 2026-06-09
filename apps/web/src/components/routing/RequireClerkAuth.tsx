@@ -19,7 +19,8 @@
  * verified Fabric4L envelope, never anything from the browser.
  */
 import { useAuth, useOrganization } from "@clerk/react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useNavigation } from "@/hooks/useNavigation";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
@@ -41,7 +42,7 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const urls = getClerkUrls();
   const { isLoaded: orgLoaded, organization } = useOrganization();
   const hasNavigated = useRef(false);
@@ -54,9 +55,9 @@ function RequireClerkAuthOrgCheck({
   useLayoutEffect(() => {
     if (requireOrganization && !organization && !hasNavigated.current) {
       hasNavigated.current = true;
-      navigate(urls.selectOrgUrl, { replace: true });
+      navigateTo(urls.selectOrgUrl, { replace: true });
     }
-  }, [requireOrganization, organization, navigate, urls.selectOrgUrl]);
+  }, [requireOrganization, organization, navigateTo, urls.selectOrgUrl]);
 
   if (requireOrganization && !organization) {
     // Redirect in progress — render nothing to prevent UI flash
@@ -70,7 +71,7 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const location = useLocation();
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -93,9 +94,9 @@ function RequireClerkAuthInner({
       )}`;
       // eslint-disable-next-line no-console
       console.log('[RequireClerkAuth] navigating to', redirectTo);
-      navigate(redirectTo, { replace: true });
+      navigateTo(redirectTo, { replace: true });
     }
-  }, [authLoaded, isSignedIn, navigate, urls.signInUrl, location.pathname, location.search]);
+  }, [authLoaded, isSignedIn, navigateTo, urls.signInUrl, location.pathname, location.search]);
 
   // While Clerk is still loading OR the user is not signed in (redirect pending),
   // render absolutely nothing. This guarantees zero UI flash.

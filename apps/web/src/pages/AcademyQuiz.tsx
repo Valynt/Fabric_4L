@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useNavigation } from "@/hooks/useNavigation";
 import { ArrowLeft, CheckCircle2, XCircle, RotateCcw, Trophy } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageShell } from "@/components/layout/PageShell";
@@ -13,7 +14,7 @@ import { useQuiz, useSubmitQuiz, type QuizAnswer } from "@/hooks/useAcademy";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 function AcademyQuiz() {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const { tenantSlug, pillarId } = useParams<{ tenantSlug: string; pillarId: string }>();
   const { user } = useAuthContext();
   const tenantId = user?.tenantId ?? null;
@@ -74,7 +75,7 @@ function AcademyQuiz() {
         title="Quiz"
         subtitle={`${questions.length} questions · Pillar ${pillarId}`}
         actions={
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/t/${tenantSlug}/academy`)}>
+          <Button variant="ghost" size="sm" onClick={() => navigateTo(`/t/${tenantSlug}/academy`)}>
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Back to Academy
           </Button>

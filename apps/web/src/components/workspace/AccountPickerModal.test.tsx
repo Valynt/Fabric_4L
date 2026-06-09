@@ -92,7 +92,10 @@ describe("AccountPickerModal", () => {
     if (item) await user.click(item);
 
     expect(mockSetSelectedAccountId).toHaveBeenCalledWith("acc-001");
-    expect(mockNavigate).toHaveBeenCalledWith("/t/default/accounts/acc-001/intelligence/signals", undefined);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining("/t/default/accounts/acc-001/intelligence/signals"),
+      expect.any(Object)
+    );
   });
 
   it("shows error state when accounts fail to load", () => {

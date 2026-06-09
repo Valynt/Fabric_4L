@@ -10,7 +10,7 @@ from layer2_5_signal_refinery.api.main import _probe_database, _probe_l3_client
 @pytest.mark.asyncio
 async def test_probe_database_does_not_leak_exception_string():
     with patch(
-        "layer2_5_signal_refinery.api.main.db_session_for_context",
+        "layer2_5_signal_refinery.database.db_session",
         side_effect=RuntimeError("connection refused: secret-db-host:5432"),
     ):
         result = await _probe_database()

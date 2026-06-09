@@ -633,8 +633,12 @@ describe('BillingAdmin', () => {
   }, 10_000);
 
   it('displays invoice list', async () => {
+    const user = userEvent.setup();
     const wrapper = createWrapper();
     render(<BillingAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^Invoices/i }));
+    await user.click(screen.getByRole('tab', { name: /^Invoices/i }));
 
     await waitFor(() => {
       expect(screen.getByText('INV-001')).toBeInTheDocument();

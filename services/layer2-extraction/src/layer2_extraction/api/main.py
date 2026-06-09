@@ -101,6 +101,8 @@ from layer2_extraction.extraction.prompt_loader import (
 prompt_template_version = f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}"
 prompt_template_hash: str | None = None
 
+from value_fabric.shared.audit import AuditAction, emit_audit_event
+
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
@@ -132,7 +134,6 @@ from layer2_extraction.validation.artifact_validator import (
     validate_for_persistence,
     validate_relationship_for_persistence,
 )
-from value_fabric.shared.audit import emit_audit_event, AuditAction
 
 
 def _current_environment() -> str | None:
@@ -948,7 +949,7 @@ async def run_extraction(
 
     # Start provenance tracking
     activity = tracker.start_activity(
-        activity_id=job_id, source_url=source_url, content_hash=content_hash
+        activity_id=job_id, url=source_url, content_hash=content_hash
     )
 
     tenant_id = _require_authenticated_tenant_id(config.get("tenant_id"), operation="extraction execution")

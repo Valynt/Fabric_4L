@@ -1,13 +1,18 @@
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks
 
 from layer2_extraction.api import main
 from layer2_extraction.models.extraction_api import ExtractionRequest
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 
 class _Ctx:
     def __init__(self, tenant_id):
         self.tenant_id = tenant_id
+        self.auth_source = "jwt"
+
+    def is_auth_source_valid(self):
+        return True
 
 
 @pytest.mark.asyncio
@@ -22,11 +27,11 @@ async def test_extract_rejects_missing_tenant_before_job_write(monkeypatch):
     monkeypatch.setattr(main.job_store, "set", _forbidden_set)
 
     req = ExtractionRequest(source_url="https://example.com", markdown_content="# demo")
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AuthorizationError) as exc:
         await main.extract(req, BackgroundTasks(), _Ctx(None))
 
     assert exc.value.status_code == 403
-    assert exc.value.detail["code"] == "tenant_context_required"
+    assert exc.value.details["code"] == "tenant_context_required"
     assert called is False
 
 
@@ -48,7 +53,7 @@ async def test_run_extraction_rejects_missing_tenant_before_any_persistence(monk
     monkeypatch.setattr(main.job_store, "exists", _exists)
     monkeypatch.setattr(main.quarantine_store, "put", _quarantine_put)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AuthorizationError) as exc:
         await main.run_extraction(
             job_id="job-1",
             source_url="https://example.com",
@@ -57,7 +62,7 @@ async def test_run_extraction_rejects_missing_tenant_before_any_persistence(monk
         )
 
     assert exc.value.status_code == 403
-    assert exc.value.detail["code"] == "tenant_context_required"
+    assert exc.value.details["code"] == "tenant_context_required"
     assert exists_called is False
     assert quarantine_called is False
 
@@ -81,10 +86,10 @@ async def test_extract_and_ingest_rejects_missing_tenant_before_job_or_idempoten
     monkeypatch.setattr(main.job_store, "set_job_id_for_idempotency_key", _set_idem)
 
     req = ExtractionRequest(source_url="https://example.com", markdown_content="# demo")
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(AuthorizationError) as exc:
         await main.extract_and_ingest(req, BackgroundTasks(), _Ctx(""))
 
     assert exc.value.status_code == 403
-    assert exc.value.detail["code"] == "tenant_context_required"
+    assert exc.value.details["code"] == "tenant_context_required"
     assert set_called is False
     assert idem_called is False

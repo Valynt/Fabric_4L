@@ -130,14 +130,14 @@ def _make_client_fixture(tenant_id: uuid.UUID):
         
         @app.middleware("http")
         async def _inject_test_request_context(request, call_next):
-            set_request_context(
-                RequestContext(
-                    tenant_id=str(tenant_id),
-                    user_id="test-user",
-                    roles=["admin"],
-                    auth_source="jwt_claim",
-                )
+            ctx = RequestContext(
+                tenant_id=str(tenant_id),
+                user_id="test-user",
+                roles=["admin"],
+                auth_source="jwt_claim",
             )
+            request.state.governance_context = ctx
+            set_request_context(ctx)
             try:
                 return await call_next(request)
             finally:

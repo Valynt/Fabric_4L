@@ -34,9 +34,9 @@ logger = structlog.get_logger(__name__)
 
 async def _probe_database() -> ProbeResult:
     from sqlalchemy import text
-    from ..database import db_session_for_context
+    from ..database import db_session
     try:
-        async with db_session_for_context() as session:
+        async with db_session() as session:
             await session.execute(text("SELECT 1"))
         return ProbeResult(name="database", healthy=True, detail="postgresql:ok")
     except Exception as exc:

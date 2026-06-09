@@ -287,8 +287,8 @@ describe('EntityBrowser Contract Tests', () => {
 
       render(<EntityBrowser />, { wrapper: createWrapper() });
 
-      expect(screen.getByText(/Failed to fetch entities/i)).toBeInTheDocument();
-      expect(screen.getByText(/Retry/i)).toBeInTheDocument();
+      expect(screen.getByText(/Failed to load entities/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Retry$/i })).toBeInTheDocument();
     });
 
     it('should display loading state', async () => {

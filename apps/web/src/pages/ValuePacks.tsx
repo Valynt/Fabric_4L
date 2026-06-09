@@ -465,14 +465,12 @@ function ComparisonPanel({ packs }: { packs: ValuePack[] }) {
         <Select value={packA} onValueChange={v => setPackA(v)}>
           <SelectTrigger className="w-full vf-text-caption"><SelectValue placeholder="Select Pack A" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Select Pack A</SelectItem>
             {packs.map(p => <SelectItem key={p.pack_id} value={p.pack_id}>{p.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={packB} onValueChange={v => setPackB(v)}>
           <SelectTrigger className="w-full vf-text-caption"><SelectValue placeholder="Select Pack B" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Select Pack B</SelectItem>
             {packs.map(p => <SelectItem key={p.pack_id} value={p.pack_id}>{p.name}</SelectItem>)}
           </SelectContent>
         </Select>

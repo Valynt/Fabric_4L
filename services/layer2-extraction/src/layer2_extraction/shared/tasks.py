@@ -63,8 +63,6 @@ celery_app.conf.update(
 logger = logging.getLogger(__name__)
 
 # Re-export at module level so tests can patch them via layer2_extraction.shared.tasks
-from layer2_extraction.extraction.chunker import chunk_markdown  # noqa: E402
-from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor  # noqa: E402
 
 
 # =============================================================================

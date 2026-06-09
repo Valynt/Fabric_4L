@@ -67,6 +67,11 @@ export function useNavigation() {
     navigateTo(state, { tenantSlug, accountId });
   };
 
+  const navigateToStudio = (tenantSlug: string, accountId: string, tab?: string) => {
+    const state = tab ? (`studio-${tab.replace(/-/g, "-")}` as RouteState) : "studio-action-plan";
+    navigateTo(state, { tenantSlug, accountId });
+  };
+
   return {
     navigate,
     navigateTo,

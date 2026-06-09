@@ -119,7 +119,7 @@ class TestScenarioEngine:
             "payback_months": 12.0,
         }
 
-        from agents.scenario_engine import SavedScenario
+        from src.agents.scenario_engine import SavedScenario
 
         scenarios = [
             SavedScenario(

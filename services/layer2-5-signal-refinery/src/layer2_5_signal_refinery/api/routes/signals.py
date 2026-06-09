@@ -123,18 +123,13 @@ async def create_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    data = body.model_dump()
-    # Serialize nested models to plain dicts
-    data["provenance"] = data["provenance"] if isinstance(data["provenance"], dict) else data["provenance"].model_dump() if hasattr(data["provenance"], "model_dump") else dict(data["provenance"])
-    data["evidence"] = [
-        e if isinstance(e, dict) else e.model_dump() if hasattr(e, "model_dump") else dict(e)
-        for e in (data.get("evidence") or [])
-    ]
+    data = body.model_dump(mode="json")
     # Ensure evidence items have IDs
-    for item in data["evidence"]:
+    for item in data.get("evidence") or []:
         if not item.get("id"):
             item["id"] = str(uuid.uuid4())
-    # Stringify UUIDs for storage
+    # Stringify UUIDs for storage (model_dump(mode='json') already converts most,
+    # but belt-and-suspenders for any nested objects that may have slipped through)
     for field in ("account_id", "opportunity_id", "value_driver_id", "stakeholder_id", "reviewer_id"):
         if data.get(field):
             data[field] = str(data[field])
@@ -257,7 +252,7 @@ async def update_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = {k: v for k, v in body.model_dump(mode="json").items() if v is not None}
     if not updates:
         raise ValidationError(message = "No fields to update")
 
@@ -312,9 +307,9 @@ async def review_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    new_state = str(body.status) if hasattr(body.status, "value") else body.status
+    new_state = body.status.value if hasattr(body.status, "value") else str(body.status)
     if new_state not in _VALID_REVIEW_STATES:
-        raise ValidationError(message = str(f"Review status must be one of: {_VALID_REVIEW_STATES}"))
+        raise ValidationError(message=f"Review status must be one of: {_VALID_REVIEW_STATES}")
 
     updates: dict[str, Any] = {
         "lifecycle_state": new_state,
@@ -391,7 +386,7 @@ async def refine_signals(
         # Preferred path: caller supplied actual L2 extraction payloads.
         raws = []
         for rs in body.raw_signals:
-            raw = rs.model_dump() if hasattr(rs, "model_dump") else dict(rs)
+            raw = rs.model_dump(mode="json") if hasattr(rs, "model_dump") else dict(rs)
             raw["account_id"] = str(raw["account_id"])
             # Ensure provenance has required fields
             prov = raw.get("provenance") or {}

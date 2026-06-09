@@ -158,29 +158,29 @@ export default function EntityBrowser() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Select value={selectedType || ''} onValueChange={(v) => setSelectedType(v as EntityType || null)}>
+        <Select value={selectedType || 'all'} onValueChange={(v) => setSelectedType(v === 'all' ? null : v as EntityType)}>
           <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Types" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="capability">Capability</SelectItem>
             <SelectItem value="usecase">Use Case</SelectItem>
             <SelectItem value="persona">Persona</SelectItem>
             <SelectItem value="valuedriver">Value Driver</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={''} onValueChange={() => {}}>
+        <Select value={'all'} onValueChange={() => {}}>
           <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Domains" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Domains</SelectItem>
+            <SelectItem value="all">All Domains</SelectItem>
             {entityList?.availableDomains?.map(d => (
               <SelectItem key={d} value={d}>{d}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={''} onValueChange={() => {}}>
+        <Select value={'all'} onValueChange={() => {}}>
           <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="validated">Validated</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>

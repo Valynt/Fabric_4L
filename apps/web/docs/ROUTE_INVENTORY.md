@@ -1,7 +1,8 @@
 # Frontend Route Inventory
 
-> Auto-generated from `src/shell/router.tsx` and `src/navigation/navSchema.ts`
-> Date: 2026-05-24
+> Generated from `src/shell/router.tsx` and `src/navigation/navSchema.ts`
+> Date: 2026-06-09
+> Note: Legacy `/workflow/*` and `/value-pilot/*` routes have been removed (no release shipped; they served no purpose).
 
 ---
 
@@ -9,10 +10,9 @@
 
 | Category | Count |
 |----------|-------|
-| Total defined route entries in router | 101 |
+| Total defined route entries in router | 91 |
 | Unique page components | 52 |
 | Active (tenant/account-scoped) routes | 78 |
-| Legacy (`/workflow/*`, `/value-pilot/*`) routes | 10 |
 | Global (non-tenant) routes | 12 |
 | Redirect-only routes | 9 |
 | Catch-all / 404 | 1 |
@@ -52,53 +52,25 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 
 ---
 
-## 3. Legacy Workflow Wizard (`/workflow/*`)
-
-> **Status: Legacy** — preserved for backward compatibility. Prefer tenant-scoped routes.
+## 3. Account Management (Tenant-Scoped)
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 11 | `/workflow` | `WorkflowProspectSetup` | `homePolicy` | No | **Legacy** |
-| 12 | `/workflow/prospect` | Redirect → `/workflow` | — | No | Legacy (redirect) |
-| 13 | `/workflow/intelligence` | `WorkflowIntelligence` | `homePolicy` | No | Legacy |
-| 14 | `/workflow/ai-model` | `WorkflowAIModel` | `homePolicy` | No | Legacy |
-| 15 | `/workflow/driver-tree` | `WorkflowDriverTree` | `homePolicy` | No | Legacy |
-| 16 | `/workflow/evidence` | `WorkflowEvidence` | `homePolicy` | No | Legacy |
-| 17 | `/workflow/calculator` | `WorkflowCalculator` | `homePolicy` | No | Legacy |
-| 18 | `/workflow/value-case` | `WorkflowValueCase` | `homePolicy` | No | Legacy |
+| 11 | `/t/:tenantSlug/accounts` | `Accounts` | `tenantStdPolicy` | Tenant | **Active** |
+| 12 | `/t/:tenantSlug/accounts/:accountId` | `AccountOverviewRedirect` | — | Both | Active | Redirects to `.../overview` |
+| 13 | `/t/:tenantSlug/accounts/:accountId/overview` | `Accounts` | `accountStdPolicy` | Both | Active |
 
 ---
 
-## 4. Legacy Value Pilot (`/value-pilot/*`)
-
-> **Status: Legacy** — preserved for backward compatibility.
-
-| # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
-|---|------|-----------|---------------|----------------------|--------|
-| 19 | `/value-pilot` | `ValuePilotProspectSetup` | `homePolicy` | No | **Legacy** |
-| 20 | `/value-pilot/prospect` | Redirect → `/value-pilot` | — | No | Legacy (redirect) |
-
----
-
-## 5. Account Management (Tenant-Scoped)
-
-| # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
-|---|------|-----------|---------------|----------------------|--------|
-| 21 | `/t/:tenantSlug/accounts` | `Accounts` | `tenantStdPolicy` | Tenant | **Active** |
-| 22 | `/t/:tenantSlug/accounts/:accountId` | `AccountOverviewRedirect` | — | Both | Active | Redirects to `.../overview` |
-| 23 | `/t/:tenantSlug/accounts/:accountId/overview` | `Accounts` | `accountStdPolicy` | Both | Active |
-
----
-
-## 6. Intelligence Workspace (Account-Scoped)
+## 4. Intelligence Workspace (Account-Scoped)
 
 > Rendered by `IntelligenceWorkspace` with internal tab routing (`:tabId`).
 > NAV_SCHEMA lists 12 sub-tabs; router handles them via a single dynamic route.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 24 | `/t/:tenantSlug/accounts/:accountId/intelligence` | Redirect → `signals` | `accountStdPolicy` | Both | Active |
-| 25 | `/t/:tenantSlug/accounts/:accountId/intelligence/:tabId` | `IntelligenceWorkspace` | `accountStdPolicy` | Both | Active |
+| 14 | `/t/:tenantSlug/accounts/:accountId/intelligence` | Redirect → `signals` | `accountStdPolicy` | Both | Active |
+| 15 | `/t/:tenantSlug/accounts/:accountId/intelligence/:tabId` | `IntelligenceWorkspace` | `accountStdPolicy` | Both | Active |
 
 ### NAV_SCHEMA Intelligence Children (handled by `:tabId`)
 
@@ -119,15 +91,15 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 
 ---
 
-## 7. Value Studio Workspace (Account-Scoped)
+## 5. Value Studio Workspace (Account-Scoped)
 
 > Rendered by `StudioShell` with internal tab routing (`:tabId`).
 > NAV_SCHEMA lists 7 sub-tabs; router handles them via a single dynamic route.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 26 | `/t/:tenantSlug/accounts/:accountId/studio` | Redirect → `action-plan` | `accountStdPolicy` | Both | Active |
-| 27 | `/t/:tenantSlug/accounts/:accountId/studio/:tabId` | `StudioShell` | `accountStdPolicy` | Both | Active |
+| 16 | `/t/:tenantSlug/accounts/:accountId/studio` | Redirect → `action-plan` | `accountStdPolicy` | Both | Active |
+| 17 | `/t/:tenantSlug/accounts/:accountId/studio/:tabId` | `StudioShell` | `accountStdPolicy` | Both | Active |
 
 ### NAV_SCHEMA Studio Children (handled by `:tabId`)
 
@@ -143,137 +115,137 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 
 ---
 
-## 8. Deliverables (Account-Scoped)
+## 6. Deliverables (Account-Scoped)
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 28 | `/t/:tenantSlug/accounts/:accountId/deliverables` | Redirect → `business-cases` | `accountStdPolicy` | Both | Active |
-| 29 | `/t/:tenantSlug/accounts/:accountId/deliverables/business-cases` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
-| 30 | `/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId` | `BusinessCase` | `accountStdPolicy` | Both | Active |
-| 31 | `/t/:tenantSlug/accounts/:accountId/deliverables/proposals` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
-| 32 | `/t/:tenantSlug/accounts/:accountId/deliverables/exports` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
-| 33 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo` | `CFOView` | `accountStdPolicy` | Both | Active |
-| 34 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/executive` | `ExecutiveView` | `accountStdPolicy` | Both | Active |
-| 35 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/technical` | `TechnicalView` | `accountStdPolicy` | Both | Active |
+| 18 | `/t/:tenantSlug/accounts/:accountId/deliverables` | Redirect → `business-cases` | `accountStdPolicy` | Both | Active |
+| 19 | `/t/:tenantSlug/accounts/:accountId/deliverables/business-cases` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
+| 20 | `/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId` | `BusinessCase` | `accountStdPolicy` | Both | Active |
+| 21 | `/t/:tenantSlug/accounts/:accountId/deliverables/proposals` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
+| 22 | `/t/:tenantSlug/accounts/:accountId/deliverables/exports` | `BusinessCaseList` | `accountStdPolicy` | Both | Active |
+| 23 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo` | `CFOView` | `accountStdPolicy` | Both | Active |
+| 24 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/executive` | `ExecutiveView` | `accountStdPolicy` | Both | Active |
+| 25 | `/t/:tenantSlug/accounts/:accountId/deliverables/views/technical` | `TechnicalView` | `accountStdPolicy` | Both | Active |
 
 ---
 
-## 9. Agents & Workflows (Account-Scoped)
+## 7. Agents & Workflows (Account-Scoped)
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 36 | `/t/:tenantSlug/accounts/:accountId/agents` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
-| 37 | `/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
-| 38 | `/t/:tenantSlug/accounts/:accountId/workflows` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
-| 39 | `/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
+| 26 | `/t/:tenantSlug/accounts/:accountId/agents` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
+| 27 | `/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
+| 28 | `/t/:tenantSlug/accounts/:accountId/workflows` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
+| 29 | `/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId` | `AgentWorkflows` | `accountStdPolicy` | Both | Active |
 
 ---
 
-## 10. Context Engine (Tenant-Scoped)
+## 8. Context Engine (Tenant-Scoped)
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 40 | `/t/:tenantSlug/context` | Redirect → `sources` | `tenantStdPolicy` | Tenant | Active |
-| 41 | `/t/:tenantSlug/context/packs` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
-| 42 | `/t/:tenantSlug/context/models` | `MyModels` | `tenantStdPolicy` | Tenant | Active |
-| 43 | `/t/:tenantSlug/context/formulas` | `FormulaList` | `tenantAdvPolicy` | Tenant | Active |
-| 44 | `/t/:tenantSlug/context/formulas/new` | `FormulaBuilder` (isNew) | `tenantAdvPolicy` | Tenant | Active |
-| 45 | `/t/:tenantSlug/context/formulas/:formulaId` | `FormulaBuilder` | `tenantAdvPolicy` | Tenant | Active |
-| 46 | `/t/:tenantSlug/context/value-trees/explorer` | `ValueTreeExplorer` | `tenantAdvPolicy` | Tenant | Active |
-| 47 | `/t/:tenantSlug/context/agents` | `AgentWorkflows` | `tenantAdvPolicy` | Tenant | Active |
-| 48 | `/t/:tenantSlug/context/ontology` | `OntologyEditor` | `tenantAdvPolicy` | Tenant | Active |
-| 49 | `/t/:tenantSlug/context/ontology/entities` | `EntityBrowser` | `tenantAdvPolicy` | Tenant | Active |
-| 50 | `/t/:tenantSlug/context/ontology/entities/:entityId` | `EntityDetail` | `tenantAdvPolicy` | Tenant | Active |
-| 51 | `/t/:tenantSlug/context/ontology/graph` | `GraphExplorer` | `tenantAdvPolicy` | Tenant | Active |
-| 52 | `/t/:tenantSlug/context/ingestion/jobs` | `IngestionJobs` | `tenantStdPolicy` | Tenant | Active |
-| 53 | `/t/:tenantSlug/context/extraction` | `ExtractionEngine` | `tenantAdvPolicy` | Tenant | Active |
-| 54 | `/t/:tenantSlug/context/integrations` | `Integrations` | `tenantAdminPolicy` | Tenant | Active |
-| 55 | `/t/:tenantSlug/context/sources` | `SourceConfiguration` | `tenantAdminPolicy` | Tenant | Active |
-| 56 | `/t/:tenantSlug/context/targets` | `TargetsAdmin` | `tenantAdminPolicy` | Tenant | Active |
+| 30 | `/t/:tenantSlug/context` | Redirect → `sources` | `tenantStdPolicy` | Tenant | Active |
+| 31 | `/t/:tenantSlug/context/packs` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
+| 32 | `/t/:tenantSlug/context/models` | `MyModels` | `tenantStdPolicy` | Tenant | Active |
+| 33 | `/t/:tenantSlug/context/formulas` | `FormulaList` | `tenantAdvPolicy` | Tenant | Active |
+| 34 | `/t/:tenantSlug/context/formulas/new` | `FormulaBuilder` (isNew) | `tenantAdvPolicy` | Tenant | Active |
+| 35 | `/t/:tenantSlug/context/formulas/:formulaId` | `FormulaBuilder` | `tenantAdvPolicy` | Tenant | Active |
+| 36 | `/t/:tenantSlug/context/value-trees/explorer` | `ValueTreeExplorer` | `tenantAdvPolicy` | Tenant | Active |
+| 37 | `/t/:tenantSlug/context/agents` | `AgentWorkflows` | `tenantAdvPolicy` | Tenant | Active |
+| 38 | `/t/:tenantSlug/context/ontology` | `OntologyEditor` | `tenantAdvPolicy` | Tenant | Active |
+| 39 | `/t/:tenantSlug/context/ontology/entities` | `EntityBrowser` | `tenantAdvPolicy` | Tenant | Active |
+| 40 | `/t/:tenantSlug/context/ontology/entities/:entityId` | `EntityDetail` | `tenantAdvPolicy` | Tenant | Active |
+| 41 | `/t/:tenantSlug/context/ontology/graph` | `GraphExplorer` | `tenantAdvPolicy` | Tenant | Active |
+| 42 | `/t/:tenantSlug/context/ingestion/jobs` | `IngestionJobs` | `tenantStdPolicy` | Tenant | Active |
+| 43 | `/t/:tenantSlug/context/extraction` | `ExtractionEngine` | `tenantAdvPolicy` | Tenant | Active |
+| 44 | `/t/:tenantSlug/context/integrations` | `Integrations` | `tenantAdminPolicy` | Tenant | Active |
+| 45 | `/t/:tenantSlug/context/sources` | `SourceConfiguration` | `tenantAdminPolicy` | Tenant | Active |
+| 46 | `/t/:tenantSlug/context/targets` | `TargetsAdmin` | `tenantAdminPolicy` | Tenant | Active |
 
 ---
 
-## 11. Governance (Tenant-Scoped)
+## 9. Governance (Tenant-Scoped)
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 57 | `/t/:tenantSlug/governance` | Redirect → `traces` | `tenantStdPolicy` | Tenant | Active |
-| 58 | `/t/:tenantSlug/governance/traces` | `DecisionTracePage` | `tenantStdPolicy` | Tenant | Active |
-| 59 | `/t/:tenantSlug/governance/evidence` | `GovernanceEvidencePage` | `tenantStdPolicy` | Tenant | Active |
-| 60 | `/t/:tenantSlug/governance/provenance` | `DecisionTracePage` | `tenantAdvPolicy` | Tenant | Active |
-| 61 | `/t/:tenantSlug/governance/compliance` | `GovernanceCompliancePage` | `tenantAdvPolicy` | Tenant | Active |
-| 62 | `/t/:tenantSlug/governance/formulas` | `FormulaList` | `tenantAdvPolicy` | Tenant | Active |
-| 63 | `/t/:tenantSlug/governance/formulas/:formulaId` | `FormulaBuilder` | `tenantAdvPolicy` | Tenant | Active |
-| 64 | `/t/:tenantSlug/governance/benchmarks` | `BenchmarkPoliciesPage` | `tenantAdminPolicy` | Tenant | Active |
-| 65 | `/t/:tenantSlug/governance/benchmarks/:benchmarkId` | `BenchmarkPoliciesPage` | `tenantAdminPolicy` | Tenant | Active |
-| 66 | `/t/:tenantSlug/governance/value-packs` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
-| 67 | `/t/:tenantSlug/governance/value-packs/:packId` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
-| 68 | `/t/:tenantSlug/governance/policies` | `GovernancePolicies` | `tenantAdminPolicy` | Tenant | Active |
-| 69 | `/t/:tenantSlug/governance/audit-log` | `GovernanceAuditLogPage` | `tenantAdminPolicy` | Tenant | Active |
-| 70 | `/t/:tenantSlug/governance/health` | `HealthMonitorPage` | `tenantAdminPolicy` | Tenant | Active |
+| 47 | `/t/:tenantSlug/governance` | Redirect → `traces` | `tenantStdPolicy` | Tenant | Active |
+| 48 | `/t/:tenantSlug/governance/traces` | `DecisionTracePage` | `tenantStdPolicy` | Tenant | Active |
+| 49 | `/t/:tenantSlug/governance/evidence` | `GovernanceEvidencePage` | `tenantStdPolicy` | Tenant | Active |
+| 50 | `/t/:tenantSlug/governance/provenance` | `DecisionTracePage` | `tenantAdvPolicy` | Tenant | Active |
+| 51 | `/t/:tenantSlug/governance/compliance` | `GovernanceCompliancePage` | `tenantAdvPolicy` | Tenant | Active |
+| 52 | `/t/:tenantSlug/governance/formulas` | `FormulaList` | `tenantAdvPolicy` | Tenant | Active |
+| 53 | `/t/:tenantSlug/governance/formulas/:formulaId` | `FormulaBuilder` | `tenantAdvPolicy` | Tenant | Active |
+| 54 | `/t/:tenantSlug/governance/benchmarks` | `BenchmarkPoliciesPage` | `tenantAdminPolicy` | Tenant | Active |
+| 55 | `/t/:tenantSlug/governance/benchmarks/:benchmarkId` | `BenchmarkPoliciesPage` | `tenantAdminPolicy` | Tenant | Active |
+| 56 | `/t/:tenantSlug/governance/value-packs` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
+| 57 | `/t/:tenantSlug/governance/value-packs/:packId` | `ValuePacks` | `tenantStdPolicy` | Tenant | Active |
+| 58 | `/t/:tenantSlug/governance/policies` | `GovernancePolicies` | `tenantAdminPolicy` | Tenant | Active |
+| 59 | `/t/:tenantSlug/governance/audit-log` | `GovernanceAuditLogPage` | `tenantAdminPolicy` | Tenant | Active |
+| 60 | `/t/:tenantSlug/governance/health` | `HealthMonitorPage` | `tenantAdminPolicy` | Tenant | Active |
 
 ---
 
-## 12. Settings — Personal (Global)
+## 10. Settings — Personal (Global)
 
 > Rendered inside `SettingsLayout`.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 71 | `/settings` | Redirect → `/settings/profile` | `homePolicy` | No | Active |
-| 72 | `/settings/profile` | `PersonalProfile` | `homePolicy` | No | Active |
-| 73 | `/settings/security` | `PersonalSecurity` | `homePolicy` | No | Active |
-| 74 | `/settings/preferences` | `PersonalPreferences` | `homePolicy` | No | Active |
-| 75 | `/settings/notifications` | `PersonalNotifications` | `homePolicy` | No | Active |
-| 76 | `/settings/sessions` | `PersonalSessions` | `homePolicy` | No | Active |
-| 77 | `/settings/activity` | `PersonalActivity` | `homePolicy` | No | Active |
+| 61 | `/settings` | Redirect → `/settings/profile` | `homePolicy` | No | Active |
+| 62 | `/settings/profile` | `PersonalProfile` | `homePolicy` | No | Active |
+| 63 | `/settings/security` | `PersonalSecurity` | `homePolicy` | No | Active |
+| 64 | `/settings/preferences` | `PersonalPreferences` | `homePolicy` | No | Active |
+| 65 | `/settings/notifications` | `PersonalNotifications` | `homePolicy` | No | Active |
+| 66 | `/settings/sessions` | `PersonalSessions` | `homePolicy` | No | Active |
+| 67 | `/settings/activity` | `PersonalActivity` | `homePolicy` | No | Active |
 
 ---
 
-## 13. Settings — Tenant / Workspace / Admin
+## 11. Settings — Tenant / Workspace / Admin
 
 > Rendered inside `SettingsLayout`. All require `tenantAdminPolicy`.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 78 | `/t/:tenantSlug/settings` | Redirect → `workspace` | `tenantAdminPolicy` | Tenant | Active |
-| 79 | `/t/:tenantSlug/settings/workspace` | `BillingWorkspace` | `tenantAdminPolicy` | Tenant | Active |
-| 80 | `/t/:tenantSlug/settings/billing` | `BillingSubscription` | `tenantAdminPolicy` | Tenant | Active |
-| 81 | `/t/:tenantSlug/settings/billing/subscription` | `BillingSubscription` | `tenantAdminPolicy` | Tenant | Active |
-| 82 | `/t/:tenantSlug/settings/billing/usage` | `BillingUsage` | `tenantAdminPolicy` | Tenant | Active |
-| 83 | `/t/:tenantSlug/settings/billing/payment-methods` | `BillingPaymentMethods` | `tenantAdminPolicy` | Tenant | Active |
-| 84 | `/t/:tenantSlug/settings/billing/invoices` | `BillingInvoices` | `tenantAdminPolicy` | Tenant | Active |
-| 85 | `/t/:tenantSlug/settings/users` | `TeamMembers` | `tenantAdminPolicy` | Tenant | Active |
-| 86 | `/t/:tenantSlug/settings/roles` | `TeamRoles` | `tenantAdminPolicy` | Tenant | Active |
-| 87 | `/t/:tenantSlug/settings/permissions` | `TeamPermissions` | `tenantAdminPolicy` | Tenant | Active |
-| 88 | `/t/:tenantSlug/settings/api-keys` | `TeamApiKeys` | `tenantAdminPolicy` | Tenant | Active |
-| 89 | `/t/:tenantSlug/settings/data-sources` | `DataSources` | `tenantAdminPolicy` | Tenant | Active |
-| 90 | `/t/:tenantSlug/settings/integrations` | `DataIntegrations` | `tenantAdminPolicy` | Tenant | Active |
-| 91 | `/t/:tenantSlug/settings/variables` | `DataVariables` | `tenantAdminPolicy` | Tenant | Active |
-| 92 | `/t/:tenantSlug/settings/value-packs` | `DataValuePacks` | `tenantAdminPolicy` | Tenant | Active |
-| 93 | `/t/:tenantSlug/settings/ingestion-rules` | `DataIngestionRules` | `tenantAdminPolicy` | Tenant | Active |
-| 94 | `/t/:tenantSlug/settings/governance` | Redirect → `policies` | `tenantAdminPolicy` | Tenant | Active |
-| 95 | `/t/:tenantSlug/settings/governance/policies` | `GovernancePolicies` | `tenantAdminPolicy` | Tenant | Active |
-| 96 | `/t/:tenantSlug/settings/governance/compliance` | `GovernanceCompliance` | `tenantAdminPolicy` | Tenant | Active |
-| 97 | `/t/:tenantSlug/settings/governance/health` | `GovernanceHealth` | `tenantAdminPolicy` | Tenant | Active |
-| 98 | `/t/:tenantSlug/settings/governance/audit` | `GovernanceAuditTrail` | `tenantAdminPolicy` | Tenant | Active |
-| 99 | `/t/:tenantSlug/settings/governance/admin` | `GovernanceAdminControls` | `tenantAdminPolicy` | Tenant | Active |
+| 68 | `/t/:tenantSlug/settings` | Redirect → `workspace` | `tenantAdminPolicy` | Tenant | Active |
+| 69 | `/t/:tenantSlug/settings/workspace` | `BillingWorkspace` | `tenantAdminPolicy` | Tenant | Active |
+| 70 | `/t/:tenantSlug/settings/billing` | `BillingSubscription` | `tenantAdminPolicy` | Tenant | Active |
+| 71 | `/t/:tenantSlug/settings/billing/subscription` | `BillingSubscription` | `tenantAdminPolicy` | Tenant | Active |
+| 72 | `/t/:tenantSlug/settings/billing/usage` | `BillingUsage` | `tenantAdminPolicy` | Tenant | Active |
+| 73 | `/t/:tenantSlug/settings/billing/payment-methods` | `BillingPaymentMethods` | `tenantAdminPolicy` | Tenant | Active |
+| 74 | `/t/:tenantSlug/settings/billing/invoices` | `BillingInvoices` | `tenantAdminPolicy` | Tenant | Active |
+| 75 | `/t/:tenantSlug/settings/users` | `TeamMembers` | `tenantAdminPolicy` | Tenant | Active |
+| 76 | `/t/:tenantSlug/settings/roles` | `TeamRoles` | `tenantAdminPolicy` | Tenant | Active |
+| 77 | `/t/:tenantSlug/settings/permissions` | `TeamPermissions` | `tenantAdminPolicy` | Tenant | Active |
+| 78 | `/t/:tenantSlug/settings/api-keys` | `TeamApiKeys` | `tenantAdminPolicy` | Tenant | Active |
+| 79 | `/t/:tenantSlug/settings/data-sources` | `DataSources` | `tenantAdminPolicy` | Tenant | Active |
+| 80 | `/t/:tenantSlug/settings/integrations` | `DataIntegrations` | `tenantAdminPolicy` | Tenant | Active |
+| 81 | `/t/:tenantSlug/settings/variables` | `DataVariables` | `tenantAdminPolicy` | Tenant | Active |
+| 82 | `/t/:tenantSlug/settings/value-packs` | `DataValuePacks` | `tenantAdminPolicy` | Tenant | Active |
+| 83 | `/t/:tenantSlug/settings/ingestion-rules` | `DataIngestionRules` | `tenantAdminPolicy` | Tenant | Active |
+| 84 | `/t/:tenantSlug/settings/governance` | Redirect → `policies` | `tenantAdminPolicy` | Tenant | Active |
+| 85 | `/t/:tenantSlug/settings/governance/policies` | `GovernancePolicies` | `tenantAdminPolicy` | Tenant | Active |
+| 86 | `/t/:tenantSlug/settings/governance/compliance` | `GovernanceCompliance` | `tenantAdminPolicy` | Tenant | Active |
+| 87 | `/t/:tenantSlug/settings/governance/health` | `GovernanceHealth` | `tenantAdminPolicy` | Tenant | Active |
+| 88 | `/t/:tenantSlug/settings/governance/audit` | `GovernanceAuditTrail` | `tenantAdminPolicy` | Tenant | Active |
+| 89 | `/t/:tenantSlug/settings/governance/admin` | `GovernanceAdminControls` | `tenantAdminPolicy` | Tenant | Active |
 
 ---
 
-## 14. Developer Tools
+## 12. Developer Tools
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 100 | `/dev/integration` | `IntegrationDashboard` | `tenantAdminPolicy` | No | Active |
+| 90 | `/dev/integration` | `IntegrationDashboard` | `tenantAdminPolicy` | No | Active |
 
 ---
 
-## 15. Catch-All
+## 13. Catch-All
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
-| 101 | `*` | `NotFound` | — | No | Active |
+| 91 | `*` | `NotFound` | — | No | Active |
 
 ---
 
@@ -312,8 +284,6 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 - `/tasks`
 - `/collaboration/comments`
 - `/notifications`
-- All `/workflow/*` routes (legacy)
-- All `/value-pilot/*` routes (legacy)
 - `/t/:tenantSlug/accounts/:accountId/agents` and sub-routes
 - `/t/:tenantSlug/accounts/:accountId/workflows` and sub-routes
 - `/dev/integration`
@@ -367,16 +337,15 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 
 ### Legacy / Deprecation Tests
 
-11. **Legacy workflow redirects**: Verify `/workflow/*` still renders
-12. **Legacy value-pilot**: Verify `/value-pilot` still renders
+_None — legacy `/workflow/*` and `/value-pilot/*` routes have been removed._
 
 ### Negative / Edge Cases
 
-13. **Unauthorized access**: Unauthenticated hit on `/home` → redirect to `/sign-in`
-14. **Missing tenant**: Access `/t/:tenantSlug/...` without valid tenant context
-15. **Missing account**: Access `/t/:tenantSlug/accounts/:accountId/...` without valid account
-16. **Tier enforcement**: Standard user accessing `tenantAdvPolicy` or `tenantAdminPolicy` routes
-17. **404 handling**: Unknown path `/*` renders `NotFound`
+11. **Unauthorized access**: Unauthenticated hit on `/home` → redirect to `/sign-in`
+12. **Missing tenant**: Access `/t/:tenantSlug/...` without valid tenant context
+13. **Missing account**: Access `/t/:tenantSlug/accounts/:accountId/...` without valid account
+14. **Tier enforcement**: Standard user accessing `tenantAdvPolicy` or `tenantAdminPolicy` routes
+15. **404 handling**: Unknown path `/*` renders `NotFound`
 
 ---
 
@@ -412,8 +381,6 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 | `/collaboration/comments` | utility route | No | Keep as utility |
 | `/notifications` | utility route | No | Keep as utility |
 | `/dev/integration` | dev-only route | No | **Hide from production nav**; keep router entry for dev builds |
-| `/workflow/*` (all 8 routes) | legacy route | No | **Deprecated** — keep for compatibility, hide from nav, add backlog sunset ticket |
-| `/value-pilot/*` | legacy route | No | **Deprecated** — keep for compatibility, hide from nav, add backlog sunset ticket |
 | `/t/:tenantSlug/accounts/:accountId/agents` | secondary account-scoped route | No | Intentional — same component used in primary (`/context/agents`) and account context |
 | `/t/:tenantSlug/accounts/:accountId/workflows` | secondary account-scoped route | No | Intentional — same component used in primary and account context |
 | `/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId` | detail route | No | Not needed in primary nav |
@@ -438,14 +405,7 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 | `GovernancePolicies` | `/governance/policies`, `/t/:tenantSlug/settings/governance/policies` | **Same component, different context** | Intentional — policy admin view reused in Governance hub and Settings workspace. |
 | `BillingSubscription` | `/t/:tenantSlug/settings/billing`, `/t/:tenantSlug/settings/billing/subscription` | **Redirect alias** | `/billing` redirects to `/billing/subscription` in router; NAV_SCHEMA should point to canonical path. |
 
-### 5. Legacy Route Policy
-
-| Legacy Route | Status | Policy |
-|--------------|--------|--------|
-| `/workflow/*` (8 routes) | **Deprecated, keep for compatibility** | Hide from primary nav. Add backlog ticket for graceful sunset. Do not redirect (no canonical tenant/account context available). |
-| `/value-pilot/*` (2 routes) | **Deprecated, keep for compatibility** | Hide from primary nav. Add backlog ticket for graceful sunset. |
-
-### 6. Policy Mismatch Resolution
+### 5. Policy Mismatch Resolution
 
 | Mismatch | Resolution | Status |
 |----------|------------|--------|
@@ -453,7 +413,7 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 | `accountAdvPolicy` defined but unused | Added TODO comment in `router.tsx` documenting it as reserved for future advanced account-scoped gating | **Documented** |
 | `ROUTE_TIER_MAP` in `userTierStore.ts` uses stale paths (e.g. `/discover/*`, `/library/*`, `/context` without tenant prefix) | **Identified as dead code** — not consumed by `UnifiedRouteGuard` or `LeftNavigation`. Needs cleanup in separate tech-debt pass. | **Backlogged** |
 
-### 7. P0/P1 Fixes Made
+### 6. P0/P1 Fixes Made
 
 | Fix | File | Lines |
 |-----|------|-------|
@@ -464,12 +424,11 @@ The following routes exist in the router but have **no corresponding NAV_SCHEMA 
 | Updated NAV_ICONS map for renamed/new entries | `src/components/layout/LeftNavigation.tsx` | 24–34 |
 | Documented accountAdvPolicy as reserved | `src/shell/router.tsx` | 150–152 |
 
-### 8. Remaining Backlog
+### 7. Remaining Backlog
 
 | Item | Priority | Owner | Notes |
 |------|----------|-------|-------|
 | Clean up stale `ROUTE_TIER_MAP` in `userTierStore.ts` | P2 | Tech debt | Dead code — not used by route guard or nav |
-| Add backlog ticket for legacy route sunset (`/workflow/*`, `/value-pilot/*`) | P2 | Product | Hide from nav; plan graceful deprecation |
 | Investigate `/provenance` → `/traces` redirect | P2 | Product | Both use `DecisionTracePage`; may want to unify |
 | Evaluate `/command-center`, `/tasks`, `/notifications` for primary nav promotion | P3 | UX | Currently utility routes; may deserve NAV_SCHEMA entries |
 | Ensure `LeftNavigation` handles account-scoped agents/workflows as secondary nav | P2 | Engineering | These routes exist but are not in primary sidebar |

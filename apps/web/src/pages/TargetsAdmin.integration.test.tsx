@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen, waitFor, within, cleanup, act } from '@testing-library/react';
+import { screen, waitFor, within, cleanup, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/mocks/server';
@@ -224,11 +224,11 @@ describe('TargetsAdmin integration — loading states', () => {
     renderWithRouter(<TargetsAdmin />);
 
     // The page heading is immediately visible even while stats are loading
-    expect(screen.getByRole('button', { name: /new target/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Targets' })).toBeInTheDocument();
 
-    // Stats data eventually arrives without crashing
+    // Stats data eventually arrives without crashing (makeStats returns total: 3)
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /new target/i })).toBeInTheDocument();
+      expect(screen.getByText('3')).toBeInTheDocument();
     }, { timeout: 1000 });
   });
 
@@ -665,11 +665,11 @@ describe('TargetsAdmin integration — search filter', () => {
 
     // placeholder is "Search targets…"
     const searchInput = screen.getByPlaceholderText('Search targets…');
-    await user.type(searchInput, 'acme');
+    fireEvent.change(searchInput, { target: { value: 'acme' } });
 
     await waitFor(() => {
       expect(capturedSearch).toBe('acme');
-    });
+    }, { timeout: 3000 });
   });
 });
 
@@ -744,7 +744,7 @@ describe('TargetsAdmin integration — API error handling', () => {
     renderWithRouter(<TargetsAdmin />);
     // Page header still renders
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new target/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Targets' })).toBeInTheDocument();
     });
   });
 

@@ -46,7 +46,6 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..metrics.prometheus_metrics import get_metrics
 from ..shared.config import settings
 from ..shared.database import get_db_session
-from ..shared.otel_celery import build_celery_options, start_celery_span
 from ..shared.maintenance import authorize_maintenance_operation, maintenance_audit_log
 from ..shared.models import (
     AccountIntelligencePacket,
@@ -67,6 +66,7 @@ from ..shared.models import (
     SourceCorpus,
     TenantRegistry,
 )
+from ..shared.otel_celery import build_celery_options, start_celery_span
 from ..skills import get_extraction_schema, get_skill
 
 # Maximum delivery attempts before an outbox event is dead-lettered.
@@ -232,6 +232,12 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
     job_id = UUID(job_id)
     tenant_uuid = UUID(tenant_id)
 
+    if _check_tenant_kill_switch_sync(tenant_id):
+        _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.INIT)
+        return process_scraping_jobResult.model_validate(
+            {"success": False, "job_id": str(job_id), "error": "Tenant suspended", "task_id": None}
+        ).model_dump()
+
     logger.info("Starting scraping job pipeline", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
@@ -302,6 +308,13 @@ async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     tenant_uuid = UUID(tenant_id)
+
+    if _check_tenant_kill_switch_sync(tenant_id):
+        _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.COMPLIANCE_CHECK)
+        return compliance_check_stageResult.model_validate(
+            {"success": False, "job_id": str(job_id), "error": "Tenant suspended"}
+        ).model_dump()
+
     stage_started_at = time.monotonic()
 
     logger.info("Starting compliance check stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
@@ -1648,6 +1661,15 @@ def _update_stage(
                 )
         if error_message:
             stage_detail.error_message = error_message
+
+
+def _check_tenant_kill_switch_sync(tenant_id: str) -> bool:
+    """Check whether the tenant kill-switch is active.
+
+    Returns True when the tenant is suspended and all work must fail closed.
+    """
+    # No kill-switch implementation yet; default to not suspended.
+    return False
 
 
 def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):

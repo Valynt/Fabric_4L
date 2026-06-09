@@ -70,6 +70,39 @@ export function resolveWorkspaceRoutePath(
   return path;
 }
 
+const INTELLIGENCE_TAB_STATE_MAP: Record<string, RouteState> = {
+  signals: "intelligence-signals",
+  enrichment: "intelligence-enrichment",
+  stakeholders: "intelligence-stakeholders",
+  "ontology-match": "intelligence-ontology",
+  hypotheses: "intelligence-hypotheses",
+  "discovery-questions": "intelligence-discovery",
+  "persona-fit": "intelligence-persona",
+  assumptions: "intelligence-assumptions",
+  drivers: "intelligence-drivers",
+  evidence: "intelligence-evidence",
+  alternatives: "intelligence-alternatives",
+  "solution-cost": "intelligence-solution-cost",
+};
+
+const STUDIO_TAB_STATE_MAP: Record<string, RouteState> = {
+  "action-plan": "studio-action-plan",
+  "value-model": "studio-value-model",
+  "driver-tree": "studio-driver-tree",
+  calculator: "studio-calculator",
+  narrative: "studio-narrative",
+  "value-case": "studio-value-case",
+  "value-realization": "studio-value-realization",
+  "solution-cost": "studio-solution-cost",
+};
+
+export function getWorkspaceTabState(workspace: AccountWorkspace, tab: string): RouteState {
+  if (workspace === "intelligence") {
+    return INTELLIGENCE_TAB_STATE_MAP[tab] ?? "intelligence-signals";
+  }
+  return STUDIO_TAB_STATE_MAP[tab] ?? "studio-action-plan";
+}
+
 export function resolveAccountScopedWorkspacePath(options: {
   workspace: AccountWorkspace;
   accountId: string | null;
@@ -80,8 +113,6 @@ export function resolveAccountScopedWorkspacePath(options: {
   if (!accountId) return "/t/default/accounts";
 
   const resolvedTab = getWorkspaceTabOrDefault(workspace, tab);
-  const state: RouteState = workspace === 'intelligence' ? 'intelligence' : 'studio';
-  const basePath = getStatePath(state, { tenantSlug: tenantSlug ?? "default", accountId });
-
-  return buildPath(`${basePath}/:tab`, { tab: resolvedTab });
+  const state = getWorkspaceTabState(workspace, resolvedTab);
+  return getStatePath(state, { tenantSlug: tenantSlug ?? "default", accountId });
 }
