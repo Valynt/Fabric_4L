@@ -73,6 +73,10 @@ class Invoice(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
+    __table_args__ = (
+        Index("ix_l7_billing_invoices_tenant_created", "tenant_id", "created_at"),
+    )
+
 
 class PaymentState(Base):
     __tablename__ = "l7_billing_payment_states"

@@ -78,7 +78,23 @@ def _db_available() -> bool:
         except Exception:
             return False
 
-    return asyncio.get_event_loop().run_until_complete(_probe())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop is not None and loop.is_running():
+        # Running inside an event loop (e.g., pytest-asyncio); we can't run_until_complete.
+        # Defer the check to a synchronous socket probe instead.
+        import socket
+
+        try:
+            with socket.create_connection((host, port), timeout=3):
+                return True
+        except Exception:
+            return False
+
+    return asyncio.new_event_loop().run_until_complete(_probe())
 
 
 if not _db_available():

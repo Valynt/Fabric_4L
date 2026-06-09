@@ -39,7 +39,7 @@ def _module_has_bypass_marker(path: Path) -> bool:
 @pytest.mark.contract_static
 def test_intentional_local_db_modules_are_explicitly_marked() -> None:
     modules = [
-        Path("services/layer1-ingestion/src/shared/database.py"),
+        Path("services/layer1-ingestion/src/layer1_ingestion/shared/database.py"),
         Path("services/layer4-agents/src/database.py"),
         Path("services/layer5-ground-truth/src/layer5_ground_truth/database.py"),
     ]

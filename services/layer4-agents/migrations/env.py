@@ -19,11 +19,8 @@ from sqlalchemy.exc import OperationalError
 # Module-level logger for migration retry messages
 logger = logging.getLogger(__name__)
 
-# Add src to path for imports (same pattern as layer2-extraction)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 # Import the declarative Base so Alembic can detect model changes
-from src.database import Base
+from layer4_agents.database import Base
 
 # ---------------------------------------------------------------------------
 # Alembic Config object

@@ -704,6 +704,10 @@ class MaturityHistory(Base):
         back_populates="maturity_history",
     )
 
+    __table_args__ = (
+        Index("ix_maturity_history_tenant_recorded", "tenant_id", "recorded_at"),
+    )
+
     def __repr__(self) -> str:
         return (
             f"<MaturityHistory id={self.id} level {self.from_level} → {self.to_level}>"

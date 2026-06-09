@@ -45,5 +45,7 @@ class BusinessCaseRecord(Base):
     __table_args__ = (
         Index("ix_business_case_records_account_id", "account_id"),
         Index("ix_business_case_records_workflow_id", "workflow_id"),
+        Index("ix_business_case_records_tenant_id", "tenant_id"),
+        Index("ix_business_case_records_tenant_status", "tenant_id", "status"),
     )
 
