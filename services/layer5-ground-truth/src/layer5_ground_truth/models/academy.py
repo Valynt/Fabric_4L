@@ -17,12 +17,13 @@ Design notes:
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import Column, DateTime, Index, Integer, String, Text
+from sqlalchemy import DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
-from .truth_object import Base, UUID
+from .truth_object import UUID, Base
 
 
 class AcademyPillar(Base):
@@ -35,7 +36,7 @@ class AcademyPillar(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     target_maturity_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     duration: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    content: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    content: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -58,11 +59,11 @@ class AcademyQuizQuestion(Base):
     question_type: Mapped[str] = mapped_column(String(32), nullable=False)
     category: Mapped[str] = mapped_column(String(64), nullable=False)
     question_text: Mapped[str] = mapped_column(Text, nullable=False)
-    options: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
+    options: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
     correct_answer: Mapped[str] = mapped_column(Text, nullable=False)
     points: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
-    feedback: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    role_adaptations: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    feedback: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    role_adaptations: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -108,9 +109,9 @@ class AcademyQuizResult(Base):
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     pillar_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=False)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
-    category_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    answers: Mapped[list[dict]] = mapped_column(JSON, nullable=False)
-    feedback: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    category_scores: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    answers: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    feedback: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     passed: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     completed_at: Mapped[datetime] = mapped_column(
@@ -150,7 +151,7 @@ class AcademyMaturityAssessment(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     level: Mapped[int] = mapped_column(Integer, nullable=False)
-    assessment_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    assessment_data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     assessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )

@@ -27,6 +27,7 @@ from ..handlers import (
     register_exception_handlers,
     sanitize_error_details,
 )
+from ..sanitizer import sanitize_error_message
 from ..middleware import RequestIDMiddleware, get_request_id
 from ..models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -278,6 +279,32 @@ class TestSanitizeErrorDetails:
         details = {"password": "secret", "token": "xyz"}
         result = sanitize_error_details(details)
         assert result is None
+
+
+class TestSanitizeErrorMessage:
+    def test_redacts_tenant_id(self):
+        assert sanitize_error_message("tenant_id=tenant_abc123") == "tenant_id=<redacted>"
+
+    def test_redacts_subscription_id(self):
+        assert (
+            sanitize_error_message("subscription_id=sub_secret_123")
+            == "subscription_id=<redacted>"
+        )
+
+    def test_redacts_customer_id(self):
+        assert sanitize_error_message("customer_id=cus_123") == "customer_id=<redacted>"
+
+    def test_preserves_non_identifier_text(self):
+        raw = "No active subscription found for tenant_id=tenant_abc subscription_id=sub_secret"
+        sanitized = sanitize_error_message(raw)
+        assert "No active subscription found" in sanitized
+        assert "tenant_abc" not in sanitized
+        assert "sub_secret" not in sanitized
+        assert "tenant_id=<redacted>" in sanitized
+        assert "subscription_id=<redacted>" in sanitized
+
+    def test_no_change_for_safe_message(self):
+        assert sanitize_error_message("Invalid plan") == "Invalid plan"
 
 
 class TestSanitizeTraceId:
@@ -535,6 +562,27 @@ class TestSanitizedPublicErrors:
         body = response.json()
         assert response.status_code == 500
         assert 'abc123' not in body['error']['message']
+
+    def test_value_fabric_exception_redacts_identifiers_from_message(self):
+        """Tenant/subscription/customer IDs must not leak in public error envelopes."""
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/billing-cancel')
+        def billing_cancel():
+            raise BadRequestError(
+                message="No active subscription found for tenant_id=tenant_abc123 subscription_id=sub_secret_123"
+            )
+
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get('/billing-cancel')
+        body = response.json()
+        assert response.status_code == 400
+        assert 'tenant_abc123' not in body['error']['message']
+        assert 'sub_secret_123' not in body['error']['message']
+        assert 'tenant_id=<redacted>' in body['error']['message']
+        assert 'subscription_id=<redacted>' in body['error']['message']
+        assert 'No active subscription found' in body['error']['message']
 
 
 class TestCorrelationContextMiddleware:

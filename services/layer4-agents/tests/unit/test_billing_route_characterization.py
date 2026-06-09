@@ -3,10 +3,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-ROUTES_DIR = Path(__file__).resolve().parents[2] / "src" / "api" / "routes"
-CANONICAL_ROUTES_DIR = (
+ROUTES_DIR = (
     Path(__file__).resolve().parents[2] / "src" / "layer4_agents" / "api" / "routes"
 )
+CANONICAL_ROUTES_DIR = ROUTES_DIR
 
 
 def _add_api_routes(path: Path) -> set[tuple[str, str, str]]:

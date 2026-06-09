@@ -5,6 +5,7 @@ from value_fabric.shared.error_handling.exceptions import NotFoundError
 """User management API routes (tenant_admin only).
 
 POST   /v1/users/invite          — invite a user to the caller's tenant
+POST   /v1/users/accept-invite   — accept an invitation and activate account
 GET    /v1/users                 — list users in the caller's tenant
 GET    /v1/users/{user_id}       — get a user
 PATCH  /v1/users/{user_id}       — update a user's role / status
@@ -12,6 +13,8 @@ DELETE /v1/users/{user_id}       — deactivate a user
 """
 
 
+import logging
+import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -19,21 +22,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
 from value_fabric.shared.identity.models import (
+    UserAcceptInviteRequest,
     UserInviteRequest,
     UserModel,
     UserUpdateRequest,
 )
 
 from ....database import get_db_from_context
+from ...invitations import InvitationService
 from ...service import (
+    accept_invitation,
     deactivate_user,
+    get_tenant,
     get_user,
     invite_user,
     list_users,
     update_user,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+# ---------------------------------------------------------------------------
+# Invitation helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_invitation_service() -> InvitationService:
+    """Create an InvitationService, wiring Redis if available."""
+    redis_url = os.getenv("REDIS_URL")
+    redis_client = None
+    if redis_url:
+        try:
+            import redis
+
+            redis_client = redis.from_url(redis_url, decode_responses=True)
+        except Exception as exc:
+            logger.warning("Failed to connect to Redis for invitations: %s", exc)
+    return InvitationService(redis_client=redis_client)
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 
 @router.post("/invite", response_model=UserModel, status_code=status.HTTP_201_CREATED)
@@ -42,9 +74,57 @@ async def api_invite_user(
     ctx: RequestContext = Depends(require_tenant_admin),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> UserModel:
-    """Invite a user to the caller's tenant. Requires ``tenant_admin`` role."""
+    """Invite a user to the caller's tenant. Requires ``tenant_admin`` role.
+
+    Generates an invitation token and sends an invitation email if an email
+    provider (SendGrid or SMTP) is configured.
+    """
     invited_by = UUID(ctx.user_id) if ctx.user_id else None
-    return await invite_user(db, ctx.tenant_id, request, invited_by=invited_by)
+    invitation_service = _get_invitation_service()
+
+    user, token = await invite_user(
+        db,
+        ctx.tenant_id,
+        request,
+        invited_by=invited_by,
+        inviter_roles=ctx.roles,
+        invitation_service=invitation_service,
+    )
+
+    # Send invitation email if token was generated
+    if token:
+        tenant = await get_tenant(db, ctx.tenant_id)
+        tenant_name = tenant.name if tenant else "your organization"
+        # Fetch inviter name if possible — simplified: pass None
+        email_sent = await invitation_service.send_invitation_email(
+            to_email=request.email,
+            tenant_name=tenant_name,
+            inviter_name=None,
+            invitation_token=token,
+        )
+        if not email_sent:
+            logger.warning(
+                "Invitation email not sent for user %s in tenant %s — "
+                "no email provider configured",
+                request.email,
+                ctx.tenant_id,
+            )
+
+    return user
+
+
+@router.post("/accept-invite", response_model=UserModel)
+async def api_accept_invite(
+    request: UserAcceptInviteRequest,
+    db: AsyncSession = Depends(get_db_from_context),
+) -> UserModel:
+    """Accept an invitation by setting a password and activating the account.
+
+    This endpoint is **public** (does not require authentication) because the
+    caller is an unauthenticated invitee redeeming their invitation token.
+    """
+    invitation_service = _get_invitation_service()
+    return await accept_invitation(db, request, invitation_service)
 
 
 @router.get("", response_model=list[UserModel])

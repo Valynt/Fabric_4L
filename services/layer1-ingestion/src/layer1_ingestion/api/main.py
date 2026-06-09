@@ -132,8 +132,10 @@ class _UnavailableTask:
 
 
 try:
+    from ..shared.otel_celery import build_celery_options
     from ..shared.tasks import cleanup_old_content, process_scraping_job
 except ImportError as exc:
+    build_celery_options = None  # type: ignore[assignment]
     cleanup_old_content = _UnavailableTask("cleanup_old_content", exc)
     process_scraping_job = _UnavailableTask("process_scraping_job", exc)
 
@@ -1815,7 +1817,10 @@ async def execute_target(
     job.status = JobStatus.QUEUED.value
 
     # Start background processing with tenant context envelope
-    process_scraping_job.delay(str(job.id), str(job.tenant_id))
+    process_scraping_job.apply_async(
+        args=[str(job.id), str(job.tenant_id)],
+        **(build_celery_options() or {}),
+    )
 
     logger.info("Queued scraping job", job_id=str(job.id), target_id=str(target_id))
 
@@ -2351,7 +2356,10 @@ async def retry_job(
     # Queue new job
     new_job.status = JobStatus.QUEUED.value
 
-    process_scraping_job.delay(str(new_job.id), str(new_job.tenant_id))
+    process_scraping_job.apply_async(
+        args=[str(new_job.id), str(new_job.tenant_id)],
+        **(build_celery_options() or {}),
+    )
 
     logger.info(
         "Created retry job", original_job_id=str(job_id), new_job_id=str(new_job.id)
@@ -2495,7 +2503,10 @@ def _create_skill_job(
         db.add(stage_detail)
 
     job.status = JobStatus.QUEUED.value
-    process_scraping_job.delay(str(job.id), str(job.tenant_id))
+    process_scraping_job.apply_async(
+        args=[str(job.id), str(job.tenant_id)],
+        **(build_celery_options() or {}),
+    )
 
     logger.info(
         "Queued skill-aware job",
@@ -3326,7 +3337,10 @@ async def trigger_cleanup(
 
     SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
     """
-    cleanup_old_content.delay(days, str(org_id))
+    cleanup_old_content.apply_async(
+        args=[days, str(org_id)],
+        **(build_celery_options() or {}),
+    )
     return trigger_cleanupResult.model_validate(
         {
             "message": f"Cleanup initiated for content older than {days} days",

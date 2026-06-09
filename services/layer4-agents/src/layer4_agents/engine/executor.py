@@ -22,6 +22,7 @@ from uuid import UUID
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import NodeInterrupt
+from opentelemetry import trace
 
 from ..models.agent_state import AgentState, WorkflowStatus
 
@@ -102,6 +103,7 @@ class OrchestrationController_get_cluster_healthResult(TypedDictModel):
 
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
+_tracer = trace.get_tracer(__name__)
 
 
 TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS: tuple[tuple[str, ...], ...] = (
@@ -1486,6 +1488,22 @@ class OrchestrationController:
                 f"Workflow task {task.task_id} missing workflow or initial_state"
             )
 
+        # KILL-SWITCH: Block workflow execution for suspended tenants
+        tenant_id = task.get_tenant_id()
+        if tenant_id:
+            try:
+                from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+
+                kill_switch = TenantKillSwitch()
+                if await kill_switch.is_suspended(tenant_id):
+                    raise WorkflowExecutionError(
+                        f"Tenant {tenant_id} is suspended: workflow execution blocked"
+                    )
+            except WorkflowExecutionError:
+                raise
+            except Exception:
+                pass
+
         await mark_workflow_running(
             state_manager=self.state_manager,
             workflow_id=workflow_id,
@@ -1499,10 +1517,21 @@ class OrchestrationController:
         try:
             from ..config.settings import get_settings
             timeout_seconds = int(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
-            result = await asyncio.wait_for(
-                workflow.run(initial_state, thread_id=workflow_id),
-                timeout=timeout_seconds,
-            )
+            wf_type = task.parameters.get("workflow_type", "unknown")
+            tenant_id_for_trace = task.get_tenant_id() or "unknown"
+            with _tracer.start_as_current_span(
+                "layer4.workflow.execute",
+                attributes={
+                    "workflow.id": workflow_id,
+                    "workflow.type": wf_type,
+                    "tenant.id": tenant_id_for_trace,
+                },
+            ) as span:
+                result = await asyncio.wait_for(
+                    workflow.run(initial_state, thread_id=workflow_id),
+                    timeout=timeout_seconds,
+                )
+                span.set_attribute("workflow.status", self._fmt_enum(result.status))
 
             if result.status == WorkflowStatus.COMPLETED:
                 validation = validate_final_output(result)

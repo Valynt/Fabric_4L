@@ -5,6 +5,9 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
+from value_fabric.shared.observability.http_trace_propagation import (
+    inject_trace_headers,
+)
 
 from app.core.config import get_settings
 from app.core.database import db
@@ -59,7 +62,12 @@ class Layer4OrchestrationClient:
         }
         try:
             with httpx.Client(timeout=self.timeout_seconds) as client:
-                response = client.post(f"{self.base_url}/internal/orchestrator/execute-step", json=payload)
+                headers = inject_trace_headers({"Content-Type": "application/json"})
+                response = client.post(
+                    f"{self.base_url}/internal/orchestrator/execute-step",
+                    json=payload,
+                    headers=headers,
+                )
         except httpx.HTTPError as exc:
             raise Layer4UnavailableError(ERR_LAYER4_UNAVAILABLE) from exc
 

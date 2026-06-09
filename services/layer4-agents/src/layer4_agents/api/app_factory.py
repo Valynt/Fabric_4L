@@ -72,6 +72,18 @@ async def _redis_probe() -> ProbeResult:
         return ProbeResult(name="redis", healthy=False, detail="redis:unavailable")
 
 
+async def _executor_probe() -> ProbeResult:
+    try:
+        if runtime_state.workflow_executor is not None:
+            return ProbeResult(name="executor", healthy=True)
+        return ProbeResult(name="executor", healthy=False, detail="executor_not_initialized")
+    except Exception as exc:
+        import logging
+
+        logging.getLogger("fabric.health").warning("Executor readiness probe failed", exc_info=exc)
+        return ProbeResult(name="executor", healthy=False, detail="executor:unavailable")
+
+
 def create_app() -> FastAPI:
     app = create_fabric_app(
         service_name="layer4-agents",
@@ -86,6 +98,7 @@ def create_app() -> FastAPI:
         health_probes=[
             CallableProbe(name="postgres", fn=_postgres_probe),
             CallableProbe(name="redis", fn=_redis_probe),
+            CallableProbe(name="executor", fn=_executor_probe),
         ],
         readiness_path="/ready",
     )

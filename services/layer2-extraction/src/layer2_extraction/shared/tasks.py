@@ -62,6 +62,10 @@ celery_app.conf.update(
 
 logger = logging.getLogger(__name__)
 
+# Re-export at module level so tests can patch them via layer2_extraction.shared.tasks
+from layer2_extraction.extraction.chunker import chunk_markdown  # noqa: E402
+from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor  # noqa: E402
+
 
 # =============================================================================
 # EXTRACTION TASKS
@@ -85,7 +89,7 @@ async def run_extraction_task(self, job_id: str, source_url: str, content: str, 
     Returns:
         dict with success status and job_id
     """
-    logger.info("Starting extraction task", job_id=job_id, source_url=source_url)
+    logger.info("Starting extraction task", extra={"job_id": job_id, "source_url": source_url})
 
     # Validate tenant_id in config
     tenant_id = config.get("tenant_id")
@@ -104,14 +108,14 @@ async def run_extraction_task(self, job_id: str, source_url: str, content: str, 
             mark_pipeline_complete=mark_pipeline_complete,
         )
 
-        logger.info("Extraction task completed", job_id=job_id)
+        logger.info("Extraction task completed", extra={"job_id": job_id})
         return {
             "success": True,
             "job_id": job_id,
         }
 
     except Exception as exc:
-        logger.error("Extraction task failed", job_id=job_id, error=str(exc))
+        logger.error("Extraction task failed", extra={"job_id": job_id, "error": str(exc)})
         # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
@@ -128,7 +132,7 @@ async def extract_entities_task(self, job_id: str, content: str, config: dict):
     Returns:
         dict with extracted entities and metadata
     """
-    logger.info("Starting entity extraction task", job_id=job_id)
+    logger.info("Starting entity extraction task", extra={"job_id": job_id})
 
     try:
         # Import here to avoid circular dependencies
@@ -146,7 +150,7 @@ async def extract_entities_task(self, job_id: str, content: str, config: dict):
             entities = await extractor.extract_entities(chunk, config.get("extraction_schema"))
             all_entities.extend(entities)
 
-        logger.info("Entity extraction task completed", job_id=job_id, entity_count=len(all_entities))
+        logger.info("Entity extraction task completed", extra={"job_id": job_id, "entity_count": len(all_entities)})
         return {
             "success": True,
             "job_id": job_id,
@@ -155,7 +159,7 @@ async def extract_entities_task(self, job_id: str, content: str, config: dict):
         }
 
     except Exception as exc:
-        logger.error("Entity extraction task failed", job_id=job_id, error=str(exc))
+        logger.error("Entity extraction task failed", extra={"job_id": job_id, "error": str(exc)})
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
 
@@ -171,7 +175,7 @@ async def extract_relationships_task(self, job_id: str, entities: list, config: 
     Returns:
         dict with extracted relationships and metadata
     """
-    logger.info("Starting relationship extraction task", job_id=job_id)
+    logger.info("Starting relationship extraction task", extra={"job_id": job_id})
 
     try:
         # Import here to avoid circular dependencies
@@ -181,7 +185,7 @@ async def extract_relationships_task(self, job_id: str, entities: list, config: 
         extractor = RelationshipExtractor()
         relationships = await extractor.extract_relationships(entities, config.get("extraction_schema"))
 
-        logger.info("Relationship extraction task completed", job_id=job_id, relationship_count=len(relationships))
+        logger.info("Relationship extraction task completed", extra={"job_id": job_id, "relationship_count": len(relationships)})
         return {
             "success": True,
             "job_id": job_id,
@@ -190,5 +194,5 @@ async def extract_relationships_task(self, job_id: str, entities: list, config: 
         }
 
     except Exception as exc:
-        logger.error("Relationship extraction task failed", job_id=job_id, error=str(exc))
+        logger.error("Relationship extraction task failed", extra={"job_id": job_id, "error": str(exc)})
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))

@@ -37,6 +37,7 @@ class AuditAction(str, Enum):
     # ── Data lifecycle ──────────────────────────────────────────────────────
     DOCUMENT_INGESTED = "document.ingested"
     EXTRACTION_RUN = "extraction.run"
+    EXTRACTION_QUARANTINED = "extraction.quarantined"
     KG_NODE_CREATED = "kg.node_created"
     KG_NODE_UPDATED = "kg.node_updated"
     KG_NODE_DELETED = "kg.node_deleted"
@@ -60,10 +61,16 @@ class AuditAction(str, Enum):
     WORKFLOW_STARTED = "workflow.started"
     WORKFLOW_COMPLETED = "workflow.completed"
     WORKFLOW_FAILED = "workflow.failed"
+    WORKFLOW_CANCELLED = "workflow.cancelled"
+    WORKFLOW_PAUSED = "workflow.paused"
+    WORKFLOW_RESUMED = "workflow.resumed"
+    CHECKPOINT_RESUMED = "checkpoint.resumed"
     BUSINESS_CASE_GENERATED = "business_case.generated"
     BUSINESS_CASE_UPDATED = "business_case.updated"
     BUSINESS_CASE_APPROVED = "business_case.approved"
     ROI_CALCULATED = "roi.calculated"
+    BENCHMARK_COMPARED = "benchmark.compared"
+    BENCHMARK_VALIDATED = "benchmark.validated"
     EXPORT_REQUESTED = "export.requested"
     EXPORT_PACKAGE_GENERATED = "export.package_generated"
     EXPORT_DOWNLOAD_ACCESSED = "export.download_accessed"
@@ -88,6 +95,17 @@ class AuditAction(str, Enum):
     BILLING_USAGE_INGESTED = "billing.usage.ingested"
     BILLING_CUSTOMER_SYNCED = "billing.customer.synced"
     BILLING_WEBHOOK_RECEIVED = "billing.webhook.received"
+
+    # ── Ground Truth ────────────────────────────────────────────────────────
+    TRUTH_CREATED = "truth.created"
+    TRUTH_VALIDATED = "truth.validated"
+    TRUTH_DELETED = "truth.deleted"
+    TRUTH_SYNCED = "truth.synced"
+
+    # ── Ingestion / compliance ───────────────────────────────────────────────
+    URL_SAFETY_BLOCKED = "url.safety_blocked"
+    URL_ROBOTS_BLOCKED = "url.robots_blocked"
+    OUTBOX_DEAD_LETTERED = "outbox.dead_lettered"
 
     # ── Merged from root shared/audit/models.py ──────────────────────────────
     CREATE = "create"

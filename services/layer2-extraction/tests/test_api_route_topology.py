@@ -2,11 +2,11 @@ import ast
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 ROUTE_MODULES = [
-    REPO_ROOT / 'services/layer2-extraction/src/layer2_extraction/api/routes/extraction.py',
-    REPO_ROOT / 'services/layer2-extraction/src/layer2_extraction/api/routes/jobs.py',
-    REPO_ROOT / 'services/layer2-extraction/src/layer2_extraction/api/routes/health.py',
+    REPO_ROOT / 'src/layer2_extraction/api/routes/jobs.py',
+    REPO_ROOT / 'src/layer2_extraction/api/routes/health.py',
+    REPO_ROOT / 'src/layer2_extraction/api/routes/system.py',
 ]
 
 

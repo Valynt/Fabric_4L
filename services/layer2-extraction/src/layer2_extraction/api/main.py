@@ -16,6 +16,7 @@ P1-29: OpenTelemetry tracing integration for observability.
 """
 
 import asyncio
+import datetime as _datetime_module
 import hashlib
 import json
 import os
@@ -34,7 +35,7 @@ try:
 except ImportError:
     psutil = None  # type: ignore[assignment]  # Health check will work without system metrics
 
-from fastapi import BackgroundTasks, FastAPI, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -47,7 +48,7 @@ from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.security.config import is_strict_environment
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-from layer2_extraction.api.deps import RequestContext
+from layer2_extraction.api.deps import RequestContext, require_authenticated
 from layer2_extraction.logging_config import configure_structured_logging
 
 # Configure structured logging BEFORE any operations that might log
@@ -75,7 +76,11 @@ from value_fabric.shared.fastapi_framework import (
     EnforcementRolloutConfig,
     HealthChecksConfig,
 )
-from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
+from value_fabric.shared.fastapi_framework.health import (
+    CallableProbe,
+    ProbeResult,
+    RedisHealthProbe,
+)
 
 from layer2_extraction.alignment import SemanticAligner
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
@@ -127,6 +132,7 @@ from layer2_extraction.validation.artifact_validator import (
     validate_for_persistence,
     validate_relationship_for_persistence,
 )
+from value_fabric.shared.audit import emit_audit_event, AuditAction
 
 
 def _current_environment() -> str | None:
@@ -182,6 +188,24 @@ try:
 except Exception:
     pass
 
+async def _pending_ingestion_probe() -> ProbeResult:
+    """Readiness probe for the pending-ingestion store."""
+    try:
+        await pending_ingestion_store.get_due(datetime.now(UTC))
+    except Exception as exc:
+        return ProbeResult(name="pending_ingestion_store", healthy=False, detail=str(exc))
+    return ProbeResult(name="pending_ingestion_store", healthy=True)
+
+
+async def _quarantine_probe() -> ProbeResult:
+    """Readiness probe for the quarantine store."""
+    try:
+        await quarantine_store.list(tenant_id="__health_probe__")
+    except Exception as exc:
+        return ProbeResult(name="quarantine_store", healthy=False, detail=str(exc))
+    return ProbeResult(name="quarantine_store", healthy=True)
+
+
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_fabric_app(
     service_name="layer2-extraction",
@@ -189,7 +213,11 @@ app = create_fabric_app(
     version="1.0.0",
     description="Extraction pipeline for entities and relationships from content",
     lifespan=lifespan,
-    health_probes=[RedisHealthProbe(name="redis", _client=_redis_client)],
+    health_probes=[
+        RedisHealthProbe(name="redis", _client=_redis_client),
+        CallableProbe(name="pending_ingestion_store", fn=_pending_ingestion_probe),
+        CallableProbe(name="quarantine_store", fn=_quarantine_probe),
+    ],
     readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
@@ -566,6 +594,13 @@ async def _set_pipeline_job(
 
 
 def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
+    def _to_datetime(value: datetime | str | None) -> datetime | None:
+        if value is None:
+            return None
+        if isinstance(value, _datetime_module.datetime):
+            return value
+        return datetime.fromisoformat(value)
+
     return ExtractionStatusResponse(
         job_id=job.job_id,
         overall_status=_compute_overall_status(job.extraction_status, job.ingestion_status),
@@ -575,9 +610,9 @@ def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
         relationships_extracted=job.relationships_extracted,
         retry_count=job.retry_count,
         last_error=job.last_error,
-        next_retry_at=datetime.fromisoformat(job.next_retry_at) if job.next_retry_at else None,
-        started_at=datetime.fromisoformat(job.created_at) if job.created_at else None,
-        completed_at=datetime.fromisoformat(job.completed_at) if job.completed_at else None,
+        next_retry_at=_to_datetime(job.next_retry_at),
+        started_at=_to_datetime(job.created_at),
+        completed_at=_to_datetime(job.completed_at),
     )
 
 
@@ -850,6 +885,27 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
         last_error="; ".join(errors),
         completed_at=datetime.now(UTC),
     )
+    try:
+        from uuid import UUID as _UUID
+        emit_audit_event(
+            AuditAction.EXTRACTION_QUARANTINED,
+            tenant_id=_UUID(tenant_id) if tenant_id else None,
+            resource_type="ExtractionJob",
+            resource_id=job_id,
+            outcome="failure",
+            details={
+                "reason": reason,
+                "source_url": source_url,
+                "source_hash": source_hash,
+                "model_version": model_version,
+                "schema_version": schema_version,
+                "prompt_template_version": prompt_template_version,
+                "validation_errors": errors,
+            },
+        )
+    except Exception:
+        # Audit emission must never break the quarantine flow
+        pass
     return record
 
 
@@ -1368,12 +1424,16 @@ async def run_extract_and_ingest(
     try:
         validate_for_persistence(artifacts)
     except ArtifactValidationError:
+        _artifact_payload = json.dumps({
+            "result": artifacts.result.model_dump(mode="json"),
+            "relationships": [r.model_dump(mode="json") for r in artifacts.relationships],
+        })
         await _quarantine_validation_failure(
             tenant_id=str(config.get("tenant_id", "")),
             job_id=job_id,
             source_url=source_url,
             source_hash=hashlib.sha256(content.encode()).hexdigest(),
-            payload=artifacts.model_dump_json(),
+            payload=_artifact_payload,
             errors=["extraction_failed"],
             model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
             schema_version=str(config.get("schema_version") or ""),
@@ -1413,6 +1473,7 @@ async def run_extract_and_ingest(
     await _attempt_ingestion(job_id, source_url, artifacts)
 
 
+@app.get("/health")
 async def health_check():
     """Health check endpoint with real metrics and dependency status."""
     start_time = time.time()
@@ -1523,6 +1584,7 @@ async def health_check():
     })
 
 
+@app.get("/metrics")
 async def metrics_endpoint(request: Request):
     """Prometheus metrics endpoint."""
     if not verify_metrics_access(request):
@@ -1544,10 +1606,11 @@ async def metrics_endpoint(request: Request):
         )
 
 
+@app.post("/v1/extract", response_model=ExtractResponse)
 async def extract(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Start an extraction job.
 
@@ -1594,10 +1657,11 @@ async def extract(
     )
 
 
+@app.post("/v1/extract-and-ingest", response_model=ExtractAndIngestResponse)
 async def extract_and_ingest(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Start a combined extraction and ingestion pipeline job."""
     tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction+ingestion job creation")
@@ -1676,6 +1740,7 @@ async def extract_and_ingest(
     )
 
 
+@app.get("/v1/extract/status/{job_id}", response_model=ExtractionStatusResponse)
 async def get_extraction_status(job_id: str):
     """Get status of a combined extraction and ingestion job."""
     job = await job_store.get(job_id)
@@ -1687,7 +1752,8 @@ async def get_extraction_status(job_id: str):
 
 
 
-async def get_quarantine_status(job_id: str, ctx: RequestContext):
+@app.get("/v1/quarantine/{job_id}")
+async def get_quarantine_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     tenant_id = str(ctx.tenant_id)
     record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
     if record is None:
@@ -1695,11 +1761,13 @@ async def get_quarantine_status(job_id: str, ctx: RequestContext):
     return QuarantineStatusResponse.model_validate(record.model_dump())
 
 
-async def list_quarantine_jobs(ctx: RequestContext):
+@app.get("/v1/quarantine")
+async def list_quarantine_jobs(ctx: RequestContext = Depends(require_authenticated)):
     tenant_id = str(ctx.tenant_id)
     records = await quarantine_store.list(tenant_id=tenant_id)
     return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
-async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, ctx: RequestContext):
+@app.post("/v1/extract/batch")
+async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, ctx: RequestContext = Depends(require_authenticated)):
     """Start a batch extraction job."""
     tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="batch extraction job creation")
 
@@ -1727,6 +1795,7 @@ async def extract_batch(requests: list[ExtractRequest], background_tasks: Backgr
     })
 
 
+@app.get("/v1/entities")
 async def list_entities(
     entity_type: str | None = Query(
         None, enum=["Capability", "UseCase", "Persona", "ValueDriver", "Feature"]
@@ -1742,6 +1811,7 @@ async def list_entities(
     return EntityListResponse(entity_type=entity_type or "all", entities=[], total=0)
 
 
+@app.get("/v1/entities/{entity_id}/relationships")
 async def get_relationships(entity_id: str):
     """Get relationships for an entity.
 
@@ -1750,9 +1820,10 @@ async def get_relationships(entity_id: str):
     return RelationshipsResponse(entity_id=entity_id, incoming=[], outgoing=[])
 
 
+@app.get("/v1/provenance/{job_id}")
 async def get_provenance(
     job_id: str,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Get full provenance trace for an extraction job. Requires authentication."""
     tracker = get_provenance_tracker()
@@ -1772,9 +1843,10 @@ async def get_provenance(
     )
 
 
+@app.get("/v1/provenance/entity/{entity_id}")
 async def get_entity_provenance(
     entity_id: str,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Get provenance for a specific entity. Requires authentication."""
     tracker = get_provenance_tracker()
@@ -1921,6 +1993,7 @@ async def _job_event_generator(job_id: str):
         await asyncio.sleep(_SSE_POLL_INTERVAL_SECONDS)
 
 
+@app.get("/v1/extract/jobs/{job_id}/events")
 async def stream_job_events(job_id: str):
     """Stream real-time events for a pipeline job via SSE.
 

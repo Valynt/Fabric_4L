@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,6 @@ from layer5_ground_truth.models.academy import (
     AcademyQuizResult,
     AcademyResource,
 )
-
 
 # --- Maturity level metadata ---
 
@@ -334,7 +334,7 @@ async def create_maturity_assessment(
     tenant_id: uuid.UUID,
     user_id: str,
     level: int,
-    assessment_data: dict,
+    assessment_data: dict[str, Any],
 ) -> AcademyMaturityAssessment:
     assessment = AcademyMaturityAssessment(
         id=uuid.uuid4(),

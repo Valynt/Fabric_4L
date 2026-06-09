@@ -108,6 +108,10 @@ class PrometheusMetrics:
             'risk_level': risk_level,
         })
 
+    def set_health_status(self, healthy: bool, component: str = "api") -> None:
+        """Record health status for a component (1=healthy, 0=unhealthy)."""
+        self._record_gauge('vf_health_status', {'component': component}, 1.0 if healthy else 0.0)
+
     def get_metrics(self) -> str:
         """Generate Prometheus exposition format output."""
         lines: list[str] = []

@@ -22,12 +22,14 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
+from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.error_handling.middleware import get_request_id
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ...engine.executor import OrchestrationController
+from ..common.audit import emit_route_audit
 from .workflows import get_executor
 
 
@@ -273,7 +275,7 @@ async def get_checkpoint_state(
             state_schema=state_data.get("workflow_type", "unknown"),
         )
 
-    except HTTPException:
+    except (HTTPException, AuthorizationError, NotFoundError):
         raise
     except Exception as e:
         logger.error(f"Error retrieving checkpoint {checkpoint_id}: {e}")
@@ -359,7 +361,7 @@ async def compare_checkpoints(
             summary=diff["summary"],
         )
 
-    except HTTPException:
+    except (HTTPException, AuthorizationError, NotFoundError):
         raise
     except Exception as e:
         logger.error(f"Error comparing checkpoints: {e}")
@@ -417,6 +419,23 @@ async def resume_from_checkpoint(
             skip_nodes=request.skip_nodes,
         )
 
+        # Audit: checkpoint resumed
+        try:
+            await emit_route_audit(
+                action=AuditAction.CHECKPOINT_RESUMED,
+                context=_ctx,
+                resource_type="Workflow",
+                resource_id=workflow_id,
+                details={
+                    "outcome": "success",
+                    "checkpoint_id": request.checkpoint_id,
+                    "resumed_from_node": checkpoint_data.get("node_name", "unknown"),
+                    "result_status": result.get("status", "resumed"),
+                },
+            )
+        except Exception:
+            logger.exception(f"Audit logging failed for checkpoint resume {workflow_id}")
+
         return ResumeFromCheckpointResponse(
             workflow_id=workflow_id,
             resumed_from_checkpoint=request.checkpoint_id,
@@ -425,7 +444,7 @@ async def resume_from_checkpoint(
             message=f"Workflow resumed from checkpoint at node: {checkpoint_data.get('node_name', 'unknown')}",
         )
 
-    except HTTPException:
+    except (HTTPException, AuthorizationError, NotFoundError):
         raise
     except Exception as e:
         logger.error(f"Error resuming from checkpoint: {e}")

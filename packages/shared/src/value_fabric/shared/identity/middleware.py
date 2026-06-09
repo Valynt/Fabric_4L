@@ -61,6 +61,7 @@ from value_fabric.shared.rate_limiting.http_middleware import (
     build_rate_limit_key,
     should_skip_rate_limit,
 )
+from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
 
 logger = logging.getLogger(__name__)
 _LEGACY_TEST_TENANT_ID_RE = re.compile(r"^tenant-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -442,6 +443,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         api_key_resolver: Optional[Callable] = None,
         rate_limiter: Optional[RedisRateLimiter] = None,
         tenant_settings_resolver: Optional[Callable] = None,
+        tenant_status_resolver: Optional[Callable] = None,
         on_rate_limit_hit: Optional[Callable[[str, str], None]] = None,
         enforce_authentication: bool = True,
         require_tenant_context: bool = True,
@@ -451,6 +453,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         self._rate_limiter = rate_limiter
         self._redis_client = rate_limiter
         self._tenant_settings_resolver = tenant_settings_resolver
+        self._tenant_status_resolver = tenant_status_resolver
         self._on_rate_limit_hit = on_rate_limit_hit
         self._enforce_authentication = enforce_authentication
         self._require_tenant_context = require_tenant_context
@@ -514,9 +517,33 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 request.state.governance_context = ctx
 
                 # Tenant lifecycle enforcement — must run before business logic.
-                # tenant_status is carried in the JWT raw claims or context raw dict.
+                # Prefer real-time resolver (DB/Redis) over stale JWT claims.
                 tenant_status = None
-                if ctx.raw:
+                if self._tenant_status_resolver is not None:
+                    try:
+                        resolved = await self._tenant_status_resolver(str(ctx.tenant_id))
+                        if resolved is not None:
+                            tenant_status = resolved
+                    except Exception as exc:
+                        logger.warning(
+                            "tenant_status_resolver_failed",
+                            extra={
+                                "event": "tenant_status_resolver_failed",
+                                "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                                "error": str(exc),
+                                "tenant_id": str(ctx.tenant_id),
+                            },
+                        )
+                # Fast-path kill-switch check (Redis) — blocks even if resolver is down
+                if tenant_status is None:
+                    try:
+                        kill_switch = TenantKillSwitch(self._redis_client)
+                        if await kill_switch.is_suspended(str(ctx.tenant_id)):
+                            tenant_status = "suspended"
+                    except Exception:
+                        pass  # Kill switch is advisory; DB fallback below is authoritative
+                # Fall back to JWT claim if resolver unavailable or failed
+                if tenant_status is None and ctx.raw:
                     tenant_status = ctx.raw.get("tenant_status")
                 if tenant_status == "suspended":
                     return JSONResponse(
@@ -524,6 +551,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         content={
                             "detail": "Tenant account is suspended. Please contact support.",
                             "error": "tenant_suspended",
+                            "tenant_id": str(ctx.tenant_id),
                         },
                     )
                 if tenant_status == "pending":
@@ -532,6 +560,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         content={
                             "detail": "Tenant account is pending activation.",
                             "error": "tenant_pending",
+                            "tenant_id": str(ctx.tenant_id),
                         },
                     )
                 if tenant_status == "deleted":
@@ -540,6 +569,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         content={
                             "detail": "Tenant not found.",
                             "error": "tenant_not_found",
+                            "tenant_id": str(ctx.tenant_id),
                         },
                     )
             else:

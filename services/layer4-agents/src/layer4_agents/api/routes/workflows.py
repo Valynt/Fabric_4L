@@ -370,6 +370,18 @@ async def create_workflow(
         # Estimate duration based on workflow type
         estimated_duration = ESTIMATED_DURATION_SECONDS.get(request.workflow_type, 300)
 
+        # Audit: workflow started
+        try:
+            await emit_route_audit(
+                action=AuditAction.WORKFLOW_STARTED,
+                context=_ctx,
+                resource_type="Workflow",
+                resource_id=result.workflow_id,
+                details={"workflow_type": request.workflow_type, "priority": request.priority},
+            )
+        except Exception:
+            logger.exception(f"Audit logging failed for workflow start {result.workflow_id}")
+
         return WorkflowCreateResponse(
             workflow_instance_id=result.workflow_id,
             status=extract_status_value(result.status),
@@ -609,6 +621,18 @@ async def cancel_workflow(
     if not cancelled:
         raise ValidationError(message = str(f"Workflow {workflow_id} could not be cancelled"))
 
+    # Audit: workflow cancelled
+    try:
+        await emit_route_audit(
+            action=AuditAction.WORKFLOW_CANCELLED,
+            context=_ctx,
+            resource_type="Workflow",
+            resource_id=workflow_id,
+            details={"outcome": "success"},
+        )
+    except Exception:
+        logger.exception(f"Audit logging failed for workflow cancel {workflow_id}")
+
     return WorkflowCancelResponse(workflow_id=workflow_id, status="cancelled")
 
 
@@ -669,6 +693,22 @@ async def resume_workflow(
         # Determine response status based on result
         result_status = extract_status_value(result.status)
         is_complete = result_status in TERMINAL_STATUSES
+        # Audit: workflow resumed
+        try:
+            await emit_route_audit(
+                action=AuditAction.WORKFLOW_RESUMED,
+                context=_ctx,
+                resource_type="Workflow",
+                resource_id=workflow_id,
+                details={
+                    "outcome": "success",
+                    "resumed_from_node": status.get("current_node"),
+                    "result_status": result_status,
+                },
+            )
+        except Exception:
+            logger.exception(f"Audit logging failed for workflow resume {workflow_id}")
+
         return WorkflowResumeResponse(
             workflow_instance_id=workflow_id,
             status=result_status if is_complete else "resumed",
@@ -764,6 +804,18 @@ async def pause_workflow(
 
         if not paused:
             raise ServiceUnavailableError(message="Failed to pause workflow")
+
+        # Audit: workflow paused
+        try:
+            await emit_route_audit(
+                action=AuditAction.WORKFLOW_PAUSED,
+                context=_ctx,
+                resource_type="Workflow",
+                resource_id=workflow_id,
+                details={"reason": request.reason, "outcome": "success"},
+            )
+        except Exception:
+            logger.exception(f"Audit logging failed for workflow pause {workflow_id}")
 
         return WorkflowPauseResponse(
             workflow_instance_id=workflow_id,

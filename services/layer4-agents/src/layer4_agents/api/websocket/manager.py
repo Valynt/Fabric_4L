@@ -270,6 +270,22 @@ class WorkflowWebSocketManager:
             await websocket.close(code=4403, reason="Access denied")
             return
 
+        # --- Kill-switch check (real-time suspension) -----------------------
+        if tenant_id:
+            try:
+                from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+                kill_switch = TenantKillSwitch(self.redis)
+                if await kill_switch.is_suspended(tenant_id):
+                    await websocket.close(code=4403, reason="Tenant suspended")
+                    logger.warning(
+                        "WebSocket connect rejected: tenant %s is suspended",
+                        tenant_id,
+                        extra={"event": "websocket.connect.rejected.suspended", "tenant_id": tenant_id, "workflow_id": workflow_id},
+                    )
+                    return
+            except Exception:
+                pass  # Kill-switch failure is not fatal; continue with connection
+
         await websocket.accept()
 
         conn = WorkflowConnection(
@@ -354,6 +370,51 @@ class WorkflowWebSocketManager:
             "WebSocket disconnected",
             extra={"workflow_id": workflow_id, "trace_id": log_trace_id, "correlation_id": log_correlation_id or log_trace_id, "request_id": log_trace_id, "x_request_id": log_trace_id},
         )
+
+    async def disconnect_tenant(self, tenant_id: str) -> int:
+        """Forcibly close all WebSocket connections for a given tenant.
+
+        Called by the kill-switch when a tenant is suspended.  Returns the
+        number of connections closed.
+
+        Args:
+            tenant_id: Tenant UUID whose connections should be terminated.
+
+        Returns:
+            Number of connections closed.
+        """
+        closed = 0
+        async with self._lock:
+            # Collect all connections belonging to the tenant
+            conns_to_close: list[tuple[str, WorkflowConnection]] = []
+            for workflow_id, connections in list(self._workflow_connections.items()):
+                for conn in list(connections):
+                    if conn.tenant_id == tenant_id:
+                        conns_to_close.append((workflow_id, conn))
+
+        for workflow_id, conn in conns_to_close:
+            try:
+                conn.is_alive = False
+                await conn.websocket.close(code=4403, reason="Tenant suspended")
+                closed += 1
+            except Exception as exc:
+                logger.debug("Error closing WebSocket for tenant %s: %s", tenant_id, exc)
+
+            # Remove from internal tracking
+            async with self._lock:
+                if workflow_id in self._workflow_connections:
+                    self._workflow_connections[workflow_id].discard(conn)
+                    if not self._workflow_connections[workflow_id]:
+                        del self._workflow_connections[workflow_id]
+
+        if closed:
+            logger.warning(
+                "Closed %d WebSocket connection(s) for suspended tenant %s",
+                closed,
+                tenant_id,
+                extra={"event": "websocket.tenant_suspended", "tenant_id": tenant_id, "connections_closed": closed},
+            )
+        return closed
 
     async def cleanup_workflow(self, workflow_id: str) -> None:
         """Remove event store and tenant registry entry for completed workflows.

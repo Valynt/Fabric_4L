@@ -270,6 +270,19 @@ async def _neo4j_probe() -> ProbeResult:
     return ProbeResult(name="neo4j", healthy=True)
 
 
+async def _vector_store_probe() -> ProbeResult:
+    """Readiness probe for Neo4j-native vector store (embedding + index availability)."""
+    if not _probe_app:
+        return ProbeResult(name="vector_store", healthy=False, detail="app not initialized")
+    app = _probe_app[0]
+    app_state = getattr(app.state, "app_state", None)
+    if app_state is None:
+        return ProbeResult(name="vector_store", healthy=False, detail="app state not initialized")
+    if getattr(app_state, "vector_store", None) is None:
+        return ProbeResult(name="vector_store", healthy=False, detail="vector_store not initialized")
+    return ProbeResult(name="vector_store", healthy=True)
+
+
 def _post_core_middleware_hook(app: FastAPI) -> None:
     """Install service-specific middleware after framework core middleware."""
     global _security_config_l3
@@ -312,7 +325,10 @@ capabilities for enterprise AI workflows.
     post_core_middleware_hook=_post_core_middleware_hook,
     telemetry_service_name="layer3-knowledge",
     instrument_telemetry=True,
-    health_probes=[CallableProbe(name="neo4j", fn=_neo4j_probe)],
+    health_probes=[
+        CallableProbe(name="neo4j", fn=_neo4j_probe),
+        CallableProbe(name="vector_store", fn=_vector_store_probe),
+    ],
     readiness_path="/ready",
     docs_url="/docs",
     redoc_url="/redoc",

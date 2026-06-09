@@ -120,4 +120,4 @@ async def test_missing_tenant_context_fails_closed(client: AsyncClient) -> None:
     response = await client.post("/signals/no-context")
 
     assert response.status_code == 401
-    assert response.json()["error"]["message"] == "Tenant context required"
+    assert response.json()["error"]["message"] == "Request could not be completed"

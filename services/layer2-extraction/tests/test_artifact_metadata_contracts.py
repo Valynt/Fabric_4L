@@ -97,6 +97,7 @@ async def test_validation_failure_paths_quarantine_with_traceable_metadata() -> 
         source_hash="sha256:quarantine",
         model_version="gpt-4.1",
         schema_version="2.1.0",
+        prompt_template_version="prompt-template-v9",
         payload_json='{"artifact":"invalid"}',
         validation_errors=["tenant_id missing", "deterministic_id missing"],
         created_at=now,

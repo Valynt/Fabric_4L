@@ -166,6 +166,14 @@ class UserUpdateRequest(BaseModel):
         return v
 
 
+class UserAcceptInviteRequest(BaseModel):
+    """Accept an invitation by setting a password and activating the account."""
+
+    token: str = Field(..., min_length=1, description="Invitation token from email")
+    password: str = Field(..., min_length=12, description="Password for the new account")
+    display_name: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # API Key
 # ---------------------------------------------------------------------------
@@ -263,14 +271,6 @@ class IsolationTier(str, Enum):
     SHARED = "shared"
     SCHEMA = "schema"
     DATABASE = "database"
-
-class Role(str, Enum):
-    """User roles in the system."""
-
-    SUPER_ADMIN = "super_admin"
-    TENANT_ADMIN = "tenant_admin"
-    USER = "user"
-    READONLY = "readonly"
 
 class TenantSettings(BaseModel):
     """Tenant settings schema with isolation tier support."""

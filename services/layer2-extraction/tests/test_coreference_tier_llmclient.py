@@ -24,7 +24,7 @@ def _cap(id: str, name: str = "Cap Name") -> Capability:
 
 
 def _persona(id: str, title: str = "Product Manager") -> Persona:
-    return Persona(id=id, title=title, role_type=RoleType.CHAMPION, confidence=0.8)
+    return Persona(id=id, title=title, role_type=RoleType.CHAMPION, department="Product", confidence=0.8)
 
 
 def _rel(source_id: str, target_id: str, predicate: PredicateType) -> Relationship:

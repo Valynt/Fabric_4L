@@ -175,12 +175,16 @@ class BillingWebhookEvent(Base):
     next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     payload_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
     __table_args__ = (
         Index("ix_billing_webhook_events_type", "type"),
         Index("ix_billing_webhook_events_processed", "processed_at"),
         Index("ix_billing_webhook_events_status_retry", "status", "next_retry_at"),
         Index("ix_billing_webhook_events_tenant", "tenant_id"),
+        Index("ix_billing_webhook_events_updated_at", "updated_at"),
     )
 
     def __repr__(self) -> str:
@@ -252,6 +256,9 @@ class BillingUsageEvent(Base):
         String(50), nullable=False, default=UsageEventStatus.PENDING, index=True
     )
 
+    # Provenance: which system produced this event
+    source_system: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+
     # Metadata for debugging and enrichment
     event_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
 
@@ -266,6 +273,7 @@ class BillingUsageEvent(Base):
         # Query optimization indexes
         Index("ix_billing_usage_events_customer_timestamp", "tenant_id", "customer_id", "timestamp"),
         Index("ix_billing_usage_events_status_created", "status", "created_at"),
+        Index("ix_billing_usage_events_source_system", "source_system"),
     )
 
     def __repr__(self) -> str:
@@ -371,6 +379,50 @@ class BillingInvoice(Base):
     def amount_due_dollars(self) -> float:
         """Convert amount due cents to dollars."""
         return self.amount_due / 100.0
+
+    def reconcile(self) -> dict[str, bool | str | int]:
+        """Validate invoice integrity and return a reconciliation report.
+
+        Checks:
+        - Header total equals subtotal + tax
+        - Line items sum to invoice total
+        - Amount due equals total - amount_paid
+
+        Returns a dict with ``valid`` (bool), ``checks`` (list of messages),
+        and ``discrepancy_cents`` (int, 0 if valid).
+        """
+        checks: list[str] = []
+        discrepancy = 0
+
+        # Header arithmetic
+        expected_total = self.subtotal + self.tax
+        if self.total != expected_total:
+            checks.append(
+                f"total mismatch: {self.total} != subtotal({self.subtotal}) + tax({self.tax})"
+            )
+            discrepancy += abs(self.total - expected_total)
+
+        expected_due = self.total - self.amount_paid
+        if self.amount_due != expected_due:
+            checks.append(
+                f"amount_due mismatch: {self.amount_due} != total({self.total}) - paid({self.amount_paid})"
+            )
+            discrepancy += abs(self.amount_due - expected_due)
+
+        # Line-item reconciliation (only if items are actually present)
+        if self.items:
+            items_total = sum(item.amount for item in self.items)
+            if items_total != self.total:
+                checks.append(
+                    f"line items total mismatch: {items_total} != invoice total({self.total})"
+                )
+                discrepancy += abs(items_total - self.total)
+
+        return {
+            "valid": len(checks) == 0,
+            "checks": checks,
+            "discrepancy_cents": discrepancy,
+        }
 
 
 class BillingInvoiceItem(Base):
@@ -509,6 +561,9 @@ class BillingCharge(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
     captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

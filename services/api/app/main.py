@@ -111,6 +111,20 @@ async def _api_redis_probe() -> ProbeResult:
     return ProbeResult(name="redis", healthy=True)
 
 
+async def _api_layer4_probe() -> ProbeResult:
+    """Readiness probe for downstream Layer 4 agent orchestration service."""
+    import httpx
+    try:
+        url = f"{settings.layer4_api_base_url.rstrip('/')}/ready"
+        response = httpx.get(url, timeout=2.0)
+        if response.status_code == 200:
+            return ProbeResult(name="layer4", healthy=True)
+        return ProbeResult(name="layer4", healthy=False, detail=f"layer4:status_{response.status_code}")
+    except Exception as exc:
+        logger.warning("API gateway Layer 4 readiness probe failed", dependency="layer4", status="unhealthy", error=str(exc))
+        return ProbeResult(name="layer4", healthy=False, detail="layer4:unavailable")
+
+
 app = create_fabric_app(
     service_name="fabric-4l-api",
     title=settings.app_name,
@@ -121,6 +135,7 @@ app = create_fabric_app(
     health_probes=[
         CallableProbe(name="database", fn=_api_db_probe),
         CallableProbe(name="redis", fn=_api_redis_probe),
+        CallableProbe(name="layer4", fn=_api_layer4_probe),
     ],
     readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(

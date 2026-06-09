@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
 from src.api.routes import checkpoints
@@ -38,6 +39,7 @@ class _FakeExecutor:
 async def client():
     app = FastAPI()
     app.include_router(checkpoints.checkpoint_router, prefix="/v1")
+    register_exception_handlers(app)
     app.dependency_overrides[checkpoints.get_executor] = lambda: _FakeExecutor()
     app.dependency_overrides[checkpoints.require_authenticated] = lambda: RequestContext(
         tenant_id="tenant-a", user_id="user-a", roles=[]
@@ -71,6 +73,6 @@ async def test_tenant_a_cannot_diff_tenant_b_checkpoints(client: AsyncClient):
 async def test_tenant_a_cannot_resume_tenant_b_checkpoint(client: AsyncClient):
     response = await client.post(
         "/v1/workflows/wf-b/resume-from-checkpoint",
-        json={"checkpoint_id": "chk-1", "user_id": "spoofed-user", "resume_data": {}, "skip_nodes": []},
+        json={"checkpoint_id": "chk-1", "resume_data": {}, "skip_nodes": []},
     )
     assert response.status_code == 403

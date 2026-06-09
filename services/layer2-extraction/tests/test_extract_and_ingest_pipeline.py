@@ -211,8 +211,27 @@ def build_layer3_client_class(*, healthy: bool, success: bool):
 
 
 def build_artifacts(job_id: str, source_url: str) -> api_main.ExtractionArtifacts:
-    capability = Capability(name="Pipeline Capability", description="Capability for orchestration test")
-    use_case = UseCase(name="Pipeline Use Case", description="Use case for orchestration test")
+    capability = Capability(
+        name="Pipeline Capability",
+        description="Capability for orchestration test",
+        tenant_id="tenant-1",
+        extraction_job_id=job_id,
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-1",
+        source_refs=[source_url],
+    )
+    use_case = UseCase(
+        name="Pipeline Use Case",
+        description="Use case for orchestration test",
+        tenant_id="tenant-1",
+        extraction_job_id=job_id,
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-2",
+    )
     relationship = Relationship(
         source_id=capability.id,
         raw_predicate="enables",
@@ -222,10 +241,19 @@ def build_artifacts(job_id: str, source_url: str) -> api_main.ExtractionArtifact
         evidence_text="Capability enables the use case.",
         source_url=source_url,
         extraction_job_id=job_id,
+        tenant_id="tenant-1",
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-rel-1",
     )
     result = ExtractionResult(
         job_id=job_id,
         source_url=source_url,
+        tenant_id="tenant-1",
+        schema_version="v1",
+        prompt_version="pv-1",
+        model_version="gpt-4o",
         capabilities=[capability],
         use_cases=[use_case],
         chunks_processed=1,
@@ -704,7 +732,7 @@ async def test_run_extract_and_ingest_quarantines_invalid_artifacts_before_persi
     monkeypatch.setattr(api_main, "run_extraction", fake_run_extraction)
     monkeypatch.setattr(api_main, "_queue_for_retry", fake_queue_for_retry)
     monkeypatch.setattr(api_main, "_quarantine_validation_failure", fake_quarantine_validation_failure)
-    monkeypatch.setattr(api_main, "Layer3KnowledgeClient", build_layer3_client_double(healthy=False))
+    monkeypatch.setattr(api_main, "Layer3KnowledgeClient", build_layer3_client_class(healthy=False, success=False))
 
     await api_main.run_extract_and_ingest(
         job_id="job-invalid",

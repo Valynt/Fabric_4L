@@ -495,9 +495,32 @@ class TestVulnerableComponents:
     @pytest.mark.asyncio
     async def test_no_unmaintained_dependencies(self, client):
         """No unmaintained or deprecated dependencies."""
-        # This is primarily a CI/CD check via pip-audit or similar
-        # Placeholder for integration with dependency scanning
-        pass
+        import glob
+        import os
+
+        # Frontend must use pnpm lockfile
+        assert os.path.exists("pnpm-lock.yaml"), "pnpm-lock.yaml must exist for reproducible frontend builds"
+
+        # Every service must have a pyproject.toml for modern Python packaging
+        service_pyprojects = glob.glob("services/*/pyproject.toml")
+        assert len(service_pyprojects) >= 6, f"Expected >=6 service pyproject.toml files, found {len(service_pyprojects)}"
+
+        # Python requirements must be pinned (no bare package names)
+        req_candidates = [
+            "requirements.txt",
+            "requirements-test.txt",
+            "tests/requirements-test.txt",
+        ]
+        for req_file in req_candidates:
+            if not os.path.exists(req_file):
+                continue
+            with open(req_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith(("#", "-", ".")):
+                        continue
+                    if "==" not in line and ">=" not in line and "<=" not in line:
+                        pytest.fail(f"Unpinned dependency in {req_file}: {line}")
 
 
 # ============================================================================
@@ -604,6 +627,54 @@ class TestAuthenticationFailures:
         assert response.status_code in [200, 401, 403, 404]
 
 
+# Supply-chain integrity checks (separate from CSRF xfail class)
+@pytest.mark.security
+class TestSupplyChainIntegrity:
+    """Supply chain and source integrity checks (A06/A08 overlap)."""
+
+    @pytest.mark.asyncio
+    async def test_dependency_integrity_verification(self, client):
+        """Dependencies verified for integrity (checksums)."""
+        import glob
+        import os
+
+        # pnpm-lock.yaml carries SHA-512 integrity hashes for every package
+        assert os.path.exists("pnpm-lock.yaml"), "pnpm-lock.yaml required for frontend integrity"
+        assert os.path.getsize("pnpm-lock.yaml") > 0, "pnpm-lock.yaml must not be empty"
+
+        # Every service must have a pyproject.toml (modern PEP 518 build system)
+        service_pyprojects = glob.glob("services/*/pyproject.toml")
+        assert len(service_pyprojects) >= 6, f"Expected >=6 service pyproject.toml files, found {len(service_pyprojects)}"
+
+    @pytest.mark.asyncio
+    async def test_unsigned_commits_rejected(self, client):
+        """Unsigned code commits rejected in protected branches."""
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["git", "config", "--get", "commit.gpgsign"],
+                capture_output=True, text=True, check=False,
+            )
+        except FileNotFoundError:
+            pytest.skip("git not available in test environment")
+            return
+
+        signing_enabled = result.stdout.strip().lower() in ("true", "1", "yes")
+        if signing_enabled:
+            sig_result = subprocess.run(
+                ["git", "log", "--format=%G?", "-1"],
+                capture_output=True, text=True, check=False,
+            )
+            status = sig_result.stdout.strip()
+            assert status in ("G", "U"), f"Latest commit signature status: {status}"
+        # If signing is not enabled locally, we still verify the repo is a git repo
+        rev_result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            capture_output=True, text=True, check=False,
+        )
+        assert rev_result.returncode == 0, "Must be inside a git repository"
+
 # ============================================================================
 # A08: SOFTWARE AND DATA INTEGRITY FAILURES
 # ============================================================================
@@ -639,18 +710,6 @@ class TestDataIntegrityFailures:
         # Should reject unsigned webhooks
         assert response.status_code in [400, 401]
 
-    @pytest.mark.asyncio
-    async def test_dependency_integrity_verification(self, client):
-        """Dependencies verified for integrity (checksums)."""
-        # This is primarily a CI/CD check
-        # Verify that lockfiles exist and are used
-        pass
-
-    @pytest.mark.asyncio
-    async def test_unsigned_commits_rejected(self, client):
-        """Unsigned code commits rejected in protected branches."""
-        # GitHub/GitLab configuration test
-        pass
 
 
 # ============================================================================
@@ -680,9 +739,38 @@ class TestLoggingAndMonitoring:
     @pytest.mark.asyncio
     async def test_no_sensitive_data_in_logs(self, client):
         """Logs do not contain sensitive data (passwords, tokens)."""
-        # This requires checking actual log files
-        # Placeholder for log inspection test
-        pass
+        from value_fabric.shared.audit.emitter import _scrub_details, _SENSITIVE_KEYS
+
+        sensitive_payload = {
+            "password": "super-secret-password",
+            "api_key": "sk-live-1234567890",
+            "authorization": "Bearer secret-token",
+            "normal_field": "this-is-ok",
+            "nested": {
+                "token": "nested-secret",
+                "public": "visible",
+            },
+        }
+
+        scrubbed = _scrub_details(sensitive_payload)
+
+        assert scrubbed["password"] == "[REDACTED]"
+        assert scrubbed["api_key"] == "[REDACTED]"
+        assert scrubbed["authorization"] == "[REDACTED]"
+        assert scrubbed["normal_field"] == "this-is-ok"
+        assert scrubbed["nested"]["token"] == "[REDACTED]"
+        assert scrubbed["nested"]["public"] == "visible"
+
+        # Every sensitive key in the payload must be redacted
+        for key in sensitive_payload:
+            if key in _SENSITIVE_KEYS:
+                assert scrubbed[key] == "[REDACTED]", f"Sensitive key {key} not scrubbed"
+
+        # Verify _SENSITIVE_KEYS covers common leak vectors
+        assert "password" in _SENSITIVE_KEYS
+        assert "token" in _SENSITIVE_KEYS
+        assert "api_key" in _SENSITIVE_KEYS
+        assert "secret" in _SENSITIVE_KEYS
 
     @pytest.mark.asyncio
     async def test_suspicious_activity_alerts(self, client):

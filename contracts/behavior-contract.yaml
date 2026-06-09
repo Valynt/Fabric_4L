@@ -36,6 +36,8 @@ domains:
   - frontend_user_flows
   - service_to_service
   - production_readiness
+  - governance
+  - compliance
 
 capabilities:
   # ───────────────────────────────────────────────────────────────────────────
@@ -564,3 +566,205 @@ capabilities:
     denied:
       file: tests/k8s/test_production_blockers.py
       test: test_pgbouncer_auth_material_is_not_committed_or_configmapped
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Security Gaps — RBAC, JWT, Rate Limiting, API Key Safety, Audit Emission
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: auth.rbac-wildcard-rejection
+    domain: auth
+    description: >-
+      Wildcard permissions like "*" or "all" in JWT claims are explicitly
+      discarded during token normalization. Permission checks fail closed on
+      empty or invalid scopes.
+    owner: "@value-fabric/security-leads"
+    marker: rbac
+    expected_failure_mode: "Wildcard scopes are discarded; empty permission set results in 403"
+    allowed:
+      file: tests/security/test_rbac.py
+      test: test_all_permissions_scope_not_grantable_via_jwt_claim
+    denied:
+      file: tests/security/test_rbac.py
+      test: test_require_any_permission_or_logic_does_not_grant_on_empty_set
+
+  - id: auth.jwt-tampering-resistance
+    domain: auth
+    description: >-
+      JWT tokens with modified claims, expired timestamps, invalid signatures,
+      none algorithm, or algorithm confusion attacks are rejected before handler
+      execution. Valid tokens proceed normally.
+    owner: "@value-fabric/security-leads"
+    marker: jwt_config
+    expected_failure_mode: "401 with structured auth error; no handler side effects"
+    allowed:
+      file: tests/security/test_rbac.py
+      test: test_admin_permission_includes_all_operations
+    denied:
+      file: tests/security/test_rbac.py
+      test: test_invalid_signature_rejected
+
+  - id: auth.rate-limiting-enforcement
+    domain: auth
+    description: >-
+      OIDC pre-authentication and authenticated endpoints enforce rate limits
+      with tenant-and-user-scoped keys. Excessive requests fail closed with 429.
+    owner: "@value-fabric/security-leads"
+    marker: rate_limit
+    expected_failure_mode: "429 Too Many Requests after threshold exceeded"
+    allowed:
+      file: tests/security/test_auth_rate_limiting.py
+      test: test_authenticated_auth_scope_rate_limit_key_uses_tenant_and_user_dimension
+    denied:
+      file: tests/security/test_auth_rate_limiting.py
+      test: test_oidc_preauth_rate_limit_fails_closed_after_repeated_login_attempts
+
+  - id: auth.api-key-rejection-safety
+    domain: auth
+    description: >-
+      Unsupported or malformed API keys are rejected without leaking the full
+      key material. Short keys are masked; JWT-like inputs are never treated as
+      valid API keys.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "None returned; warning logged with truncated/masked key"
+    allowed:
+      file: tests/security/test_p0_5_api_key_rejection.py
+      test: test_reject_api_key_does_not_leak_full_key
+    denied:
+      file: tests/security/test_p0_5_api_key_rejection.py
+      test: test_reject_api_key_unsupported_returns_none
+
+  - id: data_boundaries.audit-event-emission
+    domain: data_boundaries
+    description: >-
+      Tenant context changes emit structured audit events when audit logging is
+      available. Audit emission failures are non-blocking and do not break the
+      calling workflow.
+    owner: "@value-fabric/security-leads"
+    marker: audit
+    expected_failure_mode: "Audit event lost silently; main workflow continues"
+    allowed:
+      file: tests/security/test_audit_event_emission.py
+      test: test_emit_tenant_context_set_audit_emits_event_when_audit_available
+    denied:
+      file: tests/security/test_audit_event_emission.py
+      test: test_emit_tenant_context_set_audit_is_non_blocking_on_emit_error
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Governance
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: governance.privileged-access-audit
+    domain: governance
+    description: >-
+      Super-admin privileged access requires explicit justification
+      (X-Privileged-Reason header), emits CROSS_TENANT_ACCESS audit events with
+      accessed tenant IDs, approval tickets, and session duration, and fails
+      closed for non-super-admin users.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "403 for non-super-admin; 400 without reason header"
+    allowed:
+      file: tests/security/test_privileged_audit.py
+      test: test_accepts_valid_privileged_access
+    denied:
+      file: tests/security/test_privileged_audit.py
+      test: test_blocks_non_super_admin
+
+  - id: governance.audit-resilience
+    domain: governance
+    description: >-
+      Audit event emission is fire-and-forget: logger failures, DB write
+      failures, and serialization errors are swallowed without propagating to
+      the caller or blocking the HTTP response. Each event receives a unique ID.
+    owner: "@value-fabric/security-leads"
+    marker: audit_logging
+    expected_failure_mode: "Exception swallowed; event returned with unique ID"
+    allowed:
+      file: tests/security/test_audit_resilience.py
+      test: test_emit_audit_event_returns_event_on_success
+    denied:
+      file: tests/security/test_audit_resilience.py
+      test: test_emit_audit_event_does_not_raise_when_logger_fails
+
+  - id: governance.governance-middleware
+    domain: governance
+    description: >-
+      Governance middleware enforces authentication on protected paths, bypasses
+      auth for public paths (health, metrics, docs), validates JWT signatures
+      and claims, and fails closed with stable error codes on malformed or
+      missing credentials.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "401 with stable error code; public paths bypass auth"
+    allowed:
+      file: tests/security/test_governance_middleware_resolution_order.py
+      test: test_public_path_bypasses_auth
+    denied:
+      file: tests/security/test_governance_middleware_resolution_order.py
+      test: test_missing_credentials_returns_401
+
+  - id: governance.layer5-audit-protection
+    domain: governance
+    description: >-
+      Layer 5 audit logs are append-only: non-privileged mutations are blocked,
+      repository queries enforce tenant and global scope filters, and validation
+      events require privileged insert guards.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "Mutation blocked; append-only invariant enforced"
+    allowed:
+      file: tests/security/test_layer5_governance_security_controls.py
+      test: test_audit_logs_are_append_only_and_non_privileged_mutation_is_blocked
+    denied:
+      file: tests/security/test_layer5_audit_mutation_protection.py
+      test: test_layer5_validation_events_enforces_privileged_insert_and_append_only
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Compliance
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: compliance.retention-deletion-contract
+    domain: compliance
+    description: >-
+      Data retention policies are declared in source code (30 days customer
+      data, 7 years audit logs). Hard-delete preserves audit logs as
+      append-only; deletion audit events contain all required fields.
+    owner: "@value-fabric/security-leads"
+    marker: contract_static
+    expected_failure_mode: "Source-level retention guarantee missing from config"
+    allowed:
+      file: tests/contract/test_retention_deletion_contract.py
+      test: test_retention_defaults_declared_in_settings
+    denied:
+      file: tests/data_lifecycle/test_audit_log_retention.py
+      test: test_audit_logs_are_retained_after_hard_delete
+
+  - id: compliance.approval-workflow
+    domain: compliance
+    description: >-
+      Business case export and CRM push are blocked before approval, allowed
+      after approval. Reviewers can request changes; users can resubmit.
+      Approval history is persisted and unsupported claims block approval.
+    owner: "@value-fabric/backend-leads"
+    marker: backend_integrated
+    expected_failure_mode: "Export blocked with 403; unsupported claim rejected"
+    allowed:
+      file: tests/backend_integrated/test_approval_export_crm_governance.py
+      test: test_business_case_export_allowed_after_approval
+    denied:
+      file: tests/backend_integrated/test_approval_export_crm_governance.py
+      test: test_business_case_export_blocked_before_approval
+
+  - id: compliance.audit-retry-queue
+    domain: compliance
+    description: >-
+      Audit events are durably queued via Redis with exponential backoff retry.
+      After max retries events move to a dead-letter queue. The system falls
+      back to direct DB writes when Redis is unavailable.
+    owner: "@value-fabric/security-leads"
+    marker: audit
+    expected_failure_mode: "Event dead-lettered after 3 retries; DB fallback on Redis failure"
+    allowed:
+      file: tests/security/test_audit_retry_queue.py
+      test: test_push_serialises_event
+    denied:
+      file: tests/security/test_audit_retry_queue.py
+      test: test_worker_dead_letters_after_max_retries

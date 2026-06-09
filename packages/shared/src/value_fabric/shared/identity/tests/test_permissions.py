@@ -2,10 +2,13 @@
 
 
 from ..permissions import (
+    ROLE_RANK,
     Permission,
     Role,
     ROLE_PERMISSIONS,
+    can_grant_role,
     get_role_permissions,
+    get_role_rank,
     role_has_permission,
 )
 
@@ -115,3 +118,48 @@ class TestRoleHasPermission:
     def test_super_admin_has_everything(self):
         for p in Permission:
             assert role_has_permission(Role.SUPER_ADMIN, p) is True
+
+
+class TestRoleRank:
+    """Tests for ROLE_RANK and get_role_rank()."""
+
+    def test_role_rank_values(self):
+        """Rank hierarchy must be strictly decreasing."""
+        assert ROLE_RANK[Role.SUPER_ADMIN.value] == 100
+        assert ROLE_RANK[Role.TENANT_ADMIN.value] == 80
+        assert ROLE_RANK[Role.CONTENT_ADMIN.value] == 60
+        assert ROLE_RANK[Role.ANALYST.value] == 40
+        assert ROLE_RANK[Role.READ_ONLY.value] == 20
+
+    def test_get_role_rank_with_enum(self):
+        assert get_role_rank(Role.TENANT_ADMIN) == 80
+
+    def test_get_role_rank_with_string(self):
+        assert get_role_rank("analyst") == 40
+
+    def test_get_role_rank_unknown_returns_zero(self):
+        assert get_role_rank("unknown_role") == 0
+
+
+class TestCanGrantRole:
+    """Tests for can_grant_role() (F-11 escalation guard)."""
+
+    def test_higher_can_grant_lower(self):
+        assert can_grant_role(Role.TENANT_ADMIN, Role.ANALYST) is True
+        assert can_grant_role(Role.TENANT_ADMIN, Role.CONTENT_ADMIN) is True
+        assert can_grant_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN) is True
+        assert can_grant_role(Role.ANALYST, Role.READ_ONLY) is True
+
+    def test_equal_rank_blocked(self):
+        assert can_grant_role(Role.TENANT_ADMIN, Role.TENANT_ADMIN) is False
+        assert can_grant_role(Role.ANALYST, Role.ANALYST) is False
+
+    def test_lower_cannot_grant_higher(self):
+        assert can_grant_role(Role.ANALYST, Role.TENANT_ADMIN) is False
+        assert can_grant_role(Role.READ_ONLY, Role.ANALYST) is False
+
+    def test_unknown_inviter_blocked(self):
+        assert can_grant_role("unknown", Role.ANALYST) is False
+
+    def test_unknown_invitee_blocked(self):
+        assert can_grant_role(Role.TENANT_ADMIN, "unknown") is False

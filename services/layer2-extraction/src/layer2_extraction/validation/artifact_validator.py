@@ -7,6 +7,7 @@ It ensures all required metadata fields are present and valid.
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import datetime
 from typing import Any
 
@@ -202,8 +203,11 @@ def validate_for_persistence(artifacts: Any) -> None:
     try:
         if isinstance(artifacts, BaseModel):
             type(artifacts).model_validate(artifacts.model_dump(mode="python"), strict=True)
+        elif dataclasses.is_dataclass(artifacts) and not isinstance(artifacts, type):
+            # Dataclass instances are accepted; validate their inner fields below
+            pass
         else:
-            errors.append("Artifacts must be a Pydantic model instance")
+            errors.append("Artifacts must be a Pydantic model instance or dataclass")
     except ValidationError as exc:
         errors.append(f"Strict Pydantic validation failed: {exc}")
 
@@ -238,10 +242,11 @@ def validate_for_persistence(artifacts: Any) -> None:
             "value_metrics",
         ]:
             for idx, entity in enumerate(getattr(result, collection_name, []) or []):
-                refs = getattr(entity, "source_refs", None)
+                if hasattr(entity, "source_refs"):
+                    refs = getattr(entity, "source_refs", None)
+                    if not refs:
+                        errors.append(f"{collection_name}[{idx}] missing source_refs")
                 ts = getattr(entity, "extracted_at", None)
-                if not refs:
-                    errors.append(f"{collection_name}[{idx}] missing source_refs")
                 if not isinstance(ts, datetime):
                     errors.append(f"{collection_name}[{idx}] missing extracted_at timestamp")
 

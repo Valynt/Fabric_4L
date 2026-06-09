@@ -15,7 +15,7 @@ from ..observability.trace_context import ALL_TRACE_HEADERS, sanitize_trace_id
 from ..testability import IDGenerator
 from .exceptions import AuthenticationError, ValueFabricException
 from .models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
-from .sanitizer import sanitize_error_for_log, sanitize_public_error
+from .sanitizer import sanitize_error_for_log, sanitize_error_message, sanitize_public_error
 
 logger = logging.getLogger(__name__)
 
@@ -230,13 +230,15 @@ async def value_fabric_exception_handler(
     """Handle ValueFabricException with standardized response envelope."""
     request_id = get_request_trace_id(request)
 
-    # Sanitize details in production
+    # Sanitize details in production; redact sensitive identifiers from messages
+    # in all environments to prevent tenant/subscription/customer ID leakage.
     details = exc.details if not is_production() else sanitize_error_details(exc.details)
+    safe_message = sanitize_error_message(exc.message)
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
             code=exc.error_code,
-            message=exc.message,
+            message=safe_message,
             request_id=request_id,
             details=details,
         )

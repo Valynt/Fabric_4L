@@ -14,6 +14,7 @@ from layer2_extraction.extraction.llm_extractor import (
     _logprob_confidence_from_response,
     _strict_array_tool,
 )
+from layer2_extraction.extraction.security_guard import UntrustedLLMOutputPolicyError
 from layer2_extraction.models.extraction_response import (
     CapabilityExtractionResponse,
     RelationshipExtractionResponse,

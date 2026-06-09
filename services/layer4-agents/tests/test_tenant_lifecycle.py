@@ -155,20 +155,13 @@ class TestTenantStatusTransitions:
 class TestMiddlewareTenantStatusEnforcement:
     """Test that GovernanceMiddleware blocks suspended/pending/deleted tenants."""
 
-    """Test that GovernanceMiddleware blocks suspended/pending/deleted tenants.
-
-    DEFERRED: tenant_settings_resolver contract needs investigation.
-    These tests require understanding the correct signature for tenant_settings_resolver.
-    Current implementation expects a different interface than what the test provides.
-    """
-
     @pytest.fixture
     def app_with_status_check(self):
         """Create a FastAPI app with GovernanceMiddleware that checks tenant status."""
         app = FastAPI()
 
-        async def status_lookup(tenant_id):
-            """Mock status lookup."""
+        async def status_resolver(tenant_id):
+            """Mock async status resolver."""
             status_map = {
                 "11111111-1111-1111-1111-111111111111": "active",
                 "22222222-2222-2222-2222-222222222222": "suspended",
@@ -179,9 +172,9 @@ class TestMiddlewareTenantStatusEnforcement:
 
         app.add_middleware(
             GovernanceMiddleware,
-            jwt_secret="test_secret_32_chars_minimum_length",
-            tenant_status_lookup=status_lookup,
-            enable_per_tenant_rate_limiting=False,
+            tenant_status_resolver=status_resolver,
+            enforce_authentication=True,
+            require_tenant_context=True,
         )
 
         @app.get("/data")
@@ -197,9 +190,7 @@ class TestMiddlewareTenantStatusEnforcement:
             "roles": ["user"],
         })
 
-
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="DEFERRED: tenant_settings_resolver contract investigation required")
     async def test_active_tenant_allowed(self, app_with_status_check):
         """Active tenants should pass through middleware."""
         transport = ASGITransport(app=app_with_status_check)
@@ -215,7 +206,6 @@ class TestMiddlewareTenantStatusEnforcement:
                 assert response.status_code == 200
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="DEFERRED: tenant_settings_resolver contract investigation required")
     async def test_suspended_tenant_blocked_with_json(self, app_with_status_check):
         """Suspended tenants should get 403 with JSON error body."""
         transport = ASGITransport(app=app_with_status_check)
@@ -234,7 +224,6 @@ class TestMiddlewareTenantStatusEnforcement:
                 assert "tenant_id" in body
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="DEFERRED: tenant_settings_resolver contract investigation required")
     async def test_pending_tenant_blocked_with_json(self, app_with_status_check):
         """Pending tenants should get 403 with JSON error body."""
         transport = ASGITransport(app=app_with_status_check)
@@ -250,9 +239,9 @@ class TestMiddlewareTenantStatusEnforcement:
                 assert response.status_code == 403
                 body = response.json()
                 assert body["error"] == "tenant_pending"
+                assert "tenant_id" in body
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="DEFERRED: tenant_settings_resolver contract investigation required")
     async def test_deleted_tenant_returns_404_json(self, app_with_status_check):
         """Deleted tenants should get 404 with JSON error body."""
         transport = ASGITransport(app=app_with_status_check)
@@ -268,6 +257,7 @@ class TestMiddlewareTenantStatusEnforcement:
                 assert response.status_code == 404
                 body = response.json()
                 assert body["error"] == "tenant_not_found"
+                assert "tenant_id" in body
 
 
 # ---------------------------------------------------------------------------

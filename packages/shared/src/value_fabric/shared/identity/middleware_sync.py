@@ -307,6 +307,13 @@ class GovernanceMiddlewareSync:
             try:
                 record = self._api_key_resolver(api_key_header)
                 if record and record.get("enabled", True):
+                    if not record.get("metadata"):
+                        logger.warning(
+                            "API key context rejected: %s",
+                            INVALID_API_KEY_CONTEXT_ERROR_CODE,
+                            extra={"error_code": INVALID_API_KEY_CONTEXT_ERROR_CODE, "reason": "missing_or_empty_metadata"},
+                        )
+                        return None
                     candidate = self._build_context_from_api_key_sync(record)
                     if candidate.validate():
                         logger.warning(

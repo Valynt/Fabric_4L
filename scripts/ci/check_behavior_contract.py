@@ -60,6 +60,8 @@ CANONICAL_DOMAINS = {
     "frontend_user_flows",
     "service_to_service",
     "production_readiness",
+    "governance",
+    "compliance",
 }
 
 FRONTEND_TITLE_RE_TMPL = r"""(?:it|test|journeyTest)(?:\.each\([^)]*\))?\s*\(\s*['"`].*{needle}.*['"`]"""

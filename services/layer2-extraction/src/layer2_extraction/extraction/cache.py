@@ -23,6 +23,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency fallback
     RedisError = Exception
 
+_REDIS_ERRORS = (RedisError,)
+
 
 class _InMemoryLRUCache:
     """Thread-safe-ish in-memory LRU cache with TTL emulation."""
@@ -61,20 +63,9 @@ class ExtractionCache:
             try:
                 import redis.asyncio as aioredis
                 self._redis = aioredis.from_url(redis_url, decode_responses=False)
-            except (ImportError, RedisError) as exc:
+            except (ImportError,) + _REDIS_ERRORS as exc:
                 logger.warning(
                     "Cache backend unavailable; falling back to in-memory cache",
-                    extra={
-                        "operation": "connect",
-                        "tenant_id": None,
-                        "job_id": None,
-                        "correlation_id": None,
-                        "exception_class": type(exc).__name__,
-                    },
-                )
-            except (ValueError, TypeError, OSError) as exc:
-                logger.exception(
-                    "Unexpected cache initialization failure; using in-memory fallback",
                     extra={
                         "operation": "connect",
                         "tenant_id": None,

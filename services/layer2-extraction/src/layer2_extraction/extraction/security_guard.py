@@ -266,8 +266,8 @@ def enforce_untrusted_output_policy(items: Iterable[object], tenant_id: str) -> 
         raise ValueError("tenant_id is required for security policy enforcement")
     
     result = check_untrusted_output_policy(items, tenant_id)
-    
-    if not result.is_safe:
+
+    if result.rejection_tier in (RejectionTier.REJECT, RejectionTier.REVIEW):
         raise UntrustedLLMOutputPolicyError(
             f"LLM output contained potential privileged side-effect instructions; "
             f"blocked by untrusted-output policy gate. "

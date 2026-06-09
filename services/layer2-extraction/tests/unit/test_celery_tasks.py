@@ -1,7 +1,6 @@
 """Unit tests for Layer 2 Celery tasks."""
 
-import sys
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -49,16 +48,13 @@ class TestCeleryAppConfiguration:
 class TestRunExtractionTask:
     """Test run_extraction_task Celery task."""
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.run_extraction")
-    def test_run_extraction_task_success(self, mock_run_extraction, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch("layer2_extraction.api.main.run_extraction")
+    async def test_run_extraction_task_success(self, mock_run_extraction):
         """Test successful extraction task execution."""
-        # Setup
         mock_run_extraction.return_value = {"status": "completed"}
-        mock_asyncio.run.return_value = {"status": "completed"}
 
-        # Execute
-        result = run_extraction_task(
+        result = await run_extraction_task(
             job_id="test-job-123",
             source_url="https://example.com",
             content="Test content",
@@ -66,137 +62,107 @@ class TestRunExtractionTask:
             mark_pipeline_complete=False,
         )
 
-        # Verify
         assert result["success"] is True
         assert result["job_id"] == "test-job-123"
-        mock_asyncio.run.assert_called_once()
+        mock_run_extraction.assert_called_once()
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.run_extraction")
-    def test_run_extraction_task_failure_with_retry(self, mock_run_extraction, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch.object(run_extraction_task, "retry")
+    @patch("layer2_extraction.api.main.run_extraction")
+    async def test_run_extraction_task_failure_with_retry(self, mock_run_extraction, mock_retry):
         """Test extraction task failure triggers retry."""
-        # Setup
         mock_run_extraction.side_effect = Exception("Extraction failed")
-        mock_asyncio.run.side_effect = Exception("Extraction failed")
+        mock_retry.side_effect = Exception("Retry triggered")
 
-        # Create mock task self
-        task_self = Mock()
-        task_self.request.retries = 0
-
-        # Execute and verify retry
-        with pytest.raises(Exception):
-            run_extraction_task(
-                task_self,
+        with pytest.raises(Exception, match="Retry triggered"):
+            await run_extraction_task(
                 job_id="test-job-123",
                 source_url="https://example.com",
                 content="Test content",
                 config={"tenant_id": "tenant-1"},
             )
 
-        # Verify retry was called
-        task_self.retry.assert_called_once()
+        mock_retry.assert_called_once()
 
 
 class TestExtractEntitiesTask:
     """Test extract_entities_task Celery task."""
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.EntityExtractor")
-    @patch("layer2_extraction.shared.tasks.chunk_markdown")
-    def test_extract_entities_task_success(self, mock_chunk, mock_extractor_class, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch("layer2_extraction.extraction.llm_extractor.EntityExtractor")
+    @patch("layer2_extraction.extraction.chunker.chunk_markdown")
+    async def test_extract_entities_task_success(self, mock_chunk, mock_extractor_class):
         """Test successful entity extraction task."""
-        # Setup
         mock_chunk.return_value = ["chunk1", "chunk2"]
-        mock_extractor = Mock()
+        mock_extractor = AsyncMock()
         mock_extractor_class.return_value = mock_extractor
         mock_extractor.extract_entities.return_value = [{"name": "Entity1"}]
-        mock_asyncio.run.return_value = [{"name": "Entity1"}]
 
-        # Execute
-        result = extract_entities_task(
+        result = await extract_entities_task(
             job_id="test-job-123",
             content="Test content",
             config={"source_url": "https://example.com"},
         )
 
-        # Verify
         assert result["success"] is True
         assert result["job_id"] == "test-job-123"
         assert result["entity_count"] == 2  # 2 chunks x 1 entity each
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.EntityExtractor")
-    @patch("layer2_extraction.shared.tasks.chunk_markdown")
-    def test_extract_entities_task_failure_with_retry(self, mock_chunk, mock_extractor_class, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch.object(extract_entities_task, "retry")
+    @patch("layer2_extraction.extraction.llm_extractor.EntityExtractor")
+    @patch("layer2_extraction.extraction.chunker.chunk_markdown")
+    async def test_extract_entities_task_failure_with_retry(self, mock_chunk, mock_extractor_class, mock_retry):
         """Test entity extraction failure triggers retry."""
-        # Setup
         mock_chunk.side_effect = Exception("Chunking failed")
-        mock_asyncio.run.side_effect = Exception("Chunking failed")
+        mock_retry.side_effect = Exception("Retry triggered")
 
-        # Create mock task self
-        task_self = Mock()
-        task_self.request.retries = 0
-
-        # Execute and verify retry
-        with pytest.raises(Exception):
-            extract_entities_task(
-                task_self,
+        with pytest.raises(Exception, match="Retry triggered"):
+            await extract_entities_task(
                 job_id="test-job-123",
                 content="Test content",
                 config={"source_url": "https://example.com"},
             )
 
-        # Verify retry was called
-        task_self.retry.assert_called_once()
+        mock_retry.assert_called_once()
 
 
 class TestExtractRelationshipsTask:
     """Test extract_relationships_task Celery task."""
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.RelationshipExtractor")
-    def test_extract_relationships_task_success(self, mock_extractor_class, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch("layer2_extraction.extraction.llm_extractor.RelationshipExtractor")
+    async def test_extract_relationships_task_success(self, mock_extractor_class):
         """Test successful relationship extraction task."""
-        # Setup
-        mock_extractor = Mock()
+        mock_extractor = AsyncMock()
         mock_extractor_class.return_value = mock_extractor
         mock_extractor.extract_relationships.return_value = [{"source": "A", "target": "B"}]
-        mock_asyncio.run.return_value = [{"source": "A", "target": "B"}]
 
-        # Execute
-        result = extract_relationships_task(
+        result = await extract_relationships_task(
             job_id="test-job-123",
             entities=[{"name": "Entity1"}],
             config={},
         )
 
-        # Verify
         assert result["success"] is True
         assert result["job_id"] == "test-job-123"
         assert result["relationship_count"] == 1
 
-    @patch("layer2_extraction.shared.tasks.asyncio")
-    @patch("layer2_extraction.shared.tasks.RelationshipExtractor")
-    def test_extract_relationships_task_failure_with_retry(self, mock_extractor_class, mock_asyncio):
+    @pytest.mark.asyncio
+    @patch.object(extract_relationships_task, "retry")
+    @patch("layer2_extraction.extraction.llm_extractor.RelationshipExtractor")
+    async def test_extract_relationships_task_failure_with_retry(self, mock_extractor_class, mock_retry):
         """Test relationship extraction failure triggers retry."""
-        # Setup
-        mock_extractor = Mock()
+        mock_extractor = AsyncMock()
         mock_extractor_class.return_value = mock_extractor
         mock_extractor.extract_relationships.side_effect = Exception("Extraction failed")
-        mock_asyncio.run.side_effect = Exception("Extraction failed")
+        mock_retry.side_effect = Exception("Retry triggered")
 
-        # Create mock task self
-        task_self = Mock()
-        task_self.request.retries = 0
-
-        # Execute and verify retry
-        with pytest.raises(Exception):
-            extract_relationships_task(
-                task_self,
+        with pytest.raises(Exception, match="Retry triggered"):
+            await extract_relationships_task(
                 job_id="test-job-123",
                 entities=[{"name": "Entity1"}],
                 config={},
             )
 
-        # Verify retry was called
-        task_self.retry.assert_called_once()
+        mock_retry.assert_called_once()

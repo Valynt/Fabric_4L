@@ -36,6 +36,12 @@ class EmailConfig(BaseModel):
     # Or use external service (SendGrid, etc.)
     sendgrid_api_key: str = ""
 
+    # Application base URL for link generation
+    base_url: str = ""
+
+    # Runtime environment (development, production, etc.)
+    environment: str = ""
+
     @field_validator("smtp_port")
     @classmethod
     def validate_port(cls, v: int) -> int:
@@ -60,6 +66,8 @@ class EmailConfig(BaseModel):
             smtp_pass=os.getenv("SMTP_PASS", ""),
             from_address=os.getenv("EMAIL_FROM", "noreply@fabric4l.example.com"),
             sendgrid_api_key=os.getenv("SENDGRID_API_KEY", ""),
+            base_url=os.getenv("APP_BASE_URL", ""),
+            environment=os.getenv("ENVIRONMENT", "production"),
         )
 
 

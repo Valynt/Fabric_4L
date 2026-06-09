@@ -249,7 +249,7 @@ class ValueDriver(BaseModel):
     description: str = Field(..., min_length=10)
     metrics: list[str] = Field(default_factory=list)
     formula_string: str | None = None
-    unit: str = Field(..., min_length=1, max_length=50)
+    unit: str | None = Field(default=None, min_length=1, max_length=50)
     time_to_value: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

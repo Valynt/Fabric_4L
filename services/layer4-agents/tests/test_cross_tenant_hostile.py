@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -111,3 +112,47 @@ async def test_list_workflows_filters_cross_tenant(runtime_controller):
     results = await runtime_controller.list_workflows(tenant_id="tenant-a")
     assert len(results) == 1
     assert results[0].get("tenant_id") == "tenant-a"
+
+
+@pytest.mark.asyncio
+async def test_workflow_executor_blocks_suspended_tenant(runtime_controller):
+    """_run_workflow_task must reject execution for suspended tenants (kill-switch)."""
+    from unittest.mock import AsyncMock, patch
+
+    from datetime import datetime, timezone
+
+    from layer4_agents.engine.scheduler import ScheduledTask
+    from layer4_agents.models.agent_state import ROIAgentState
+
+    tenant_id = "suspended-tenant"
+    workflow_id = "wf-suspended-001"
+
+    state = ROIAgentState(
+        tenant_id=tenant_id,
+        workflow_id=workflow_id,
+        workflow_type="roi_calculator",
+        status="pending",
+    )
+    task = ScheduledTask(
+        priority=1,
+        scheduled_time=datetime.now(timezone.utc),
+        task_id=f"wf-{workflow_id}",
+        workflow_instance_id=workflow_id,
+        capability="workflow_execution",
+        agent_type="OrchestrationController",
+        context={"tenant_id": tenant_id},
+        parameters={
+            "workflow": Mock(),
+            "initial_state": state,
+            "workflow_id": workflow_id,
+        },
+        tenant_id=tenant_id,
+    )
+
+    with patch(
+        "value_fabric.shared.tenant_kill_switch.TenantKillSwitch.is_suspended",
+        new_callable=AsyncMock,
+        return_value=True,
+    ):
+        with pytest.raises(Exception, match="suspended"):
+            await runtime_controller._run_workflow_task(task)

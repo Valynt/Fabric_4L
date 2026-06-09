@@ -200,7 +200,7 @@ class TestHelpers:
         cap = _cap("c1")
         uc = _uc("u1")
         vd = _vd("vd1")
-        persona = Persona(id="p1", title="Product Manager", role_type=RoleType.CHAMPION, confidence=0.8)
+        persona = Persona(id="p1", title="Product Manager", role_type=RoleType.CHAMPION, department="Product", confidence=0.8)
         feat = Feature(id="f1", name="Feature Name", description="A feature description", confidence=0.9)
         result = _FakeResult(
             capabilities=[cap],

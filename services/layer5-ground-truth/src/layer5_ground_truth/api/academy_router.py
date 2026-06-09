@@ -48,7 +48,6 @@ from layer5_ground_truth.services.academy_service import (
     MATURITY_LEVELS,
     create_certification,
     create_maturity_assessment,
-    get_maturity_level,
     get_pillar_by_id,
     get_pillar_by_number,
     get_quiz_questions,

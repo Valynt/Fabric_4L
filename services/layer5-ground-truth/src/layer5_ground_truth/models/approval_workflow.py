@@ -19,6 +19,7 @@ Design notes:
 import uuid
 from datetime import UTC, datetime
 from enum import Enum as PyEnum
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -109,7 +110,6 @@ class ApprovalRequest(Base):
     """
 
     __tablename__ = "approval_requests"
-    __table_args__ = {"extend_existing": True}
 
     # -------------------------------------------------------------------------
     # Primary identifiers
@@ -265,7 +265,7 @@ class ApprovalRequest(Base):
     # -------------------------------------------------------------------------
     # Indexes
     # -------------------------------------------------------------------------
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         Index(
             "ix_approval_requests_tenant_entity",
             "tenant_id",
@@ -299,7 +299,6 @@ class ApprovalDecision(Base):
     """
 
     __tablename__ = "approval_decisions"
-    __table_args__ = {"extend_existing": True}
 
     # -------------------------------------------------------------------------
     # Primary identifiers
@@ -386,7 +385,7 @@ class ApprovalDecision(Base):
     # -------------------------------------------------------------------------
     # Indexes
     # -------------------------------------------------------------------------
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         Index(
             "ix_approval_decisions_tenant_request",
             "tenant_id",
@@ -546,7 +545,7 @@ class ApprovalWorkflow(Base):
     # -------------------------------------------------------------------------
     # Indexes
     # -------------------------------------------------------------------------
-    __table_args__ = (
+    __table_args__: tuple[Any, ...] = (
         Index(
             "ix_approval_workflows_tenant_entity",
             "tenant_id",

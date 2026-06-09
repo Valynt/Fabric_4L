@@ -18,6 +18,9 @@ from uuid import UUID
 
 import httpx
 from pydantic import ValidationError
+from value_fabric.shared.observability.http_trace_propagation import (
+    inject_trace_headers,
+)
 from value_fabric.shared.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerOpen,
@@ -172,15 +175,17 @@ class Layer3Client:
     async def _post_with_breaker(self, url: str, json: dict) -> httpx.Response:
         """Execute POST through circuit breaker."""
         client = self._get_client()
+        headers = inject_trace_headers(self._headers)
         return await self._breaker.call(
-            client.post, url, json=json, headers=self._headers
+            client.post, url, json=json, headers=headers
         )
 
     async def _get_with_breaker(self, url: str, params: dict | None = None) -> httpx.Response:
         """Execute GET through circuit breaker."""
         client = self._get_client()
+        headers = inject_trace_headers(self._headers)
         return await self._breaker.call(
-            client.get, url, params=params, headers=self._headers
+            client.get, url, params=params, headers=headers
         )
 
     # ------------------------------------------------------------------

@@ -214,6 +214,48 @@ class TestProcessScrapingJob:
         assert "task_id" in result
         assert result["task_id"] == "celery-task-abc-123"
 
+    def test_process_scraping_job_blocks_suspended_tenant(self) -> None:
+        """process_scraping_job must fail fast when tenant kill-switch is active."""
+        from layer1_ingestion.shared.tasks import process_scraping_job
+
+        job_id = str(uuid4())
+        tenant_id = str(uuid4())
+
+        with (
+            patch(
+                "layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync",
+                return_value=True,
+            ),
+            patch("layer1_ingestion.shared.tasks._fail_job") as mock_fail,
+        ):
+            result = process_scraping_job.run(job_id, tenant_id)
+
+        mock_fail.assert_called_once()
+        assert result["success"] is False
+        assert result["job_id"] == job_id
+        assert result["error"] == "Tenant suspended"
+
+    def test_compliance_check_stage_blocks_suspended_tenant(self) -> None:
+        """compliance_check_stage must fail fast when tenant kill-switch is active."""
+        from layer1_ingestion.shared.tasks import compliance_check_stage
+
+        job_id = str(uuid4())
+        tenant_id = str(uuid4())
+
+        with (
+            patch(
+                "layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync",
+                return_value=True,
+            ),
+            patch("layer1_ingestion.shared.tasks._fail_job") as mock_fail,
+        ):
+            result = asyncio.run(compliance_check_stage.run(job_id, tenant_id))
+
+        mock_fail.assert_called_once()
+        assert result["success"] is False
+        assert result["job_id"] == job_id
+        assert result["error"] == "Tenant suspended"
+
 
 # ── Cleanup Task Tests ────────────────────────────────────────────────────────
 class TestCleanupOldContent:

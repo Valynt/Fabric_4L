@@ -17,6 +17,13 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 try:
+    from value_fabric.shared.crypto import blind_index
+    from value_fabric.shared.error_handling.exceptions import (
+        AuthorizationError,
+        ConflictError,
+        NotFoundError,
+        ValidationError,
+    )
     from value_fabric.shared.identity.hashing import (
         extract_key_prefix,
         generate_api_key,
@@ -30,12 +37,17 @@ try:
         TenantModel,
         TenantStatus,
         TenantUpdateRequest,
+        UserAcceptInviteRequest,
         UserInviteRequest,
         UserModel,
         UserStatus,
         UserUpdateRequest,
     )
-    from value_fabric.shared.identity.permissions import ROLE_PERMISSIONS
+    from value_fabric.shared.identity.permissions import (
+        ROLE_PERMISSIONS,
+        can_grant_role,
+        get_role_rank,
+    )
 except ImportError as e:
     raise RuntimeError(
         "shared.identity package is required for tenant management. "
@@ -47,10 +59,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from .invitations import InvitationService
 from .models.api_key import APIKey
 from .models.isolation_tier_history import TenantIsolationTierHistory
 from .models.tenant import IsolationTier, Tenant
 from .models.user import User
+from .passwords import hash_password
 
 
 class lookup_api_key_by_hashResult(TypedDictModel):
@@ -284,6 +298,9 @@ async def update_tenant_status(
     transitions are executed.  Records ``status_changed_at``,
     ``status_reason``, and ``status_changed_by`` on the tenant row.
 
+    Also updates the real-time kill-switch (Redis) so that in-flight
+    requests, WebSockets, and background tasks are blocked immediately.
+
     Args:
         db: Database session
         tenant_id: UUID of tenant to update
@@ -305,6 +322,17 @@ async def update_tenant_status(
     old_status = tenant.status
     tenant.transition_to(status, reason=reason, changed_by=changed_by)
     await db.flush()
+
+    # Real-time kill-switch update
+    try:
+        from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+        kill_switch = TenantKillSwitch()
+        if status in ("suspended", "deleted"):
+            await kill_switch.suspend(str(tenant_id))
+        elif status == "active" and old_status in ("suspended", "deleted"):
+            await kill_switch.unsuspend(str(tenant_id))
+    except Exception as exc:
+        logger.warning("Kill-switch update failed for tenant %s: %s", tenant_id, exc)
 
     logger.info(
         "Updated tenant %s status: %s -> %s (reason: %s, by: %s)",
@@ -494,8 +522,37 @@ async def invite_user(
     tenant_id: UUID,
     request: UserInviteRequest,
     invited_by: UUID | None = None,
-) -> UserModel:
-    """Invite a new user to the tenant.  Caller must hold ADMIN_USERS permission."""
+    inviter_roles: list[str] | None = None,
+    invitation_service: InvitationService | None = None,
+) -> tuple[UserModel, str]:
+    """Invite a new user to the tenant.  Caller must hold ADMIN_USERS permission.
+
+    Enforces:
+    - Role escalation guard: inviter may only grant roles strictly below their
+      own highest-ranked role (F-11).
+    - Cross-tenant email uniqueness: the email must not already exist in any
+      tenant.
+
+    Returns:
+        Tuple of (user_model, invitation_token).
+    """
+    # F-11: Role escalation guard
+    if inviter_roles:
+        inviter_highest = max(inviter_roles, key=get_role_rank)
+        if not can_grant_role(inviter_highest, request.role):
+            raise AuthorizationError(
+                message="Cannot invite a user to a role equal to or higher than your own"
+            )
+
+    # Cross-tenant email uniqueness check
+    email_hash = blind_index(request.email)
+    result = await db.execute(
+        select(User).where(User.email_hash == email_hash)
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise ConflictError(message="User with this email already exists")
+
     user = User(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -507,7 +564,71 @@ async def invite_user(
     )
     db.add(user)
     await db.flush()
+
+    # Generate invitation token
+    token = ""
+    if invitation_service is not None:
+        token = invitation_service.generate_token(tenant_id, user.id, request.email)
+
     logger.info("Invited user %s to tenant %s", request.email, tenant_id)
+    return _user_to_model(user), token
+
+
+async def accept_invitation(
+    db: AsyncSession,
+    request: UserAcceptInviteRequest,
+    invitation_service: InvitationService,
+) -> UserModel:
+    """Accept an invitation by setting a password and activating the account.
+
+    Args:
+        db: Database session
+        request: Accept invite request with token, password, and optional display_name
+        invitation_service: Service for verifying invitation tokens
+
+    Returns:
+        Activated user model
+
+    Raises:
+        ValidationError: If token is invalid, expired, or already used
+        NotFoundError: If user not found
+        ConflictError: If invitation already accepted or account deactivated
+    """
+    # Verify invitation token
+    token_data = await invitation_service.verify_token(request.token)
+    if not token_data:
+        raise ValidationError(message="Invalid or expired invitation token")
+
+    # Look up user
+    result = await db.execute(
+        select(User).where(User.id == token_data.user_id, User.tenant_id == token_data.tenant_id)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise NotFoundError(message="Invitation user not found")
+
+    if user.status != UserStatus.INVITED.value:
+        raise ConflictError(message="Invitation already accepted or account deactivated")
+
+    # Validate and hash password
+    try:
+        from .passwords import PasswordTooLongError
+        hashed = hash_password(request.password)
+    except (ValueError, PasswordTooLongError) as exc:
+        raise ValidationError(message=f"Password does not meet requirements: {exc}") from exc
+
+    # Activate user
+    user.hashed_password = hashed
+    user.status = UserStatus.ACTIVE.value
+    if request.display_name is not None:
+        user.display_name = request.display_name
+    user.updated_at = datetime.now(UTC)
+    await db.flush()
+
+    # Mark token as used
+    await invitation_service.mark_token_used(request.token)
+
+    logger.info("User %s accepted invitation in tenant %s", user.id, user.tenant_id)
     return _user_to_model(user)
 
 

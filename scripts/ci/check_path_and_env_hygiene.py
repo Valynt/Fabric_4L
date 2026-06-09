@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ALLOWED_ENV_BASENAMES = {
     ".env.example",
     ".env.dev.example",
+    ".env.pytest.example",
     ".env.production-compose.template",
 }
 

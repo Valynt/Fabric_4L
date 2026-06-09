@@ -502,6 +502,28 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
         confidence = "low"
 
     _record_compare_metric(industry=dataset.industry, outcome="success")
+
+    # Audit: benchmark comparison
+    try:
+        from value_fabric.shared.audit import AuditAction, emit_audit_event
+        emit_audit_event(
+            AuditAction.BENCHMARK_COMPARED,
+            tenant_id=ctx.tenant_id,
+            user_id=ctx.user_id,
+            resource_type="BenchmarkDataset",
+            resource_id=payload.dataset_id,
+            outcome="success",
+            details={
+                "industry": dataset.industry,
+                "metric": payload.metric,
+                "company_value": str(payload.company_value),
+                "percentile": percentile,
+                "assessment": assessment,
+            },
+        )
+    except Exception:
+        logger.exception("Audit logging failed for benchmark compare")
+
     return ComparisonResponse(
         percentile=percentile,
         peer_median=str(profile.p50),
@@ -552,6 +574,28 @@ async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depe
         else:
             severity = "info"
             message = f"Value {value} slightly outside tolerance range"
+
+    # Audit: benchmark validation
+    try:
+        from value_fabric.shared.audit import AuditAction, emit_audit_event
+        emit_audit_event(
+            AuditAction.BENCHMARK_VALIDATED,
+            tenant_id=ctx.tenant_id,
+            user_id=ctx.user_id,
+            resource_type="BenchmarkDataset",
+            resource_id=payload.dataset_id,
+            outcome="success",
+            details={
+                "industry": dataset.industry,
+                "metric": payload.metric,
+                "value": str(payload.value),
+                "is_valid": is_valid,
+                "severity": severity,
+                "deviation_percent": deviation_percent,
+            },
+        )
+    except Exception:
+        logger.exception("Audit logging failed for benchmark validate")
 
     return ValidationResponse(
         is_valid=is_valid,

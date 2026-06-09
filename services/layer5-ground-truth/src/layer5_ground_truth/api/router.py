@@ -27,6 +27,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from value_fabric.shared.audit import emit_audit_event
+from value_fabric.shared.audit.models import AuditAction, AuditOutcome
+
 from ..cache import cached
 from ..config import get_settings
 from ..database import get_db_from_context
@@ -146,6 +149,24 @@ async def create_truth(
                 truth.kg_synced_at = datetime.now(UTC)
         except Exception:
             logger.warning("create_truth_kg_sync_failed", exc_info=True)
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_CREATED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth.id),
+            details={
+                "claim": payload.claim,
+                "claim_type": payload.claim_type,
+                "confidence": payload.confidence,
+                "status": truth.status,
+            },
+        )
+    except Exception:
+        logger.exception("truth_created_audit_failed")
 
     return TruthObjectResponse.model_validate(truth)
 
@@ -298,6 +319,23 @@ async def sync_to_kg(
             synced += 1
         else:
             failed += 1
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_SYNCED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id="bulk",
+            details={
+                "synced": synced,
+                "failed": failed,
+                "total_pending": len(pending),
+            },
+        )
+    except Exception:
+        logger.exception("truth_synced_audit_failed")
 
     return SyncToKgResponse.model_validate(
         {
@@ -547,6 +585,26 @@ async def validate_truth(
         except Exception:
             logger.warning("validate_truth_kg_sync_failed", exc_info=True)
 
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_VALIDATED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth.id),
+            details={
+                "action": payload.action,
+                "previous_status": previous_status,
+                "new_status": truth.status,
+                "previous_maturity": previous_maturity,
+                "new_maturity": truth.maturity_level,
+                "actor": payload.actor,
+            },
+        )
+    except Exception:
+        logger.exception("truth_validated_audit_failed")
+
     return ValidateResponse(
         truth_object_id=truth.id,
         previous_status=previous_status,
@@ -649,6 +707,19 @@ async def delete_truth(
     if not truth:
         raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
     await soft_delete_truth_object(db, truth, deleted_by=deleted_by)
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_DELETED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth_id),
+            details={"deleted_by": deleted_by},
+        )
+    except Exception:
+        logger.exception("truth_deleted_audit_failed")
 
 
 # ---------------------------------------------------------------------------

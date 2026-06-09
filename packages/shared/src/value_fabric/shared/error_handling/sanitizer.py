@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from fastapi import HTTPException
@@ -9,6 +10,27 @@ from fastapi import HTTPException
 from .exceptions import ValueFabricException
 from .helpers import sanitize_log_error
 from .models import ErrorCode
+
+
+# Patterns that may expose tenant-scoped identifiers or internal IDs in public
+# error messages.  These are redacted from API responses but remain available
+# in internal logs and observability.
+_SENSITIVE_IDENTIFIER_KEYS = (
+    "tenant_id",
+    "subscription_id",
+    "customer_id",
+    "user_id",
+    "org_id",
+    "organization_id",
+    "account_id",
+    "workspace_id",
+)
+
+# Match key=value pairs where key is a sensitive identifier.
+# Examples: tenant_id=tenant_abc123, subscription_id=sub_xxx
+_IDENTIFIER_REDACTION_RE = re.compile(
+    rf"\b({'|'.join(_SENSITIVE_IDENTIFIER_KEYS)})=[A-Za-z0-9_\-:]+\b"
+)
 
 
 @dataclass(frozen=True)
@@ -43,6 +65,19 @@ def sanitize_public_error(exc: BaseException, *, status_code: int = 500) -> Publ
         code=_STATUS_CODE_MAP.get(status_code, ErrorCode.INTERNAL_ERROR),
         message="An unexpected error occurred. Please try again or contact support.",
     )
+
+
+def sanitize_error_message(message: str) -> str:
+    """Redact sensitive identifier values from public-facing error messages.
+
+    Internal IDs (tenant, subscription, customer, user, org, workspace, account)
+    are replaced with ``<redacted>`` to prevent cross-tenant information leakage
+    and subscription identifier exposure.  Generic guidance text is preserved so
+    the response remains actionable.
+    """
+    if not message:
+        return message
+    return _IDENTIFIER_REDACTION_RE.sub(lambda m: f"{m.group(1)}=<redacted>", message)
 
 
 def sanitize_error_for_log(exc: BaseException) -> str:
