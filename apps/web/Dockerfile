@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22.12.0-alpine3.20 AS builder
+FROM node:24.1.0-alpine3.20 AS builder
 WORKDIR /app
 
 RUN corepack enable
@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 # Build only the web app using workspace filter
 RUN pnpm --filter ./apps/web build
 
-FROM node:22.12.0-alpine3.20 AS runtime
+FROM node:24.1.0-alpine3.20 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
