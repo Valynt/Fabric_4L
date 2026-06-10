@@ -177,6 +177,40 @@ updates:
       patterns:
       - '*'
 - package-ecosystem: pip
+  directory: /packages/shared/src
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - package-shared
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/architects
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /packages/platform-contract/src/python
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - package-platform-contract
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/architects
+  - value-fabric/sre-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
   directory: /tests
   schedule:
     interval: weekly
