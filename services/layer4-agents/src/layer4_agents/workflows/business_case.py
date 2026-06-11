@@ -162,7 +162,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             run_id=r_id,
             workflow_id=wf_id,
             trace_id=t_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=self.config.workflow_type,
         )
 
@@ -170,7 +170,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             workflow_id=wf_id,
             run_id=r_id,
             trace_id=t_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=self.config.workflow_type,
             status=WorkflowStatus.PENDING,
             case_input=case_input,

@@ -161,3 +161,9 @@ class ModelPromotionLog(Base):
             f"<ModelPromotionLog(model_version_id={self.model_version_id}, "
             f"{self.from_stage!r} -> {self.to_stage!r})>"
         )
+
+
+# Ensure Tenant and User tables are registered in Base.metadata so
+# create_all() can resolve foreign keys from ModelVersion.
+from ..tenants.models.tenant import Tenant  # noqa: F401
+from ..tenants.models.user import User  # noqa: F401

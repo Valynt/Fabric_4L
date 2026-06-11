@@ -204,8 +204,12 @@ def get_database_url() -> str:
     
     In production-like environments, fails fast if neither URL is configured.
     """
-    database_url = os.getenv("LAYER4_DATABASE_URL") or os.getenv("CHECKPOINT_DATABASE_URL")
-    
+    database_url = (
+        os.getenv("LAYER4_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+        or os.getenv("CHECKPOINT_DATABASE_URL")
+    )
+
     if not database_url:
         if _is_production_like_runtime():
             raise RuntimeError(
@@ -987,6 +991,14 @@ async def db_session_for_context(
 
 async def init_db() -> None:
     """Create all tables if they do not exist (dev/test convenience)."""
+    # Ensure all ORM models are registered with Base.metadata before create_all.
+    # Side-effect imports are required so that SQLAlchemy discovers tables such
+    # as tenants, users, and registry/harness models alongside layer4 models.
+    from . import models  # noqa: F401
+    from .harness import db_models  # noqa: F401
+    from .registry import models as _registry_models  # noqa: F401
+    from .tenants import models as _tenant_models  # noqa: F401
+
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

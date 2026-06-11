@@ -72,7 +72,7 @@ class BillingCustomer(Base):
     __tablename__ = "billing_customers"
 
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # App user_id
-    tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, primary_key=True, index=True)
+    tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, primary_key=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     stripe_sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
     stripe_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -112,7 +112,7 @@ class BillingSubscription(Base):
     __tablename__ = "billing_subscriptions"
 
     id: Mapped[str] = mapped_column(String(100), primary_key=True)
-    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     plan_id: Mapped[str] = mapped_column(String(50), nullable=False, default=PlanId.FREE)
@@ -167,7 +167,7 @@ class BillingWebhookEvent(Base):
     __tablename__ = "billing_webhook_events"
 
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # Stripe event ID
-    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     type: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     attempt_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
@@ -257,7 +257,7 @@ class BillingUsageEvent(Base):
     )
 
     # Provenance: which system produced this event
-    source_system: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    source_system: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Metadata for debugging and enrichment
     event_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)

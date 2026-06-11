@@ -19,11 +19,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add job_type column, backfill from configuration JSON, then enforce non-nullable."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = [c["name"] for c in inspector.get_columns("scraping_jobs")]
+
     # Add column initially nullable so backfill can run without errors.
-    op.add_column(
-        "scraping_jobs",
-        sa.Column("job_type", sa.String(50), nullable=True),
-    )
+    if "job_type" not in columns:
+        op.add_column(
+            "scraping_jobs",
+            sa.Column("job_type", sa.String(50), nullable=True),
+        )
 
     # Backfill: prefer configuration['job_type'] when present, fallback to model default.
     bind = op.get_bind()

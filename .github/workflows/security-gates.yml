@@ -243,7 +243,8 @@ jobs:
             "http://localhost:8002/health" \
             "http://localhost:8003/health" \
             "http://localhost:8004/health" \
-            "http://localhost:8005/api/v1/health"; do
+            "http://localhost:8005/api/v1/health" \
+            "http://localhost:8006/health"; do
             echo "Waiting for $target"
             for _ in $(seq 1 60); do
               if curl -fsS "$target" >/dev/null; then
@@ -265,6 +266,7 @@ jobs:
             "layer3:http://127.0.0.1:8003"
             "layer4:http://127.0.0.1:8004"
             "layer5:http://127.0.0.1:8005"
+            "layer6:http://127.0.0.1:8006"
           )
 
           for target in "${targets[@]}"; do

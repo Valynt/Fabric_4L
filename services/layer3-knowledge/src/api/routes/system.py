@@ -80,7 +80,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 )
             )
         else:
-            from schema.initializer import SchemaInitializer
+            from src.schema.initializer import SchemaInitializer
 
             neo4j_checker = (
                 schema_initializer if schema_initializer is not None else SchemaInitializer()

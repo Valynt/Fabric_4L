@@ -467,7 +467,8 @@ class OrchestrationController:
             )
 
         # HARDENING: Tenant scope is a mandatory workflow-start invariant
-        if not tenant_id or not tenant_id.strip():
+        tenant_id_str = str(tenant_id) if tenant_id else ""
+        if not tenant_id_str or not tenant_id_str.strip():
             raise WorkflowExecutionError(
                 "tenant_id is required: workflow start rejected"
             )
@@ -536,7 +537,7 @@ class OrchestrationController:
             run_id=run_id,
             workflow_id=workflow_id,
             trace_id=trace_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=workflow_type,
         )
         # Resolve tenant-aware timeout and store metadata with timeout tracking
@@ -593,7 +594,6 @@ class OrchestrationController:
             workflow_type=workflow_type,
             workflow=workflow,
             initial_state=initial_state,
-            timeout_seconds=resolved_timeout_seconds,
             checkpoint_interval=checkpoint_interval,
             handler=self._run_workflow_task,
         )
@@ -746,7 +746,7 @@ class OrchestrationController:
             run_id=run_id,
             workflow_id=schedule_id,
             trace_id=trace_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=workflow_type,
         )
         initial_state.run_envelope = envelope

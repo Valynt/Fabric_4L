@@ -356,8 +356,7 @@ async def db_session(tenant_id: str | None = None) -> AsyncGenerator[AsyncSessio
         if tenant_id is not None:
             validated = validate_tenant_id(tenant_id)
             await session.execute(
-                text("SET LOCAL app.tenant_id = :tid"),
-                {"tid": validated},
+                text(f"SET LOCAL app.tenant_id = '{validated}'"),
             )
             _mark_session_tenant_context(session, validated)
         else:
@@ -488,8 +487,7 @@ async def get_db_from_context(
     factory = get_session_factory()
     async with factory() as session:
         await session.execute(
-            text("SET LOCAL app.tenant_id = :tenant_id"),
-            {"tenant_id": tenant_id}
+            text(f"SET LOCAL app.tenant_id = '{tenant_id}'"),
         )
         _mark_session_tenant_context(session, tenant_id)
         try:
@@ -535,8 +533,7 @@ async def get_db_with_optional_tenant(
                 logger.warning("Tenant context validation failed: %s", e)
                 raise ValidationError(message = "Invalid tenant context") from e
             await session.execute(
-                text("SET LOCAL app.tenant_id = :tenant_id"),
-                {"tenant_id": tenant_id}
+                text(f"SET LOCAL app.tenant_id = '{tenant_id}'"),
             )
             _mark_session_tenant_context(session, tenant_id)
         elif context.is_super_admin():

@@ -59,6 +59,7 @@ dependencies = [
     "aiohttp>=3.9",
     # System metrics for health check
     "psutil>=5.9",
+    "passlib>=1.7",
     # S3/MinIO export package storage
     "boto3>=1.34.0",
 ]

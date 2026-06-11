@@ -45,7 +45,6 @@ class User(Base):
     email_hash: Mapped[str | None] = mapped_column(
         String(64),
         nullable=True,
-        index=True,
         comment="Blind index (HMAC-SHA256) for exact-match email lookups",
     )
 

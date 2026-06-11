@@ -23,7 +23,23 @@ class MetricSpec:
     max_cardinality: dict[str, int]
 
 
-CONTRACT_PATH = Path(__file__).resolve().parents[5] / "contracts" / "observability" / "layer6-metrics.json"
+def _contract_paths() -> list[Path]:
+    candidates: list[Path] = []
+    try:
+        candidates.append(Path(__file__).resolve().parents[5] / "contracts" / "observability" / "layer6-metrics.json")
+    except IndexError:
+        pass
+    candidates.append(Path("/contracts") / "observability" / "layer6-metrics.json")
+    try:
+        candidates.append(Path(__file__).resolve().parents[3] / "contracts" / "observability" / "layer6-metrics.json")
+    except IndexError:
+        pass
+    return candidates
+
+
+_POSSIBLE_CONTRACT_PATHS = _contract_paths()
+
+CONTRACT_PATH = next((p for p in _POSSIBLE_CONTRACT_PATHS if p.exists()), _POSSIBLE_CONTRACT_PATHS[0])
 
 
 @lru_cache(maxsize=1)

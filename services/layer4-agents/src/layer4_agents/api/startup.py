@@ -139,7 +139,7 @@ def build_lifespan(
         runtime_state.state_manager.set_ws_manager(ws_manager)
 
         try:
-            runtime_state.checkpoint_saver = await CheckpointConfig.create_saver()
+            runtime_state.checkpoint_saver = await get_checkpoint_saver()
         except Exception as exc:
             raise RuntimeError(f"Checkpoint saver failed - cannot start without workflow resumption: {exc}") from exc
 

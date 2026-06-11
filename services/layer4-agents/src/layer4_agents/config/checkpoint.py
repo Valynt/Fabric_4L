@@ -62,18 +62,18 @@ class CheckpointConfig:
 
     @classmethod
     def _clean_url(cls, url: str) -> str:
-        """Convert SQLAlchemy-style URL to asyncpg-compatible format.
+        """Convert SQLAlchemy-style URL to plain postgresql:// format.
 
-        Handles various driver suffixes that SQLAlchemy uses but asyncpg doesn't.
+        Handles various driver suffixes that SQLAlchemy uses but psycopg/asyncpg
+        don't need in the connection string.
 
         Args:
             url: SQLAlchemy-style database URL
 
         Returns:
-            asyncpg-compatible URL
+            Plain postgresql:// URL
         """
         # Remove any driver suffix after postgresql+ (e.g., +asyncpg, +psycopg2, +pg8000)
-        # Pattern matches postgresql+driver:// and replaces with postgresql://
         cleaned = re.sub(
             r"^postgresql\+[^/]+://",
             "postgresql://",
@@ -86,7 +86,7 @@ class CheckpointConfig:
     async def create_saver(cls) -> AsyncPostgresSaver:
         """Create and initialize AsyncPostgresSaver.
 
-        Creates a direct asyncpg connection for LangGraph's PostgresSaver.
+        Creates a psycopg async connection for LangGraph's AsyncPostgresSaver.
         Caller is responsible for closing the connection when done.
 
         Returns:
@@ -105,11 +105,11 @@ class CheckpointConfig:
             ...     await saver.conn.close()
         """
         # Lazy imports to avoid import-time dependencies
-        import asyncpg
+        import psycopg
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
         url = cls._clean_url(cls.get_database_url())
-        conn = await asyncpg.connect(url)
+        conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
         saver = AsyncPostgresSaver(conn)
         # Store connection reference for cleanup only if the saver does not
         # already expose it via a public attribute.
@@ -149,16 +149,16 @@ class CheckpointConfig:
             ...     pass
         """
         # Lazy imports to avoid import-time dependencies
-        import asyncpg
+        import psycopg
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
         conn = None
         try:
             url = cls._clean_url(cls.get_database_url())
-            conn = await asyncpg.connect(url)
+            conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
             saver = AsyncPostgresSaver(conn)
             yield saver
-        except asyncpg.PostgresError as e:
+        except psycopg.Error as e:
             logger.error(f"Failed to connect to checkpoint database: {e}")
             raise CheckpointConnectionError(f"Database connection failed: {e}") from e
         except Exception as e:

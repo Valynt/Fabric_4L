@@ -35,20 +35,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Apply schema corrections."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    scraping_columns = [c["name"] for c in inspector.get_columns("scraping_jobs")]
+    stage_columns = [c["name"] for c in inspector.get_columns("job_stage_details")]
+
     # 1. Add missing target_entity_id to scraping_jobs
-    op.add_column(
-        "scraping_jobs",
-        sa.Column("target_entity_id", sa.String(255), nullable=True),
-    )
+    if "target_entity_id" not in scraping_columns:
+        op.add_column(
+            "scraping_jobs",
+            sa.Column("target_entity_id", sa.String(255), nullable=True),
+        )
 
     # 2. Rename job_stage_details.metadata -> meta to match the model
-    op.alter_column(
-        "job_stage_details",
-        "metadata",
-        new_column_name="meta",
-        existing_type=JSONB,
-        existing_server_default=sa.text("'{}'::jsonb"),
-    )
+    if "metadata" in stage_columns and "meta" not in stage_columns:
+        op.alter_column(
+            "job_stage_details",
+            "metadata",
+            new_column_name="meta",
+            existing_type=JSONB,
+            existing_server_default=sa.text("'{}'::jsonb"),
+        )
 
 
 def downgrade() -> None:

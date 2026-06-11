@@ -126,7 +126,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
             run_id=r_id,
             workflow_id=wf_id,
             trace_id=t_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=self.config.workflow_type,
         )
 
@@ -134,7 +134,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
             workflow_id=wf_id,
             run_id=r_id,
             trace_id=t_id,
-            tenant_id=tenant_id,
+            tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=self.config.workflow_type,  # type: ignore[arg-type]
             status=WorkflowStatus.PENDING,
             whitespace_input=whitespace_input,

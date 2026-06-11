@@ -336,6 +336,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
+      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: 'true'
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:

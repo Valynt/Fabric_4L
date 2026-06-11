@@ -754,6 +754,28 @@ collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias
 collect-95-plus-evidence: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces full 95+ evidence collection
 	@echo "✅  collect-95-plus-evidence alias completed (canonical: release-evidence-packet)"
 
+# ─── Promotion Targets ────────────────────────────────────────────────────────
+
+promote-staging: verify release-evidence-packet ## Verify local gates + evidence, then trigger staging promotion workflow
+	@echo "→ Verifying immutable image ref..."
+	@ref="sha-$$(git rev-parse HEAD)"; \
+	 echo "Image ref: $$ref"; \
+	 if ! command -v gh >/dev/null 2>&1; then \
+	   echo "❌ gh CLI not found. Install: https://cli.github.com/"; \
+	   echo "   Then run: gh workflow run environment-promotion.yml --ref main -f environment=staging -f image_ref=$$ref"; \
+	   exit 1; \
+	 fi; \
+	 if ! gh auth status >/dev/null 2>&1; then \
+	   echo "❌ gh CLI not authenticated. Run: gh auth login"; \
+	   exit 1; \
+	 fi; \
+	 echo "→ Triggering Environment Promotion workflow for staging..."; \
+	 gh workflow run environment-promotion.yml \
+	   --ref main \
+	   -f environment=staging \
+	   -f image_ref="$$ref"; \
+	 echo "✅  Staging promotion triggered. Monitor at: https://github.com/$$(gh repo view --json owner,name -q '.owner.login + \"/\" + .name')/actions/workflows/environment-promotion.yml"
+
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 
 gate-lint: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Gate: lint all layers for release readiness

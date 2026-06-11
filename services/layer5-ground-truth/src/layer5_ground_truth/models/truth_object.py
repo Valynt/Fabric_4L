@@ -31,6 +31,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.types import JSON, TypeDecorator
 
 # ---------------------------------------------------------------------------
@@ -213,7 +214,7 @@ class TruthObject(Base):
         comment="Semantic category — see ClaimType enum",
     )
     value = Column(
-        JSON,
+        JSONB,
         nullable=True,
         comment=(
             "Structured value: {amount, unit, currency, period} "
@@ -324,7 +325,7 @@ class TruthObject(Base):
     # Scope / applicability
     # -------------------------------------------------------------------------
     applies_to = Column(
-        JSON,
+        JSONB,
         nullable=True,
         comment=(
             "Scope of applicability: {opportunity_id, account_id, industry, "

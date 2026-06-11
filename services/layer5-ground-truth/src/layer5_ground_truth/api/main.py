@@ -380,8 +380,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         _validate_jwt_secret(settings.jwt_secret)
 
     # Initialize DB tables (no-op if already exist; Alembic handles migrations)
-    if settings.debug:
-        logger.info("DEBUG mode: running init_db() to create tables if missing")
+    if not settings.is_production_like:
+        logger.info("Development mode: running init_db() to create tables if missing")
         await init_db()
 
     # Production Vault smoke gate
