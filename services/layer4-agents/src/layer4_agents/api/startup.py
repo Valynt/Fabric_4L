@@ -21,7 +21,7 @@ from value_fabric.shared.identity.feature_flags import (
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 
 from ..config import configure_settings
-from ..config.checkpoint import CheckpointConfig
+from ..config.checkpoint import CheckpointConfig, get_checkpoint_saver
 from ..database import close_db, db_session_for_context, init_db
 from ..engine.executor import OrchestrationController
 from ..engine.state_manager import StateManager

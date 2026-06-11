@@ -1615,6 +1615,23 @@ class OrchestrationController:
                 error_code="WORKFLOW_EXECUTION_ERROR",
             )
             raise
+        except Exception as exc:
+            # Catch-all for LangGraph errors (InvalidUpdateError, etc.) and
+            # any other unexpected exceptions so the state manager is always
+            # updated and the HTTP client receives a timely response.
+            await persist_workflow_failure(
+                state_manager=self.state_manager,
+                workflow_id=workflow_id,
+                initial_state=initial_state,
+                exc=exc,
+            )
+            lifecycle_logger.emit(
+                stage="failure",
+                context=self._lifecycle_context(workflow_id),
+                error_class=type(exc).__name__,
+                error_code="WORKFLOW_EXECUTION_ERROR",
+            )
+            raise
         finally:
             self._active_workflows.pop(workflow_id, None)
 
