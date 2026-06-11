@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Check out release candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.release_candidate_sha }}
 
@@ -45,7 +45,7 @@ jobs:
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
         id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        uses: Infisical/secrets-action@1b1b4966602471c447fe836a4d0ff8c8d120f62b # v1
         with:
           method: oidc
           env-slug: staging
@@ -56,7 +56,7 @@ jobs:
           secret-path: /ci
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -71,7 +71,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22.12.0"
           cache: "pnpm"
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload reproducibility evidence artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-integrated-reproducibility-evidence-${{ github.run_id }}
           path: artifacts/live-workflow-validation/**

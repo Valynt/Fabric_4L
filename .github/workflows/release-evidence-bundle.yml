@@ -31,9 +31,9 @@ jobs:
     name: Release readiness gate (observability + deployment)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install pytest and PyYAML
@@ -46,7 +46,7 @@ jobs:
       - name: Generate release safety artifact
         run: python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate
       - name: Upload release safety artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-safety
           path: artifacts/release/release-safety.json
@@ -65,7 +65,7 @@ jobs:
           - layer5-ground-truth
           - layer6-benchmarks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve security mode
         id: mode
@@ -94,14 +94,14 @@ jobs:
         run: docker push ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        uses: aquasecurity/trivy-action@bfa4b33a029b9aa80ddb784b45574c30e072c59e # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
       - name: Trivy HTML report
-        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        uses: aquasecurity/trivy-action@bfa4b33a029b9aa80ddb784b45574c30e072c59e # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: html
@@ -156,7 +156,7 @@ jobs:
             --output-certificate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.crt
 
       - name: Upload scan artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scan-${{ matrix.service }}-${{ github.sha }}
           path: |
@@ -170,9 +170,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-scan]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
       - name: Download image security artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444306234a53f49b9be1f8b9 # v4
+        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317 # v4
         with:
           pattern: scan-*-${{ github.sha }}
           path: artifacts
@@ -188,15 +188,15 @@ jobs:
     name: SAST & Security E2E
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 
       - name: Bandit SAST
         run: |
@@ -216,7 +216,7 @@ jobs:
             --junitxml=prompt-injection-tests.xml
 
       - name: Upload SAST & test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sast-and-tests
           path: |
@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: []
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Start backend stack
         run: |
@@ -240,14 +240,14 @@ jobs:
           python scripts/ci/stack_health_check.py --timeout 300 --output stack-health.json
 
       - name: OWASP ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: 'http://localhost:8001'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
 
       - name: Upload live evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: live-evidence
           path: |
@@ -260,16 +260,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22.12.0'
 
@@ -289,13 +289,13 @@ jobs:
           echo "path=$BUNDLE_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Attest bundle
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.bundle.outputs.path }}
 
       - name: Upload release-candidate evidence bundle artifact
         if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release/') || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: evidence-bundle-${{ github.sha }}
           path: ${{ steps.bundle.outputs.path }}
@@ -303,7 +303,7 @@ jobs:
 
       - name: Upload to GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ steps.bundle.outputs.path }}
           body: |
@@ -318,7 +318,7 @@ jobs:
 
       - name: Upload release candidate evidence bundle artifact
         if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: evidence-bundle-${{ github.sha }}
           path: |
