@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-query
+  namespace: value-fabric
+  labels:
+    app: thanos-query
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: thanos-query
+  template:
+    metadata:
+      labels:
+        app: thanos-query
+        component: monitoring
+    spec:
+      containers:
+        - name: thanos-query
+          image: quay.io/thanos/thanos:v0.36.1
+          args:
+            - query
+            - --http-address=0.0.0.0:10902
+            - --grpc-address=0.0.0.0:10901
+            - --endpoint=prometheus.value-fabric.svc.cluster.local:10901
+          ports:
+            - name: http
+              containerPort: 10902
+            - name: grpc
+              containerPort: 10901
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-store
+  namespace: value-fabric
+  labels:
+    app: thanos-store
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: thanos-store
+  template:
+    metadata:
+      labels:
+        app: thanos-store
+        component: monitoring
+    spec:
+      containers:
+        - name: thanos-store
+          image: quay.io/thanos/thanos:v0.36.1
+          args:
+            - store
+            - --data-dir=/var/thanos/store
+            - --grpc-address=0.0.0.0:10901
+            - --http-address=0.0.0.0:10902
+          ports:
+            - name: grpc
+              containerPort: 10901
+            - name: http
+              containerPort: 10902
+          volumeMounts:
+            - name: thanos-store-data
+              mountPath: /var/thanos/store
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: thanos-store-data
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-compactor
+  namespace: value-fabric
+  labels:
+    app: thanos-compactor
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanos-compactor
+  template:
+    metadata:
+      labels:
+        app: thanos-compactor
+        component: monitoring
+    spec:
+      containers:
+        - name: thanos-compactor
+          image: quay.io/thanos/thanos:v0.36.1
+          args:
+            - compact
+            - --data-dir=/var/thanos/compact
+            - --retention.resolution-raw=30d
+            - --retention.resolution-5m=90d
+            - --retention.resolution-1h=365d
+            - --wait
+          volumeMounts:
+            - name: thanos-compact-data
+              mountPath: /var/thanos/compact
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: thanos-compact-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-query
+  namespace: value-fabric
+  labels:
+    app: thanos-query
+    component: monitoring
+spec:
+  selector:
+    app: thanos-query
+  ports:
+    - name: http
+      port: 10902
+      targetPort: http
+    - name: grpc
+      port: 10901
+      targetPort: grpc

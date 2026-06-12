@@ -601,13 +601,13 @@ logs: ## Tail logs for all services
 # ─── Environment Validation ───────────────────────────────────────────────────
 
 check-env: ## Validate env vars against Zod schemas (backend + frontend)
-	npx tsx scripts/check-env.ts all
+	npx tsx scripts/dev/check-env.ts all
 
 check-env-backend: ## Validate backend env vars only
-	npx tsx scripts/check-env.ts backend
+	npx tsx scripts/dev/check-env.ts backend
 
 check-env-frontend: ## Validate frontend env vars only
-	npx tsx scripts/check-env.ts frontend
+	npx tsx scripts/dev/check-env.ts frontend
 
 validate-env-contract: ## CI gate — validate env contract + schema
 	npx tsx scripts/ci/validate-env-contract.ts all

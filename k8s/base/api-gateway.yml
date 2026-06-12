@@ -35,8 +35,6 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            - name: ENVIRONMENT
-              value: "production"
             - name: DEBUG
               value: "false"
             - name: TESTING

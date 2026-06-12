@@ -2,7 +2,7 @@
 title: "Local Development Setup"
 category: "how-to-guides"
 audience: "intermediate"
-last-reviewed: "2026-05-04"
+last-reviewed: "2026-06-12"
 freshness: "current"
 related: ["../getting-started/quickstart", "../getting-started/environment", "../core-concepts/architecture", "../core-concepts/security-model", "../troubleshooting/index", "../troubleshooting/runbooks/infrastructure/service-down"]
 ---
@@ -24,7 +24,8 @@ Before starting:
 1. Complete the [Quickstart Guide](../getting-started/quickstart.md)
 2. Install development tools:
    - Python 3.11+ (any patch release; Python 3.11.10 is not specifically required; Make targets resolve `python3.11` first and otherwise require a `python3`/`python` shim that reports >=3.11)
-   - Node.js 20+
+   - Node.js 22.12.0+
+   - pnpm 10.18.1 (via corepack)
    - VS Code (recommended) or PyCharm
    - Git with SSH key configured
 
@@ -107,12 +108,10 @@ pyenv install --skip-existing "$(pyenv latest -k 3.11)"
 pyenv local 3.11
 
 # Create Python virtual environments for each layer
-cd value-fabric
-
 # Layer 1
-python3.11 -m venv layer1-ingestion/.venv
-source layer1-ingestion/.venv/bin/activate  # Windows: .\layer1-ingestion\.venv\Scripts\activate
-pip install -e layer1-ingestion/[dev]
+python3.11 -m venv services/layer1-ingestion/.venv
+source services/layer1-ingestion/.venv/bin/activate  # Windows: .\services\layer1-ingestion\.venv\Scripts\activate
+pip install -e services/layer1-ingestion/[dev]
 deactivate
 
 # Repeat for layers 2-4...
@@ -144,6 +143,8 @@ When building services via Docker Compose, this override is automatically passed
 
 ## Step 3: Configure Hot Reload
 
+> **Note:** The architecture diagram ports are illustrative. Actual service ports depend on your `.env`/Compose configuration and the command-line flags used below.
+
 ### Layer 1 (Ingestion)
 
 ```bash
@@ -160,7 +161,7 @@ REDIS_URL=redis://localhost:6379/0
 EOF
 
 # Run with hot reload
-uvicorn layer4_agents.api.main:app --reload --port 8001 --log-level debug
+uvicorn src.api.main:app --reload --port 8001 --log-level debug
 ```
 
 ### Layer 2 (Extraction)
@@ -170,16 +171,16 @@ cd services/layer2-extraction
 source .venv/bin/activate
 
 # Run with hot reload
-uvicorn layer4_agents.api.main:app --reload --port 8002 --log-level debug
+uvicorn src.layer2_extraction.api.main:app --reload --port 8002 --log-level debug
 ```
 
 ### Layer 3 (Knowledge)
 
 ```bash
 cd services/layer3-knowledge
-source .venv/bin/bin/activate
+source .venv/bin/activate
 
-uvicorn layer4_agents.api.main:app --reload --port 8003 --log-level debug
+uvicorn src.api.main:app --reload --port 8003 --log-level debug
 ```
 
 ### Layer 4 (Agents)
@@ -188,7 +189,7 @@ uvicorn layer4_agents.api.main:app --reload --port 8003 --log-level debug
 cd services/layer4-agents
 source .venv/bin/activate
 
-uvicorn layer4_agents.api.main:app --reload --port 8004 --log-level debug
+uvicorn src.api.main:app --reload --port 8004 --log-level debug
 ```
 
 ### Frontend
@@ -249,7 +250,7 @@ Create `.vscode/launch.json`:
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["src.api.main:app", "--reload", "--port", "8002"],
+      "args": ["src.layer2_extraction.api.main:app", "--reload", "--port", "8002"],
       "cwd": "${workspaceFolder}/services/layer2-extraction"
     },
     {
@@ -384,4 +385,4 @@ find . -type f -name "*.pyc" -delete
 
 ---
 
-*Last updated: 2026-05-04 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/how-to-guides/setup-local-dev.md)*
+*Last updated: 2026-06-12 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/how-to-guides/setup-local-dev.md)*

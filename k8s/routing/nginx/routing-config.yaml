@@ -7,6 +7,4 @@ metadata:
   namespace: value-fabric
 data:
   # Namespace where ingress controller runs
-  ingressNamespace: "__INGRESS_NAMESPACE__"
-  # Email for cert-manager ClusterIssuer
-  issuerEmail: "__ISSUER_EMAIL__"
+  ingressNamespace: "ingress-nginx"

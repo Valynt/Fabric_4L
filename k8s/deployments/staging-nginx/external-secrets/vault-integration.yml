@@ -1,0 +1,232 @@
+# HashiCorp Vault Integration for Value Fabric Secrets
+# 
+# This manifest provides an example of using Vault for production secret management.
+# For local development, use k8s/secrets.yml with placeholder values.
+# For production, integrate with your Vault instance.
+#
+# Prerequisites:
+# - Vault cluster running and accessible from K8s cluster
+# - Kubernetes auth method enabled in Vault
+# - External Secrets Operator installed in cluster
+
+---
+# External Secret: OpenAI API Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: openai-api-key
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: openai-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: value-fabric/llm
+        property: openai-api-key
+
+---
+# External Secret: Neo4j Credentials
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: neo4j-credentials
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: neo4j-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: auth
+      remoteRef:
+        key: value-fabric/database
+        property: neo4j-auth
+
+---
+# External Secret: JWT Secret
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: jwt-signing-secret
+  namespace: value-fabric
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: jwt-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: secret
+      remoteRef:
+        key: value-fabric/auth
+        property: jwt-secret
+
+---
+# External Secret: PostgreSQL Password
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: postgres-password
+  namespace: value-fabric
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: postgres-secret
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        username: "postgres"
+        password: "{{ .password }}"
+  data:
+    - secretKey: password
+      remoteRef:
+        key: value-fabric/database
+        property: postgres-password
+
+---
+# External Secret: API Key HMAC Secret
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: api-key-hmac-secret
+  namespace: value-fabric
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: api-key-hmac-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: secret
+      remoteRef:
+        key: value-fabric/auth
+        property: api-key-hmac-secret
+
+---
+# External Secret: Anthropic API Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: anthropic-api-key
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: anthropic-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: value-fabric/llm
+        property: anthropic-api-key
+
+---
+# External Secret: Pinecone API Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pinecone-api-key
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: pinecone-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: value-fabric/search
+        property: pinecone-api-key
+
+---
+# External Secret: Browserbase API Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: browserbase-api-key
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: browserbase-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: value-fabric/providers
+        property: browserbase-api-key
+
+---
+# External Secret: Firecrawl API Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: firecrawl-api-key
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: firecrawl-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: value-fabric/providers
+        property: firecrawl-api-key
+
+---
+# ClusterSecretStore: Vault Backend Configuration
+# This must be adapted to your specific Vault setup
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: vault-backend
+  annotations:
+    security.valuefabric.io/mtls-required: "true"
+spec:
+  provider:
+    vault:
+      server: "https://vault.vault.svc.cluster.local:8200"
+      path: "secret"
+      version: "v2"
+      caProvider:
+        type: ConfigMap
+        name: vault-ca-cert
+        key: ca.crt
+        namespace: vault
+      auth:
+        kubernetes:
+          mountPath: "kubernetes"
+          role: "value-fabric-role"
+          serviceAccountRef:
+            name: "external-secrets-sa"
+            namespace: "external-secrets"

@@ -14,6 +14,7 @@ ALLOWED_ENV_BASENAMES = {
     ".env.dev.example",
     ".env.pytest.example",
     ".env.production-compose.template",
+    ".env.smoke.template",
 }
 
 ALLOWED_ENV_SUFFIXES = (
@@ -22,6 +23,7 @@ ALLOWED_ENV_SUFFIXES = (
 )
 ALLOWED_ENV_PATHS = {
     "apps/web/.env.local.mock-auth.example",
+    ".env.smoke.template",
 }
 
 DRIVE_LETTER_PREFIX = re.compile(r"^[A-Za-z][:][\\/]")

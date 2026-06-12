@@ -27,7 +27,7 @@ Before starting, ensure you have:
 | Git | 2.40+ | `git --version` |
 | Make | 3.81+ | `make --version` |
 | uv | 0.4+ | `uv --version` |
-| pnpm | 9+ | `pnpm --version` |
+| pnpm | 10.18.1 (via corepack) | `pnpm --version` |
 | OpenAI API Key | — | [Get one here](https://platform.openai.com/api-keys) |
 
 **Estimated Time:** 15 minutes
@@ -40,18 +40,18 @@ Before starting, ensure you have:
 ```mermaid
 graph TB
     subgraph "Your Machine"
-        A[Docker Compose] --> B[Layer 1: Ingestion<br/>Port 8000]
-        A --> C[Layer 2: Extraction<br/>Port 8000]
-        A --> L2_5[Layer 2.5: Signal Refinery<br/>Port 8007]
-        A --> D[Layer 3: Knowledge Graph<br/>Port 8001]
-        A --> E[Layer 4: Agents<br/>Port 8004]
-        A --> M[Layer 5: Ground Truth<br/>Port 8005]
-        A --> N[Layer 6: Benchmarks<br/>Port 8006]
-        A --> L7[Layer 7: Billing<br/>Port 8008]
+        A[Docker Compose] --> B[Layer 1: Ingestion<br/>Host Port 8000]
+        A --> C[Layer 2: Extraction<br/>Host Port 8000]
+        A --> L2_5[Layer 2.5: Signal Refinery<br/>Host Port 8007]
+        A --> D[Layer 3: Knowledge Graph<br/>Host Port 8001]
+        A --> E[Layer 4: Agents<br/>Host Port 8004]
+        A --> M[Layer 5: Ground Truth<br/>Host Port 8005]
+        A --> N[Layer 6: Benchmarks<br/>Host Port 8006]
+        A --> L7[Layer 7: Billing<br/>Host Port 8008]
         A --> G[(PostgreSQL)]
         A --> H[(Neo4j)]
         A --> I[(Redis)]
-        A --> F[Frontend UI<br/>Port 5173]
+        A --> F[Frontend UI<br/>Port 5173 (pnpm dev)<br/>or 3001 (docker compose)]
     end
     J[LLM APIs] -.-> C
     J -.-> L2_5
@@ -66,8 +66,8 @@ graph TB
 
 **All 9 services** (run from repo root via `docker compose -f docker-compose.full.yml`):
 
-| # | Service | Path | Port | Role |
-| - | ------- | ---- | ---- | ---- |
+| # | Service | Path | Host Port | Role |
+| - | ------- | ---- | --------- | ---- |
 | 0 | API Gateway | `services/api/` | 8000 | Request routing, auth |
 | 1 | Layer 1 Ingestion | `services/layer1-ingestion/` | 8000 | Document ingestion |
 | 2 | Layer 2 Extraction | `services/layer2-extraction/` | 8000 | LLM-based extraction |
@@ -77,6 +77,7 @@ graph TB
 | 5 | Layer 5 Ground Truth | `services/layer5-ground-truth/` | 8005 | Validation & ground truth |
 | 6 | Layer 6 Benchmarks | `services/layer6-benchmarks/` | 8006 | Benchmark evaluation |
 | 7 | Layer 7 Billing | `services/layer7-billing/` | 8008 | Usage metering & entitlements |
+| 8 | Frontend UI | `apps/web/` | 5173 (`pnpm dev`) or 3001 (`docker compose`) | React/Vite user interface |
 
 ## Runtime path placement (contributors)
 
@@ -129,6 +130,9 @@ OPENAI_API_KEY=sk-your-key-here
 
 # Required: JWT Secret (generate with: openssl rand -hex 32)
 JWT_SECRET=your-generated-secret-here
+
+# Optional: Override private GHCR base image for local Docker builds
+BASE_IMAGE=python:3.11.11-slim-bookworm
 
 # Optional: Change ports if conflicts exist
 LAYER1_PORT=8000
@@ -200,15 +204,12 @@ This is already pre-configured in the provided `.env` and `.env.example` files.
 # From the repository root
 make migrate
 
-# Or run per-service migrations:
-# Layer 1
-uv run --package layer1-ingestion alembic upgrade head
-# Layer 4
-uv run --package layer4-agents alembic upgrade head
-# Layer 5
-uv run --package layer5-ground-truth alembic upgrade head
-# Layer 7
-uv run --package layer7-billing alembic upgrade head
+# Or run per-service migrations using the supported Makefile targets:
+# make migrate-layer1
+# make migrate-layer2
+# make migrate-layer4
+# make migrate-layer5
+# make migrate-layer7
 
 # Expected output:
 # INFO  [alembic.runtime.migration] Context impl PostgresqlImpl

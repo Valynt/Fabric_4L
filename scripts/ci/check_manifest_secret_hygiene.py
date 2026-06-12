@@ -40,6 +40,20 @@ ENV_EXAMPLE_FORBIDDEN_DEFAULTS: dict[str, re.Pattern[str]] = {
     'Keycloak admin password in .env.example': re.compile(r'^\s*KEYCLOAK_ADMIN_PASSWORD\s*=\s*admin\b'),
 }
 
+# .env.example is a reference template, not a deployed secret source. These
+# patterns are allowed when the value is clearly a placeholder instruction.
+ENV_EXAMPLE_ALLOWED_PLACEHOLDERS: tuple[re.Pattern[str], ...] = (
+    re.compile(r'^\s*REDIS_PASSWORD\s*=\s*<CHANGE_ME_IN_LOCAL_ENV>'),
+    re.compile(r'^\s*(?:MINIO_ACCESS_KEY_ID|MINIO_SECRET_ACCESS_KEY|S3_ACCESS_KEY_ID|S3_SECRET_ACCESS_KEY)\s*=\s*<CHANGE_ME_IN_LOCAL_ENV>'),
+    re.compile(r'^\s*KEYCLOAK_ADMIN_PASSWORD\s*=\s*<CHANGE_ME_IN_LOCAL_ENV>'),
+)
+
+# Forbidden dev-auth bypass env vars may appear in .env.example only as
+# commented-out examples with explicit safe defaults and a noqa marker.
+ENV_EXAMPLE_ALLOWED_BYPASS_COMMENT: re.Pattern[str] = re.compile(
+    r'^\s*#\s*(?:ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT|ALLOW_INSECURE_DEV_AUTH_BYPASS|DEV_AUTH_BYPASS|AUTH_BYPASS_ENABLED|ALLOW_DEV_AUTH_BYPASS)\s*=\s*false\s*#\s*noqa:\s*secret-hygiene-example-only'
+)
+
 DEV_ONLY_COMPOSE_NAMES = {'docker-compose.dev.yml', 'docker-compose.full.dev-vault.yml'}
 DEPLOYABLE_COMPOSE_NAMES = {'docker-compose.yml', 'docker-compose.full.yml', 'docker-compose.live.yml'}
 ALLOWED_DEV_PROFILE_NAMES = {'dev', 'local-dev'}
@@ -134,13 +148,20 @@ def find_violations(files: list[Path]) -> list[Violation]:
             for rule, pattern in STRICT_FORBIDDEN_PATTERNS.items():
                 if is_dev_compose and rule in DEV_COMPOSE_ALLOWED_STRICT_RULES:
                     continue
+                if is_env_example and rule == 'forbidden dev auth bypass env vars' and ENV_EXAMPLE_ALLOWED_BYPASS_COMMENT.search(line):
+                    continue
                 if pattern.search(line):
                     violations.append(Violation(file=file, line=lineno, rule=rule, text=line.strip()))
 
             if is_env_example:
                 for rule, pattern in ENV_EXAMPLE_FORBIDDEN_DEFAULTS.items():
-                    if pattern.search(line):
-                        violations.append(Violation(file=file, line=lineno, rule=rule, text=line.strip()))
+                    if not pattern.search(line):
+                        continue
+                    if any(allowed.search(line) for allowed in ENV_EXAMPLE_ALLOWED_PLACEHOLDERS):
+                        continue
+                    if rule == 'forbidden dev auth bypass env vars' and ENV_EXAMPLE_ALLOWED_BYPASS_COMMENT.search(line):
+                        continue
+                    violations.append(Violation(file=file, line=lineno, rule=rule, text=line.strip()))
 
             if is_compose and not is_dev_compose:
                 for rule, pattern in DEV_ONLY_COMPOSE_DEFAULTS.items():

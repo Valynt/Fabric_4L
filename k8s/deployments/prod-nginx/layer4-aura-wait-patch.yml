@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: layer4-agents
+  namespace: value-fabric
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-deps
+          command:
+            - sh
+            - -c
+            - until nc -z redis 6379 && nc -z postgres 5432 && nc -z layer2-extraction 8000 && nc -z layer3-knowledge 8001; do echo waiting for dependencies; sleep 2; done

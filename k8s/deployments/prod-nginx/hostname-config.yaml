@@ -8,5 +8,7 @@ data:
   apiHost: api.valuepact.ai
   # Ingress controller namespace for NetworkPolicy
   ingressNamespace: ingress-nginx
+  # cert-manager ClusterIssuer for TLS certificates
+  tlsIssuer: letsencrypt-prod
   # cert-manager ClusterIssuer email (must be replaced with valid email)
   issuerEmail: security@valuepact.ai

@@ -2,7 +2,7 @@
 title: "Environment Configuration Guide"
 category: "getting-started"
 audience: "intermediate"
-last-reviewed: "2026-04-19"
+last-reviewed: "2026-06-12"
 freshness: "current"
 related: ["quickstart", "../core-concepts/security-model", "../core-concepts/architecture", "../how-to-guides/setup-local-dev", "../troubleshooting/authentication-errors", "../troubleshooting/index", "../reference/layer1-ingestion-api"]
 ---
@@ -118,7 +118,7 @@ JWT_SECRET=a3f5c7e9...
 | `VITE_API_BASE_URL` | Frontend API endpoint | `/api/v1` |
 | `VITE_ENABLE_QUERY_DEVTOOLS` | Debug tools | `true` (dev only) |
 | `VITE_ENABLE_WEB_VITALS` | Local opt-in for frontend RUM metrics; staging/production enable automatically | `false` |
-| `L1_PORT` | Service port | `8001` |
+| `LAYER1_PORT` | Service port | `8001` |
 | `ENVIRONMENT` | Environment name | `development` |
 
 ### Class D: Local Dev (🔵 Convenience)
@@ -151,10 +151,10 @@ POSTGRES_PASSWORD=fabric                 # Database auth
 
 # Class C - Required
 ENVIRONMENT=development                    # dev/staging/production
-L1_PORT=8001                             # Layer 1 port
-L2_PORT=8002                             # Layer 2 port
-L3_PORT=8003                             # Layer 3 port
-L4_PORT=8004                             # Layer 4 port
+LAYER1_PORT=8001                             # Layer 1 port
+LAYER2_PORT=8002                             # Layer 2 port
+LAYER3_PORT=8003                             # Layer 3 port
+LAYER4_PORT=8004                             # Layer 4 port
 DATABASE_URL=postgresql://fabric:fabric@localhost:5432/fabric
 REDIS_URL=redis://localhost:6379/0
 NEO4J_URI=bolt://localhost:7687
@@ -166,10 +166,12 @@ NEO4J_USER=neo4j
 ```bash
 # Class C - All public, all safe to commit
 VITE_API_BASE_URL=/api/v1
-VITE_L1_URL=http://localhost:8001
-VITE_L2_URL=http://localhost:8002
-VITE_L3_URL=http://localhost:8003
-VITE_L4_URL=http://localhost:8004
+VITE_PROXY_L1_URL=http://localhost:8001
+VITE_PROXY_L2_URL=http://localhost:8002
+VITE_PROXY_L3_URL=http://localhost:8003
+VITE_PROXY_L4_URL=http://localhost:8004
+VITE_PROXY_L5_URL=http://localhost:8005
+VITE_PROXY_L6_URL=http://localhost:8006
 VITE_ENABLE_QUERY_DEVTOOLS=true          # Dev only
 VITE_API_LOG_LEVEL=debug                 # Dev only
 VITE_ENVIRONMENT=development
@@ -221,12 +223,12 @@ winget install Infisical.infisical
 infisical login
 
 # 3. Run backend with secrets
-infisical run --env=dev --path=/fabric-4l/value-fabric/dev -- \
+infisical run --env=dev --path=/fabric-4l/dev -- \
   docker compose up -d
 
 # 4. Run frontend
 infisical run --env=dev --path=/fabric-4l/apps/web/dev -- \
-  npm run dev
+  pnpm run dev
 ```
 
 ### Option 2: Manual .env (Local-Only Quick Start)
@@ -236,7 +238,6 @@ must not become Kubernetes `Secret` manifests.
 
 ```bash
 # 1. Copy example file
-cd value-fabric
 cp .env.example .env
 
 # 2. Edit .env with your values
@@ -313,8 +314,7 @@ settings = Settings()  # Validates on instantiation
 
 ```bash
 # Check env file validity
-cd value-fabric
-python scripts/check-env.ts
+npx tsx scripts/dev/check-env.ts
 
 # Expected output:
 # ✓ OPENAI_API_KEY: valid format
@@ -343,10 +343,10 @@ ENABLE_SWAGGER=true
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
 
 # Local service ports
-L1_PORT=8001
-L2_PORT=8002
-L3_PORT=8003
-L4_PORT=8004
+LAYER1_PORT=8001
+LAYER2_PORT=8002
+LAYER3_PORT=8003
+LAYER4_PORT=8004
 
 # Local databases
 DATABASE_URL=postgresql://fabric:fabric@localhost:5432/fabric
@@ -470,53 +470,7 @@ lsof -i :8001  # macOS/Linux
 netstat -ano | findstr :8001  # Windows
 
 # Change port in .env
-L1_PORT=8002
-```
-
-### Environment Diagnostic Script
-
-```bash
-#!/bin/bash
-# scripts/diagnose-env.sh
-
-echo "=== Environment Diagnostics ==="
-
-# Check required variables
-echo -e "\n--- Required Variables ---"
-for var in OPENAI_API_KEY JWT_SECRET DATABASE_URL; do
-    if [ -z "${!var}" ]; then
-        echo "❌ $var: NOT SET"
-    else
-        echo "✓ $var: SET"
-    fi
-done
-
-# Validate OpenAI key format
-echo -e "\n--- OpenAI Key ---"
-if [[ $OPENAI_API_KEY =~ ^sk-[a-zA-Z0-9]+$ ]]; then
-    echo "✓ Valid format"
-else
-    echo "❌ Invalid format (should start with sk-)"
-fi
-
-# Check database connectivity
-echo -e "\n--- Database ---"
-if psql $DATABASE_URL -c "SELECT 1" > /dev/null 2>&1; then
-    echo "✓ Connected"
-else
-    echo "❌ Connection failed"
-fi
-
-# Check JWT secret length
-echo -e "\n--- JWT Secret ---"
-length=${#JWT_SECRET}
-if [ $length -ge 32 ]; then
-    echo "✓ Length: $length (≥ 32)"
-else
-    echo "❌ Length: $length (< 32)"
-fi
-
-echo -e "\n=== End Diagnostics ==="
+LAYER1_PORT=8002
 ```
 
 ---
@@ -550,7 +504,7 @@ echo -e "\n=== End Diagnostics ==="
 
 ---
 
-*Last updated: 2026-04-19 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/getting-started/environment.md)*
+*Last updated: 2026-06-12 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/getting-started/environment.md)*
 
 
 ## Release Approval Reliability Requirement

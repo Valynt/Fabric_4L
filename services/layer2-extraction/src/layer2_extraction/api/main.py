@@ -1742,9 +1742,9 @@ async def extract_and_ingest(
 
 
 @app.get("/v1/extract/status/{job_id}", response_model=ExtractionStatusResponse)
-async def get_extraction_status(job_id: str):
+async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Get status of a combined extraction and ingestion job."""
-    job = await job_store.get(job_id)
+    job = await job_store.get(job_id, tenant_id=str(ctx.tenant_id))
     if not job:
         raise NotFoundError(message = "Job not found")
 
@@ -1802,22 +1802,26 @@ async def list_entities(
         None, enum=["Capability", "UseCase", "Persona", "ValueDriver", "Feature"]
     ),
     limit: int = Query(100, ge=1, le=1000),
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """List entities in the ontology.
 
     Note: In a full implementation, this would query a persistent store.
     For now, returns empty list (entities are in RDF files).
     """
-    # This would query Neo4j or similar in production
+    # This would query Neo4j or similar in production, scoped to the authenticated tenant.
+    _ = ctx.tenant_id
     return EntityListResponse(entity_type=entity_type or "all", entities=[], total=0)
 
 
 @app.get("/v1/entities/{entity_id}/relationships")
-async def get_relationships(entity_id: str):
+async def get_relationships(entity_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Get relationships for an entity.
 
     Note: In a full implementation, this would query the graph database.
     """
+    # This would query Neo4j or similar in production, scoped to the authenticated tenant.
+    _ = ctx.tenant_id
     return RelationshipsResponse(entity_id=entity_id, incoming=[], outgoing=[])
 
 
@@ -1995,7 +1999,7 @@ async def _job_event_generator(job_id: str):
 
 
 @app.get("/v1/extract/jobs/{job_id}/events")
-async def stream_job_events(job_id: str):
+async def stream_job_events(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Stream real-time events for a pipeline job via SSE.
 
     Returns a Server-Sent Events stream with progress updates,
@@ -2015,8 +2019,9 @@ async def stream_job_events(job_id: str):
     Returns:
         StreamingResponse with text/event-stream content type
     """
-
-    if not await job_store.exists(job_id):
+    tenant_id = str(ctx.tenant_id)
+    # Validate tenant-scoped access before streaming.
+    if not await job_store.get(job_id, tenant_id=tenant_id):
         raise NotFoundError(message = str(f"Job {job_id} not found"))
 
     return StreamingResponse(

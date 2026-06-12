@@ -37,9 +37,9 @@ spec:
           env:
             - name: DATABASE_URL_SYNC
               valueFrom:
-                configMapKeyRef:
-                  name: value-fabric-config
-                  key: LAYER5_DATABASE_URL_SYNC
+                secretKeyRef:
+                  name: layer5-db-credentials
+                  key: DATABASE_URL_SYNC
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

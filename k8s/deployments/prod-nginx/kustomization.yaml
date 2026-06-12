@@ -3,14 +3,77 @@ kind: Kustomization
 
 # prod-nginx: prod environment + NGINX Ingress routing.
 # This is the DEFAULT supported production deployment target.
+#
+# All resources are declared directly in this overlay (or via directory
+# references that stay within Kustomize's default LoadRestrictionsRootOnly)
+# so that `kubectl kustomize` can render without extra flags.
 
 namespace: value-fabric
 
 resources:
-  - ../../envs/prod
+  - ../../base
+  - ./external-secrets
+  - ../../operators
+  - ../../policy
+  - ./monitoring
   - ../../routing/nginx
   - hostname-config.yaml
   - oauth2-proxy-config.yaml
+
+labels:
+  - pairs:
+      environment: prod
+
+patches:
+  - path: prod-replicas-patch.yml
+  - path: neo4j-aura-patch.yml
+  - path: layer4-aura-wait-patch.yml
+  - path: api-gateway-environment-patch.yml
+
+# Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
+# This file must not contain placeholder digests (sha256:1111...1111 through sha256:7777...7777).
+# The CI workflow (.github/workflows/environment-promotion.yml) enforces this before every deploy.
+#
+# For the template showing the expected structure, see kustomization.yaml.template.
+#
+# HOW TO DEPLOY:
+#   CI: environment-promotion.yml runs prepare_kustomize_deploy.sh automatically.
+#   Manual: export REGISTRY=ghcr.io/bmsull560/fabric_4l && bash scripts/ci/prepare_kustomize_deploy.sh prod <output>
+images:
+  - name: services/api
+    newName: ghcr.io/bmsull560/fabric_4l/api-gateway
+    digest: sha256:d7e77817e2efbf0fa25a83ec5cdf56389f3d9ab7e98c1c54d250dfaa15361e42
+  - name: services/layer1-ingestion
+    newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
+    digest: sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
+  - name: services/layer2-extraction
+    newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
+    digest: sha256:13029594c9b8a1084e95fddac9b5143605f947b974c742ff8c84b2a0729423ec
+  - name: services/layer2-5-signal-refinery
+    newName: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery
+    digest: sha256:723c8398bfc10e4ba47fe654e1a6b5ed37a109765419d55518995a01c262f208
+  - name: services/layer3-knowledge
+    newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
+    digest: sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d
+  - name: services/layer4-agents
+    newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
+    digest: sha256:0300c79009d884d2576a6b7dcb15606316f02fcadb9a6800a7da4fcf1e205f29
+  - name: services/layer5-ground-truth
+    newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
+    digest: sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
+  - name: services/layer6-benchmarks
+    newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
+    digest: sha256:2093ee632e2db237f9fb25e32d487fa9e157c26b35679886fd928b98618bae19
+  - name: apps/web
+    newName: ghcr.io/bmsull560/fabric_4l/frontend
+    digest: sha256:0aa8f24975fc35f039525dcfabdb6d50b76699407090df0d4c4f73d32cb0e4a7
+  # Infrastructure images use explicit versions.
+  - name: postgres
+    newTag: "15.10-alpine"
+  - name: redis
+    newTag: "7.4-alpine"
+  - name: neo4j
+    newTag: "5.25-community"
 
 replacements:
   - source:
@@ -24,6 +87,14 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+      - select:
+          kind: Ingress
+          name: frontend
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
   - source:
       kind: ConfigMap
       name: routing-host
@@ -35,6 +106,14 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+      - select:
+          kind: Ingress
+          name: layer-apis
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
   # Replace ingress namespace in NetworkPolicy
   - source:
       kind: ConfigMap
@@ -51,6 +130,22 @@ replacements:
           name: oauth2-proxy
         fieldPaths:
           - spec.ingress.0.from.0.namespaceSelector.matchLabels.kubernetes\.io/metadata\.name
+  # Replace TLS issuer in Ingress annotations
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.tlsIssuer
+    targets:
+      - select:
+          kind: Ingress
+          name: frontend
+        fieldPaths:
+          - metadata.annotations.cert-manager\.io/cluster-issuer
+      - select:
+          kind: Ingress
+          name: layer-apis
+        fieldPaths:
+          - metadata.annotations.cert-manager\.io/cluster-issuer
   # Replace issuer email in ClusterIssuers
   - source:
       kind: ConfigMap
@@ -67,23 +162,7 @@ replacements:
           name: letsencrypt-staging
         fieldPaths:
           - spec.acme.email
-  # Replace oauth2-proxy redirect URL (frontend)
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.host
-    targets:
-      - select:
-          kind: ConfigMap
-          name: oauth2-proxy-oidc
-        fieldPaths:
-          - data.redirect-url
-        options:
-          delimiter: "/"
-          index: 0
-    # Add https:// prefix to redirect URL
-    # This is a workaround - we'll use sed in CI or handle in config
-  # Replace oauth2-proxy allowed domains (same for both hosts)
+  # Replace oauth2-proxy allowed domains and OIDC provider
   - source:
       kind: ConfigMap
       name: oauth2-proxy-oidc
@@ -93,4 +172,14 @@ replacements:
           kind: Deployment
           name: oauth2-proxy
         fieldPaths:
-          - spec.template.spec.containers.0.env.5.value
+          - spec.template.spec.containers.0.env.10.value
+  - source:
+      kind: ConfigMap
+      name: oauth2-proxy-oidc
+      fieldPath: data.oidc-provider
+    targets:
+      - select:
+          kind: Deployment
+          name: oauth2-proxy
+        fieldPaths:
+          - spec.template.spec.containers.0.env.12.value
