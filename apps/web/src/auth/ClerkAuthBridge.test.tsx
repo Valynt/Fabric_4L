@@ -23,6 +23,7 @@ import {
   getActiveClerkOrgId,
   getClerkSessionToken,
 } from "@/auth/clerkSession";
+import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Mock Clerk. The mock state object is mutable; tests flip values and
@@ -92,11 +93,13 @@ describe("<ClerkAuthBridge />", () => {
   beforeEach(() => {
     resetMockClerk();
     _resetClerkSessionForTests();
+    setAuthProvider("clerk");
   });
 
   afterEach(() => {
     cleanup();
     _resetClerkSessionForTests();
+    setAuthProvider(undefined);
   });
 
   // ──────────────────────────────────────────────────────────────────
