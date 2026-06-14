@@ -5,9 +5,9 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main, "release/**" ]
+    branches: [main, "release/**"]
   workflow_dispatch:
 
 env:
@@ -18,13 +18,13 @@ jobs:
   determine-profile:
     runs-on: ubuntu-latest
     outputs:
-      profile: ${{ steps.profile.outputs.profile }}
+      profile: ${{steps.profile.outputs.profile}}
     steps:
       - id: profile
         run: |
-          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+          if [["${GITHUB_REF}" == refs/heads/main]]; then
             echo "profile=mainline-full" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
+          elif [["${GITHUB_REF}" == refs/heads/release/*]]; then
             echo "profile=release-candidate" >> $GITHUB_OUTPUT
           else
             echo "profile=pr-fast" >> $GITHUB_OUTPUT
@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run architecture conformance gate
-        run: make gate-arch PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: arch-artifacts
@@ -73,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run security & isolation gate
-        run: make gate-security PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-security PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Enforce tenant boundary release tests
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         run: |
@@ -165,7 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run dependency chaos gate
-        run: make gate-chaos PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: chaos-artifacts
@@ -178,7 +178,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run cross-domain smoke gate
-        run: make gate-smoke PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: smoke-artifacts
@@ -190,7 +190,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run agent provenance gate
-        run: make gate-agent PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: agent-artifacts
@@ -202,7 +202,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run state consistency gate
-        run: make gate-state PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: state-artifacts
@@ -215,7 +215,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run DB production readiness gate
         run: |
-          make gate-database PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+          make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
           test -s artifacts/database/migration-status.json
           test -s artifacts/database/migration-status.md
       - uses: actions/upload-artifact@v4
@@ -232,7 +232,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run observability readiness gate
-        run: make gate-obs PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: obs-artifacts
@@ -267,7 +267,7 @@ jobs:
           python -c "import json; d=json.load(open('reports/scorecards/repo-maturity.json', encoding='utf-8')); print(f\"Repo maturity: {d['overall_score']}/{d['max_score']} ({d['status']})\")" >> "$GITHUB_STEP_SUMMARY"
       - name: Enforce repo maturity scorecard
         if: always()
-        run: exit ${{ steps.scorecard.outputs.exit_code }}
+        run: exit ${{steps.scorecard.outputs.exit_code}}
 
   readiness-10:
     runs-on: ubuntu-latest
@@ -323,7 +323,7 @@ jobs:
             local label="$2"
             local resolved
             resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
-            if [[ -z "${resolved}" ]]; then
+            if [[-z "${resolved}"]]; then
               echo "Missing required artifact for ${label}: ${pattern}" >&2
               exit 1
             fi
@@ -345,12 +345,12 @@ jobs:
           cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
           cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
       - name: Evaluate release policy
-        run: make gate-release-policy PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-release-policy PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Run canonical release gate
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/ops/release-gate.sh "${{ needs.determine-profile.outputs.profile }}"
+          bash scripts/ops/release-gate.sh "${{needs.determine-profile.outputs.profile}}"
       - name: Sign release manifest
         if: success() && needs.determine-profile.outputs.profile != 'pr-fast'
         run: make gate-sign-manifest

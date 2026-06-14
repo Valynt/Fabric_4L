@@ -50,6 +50,12 @@ class ApprovalConflictError(ValueError):
     pass
 
 
+class ApprovalRequestNotFoundError(ValueError):
+    """Raised when an approval request cannot be found for the tenant."""
+
+    pass
+
+
 # ---------------------------------------------------------------------------
 # Allowed transitions map
 # ---------------------------------------------------------------------------
@@ -362,6 +368,46 @@ class ApprovalStateMachine:
 
         await db.flush()
         return request
+
+    async def get_request(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        approval_id: UUID,
+    ) -> ApprovalRequest:
+        """Return a tenant-scoped approval request or fail closed."""
+        result = await db.execute(
+            select(ApprovalRequest).where(
+                and_(ApprovalRequest.id == approval_id, ApprovalRequest.tenant_id == tenant_id)
+            )
+        )
+        request = result.scalar_one_or_none()
+        if request is None:
+            raise ApprovalRequestNotFoundError(f"Approval request {approval_id} not found")
+        return request
+
+    async def list_requests(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        entity_type: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[ApprovalRequest], int]:
+        """List tenant-scoped approval requests with optional filters."""
+        query = select(ApprovalRequest).where(ApprovalRequest.tenant_id == tenant_id)
+        if entity_type:
+            query = query.where(ApprovalRequest.entity_type == entity_type)
+        if status:
+            query = query.where(ApprovalRequest.status == status)
+
+        total_result = await db.execute(select(func.count()).select_from(query.subquery()))
+        total = int(total_result.scalar() or 0)
+        result = await db.execute(
+            query.order_by(ApprovalRequest.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        )
+        return list(result.scalars().all()), total
 
     async def _compute_decision_level(
         self,

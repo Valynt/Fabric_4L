@@ -103,9 +103,9 @@ jobs:
         run: |
           SECRETS_PATH="$INPUT_SECRETS_PATH"
           ENVIRONMENT="$TARGET_ENVIRONMENT"
-          
+
           echo "🔐 Fetching secrets for $ENVIRONMENT from $SECRETS_PATH"
-          
+
           # Define required secrets per environment
           case $ENVIRONMENT in
             dev)
@@ -122,23 +122,23 @@ jobs:
               exit 1
               ;;
           esac
-          
+
           # Fetch each secret
           SECRETS_JSON="{}"
           for key in "${SECRET_KEYS[@]}"; do
             echo "Fetching secret: $key"
-            
+
             # Attempt to fetch from Vault
             secret_value=$(vault kv get -format=json "${SECRETS_PATH}/${key}" 2>/dev/null || echo "null")
-            
+
             if [ "$secret_value" != "null" ]; then
               value=$(echo "$secret_value" | jq -r '.data.data.value // .data.data.'"$key"' // empty')
               if [ -n "$value" ]; then
                 SECRETS_JSON=$(echo "$SECRETS_JSON" | jq --arg key "$key" --arg value "$value" '. + {($key): $value}')
-                
+
                 # Mask the secret in logs
                 echo "::add-mask::$value"
-                
+
                 # Export as environment variable
                 echo "${key^^}=$value" >> $GITHUB_ENV
                 echo "✅ Loaded secret: $key"
@@ -149,15 +149,15 @@ jobs:
               echo "⚠️ Secret not found: $key"
             fi
           done
-          
+
           # Output secrets summary (values masked)
           echo "secrets_loaded=$(echo "$SECRETS_JSON" | jq -r 'keys | length')" >> $GITHUB_OUTPUT
           echo "success=true" >> $GITHUB_OUTPUT
-          
+
           # Create hash for cache invalidation
           secrets_hash=$(echo "$SECRETS_JSON" | sha256sum | cut -d' ' -f1)
           echo "secrets_hash=$secrets_hash" >> $GITHUB_OUTPUT
-          
+
           echo ""
           echo "✅ Successfully loaded $(echo "$SECRETS_JSON" | jq -r 'keys | length') secrets"
 
@@ -165,13 +165,13 @@ jobs:
         run: |
           REQUIRED_SECRETS=("DATABASE_URL" "REDIS_URL" "JWT_SECRET")
           MISSING=()
-          
+
           for secret in "${REQUIRED_SECRETS[@]}"; do
             if [ -z "${!secret}" ]; then
               MISSING+=("$secret")
             fi
           done
-          
+
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "❌ Missing required secrets:"
             for secret in "${MISSING[@]}"; do
@@ -179,7 +179,7 @@ jobs:
             done
             exit 1
           fi
-          
+
           echo "✅ All required secrets validated"
 
   # ============================================================================
@@ -203,13 +203,13 @@ jobs:
           TARGET_ENVIRONMENT: ${{ inputs.environment }}
         run: |
           echo "🔄 Rotating dynamic database credentials..."
-          
+
           # Rotate PostgreSQL credentials
           vault write -f "database/rotate-role/$TARGET_ENVIRONMENT-postgres"
-          
-          # Rotate Redis credentials  
+
+          # Rotate Redis credentials
           vault write -f "database/rotate-role/$TARGET_ENVIRONMENT-redis"
-          
+
           echo "✅ Credentials rotated successfully"
           echo "⚠️ Services must be restarted to pick up new credentials"
 
@@ -239,10 +239,10 @@ jobs:
             --arg environment "$TARGET_ENVIRONMENT" \
             --arg secrets_hash "$SECRETS_HASH" \
             '{timestamp: $timestamp, actor: $actor, workflow: $workflow, run_id: $run_id, environment: $environment, secrets_hash: $secrets_hash}' > /tmp/audit-log.json
-          
+
           # In production, send to audit log system
           # curl -X POST https://audit.fabric.internal/logs -d @/tmp/audit-log.json
-          
+
           echo "✅ Audit log created"
 
   # ============================================================================
@@ -259,7 +259,7 @@ jobs:
         run: |
           # Make secrets available to downstream jobs via job outputs
           # Only export non-sensitive metadata
-          
+
           echo "secrets_available=true" >> $GITHUB_OUTPUT
           echo "environment=$TARGET_ENVIRONMENT" >> $GITHUB_OUTPUT
 
@@ -274,7 +274,7 @@ jobs:
 # ============================================================================
 # Usage Examples
 # ============================================================================
-# 
+#
 # 1. In another workflow, call this reusable workflow:
 #
 # jobs:

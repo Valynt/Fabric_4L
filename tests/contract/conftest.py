@@ -33,11 +33,23 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     Marking forces ``-n0`` semantics for these items even when callers pass
     ``-n auto``. See reports/TEST_COVERAGE_RUBRIC_AUDIT_2026-05-12.md §8 M0-3.
     """
+    live_service_fixtures = {
+        "layer1_client",
+        "layer3_client",
+        "layer4_client",
+        "layer5_client",
+        "l1_client",
+        "l3_client",
+        "l4_client",
+        "l4_client_tenant_b",
+        "l5_client",
+    }
+
     for item in items:
         item.add_marker(pytest.mark.no_parallel)
         if item.path.name == "test_import_topology.py":
             item.add_marker(pytest.mark.contract_static_no_service)
-        if "runtime_contract" in item.keywords:
+        if "runtime_contract" in item.keywords or live_service_fixtures.intersection(item.fixturenames):
             item.add_marker(pytest.mark.service_required)
         else:
             item.add_marker(pytest.mark.contract_static)

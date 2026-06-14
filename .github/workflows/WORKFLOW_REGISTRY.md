@@ -33,6 +33,8 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 
 ## Inventory
 
+The repository currently contains **43** GitHub Actions workflow files.
+
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
 | `.github/workflows/ai-evals-pipeline.yml` | `@value-fabric/ai-ml-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob ai-evals-pipeline.yml` |
@@ -64,6 +66,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 | `.github/workflows/performance-load-tests.yml` | `@value-fabric/qa-leads` | yes | `push, schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob performance-load-tests.yml` |
 | `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob pr-checks.yml` |
 | `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob prod-readiness.yml` |
+| `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob public-docs.yml` |
 | `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | yes | `push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob publish-sdk.yml` |
 | `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob release-evidence-bundle.yml` |
 | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repo-hygiene.yml` |

@@ -53,7 +53,7 @@ async def check_database_ready() -> StartupCheckResult:
         return StartupCheckResult(name="database", ok=True)
     except Exception as exc:
         logger.error("database_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "DB_CONN_FAILED"})
-        return StartupCheckResult(name="database", ok=False, detail="Database connection failed")
+        return StartupCheckResult(name="database", ok=False, detail=f"Database connection failed: {exc}")
 
 
 async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
@@ -64,7 +64,7 @@ async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
         return StartupCheckResult(name="redis", ok=True)
     except Exception as exc:
         logger.error("redis_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "REDIS_CONN_FAILED"})
-        return StartupCheckResult(name="redis", ok=False, detail="Redis connection failed")
+        return StartupCheckResult(name="redis", ok=False, detail=f"Redis connection failed: {exc}")
 
 
 async def check_vault_ready(*, environment: str, vault_addr: str | None) -> StartupCheckResult:
@@ -216,14 +216,14 @@ async def start_optional_integrations(app: FastAPI) -> None:
             await runtime_state.crm_sync_job_runner.start()
 
     if get_settings().enable_oidc_cleanup:
-        from ..database import get_db_from_context
+        from ..database import get_system_db_session
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
-            db_session_factory=get_db_from_context,
+            db_session_factory=get_system_db_session,
             interval_seconds=300.0,
         )
 
     # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
-    from ..database import get_db_from_context
+    from ..database import get_system_db_session
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
-    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_system_db_session)
     await runtime_state.gate_timeout_scheduler.start()

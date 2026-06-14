@@ -210,7 +210,7 @@ class FormulaResponse(BaseModel):
     slug: str
     formula_type: str
     description: str | None
-    current_version: str
+    current_version: str | None
     latest_version: str
     input_schema: dict[str, Any]
     output_schema: dict[str, Any]
@@ -1647,7 +1647,7 @@ class ValueRealizationEntryCreate(BaseModel):
     description: str | None = None
     current_value: float = Field(..., description="Current value of the metric")
     value_unit: str | None = None
-    value_currency: str | None = Field(max_length=3, description="ISO currency code")
+    value_currency: str | None = Field(default=None, max_length=3, description="ISO currency code")
     formula_id: UUID | None = None
     formula_version: str | None = None
     benchmark_id: UUID | None = None

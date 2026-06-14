@@ -30,6 +30,13 @@ def _drop_index_if_exists(index_name: str) -> None:
     op.execute(f'DROP INDEX IF EXISTS {index_name}')
 
 
+def _has_column(table_name: str, column_name: str) -> bool:
+    """Return whether a column exists in the current migration database."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    return any(column["name"] == column_name for column in inspector.get_columns(table_name))
+
+
 def upgrade():
     """Rename organization_id columns to tenant_id."""
 
@@ -68,13 +75,16 @@ def upgrade():
     # model_versions - drop composite indexes first
     _drop_index_if_exists('ix_model_versions_org_provider_name')
     _drop_index_if_exists('ix_model_versions_org_default')
-    op.alter_column(
-        'model_versions',
-        'organization_id',
-        new_column_name='tenant_id',
-        existing_type=sa.UUID(),
-        existing_nullable=False,
-    )
+    _drop_index_if_exists('ix_model_versions_tenant_provider_name')
+    _drop_index_if_exists('ix_model_versions_tenant_default')
+    if _has_column('model_versions', 'organization_id'):
+        op.alter_column(
+            'model_versions',
+            'organization_id',
+            new_column_name='tenant_id',
+            existing_type=sa.UUID(),
+            existing_nullable=False,
+        )
     # Recreate indexes with new column name
     op.create_index(
         'ix_model_versions_tenant_provider_name',
@@ -91,13 +101,17 @@ def upgrade():
     _drop_index_if_exists('ix_model_deployments_organization_id')
     _drop_index_if_exists('ix_model_deployments_org_env_default')
     _drop_index_if_exists('ix_model_deployments_org_env_status')
-    op.alter_column(
-        'model_deployments',
-        'organization_id',
-        new_column_name='tenant_id',
-        existing_type=sa.UUID(),
-        existing_nullable=False,
-    )
+    _drop_index_if_exists('ix_model_deployments_tenant_id')
+    _drop_index_if_exists('ix_model_deployments_tenant_env_default')
+    _drop_index_if_exists('ix_model_deployments_tenant_env_status')
+    if _has_column('model_deployments', 'organization_id'):
+        op.alter_column(
+            'model_deployments',
+            'organization_id',
+            new_column_name='tenant_id',
+            existing_type=sa.UUID(),
+            existing_nullable=False,
+        )
     op.create_index(
         'ix_model_deployments_tenant_id',
         'model_deployments',
@@ -118,13 +132,17 @@ def upgrade():
     _drop_index_if_exists('ix_model_evaluations_organization_id')
     _drop_index_if_exists('ix_model_evaluations_org_benchmark')
     _drop_index_if_exists('ix_model_evaluations_org_model')
-    op.alter_column(
-        'model_evaluations',
-        'organization_id',
-        new_column_name='tenant_id',
-        existing_type=sa.UUID(),
-        existing_nullable=False,
-    )
+    _drop_index_if_exists('ix_model_evaluations_tenant_id')
+    _drop_index_if_exists('ix_model_evaluations_tenant_benchmark')
+    _drop_index_if_exists('ix_model_evaluations_tenant_model')
+    if _has_column('model_evaluations', 'organization_id'):
+        op.alter_column(
+            'model_evaluations',
+            'organization_id',
+            new_column_name='tenant_id',
+            existing_type=sa.UUID(),
+            existing_nullable=False,
+        )
     op.create_index(
         'ix_model_evaluations_tenant_id',
         'model_evaluations',

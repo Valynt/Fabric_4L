@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from ...models.valuepack import (
+    ComposableTemplateLibraryResponse,
+    OntologyMapResponse,
+    ValuePackComparisonResponse,
+    ValuePackListResponse,
+    ValuePackResponse,
+)
 from . import value_packs
 
 router = APIRouter()
@@ -12,26 +19,26 @@ router.add_api_route(
     "/valuepacks",
     value_packs.list_valuepacks,
     methods=["GET"],
-    response_model=value_packs.ValuePackListResponse,
+    response_model=ValuePackListResponse,
 )
 router.add_api_route(
     "/valuepacks/{industry_id}",
     value_packs.get_valuepack,
     methods=["GET"],
-    response_model=value_packs.ValuePackResponse,
+    response_model=ValuePackResponse,
 )
 router.add_api_route(
     "/valuepacks",
     value_packs.create_valuepack,
     methods=["POST"],
-    response_model=value_packs.ValuePackResponse,
+    response_model=ValuePackResponse,
     status_code=201,
 )
 router.add_api_route(
     "/valuepacks/{industry_id}",
     value_packs.update_valuepack,
     methods=["PUT"],
-    response_model=value_packs.ValuePackResponse,
+    response_model=ValuePackResponse,
 )
 router.add_api_route(
     "/valuepacks/{industry_id}",
@@ -43,19 +50,19 @@ router.add_api_route(
     "/valuepacks/ontology-map",
     value_packs.get_ontology_map,
     methods=["GET"],
-    response_model=value_packs.OntologyMapResponse,
+    response_model=OntologyMapResponse,
 )
 router.add_api_route(
     "/valuepacks/composable-templates",
     value_packs.get_composable_templates,
     methods=["GET"],
-    response_model=value_packs.ComposableTemplateLibraryResponse,
+    response_model=ComposableTemplateLibraryResponse,
 )
 router.add_api_route(
     "/valuepacks/compare",
     value_packs.compare_valuepacks,
     methods=["POST"],
-    response_model=value_packs.ValuePackComparisonResponse,
+    response_model=ValuePackComparisonResponse,
 )
 router.add_api_route(
     "/valuepacks/{industry_id}/seed",

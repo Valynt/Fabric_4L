@@ -294,6 +294,7 @@ class TestApprovalStateMachine:
     async def test_creates_approval_decision(self, db):
         """Should create an ApprovalDecision record on transition."""
         sm = ApprovalStateMachine()
+        await self._add_active_workflow(db, TEST_ORG_ID)
         request = ApprovalRequest(
             id=uuid.uuid4(),
             tenant_id=TEST_ORG_ID,
@@ -332,6 +333,7 @@ class TestApprovalStateMachine:
     async def test_concurrent_transition_conflict(self, db):
         """Should raise ApprovalConflictError on concurrent state changes."""
         sm = ApprovalStateMachine()
+        await self._add_active_workflow(db, TEST_ORG_ID)
         request = ApprovalRequest(
             id=uuid.uuid4(),
             tenant_id=TEST_ORG_ID,
@@ -344,11 +346,19 @@ class TestApprovalStateMachine:
         db.add(request)
         await db.flush()
 
-        # Simulate concurrent state change by updating status directly
-        request.status = ApprovalStatus.REJECTED.value
-        await db.flush()
+        # Simulate a concurrent row-level state change while this ORM object
+        # still represents the stale pending state held by the caller.
+        from sqlalchemy import update
 
-        with pytest.raises(ApprovalConflictError, match="concurrent"):
+        await db.execute(
+            update(ApprovalRequest)
+            .where(ApprovalRequest.id == request.id)
+            .values(status=ApprovalStatus.REJECTED.value)
+            .execution_options(synchronize_session=False)
+        )
+        request.status = ApprovalStatus.PENDING.value
+
+        with pytest.raises(ApprovalConflictError, match="Concurrent"):
             await sm.approve(
                 db=db,
                 request=request,

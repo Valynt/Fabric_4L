@@ -1,7 +1,7 @@
 from value_fabric.shared.error_handling.exceptions import (
+    BadRequestError,
     ConflictError,
     NotFoundError,
-    ValidationError,
 )
 
 """
@@ -542,10 +542,10 @@ async def validate_truth(
         )
     except InvalidTransitionError as exc:
         logger.warning("invalid_truth_transition: %s", exc)
-        raise ValidationError(message = "Request failed", details = {"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"})
+        raise BadRequestError(message = "Request failed", details = {"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"})
     except InsufficientEvidenceError as exc:
         logger.warning("insufficient_evidence: %s", exc)
-        raise ValidationError(message = "Request failed", details = {"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
+        raise BadRequestError(message = "Request failed", details = {"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
     except TransitionConflictError as exc:
         logger.warning("truth_transition_conflict: %s", exc)
         raise ConflictError(
@@ -558,7 +558,7 @@ async def validate_truth(
         )
     except ValueError as exc:
         logger.warning("truth_value_error: %s", exc)
-        raise ValidationError(message = "Request failed", details = {"code": "INVALID_REQUEST", "message": "Invalid request parameters"})
+        raise BadRequestError(message = "Request failed", details = {"code": "INVALID_REQUEST", "message": "Invalid request parameters"})
 
     # Sync to Layer 3 after validation
     if truth.status == "validated":

@@ -867,6 +867,8 @@ def _evaluate_ast_node(node: ast.AST, variables: dict[str, float]) -> float:
         if not isinstance(fn, ast.Name) or fn.id not in _ALLOWED_FUNCTIONS:
             raise ValueError("Unsupported function call")
         args = [_evaluate_ast_node(arg, variables) for arg in node.args]
+        if fn.id == "round" and len(args) == 2:
+            args[1] = int(args[1])
         return float(_ALLOWED_FUNCTIONS[fn.id](*args))
     raise ValueError(f"Unsupported AST node: {type(node).__name__}")
 

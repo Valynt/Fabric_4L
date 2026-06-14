@@ -61,6 +61,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["model-registry"])
 
 
+async def _get_tenant_model_or_404(
+    db: AsyncSession,
+    tenant_id: UUID,
+    model_id: UUID,
+    *,
+    include_deprecated: bool = True,
+) -> ModelVersion:
+    conditions = [
+        ModelVersion.id == model_id,
+        ModelVersion.tenant_id == tenant_id,
+    ]
+    if not include_deprecated:
+        conditions.append(ModelVersion.deprecated_at.is_(None))
+
+    result = await db.execute(select(ModelVersion).where(and_(*conditions)))
+    model = result.scalar_one_or_none()
+    if not model:
+        suffix = " or deprecated" if not include_deprecated else ""
+        raise NotFoundError(message=str(f"ModelVersion {model_id} not found{suffix}"))
+    return model
+
+
 # ============================================================================
 # Model Version Endpoints
 # ============================================================================
@@ -402,6 +424,7 @@ async def promote_model(
             deployed_by=caller.user_id or caller.email,
         )
         db.add(deployment)
+        await db.flush()
         await db.refresh(deployment)
 
     # If making default, clear other defaults for this environment
@@ -453,6 +476,7 @@ async def get_model_deployments(
 ) -> ModelDeploymentListResponse:
     """Get deployments for a model version."""
     tenant_id = caller.tenant_id
+    await _get_tenant_model_or_404(db, tenant_id, model_id)
 
     result = await db.execute(
         select(ModelDeployment).where(
@@ -604,6 +628,7 @@ async def create_evaluation(
     )
 
     db.add(evaluation)
+    await db.flush()
     await db.refresh(evaluation)
 
     logger.info(
@@ -673,6 +698,7 @@ async def get_model_evaluations(
 ) -> ModelEvaluationListResponse:
     """Get evaluations for a model version."""
     tenant_id = caller.tenant_id
+    await _get_tenant_model_or_404(db, tenant_id, model_id)
 
     result = await db.execute(
         select(ModelEvaluation).where(

@@ -13,6 +13,7 @@ Tests verify:
 """
 
 from typing import Any
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -850,7 +851,11 @@ class TestOrchestrationControllerWorkflowLifecycle:
             patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(1800, "service_default"))),
         ):
             mock_scheduler.schedule_task = AsyncMock()
-            await controller.execute_workflow("roi_calculator", {"prospect_id": "p", "value_driver_ids": ["v"]})
+            await controller.execute_workflow(
+                "roi_calculator",
+                {"prospect_id": "p", "value_driver_ids": ["v"]},
+                tenant_id="00000000-0000-0000-0000-000000000123",
+            )
 
         metadata = next(iter(controller._workflow_metadata.values()))
         assert metadata["timeout_seconds"] == 1800
@@ -884,14 +889,16 @@ class TestOrchestrationControllerWorkflowLifecycle:
         from layer4_agents.engine.executor import OrchestrationController
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry())
-        original_default = settings.workflow_timeout_seconds
-        try:
-            settings.workflow_timeout_seconds = settings.workflow_timeout_max_seconds + 1
+        fake_settings = SimpleNamespace(
+            workflow_timeout_seconds=settings.workflow_timeout_max_seconds + 1,
+            workflow_timeout_min_seconds=settings.workflow_timeout_min_seconds,
+            workflow_timeout_max_seconds=settings.workflow_timeout_max_seconds,
+            workflow_timeout_fallback_seconds=settings.workflow_timeout_fallback_seconds,
+        )
+        with patch("layer4_agents.config.settings.get_settings", return_value=fake_settings):
             resolved, source = await controller._resolve_workflow_timeout_seconds(None)
-            assert resolved == settings.workflow_timeout_fallback_seconds
-            assert source == "safe_fallback"
-        finally:
-            settings.workflow_timeout_seconds = original_default
+        assert resolved == settings.workflow_timeout_fallback_seconds
+        assert source == "safe_fallback"
 
     @pytest.mark.asyncio
     async def test_get_workflow_status_returns_none_for_unknown(self) -> None:

@@ -68,7 +68,7 @@ def test_persist_signal_returns_signal_node_contract() -> None:
         "updated_at": "2026-05-30T00:00:00Z",
     }
 
-    response = TestClient(app).post("/api/v1/graph/signals", json=payload)
+    response = TestClient(app).post("/graph/signals", json=payload)
 
     assert response.status_code == HTTPStatus.CREATED
     assert response.json() == {
@@ -92,7 +92,7 @@ def test_persist_signal_openapi_documents_direct_signal_node_response() -> None:
     app = FastAPI()
     app.include_router(signals.router)
 
-    operation = app.openapi()["paths"]["/api/v1/graph/signals"]["post"]
+    operation = app.openapi()["paths"]["/graph/signals"]["post"]
 
     assert operation["responses"]["201"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/SignalNode"

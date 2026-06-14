@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
@@ -16,6 +17,7 @@ from layer4_agents.api.routes import tenant_context as tenant_context_route
 def app(monkeypatch) -> FastAPI:
     test_app = FastAPI()
     test_app.include_router(tenant_context_route.router, prefix="/v1")
+    register_exception_handlers(test_app)
 
     tenant_id = uuid4()
 
@@ -79,4 +81,4 @@ async def test_get_tenant_context_returns_404_when_tenant_missing(client: AsyncC
 
     response = await client.get("/v1/tenant/context")
     assert response.status_code == 404
-    assert response.json()["detail"] == "Tenant not found"
+    assert response.json()["error"]["message"] == "Tenant not found"

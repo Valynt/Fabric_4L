@@ -430,6 +430,7 @@ class trigger_cleanupResult(TypedDictModel):
 class legacy_health_checkResult(TypedDictModel):
     dependencies: Any
     note: str
+    service: str
     status: Any
 
 
@@ -1115,6 +1116,7 @@ class HealthCheckResponse(BaseModel):
     """Health check response."""
 
     status: str  # healthy, degraded, unhealthy
+    service: str = "layer1-ingestion"
     version: str
     timestamp: datetime
     components: dict[str, ComponentHealth]
@@ -2891,6 +2893,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
 
     return HealthCheckResponse(
         status=overall_status,
+        service="layer1-ingestion",
         version=settings.app_version,
         timestamp=datetime.now(UTC),
         components={k: v.dict() for k, v in components.items()},
@@ -3019,6 +3022,7 @@ async def legacy_health_check():
     if os.getenv("LAYER1_RELEASE_SMOKE_LIGHT_HEALTH", "").lower() in {"1", "true", "yes"}:
         return legacy_health_checkResult.model_validate({
             "status": "healthy",
+            "service": "layer1-ingestion",
             "note": "Release-smoke lightweight readiness endpoint; full live API checks run after stack readiness",
             "dependencies": [
                 {"name": "api", "status": "healthy", "error": None},
@@ -3058,6 +3062,7 @@ async def legacy_health_check():
 
     return legacy_health_checkResult.model_validate({
         "status": overall_status,
+        "service": "layer1-ingestion",
         "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
         "dependencies": dependencies,
     })

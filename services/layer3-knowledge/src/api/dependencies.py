@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import logging
+import os
 from importlib import import_module
 from typing import Any
+from uuid import UUID
 
 from fastapi import FastAPI, Request
 
@@ -116,11 +118,20 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_tenant_id(request: Request | None) -> str | None:
-    """Extract tenant ID from request headers or state."""
+    """Extract tenant ID from trusted request state."""
     if request is None:
         return None
-    if hasattr(request.state, "tenant_id") and request.state.tenant_id:
-        return str(request.state.tenant_id)
+    state = getattr(request, "state", None)
+    if state is None:
+        return None
+    ctx = getattr(state, "governance_context", None)
+    tenant_id = getattr(ctx, "tenant_id", None) if ctx else None
+    if tenant_id is None:
+        tenant_id = getattr(state, "tenant_id", None)
+    if isinstance(tenant_id, UUID):
+        return str(tenant_id)
+    if isinstance(tenant_id, str) and tenant_id:
+        return tenant_id
     return None
 
 
@@ -161,8 +172,15 @@ async def init_app_state(app: FastAPI) -> AppState:
     Neo4j connection failures are non-fatal at startup: the service starts in
     a degraded mode and each component retries the connection on first use.
     """
-    _load_runtime_dependencies()
     state = AppState()
+    if os.getenv("TESTING", "").lower() == "true":
+        _load_settings_dependency()
+        state.settings = get_settings()
+        app.state.app_state = state
+        logger.info("Application state initialized in testing mode")
+        return state
+
+    _load_runtime_dependencies()
     state.settings = get_settings()
 
     # ── 1. Neo4j driver ──────────────────────────────────────────────────────

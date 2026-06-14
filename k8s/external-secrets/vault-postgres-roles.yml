@@ -9,11 +9,11 @@
 # Policy for application dynamic credentials
 # File: vault-policy-app-read.hcl
 # vault policy write value-fabric-app vault-policy-app-read.hcl
-# 
+#
 # path "database/creds/app-role" {
 #   capabilities = ["read"]
 # }
-# 
+#
 # path "secret/data/value-fabric/*" {
 #   capabilities = ["read", "list"]
 # }

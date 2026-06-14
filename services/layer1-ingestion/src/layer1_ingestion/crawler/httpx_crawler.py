@@ -544,20 +544,20 @@ class HttpxCrawler:
 
         # Indicator 3: SPA markers (synced with smart_router.py)
         spa_markers = [
-            '<div id="root"></div>',
-            '<div id="app"></div>',
-            '<div id="__next"></div>',
             'data-reactroot',
             'ng-version=',
+            'ng-app',
             'data-server-rendered="false"',
-            'window.__INITIAL_STATE__',
+            'window.__initial_state__',
         ]
         has_spa_markers = any(marker in html_lower for marker in spa_markers)
 
         # Indicator 4: Empty root containers
         has_empty_root = bool(
-            re.search(r'<div\s+id=["\']root["\']\s*>\s*</div>', html, re.IGNORECASE)
+            re.search(r'<div\s+id=["\'](?:root|app|__next)["\']\s*>\s*</div>', html, re.IGNORECASE)
         )
+        if has_empty_root:
+            return True
 
         indicators = [
             high_script_density,

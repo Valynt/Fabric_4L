@@ -1,4 +1,3 @@
-
 # Action pinning and update process
 # - All third-party actions are pinned to full-length commit SHAs.
 # - Dependabot (github-actions ecosystem) remains enabled to open SHA bump PRs.
@@ -53,7 +52,7 @@ jobs:
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@56f8e3c4a1e3b4f5b8d0b8ff103b57f7af79f0d0 # v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
   # SEC-L3-CYPHER-003: Static analysis gate for dynamic Cypher construction.
   # Blocks PRs that introduce unparameterized label/rel-type interpolation in
@@ -88,7 +87,7 @@ jobs:
             --json \
             --output semgrep-cypher-warnings.json \
             services/layer3-knowledge/src/ || true
-          if [ -s semgrep-cypher-warnings.json ]; then
+          if [-s semgrep-cypher-warnings.json]; then
             echo "::warning::Cypher dynamic WHERE/SET clause patterns detected — review required"
             cat semgrep-cypher-warnings.json
           fi
@@ -97,11 +96,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: semgrep-cypher-guard-${{ github.sha }}
+          name: semgrep-cypher-guard-${{github.sha}}
           path: |
             semgrep-cypher-errors.json
             semgrep-cypher-warnings.json
-          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # Container vulnerability scanning with Trivy
   trivy-image-scan:
@@ -122,13 +121,13 @@ jobs:
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{ matrix.layer }}:scan-target \
-            services/${{ matrix.layer }}
+            -t ${{matrix.layer}}:scan-target \
+            services/${{matrix.layer}}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
         with:
-          image-ref: '${{ matrix.layer }}:scan-target'
+          image-ref: '${{matrix.layer}}:scan-target'
           format: 'sarif'
           output: 'trivy-results.sarif'
           exit-code: '1'
@@ -142,11 +141,11 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
-          category: trivy-${{ matrix.layer }}
+          category: trivy-${{matrix.layer}}
 
   # SBOM generation + vulnerability policy gate
   sbom-policy:
-    name: SBOM + Policy (${{ matrix.artifact.name }})
+    name: SBOM + Policy (${{matrix.artifact.name}})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -176,24 +175,24 @@ jobs:
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{ matrix.artifact.name }}:ci \
-            ${{ matrix.artifact.context }}
+            -t ${{matrix.artifact.name}}:ci \
+            ${{matrix.artifact.context}}
 
       - name: Generate CycloneDX SBOM (Trivy)
         uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
         with:
-          image-ref: '${{ matrix.artifact.name }}:ci'
+          image-ref: '${{matrix.artifact.name}}:ci'
           format: 'cyclonedx'
-          output: '${{ matrix.artifact.name }}-sbom.cdx.json'
+          output: '${{matrix.artifact.name}}-sbom.cdx.json'
           scanners: 'vuln'
 
       - name: Evaluate SBOM vulnerability policy
         uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
         with:
           scan-type: 'sbom'
-          scan-ref: '${{ matrix.artifact.name }}-sbom.cdx.json'
+          scan-ref: '${{matrix.artifact.name}}-sbom.cdx.json'
           format: 'sarif'
-          output: '${{ matrix.artifact.name }}-sbom-vuln.sarif'
+          output: '${{matrix.artifact.name}}-sbom-vuln.sarif'
           exit-code: '1'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
@@ -202,18 +201,18 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
-          sarif_file: '${{ matrix.artifact.name }}-sbom-vuln.sarif'
-          category: sbom-${{ matrix.artifact.name }}
+          sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
+          category: sbom-${{matrix.artifact.name}}
 
       - name: Upload SBOM and policy artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: sbom-${{ matrix.artifact.name }}
+          name: sbom-${{matrix.artifact.name}}
           path: |
-            ${{ matrix.artifact.name }}-sbom.cdx.json
-            ${{ matrix.artifact.name }}-sbom-vuln.sarif
-          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
+            ${{matrix.artifact.name}}-sbom.cdx.json
+            ${{matrix.artifact.name}}-sbom-vuln.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # DAST against ephemeral compose stack
   dast-api-scan:
@@ -294,7 +293,7 @@ jobs:
         with:
           name: dast-zap-reports
           path: zap-reports/
-          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
       - name: Stop ephemeral stack
         if: always()
@@ -322,11 +321,11 @@ jobs:
         run: pip install bandit
 
       - name: Run bandit scan
-        working-directory: services/${{ matrix.layer }}
+        working-directory: services/${{matrix.layer}}
         run: |
           bandit -r src/ -ll -ii --format json --output bandit-report.json || true
           bandit -r src/ -ll -ii --format screen
-          if [ -s bandit-report.json ]; then
+          if [-s bandit-report.json]; then
             echo "Bandit issues found - checking severity"
             python3 << 'PYEOF'
           import json
@@ -348,8 +347,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: bandit-report-${{ matrix.layer }}
-          path: services/${{ matrix.layer }}/bandit-report.json
+          name: bandit-report-${{matrix.layer}}
+          path: services/${{matrix.layer}}/bandit-report.json
           retention-days: 14
 
   # Python dependency vulnerability scan with pip-audit
@@ -374,7 +373,7 @@ jobs:
         run: pip install pip-audit
 
       - name: Run pip-audit
-        working-directory: services/${{ matrix.layer }}
+        working-directory: services/${{matrix.layer}}
         run: |
           pip install -e ".[dev]" || pip install -e .
           pip-audit --format json --output pip-audit-report.json || true
@@ -385,8 +384,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: pip-audit-report-${{ matrix.layer }}
-          path: services/${{ matrix.layer }}/pip-audit-report.json
+          name: pip-audit-report-${{matrix.layer}}
+          path: services/${{matrix.layer}}/pip-audit-report.json
           retention-days: 14
 
   # Frontend security audit
@@ -422,7 +421,7 @@ jobs:
 
       - name: Check for critical vulnerabilities
         run: |
-          if [ -s pnpm-audit-report.json ]; then
+          if [-s pnpm-audit-report.json]; then
             node << 'NODEEOF'
           const fs = require('fs');
           try {
@@ -479,7 +478,7 @@ jobs:
 
           FAILED=0
           for file in $REQUIRED_FILES; do
-            if [ -f "$file" ]; then
+            if [-f "$file"]; then
               # Check if file contains USER directive (excluding builder stages)
               # We look for USER followed by non-root/non-0 user
               if ! grep -qE "^USER\s+(appuser|node|[^0])" "$file"; then
@@ -493,7 +492,7 @@ jobs:
             fi
           done
 
-          if [ $FAILED -eq 1 ]; then
+          if [$FAILED -eq 1]; then
             echo ""
             echo "Dockerfiles must include 'USER <non-root>' directive before runtime"
             exit 1
@@ -517,7 +516,7 @@ jobs:
           # Check running user (should not be root/0)
           for image in test-frontend test-layer3 test-layer4 test-layer6; do
             USER_ID=$(docker run --rm --entrypoint id $image -u 2>/dev/null || echo "unknown")
-            if [ "$USER_ID" = "0" ] || echo "$USER_ID" | grep -q "uid=0"; then
+            if ["$USER_ID" = "0"] || echo "$USER_ID" | grep -q "uid=0"; then
               echo "❌ FAIL: $image runs as root (uid=0)"
               exit 1
             else
@@ -564,8 +563,8 @@ jobs:
         run: |
           {
             echo "# Security Gates Evidence"
-            echo "- Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo "- Commit: ${{ github.sha }}"
+            echo "- Workflow run: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+            echo "- Commit: ${{github.sha}}"
             echo "- Generated at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
             echo
             echo "## Included artifacts"
@@ -575,9 +574,9 @@ jobs:
       - name: Upload release evidence artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: release-security-evidence-${{ github.sha }}
+          name: release-security-evidence-${{github.sha}}
           path: security-evidence/
-          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # This status check should be configured as REQUIRED in branch protection
   # to block merges unless DAST and SBOM policy checks pass.
@@ -613,25 +612,25 @@ jobs:
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{ matrix.layer }}:sbom-target \
+            -t ${{matrix.layer}}:sbom-target \
             ${{ matrix.layer == 'apps-web' && 'apps/web' || format('services/{0}', matrix.layer) }}
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@db10516546c5b9d4f8f5bd2d96ff475c2c7781d1 # v0
         with:
-          image: ${{ matrix.layer }}:sbom-target
+          image: ${{matrix.layer}}:sbom-target
           format: cyclonedx-json
-          output-file: sbom-${{ matrix.layer }}.cdx.json
+          output-file: sbom-${{matrix.layer}}.cdx.json
 
       - name: Validate SBOM output exists
         run: |
-          test -s sbom-${{ matrix.layer }}.cdx.json
+          test -s sbom-${{matrix.layer}}.cdx.json
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: sbom-${{ matrix.layer }}
-          path: sbom-${{ matrix.layer }}.cdx.json
+          name: sbom-${{matrix.layer}}
+          path: sbom-${{matrix.layer}}.cdx.json
           if-no-files-found: error
           retention-days: 30
   route-auth-gate:
@@ -705,10 +704,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: mandatory-security-regression-${{ github.sha }}
+          name: mandatory-security-regression-${{github.sha}}
           path: |
             artifacts/mandatory_security/
             .fabric/audit/security_regression_gate/
           if-no-files-found: error
-          retention-days: ${{ env.SECURITY_ARTIFACT_RETENTION_DAYS }}
-
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}

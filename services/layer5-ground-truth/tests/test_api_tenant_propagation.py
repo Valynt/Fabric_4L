@@ -18,6 +18,7 @@ def test_repository_calls_use_context_tenant_id() -> None:
     content = _load_service_code()
     assert (
         "tenant_id=ctx.tenant_id" in content or "tenant_id=context.tenant_id" in content
+        or "tenant_id=caller.tenant_id" in content
     ), "Expected tenant_id propagated from trusted context object"
 
 

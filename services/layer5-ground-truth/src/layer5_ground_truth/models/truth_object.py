@@ -81,6 +81,18 @@ class UUID(TypeDecorator):
         return uuid.UUID(str(value))
 
 
+class JSONBCompat(TypeDecorator):
+    """Use PostgreSQL JSONB in runtime and SQLAlchemy JSON for SQLite tests."""
+
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(JSONB())
+        return dialect.type_descriptor(JSON())
+
+
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -214,7 +226,7 @@ class TruthObject(Base):
         comment="Semantic category — see ClaimType enum",
     )
     value = Column(
-        JSONB,
+        JSONBCompat,
         nullable=True,
         comment=(
             "Structured value: {amount, unit, currency, period} "
@@ -325,7 +337,7 @@ class TruthObject(Base):
     # Scope / applicability
     # -------------------------------------------------------------------------
     applies_to = Column(
-        JSONB,
+        JSONBCompat,
         nullable=True,
         comment=(
             "Scope of applicability: {opportunity_id, account_id, industry, "

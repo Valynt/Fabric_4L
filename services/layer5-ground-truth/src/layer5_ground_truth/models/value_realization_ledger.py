@@ -418,7 +418,6 @@ class ValueRealizationUpdate(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
-        index=True,
     )
     created_at = Column(
         DateTime(timezone=True),

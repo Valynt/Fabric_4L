@@ -11,6 +11,7 @@ import pytest
 from layer5_ground_truth.models.approval_workflow import (
     ApprovalRequest,
     ApprovalStatus,
+    ApprovalWorkflow,
     EntityType,
 )
 from layer5_ground_truth.models.assumption_registry import Assumption, AssumptionImpact
@@ -51,6 +52,23 @@ async def test_approval_lifecycle_matrix_enforces_legal_and_illegal_transitions(
         requested_at=datetime.now(UTC),
     )
     db.add(request)
+    if from_status == ApprovalStatus.PENDING and to_status == ApprovalStatus.APPROVED:
+        db.add(
+            ApprovalWorkflow(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                entity_type=EntityType.ASSUMPTION.value,
+                workflow_name="Assumption lifecycle matrix approval",
+                required_approval_levels=1,
+                require_evidence=False,
+                require_justification=False,
+                approver_roles=["reviewer"],
+                level_definitions=[{"level": 1, "quorum": 1}],
+                default_level_quorum=1,
+                is_active=True,
+                created_by="owner@example.com",
+            )
+        )
     await db.flush()
 
     sm = ApprovalStateMachine()
@@ -89,20 +107,24 @@ async def test_high_impact_assumptions_are_approval_gated_and_low_impact_are_not
         id=uuid.uuid4(),
         tenant_id=TEST_ORG_ID,
         name="Strategic dependency risk",
+        slug="strategic-dependency-risk",
         assumption_type="risk",
+        description="Potential enterprise-wide blast radius",
+        value={"risk": "strategic_dependency"},
+        value_type="string",
         impact_level=AssumptionImpact.CRITICAL.value,
-        confidence=0.72,
-        rationale="Potential enterprise-wide blast radius",
         created_by="owner@example.com",
     )
     low = Assumption(
         id=uuid.uuid4(),
         tenant_id=TEST_ORG_ID,
         name="Minor UI copy impact",
+        slug="minor-ui-copy-impact",
         assumption_type="ops",
+        description="No material business impact",
+        value={"impact": "minor_copy"},
+        value_type="string",
         impact_level=AssumptionImpact.LOW.value,
-        confidence=0.72,
-        rationale="No material business impact",
         created_by="owner@example.com",
     )
 

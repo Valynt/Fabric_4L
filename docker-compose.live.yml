@@ -201,6 +201,8 @@ services:
       dockerfile: ./services/layer2-extraction/Dockerfile.full
       args: *id001
     container_name: vf-live-layer2
+    ports:
+    - 8002:8000
     environment:
       ENVIRONMENT: development
       POSTGRES_HOST: postgres
@@ -215,6 +217,7 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       LAYER3_API_URL: http://layer3:8001
       LAYER2_HEALTH_SKIP_LAYER3: 'true'
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
@@ -248,12 +251,17 @@ services:
         BASE_IMAGE: ${BASE_IMAGE:-}
         BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-}
     container_name: vf-live-layer3
+    ports:
+    - 8003:8001
     environment:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       LOG_LEVEL: info
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
@@ -337,8 +345,11 @@ services:
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
       ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: 'true'
+      VALIDATION_SEED_PRIVILEGED_REASON: playwright-backend-validation-seed
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ./scripts:/app/scripts:ro
+    - ./signoff-evidence:/app/signoff-evidence
     networks:
     - live-network
     healthcheck:
@@ -365,6 +376,8 @@ services:
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *id001
     container_name: vf-live-layer5
+    ports:
+    - 8005:8005
     environment:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
@@ -432,6 +445,8 @@ services:
       dockerfile: ./services/layer6-benchmarks/Dockerfile.full
       args: *id001
     container_name: vf-live-layer6
+    ports:
+    - 8006:8006
     environment:
       ENVIRONMENT: development
       PORT: 8006
@@ -450,6 +465,9 @@ services:
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     - ./contracts:/contracts:ro
+    depends_on:
+      neo4j:
+        condition: service_healthy
     networks:
     - live-network
     healthcheck:
@@ -482,6 +500,8 @@ services:
       VITE_USE_MOCKS: 'false'
       VITE_ENABLE_MOCK_FALLBACK: 'false'
       VITE_ENABLE_SSE: 'true'
+      VITE_ENABLE_MOCK_AUTH: 'true'
+      VITE_AUTH_PROVIDER: legacy
       PLAYWRIGHT_LIVE_MODE: 'true'
       VITE_PROXY_L1_URL: http://layer1:8000
       VITE_PROXY_L2_URL: http://layer2:8000

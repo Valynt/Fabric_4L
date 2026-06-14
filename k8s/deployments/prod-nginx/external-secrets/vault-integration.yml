@@ -1,5 +1,5 @@
 # HashiCorp Vault Integration for Value Fabric Secrets
-# 
+#
 # This manifest provides an example of using Vault for production secret management.
 # For local development, use k8s/secrets.yml with placeholder values.
 # For production, integrate with your Vault instance.

@@ -103,6 +103,8 @@ async def get_benchmark_variables(
     Used by Layer 4 agents to resolve benchmark context without embedding
     Cypher in the agent layer.
     """
+    if not tenant or not tenant.tenant_id:
+        raise ValidationError(message="Tenant context required")
     tenant_id = str(tenant.tenant_id)
 
     query = """
@@ -162,6 +164,8 @@ async def get_value_driver_formulas(
     Used by Layer 4 agents to resolve formula context without embedding
     Cypher in the agent layer.
     """
+    if not tenant or not tenant.tenant_id:
+        raise ValidationError(message="Tenant context required")
     tenant_id = str(tenant.tenant_id)
 
     if not driver_ids:

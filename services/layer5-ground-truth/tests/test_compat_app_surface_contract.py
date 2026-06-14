@@ -19,11 +19,13 @@ def test_l5_middleware_registration_and_effective_wrapping_order():
     middleware_names = [mw.cls.__name__ for mw in app.user_middleware]
     # user_middleware is reverse-registration order (outermost first)
     assert "CORSMiddleware" not in middleware_names
-    assert middleware_names[:4] == [
+    assert middleware_names[:6] == [
+        "GovernanceMiddleware",
         "BaseHTTPMiddleware",
         "SecurityMiddleware",
         "BaseHTTPMiddleware",
-        "GovernanceMiddleware",
+        "_TenantEnforcementMiddleware",
+        "RequestIDMiddleware",
     ]
 
 
@@ -61,9 +63,8 @@ def test_l5_exception_handler_shape_semantics_for_custom_and_catchall():
     policy_response = asyncio.run(handlers[Layer3PolicyDeniedError](request, policy_exc))
     policy_payload = policy_response.body.decode("utf-8")
     assert policy_response.status_code == policy_exc.status_code
-    assert '"error"' in policy_payload
-    assert '"code":"LAYER3_POLICY_DENIED"' in policy_payload
-    assert '"request_id"' in policy_payload
+    assert '"code":"L5_LAYER3_POLICY_DENIED"' in policy_payload
+    assert '"trace_id"' in policy_payload
 
     catch_all_response = asyncio.run(handlers[Exception](request, Exception("boom")))
     catch_all_payload = catch_all_response.body.decode("utf-8")

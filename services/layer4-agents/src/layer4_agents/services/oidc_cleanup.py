@@ -43,8 +43,10 @@ async def cleanup_expired_oidc_sessions(db: AsyncSession) -> int:
         if deleted_count > 0:
             logger.info(
                 "oidc_sessions_cleaned_up",
-                deleted_count=deleted_count,
-                timestamp=datetime.now(UTC).isoformat(),
+                extra={
+                    "deleted_count": deleted_count,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
             )
 
         return deleted_count
@@ -52,8 +54,10 @@ async def cleanup_expired_oidc_sessions(db: AsyncSession) -> int:
     except Exception:
         logger.error(
             "oidc_cleanup_failed",
-            error_code="OIDC_CLEANUP_ERROR",
-            timestamp=datetime.now(UTC).isoformat(),
+            extra={
+                "error_code": "OIDC_CLEANUP_ERROR",
+                "timestamp": datetime.now(UTC).isoformat(),
+            },
         )
         await db.rollback()
         raise
@@ -91,7 +95,7 @@ class OIDCCleanupTask:
         self._task = asyncio.create_task(self._run_cleanup_loop())
         logger.info(
             "oidc_cleanup_started",
-            interval_seconds=self._interval_seconds,
+            extra={"interval_seconds": self._interval_seconds},
         )
 
     async def stop(self) -> None:
@@ -118,7 +122,7 @@ class OIDCCleanupTask:
                     if deleted > 0:
                         logger.info(
                             "oidc_cleanup_completed",
-                            deleted_sessions=deleted,
+                            extra={"deleted_sessions": deleted},
                         )
 
                 # Wait for next interval or until stopped
@@ -137,8 +141,10 @@ class OIDCCleanupTask:
             except Exception as e:
                 logger.error(
                     "oidc_cleanup_error",
-                    error_code="OIDC_CLEANUP_ERROR",
-                    error_type=type(e).__name__,
+                    extra={
+                        "error_code": "OIDC_CLEANUP_ERROR",
+                        "error_type": type(e).__name__,
+                    },
                 )
                 # Wait before retrying to avoid tight error loops
                 await asyncio.sleep(60)

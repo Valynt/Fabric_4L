@@ -22,7 +22,7 @@ data:
     work_mem = 2621kB
     min_wal_size = 1GB
     max_wal_size = 4GB
-    
+
     # Logging
     logging_collector = on
     log_directory = 'log'
@@ -32,7 +32,7 @@ data:
     log_min_duration_statement = 1000  # Log slow queries (>1s)
     log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
     log_timezone = 'UTC'
-    
+
     # pgAudit Configuration (P0-5: Database Audit Logging)
     shared_preload_libraries = 'pgaudit'
     pgaudit.log = 'all'  # Log all statements
@@ -42,13 +42,13 @@ data:
     pgaudit.log_relation = on  # Log relation access
     pgaudit.log_statement_once = off  # Log each substatement
     pgaudit.role = ''  # No specific role for auditing
-    
+
     # Performance monitoring
     track_activities = on
     track_counts = on
     track_io_timing = on
     track_functions = all
-    
+
     # RLS (Row-Level Security) is already enabled via migrations
     # These settings ensure RLS is enforced
     row_security = on

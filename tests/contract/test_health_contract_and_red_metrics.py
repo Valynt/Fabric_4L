@@ -9,14 +9,14 @@ SCHEMA_PATH = REPO_ROOT / "contracts/jsonschema/system-route-health.json"
 HEALTH_FILES = [
     "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "services/layer3-knowledge/src/api/routes/system.py",
-    "services/layer4-agents/src/api/core_routes.py",
+    "services/layer4-agents/src/layer4_agents/api/core_routes.py",
 ]
 
 METRICS_FILES = [
     "services/layer1-ingestion/src/metrics/prometheus_metrics.py",
-    "services/layer4-agents/src/metrics/prometheus_metrics.py",
+    "services/layer4-agents/src/layer4_agents/metrics/prometheus_metrics.py",
     "services/layer5-ground-truth/src/metrics/prometheus_metrics.py",
-    "services/layer6-benchmarks/src/metrics/prometheus_metrics.py",
+    "services/layer6-benchmarks/src/layer6_benchmarks/metrics/prometheus_metrics.py",
 ]
 
 
@@ -44,10 +44,10 @@ def test_layer3_graph_observability_contract_metrics_and_alerts() -> None:
         REPO_ROOT / "services/layer3-knowledge/src/metrics/prometheus_metrics.py"
     ).read_text(encoding="utf-8")
     required_metric_tokens = [
-        "value_fabric_graph_mutation_rate",
-        "value_fabric_graph_query_failures_total",
-        "value_fabric_unauthorized_traversals_total",
-        "value_fabric_graph_index_constraint_health_failures_total",
+        "graph_mutation_rate",
+        "graph_query_failures_total",
+        "unauthorized_traversals_total",
+        "graph_index_constraint_health_failures_total",
         '["operation", "route"],',
         '["category", "operation", "route"],',
         '["category", "route", "violation_type"],',

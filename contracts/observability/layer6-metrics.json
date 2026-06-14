@@ -10,12 +10,14 @@
       "labels": [
         "route",
         "method",
-        "status_class"
+        "status_class",
+        "tenant_id"
       ],
       "max_cardinality": {
         "route": 20,
         "method": 8,
-        "status_class": 5
+        "status_class": 5,
+        "tenant_id": 1000
       }
     },
     {
@@ -25,11 +27,13 @@
       "description": "Benchmark API request latency histogram.",
       "labels": [
         "route",
-        "method"
+        "method",
+        "tenant_id"
       ],
       "max_cardinality": {
         "route": 20,
-        "method": 8
+        "method": 8,
+        "tenant_id": 1000
       }
     },
     {

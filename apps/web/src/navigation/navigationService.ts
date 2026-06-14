@@ -116,6 +116,12 @@ export type RouteState =
   | "agents-thread"
   | "workflows"
   | "workflow-run"
+  // Academy (tenant-scoped)
+  | "academy"
+  | "academy-pillar"
+  | "academy-quiz"
+  | "academy-resources"
+  | "academy-profile"
   // Settings — Personal (global)
   | "settings-profile"
   | "settings-security"
@@ -253,6 +259,13 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "agents-thread": { path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId", params: ["tenantSlug", "accountId", "threadId"], analyticsRouteId: "agents.thread" },
   workflows: { path: "/t/:tenantSlug/accounts/:accountId/workflows", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.workflows" },
   "workflow-run": { path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId", params: ["tenantSlug", "accountId", "workflowRunId"], analyticsRouteId: "agents.workflow-run" },
+
+  // Academy (tenant-scoped)
+  academy: { path: "/t/:tenantSlug/academy", params: ["tenantSlug"], analyticsRouteId: "academy.workspace" },
+  "academy-pillar": { path: "/t/:tenantSlug/academy/pillars/:pillarId", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.pillar" },
+  "academy-quiz": { path: "/t/:tenantSlug/academy/pillars/:pillarId/quiz", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.quiz" },
+  "academy-resources": { path: "/t/:tenantSlug/academy/resources", params: ["tenantSlug"], analyticsRouteId: "academy.resources" },
+  "academy-profile": { path: "/t/:tenantSlug/academy/profile", params: ["tenantSlug"], analyticsRouteId: "academy.profile" },
 
   // Settings — Personal (global)
   "settings-profile": { path: "/settings/profile", analyticsRouteId: "settings.profile" },

@@ -40,14 +40,14 @@ function Academy() {
 
   const handleLearn = useCallback(
     (pillarId: string) => {
-      navigateTo(`/t/${tenantSlug}/academy/pillars/${pillarId}`);
+      navigateTo("academy-pillar", { tenantSlug, pillarId });
     },
     [navigateTo, tenantSlug]
   );
 
   const handleQuiz = useCallback(
     (pillarId: string) => {
-      navigateTo(`/t/${tenantSlug}/academy/pillars/${pillarId}/quiz`);
+      navigateTo("academy-quiz", { tenantSlug, pillarId });
     },
     [navigateTo, tenantSlug]
   );
@@ -151,11 +151,11 @@ function Academy() {
               <CardTitle className="text-base">Quick Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo(`/t/${tenantSlug}/academy/resources`)}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo("academy-resources", { tenantSlug })}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Resources Library
               </Button>
-              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo(`/t/${tenantSlug}/academy/profile`)}>
+              <Button variant="ghost" className="w-full justify-start" onClick={() => navigateTo("academy-profile", { tenantSlug })}>
                 <Trophy className="mr-2 h-4 w-4" />
                 My Profile
               </Button>

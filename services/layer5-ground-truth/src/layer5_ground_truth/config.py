@@ -37,12 +37,12 @@ def _normalize_environment(value: str | None) -> str:
 
 
 def is_production_like_environment(value: str | None) -> bool:
-    """Return True only for the exact 'production' environment.
+    """Return True for production or staging environments.
 
-    This changes the previous fail-safe policy to an explicit allowlist.
-    Staging and unknown/custom environments are NOT treated as production-like.
+    Per the launch-readiness gate, staging and stage are treated as
+    production-like and must enforce the same fail-closed controls.
     """
-    return _normalize_environment(value) == "production"
+    return _normalize_environment(value) in PRODUCTION_LIKE_ENVIRONMENTS
 
 
 def _parse_cors_origins(raw: str) -> list[str]:
@@ -248,6 +248,23 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> list[str]:
         """Return parsed CORS origins after trimming empty entries."""
         return _parse_cors_origins(self.cors_origins)
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug_flag(cls, value: object) -> object:
+        """Treat only explicit boolean strings as DEBUG=true/false.
+
+        Some deployment shells expose release channel labels through DEBUG.
+        Those labels must not crash settings import, and they must not enable
+        debug mode.
+        """
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on"}:
+                return True
+            if normalized in {"0", "false", "no", "off", "", "release", "prod", "production", "staging"}:
+                return False
+        return value
 
     @field_validator("database_url")
     @classmethod

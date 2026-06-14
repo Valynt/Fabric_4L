@@ -443,7 +443,7 @@ class BenchmarkVersion(Base):
     # Relationships
     # -------------------------------------------------------------------------
     benchmark: Mapped["BenchmarkDataset"] = relationship(
-        "BenchmarkDataset",
+        "layer5_ground_truth.models.benchmark_governance.BenchmarkDataset",
         back_populates="versions",
     )
 
@@ -541,7 +541,7 @@ class BenchmarkScope(Base):
     # Relationships
     # -------------------------------------------------------------------------
     benchmark: Mapped["BenchmarkDataset"] = relationship(
-        "BenchmarkDataset",
+        "layer5_ground_truth.models.benchmark_governance.BenchmarkDataset",
         back_populates="scopes",
     )
 

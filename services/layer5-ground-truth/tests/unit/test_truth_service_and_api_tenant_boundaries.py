@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from layer5_ground_truth.api import router as api_router
+from layer5_ground_truth.api.auth import TokenClaims
 from layer5_ground_truth.api.schemas import TruthObjectCreate
 from layer5_ground_truth.models.truth_object import MaturityLevel, TruthStatus
 from layer5_ground_truth.services import truth_service
@@ -78,7 +79,7 @@ async def test_maturity_mapping_regression_boundaries() -> None:
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_router_list_truths_passes_caller_tenant_to_service() -> None:
-    caller = SimpleNamespace(tenant_id=uuid4(), permissions={"layer5.truths.list"})
+    caller = TokenClaims(tenant_id=uuid4(), user_id="tester", permissions=["read:analytics"])
     db = AsyncMock()
     captured: dict[str, object] = {}
 
@@ -89,7 +90,7 @@ async def test_router_list_truths_passes_caller_tenant_to_service() -> None:
     original = api_router.list_truth_objects
     api_router.list_truth_objects = _fake_list_truth_objects  # type: ignore[assignment]
     try:
-        resp = await api_router.list_truths(caller=caller, db=db)
+        resp = await api_router.list_truths(caller=caller, db=db, limit=100, offset=0)
         assert resp.total == 0
         assert captured["tenant_id"] == caller.tenant_id
     finally:

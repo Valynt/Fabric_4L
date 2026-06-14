@@ -1958,7 +1958,7 @@
           "analysis"
         ],
         "summary": "Generate Workspace Intelligence",
-        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call \u2014 just exposes graph data\nthe frontend currently can't see.",
+        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call — just exposes graph data\nthe frontend currently can't see.",
         "operationId": "generate_workspace_intelligence_v1_cases__case_id__workspace_generate_post",
         "parameters": [
           {
@@ -3321,7 +3321,7 @@
           "agent-stream"
         ],
         "summary": "Agent Stream Chat Sse",
-        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED \u2192 STEP_STARTED/STEP_FINISHED \u2192 TEXT_MESSAGE_* \u2192 RUN_FINISHED",
+        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED → STEP_STARTED/STEP_FINISHED → TEXT_MESSAGE_* → RUN_FINISHED",
         "operationId": "agent_stream_chat_sse_v1_agent_stream_chat_stream_post",
         "requestBody": {
           "content": {
@@ -3446,6 +3446,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized CRM webhook credentials or signature."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -3565,6 +3568,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized CRM webhook credentials or signature."
           },
           "422": {
             "description": "Validation Error",
@@ -6310,6 +6316,9 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized provisioning webhook signature, including expired timestamp."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -7267,7 +7276,7 @@
           "Tenant Admin Dashboard"
         ],
         "summary": "Update Tenant Settings",
-        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates \u2014 only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
+        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates — only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
         "operationId": "update_tenant_settings_v1__tenant_id__settings_patch",
         "parameters": [
           {
@@ -9195,8 +9204,8 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "maximum": 1.0,
-                  "minimum": 0.0
+                  "maximum": 1,
+                  "minimum": 0
                 },
                 {
                   "type": "null"
@@ -11135,7 +11144,7 @@
             "schema": {
               "type": "number",
               "minimum": 0,
-              "default": 1.0,
+              "default": 1,
               "title": "Quantity"
             }
           }
@@ -11601,6 +11610,9 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid webhook payload or timestamp."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -11906,7 +11918,7 @@
           "prospects"
         ],
         "summary": "Start Prospect Analysis",
-        "description": "Start prospect analysis workflow \u2014 real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
+        "description": "Start prospect analysis workflow — real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
         "operationId": "start_prospect_analysis_v1_prospects__prospect_id__start_analysis_post",
         "parameters": [
           {
@@ -12348,8 +12360,8 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "maximum": 1.0,
-                  "minimum": 0.0
+                  "maximum": 1,
+                  "minimum": 0
                 },
                 {
                   "type": "null"
@@ -13085,7 +13097,7 @@
           "harness"
         ],
         "summary": "Decide a human gate",
-        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id \u2014 any\nbody-supplied value is ignored to prevent spoofing.",
+        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id — any\nbody-supplied value is ignored to prevent spoofing.",
         "operationId": "decide_gate_v1_harness_gates__gate_id__decide_post",
         "parameters": [
           {
@@ -13299,8 +13311,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 10000.0,
-                "minimum": 1.0
+                "maximum": 10000,
+                "minimum": 1
               },
               {
                 "type": "null"
@@ -13339,7 +13351,7 @@
           "api_key": {
             "type": "string",
             "title": "Api Key",
-            "description": "Full key \u2014 shown ONCE, store securely"
+            "description": "Full key — shown ONCE, store securely"
           },
           "prefix": {
             "type": "string",
@@ -13399,7 +13411,7 @@
           "created_at"
         ],
         "title": "APIKeyCreateResponse",
-        "description": "Returned once on key creation \u2014 includes the raw secret (shown only once)."
+        "description": "Returned once on key creation — includes the raw secret (shown only once)."
       },
       "APIKeyModel": {
         "properties": {
@@ -13487,8 +13499,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 10000.0,
-                "minimum": 1.0
+                "maximum": 10000,
+                "minimum": 1
               },
               {
                 "type": "null"
@@ -14088,14 +14100,14 @@
           },
           "page": {
             "type": "integer",
-            "minimum": 1.0,
+            "minimum": 1,
             "title": "Page",
             "default": 1
           },
           "page_size": {
             "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Page Size",
             "default": 20
           },
@@ -14265,16 +14277,16 @@
           },
           "amount_cents": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Amount Cents",
             "description": "Amount in cents"
           },
           "quantity": {
             "type": "number",
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Quantity",
             "description": "Quantity",
-            "default": 1.0
+            "default": 1
           },
           "unit_amount_cents": {
             "anyOf": [
@@ -14320,14 +14332,14 @@
           },
           "tax_cents": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Tax Cents",
             "description": "Tax amount in cents",
             "default": 0
           },
           "discount_cents": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Discount Cents",
             "description": "Discount amount in cents",
             "default": 0
@@ -14974,8 +14986,8 @@
         "properties": {
           "limit": {
             "type": "integer",
-            "maximum": 500.0,
-            "minimum": 1.0,
+            "maximum": 500,
+            "minimum": 1,
             "title": "Limit",
             "description": "Max accounts to enrich",
             "default": 50
@@ -15517,17 +15529,17 @@
           "total_value": {
             "type": "number",
             "title": "Total Value",
-            "default": 0.0
+            "default": 0
           },
           "implementation_cost": {
             "type": "number",
             "title": "Implementation Cost",
-            "default": 0.0
+            "default": 0
           },
           "roi_ratio": {
             "type": "number",
             "title": "Roi Ratio",
-            "default": 0.0
+            "default": 0
           },
           "payback_months": {
             "type": "integer",
@@ -15537,7 +15549,7 @@
           "confidence_score": {
             "type": "number",
             "title": "Confidence Score",
-            "default": 0.0
+            "default": 0
           },
           "recommendations": {
             "items": {
@@ -16184,14 +16196,14 @@
           },
           "confidence": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
+            "maximum": 1,
+            "minimum": 0,
             "title": "Confidence"
           },
           "trust_score": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
+            "maximum": 1,
+            "minimum": 0,
             "title": "Trust Score"
           },
           "validator": {
@@ -16369,8 +16381,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -16754,10 +16766,10 @@
           },
           "packet_loss_percent": {
             "type": "number",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Packet Loss Percent",
-            "default": 0.0
+            "default": 0
           },
           "connection_type": {
             "type": "string",
@@ -16994,7 +17006,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 0.0
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -17006,7 +17018,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "minimum": 0.0
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -17988,28 +18000,28 @@
         "properties": {
           "overall_pass_rate": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
+            "maximum": 1,
+            "minimum": 0,
             "title": "Overall Pass Rate",
             "description": "Overall evaluation pass rate"
           },
           "total_tests": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Total Tests",
             "description": "Total number of tests run",
             "default": 0
           },
           "passed_tests": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Passed Tests",
             "description": "Number of passing tests",
             "default": 0
           },
           "skills_evaluated": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Skills Evaluated",
             "description": "Number of skills evaluated",
             "default": 0
@@ -18256,8 +18268,8 @@
           },
           "rollout_percentage": {
             "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Rollout Percentage"
           },
           "description": {
@@ -18321,8 +18333,8 @@
           },
           "rollout_percentage": {
             "type": "integer",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Rollout Percentage"
           },
           "description": {
@@ -18571,15 +18583,15 @@
           },
           "min_confidence": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
+            "maximum": 1,
+            "minimum": 0,
             "title": "Min Confidence",
             "default": 0.3
           },
           "max_hypotheses": {
             "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Max Hypotheses",
             "default": 20
           },
@@ -18708,7 +18720,7 @@
           "CANCELLED"
         ],
         "title": "HarnessState",
-        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT \u2192 RESOLVE_CONTEXT \u2192 LOAD_VALUE_PACK \u2192 RETRIEVE_KNOWLEDGE\n  \u2192 GENERATE_HYPOTHESES \u2192 MATCH_EVIDENCE \u2192 QUANTIFY_IMPACT\n  \u2192 VALIDATE_CLAIMS \u2192 HUMAN_REVIEW \u2192 PUBLISH_OUTPUT \u2192 DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
+        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT → RESOLVE_CONTEXT → LOAD_VALUE_PACK → RETRIEVE_KNOWLEDGE\n  → GENERATE_HYPOTHESES → MATCH_EVIDENCE → QUANTIFY_IMPACT\n  → VALIDATE_CLAIMS → HUMAN_REVIEW → PUBLISH_OUTPUT → DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
       },
       "HarnessWorkflowType": {
         "type": "string",
@@ -18942,8 +18954,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -19076,8 +19088,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -19274,8 +19286,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -19435,15 +19447,15 @@
           },
           "sync_interval_minutes": {
             "type": "integer",
-            "maximum": 1440.0,
-            "minimum": 5.0,
+            "maximum": 1440,
+            "minimum": 5,
             "title": "Sync Interval Minutes",
             "default": 60
           },
           "sync_batch_size": {
             "type": "integer",
-            "maximum": 500.0,
-            "minimum": 10.0,
+            "maximum": 500,
+            "minimum": 10,
             "title": "Sync Batch Size",
             "default": 100
           },
@@ -19925,8 +19937,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -20098,15 +20110,15 @@
           },
           "roi_time_horizon_months": {
             "type": "integer",
-            "maximum": 120.0,
-            "minimum": 1.0,
+            "maximum": 120,
+            "minimum": 1,
             "title": "Roi Time Horizon Months",
             "default": 36
           },
           "top_n_hypotheses": {
             "type": "integer",
-            "maximum": 20.0,
-            "minimum": 1.0,
+            "maximum": 20,
+            "minimum": 1,
             "title": "Top N Hypotheses",
             "default": 5
           },
@@ -20443,8 +20455,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -21502,7 +21514,7 @@
           },
           "amount_cents": {
             "type": "integer",
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Amount Cents",
             "description": "Charge amount in cents"
           },
@@ -22078,7 +22090,7 @@
           "system"
         ],
         "title": "Role",
-        "description": "Business roles used across all layers.\n\nHierarchy (highest \u2192 lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
+        "description": "Business roles used across all layers.\n\nHierarchy (highest → lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
       },
       "RunListResponse": {
         "properties": {
@@ -24074,7 +24086,7 @@
           },
           "quantity": {
             "type": "number",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Quantity",
             "description": "Quantity to record"
           },
@@ -24269,7 +24281,7 @@
           "email"
         ],
         "title": "UserModel",
-        "description": "Read-only representation of a user (returned by API \u2014 no password)."
+        "description": "Read-only representation of a user (returned by API — no password)."
       },
       "UserStatus": {
         "type": "string",
@@ -24412,11 +24424,11 @@
           },
           "confidence_adjustment": {
             "type": "number",
-            "maximum": 1.0,
-            "minimum": -1.0,
+            "maximum": 1,
+            "minimum": -1,
             "title": "Confidence Adjustment",
             "description": "Additive confidence adjustment",
-            "default": 0.0
+            "default": 0
           }
         },
         "type": "object",
@@ -24727,8 +24739,8 @@
           },
           "expires_in_seconds": {
             "type": "integer",
-            "maximum": 86400.0,
-            "minimum": 60.0,
+            "maximum": 86400,
+            "minimum": 60,
             "title": "Expires In Seconds",
             "default": 3600
           }
@@ -24870,8 +24882,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1.0,
-                "minimum": 0.0
+                "maximum": 1,
+                "minimum": 0
               },
               {
                 "type": "null"
@@ -25478,10 +25490,10 @@
           },
           "progress": {
             "type": "number",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Progress",
-            "default": 0.0
+            "default": 0
           },
           "created_at": {
             "anyOf": [
@@ -25746,10 +25758,10 @@
           },
           "percent": {
             "type": "number",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Percent",
-            "default": 0.0
+            "default": 0
           },
           "message": {
             "type": "string",
@@ -26021,10 +26033,10 @@
           },
           "progress": {
             "type": "number",
-            "maximum": 100.0,
-            "minimum": 0.0,
+            "maximum": 100,
+            "minimum": 0,
             "title": "Progress",
-            "default": 0.0
+            "default": 0
           },
           "started_at": {
             "anyOf": [

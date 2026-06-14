@@ -110,6 +110,7 @@ class BenchmarkService:
             id=uuid.uuid4(),
             tenant_id=tenant_id,
             name=name,
+            dataset_uri=f"benchmark://{tenant_id}/{slug}",
             slug=slug,
             benchmark_type=benchmark_type,
             description=description,

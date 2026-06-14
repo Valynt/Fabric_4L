@@ -109,7 +109,8 @@ class PolicyService:
             tenant_id=tenant_id,
             policy_id=policy.id,
             version=initial_version,
-            rules=rules,
+            rules_engine_config={"rules": rules},
+            effective_from=datetime.now(UTC),
             status=PolicyStatus.DRAFT.value,
             changed_by=created_by,
             created_at=datetime.now(UTC),
@@ -118,16 +119,20 @@ class PolicyService:
         await db.flush()
 
         # Create PolicyRule records
-        for rule_data in rules:
+        for index, rule_data in enumerate(rules):
             rule = PolicyRule(
                 id=uuid.uuid4(),
                 tenant_id=tenant_id,
                 policy_id=policy.id,
-                policy_version_id=version.id,
-                rule_name=rule_data.get("rule_name"),
-                rule_type=rule_data.get("rule_type"),
-                condition=rule_data.get("condition"),
-                action=rule_data.get("action"),
+                rule_name=rule_data.get("rule_name") or rule_data.get("name") or f"rule-{index + 1}",
+                rule_order=int(rule_data.get("rule_order") or rule_data.get("order") or index),
+                target_field=rule_data.get("target_field") or rule_data.get("field") or "context",
+                operator=rule_data.get("operator") or rule_data.get("rule_type") or "equals",
+                expected_value=rule_data.get("expected_value")
+                if "expected_value" in rule_data
+                else rule_data.get("condition", {}),
+                error_message=rule_data.get("error_message") or rule_data.get("action"),
+                is_blocking=bool(rule_data.get("is_blocking", True)),
                 severity=rule_data.get("severity", severity),
                 description=rule_data.get("description"),
             )
@@ -277,10 +282,10 @@ class PolicyService:
         rules_result = await db.execute(
             select(PolicyRule).where(
                 and_(
+                    PolicyRule.tenant_id == tenant_id,
                     PolicyRule.policy_id == policy_id,
-                    PolicyRule.policy_version_id == version.id,
                 )
-            )
+            ).order_by(PolicyRule.rule_order)
         )
         rules = rules_result.scalars().all()
 
@@ -294,7 +299,7 @@ class PolicyService:
             rule_result = {
                 "rule_id": str(rule.id),
                 "rule_name": rule.rule_name,
-                "rule_type": rule.rule_type,
+                "rule_type": rule.operator,
                 "passed": True,  # Placeholder
                 "message": "Rule evaluated successfully",
             }
@@ -305,16 +310,15 @@ class PolicyService:
             id=uuid.uuid4(),
             tenant_id=tenant_id,
             policy_id=policy_id,
-            policy_version_id=version.id,
             entity_id=entity_id,
             entity_type=entity_type,
-            evaluation_context=context,
-            passed=len(passed_rules),
-            failed=len(failed_rules),
-            total=len(passed_rules) + len(failed_rules),
-            is_compliant=len(failed_rules) == 0,
-            evaluated_by=evaluator,
-            evaluated_at=datetime.now(UTC),
+            entity_version=version.version,
+            context=context,
+            result="passed" if not failed_rules else "failed",
+            rule_results={"passed_rules": passed_rules, "failed_rules": failed_rules},
+            applied_by=evaluator,
+            applied_at=datetime.now(UTC),
+            created_at=datetime.now(UTC),
         )
         db.add(application)
         await db.flush()
@@ -324,18 +328,18 @@ class PolicyService:
             policy_id,
             entity_id,
             tenant_id,
-            application.is_compliant,
+            application.result == "passed",
         )
 
         return {
             "policy_id": str(policy_id),
             "entity_id": str(entity_id),
             "entity_type": entity_type,
-            "is_compliant": application.is_compliant,
+            "is_compliant": application.result == "passed",
             "passed_rules": passed_rules,
             "failed_rules": failed_rules,
             "evaluation_id": str(application.id),
-            "evaluated_at": application.evaluated_at,
+            "evaluated_at": application.applied_at,
         }
 
     async def get_policy_applications(

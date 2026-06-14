@@ -19,14 +19,14 @@ inhibit_rules:
     target_match:
       severity: 'warning'
     equal: ['alertname', 'namespace', 'service']
-  
+
   # Service down inhibits high error rate for same service
   - source_match:
       alertname: 'ServiceDown'
     target_match:
       alertname: 'HighErrorRate'
     equal: ['namespace', 'service']
-  
+
   # High latency inhibits latency warnings
   - source_match:
       alertname: 'HighLatencyCritical'
@@ -41,120 +41,120 @@ route:
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  
+
   routes:
     # ============================================
     # SEVERTY-BASED ROUTING
     # ============================================
-    
+
     # CRITICAL: PagerDuty + Slack #incidents + SMS
     - match:
         severity: 'critical'
       receiver: 'pagerduty-critical'
       continue: true
       repeat_interval: 10m
-    
+
     - match:
         severity: 'critical'
       receiver: 'slack-critical'
       continue: false
       repeat_interval: 10m
-    
+
     # WARNING: Slack #alerts channel
     - match:
         severity: 'warning'
       receiver: 'slack-warning'
       continue: false
       repeat_interval: 30m
-    
+
     # INFO: Slack #notifications channel
     - match:
         severity: 'info'
       receiver: 'slack-info'
       continue: false
       repeat_interval: 4h
-    
+
     # ============================================
     # TEAM-BASED ROUTING
     # ============================================
-    
+
     # Platform/SRE team alerts
     - match:
         team: 'platform'
         severity: 'critical'
       receiver: 'pagerduty-platform'
       continue: true
-    
+
     - match:
         team: 'platform'
       receiver: 'slack-platform'
       continue: false
-    
+
     # Security team alerts
     - match:
         team: 'security'
         severity: 'critical'
       receiver: 'pagerduty-security'
       continue: true
-    
+
     - match:
         team: 'security'
       receiver: 'slack-security'
       continue: false
-    
+
     # Business/Product team alerts
     - match:
         team: 'product'
       receiver: 'slack-product'
       continue: false
-    
+
     # ============================================
     # SPECIFIC ALERT ROUTING
     # ============================================
-    
+
     # LLM cost alerts -> FinOps channel
     - match:
         alertname: 'HighLLMCostRate'
       receiver: 'slack-finops'
       continue: true
       repeat_interval: 1h
-    
+
     - match:
         alertname: 'HighLLMCostCritical'
       receiver: 'pagerduty-critical'
       continue: false
       repeat_interval: 10m
-    
+
     # SLO burn alerts
     - match:
         alertname: 'SLOErrorBudgetBurnRate'
         severity: 'critical'
       receiver: 'pagerduty-sre'
       continue: true
-    
+
     - match:
         alertname: 'SLOErrorBudgetBurnRate'
       receiver: 'slack-sre'
       continue: false
-    
+
     # Security alerts
     - match:
         alertname: 'SecurityIncident'
       receiver: 'pagerduty-security'
       continue: true
-    
+
     - match:
         alertname: 'SecurityIncident'
       receiver: 'slack-security'
       continue: false
-    
+
     # Chaos engineering completion
     - match:
         alertname: 'ChaosExperimentCompleted'
       receiver: 'slack-platform'
       continue: false
       repeat_interval: 24h
-    
+
     # Audit evidence alerts
     - match:
         alertname: 'AuditEvidenceCollectionFailed'
@@ -165,11 +165,11 @@ route:
 receivers:
   # Default - no notification to prevent spam
   - name: 'default-null'
-    
+
   # ============================================
   # PAGERDUTY RECEIVERS
   # ============================================
-  
+
   - name: 'pagerduty-critical'
     pagerduty_configs:
       - service_key_file: '/etc/alertmanager/secrets/pagerduty_integration_key'
@@ -181,32 +181,32 @@ receivers:
           runbook_url: '{{ .CommonAnnotations.runbook_url }}'
           dashboard: '{{ .CommonAnnotations.dashboard }}'
         group: 'value-fabric-critical'
-  
+
   - name: 'pagerduty-platform'
     pagerduty_configs:
       - service_key_file: '/etc/alertmanager/secrets/pagerduty_platform_key'
         description: 'Platform: {{ .GroupLabels.alertname }}'
         severity: 'error'
         group: 'value-fabric-platform'
-  
+
   - name: 'pagerduty-security'
     pagerduty_configs:
       - service_key_file: '/etc/alertmanager/secrets/pagerduty_security_key'
         description: 'Security: {{ .GroupLabels.alertname }}'
         severity: 'critical'
         group: 'value-fabric-security'
-  
+
   - name: 'pagerduty-sre'
     pagerduty_configs:
       - service_key_file: '/etc/alertmanager/secrets/pagerduty_sre_key'
         description: 'SRE: {{ .GroupLabels.alertname }}'
         severity: 'error'
         group: 'value-fabric-sre'
-  
+
   # ============================================
   # SLACK RECEIVERS
   # ============================================
-  
+
   - name: 'slack-critical'
     slack_configs:
       - channel: '#incidents'
@@ -226,7 +226,7 @@ receivers:
           - type: button
             text: 'Dashboard'
             url: '{{ .CommonAnnotations.dashboard }}'
-  
+
   - name: 'slack-warning'
     slack_configs:
       - channel: '#alerts'
@@ -236,14 +236,14 @@ receivers:
           *Service:* {{ .GroupLabels.service }}
           *Namespace:* {{ .GroupLabels.namespace }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-info'
     slack_configs:
       - channel: '#notifications'
         send_resolved: false
         title: 'ℹ️ {{ .GroupLabels.alertname }}'
         text: '{{ .CommonAnnotations.description }}'
-  
+
   - name: 'slack-platform'
     slack_configs:
       - channel: '#platform-alerts'
@@ -253,7 +253,7 @@ receivers:
           *Team:* Platform
           *Service:* {{ .GroupLabels.service }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-security'
     slack_configs:
       - channel: '#security-alerts'
@@ -263,7 +263,7 @@ receivers:
           *Severity:* {{ .GroupLabels.severity }}
           *Service:* {{ .GroupLabels.service }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-product'
     slack_configs:
       - channel: '#product-alerts'
@@ -272,7 +272,7 @@ receivers:
         text: |
           *Business Impact:* {{ .CommonAnnotations.business_impact }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-finops'
     slack_configs:
       - channel: '#finops'
@@ -281,7 +281,7 @@ receivers:
         text: |
           *Cost Impact:* {{ .CommonAnnotations.cost_impact }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-sre'
     slack_configs:
       - channel: '#sre-alerts'
@@ -290,7 +290,7 @@ receivers:
         text: |
           *SLO Impact:* {{ .CommonAnnotations.slo_impact }}
           *Description:* {{ .CommonAnnotations.description }}
-  
+
   - name: 'slack-compliance'
     slack_configs:
       - channel: '#compliance'

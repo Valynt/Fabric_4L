@@ -95,6 +95,8 @@ class Layer4WorkflowReplayHarness:
         ordered_events = sorted(events, key=lambda e: (e.timestamp, e.event_id))
         state = BaseAgentState(
             workflow_id=workflow_id,
+            run_id=workflow_id,
+            trace_id=f"replay:{workflow_id}",
             workflow_type=workflow_type,
             tenant_id=getattr(authz, "tenant_id", "replay-tenant"),
         )

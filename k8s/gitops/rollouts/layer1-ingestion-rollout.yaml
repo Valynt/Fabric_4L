@@ -19,7 +19,7 @@ spec:
           additionalIngressAnnotations:
             canary-by-header: X-Canary
             canary-by-header-value: "true"
-      
+
       steps:
         - setWeight: 10
         - pause: {duration: 5m}
@@ -35,12 +35,12 @@ spec:
               - templateName: ingestion-error-rate
               - templateName: ingestion-latency
         - setWeight: 100
-      
+
       autoRollbackEnabled: true
       maxUnavailable: 0
       maxSurge: "25%"
       scaleDownDelaySeconds: 600
-  
+
   revisionHistoryLimit: 5
   selector:
     matchLabels:

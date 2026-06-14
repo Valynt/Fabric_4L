@@ -15,11 +15,11 @@ class TestGovernanceAPISecurity:
 
     async def test_formula_create_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that formula creation requires layer5.governance.formulas.create permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_no_permission,
             json={
@@ -37,11 +37,11 @@ class TestGovernanceAPISecurity:
 
     async def test_formula_list_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that formula listing requires layer5.governance.formulas.list permission."""
-        response = await client.get(
+        response = await client_no_permissions.get(
             "/api/v1/governance/formulas",
             headers=auth_headers_no_permission,
         )
@@ -49,11 +49,11 @@ class TestGovernanceAPISecurity:
 
     async def test_benchmark_create_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that benchmark creation requires layer5.governance.benchmarks.create permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/benchmarks",
             headers=auth_headers_no_permission,
             json={
@@ -71,11 +71,11 @@ class TestGovernanceAPISecurity:
 
     async def test_policy_create_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that policy creation requires layer5.governance.policies.create permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/policies",
             headers=auth_headers_no_permission,
             json={
@@ -91,11 +91,11 @@ class TestGovernanceAPISecurity:
 
     async def test_assumption_create_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that assumption creation requires layer5.governance.assumptions.create permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/assumptions",
             headers=auth_headers_no_permission,
             json={
@@ -103,7 +103,7 @@ class TestGovernanceAPISecurity:
                 "slug": "test-assumption",
                 "assumption_type": "market_growth",
                 "description": "Test assumption",
-                "value": 0.1,
+                "value": {"rate": 0.1},
                 "value_type": "percentage",
                 "impact_level": "medium",
             },
@@ -112,15 +112,15 @@ class TestGovernanceAPISecurity:
 
     async def test_value_entry_create_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that value entry creation requires layer5.governance.value_entries.create permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/value-entries",
             headers=auth_headers_no_permission,
             json={
-                "entry_type": "revenue",
+                "entry_type": "revenue_impact",
                 "entry_name": "Test Entry",
                 "current_value": 1000.0,
             },
@@ -129,11 +129,11 @@ class TestGovernanceAPISecurity:
 
     async def test_approval_approve_requires_permission(
         self,
-        client: AsyncClient,
+        client_no_permissions: AsyncClient,
         auth_headers_no_permission: dict[str, str],
     ):
         """Test that approval requires layer5.governance.approvals.approve permission."""
-        response = await client.post(
+        response = await client_no_permissions.post(
             "/api/v1/governance/approvals/00000000-0000-0000-0000-000000000001/approve",
             headers=auth_headers_no_permission,
         )
@@ -141,14 +141,14 @@ class TestGovernanceAPISecurity:
 
     async def test_tenant_isolation_formula(
         self,
-        client: AsyncClient,
+        tenant_aware_client: AsyncClient,
         auth_headers_tenant_a: dict[str, str],
         auth_headers_tenant_b: dict[str, str],
         db: AsyncSession,
     ):
         """Test that formulas are isolated by tenant."""
         # Create formula in tenant A
-        response_a = await client.post(
+        response_a = await tenant_aware_client.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_tenant_a,
             json={
@@ -166,7 +166,7 @@ class TestGovernanceAPISecurity:
         formula_id = response_a.json()["id"]
 
         # Try to access from tenant B
-        response_b = await client.get(
+        response_b = await tenant_aware_client.get(
             f"/api/v1/governance/formulas/{formula_id}",
             headers=auth_headers_tenant_b,
         )
@@ -174,13 +174,13 @@ class TestGovernanceAPISecurity:
 
     async def test_tenant_isolation_benchmark(
         self,
-        client: AsyncClient,
+        tenant_aware_client: AsyncClient,
         auth_headers_tenant_a: dict[str, str],
         auth_headers_tenant_b: dict[str, str],
     ):
         """Test that benchmarks are isolated by tenant."""
         # Create benchmark in tenant A
-        response_a = await client.post(
+        response_a = await tenant_aware_client.post(
             "/api/v1/governance/benchmarks",
             headers=auth_headers_tenant_a,
             json={
@@ -198,7 +198,7 @@ class TestGovernanceAPISecurity:
         benchmark_id = response_a.json()["id"]
 
         # Try to access from tenant B
-        response_b = await client.get(
+        response_b = await tenant_aware_client.get(
             f"/api/v1/governance/benchmarks/{benchmark_id}",
             headers=auth_headers_tenant_b,
         )
@@ -206,12 +206,12 @@ class TestGovernanceAPISecurity:
 
     async def test_formula_slug_conflict_within_tenant(
         self,
-        client: AsyncClient,
+        tenant_aware_client: AsyncClient,
         auth_headers_tenant_a: dict[str, str],
     ):
         """Test that slug conflicts are detected within a tenant."""
         # Create first formula
-        response1 = await client.post(
+        response1 = await tenant_aware_client.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_tenant_a,
             json={
@@ -228,7 +228,7 @@ class TestGovernanceAPISecurity:
         assert response1.status_code == 201
 
         # Try to create second formula with same slug
-        response2 = await client.post(
+        response2 = await tenant_aware_client.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_tenant_a,
             json={
@@ -246,13 +246,13 @@ class TestGovernanceAPISecurity:
 
     async def test_formula_slug_different_tenants_allowed(
         self,
-        client: AsyncClient,
+        tenant_aware_client: AsyncClient,
         auth_headers_tenant_a: dict[str, str],
         auth_headers_tenant_b: dict[str, str],
     ):
         """Test that same slug is allowed across different tenants."""
         # Create formula in tenant A
-        response_a = await client.post(
+        response_a = await tenant_aware_client.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_tenant_a,
             json={
@@ -269,7 +269,7 @@ class TestGovernanceAPISecurity:
         assert response_a.status_code == 201
 
         # Create formula with same slug in tenant B (should succeed)
-        response_b = await client.post(
+        response_b = await tenant_aware_client.post(
             "/api/v1/governance/formulas",
             headers=auth_headers_tenant_b,
             json={

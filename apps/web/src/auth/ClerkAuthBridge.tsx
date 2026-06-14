@@ -25,6 +25,7 @@ import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
 import { useAccountContextStore } from "@/stores/accountContextStore";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 const FABRIC_AUTH_TEMPLATE_NAME =
   (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
@@ -44,6 +45,11 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
 }
 
 export function ClerkAuthBridge(): ReactElement | null {
+  // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not mounted.
+  if (!isClerkAuthEnabled()) {
+    return null;
+  }
+
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
 

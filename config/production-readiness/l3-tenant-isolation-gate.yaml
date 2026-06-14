@@ -36,7 +36,6 @@ status:
     use run_validated_query, Neo4jTenantSessionSecured.run, AuditedGraphMutation,
     or another approved audited execution wrapper.
 
-
 execution_boundary_gate:
   status: BLOCKING
   owner: "platform-security"

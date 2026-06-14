@@ -13,7 +13,14 @@ from layer5_ground_truth.models.academy import (
     AcademyQuizQuestion,
 )
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/layer5")
+# Fail-closed: require DATABASE_URL from the environment rather than shipping an
+# inline credential default. Seed tooling must not carry hardcoded credentials.
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise SystemExit(
+        "DATABASE_URL is required to run the academy seed script. "
+        "Export DATABASE_URL (e.g. via Infisical or your local .env) before running."
+    )
 
 PILLARS = [
     {

@@ -1,0 +1,43 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging",
+  "validated_at_utc": "2026-06-13T00:47:00Z",
+  "overall_status": "partial",
+  "categories": [
+    {
+      "name": "billing",
+      "status": "DEFERRED",
+      "evidence": "Layer 4 logs: 'Stripe not configured - billing features disabled'. GET /v1/billing/subscription with service-auth headers returns 422 (fail-closed). No Stripe secret or sandbox is configured in .env.",
+      "risk": "Paid launch cannot be claimed until Stripe/sandbox integration is validated with meter events, invoice aggregation, and idempotency checks."
+    },
+    {
+      "name": "telemetry",
+      "status": "VERIFIED",
+      "evidence": "All L1-L6 /health and /ready return HTTP 200. L4/L5/L6 /metrics return Prometheus text from internal Docker gateway; L1 has no /metrics; L2/L3 return 503 'Metrics collection is disabled'. OpenTelemetry collector endpoint not configured locally.",
+      "risk": "Production must enforce METRICS_INTERNAL_SCRAPE_TOKEN and non-RFC1918 scrape networks; local staging accepts gateway IP as internal."
+    },
+    {
+      "name": "alerting",
+      "status": "DEFERRED",
+      "evidence": "Alerting rules and alertmanager configs exist under monitoring/alerting/ and monitoring/alertmanager/. No Alertmanager or PagerDuty receiver is wired in docker-compose.live.yml.",
+      "risk": "Incident detection path cannot be validated locally; requires production observability stack and configured receivers."
+    },
+    {
+      "name": "performance_slo",
+      "status": "DEFERRED",
+      "evidence": "Journey SLO scripts exist: apps/web/scripts/quality/collect-journey-slo-metrics.mjs and assert-journey-launch-slos.mjs. SLO data depends on a completed Playwright run; the P0 live journey suite is currently executing.",
+      "risk": "Launch SLOs cannot be confirmed until Playwright results are collected and thresholds are asserted."
+    },
+    {
+      "name": "live_llm",
+      "status": "DEFERRED",
+      "evidence": "Provider-agnostic LLM adapters exist (services/layer4-agents/src/layer4_agents/services/llm_provider.py, together_provider.py, anthropic_provider.py). .env has LLM_PROVIDER=together but TOGETHER_API_KEY/LAYER4_TOGETHER_API_KEY are empty; no live calls were made.",
+      "risk": "Core GA cannot claim live LLM workflows are validated until provider credentials and grounded-citation/refusal/prompt-injection evidence are attached."
+    }
+  ],
+  "notes": [
+    "Billing and live-LLM gates are intentionally fail-closed when provider credentials are absent; no auth bypass or unsafe fallback was introduced.",
+    "Telemetry is verified for local Docker reachability; production enforcement of scrape tokens and network policy remains a deployment concern.",
+    "Alerting and performance SLO evidence require the approved staging/production observability stack and a completed journey run."
+  ]
+}

@@ -26,10 +26,12 @@ from ..schema.constraints import (
 
 
 class SchemaInitializer_health_checkResult(TypedDictModel):
-    database: Any
+    # database/uri are only known when connectivity succeeds; on failure the
+    # health check must still return a valid payload (degraded, not a 500).
+    database: Any = None
     error: str | None = None
     status: str
-    uri: Any
+    uri: Any = None
 
 if TYPE_CHECKING:
     from neo4j import AsyncSession

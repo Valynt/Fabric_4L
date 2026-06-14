@@ -988,7 +988,7 @@ entries:
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9 (SQLAlchemy duplicate table issue). Registered for P2-006 remediation.
+    # 1/# 9 (SQLAlchemy duplicate table issue). Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1003,7 +1003,7 @@ entries:
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. Registered for P2-006 remediation.
+    # 1/# 9. Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1018,7 +1018,7 @@ entries:
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. Registered for P2-006 remediation.
+    # 1/# 9. Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1033,7 +1033,7 @@ entries:
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. try/except guard added (P2-006). Registered for full remediation.
+    # 1/# 9. try/except guard added (P2-006). Registered for full remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1048,7 +1048,7 @@ entries:
   reason_pattern: layer3_knowledge\ service\ stack\ not\ available
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. Registered for P2-006 remediation.
+    # 1/# 9. Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1062,7 +1062,7 @@ entries:
   reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. Registered for P2-006 remediation.
+    # 1/# 9. Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking
@@ -1076,7 +1076,7 @@ entries:
   reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
   owner: '@platform-quality'
   reason: L3 package not importable in contract test environment; pre-existing blocker
-    #1/#9. Registered for P2-006 remediation.
+    # 1/# 9. Registered for P2-006 remediation.
   expires_on: '2026-09-30'
   severity: P2
   launch_gate: non-blocking

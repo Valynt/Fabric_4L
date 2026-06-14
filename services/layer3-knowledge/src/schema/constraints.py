@@ -376,6 +376,7 @@ INDEXES: list[Index] = [
     Index("benchmarkdataset_tenant_idx", "BenchmarkDataset", ["tenant_id"], "btree"),
     # Phase 2 (L3 Tenant Standardization): Missing indexes for unscoped route modules
     Index("formula_tenant_id_idx", "Formula", ["tenant_id"], "btree"),
+    Index("formula_tenant_lookup_idx", "Formula", ["tenant_id", "id"], "btree"),
     Index("benchmark_tenant_id_idx", "Benchmark", ["tenant_id"], "btree"),
     Index("valuemodel_tenant_id_idx", "ValueModel", ["tenant_id"], "btree"),
     Index("valuemodel_tenant_modelid_idx", "ValueModel", ["tenant_id", "model_id"], "btree"),

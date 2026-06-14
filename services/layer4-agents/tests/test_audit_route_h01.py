@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from layer4_agents.api.routes import audit
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -70,6 +71,7 @@ class _AuditDb:
 def audit_app() -> FastAPI:
     app = FastAPI()
     app.include_router(audit.router, prefix="/v1")
+    register_exception_handlers(app)
     return app
 
 
@@ -113,5 +115,5 @@ async def test_audit_logs_provenance_source_fails_closed(audit_app: FastAPI) -> 
     async with AsyncClient(transport=ASGITransport(app=audit_app), base_url="http://test") as client:
         response = await client.get("/v1/audit/logs", params={"source": "provenance"})
 
-    assert response.status_code == 501
-    assert "Provenance" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "Provenance" in response.json()["error"]["message"]

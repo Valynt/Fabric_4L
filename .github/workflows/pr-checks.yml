@@ -1,4 +1,3 @@
-
 # Action pinning and update process
 # - All third-party actions are pinned to full-length commit SHAs.
 # - Dependabot (github-actions ecosystem) remains enabled to open SHA bump PRs.
@@ -10,9 +9,9 @@ name: PR Checks
 
 permissions:
   contents: read
-  id-token: write  # Required for Infisical OIDC authentication
+  id-token: write # Required for Infisical OIDC authentication
 
-on:
+"on":
   pull_request:
     branches: [main]
   push:
@@ -41,7 +40,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Enforce frontend root policy (apps/web only)
         run: |
@@ -164,7 +163,11 @@ jobs:
           python -m pytest --collect-only -q -ra > artifacts/pytest-collection.txt 2>&1
           collect_status=$?
           set -e
-          python scripts/ci/check_pytest_skip_governance.py             artifacts/pytest-collection.txt             --allowlist config/ci/pytest_skip_allowlist.yaml             --baseline config/ci/pytest_skip_baseline.json             --write-report artifacts/pytest-skip-governance.json
+          python scripts/ci/check_pytest_skip_governance.py \
+            artifacts/pytest-collection.txt \
+            --allowlist config/ci/pytest_skip_allowlist.yaml \
+            --baseline config/ci/pytest_skip_baseline.json \
+            --write-report artifacts/pytest-skip-governance.json
           if [ "$collect_status" -ne 0 ]; then
             echo "pytest collection failed with status ${collect_status}."
             cat artifacts/pytest-collection.txt
@@ -208,11 +211,13 @@ jobs:
         run: |
           mkdir -p artifacts
           set +e
-          python scripts/ci/check_duplicate_source_trees.py --layers layer1 layer2 --json | tee artifacts/duplicate-source-trees.json
+          python scripts/ci/check_duplicate_source_trees.py --layers layer1 layer2 --json \
+            | tee artifacts/duplicate-source-trees.json
           duplicate_status=${PIPESTATUS[0]}
           set -e
           if [ "$duplicate_status" -ne 0 ]; then
-            echo "Duplicate source-tree evidence report recorded existing canonicalization debt; diff-scoped gating is enforced by the violation summary."
+            echo "Duplicate source-tree evidence report recorded existing canonicalization debt; \
+              diff-scoped gating is enforced by the violation summary."
           fi
 
       - name: Run shared import runtime strict gate
@@ -304,13 +309,20 @@ jobs:
       - name: Generate layer quality scorecard
         run: |
           mkdir -p artifacts
-          python scripts/ci/layer_quality_scorecard.py             --output docs/governance/layer-quality-scorecard.json             --summary artifacts/layer-quality-scorecard.md
+          python scripts/ci/layer_quality_scorecard.py \
+            --output docs/governance/layer-quality-scorecard.json \
+            --summary artifacts/layer-quality-scorecard.md
 
       - name: Build PR diff violation summary artifact
         if: always()
         run: |
           mkdir -p artifacts
-          python scripts/ci/ci_violation_diff_summary.py             --base-ref "${{ github.base_ref || 'main' }}"             --duplicate-report artifacts/duplicate-source-trees.json             --shared-report artifacts/shared-imports-runtime.json             --json-out artifacts/violation-diff-summary.json             --md-out artifacts/violation-diff-summary.md
+          python scripts/ci/ci_violation_diff_summary.py \
+            --base-ref "${{ github.base_ref || 'main' }}" \
+            --duplicate-report artifacts/duplicate-source-trees.json \
+            --shared-report artifacts/shared-imports-runtime.json \
+            --json-out artifacts/violation-diff-summary.json \
+            --md-out artifacts/violation-diff-summary.md
 
       - name: Upload structural reports
         if: always()
@@ -355,7 +367,6 @@ jobs:
         run: |
           python scripts/ci/check_pr_overlap_guard.py --lookback 20 --threshold 0.45
 
-
   production-readiness-gate:
     name: Production Readiness Gate
     runs-on: ubuntu-latest
@@ -367,8 +378,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install production-readiness gate dependencies
         run: |
@@ -394,7 +405,6 @@ jobs:
           name: production-readiness-suite-results
           path: artifacts/production-readiness/**
           retention-days: 14
-
 
   governance-docs-check:
     name: Governance Docs Guard
@@ -434,7 +444,6 @@ jobs:
 
       - name: Enforce control matrix update policy
         run: .github/scripts/check-control-matrix.sh
-
 
       - name: Enforce Phase 3 API evolution section for enhancement PRs
         if: github.event_name == 'pull_request'
@@ -488,7 +497,6 @@ jobs:
           CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_pr_governance_fields.py
-
 
       - name: Validate docs claim verification map
         run: |
@@ -577,12 +585,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -601,15 +609,23 @@ jobs:
 
       - name: Run Layer 3 Cypher scope gate
         working-directory: ${{ github.workspace }}
-        run: python scripts/ci/check_layer3_cypher_scope.py services/layer3-knowledge/src --report-json artifacts/layer3-cypher-scope-audit.json
+        run:
+          python scripts/ci/check_layer3_cypher_scope.py services/layer3-knowledge/src --report-json
+          artifacts/layer3-cypher-scope-audit.json
 
       - name: Run Layer 3 query entrypoint matrix gate
         working-directory: ${{ github.workspace }}
-        run: python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src/api services/layer3-knowledge/src/ingestion services/layer3-knowledge/src/analytics services/layer3-knowledge/src/agents --report-json artifacts/layer3-query-entrypoint-matrix.json
+        run:
+          python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src/api
+          services/layer3-knowledge/src/ingestion services/layer3-knowledge/src/analytics services/layer3-knowledge/src/agents
+          --report-json artifacts/layer3-query-entrypoint-matrix.json
 
       - name: Run Layer 3 audited mutation relationship-write gate
         working-directory: ${{ github.workspace }}
-        run: python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json artifacts/layer3-audited-mutation-violations.json
+        run:
+          python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes
+          services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json
+          artifacts/layer3-audited-mutation-violations.json
 
       - name: Run Layer 3 tenant dependency import gate
         working-directory: ${{ github.workspace }}
@@ -680,12 +696,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -753,12 +769,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: 'latest'
+          version: "latest"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -819,8 +835,10 @@ jobs:
         if: always()
         run: |
           mkdir -p artifacts/layer3-tenancy
-          cp "${{ github.workspace }}/artifacts/layer3-cypher-scope-audit.json" artifacts/layer3-tenancy/cypher-scope-report.json || true
-          cp "${{ github.workspace }}/artifacts/layer3-query-entrypoint-matrix.json" artifacts/layer3-tenancy/query-entrypoint-matrix.json || true
+          cp "${{ github.workspace }}/artifacts/layer3-cypher-scope-audit.json" \
+            artifacts/layer3-tenancy/cypher-scope-report.json || true
+          cp "${{ github.workspace }}/artifacts/layer3-query-entrypoint-matrix.json" \
+            artifacts/layer3-tenancy/query-entrypoint-matrix.json || true
 
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -863,12 +881,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -926,12 +944,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -977,7 +995,6 @@ jobs:
         run: |
           uv run pip-audit --severity high --exit-code 1
 
-
   layer5-source-contract:
     name: Layer 5 - Source Contract
     runs-on: ubuntu-latest
@@ -992,7 +1009,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Enforce Layer 5 source contract
         run: python scripts/check_no_duplicate_modules.py
@@ -1011,12 +1028,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -1027,7 +1044,10 @@ jobs:
 
       - name: Run tenant consistency and hostile access regression tests
         run: |
-          uv run pytest -v --tb=short             tests/test_tenant_id_consistency.py             tests/test_api.py::TestGetTruth::test_org_isolation             tests/test_cross_tenant_hostile.py
+          uv run pytest -v --tb=short \
+            tests/test_tenant_id_consistency.py \
+            tests/test_api.py::TestGetTruth::test_org_isolation \
+            tests/test_cross_tenant_hostile.py
 
   layer5-contract-shape-regression:
     name: Layer 5 - Contract Shape Regression
@@ -1043,12 +1063,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -1096,12 +1116,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
-          version: '0.11.6'
+          version: "0.11.6"
           enable-cache: true
 
       - name: Install dependencies (frozen lock)
@@ -1156,8 +1176,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install ruff
         run: pip install ruff
@@ -1189,14 +1209,14 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
         with:
-          version: '10.18.1'
+          version: "10.18.1"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+          node-version: "22.12.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -1208,11 +1228,15 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          if ! git diff --quiet packages/platform-contract/src/typescript/generated/ apps/web/src/api/generated/ apps/web/src/types/; then
+          if ! git diff --quiet \
+            packages/platform-contract/src/typescript/generated/ \
+            apps/web/src/api/generated/ apps/web/src/types/; then
             echo "❌ Generated API type drift detected."
             node apps/web/scripts/report-generated-type-drift.mjs
           fi
-          git diff --exit-code packages/platform-contract/src/typescript/generated/ apps/web/src/api/generated/ apps/web/src/types/
+          git diff --exit-code \
+            packages/platform-contract/src/typescript/generated/ \
+            apps/web/src/api/generated/ apps/web/src/types/
 
       - name: Type check
         run: pnpm tsc --noEmit
@@ -1339,14 +1363,14 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
         with:
-          version: '10.18.1'
+          version: "10.18.1"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+          node-version: "22.12.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -1389,14 +1413,14 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
         with:
-          version: '10.18.1'
+          version: "10.18.1"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+          node-version: "22.12.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -1444,7 +1468,8 @@ jobs:
 
       - name: Install kustomize
         run: |
-          curl -sSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz -o kustomize.tar.gz
+          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
+          curl -sSL "$url" -o kustomize.tar.gz
           echo "3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7  kustomize.tar.gz" | sha256sum -c
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
@@ -1481,14 +1506,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
-          cache: 'pnpm'
+          node-version: "22.12.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
@@ -1518,7 +1543,9 @@ jobs:
           set -euo pipefail
           python -m pytest tests/contract --collect-only -q -m contract_static -n 0 2>&1 | tee contract-static-collect.log
           python -m pytest tests/contract --collect-only -q -m service_required -n 0 2>&1 | tee contract-service-collect.log
-          if rg -n "ERROR collecting|ImportError while importing test module|ModuleNotFoundError" contract-static-collect.log contract-service-collect.log; then
+          if rg -n \
+            "ERROR collecting|ImportError while importing test module|ModuleNotFoundError" \
+            contract-static-collect.log contract-service-collect.log; then
             echo "Contract test collection errors detected."
             exit 1
           fi
@@ -1587,8 +1614,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -1600,7 +1627,8 @@ jobs:
           export REDIS_PASSWORD=test-redis
           export NEO4J_PASSWORD=test-neo4j
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
-          docker compose up -d postgres redis neo4j layer5-migrate layer5-ground-truth layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
+          docker compose up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
+            layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
         run: |
@@ -1670,8 +1698,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install Schemathesis
         run: pip install "schemathesis==3.39.16" "pytest-xdist==3.5.0"
@@ -1727,7 +1755,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Set up Docker Compose
         run: |
@@ -1737,7 +1765,7 @@ jobs:
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
         id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
           method: oidc
           env-slug: dev
@@ -1823,8 +1851,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install test dependencies
         run: |
@@ -1867,7 +1895,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml
@@ -1896,13 +1924,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
+          node-version: "22.12.0"
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -1919,7 +1947,16 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            frontend,
+          ]
         include:
           - layer: layer1-ingestion
             context: services/layer1-ingestion
@@ -1968,7 +2005,7 @@ jobs:
         with:
           image-ref: local/${{ matrix.layer }}:${{ github.sha }}
           format: table
-          exit-code: '1'
+          exit-code: "1"
           severity: CRITICAL,HIGH
 
       - name: Generate image SBOM (SPDX JSON)
@@ -2004,7 +2041,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install PyYAML
         run: pip install pyyaml
@@ -2018,7 +2055,8 @@ jobs:
         run: |
           if command -v kubectl &> /dev/null; then
             echo "Testing kustomize build for dev overlay..."
-            kubectl kustomize k8s/deployments/dev-nginx 2>&1 | grep -q "alertmanager" && echo "✓ Alertmanager manifests found in kustomize build"
+            kubectl kustomize k8s/deployments/dev-nginx 2>&1 | grep -q "alertmanager" && \
+              echo "✓ Alertmanager manifests found in kustomize build"
           else
             echo "⚠️ kubectl not available, skipping kustomize validation"
             exit 1  # CONTRACT ENFORCEMENT: kubectl required for CI validation
@@ -2034,7 +2072,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install gate dependencies
         run: python -m pip install pyyaml
@@ -2056,19 +2094,13 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d fabric_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U postgres -d fabric_test" --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
         image: neo4j:5
         env:
@@ -2077,10 +2109,8 @@ jobs:
           - 7474:7474
           - 7687:7687
         options: >-
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1" --health-interval 10s
+          --health-timeout 5s --health-retries 12
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2088,13 +2118,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22.12.0'
+          node-version: "22.12.0"
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -2136,7 +2166,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@1a4442caab129478691007b6b212744efc46b5be # v4
         with:
-          node-version: '22.12'
+          node-version: "22.12"
 
       - name: Install pnpm
         uses: pnpm/action-setup@4f10c89a15248b94f4bf597d25045371d9f38563 # v2.4.0
@@ -2160,7 +2190,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Python test dependencies
         run: |
@@ -2177,7 +2207,14 @@ jobs:
         if: always()
         run: |
           mkdir -p artifacts/critical-behaviors-gate
-          echo '{"status": "passed", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "command": "pnpm run test:critical-behaviors"}' > artifacts/critical-behaviors-gate/result.json
+          python3 -c '
+          import json, datetime
+          print(json.dumps({
+            "status": "passed",
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "command": "pnpm run test:critical-behaviors"
+          }))
+          ' > artifacts/critical-behaviors-gate/result.json
 
       - name: Upload critical-behaviors evidence
         if: always()

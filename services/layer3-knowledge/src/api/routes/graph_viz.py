@@ -204,7 +204,7 @@ async def get_full_graph(
             ),
         )
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except TimeoutError:
         raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
@@ -337,7 +337,7 @@ async def get_entity_subgraph(
 
         return response
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded for %s: %s", entity_id, exc)
@@ -587,7 +587,7 @@ async def get_query_subgraph(
 
         return response
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)

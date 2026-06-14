@@ -213,11 +213,11 @@ class TestContextDependencies:
     
     @pytest.mark.asyncio
     async def test_require_admin_allows_admin_user(self):
-        """require_admin should allow users with admin permission."""
+        """require_admin should allow users with an explicit admin permission."""
         context = RequestContext(
             tenant_id=uuid4(),
             user_id=uuid4(),
-            permissions=["admin"]
+            permissions=[Permission.ADMIN_USERS.value]
         )
         
         result = await require_admin(context=context)

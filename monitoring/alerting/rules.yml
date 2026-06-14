@@ -322,7 +322,6 @@ groups:
           description: "Replay-suspected token events exceeded threshold in 10m window."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
 
-
       # Layer 3 graph observability alerts
       - alert: Layer3GraphQueryFailureSpike
         expr: |

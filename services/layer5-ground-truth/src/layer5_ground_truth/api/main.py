@@ -300,28 +300,26 @@ async def layer3_security_exception_handler(
         "layer3_security_policy_error",
         extra=_request_correlation_context(request, error_code=exc.error_code),
     )
-    # Use canonical error envelope format
-    try:
-        from value_fabric.shared.error_handling.handlers import get_request_trace_id
-        from value_fabric.shared.error_handling.models import ErrorDetail, ErrorEnvelope
-
-        request_id = get_request_trace_id(request)
-        error_envelope = ErrorEnvelope(
-            error=ErrorDetail(
-                code=exc.error_code,
-                message=exc.message,
-                request_id=request_id,
-                details=exc.details if hasattr(exc, "details") else None,
-            )
-        )
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=error_envelope.model_dump(),
-            headers={"X-Request-ID": request_id},
-        )
-    except ImportError:
-        # Fallback to old format if shared package not available
-        return _layer3_error_response(request, exc)
+    request_id = getattr(request.state, "trace_id", None) or request.headers.get(
+        "X-Request-ID"
+    )
+    context = getattr(request.state, "governance_context", None)
+    tenant_id = getattr(context, "tenant_id", None) or getattr(exc, "tenant_id", None)
+    safe_request_id = str(request_id) if request_id else "req_layer3_security"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": exc.error_code,
+            "message": exc.message,
+            "trace_id": safe_request_id,
+            "details": {
+                "service": "layer3-knowledge",
+                "tenant_id": str(tenant_id) if tenant_id is not None else None,
+                **(exc.details or {}),
+            },
+        },
+        headers={"X-Request-ID": safe_request_id},
+    )
 
 
 async def layer3_operational_exception_handler(
@@ -816,6 +814,7 @@ def create_app() -> FastAPI:
     async def public_health() -> HealthResponse:
         return HealthResponse(
             status="ok",
+            service="layer5-ground-truth",
             version=__version__,
             timestamp=datetime.now(UTC),
             database="ok",
@@ -960,6 +959,12 @@ def _validate_jwt_secret(secret: str) -> None:
     if secret_lower in JWT_SECRET_DENYLIST:
         raise RuntimeError(
             "JWT_SECRET is a known weak/placeholder value. "
+            "Generate a secure secret: openssl rand -base64 32"
+        )
+
+    if any(secret_lower.startswith(prefix) for prefix in _JWT_WEAK_PREFIXES):
+        raise RuntimeError(
+            "JWT_SECRET starts with a known weak/placeholder value. "
             "Generate a secure secret: openssl rand -base64 32"
         )
 

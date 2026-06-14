@@ -34,10 +34,13 @@ logger = structlog.get_logger(__name__)
 
 async def _probe_database() -> ProbeResult:
     from sqlalchemy import text
-    from ..database import db_session
+    from ..database import get_engine
     try:
-        async with db_session() as session:
-            await session.execute(text("SELECT 1"))
+        # Infrastructure connectivity check only — no tenant context. A health
+        # probe must not open a tenant-scoped session (db_session_for_context),
+        # so it connects at the engine level and runs a read-only SELECT 1.
+        async with get_engine().connect() as conn:
+            await conn.execute(text("SELECT 1"))
         return ProbeResult(name="database", healthy=True, detail="postgresql:ok")
     except Exception as exc:
         logger.warning("Database health probe failed", exc_info=exc)

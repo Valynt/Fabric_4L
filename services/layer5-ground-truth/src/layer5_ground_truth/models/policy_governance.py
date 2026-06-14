@@ -16,8 +16,10 @@ Design notes:
 """
 
 import uuid
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from enum import Enum as PyEnum
+from typing import Any, cast
 
 from sqlalchemy import (
     Boolean,
@@ -218,6 +220,27 @@ class Policy(Base):
         comment="List of entity types this policy applies to",
     )
 
+    @property
+    def scope(self) -> dict[str, list[str]]:
+        """Backward-compatible API view backed by applies_to_entity_types."""
+        entity_types = cast(list[str] | None, self.applies_to_entity_types)
+        return {"entity_types": list(entity_types or [])}
+
+    @scope.setter
+    def scope(self, value: dict[str, object] | None) -> None:
+        policy = cast(Any, self)
+        if not value:
+            policy.applies_to_entity_types = []
+            return
+        entity_types = value.get("entity_types") or value.get("applies_to_entity_types") or []
+        if isinstance(entity_types, str):
+            policy.applies_to_entity_types = [entity_types]
+            return
+        if isinstance(entity_types, Iterable):
+            policy.applies_to_entity_types = [
+                str(entity_type) for entity_type in entity_types
+            ]
+
     # -------------------------------------------------------------------------
     # Lifecycle
     # -------------------------------------------------------------------------
@@ -278,7 +301,7 @@ class Policy(Base):
         order_by="PolicyVersion.version",
     )
     rules: Mapped[list["PolicyRule"]] = relationship(
-        "PolicyRule",
+        "layer5_ground_truth.models.policy_governance.PolicyRule",
         back_populates="policy",
         cascade="all, delete-orphan",
     )
@@ -652,7 +675,6 @@ class PolicyApplication(Base):
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(UTC),
-        index=True,
         comment="When the policy was applied",
     )
     applied_by = Column(

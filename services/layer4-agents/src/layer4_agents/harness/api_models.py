@@ -163,6 +163,7 @@ class GateResponse(BaseModel):
     run_id: str
     tenant_id: str
     gate_type: GateType
+    action_class: ActionClass | None = None
     status: GateStatus
     decision_by: str | None
     decision_reason: str | None

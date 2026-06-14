@@ -242,8 +242,10 @@ def get_engine() -> AsyncEngine:
             "echo": settings.debug,
             "future": True,
         }
-        # SQLite requires check_same_thread=False for connection pooling
         if settings.database_url.startswith("sqlite"):
+            for queue_pool_option in ("pool_size", "max_overflow", "pool_timeout"):
+                engine_kwargs.pop(queue_pool_option, None)
+            # SQLite requires check_same_thread=False for connection pooling
             engine_kwargs["connect_args"] = {"check_same_thread": False}
         _engine = create_async_engine(
             settings.database_url,

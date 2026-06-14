@@ -11,7 +11,7 @@ in the new contract.
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
 from src.api.routes.value_packs import _tenant_id_from_api_key
 
@@ -89,8 +89,7 @@ def test_rejects_api_key_without_valid_tenant_metadata(api_key):
     - detail is "Invalid tenant context".
     - No fallback to api_key.tenant_id, workspace_id, or the old 'default' value.
     """
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthenticationError) as exc_info:
         _tenant_id_from_api_key(api_key)
 
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail == "Invalid tenant context"
+    assert str(exc_info.value) == "Invalid tenant context"

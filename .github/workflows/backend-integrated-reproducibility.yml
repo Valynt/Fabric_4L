@@ -1,6 +1,6 @@
 name: Backend-Integrated Reproducibility Evidence
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       release_candidate_sha:
@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
   actions: read
-  id-token: write  # Required for Infisical OIDC authentication
+  id-token: write # Required for Infisical OIDC authentication
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -43,16 +43,34 @@ jobs:
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
-      - name: Fetch secrets from Infisical
-        id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+      - name: Fetch shared secrets from Infisical
+        id: infisical-shared
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
           method: oidc
           env-slug: staging
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /shared
+
+      - name: Fetch infra secrets from Infisical
+        id: infisical-infra
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /infra
+
+      - name: Fetch CI secrets from Infisical
+        id: infisical-ci
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /ci
 
       - name: Set up Python

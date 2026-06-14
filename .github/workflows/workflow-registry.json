@@ -5,6 +5,22 @@
   "duplicate_groups": [],
   "workflows": [
     {
+      "path": ".github/workflows/public-docs.yml",
+      "name": "Public Docs",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "public_docs governs Public Docs via pull_request, push",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob public-docs.yml",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/ai-evals-pipeline.yml",
       "name": "AI Evaluation Pipeline",
       "owner": "@value-fabric/ai-ml-leads",
@@ -579,6 +595,10 @@
         "artifacts/release-evidence/billing-entitlements-junit.xml",
         "artifacts/release-evidence/billing-entitlements-summary.json",
         "artifacts/release-evidence/billing-entitlements-summary.md",
+        "artifacts/critical-behaviors-gate/result.json",
+        "artifacts/readiness/behavior-readiness-audit.json",
+        "apps/web/e2e-results/**",
+        "apps/web/playwright-report/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/shared-imports-runtime.json",
@@ -611,7 +631,7 @@
         "services/layer6-benchmarks/layer6-junit.xml",
         "services/layer6-benchmarks/layer6-results.json"
       ],
-      "runtime_budget_minutes": 35,
+      "runtime_budget_minutes": 45,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob pr-checks.yml",
       "deprecation_status": "active"
     },

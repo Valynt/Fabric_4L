@@ -14,69 +14,69 @@ groups:
         labels:
           metric_type: business
           team: product
-      
+
       # Formula success rate (rolling 1h)
       - record: business:formula_success_rate_1h
         expr: |
-          sum(rate(value_fabric_formula_evaluations_total{status="success"}[1h])) 
-          / 
+          sum(rate(value_fabric_formula_evaluations_total{status="success"}[1h]))
+          /
           sum(rate(value_fabric_formula_evaluations_total[1h]))
         labels:
           metric_type: business
           team: product
-      
+
       # Agent workflow runs per hour
       - record: business:agent_workflows_per_hour
         expr: rate(value_fabric_agent_workflow_runs_total[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Agent workflow success rate (rolling 1h)
       - record: business:agent_workflow_success_rate_1h
         expr: |
-          sum(rate(value_fabric_agent_workflow_runs_total{status="success"}[1h])) 
-          / 
+          sum(rate(value_fabric_agent_workflow_runs_total{status="success"}[1h]))
+          /
           sum(rate(value_fabric_agent_workflow_runs_total[1h]))
         labels:
           metric_type: business
           team: product
-      
+
       # Skill executions per hour
       - record: business:skill_executions_per_hour
         expr: rate(value_fabric_skill_executions_total[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Documents ingested per hour
       - record: business:documents_ingested_per_hour
         expr: rate(value_fabric_ingestion_operations_total{status="success"}[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Entities extracted per hour
       - record: business:entities_extracted_per_hour
         expr: rate(value_fabric_entities_extracted_total[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Semantic searches per hour
       - record: business:semantic_searches_per_hour
         expr: rate(value_fabric_semantic_search_requests_total[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Value narratives generated per hour
       - record: business:value_narratives_per_hour
         expr: rate(value_fabric_value_narratives_generated_total[5m]) * 3600
         labels:
           metric_type: business
           team: product
-      
+
       # Total API requests per minute
       - record: business:api_requests_per_minute
         expr: sum(rate(value_fabric_http_requests_total[5m])) * 60
@@ -95,42 +95,42 @@ groups:
         expr: rate(layer1_http_requests_total[5m])
         labels:
           aggregated: "true"
-      
+
       # Layer 1 aggregated error rate
       - record: layer1:error_rate
         expr: |
-          rate(layer1_http_requests_total{status_code=~"4..|5.."}[5m]) 
-          / 
+          rate(layer1_http_requests_total{status_code=~"4..|5.."}[5m])
+          /
           rate(layer1_http_requests_total[5m])
         labels:
           aggregated: "true"
-      
+
       # Layer 1 p95 latency
       - record: layer1:latency_p95
         expr: histogram_quantile(0.95, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le))
         labels:
           percentile: "95"
-      
+
       # Layer 1 p99 latency
       - record: layer1:latency_p99
         expr: histogram_quantile(0.99, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le))
         labels:
           percentile: "99"
-      
+
       # Layer 2 aggregated error rate
       - record: layer2:error_rate
         expr: |
-          rate(layer2_http_requests_total{status_code=~"4..|5.."}[5m]) 
-          / 
+          rate(layer2_http_requests_total{status_code=~"4..|5.."}[5m])
+          /
           rate(layer2_http_requests_total[5m])
         labels:
           aggregated: "true"
-      
+
       # Layer 4 aggregated error rate
       - record: layer4:error_rate
         expr: |
-          rate(layer4_http_requests_total{status_code=~"4..|5.."}[5m]) 
-          / 
+          rate(layer4_http_requests_total{status_code=~"4..|5.."}[5m])
+          /
           rate(layer4_http_requests_total[5m])
         labels:
           aggregated: "true"
@@ -154,7 +154,7 @@ groups:
         labels:
           slo_type: availability
           window: 30d
-      
+
       # Error budget consumption rate
       - record: slo:error_budget_consumption_rate_1h
         expr: |
@@ -168,7 +168,7 @@ groups:
         labels:
           slo_type: error_budget
           window: 1h
-      
+
       # SLO compliance status (1 = compliant, 0 = violated)
       - record: slo:compliance_status
         expr: |
@@ -191,12 +191,12 @@ groups:
         expr: rate(process_cpu_seconds_total[5m]) * 100
         labels:
           resource_type: cpu
-      
+
       # Memory utilization percentage by service
       - record: resource:memory_utilization_percent
         expr: |
-          process_resident_memory_bytes 
-          / 
+          process_resident_memory_bytes
+          /
           container_spec_memory_limit_bytes * 100
         labels:
           resource_type: memory
@@ -215,13 +215,13 @@ groups:
           sum(rate(value_fabric_ingestion_operations_total[1h]))
         labels:
           metric_type: pipeline
-      
+
       # Ingestion throughput (bytes/sec)
       - record: ingestion:throughput_bytes_per_sec
         expr: rate(value_fabric_ingestion_bytes_total[5m])
         labels:
           metric_type: pipeline
-      
+
       # Crawler pages per minute
       - record: ingestion:crawler_pages_per_minute
         expr: rate(value_fabric_crawler_pages_fetched_total[5m]) * 60
@@ -240,14 +240,14 @@ groups:
         labels:
           query_type: graph
           percentile: "95"
-      
+
       # Semantic search p95 latency
       - record: knowledge:semantic_search_latency_p95
         expr: histogram_quantile(0.95, sum(rate(value_fabric_semantic_search_duration_seconds_bucket[5m])) by (le))
         labels:
           query_type: semantic
           percentile: "95"
-      
+
       # Average search relevance score
       - record: knowledge:avg_relevance_score
         expr: avg(value_fabric_search_result_relevance_score)

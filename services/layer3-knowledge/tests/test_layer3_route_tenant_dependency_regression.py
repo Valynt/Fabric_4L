@@ -3,9 +3,9 @@
 from pathlib import Path
 
 ROUTES = {
-    "services/layer3-knowledge/src/api/routes/knowledge.py",
-    "services/layer3-knowledge/src/api/routes/variables.py",
-    "services/layer3-knowledge/src/api/routes/formulas.py",
+    "src/api/routes/knowledge.py",
+    "src/api/routes/variables.py",
+    "src/api/routes/formulas.py",
 }
 
 

@@ -98,7 +98,18 @@ VALID_NGINX_RENDER = textwrap.dedent(
     ---
     apiVersion: networking.k8s.io/v1
     kind: Ingress
-    metadata: {name: frontend, namespace: value-fabric}
+    metadata:
+      name: frontend
+      namespace: value-fabric
+      annotations:
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/auth-url: "http://auth.value-fabric.svc.cluster.local/auth"
+        nginx.ingress.kubernetes.io/auth-signin: "https://auth.example.com/signin"
+        nginx.ingress.kubernetes.io/auth-response-headers: "Authorization"
+        nginx.ingress.kubernetes.io/limit-rps: "10"
+        nginx.ingress.kubernetes.io/limit-rpm: "600"
+        nginx.ingress.kubernetes.io/limit-connections: "20"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
     spec:
       rules:
         - host: app.example.com
@@ -114,7 +125,18 @@ VALID_NGINX_RENDER = textwrap.dedent(
     ---
     apiVersion: networking.k8s.io/v1
     kind: Ingress
-    metadata: {name: layer-apis, namespace: value-fabric}
+    metadata:
+      name: layer-apis
+      namespace: value-fabric
+      annotations:
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+        nginx.ingress.kubernetes.io/auth-url: "http://auth.value-fabric.svc.cluster.local/auth"
+        nginx.ingress.kubernetes.io/auth-signin: "https://auth.example.com/signin"
+        nginx.ingress.kubernetes.io/auth-response-headers: "Authorization"
+        nginx.ingress.kubernetes.io/limit-rps: "10"
+        nginx.ingress.kubernetes.io/limit-rpm: "600"
+        nginx.ingress.kubernetes.io/limit-connections: "20"
+        nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
     spec:
       rules:
         - host: api.example.com

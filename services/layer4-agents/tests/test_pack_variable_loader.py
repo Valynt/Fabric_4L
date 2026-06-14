@@ -83,7 +83,7 @@ def sample_pack_variables() -> dict[str, Any]:
                 "max_value": 1.0,
             },
         ],
-    })
+    }).model_dump()
 
 
 @pytest.fixture
@@ -101,7 +101,7 @@ def sample_pack_formulas() -> dict[str, Any]:
                 },
             },
         ],
-    })
+    }).model_dump()
 
 
 class TestPackVersionPattern:

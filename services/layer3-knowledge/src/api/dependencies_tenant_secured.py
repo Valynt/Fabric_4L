@@ -22,6 +22,7 @@ Provides secure Neo4j session injection with:
 
 import inspect
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -71,6 +72,7 @@ QUERY_VALIDATION_ENTRYPOINTS: tuple[tuple[str, str], ...] = (
 APPROVED_QUERY_TEMPLATES: tuple[str, ...] = (
     "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) DETACH DELETE e",
 )
+_BROAD_MATCH_PATTERN = re.compile(r"\bMATCH\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)", re.IGNORECASE)
 
 
 def _require_request_context_provider() -> RequestContextProvider:
@@ -197,10 +199,15 @@ class Neo4jTenantSessionSecured:
             )
 
         query_text = str(query)
+        allow_system_query = bool(params.pop("allow_system_query", False))
 
         # Validate query for tenant scoping
         if self._strict:
             try:
+                if _BROAD_MATCH_PATTERN.search(query_text) and not allow_system_query:
+                    raise UnscopedQueryError(
+                        "Denied broad MATCH traversal without explicit tenant-owned label and tenant predicate"
+                    )
                 risk = QueryValidator.classify_risk(query_text)
                 normalized = " ".join(query_text.split())
                 if risk in {"write", "admin"}:
@@ -225,7 +232,6 @@ class Neo4jTenantSessionSecured:
         params["tenant_id"] = self._tenant_id
         params["_tenant_id"] = self._tenant_id
 
-        allow_system_query = bool(params.pop("allow_system_query", False))
         return await TenantQueryExecutor.run(
             self._session.run,
             query_text,

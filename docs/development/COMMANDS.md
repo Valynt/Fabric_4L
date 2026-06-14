@@ -43,9 +43,12 @@ Every root `package.json` script is a stable public npm-script interface.
 | `test:audit` | `python -m pytest tests/audit/ -v --tb=short` | Audit tests |
 | `test:data-lifecycle` | `python -m pytest tests/data_lifecycle/ -v --tb=short` | Data lifecycle tests |
 | `test:production-readiness` | `python -m pytest tests/security/ tests/reliability/ tests/observability/ tests/recovery/ tests/release/ tests/tenancy/ tests/billing/ tests/abuse/ tests/config/ tests/audit/ -v --tb=short` | Production readiness pytest suite |
+| `test:critical-behaviors` | `pnpm --filter ./apps/web run test:critical-behaviors && python scripts/ci/check_route_auth_dependencies.py && python -m pytest tests/security/test_tenant_boundary_fails_closed.py tests/security/test_billing_tenant_boundary.py tests/security/test_hostile_tenant_endpoint_family_contracts.py services/layer2-extraction/tests/test_sse_streaming_behavior.py services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py -q` | Critical behavior regression suite |
+| `test:critical-behaviors:validate-skips` | `python scripts/ci/validate_critical_behavior_skips.py` | Critical behavior skip governance |
 | `test:performance` | `python -m pytest tests/performance/` | Performance tests |
 | `lint:logs` | `python scripts/ci/check_observability_coverage.py` | Observability coverage lint |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
+| `readiness:behavior-audit` | `python scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json` | Behavior readiness audit |
 | `test:security` | `python -m pytest tests/security/ -v --tb=short` | Centralized security readiness suite |
 | `test:security:hostile` | `python -m pytest tests/security/test_hostile_tenant_e2e_matrix.py tests/security/test_hostile_tenant_journey_contracts.py -v --tb=short` | Hostile tenant security contract suite |
 | `test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Tenant isolation alias |
@@ -127,6 +130,8 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-test-skip-register-uniqueness` | Enforce unique skip register keys. |
 | `check-reports-evidence-policy` | Enforce reports artifact policy. |
 | `check-legacy-debt` | Enforce legacy debt baseline. |
+| `check-behavior-contract` | Enforce behavior contract registry coverage. |
+| `check-behavior-readiness-audit` | Enforce executable behavior readiness audit. |
 | `check-ui-duplicates` | Block duplicate UI component filenames. |
 | `check-layer4-boundaries` | Check Layer 4 bounded-context dependencies. |
 | `check-layer3-legacy-tenant-dependency-imports` | Block legacy Layer 3 tenant dependency imports. |
@@ -174,12 +179,15 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-layer2` | Run Layer 2 tests. |
 | `test-layer2-5` | Run Layer 2.5 tests. |
 | `test-layer3` | Run Layer 3 tests. |
+| `test-layer3-live` | Run Layer 3 live Neo4j/vector integration tests. |
 | `test-layer4` | Run Layer 4 tests. |
+| `test-layer4-live` | Run Layer 4 live Docker/PostgreSQL/integration tests. |
 | `test-layer5` | Run Layer 5 tests. |
 | `test-layer6` | Run Layer 6 tests. |
 | `test-frontend` | Run frontend unit tests. |
 | `test-e2e` | Run Playwright E2E tests. |
 | `test-e2e-contracts` | Run isolated Playwright contract tests. |
+| `test-e2e-behaviors` | Run strict behavior-first allowed/denied path tests. |
 | `test-e2e-journeys` | Run chained Playwright journeys. |
 | `test-e2e-docker` | Run E2E tests with Docker containers. |
 | `seed-e2e` | Seed deterministic E2E fixture data. |
@@ -290,11 +298,13 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `production-readiness-gate` | Canonical production-readiness gate required by CI. |
 | `gate-production` | Compatibility alias for `production-readiness-gate`. |
 | `gate-production-core` | Policy-driven production-core gate profile. |
+| `gate-behavior-readiness` | Executable, skip-controlled behavior readiness audit. |
 | `tier0-production-safety-gate` | Tier 0 safety gate profile. |
 | `tier1-beta-readiness-gate` | Tier 1 beta readiness profile. |
 | `tier2-enterprise-readiness-gate` | Tier 2 enterprise readiness profile. |
 | `release-gate` | Run the policy-driven production readiness sequence. |
 | `release-evidence-packet` | Generate release evidence packet. |
+| `promote-staging` | Verify local gates and evidence, then trigger staging promotion. |
 | `collect-95-plus-evidence-focused` | Compatibility alias for `release-evidence-packet`. |
 | `collect-95-plus-evidence` | Compatibility alias for `release-evidence-packet`. |
 | `gate-deployment-readiness` | Deployment image/profile readiness. |

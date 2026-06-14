@@ -16,6 +16,18 @@ from src.db.audited_mutation import AuditedGraphMutation
 from src.db.query_execution import TenantQueryValidationError
 
 
+def _query_and_params(call):
+    return call[0][0], call[0][1]
+
+
+def _audit_query_and_params(call_args_list):
+    for call in call_args_list:
+        query, params = _query_and_params(call)
+        if "AuditEvent" in query:
+            return query, params
+    raise AssertionError("AuditEvent query was not executed")
+
+
 class TestMutationBypassBlocking:
     """Test that direct CREATE/MERGE/DELETE on tenant-owned labels is blocked."""
 
@@ -116,10 +128,9 @@ class TestAuditEventEmission:
             
             # Verify audit event was created
             assert session.run.call_count >= 2  # One for relationship, one for audit
-            audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _audit_query_and_params(session.run.call_args_list)
             assert "AuditEvent" in audit_query
-            assert "WRITE_RELATIONSHIP" in audit_query
+            assert audit_params["action"] == "WRITE_RELATIONSHIP"
 
     @pytest.mark.asyncio
     async def test_write_node_creates_audit_event(self):
@@ -141,9 +152,9 @@ class TestAuditEventEmission:
             # Verify audit event was created
             assert session.run.call_count >= 2
             audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _query_and_params(audit_call)
             assert "AuditEvent" in audit_query
-            assert "WRITE_NODE" in audit_query
+            assert audit_params["action"] == "WRITE_NODE"
 
     @pytest.mark.asyncio
     async def test_delete_relationship_creates_audit_event(self):
@@ -165,9 +176,9 @@ class TestAuditEventEmission:
             # Verify audit event was created
             assert session.run.call_count >= 2
             audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _query_and_params(audit_call)
             assert "AuditEvent" in audit_query
-            assert "DELETE_RELATIONSHIP" in audit_query
+            assert audit_params["action"] == "DELETE_RELATIONSHIP"
 
     @pytest.mark.asyncio
     async def test_audit_event_contains_context(self):
@@ -189,8 +200,7 @@ class TestAuditEventEmission:
             await mutation.write_relationship("src1", "HAS_DRIVER", "tgt1")
             
             # Verify audit event contains context
-            audit_call = session.run.call_args_list[-1]
-            audit_params = audit_call[1]
+            _, audit_params = _audit_query_and_params(session.run.call_args_list)
             assert audit_params["request_id"] == "req-123"
             assert audit_params["account_id"] == "acc-456"
             assert audit_params["operation_source"] == "test_operation"
@@ -218,7 +228,9 @@ class TestMetricsIncrement:
             await mutation.write_relationship("src1", "HAS_DRIVER", "tgt1")
             
             # Verify success metric was incremented
-            metrics_mock.increment_mutation_success.assert_called_once_with("relationship")
+            metrics_mock.increment_graph_mutation_success.assert_called_once_with(
+                operation_type="relationship"
+            )
 
     @pytest.mark.asyncio
     async def test_write_node_increments_success_metric(self):
@@ -239,7 +251,9 @@ class TestMetricsIncrement:
             await mutation.write_node("Product", "p1", {"name": "Test"})
             
             # Verify success metric was incremented
-            metrics_mock.increment_mutation_success.assert_called_once_with("node")
+            metrics_mock.increment_graph_mutation_success.assert_called_once_with(
+                operation_type="node"
+            )
 
     @pytest.mark.asyncio
     async def test_delete_relationship_increments_success_metric(self):
@@ -260,7 +274,9 @@ class TestMetricsIncrement:
             await mutation.delete_relationship("src1", "HAS_DRIVER", "tgt1")
             
             # Verify success metric was incremented
-            metrics_mock.increment_mutation_success.assert_called_once_with("relationship_delete")
+            metrics_mock.increment_graph_mutation_success.assert_called_once_with(
+                operation_type="relationship_delete"
+            )
 
     @pytest.mark.asyncio
     async def test_mutation_failure_increments_failure_metric(self):
@@ -280,7 +296,7 @@ class TestMetricsIncrement:
                 await mutation.write_relationship("src1", "HAS_DRIVER", "tgt1")
             
             # Verify failure metric was incremented
-            metrics_mock.increment_mutation_failure.assert_called_once()
+            metrics_mock.increment_graph_mutation_failure.assert_called_once()
 
 
 class TestTenantIsolation:
@@ -305,9 +321,8 @@ class TestTenantIsolation:
             
             # Verify tenant_id is in the query
             rel_call = session.run.call_args_list[0]
-            rel_query = rel_call[0][0]
+            rel_query, rel_params = _query_and_params(rel_call)
             assert "tenant_id" in rel_query
-            rel_params = rel_call[1]
             assert rel_params["tenant_id"] == "test-tenant"
 
     @pytest.mark.asyncio
@@ -329,9 +344,8 @@ class TestTenantIsolation:
             
             # Verify tenant_id is in the query
             node_call = session.run.call_args_list[0]
-            node_query = node_call[0][0]
+            node_query, node_params = _query_and_params(node_call)
             assert "tenant_id" in node_query
-            node_params = node_call[1]
             assert node_params["tenant_id"] == "test-tenant"
 
 
@@ -361,9 +375,9 @@ class TestBulkOperations:
             
             # Verify audit event was created
             audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _query_and_params(audit_call)
             assert "AuditEvent" in audit_query
-            assert "WRITE_NODES_BATCH" in audit_query
+            assert audit_params["action"] == "WRITE_NODES_BATCH"
 
     @pytest.mark.asyncio
     async def test_write_relationships_batch_creates_audit(self):
@@ -388,18 +402,21 @@ class TestBulkOperations:
             
             # Verify audit event was created
             audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _query_and_params(audit_call)
             assert "AuditEvent" in audit_query
-            assert "WRITE_RELATIONSHIPS_BATCH" in audit_query
+            assert audit_params["action"] == "WRITE_RELATIONSHIPS_BATCH"
 
     @pytest.mark.asyncio
     async def test_delete_by_source_creates_audit(self):
         """Bulk delete by source should create audit event."""
         session = AsyncMock()
-        result = AsyncMock()
-        result.single = AsyncMock(return_value={"entities_deleted": 5, "relationships_deleted": 10})
-        result.data = AsyncMock(return_value=[{"entities_deleted": 5, "relationships_deleted": 10}])
-        session.run = AsyncMock(return_value=result)
+        rel_result = AsyncMock()
+        rel_result.single = AsyncMock(return_value={"deleted": 10})
+        entity_result = AsyncMock()
+        entity_result.single = AsyncMock(return_value={"deleted": 5})
+        audit_result = AsyncMock()
+        audit_result.single = AsyncMock(return_value=None)
+        session.run = AsyncMock(side_effect=[rel_result, entity_result, audit_result])
         
         with patch('src.db.audited_mutation.get_metrics', return_value=None):
             mutation = AuditedGraphMutation(
@@ -412,6 +429,6 @@ class TestBulkOperations:
             
             # Verify audit event was created
             audit_call = session.run.call_args_list[-1]
-            audit_query = audit_call[0][0]
+            audit_query, audit_params = _query_and_params(audit_call)
             assert "AuditEvent" in audit_query
-            assert "DELETE_BY_SOURCE" in audit_query
+            assert audit_params["action"] == "DELETE_BY_SOURCE"

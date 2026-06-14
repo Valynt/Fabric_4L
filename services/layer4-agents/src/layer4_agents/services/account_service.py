@@ -130,6 +130,63 @@ class AccountService:
         await self.db.refresh(account)
         return account
 
+    async def upsert_value_fabric_prospect(
+        self,
+        *,
+        prospect_id: UUID,
+        tenant_id: str,
+        company_name: str,
+        contact_name: str,
+        contact_title: str,
+    ) -> Account:
+        """Create or update an internal prospect account for a tenant."""
+        result = await self.db.execute(
+            select(Account).where(
+                Account.id == prospect_id,
+                Account.tenant_id == tenant_id,
+                Account.provider == "value_fabric",
+            )
+        )
+        account = result.scalar_one_or_none()
+        primary_contact = {
+            "provider_contact_id": str(uuid.uuid4()),
+            "name": contact_name,
+            "title": contact_title,
+            "is_primary": True,
+            "last_synced_at": datetime.now(UTC).isoformat(),
+        }
+
+        if account:
+            account.name = company_name
+            account.stage = "prospect"
+            account.contacts = [
+                contact
+                for contact in (account.contacts or [])
+                if not contact.get("is_primary")
+            ]
+            account.contacts.append(primary_contact)
+            account.updated_at = datetime.now(UTC)
+        else:
+            account = Account(
+                id=prospect_id,
+                provider="value_fabric",
+                provider_record_id=f"vf_prospect_{prospect_id.hex[:8]}",
+                name=company_name,
+                normalized_name=company_name.lower().strip(),
+                stage="prospect",
+                contacts=[primary_contact],
+                opportunities=[],
+                tenant_id=tenant_id,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+            self.db.add(account)
+
+        await self.db.flush()
+        await self.db.refresh(account)
+        await self.db.commit()
+        return account
+
     async def list_accounts(
         self,
         provider: CRMProvider | None = None,

@@ -46,6 +46,10 @@ secret_file_risk_allow:
   - k8s/external-secrets/vault-database-dynamic.yml
   - k8s/external-secrets/vault-integration.yml
   - k8s/external-secrets/vault-postgres-roles.yml
+  - k8s/deployments/prod-nginx/external-secrets/kustomization.yaml
+  - k8s/deployments/prod-nginx/monitoring/placeholder-secret-scanner-cronjob.yaml
+  - k8s/deployments/staging-nginx/external-secrets/kustomization.yaml
+  - k8s/deployments/staging-nginx/monitoring/placeholder-secret-scanner-cronjob.yaml
   - k8s/infisical/infisical-secret-complete.yml
   - k8s/infisical/infisical-secret.yml
   - k8s/monitoring/alertmanager-secrets-example.yaml

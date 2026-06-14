@@ -283,6 +283,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
     message = sanitize_public_error(exc, status_code=exc.status_code).message
     detail = getattr(exc, "detail", None)
+    details = detail if isinstance(detail, dict) else None
     if isinstance(detail, dict):
         detail_code = detail.get("code")
         detail_message = detail.get("message")
@@ -299,7 +300,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             code=error_code,
             message=message,
             request_id=request_id,
-            details=None,  # Don't expose HTTP exception details
+            details=sanitize_error_details(details) if is_production() else details,
         )
     )
 

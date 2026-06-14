@@ -53,10 +53,13 @@ class Layer3ClientError(RuntimeError):
         *,
         tenant_id: UUID | None = None,
         request_id: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
+        self.message = message
         self.tenant_id = tenant_id
         self.request_id = request_id
+        self.details = details
 
 
 class Layer3PolicyDeniedError(Layer3ClientError):
@@ -90,8 +93,9 @@ def _log_context(
     sync_status: str | None = None,
     attempt: int | None = None,
     status_code: int | None = None,
+    **extra: Any,
 ) -> dict[str, Any]:
-    return {
+    context = {
         "request_id": request_id,
         "tenant_id": str(tenant_id) if tenant_id is not None else None,
         "truth_object_id": (
@@ -103,6 +107,8 @@ def _log_context(
         "attempt": attempt,
         "upstream_status_code": status_code,
     }
+    context.update(extra)
+    return context
 
 
 # ---------------------------------------------------------------------------

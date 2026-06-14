@@ -55,5 +55,6 @@ class TestPackagedSystemRoutes:
 
         assert response.status_code == 403
         data = response.json()
-        assert data["code"] == "AUTHORIZATION_ERROR"
-        assert data["message"] == "Metrics endpoint requires internal access"
+        error = data.get("error", data)
+        assert error["code"] == "AUTHORIZATION_ERROR"
+        assert error["message"] == "Metrics endpoint requires internal access"

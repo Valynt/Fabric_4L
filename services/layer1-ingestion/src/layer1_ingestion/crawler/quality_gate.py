@@ -7,6 +7,7 @@ thresholds or requires fallback to browser path.
 """
 
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -200,15 +201,26 @@ class QualityGate:
         """
         normalized = html.lower()
         markers = [
-            '<div id="root"></div>',
-            '<div id="app"></div>',
-            '<div id="__next"></div>',
             "data-reactroot",
             "ng-version=",
+            "ng-app",
             'data-server-rendered="false"',
             "window.__initial_state__",
         ]
-        return sum(marker in normalized for marker in markers) >= 2
+        empty_root = bool(
+            re.search(r'<div\s+id=["\'](?:root|app|__next)["\']\s*>\s*</div>', html, re.IGNORECASE)
+        )
+        if empty_root:
+            return True
+        script_density = normalized.count("<script") > 1
+        text_content = re.sub(r"<[^>]+>", "", html).strip()
+        low_content = len(text_content) / max(len(html), 1) < self.thresholds.min_content_ratio
+        return sum([
+            empty_root,
+            script_density,
+            low_content,
+            any(marker in normalized for marker in markers),
+        ]) >= 2
 
     def should_fallback(self, result: FastPathResult) -> tuple[bool, str | None]:
         """Quick check for fallback decision.

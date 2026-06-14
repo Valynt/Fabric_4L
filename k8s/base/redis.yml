@@ -35,6 +35,7 @@ spec:
           image: redis:7-alpine
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -51,6 +52,9 @@ spec:
           ports:
             - containerPort: 6379
               name: redis
+          volumeMounts:
+            - name: data
+              mountPath: /data
           resources:
             requests:
               memory: "128Mi"
@@ -74,6 +78,9 @@ spec:
                 - redis-cli -a "$REDIS_PASSWORD" ping
             initialDelaySeconds: 5
             periodSeconds: 5
+      volumes:
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

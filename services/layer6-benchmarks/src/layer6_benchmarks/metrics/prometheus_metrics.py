@@ -97,19 +97,38 @@ class PrometheusMetrics:
         code = int(status_code)
         return f"{code // 100}xx"
 
-    def increment_requests_total(self, *, method: str, route: str, status_code: int | str) -> None:
+    def increment_requests_total(
+        self,
+        *,
+        method: str,
+        route: str,
+        status_code: int | str,
+        tenant_id: str = "unknown",
+    ) -> None:
         if not self.config.enabled:
             return
         self._metrics["requests_total"].labels(
             route=route,
             method=method,
             status_class=self._status_class(status_code),
+            tenant_id=tenant_id,
         ).inc()
 
-    def observe_request_duration(self, *, duration: float, method: str, route: str) -> None:
+    def observe_request_duration(
+        self,
+        *,
+        duration: float,
+        method: str,
+        route: str,
+        tenant_id: str = "unknown",
+    ) -> None:
         if not self.config.enabled:
             return
-        self._metrics["request_duration"].labels(route=route, method=method).observe(duration)
+        self._metrics["request_duration"].labels(
+            route=route,
+            method=method,
+            tenant_id=tenant_id,
+        ).observe(duration)
 
     def increment_dataset_comparisons(self, *, industry: str, outcome: str) -> None:
         if not self.config.enabled:
@@ -174,15 +193,19 @@ class MetricsMiddleware:
         finally:
             route = self._normalize_path(request.url.path)
             duration = time.perf_counter() - start_time
+            context = getattr(request.state, "governance_context", None)
+            tenant_id = str(getattr(context, "tenant_id", None) or "unknown")
             self.metrics.increment_requests_total(
                 method=request.method,
                 route=route,
                 status_code=status_code,
+                tenant_id=tenant_id,
             )
             self.metrics.observe_request_duration(
                 duration=duration,
                 method=request.method,
                 route=route,
+                tenant_id=tenant_id,
             )
         return response
 

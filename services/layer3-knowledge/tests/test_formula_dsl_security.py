@@ -33,5 +33,5 @@ def test_formula_dsl_rejects_injection_and_escape_attempts(expression: str) -> N
 
 
 def test_formula_dsl_rejects_unknown_variables() -> None:
-    with pytest.raises(ValueError, match="INVALID_EXPRESSION_ERROR"):
+    with pytest.raises(ValueError, match="Unknown variable"):
         evaluate_expression("revenue + secret_metric", {"revenue": 100.0})

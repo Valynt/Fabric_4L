@@ -1,8 +1,10 @@
 from pathlib import Path
 
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
+
 
 def test_append_only_migration_has_update_delete_insert_guards() -> None:
-    migration = Path("services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/010_enforce_append_only_audit_events.py")
+    migration = SERVICE_ROOT / "src/layer5_ground_truth/migrations/versions/010_enforce_append_only_audit_events.py"
     source = migration.read_text()
 
     assert "BEFORE UPDATE ON validation_events" in source
@@ -12,6 +14,6 @@ def test_append_only_migration_has_update_delete_insert_guards() -> None:
 
 
 def test_audit_write_health_endpoint_exists() -> None:
-    source = Path("services/layer5-ground-truth/src/layer5_ground_truth/api/main.py").read_text()
+    source = (SERVICE_ROOT / "src/layer5_ground_truth/api/main.py").read_text()
     assert '@app.get("/health/audit-writes"' in source
     assert '"audit_write_failures_total"' in source

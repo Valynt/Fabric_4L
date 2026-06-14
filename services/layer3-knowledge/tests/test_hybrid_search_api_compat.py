@@ -14,15 +14,16 @@ async def test_search_positional_weights_remain_compatible() -> None:
 
     requested_limits: list[int] = []
 
-    async def fake_bm25(query, entity_types, top_k):
+    async def fake_bm25(query, entity_types, top_k, tenant_id=None):
+        assert tenant_id == "tenant-test"
         requested_limits.append(top_k)
         return []
 
-    async def fake_vector(query, entity_types, top_k):
+    async def fake_vector(query, entity_types, top_k, tenant_id=None):
         requested_limits.append(top_k)
         return []
 
-    async def fake_graph(query, entity_types, top_k):
+    async def fake_graph(query, entity_types, top_k, tenant_id=None):
         requested_limits.append(top_k)
         return []
 
@@ -42,6 +43,7 @@ async def test_search_positional_weights_remain_compatible() -> None:
         ["Capability"],
         3,
         {"bm25": 1.0, "vector": 1.0, "graph": 2.0},
+        tenant_id="tenant-test",
     )
 
     assert requested_limits == [6, 6, 6]
@@ -56,7 +58,7 @@ async def test_search_limit_alias_overrides_top_k() -> None:
 
     requested_limits: list[int] = []
 
-    async def fake_search_component(query, entity_types, top_k):
+    async def fake_search_component(query, entity_types, top_k, tenant_id=None):
         requested_limits.append(top_k)
         return []
 
@@ -72,6 +74,7 @@ async def test_search_limit_alias_overrides_top_k() -> None:
         query="predictive maintenance",
         top_k=5,
         limit=2,
+        tenant_id="tenant-test",
     )
 
     assert requested_limits == [4, 4, 4]

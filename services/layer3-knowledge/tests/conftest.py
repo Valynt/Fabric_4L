@@ -39,19 +39,6 @@ _src_paths = list(getattr(_src_module, "__path__", []))
 if str(_LAYER3_SRC) not in _src_paths:
     _src_paths.insert(0, str(_LAYER3_SRC))
 _src_module.__path__ = _src_paths  # type: ignore[attr-defined]
-for _subpackage in ("agents", "analytics", "api", "db", "models", "retrieval", "services"):
-    _module_name = f"src.{_subpackage}"
-    _module = sys.modules.get(_module_name)
-    if _module is None or not hasattr(_module, "__path__"):
-        _module = types.ModuleType(_module_name)
-        sys.modules[_module_name] = _module
-    _paths = list(getattr(_module, "__path__", []))
-    _path = str(_LAYER3_SRC / _subpackage)
-    if _path not in _paths:
-        _paths.insert(0, _path)
-    _module.__path__ = _paths  # type: ignore[attr-defined]
-    setattr(_src_module, _subpackage, _module)
-
 _TEST_ENV_DEFAULTS = {
     "ENVIRONMENT": "test",
     "APP_ENV": "test",
@@ -158,13 +145,13 @@ def test_client(
     mock_app_state: AppState,
 ) -> Iterator[TestClient]:
     """Create test client with mocked dependencies."""
-    from api.main import app  # type: ignore[import-untyped, attr-defined]
+    from src.api.main import app  # type: ignore[import-untyped, attr-defined]
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from api.dependencies import (  # type: ignore[import-untyped]
+    from src.api.dependencies import (  # type: ignore[import-untyped]
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,
@@ -194,13 +181,13 @@ def test_client(
 @pytest_asyncio.fixture
 async def async_client(test_settings: TestSettings, mock_app_state: AppState) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client with mocked dependencies."""
-    from api.main import app  # type: ignore[import-untyped, attr-defined]
+    from src.api.main import app  # type: ignore[import-untyped, attr-defined]
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from api.dependencies import (  # type: ignore[import-untyped]
+    from src.api.dependencies import (  # type: ignore[import-untyped]
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,

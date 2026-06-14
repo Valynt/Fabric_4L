@@ -32,6 +32,7 @@ def _clear_layer5_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "JWT_SECRET",
         "JWT_ISSUER",
         "JWT_AUDIENCE",
+        "JWT_ALGORITHM",
         "JWT_FALLBACK_TO_QUERY_PARAM",
         "ALLOW_INSECURE_DEV_AUTH_BYPASS",
         "CORS_ORIGINS",
@@ -39,19 +40,24 @@ def _clear_layer5_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "DATABASE_URL_SYNC",
         "DEFAULT_TENANT_ID",
         "SERVICE_AUTH_SECRET",
+        "LAYER3_BASE_URL",
     ):
         monkeypatch.delenv(key, raising=False)
+    # Prevent pydantic from reading APP_ENV out of the local .env file.
+    monkeypatch.setenv("APP_ENV", "development")
 
 
 def _set_valid_production_env(monkeypatch: pytest.MonkeyPatch) -> None:
     _clear_layer5_env(monkeypatch)
     monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("JWT_SECRET", VALID_JWT_SECRET)
     monkeypatch.setenv("JWT_FALLBACK_TO_QUERY_PARAM", "false")
     monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
     monkeypatch.setenv("CORS_ORIGINS", VALID_CORS_ORIGINS)
     monkeypatch.setenv("DATABASE_URL", VALID_DATABASE_URL)
     monkeypatch.setenv("DATABASE_URL_SYNC", VALID_DATABASE_URL.replace("postgresql://", "postgresql+psycopg://"))
+    monkeypatch.setenv("JWT_ALGORITHM", "RS256")
     monkeypatch.setenv("LAYER3_BASE_URL", VALID_LAYER3_BASE_URL)
     monkeypatch.setenv("DEFAULT_TENANT_ID", "11111111-1111-4111-8111-111111111111")
     monkeypatch.setenv("SERVICE_AUTH_SECRET", VALID_SERVICE_AUTH_SECRET)

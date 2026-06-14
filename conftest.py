@@ -29,6 +29,16 @@ os.environ["JWT_SECRET"] = "dummy_jwt_secret_for_tests_must_be_32_chars"
 os.environ["API_KEY_HMAC_SECRET"] = "dummy_api_key_secret_for_tests_must_be_32_chars"
 os.environ["SERVICE_AUTH_SECRET"] = "dummy_service_auth_secret_for_tests_32_chars"
 
+# Layer 6 enforces fail-closed settings validation at import time (sync DB URL,
+# Neo4j credentials, and inter-layer API keys). Provide test-only values via
+# setdefault so real CI/production values always win and production fail-fast
+# validation is never weakened.
+os.environ.setdefault("DATABASE_URL_SYNC", "postgresql+psycopg://postgres:postgres@localhost:5432/fabric")
+os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
+os.environ.setdefault("NEO4J_PASSWORD", "neo4j-test-password-123")
+os.environ.setdefault("LAYER3_API_KEY", "layer3-test-api-key-0123456789")
+os.environ.setdefault("LAYER5_API_KEY", "layer5-test-api-key-0123456789")
+
 import sys
 from pathlib import Path
 
@@ -63,6 +73,10 @@ if _LAYER1_SRC.exists() and str(_LAYER1_SRC) not in sys.path:
 _LAYER5_SRC = _REPO_ROOT / "services" / "layer5-ground-truth" / "src"
 if _LAYER5_SRC.exists() and str(_LAYER5_SRC) not in sys.path:
     sys.path.insert(0, str(_LAYER5_SRC))
+
+_LAYER6_SRC = _REPO_ROOT / "services" / "layer6-benchmarks" / "src"
+if _LAYER6_SRC.exists() and str(_LAYER6_SRC) not in sys.path:
+    sys.path.insert(0, str(_LAYER6_SRC))
 
 _LAYER7_SRC = _REPO_ROOT / "services" / "layer7-billing" / "src"
 if _LAYER7_SRC.exists() and str(_LAYER7_SRC) not in sys.path:
@@ -105,6 +119,39 @@ def _install_legacy_src_namespace() -> None:
     namespace("src.tools", [layer4 / "tools"])
     namespace("src.workflows", [layer4 / "workflows"])
     namespace("src.api.websocket", [layer4 / "api" / "websocket"])
+
+    # ``src.config`` exists in BOTH layer3 and layer4. Layer 4's canonical
+    # imports use the ``layer4_agents`` package and its contract test imports via
+    # ``services.layer4_agents.*`` — it never imports ``from src.config``. Layer 3
+    # is rooted at the bare ``src`` package and does ``from src.config import
+    # get_settings`` at app construction. Because the generic ``src`` namespace
+    # lists layer4 first, ``src.config`` would otherwise resolve to layer4's
+    # config (which lacks layer3's ``rate_limit_enabled`` and related fields).
+    # ``src.config`` is a leaf package whose ``__init__`` must execute, so register
+    # layer3's real implementation explicitly and deterministically.
+    import importlib.util
+
+    def _bind_layer3_leaf_package(module_name: str, package_dir: Path) -> None:
+        init_file = package_dir / "__init__.py"
+        existing = sys.modules.get(module_name)
+        if existing is not None:
+            existing_file = getattr(existing, "__file__", "") or ""
+            if str(package_dir) in existing_file:
+                return  # layer3 implementation already bound
+        if not init_file.exists():
+            return
+        spec = importlib.util.spec_from_file_location(
+            module_name,
+            init_file,
+            submodule_search_locations=[str(package_dir)],
+        )
+        if spec is None or spec.loader is None:
+            return
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+    _bind_layer3_leaf_package("src.config", layer3 / "config")
 
 
 _install_legacy_src_namespace()

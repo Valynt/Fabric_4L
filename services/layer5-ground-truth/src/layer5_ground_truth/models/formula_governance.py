@@ -148,7 +148,6 @@ class Formula(Base):
     slug = Column(
         String(128),
         nullable=False,
-        unique=True,
         index=True,
         comment="URL-safe slug for API references",
     )
@@ -169,8 +168,8 @@ class Formula(Base):
     # -------------------------------------------------------------------------
     current_version = Column(
         String(64),
-        nullable=False,
-        default="1.0.0",
+        nullable=True,
+        default=None,
         comment="Current approved version (semver)",
     )
     latest_version = Column(

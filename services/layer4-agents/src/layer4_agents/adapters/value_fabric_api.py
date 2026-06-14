@@ -15,11 +15,13 @@ def map_exception_to_contract_detail(
 ) -> dict[str, object]:
     """Map shared exception primitives to Layer 4 HTTP detail contract."""
     return {
-        "error_code": str(exc.error_code),
-        "message": exc.message,
-        "request_id": request_id,
-        "correlation_id": request_id,
-        "details": exc.details,
+        "error": {
+            "code": getattr(exc.error_code, "value", str(exc.error_code)),
+            "message": exc.message,
+            "request_id": request_id,
+            "correlation_id": request_id,
+            "details": exc.details,
+        }
     }
 
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
-
 """C1 streaming proxy route.
 
 Proxies requests to the Thesys C1 API so the API key never leaves the
@@ -17,7 +15,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
@@ -71,7 +69,10 @@ async def stream_c1(
     format (``text/event-stream``).
     """
     if not THESYS_API_KEY:
-        raise ServiceUnavailableError(message = "Thesys C1 integration is not configured. Set THESYS_API_KEY.")
+        raise HTTPException(
+            status_code=503,
+            detail="Thesys C1 integration is not configured. Set THESYS_API_KEY.",
+        )
 
     payload = {
         "messages": [m.model_dump() for m in request.messages],

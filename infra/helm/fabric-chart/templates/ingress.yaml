@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "fabric.fullname" . }}
+  name: {{include "fabric.fullname" .}}
   labels:
     {{- include "fabric.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
@@ -11,31 +11,31 @@ metadata:
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: {{.Values.ingress.className}}
   {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- range .Values.ingress.tls }}
     - hosts:
         {{- range .hosts }}
-        - {{ . | quote }}
+        - {{. | quote}}
         {{- end }}
-      secretName: {{ .secretName }}
+      secretName: {{.secretName}}
     {{- end }}
   {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{.host | quote}}
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: {{.path}}
+            pathType: {{.pathType}}
             backend:
               service:
-                name: {{ include "fabric.fullname" $ }}-layer4
+                name: {{include "fabric.fullname" $}}-layer4
                 port:
-                  number: {{ $.Values.services.layer4.port }}
+                  number: {{$.Values.services.layer4.port}}
           {{- end }}
     {{- end }}
 {{- end }}

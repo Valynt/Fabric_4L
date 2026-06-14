@@ -13,6 +13,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.routes.c1 import C1Message, C1StreamRequest, router
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.permissions import Role
 
 _app = FastAPI()
 _app.include_router(router, prefix="/v1")
@@ -20,7 +23,19 @@ _app.include_router(router, prefix="/v1")
 
 @pytest.fixture()
 def client():
-    return TestClient(_app)
+    async def _auth_override():
+        return RequestContext(
+            tenant_id="tenant-c1-test",
+            user_id="user-c1-test",
+            roles=[Role.TENANT_ADMIN.value],
+            source="test",
+        )
+
+    _app.dependency_overrides[require_authenticated] = _auth_override
+    try:
+        yield TestClient(_app)
+    finally:
+        _app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------------------------

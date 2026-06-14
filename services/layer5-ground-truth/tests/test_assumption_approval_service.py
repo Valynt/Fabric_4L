@@ -17,12 +17,30 @@ from layer5_ground_truth.models.assumption_registry import (
 from layer5_ground_truth.models.approval_workflow import (
     ApprovalRequest,
     ApprovalStatus,
+    ApprovalWorkflow,
     EntityType,
 )
 from layer5_ground_truth.services.assumption_approval_service import (
     AssumptionApprovalService,
 )
 from tests.conftest import TEST_ORG_ID
+
+
+async def _add_active_workflow(db, tenant_id=TEST_ORG_ID) -> ApprovalWorkflow:
+    workflow = ApprovalWorkflow(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        entity_type=EntityType.ASSUMPTION.value,
+        workflow_name="Assumption approval",
+        required_approval_levels=1,
+        require_evidence=False,
+        require_justification=False,
+        approver_roles=["admin"],
+        is_active=True,
+    )
+    db.add(workflow)
+    await db.flush()
+    return workflow
 
 
 class TestAssumptionApprovalService:
@@ -182,8 +200,8 @@ class TestAssumptionApprovalService:
 
         # Create and approve the approval request
         from layer5_ground_truth.models.approval_workflow import ApprovalRequest
-        from layer5_ground_truth.services.approval_state_machine import ApprovalStateMachine
 
+        await _add_active_workflow(db)
         request = ApprovalRequest(
             id=assumption.approval_request_id,
             tenant_id=TEST_ORG_ID,
@@ -194,9 +212,6 @@ class TestAssumptionApprovalService:
         )
         db.add(request)
         await db.flush()
-
-        sm = ApprovalStateMachine()
-        await sm.approve(db=db, request=request, approver="approver@example.com")
 
         # Approve assumption
         result = await service.approve_assumption(
@@ -230,9 +245,8 @@ class TestAssumptionApprovalService:
         db.add(assumption)
         await db.flush()
 
-        # Create and reject the approval request
+        # Create a pending approval request and let the service perform rejection.
         from layer5_ground_truth.models.approval_workflow import ApprovalRequest
-        from layer5_ground_truth.services.approval_state_machine import ApprovalStateMachine
 
         request = ApprovalRequest(
             id=assumption.approval_request_id,
@@ -244,9 +258,6 @@ class TestAssumptionApprovalService:
         )
         db.add(request)
         await db.flush()
-
-        sm = ApprovalStateMachine()
-        await sm.reject(db=db, request=request, reviewer="reviewer@example.com")
 
         # Reject assumption
         result = await service.reject_assumption(

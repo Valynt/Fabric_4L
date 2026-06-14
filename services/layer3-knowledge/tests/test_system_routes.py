@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from conftest import TestUtils
 from src.api.dependencies import get_schema_initializer
@@ -102,7 +103,5 @@ class TestSystemRoutes:
         """The extracted metrics route stays internal-only by default."""
         monkeypatch.setattr(system_routes, "verify_metrics_access", lambda request: False)
 
-        response = system_test_client.get("/metrics")
-
-        assert response.status_code == 403
-        assert response.json() == {"detail": "Metrics endpoint requires internal access"}
+        with pytest.raises(AuthorizationError, match="Metrics endpoint requires internal access"):
+            system_test_client.get("/metrics")

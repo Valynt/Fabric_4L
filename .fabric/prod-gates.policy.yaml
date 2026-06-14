@@ -65,7 +65,6 @@ profiles:
       - behavior-readiness
       - summary
 
-
   production-core:
     description: "Near-term critical production gates for architecture, security, tenant isolation, database, migrations, API contracts, auth, secrets, deployment, and launch blockers"
     gates:
@@ -141,7 +140,7 @@ gate-definitions:
     artifact-dir: artifacts/arch
     required: true
 
-  tenant-isolation:
+  tenant-isolation-regression:
     target: security-test-isolation
     description: "Tenant-isolation regression tests for cross-tenant access prevention"
     class: blocking
@@ -327,7 +326,6 @@ gate-definitions:
     artifact-dir: artifacts/obs
     required: false
     caveat: "Performance tests require live services or k6."
-
 
   db-readiness:
     target: gate-database

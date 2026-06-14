@@ -26,7 +26,7 @@ class TestLayer3VariablesProductionFailClosed:
         monkeypatch.setenv("NEO4J_PASSWORD", "test-password")
 
         # Import after setting environment to ensure config reads correct env
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is True
 
@@ -35,7 +35,7 @@ class TestLayer3VariablesProductionFailClosed:
         _clear_layer3_env(monkeypatch)
         monkeypatch.setenv("APP_ENV", "staging")
 
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is False
 
@@ -44,7 +44,7 @@ class TestLayer3VariablesProductionFailClosed:
         _clear_layer3_env(monkeypatch)
         monkeypatch.setenv("ENVIRONMENT", "development")
 
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is False
 
@@ -53,7 +53,7 @@ class TestLayer3VariablesProductionFailClosed:
         _clear_layer3_env(monkeypatch)
         monkeypatch.setenv("ENVIRONMENT", "test")
 
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is False
 
@@ -62,7 +62,7 @@ class TestLayer3VariablesProductionFailClosed:
         _clear_layer3_env(monkeypatch)
         monkeypatch.setenv("ENVIRONMENT", "ci")
 
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is False
 
@@ -70,6 +70,6 @@ class TestLayer3VariablesProductionFailClosed:
         """Default (no ENV set) should be treated as development."""
         _clear_layer3_env(monkeypatch)
 
-        from api.routes.variables import _is_production_like
+        from src.api.routes.variables import _is_production_like
 
         assert _is_production_like() is False

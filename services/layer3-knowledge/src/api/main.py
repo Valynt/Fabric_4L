@@ -130,9 +130,10 @@ async def lifespan(app: FastAPI):
 
     settings = get_settings()
     setup_logging(settings)
-    from ..retrieval.vector_store import Neo4jVectorStore
+    if os.getenv("TESTING", "").lower() != "true":
+        from ..retrieval.vector_store import Neo4jVectorStore
 
-    Neo4jVectorStore(settings=settings)._get_embedding_model()
+        Neo4jVectorStore(settings=settings)._get_embedding_model()
     logger.info(
         "Starting Value Fabric Knowledge Graph API",
         extra={"component": "layer3-knowledge", "version": "1.0.0"},

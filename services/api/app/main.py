@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from app.core.audit import AuditMiddleware
 from app.core.config import get_settings
@@ -38,6 +38,8 @@ from .shared_bootstrap import (
     validate_production_safety,
 )
 from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
+from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.observability.sentry_init import init_sentry
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
@@ -185,5 +187,9 @@ register_health_endpoint(app, service_name="fabric-4l-api")
 
 
 @app.get("/metrics")
-async def metrics():
+async def metrics(request: Request):
+    # Metrics expose internal counters (tenant volume, error rates, build info).
+    # Gate scraping to internal callers only, consistent with all other layers.
+    if not verify_metrics_access(request):
+        raise AuthorizationError(message="Metrics endpoint requires internal access")
     return render_metrics()

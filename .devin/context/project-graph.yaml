@@ -49,7 +49,7 @@ schema:
 violation_handling:
   severity: block
   message_template: >
-    Boundary violation detected: {rule_id}. 
+    Boundary violation detected: {rule_id}.
     Target {target} violates {message}.
     Halt and escalate before proceeding.
 

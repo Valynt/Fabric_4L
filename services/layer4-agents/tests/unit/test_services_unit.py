@@ -72,6 +72,8 @@ class TestIncrementVersion:
 class TestBusinessCaseService:
     """Tests for BusinessCaseService.upsert_case_record with a mocked DB."""
 
+    TENANT_ID = uuid4()
+
     def _make_mock_db(self, existing_record=None):
         db = MagicMock()
         db.get = AsyncMock(return_value=existing_record)
@@ -90,6 +92,7 @@ class TestBusinessCaseService:
             opportunity_id=None,
             status="draft",
             document_url=None,
+            tenant_id=self.TENANT_ID,
         )
         return record
 
@@ -109,6 +112,7 @@ class TestBusinessCaseService:
             opportunity_id="opp-456",
             status="draft",
             document_url=None,
+            tenant_id=self.TENANT_ID,
         )
 
         db.add.assert_called_once()
@@ -132,6 +136,7 @@ class TestBusinessCaseService:
             opportunity_id="opp-789",
             status="in_progress",
             document_url="https://example.com/doc.pdf",
+            tenant_id=self.TENANT_ID,
         )
 
         # Should NOT add a new record (update in-place)
@@ -157,6 +162,7 @@ class TestBusinessCaseService:
             opportunity_id=None,
             status="complete",
             document_url=None,
+            tenant_id=self.TENANT_ID,
         )
 
         # refresh is called on the returned record
@@ -179,6 +185,7 @@ class TestBusinessCaseService:
             opportunity_id=None,
             status="draft",
             document_url=None,
+            tenant_id=self.TENANT_ID,
         )
 
         db.add.assert_called_once()

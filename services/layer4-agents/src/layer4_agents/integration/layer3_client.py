@@ -87,7 +87,7 @@ class Layer3Client:
 
         effective_tenant = tenant_id or self._default_tenant_id
         if effective_tenant:
-            headers[TENANT_ID_HEADER] = effective_tenant
+            headers[TENANT_ID_HEADER] = str(effective_tenant)
             # F-1 P0 fix: Include service auth secret for mutual authentication
             service_auth = os.getenv("SERVICE_AUTH_SECRET")
             if service_auth:
@@ -112,7 +112,7 @@ class Layer3Client:
             raise Layer3ClientError(
                 "Tenant ID required. Provide tenant_id parameter or set default in constructor."
             )
-        return effective
+        return str(effective)
 
     async def _make_request(
         self,
@@ -120,7 +120,7 @@ class Layer3Client:
         url: str,
         tenant_id: str,
         json: dict[str, Any] | None = None,
-        params: dict[str, Any] | None = None,
+        params: dict[str, Any] | list[tuple[str, str]] | None = None,
         allow_404: bool = False,
     ) -> dict[str, Any] | None:
         """Make HTTP request with retry logic and error handling.
@@ -358,6 +358,40 @@ class Layer3Client:
         }
 
         return await self._make_request("POST", url, effective_tenant, json=payload) or {}
+
+    async def get_benchmark_variables(
+        self,
+        *,
+        industry: str,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Fetch benchmark variable defaults from Layer 3 knowledge APIs."""
+        effective_tenant = self._get_effective_tenant(tenant_id)
+        url = f"{self.base_url}/v1/knowledge/benchmarks/variables"
+        return await self._make_request(
+            "GET",
+            url,
+            effective_tenant,
+            params={"industry": industry},
+        )
+
+    async def get_value_driver_formulas(
+        self,
+        *,
+        driver_ids: list[str],
+        tenant_id: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Fetch value-driver formulas from Layer 3 knowledge APIs."""
+        if not driver_ids:
+            raise ValueError("driver_ids must be non-empty")
+        effective_tenant = self._get_effective_tenant(tenant_id)
+        url = f"{self.base_url}/v1/knowledge/value-drivers/formulas"
+        return await self._make_request(
+            "GET",
+            url,
+            effective_tenant,
+            params=[("driver_ids", driver_id) for driver_id in driver_ids],
+        )
 
     async def link_evidence(
         self,

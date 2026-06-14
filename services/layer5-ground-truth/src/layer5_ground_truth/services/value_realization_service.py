@@ -7,6 +7,7 @@ Business logic for Value Realization Entry CRUD, update tracking, and audit trai
 import logging
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import and_, select
@@ -80,7 +81,6 @@ class ValueRealizationService:
             entry_name=entry_name,
             description=description,
             current_value=current_value,
-            initial_value=current_value,  # Initial value equals current value
             value_unit=value_unit,
             value_currency=value_currency,
             formula_id=formula_id,
@@ -239,10 +239,11 @@ class ValueRealizationService:
         """
         entry = await self.get_value_entry(db, tenant_id, entry_id)
 
-        old_value = entry.current_value
-        value_change = new_value - old_value
+        old_value = Decimal(str(entry.current_value))
+        new_value_decimal = Decimal(str(new_value))
+        value_change = new_value_decimal - old_value
         value_change_percent = (
-            (value_change / old_value * 100) if old_value != 0 else 0
+            (value_change / old_value * Decimal("100")) if old_value != 0 else Decimal("0")
         )
 
         # Create ValueRealizationUpdate record
@@ -250,8 +251,8 @@ class ValueRealizationService:
             id=uuid.uuid4(),
             tenant_id=tenant_id,
             entry_id=entry_id,
-            old_value=old_value,
-            new_value=new_value,
+            previous_value=old_value,
+            new_value=new_value_decimal,
             value_change=value_change,
             value_change_percent=value_change_percent,
             update_reason=update_reason,
@@ -269,7 +270,7 @@ class ValueRealizationService:
         await db.flush()
 
         # Update entry current value
-        entry.current_value = new_value
+        entry.current_value = new_value_decimal
         entry.updated_at = datetime.now(UTC)
 
         await db.flush()

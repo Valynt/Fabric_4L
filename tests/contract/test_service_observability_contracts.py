@@ -17,7 +17,7 @@ def test_layer1_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
@@ -28,7 +28,7 @@ def test_layer2_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
@@ -39,7 +39,7 @@ def test_layer3_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 500}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
@@ -51,7 +51,7 @@ def test_layer4_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
@@ -62,18 +62,27 @@ def test_layer5_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
-def test_layer6_observability_endpoints_contract() -> None:
-    from services.layer6_benchmarks.src.api.main import app
+def test_layer6_observability_endpoints_contract(monkeypatch) -> None:
+    # docker-compose.test.yml provisions Neo4j with the short password "test"
+    # (mirrored by the global test env). Layer 6 enforces a >=12 char secret via
+    # fail-closed settings validation at import time, so provide an import-valid
+    # password locally without disturbing the global value that real Neo4j
+    # integration tests rely on for container authentication.
+    monkeypatch.setenv("NEO4J_PASSWORD", "test-neo4j-password-123")
+    from layer6_benchmarks.settings import get_layer6_settings
+
+    get_layer6_settings.cache_clear()
+    from layer6_benchmarks.api.main import app
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")
 
 
 @pytest.mark.unit
@@ -84,4 +93,4 @@ def test_api_gateway_observability_endpoints_contract() -> None:
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
-    assert_probe_response_shape(client, path="/metrics", expected_statuses={200}, content_type_prefix="text/plain")
+    assert_probe_response_shape(client, path="/metrics", expected_statuses={200, 401, 403}, content_type_prefix="text/plain")

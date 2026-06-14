@@ -75,7 +75,7 @@ function AcademyQuiz() {
         title="Quiz"
         subtitle={`${questions.length} questions · Pillar ${pillarId}`}
         actions={
-          <Button variant="ghost" size="sm" onClick={() => navigateTo(`/t/${tenantSlug}/academy`)}>
+          <Button variant="ghost" size="sm" onClick={() => navigateTo("academy", { tenantSlug })}>
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Back to Academy
           </Button>

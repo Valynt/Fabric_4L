@@ -24,7 +24,10 @@ def assert_probe_response_shape(
     response = client.get(path)
     assert response.status_code in expected_statuses, response.text
 
-    if content_type_prefix is not None:
+    # Content-type is only meaningful for a served payload. Denied probes
+    # (e.g. an internal-only /metrics returning 401/403) emit a JSON error body,
+    # so only assert the success content-type when the endpoint actually served.
+    if content_type_prefix is not None and response.status_code == 200:
         assert response.headers.get("content-type", "").startswith(content_type_prefix)
 
     if expected_json_keys is not None and response.status_code == 200:

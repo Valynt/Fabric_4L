@@ -470,7 +470,8 @@ def upgrade() -> None:
 
     op.create_index("ix_policy_applications_tenant_policy", "policy_applications", ["tenant_id", "policy_id"])
     op.create_index("ix_policy_applications_entity", "policy_applications", ["entity_type", "entity_id"])
-    op.create_index("ix_policy_applications_applied_at", "policy_applications", ["applied_at"])
+    # applied_at already has index=True on the column definition; skip explicit duplicate.
+    # op.create_index("ix_policy_applications_applied_at", "policy_applications", ["applied_at"])
 
 
 def downgrade() -> None:

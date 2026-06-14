@@ -219,7 +219,14 @@ class TestValidateTruth:
         """Manual validate action: PROPOSED → VALIDATED."""
         # Disable auto-advance so we can test manual validate
         from layer5_ground_truth import config
+        from layer5_ground_truth.services import truth_service
+
         monkeypatch.setattr(config.get_settings(), "auto_advance_to_validated", False)
+        monkeypatch.setattr(
+            truth_service._state_machine._settings,
+            "auto_advance_to_validated",
+            False,
+        )
 
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",

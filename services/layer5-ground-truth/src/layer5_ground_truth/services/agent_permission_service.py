@@ -64,18 +64,19 @@ class AgentPermissionService:
                 and_(
                     Formula.id == formula_id,
                     Formula.tenant_id == tenant_id,
-                    Formula.is_active.is_(True),
                 )
             )
         )
         formula = result.scalar_one_or_none()
 
         if formula is None:
-            return False, f"Formula {formula_id} not found or not active in tenant {tenant_id}"
+            return False, f"Formula {formula_id} not found in tenant {tenant_id}"
 
         # Check if formula is deprecated
         if formula.deprecated_at is not None:
             return False, f"Formula {formula_id} is deprecated: {formula.deprecation_reason or 'No reason provided'}"
+        if not formula.is_active:
+            return False, f"Formula {formula_id} is not active in tenant {tenant_id}"
 
         # Check if current version is approved
         if formula.current_version is None:
@@ -134,18 +135,19 @@ class AgentPermissionService:
                 and_(
                     BenchmarkDataset.id == benchmark_id,
                     BenchmarkDataset.tenant_id == tenant_id,
-                    BenchmarkDataset.is_active.is_(True),
                 )
             )
         )
         benchmark = result.scalar_one_or_none()
 
         if benchmark is None:
-            return False, f"Benchmark {benchmark_id} not found or not active in tenant {tenant_id}"
+            return False, f"Benchmark {benchmark_id} not found in tenant {tenant_id}"
 
         # Check if benchmark is deprecated
         if benchmark.deprecated_at is not None:
             return False, f"Benchmark {benchmark_id} is deprecated: {benchmark.deprecation_reason or 'No reason provided'}"
+        if not benchmark.is_active:
+            return False, f"Benchmark {benchmark_id} is not active in tenant {tenant_id}"
 
         # Check if current version is approved
         if benchmark.current_version is None:
@@ -269,8 +271,8 @@ class AgentPermissionService:
             evaluator = self._policy_evaluator(policy.policy_type)
             passed, message = await evaluator(db=db, tenant_id=tenant_id, entity_id=entity_id)
             outcome = "passed" if passed else ("warning" if not policy.is_mandatory else "failed")
-        except PolicyEvaluationError:
-            message = "policy_evaluation_failed"
+        except PolicyEvaluationError as exc:
+            message = str(exc) or "policy_evaluation_failed"
             outcome = "warning" if not policy.is_mandatory else "failed"
         except Exception:
             logger.exception("Unexpected policy evaluation error for policy %s", policy.id)

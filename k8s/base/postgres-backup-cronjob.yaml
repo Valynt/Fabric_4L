@@ -135,7 +135,7 @@ spec:
                   valueFrom:
                     secretKeyRef:
                       name: postgres-patroni-credentials
-                      key: password
+                      key: superuser-password
                 - name: ENABLE_WALG_BACKUP
                   value: "false"
               volumeMounts:

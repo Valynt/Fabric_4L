@@ -1,8 +1,8 @@
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from layer5_ground_truth.services.policy_enforcement import (
     ArtifactAccessRequest,
     ArtifactStatus,
@@ -11,18 +11,19 @@ from layer5_ground_truth.services.policy_enforcement import (
 
 
 def _req(**overrides):
-    return ArtifactAccessRequest(
-        tenant_id=uuid4(),
-        actor_id="actor-1",
-        request_id="req-1",
-        policy_id="policy-l5-runtime-artifact",
-        artifact_id="formula-1",
-        artifact_kind="formula",
-        artifact_status=ArtifactStatus.APPROVED,
-        actor_scopes={"layer5.artifacts.resolve"},
-        required_scope="layer5.artifacts.resolve",
-        **overrides,
-    )
+    values = {
+        "tenant_id": uuid4(),
+        "actor_id": "actor-1",
+        "request_id": "req-1",
+        "policy_id": "policy-l5-runtime-artifact",
+        "artifact_id": "formula-1",
+        "artifact_kind": "formula",
+        "artifact_status": ArtifactStatus.APPROVED,
+        "actor_scopes": {"layer5.artifacts.resolve"},
+        "required_scope": "layer5.artifacts.resolve",
+    }
+    values.update(overrides)
+    return ArtifactAccessRequest(**values)
 
 
 def test_policy_allows_approved_artifact_with_required_scope(monkeypatch):
@@ -52,7 +53,7 @@ def test_policy_denies_unpublished_deprecated_archived(status, monkeypatch):
         "layer5_ground_truth.services.policy_enforcement.emit_audit_event", _emit
     )
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(AuthorizationError):
         enforce_formula_benchmark_runtime_policy(_req(artifact_status=status))
 
     assert seen["details"]["decision"] == "deny"
@@ -69,7 +70,7 @@ def test_policy_denies_missing_scope(monkeypatch):
         "layer5_ground_truth.services.policy_enforcement.emit_audit_event", _emit
     )
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(AuthorizationError):
         enforce_formula_benchmark_runtime_policy(_req(actor_scopes=set()))
 
     assert seen["details"]["reason"] == "missing_scope"

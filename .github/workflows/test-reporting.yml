@@ -80,25 +80,25 @@ jobs:
           }
 
           artifacts_dir = Path('./test-artifacts')
-          
+
           # Process each layer's results
-          layers = ['layer1-ingestion', 'layer2-extraction', 'layer3-knowledge', 
+          layers = ['layer1-ingestion', 'layer2-extraction', 'layer3-knowledge',
                    'layer4-agents', 'layer5-ground-truth', 'layer6-benchmarks']
-          
+
           for layer in layers:
               layer_results = {
-                  'total': 0, 'passed': 0, 'failed': 0, 
+                  'total': 0, 'passed': 0, 'failed': 0,
                   'skipped': 0, 'error': 0, 'coverage': 0
               }
-              
+
               # Find JUnit XML files for this layer
               junit_files = list(artifacts_dir.glob(f'**/{layer}-junit.xml'))
-              
+
               for junit_file in junit_files:
                   try:
                       tree = ET.parse(junit_file)
                       root = tree.getroot()
-                      
+
                       # Handle both <testsuites> and <testsuite> root
                       if root.tag == 'testsuites':
                           for testsuite in root.findall('testsuite'):
@@ -115,13 +115,13 @@ jobs:
                           results['duration'] += float(root.get('time', 0))
                   except Exception as e:
                       print(f"Warning: Could not parse {junit_file}: {e}")
-              
+
               # Calculate passed count
               layer_results['passed'] = (
-                  layer_results['total'] - layer_results['failed'] - 
+                  layer_results['total'] - layer_results['failed'] -
                   layer_results['error'] - layer_results['skipped']
               )
-              
+
               # Find coverage for this layer
               cov_files = list(artifacts_dir.glob(f'**/{layer}-coverage.xml'))
               if cov_files:
@@ -133,7 +133,7 @@ jobs:
                       layer_results['coverage'] = round(line_rate * 100, 2)
                   except Exception as e:
                       print(f"Warning: Could not parse coverage for {layer}: {e}")
-              
+
               results['layers'][layer] = layer_results
               results['total_tests'] += layer_results['total']
               results['passed'] += layer_results['passed']
@@ -182,15 +182,15 @@ jobs:
           }
 
           artifacts_dir = Path('./test-artifacts')
-          
+
           # Find frontend JUnit files
           junit_files = list(artifacts_dir.glob('**/frontend-junit.xml'))
-          
+
           for junit_file in junit_files:
               try:
                   tree = ET.parse(junit_file)
                   root = tree.getroot()
-                  
+
                   if root.tag == 'testsuites':
                       for testsuite in root.findall('testsuite'):
                           results['total_tests'] += int(testsuite.get('tests', 0))
@@ -208,7 +208,7 @@ jobs:
                   print(f"Warning: Could not parse {junit_file}: {e}")
 
           results['passed'] = (
-              results['total_tests'] - results['failed'] - 
+              results['total_tests'] - results['failed'] -
               results['error'] - results['skipped']
           )
 
@@ -235,14 +235,14 @@ jobs:
 
           # Get base branch coverage (if available)
           current_coverage = float(os.environ.get('PYTHON_COVERAGE', 0))
-          
+
           # Try to get coverage from base branch
           base_coverage = 0
           try:
               # Fetch base branch
-              subprocess.run(['git', 'fetch', 'origin', os.environ.get('GITHUB_BASE_REF', 'main')], 
+              subprocess.run(['git', 'fetch', 'origin', os.environ.get('GITHUB_BASE_REF', 'main')],
                           check=False, capture_output=True)
-              
+
               # Checkout base branch coverage file if it exists
               result = subprocess.run(
                   ['git', 'show', f"origin/{os.environ.get('GITHUB_BASE_REF', 'main')}:.coverage-summary.json"],
@@ -257,11 +257,11 @@ jobs:
 
           delta = round(current_coverage - base_coverage, 2)
           delta_str = f"+{delta}%" if delta > 0 else f"{delta}%"
-          
+
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"coverage_delta={delta_str}\n")
               f.write(f"coverage_delta_value={delta}\n")
-          
+
           print(f"Coverage: {current_coverage}% (base: {base_coverage}%, delta: {delta_str})")
           EOF
         env:
@@ -275,10 +275,10 @@ jobs:
         with:
           script: |
             const pythonResults = ${{ toJson(steps.parse-python.outputs.python_results) }};
-            
+
             // Build test summary table
             let summary = `## Test Results Summary\n\n`;
-            
+
             // Overall stats
             const pythonTotal = ${{ steps.parse-python.outputs.python_total || 0 }};
             const pythonPassed = ${{ steps.parse-python.outputs.python_passed || 0 }};
@@ -288,39 +288,39 @@ jobs:
             const frontendTotal = ${{ steps.parse-frontend.outputs.frontend_total || 0 }};
             const frontendPassed = ${{ steps.parse-frontend.outputs.frontend_passed || 0 }};
             const frontendFailed = ${{ steps.parse-frontend.outputs.frontend_failed || 0 }};
-            
+
             const totalTests = pythonTotal + frontendTotal;
             const totalPassed = pythonPassed + frontendPassed;
             const totalFailed = pythonFailed + frontendFailed;
             const passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : 0;
-            
+
             summary += `### Overall: ${totalPassed}/${totalTests} passed (${passRate}%)\n\n`;
-            
+
             // Coverage with delta indicator
             const coverageDelta = '${{ steps.coverage-delta.outputs.coverage_delta }}';
             const deltaValue = parseFloat('${{ steps.coverage-delta.outputs.coverage_delta_value }}');
             const deltaEmoji = deltaValue > 0 ? '📈' : deltaValue < 0 ? '📉' : '➡️';
-            
+
             summary += `**Coverage:** ${pythonCoverage}% ${deltaEmoji} (${coverageDelta})\n\n`;
-            
+
             // Python backend tests table
             summary += `### Python Backend Tests\n`;
             summary += `| Layer | Tests | ✅ Pass | ❌ Fail | ⏭️ Skip | 🎯 Coverage |\n`;
             summary += `|-------|-------|---------|---------|---------|-------------|\n`;
-            
+
             for (const [layer, data] of Object.entries(pythonResults.layers || {})) {
               const coverage = data.coverage > 0 ? `${data.coverage}%` : '-';
               summary += `| ${layer} | ${data.total} | ${data.passed} | ${data.failed} | ${data.skipped} | ${coverage} |\n`;
             }
-            
+
             summary += `| **Total** | **${pythonTotal}** | **${pythonPassed}** | **${pythonFailed}** | **${pythonSkipped}** | **${pythonCoverage}%** |\n\n`;
-            
+
             // Frontend tests
             summary += `### Frontend Tests\n`;
             summary += `| Tests | ✅ Pass | ❌ Fail | ⏭️ Skip |\n`;
             summary += `|-------|---------|---------|---------|\n`;
             summary += `| ${frontendTotal} | ${frontendPassed} | ${frontendFailed} | ${{ steps.parse-frontend.outputs.frontend_skipped || 0 }} |\n\n`;
-            
+
             // Failures section (if any)
             if (totalFailed > 0) {
               summary += `### ❌ Failures Detected\n\n`;
@@ -328,19 +328,19 @@ jobs:
               const checksUrl = prUrl ? `${prUrl}/checks` : `${context.payload.repository?.html_url}/actions/runs/${context.runId}`;
               summary += `See detailed logs in the [Checks tab](${checksUrl}).\n\n`;
             }
-            
+
             // Find or create comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('Test Results Summary')
             );
-            
+
             if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -364,9 +364,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const totalFailed = ${{ steps.parse-python.outputs.python_failed || 0 }} + 
+            const totalFailed = ${{ steps.parse-python.outputs.python_failed || 0 }} +
                                ${{ steps.parse-frontend.outputs.frontend_failed || 0 }};
-            
+
             await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

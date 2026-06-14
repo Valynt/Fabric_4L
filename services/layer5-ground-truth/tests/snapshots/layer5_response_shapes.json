@@ -3,6 +3,7 @@
     "database": "str",
     "layer3_connected": "NoneType",
     "layer3_url": "NoneType",
+    "service": "str",
     "status": "str",
     "timestamp": "str",
     "version": "str"

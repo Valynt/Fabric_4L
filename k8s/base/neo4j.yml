@@ -35,6 +35,7 @@ spec:
           image: neo4j:5-community
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

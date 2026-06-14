@@ -321,6 +321,7 @@ spec:
           image: prom/prometheus:v2.54.1
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

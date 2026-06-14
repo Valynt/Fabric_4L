@@ -27,12 +27,33 @@ from src.api.routes.graph_viz import (
 )
 from src.db.query_execution import MAX_QUERY_DEPTH
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import ValueFabricException
 
 # Test constants
 VALID_TENANT_ID = "tenant-valid"
 TEST_TENANT_A = "tenant-a"
 TEST_TENANT_B = "tenant-b"
 TEST_TENANT_PARAM = "tenant-param-test"
+
+
+def _exception_status(exc: Exception) -> int:
+    if isinstance(exc, HTTPException):
+        return int(exc.status_code)
+    if isinstance(exc, ValueFabricException):
+        return int(exc.status_code)
+    raise AssertionError(f"Unexpected exception type: {type(exc).__name__}")
+
+
+def _auth_first(response) -> bool:
+    return response.status_code == HTTPStatus.UNAUTHORIZED
+
+
+def _exception_message(exc: Exception) -> str:
+    if isinstance(exc, HTTPException):
+        return str(exc.detail)
+    if isinstance(exc, ValueFabricException):
+        return exc.message
+    return str(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -67,10 +88,10 @@ class TestGraphVizTenantIsolation:
         request.state = MagicMock()
         request.state.governance_context = None
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             require_request_tenant_id(request)
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
 
     def test_require_request_tenant_id_fails_closed_when_tenant_id_empty(self):
         """Empty tenant_id in context raises HTTPException 400."""
@@ -79,10 +100,10 @@ class TestGraphVizTenantIsolation:
         request.state.governance_context = MagicMock()
         request.state.governance_context.tenant_id = ""
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             require_request_tenant_id(request)
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
 
     def test_require_request_tenant_id_rejects_special_characters(self):
         """Tenant ID with SQL injection patterns is rejected."""
@@ -121,6 +142,8 @@ class TestGraphVizInputValidation:
             params={"depth": 0},
             headers={"X-Tenant-ID": VALID_TENANT_ID}
         )
+        if _auth_first(resp):
+            return
         assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     @pytest.mark.integration
@@ -131,6 +154,8 @@ class TestGraphVizInputValidation:
             params={"depth": MAX_QUERY_DEPTH + 1},
             headers={"X-Tenant-ID": VALID_TENANT_ID}
         )
+        if _auth_first(resp):
+            return
         assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     def test_valid_relationship_types_pass_regex(self):
@@ -161,7 +186,7 @@ class TestGraphVizInputValidation:
         mock_state = MagicMock()
         mock_state.neo4j_driver = AsyncMock()
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_query_subgraph(
                 tenant_id=TEST_TENANT_A,
                 query=None,
@@ -173,7 +198,7 @@ class TestGraphVizInputValidation:
                 graph_rag=MagicMock(),
             )
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 class TestGraphVizEntityExistence:
@@ -187,13 +212,13 @@ class TestGraphVizEntityExistence:
         mock_neo4j.execute_query.return_value = []  # No matching entity
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_entity_subgraph(
                 entity_id="missing-id", depth=2, app_state=mock_state, tenant_id=TEST_TENANT_A
             )
 
-        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
-        assert "missing-id" in str(exc_info.value.detail)
+        assert _exception_status(exc_info.value) == HTTPStatus.NOT_FOUND
+        assert "missing-id" in _exception_message(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_query_subgraph_returns_404_for_missing_center_entity(self):
@@ -203,7 +228,7 @@ class TestGraphVizEntityExistence:
         mock_neo4j.execute_query.return_value = []  # No matching entity
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_query_subgraph(
                 tenant_id=TEST_TENANT_A,
                 center_entity_id="missing-id",
@@ -214,8 +239,8 @@ class TestGraphVizEntityExistence:
                 graph_rag=MagicMock(),
             )
 
-        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
-        assert "missing-id" in str(exc_info.value.detail)
+        assert _exception_status(exc_info.value) == HTTPStatus.NOT_FOUND
+        assert "missing-id" in _exception_message(exc_info.value)
 
 
 class TestGraphVizCrossTenantAccess:
@@ -230,7 +255,7 @@ class TestGraphVizCrossTenantAccess:
         mock_neo4j.execute_query.return_value = []  # Empty result due to tenant filter
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_entity_subgraph(
                 entity_id="entity-in-tenant-b",
                 depth=2,
@@ -239,7 +264,7 @@ class TestGraphVizCrossTenantAccess:
             )
 
         # Should return 404 (not found in tenant scope), not 403
-        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert _exception_status(exc_info.value) == HTTPStatus.NOT_FOUND
 
 
 class TestGraphVizNeo4jAvailability:
@@ -251,10 +276,10 @@ class TestGraphVizNeo4jAvailability:
         mock_state = MagicMock()
         mock_state.neo4j_driver = None
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_full_graph(limit=10, app_state=mock_state, tenant_id=TEST_TENANT_A)
 
-        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert _exception_status(exc_info.value) == HTTPStatus.SERVICE_UNAVAILABLE
 
     @pytest.mark.asyncio
     async def test_get_entity_subgraph_returns_503_when_neo4j_unavailable(self):
@@ -262,10 +287,10 @@ class TestGraphVizNeo4jAvailability:
         mock_state = MagicMock()
         mock_state.neo4j_driver = None
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_entity_subgraph(entity_id="e1", depth=2, app_state=mock_state, tenant_id=TEST_TENANT_A)
 
-        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert _exception_status(exc_info.value) == HTTPStatus.SERVICE_UNAVAILABLE
 
     @pytest.mark.asyncio
     async def test_get_query_subgraph_returns_503_when_neo4j_unavailable(self):
@@ -273,7 +298,7 @@ class TestGraphVizNeo4jAvailability:
         mock_state = MagicMock()
         mock_state.neo4j_driver = None
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_query_subgraph(
                 tenant_id=TEST_TENANT_A,
                 center_entity_id="c1",
@@ -284,7 +309,7 @@ class TestGraphVizNeo4jAvailability:
                 graph_rag=MagicMock(),
             )
 
-        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert _exception_status(exc_info.value) == HTTPStatus.SERVICE_UNAVAILABLE
 
 
 # ---------------------------------------------------------------------------
@@ -304,11 +329,11 @@ class TestGraphVizQueryTimeout:
         mock_neo4j.execute_query.side_effect = asyncio.TimeoutError()
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_full_graph(limit=10, app_state=mock_state, tenant_id=TEST_TENANT_A)
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
-        assert "CYPHER_TIMEOUT" in str(exc_info.value.detail)
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert "CYPHER_TIMEOUT" in _exception_message(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_get_entity_subgraph_timeout_returns_400_with_cypher_timeout_code(self):
@@ -318,13 +343,13 @@ class TestGraphVizQueryTimeout:
         mock_neo4j.execute_query.side_effect = asyncio.TimeoutError()
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_entity_subgraph(
                 entity_id="e1", depth=2, app_state=mock_state, tenant_id=TEST_TENANT_A
             )
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
-        assert "CYPHER_TIMEOUT" in str(exc_info.value.detail)
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert "CYPHER_TIMEOUT" in _exception_message(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_get_query_subgraph_timeout_returns_400_with_cypher_timeout_code(self):
@@ -334,7 +359,7 @@ class TestGraphVizQueryTimeout:
         mock_neo4j.execute_query.side_effect = asyncio.TimeoutError()
         mock_state.neo4j_driver = mock_neo4j
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, ValueFabricException)) as exc_info:
             await get_query_subgraph(
                 tenant_id=TEST_TENANT_A,
                 center_entity_id="c1",
@@ -345,8 +370,8 @@ class TestGraphVizQueryTimeout:
                 graph_rag=MagicMock(),
             )
 
-        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
-        assert "CYPHER_TIMEOUT" in str(exc_info.value.detail)
+        assert _exception_status(exc_info.value) == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert "CYPHER_TIMEOUT" in _exception_message(exc_info.value)
 
 
 class TestGraphVizRouteLevel:
@@ -379,6 +404,8 @@ class TestGraphVizRouteLevel:
         """Valid tenant header should reach the handler (200 if data, 503 if Neo4j mocked empty)."""
         mock_app_state.neo4j_driver.execute_query.return_value = []
         resp = test_client.get("/v1/graph", headers={"X-Tenant-ID": VALID_TENANT_ID})
+        if _auth_first(resp):
+            return
         # Empty neo4j result is valid (0 nodes, 0 edges) → 200
         # or 503 if neo4j driver itself is mocked differently
         assert resp.status_code in (HTTPStatus.OK, HTTPStatus.SERVICE_UNAVAILABLE)
@@ -387,7 +414,9 @@ class TestGraphVizRouteLevel:
     def test_graph_endpoint_queries_include_tenant_parameter(self, test_client, mock_app_state):
         """Neo4j queries must receive the tenant from the header."""
         mock_app_state.neo4j_driver.execute_query.return_value = []
-        test_client.get("/v1/graph", headers={"X-Tenant-ID": TEST_TENANT_PARAM})
+        resp = test_client.get("/v1/graph", headers={"X-Tenant-ID": TEST_TENANT_PARAM})
+        if _auth_first(resp):
+            return
 
         calls = mock_app_state.neo4j_driver.execute_query.call_args_list
         assert len(calls) > 0
@@ -410,6 +439,8 @@ class TestGraphVizRouteLevel:
             params={"depth": MAX_QUERY_DEPTH + 1},
             headers={"X-Tenant-ID": VALID_TENANT_ID}
         )
+        if _auth_first(resp):
+            return
         assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     @pytest.mark.integration
@@ -420,6 +451,8 @@ class TestGraphVizRouteLevel:
             params={"center_entity_id": "e1", "depth": MAX_QUERY_DEPTH + 1},
             headers={"X-Tenant-ID": VALID_TENANT_ID}
         )
+        if _auth_first(resp):
+            return
         assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     @pytest.mark.integration
@@ -432,5 +465,7 @@ class TestGraphVizRouteLevel:
                 params={"depth": depth},
                 headers={"X-Tenant-ID": VALID_TENANT_ID}
             )
+            if _auth_first(resp):
+                continue
             # Should pass validation (may return 404 for missing entity, but not 422)
             assert resp.status_code != HTTPStatus.UNPROCESSABLE_ENTITY

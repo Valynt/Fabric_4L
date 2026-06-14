@@ -23,7 +23,7 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.identity.context import RequestContext
@@ -164,7 +164,7 @@ async def get_run(
     try:
         run = await registry.get_run(run_id, ctx.tenant_id)
     except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
         raise AuthorizationError(message = "Harness registry access denied")
@@ -193,13 +193,13 @@ async def transition_run(
             state_payload=body.state_payload,
         )
     except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
         raise AuthorizationError(message = "Harness registry access denied")
-    except Exception:
+    except Exception as exc:
         logger.exception("Unexpected error transitioning run %s", run_id)
-        raise ValidationError(message="Run transition failed")
+        raise HTTPException(status_code=422, detail=str(exc) or "Run transition failed") from exc
 
     return TransitionResponse(
         run=RunResponse.from_domain(run),
@@ -221,13 +221,16 @@ async def cancel_run(
     try:
         run = await registry.get_run(run_id, ctx.tenant_id)
     except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
         raise AuthorizationError(message = "Harness registry access denied")
 
     if run.current_state.is_terminal:
-        raise ValidationError(message=f"Run {run_id} is already in terminal state {run.current_state}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Run {run_id} is already in terminal state {run.current_state}",
+        )
 
     try:
         await registry.transition(
@@ -241,7 +244,7 @@ async def cancel_run(
         raise AuthorizationError(message = "Harness registry access denied")
     except Exception:
         logger.exception("Error cancelling run %s", run_id)
-        raise ValidationError(message="Run cancellation failed")
+        raise HTTPException(status_code=422, detail="Run cancellation failed")
 
 
 # ---------------------------------------------------------------------------
@@ -382,7 +385,7 @@ async def decide_gate(
     try:
         _gate = await registry.get_gate(gate_id, ctx.tenant_id)
     except KeyError:
-        raise NotFoundError(message = str(f"Gate {gate_id} not found"))
+        raise HTTPException(status_code=404, detail=f"Gate {gate_id} not found")
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
         raise AuthorizationError(message = "Harness registry access denied")
@@ -407,7 +410,7 @@ async def decide_gate(
         )
     except (ValueError, HarnessRegistryError) as exc:
         logger.warning("harness_gate_decision_error", extra={"error_code": "HARNESS_GATE_DECISION_ERROR", "error": sanitize_log_error(exc)})
-        raise ValidationError(message = "Invalid gate decision request")
+        raise HTTPException(status_code=422, detail="Invalid gate decision request")
 
     return GateResponse.from_domain(updated_gate)
 

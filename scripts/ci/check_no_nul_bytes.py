@@ -14,6 +14,8 @@ def files_with_nul(paths: list[Path], base: Path | None = None) -> list[str]:
     """Return relative path strings for any files in *paths* that contain NUL bytes."""
     offenders: list[str] = []
     for path in paths:
+        if not path.exists():
+            continue
         data = path.read_bytes()
         if b"\x00" in data:
             label = str(path.relative_to(base)) if base else str(path)

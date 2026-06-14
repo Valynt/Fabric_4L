@@ -96,7 +96,7 @@ class TestRequiredFieldValidator:
 
     def test_validate_and_raise_raises_on_invalid(self):
         """validate_and_raise should raise IngestionError on invalid entity."""
-        from api.exceptions import IngestionError
+        from src.api.exceptions import IngestionError
 
         validator = RequiredFieldValidator()
 

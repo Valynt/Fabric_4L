@@ -69,7 +69,12 @@ class PlanVersionService:
                     ),
                 )
             )
-            pinned = result.scalar_one_or_none()
+            pinned = None
+            scalars = getattr(result, "scalars", None)
+            if callable(scalars):
+                pinned = scalars().first()
+            if pinned is None:
+                pinned = result.scalar_one_or_none()
             if pinned:
                 return pinned
 

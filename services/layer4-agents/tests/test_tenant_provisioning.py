@@ -308,24 +308,16 @@ class TestTenantProvisioningService:
     
     @pytest.mark.asyncio
     async def test_provision_tenant_schema_isolation(self, provisioning_service, mock_db_session):
-        """Verify schema-level isolation setup."""
+        """Schema-level isolation is reserved and rejected before provisioning."""
         request = TenantProvisionRequest(
             tenant_name="test-tenant",
             admin_email="admin@test.com",
             isolation_tier="schema",
         )
-        
-        # Mock: tenant doesn't exist
-        mock_result = MagicMock()
-        mock_result.fetchone.return_value = None
-        mock_db_session.execute.return_value = mock_result
-        
-        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
-            result = await provisioning_service.provision_tenant(request)
-        
-        # Should succeed (even if schema creation has issues, status is partial)
-        assert result.status in ("success", "partial")
-        assert result.isolation_tier == "schema"
+
+        with pytest.raises(ValueError, match="reserved for future use"):
+            await provisioning_service.provision_tenant(request)
+        mock_db_session.execute.assert_not_called()
 
 
 class TestTenantProvisionRequest:

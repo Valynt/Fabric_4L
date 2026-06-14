@@ -232,6 +232,11 @@ class TenantProvisioningService:
         
         if request.isolation_tier not in ("shared", "schema", "database"):
             raise ValueError("isolation_tier must be one of: shared, schema, database")
+        if request.isolation_tier != "shared":
+            raise ValueError(
+                f"isolation_tier '{request.isolation_tier}' is reserved for future use; "
+                "only 'shared' is supported in v1"
+            )
     
     async def _get_tenant_by_name(self, tenant_name: str) -> dict[str, Any] | None:
         """Check if tenant already exists by name.

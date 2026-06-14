@@ -1,7 +1,9 @@
-"""Compatibility shim for the canonical Layer 4 module.
+"""Compatibility alias for the canonical Layer 4 CRM webhook routes."""
 
-The implementation lives in ``layer4_agents.api.routes.crm_webhooks``. Keep this file as a thin
-re-export only so the packaged source of truth remains ``layer4_agents``.
-"""
+from __future__ import annotations
 
-from layer4_agents.api.routes.crm_webhooks import *  # noqa: F401,F403
+import sys
+
+from layer4_agents.api.routes import crm_webhooks as _canonical
+
+sys.modules[__name__] = _canonical

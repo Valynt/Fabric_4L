@@ -32,11 +32,17 @@ class TestNormalizeEnvironment:
 class TestIsProductionLikeEnvironment:
     """Production-like environment strict allowlist."""
 
+    def test_staging_is_true(self) -> None:
+        assert is_production_like_environment("staging") is True
+
+    def test_stage_is_true(self) -> None:
+        assert is_production_like_environment("stage") is True
+
     def test_production_is_true(self) -> None:
         assert is_production_like_environment("production") is True
 
-    def test_staging_is_false(self) -> None:
-        assert is_production_like_environment("staging") is False
+    def test_prod_is_true(self) -> None:
+        assert is_production_like_environment("prod") is True
 
     def test_none_is_false(self) -> None:
         assert is_production_like_environment(None) is False

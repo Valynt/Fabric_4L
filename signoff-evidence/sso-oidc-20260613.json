@@ -1,0 +1,49 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging",
+  "validated_at_utc": "2026-06-13T00:45:00Z",
+  "status": "blocked",
+  "provider_present": false,
+  "checks": [
+    {
+      "name": "local-idp-container",
+      "status": "fail",
+      "detail": "docker-compose.live.yml does not define a Keycloak/IdP container; no service listens on localhost:8080."
+    },
+    {
+      "name": "oidc-issuer-configured",
+      "status": "fail",
+      "detail": ".env has OIDC_ISSUER, OIDC_AUDIENCE, OIDC_JWKS_URL empty; Keycloak secrets are placeholders."
+    },
+    {
+      "name": "clerk-config-present",
+      "status": "pass",
+      "detail": "Frontend VITE_CLERK_* variables and Clerk dependencies are present in apps/web/.env and package.json."
+    },
+    {
+      "name": "sso-runbook-present",
+      "status": "pass",
+      "detail": "docs/runbooks/operational/enterprise-oidc-sso-incident.md exists and covers provider outage, group/role mapping, and rollback."
+    },
+    {
+      "name": "runtime-guard-fail-closed",
+      "status": "pass",
+      "detail": "services/layer5-ground-truth/src/layer5_ground_truth/config.py treats staging as production-like; services reject tenant hints and dev auth bypass flags cause startup failure in production-like environments."
+    },
+    {
+      "name": "end-to-end-login-flow",
+      "status": "n/a",
+      "detail": "Cannot execute without a configured OIDC provider and valid client credentials."
+    }
+  ],
+  "blockers": [
+    "No local IdP container is available in docker-compose.live.yml.",
+    "OIDC_ISSUER / OIDC_JWKS_URL are unset and Keycloak client secrets are placeholders.",
+    "A real enterprise SSO/OIDC tenant and client credentials are required to validate login/logout, group/role mapping, and audit events."
+  ],
+  "notes": [
+    "This is an environment-dependent P0 gate. Evidence cannot be produced in the local Docker staging surrogate without an external or containerized identity provider.",
+    "The repository contains Clerk-based auth wiring and an SSO incident runbook; no code changes are required to enable SSO once a provider is configured.",
+    "Recommendation: complete this gate in the approved staging environment with a configured Keycloak or Clerk enterprise connection before Core GA sign-off."
+  ]
+}

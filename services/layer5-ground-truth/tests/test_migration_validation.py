@@ -6,12 +6,12 @@ Validates that the new governance migrations are properly structured.
 
 from pathlib import Path
 
+MIGRATION_DIR = Path(__file__).resolve().parents[1] / "src/layer5_ground_truth/migrations/versions"
+
 
 def test_migration_010_has_triggers_and_rls():
     """Migration 010 should have triggers and RLS policies."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/010_harden_validation_event_immutability.py"
-    )
+    migration = MIGRATION_DIR / "010_harden_validation_event_immutability.py"
     source = migration.read_text()
 
     assert "BEFORE UPDATE ON validation_events" in source
@@ -24,22 +24,18 @@ def test_migration_010_has_triggers_and_rls():
 
 def test_migration_011_adds_approval_workflow_tables():
     """Migration 011 should add approval workflow tables."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/011_add_approval_workflow.py"
-    )
+    migration = MIGRATION_DIR / "011_add_approval_workflow.py"
     source = migration.read_text()
 
     assert "approval_requests" in source
     assert "approval_decisions" in source
     assert "approval_workflows" in source
-    assert "FOREIGN KEY" in source
+    assert "sa.ForeignKey" in source
 
 
 def test_migration_012_adds_governance_entities():
     """Migration 012 should add formula, benchmark, and policy tables."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/012_add_governance_entities.py"
-    )
+    migration = MIGRATION_DIR / "012_add_governance_entities.py"
     source = migration.read_text()
 
     assert "formulas" in source
@@ -56,9 +52,7 @@ def test_migration_012_adds_governance_entities():
 
 def test_migration_013_adds_assumption_registry():
     """Migration 013 should add assumption registry tables."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/013_add_assumption_registry.py"
-    )
+    migration = MIGRATION_DIR / "013_add_assumption_registry.py"
     source = migration.read_text()
 
     assert "assumptions" in source
@@ -68,9 +62,7 @@ def test_migration_013_adds_assumption_registry():
 
 def test_migration_014_adds_value_realization_ledger():
     """Migration 014 should add value realization ledger tables."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/014_add_value_realization_ledger.py"
-    )
+    migration = MIGRATION_DIR / "014_add_value_realization_ledger.py"
     source = migration.read_text()
 
     assert "value_realization_entries" in source
@@ -79,9 +71,7 @@ def test_migration_014_adds_value_realization_ledger():
 
 def test_all_migrations_have_downgrade():
     """All migrations should have downgrade functions."""
-    migration_dir = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"
-    )
+    migration_dir = MIGRATION_DIR
     migration_files = [
         "010_harden_validation_event_immutability.py",
         "011_add_approval_workflow.py",
@@ -100,16 +90,14 @@ def test_all_migrations_have_downgrade():
 def test_migration_sequence_is_correct():
     """Migrations should have correct revision sequence."""
     migrations = {
-        "010_harden_validation_event_immutability.py": "009_align_truth_lifecycle_states",
+        "010_harden_validation_event_immutability.py": "009a_widen_alembic_version_num",
         "011_add_approval_workflow.py": "010_harden_validation_event_immutability",
         "012_add_governance_entities.py": "011_add_approval_workflow",
         "013_add_assumption_registry.py": "012_add_governance_entities",
         "014_add_value_realization_ledger.py": "013_add_assumption_registry",
     }
 
-    migration_dir = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"
-    )
+    migration_dir = MIGRATION_DIR
 
     for migration_file, expected_down_revision in migrations.items():
         migration_path = migration_dir / migration_file
@@ -122,9 +110,7 @@ def test_migration_sequence_is_correct():
 
 def test_migrations_use_postgresql_uuid():
     """Migrations should use PostgreSQL UUID type."""
-    migration_dir = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"
-    )
+    migration_dir = MIGRATION_DIR
     migration_files = [
         "011_add_approval_workflow.py",
         "012_add_governance_entities.py",
@@ -143,9 +129,7 @@ def test_migrations_use_postgresql_uuid():
 
 def test_migrations_have_tenant_id_indexes():
     """Governance tables should have tenant_id indexes."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/012_add_governance_entities.py"
-    )
+    migration = MIGRATION_DIR / "012_add_governance_entities.py"
     source = migration.read_text()
 
     # Check for tenant_id indexes in key tables
@@ -155,9 +139,7 @@ def test_migrations_have_tenant_id_indexes():
 
 def test_migrations_have_cascade_delete():
     """Foreign keys should have CASCADE delete for proper cleanup."""
-    migration = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/012_add_governance_entities.py"
-    )
+    migration = MIGRATION_DIR / "012_add_governance_entities.py"
     source = migration.read_text()
 
     assert 'ondelete="CASCADE"' in source

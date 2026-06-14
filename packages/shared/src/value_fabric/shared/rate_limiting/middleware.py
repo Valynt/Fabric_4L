@@ -96,16 +96,61 @@ class TenantRateLimitMiddleware(BaseHTTPMiddleware):
             )
             tier = TenantTier.SHARED
         
-        # Check rate limit
-        result = await self.rate_limiter.check_rate_limit(
-            tenant_id=tenant_context.tenant_id,
-            tenant_tier=tier,
-            endpoint=endpoint,
-            user_id=tenant_context.user_id,
-            api_key_id=getattr(tenant_context, "api_key_id", None),
-            route_group=route_group,
-        )
-        
+        # Check rate limit.
+        #
+        # Fail policy when the rate-limit backend (Redis) is unavailable:
+        # the limiter raises RuntimeError("tenant_rate_limit_unavailable"). This is an
+        # availability/abuse control, NOT the authorization control, so a backend outage
+        # must never surface as an unhandled 500 (which would also mask the route's
+        # authentication/authorization verdict). Instead:
+        #   - production-like environments: fail CLOSED gracefully with a controlled 503,
+        #   - non-production environments: fail OPEN so the request still reaches the
+        #     route handler where authn/authz are enforced.
+        try:
+            result = await self.rate_limiter.check_rate_limit(
+                tenant_id=tenant_context.tenant_id,
+                tenant_tier=tier,
+                endpoint=endpoint,
+                user_id=tenant_context.user_id,
+                api_key_id=getattr(tenant_context, "api_key_id", None),
+                route_group=route_group,
+            )
+        except RuntimeError as exc:
+            from value_fabric.shared.environment import is_production_like_environment
+
+            if is_production_like_environment():
+                logger.error(
+                    "rate_limit_backend_unavailable",
+                    extra={
+                        "event_type": "rate_limit_backend_unavailable",
+                        "tenant_id": str(tenant_context.tenant_id),
+                        "endpoint": endpoint,
+                        "method": request.method,
+                        "reason": str(exc),
+                        "action": "fail_closed",
+                    },
+                )
+                return JSONResponse(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    content={
+                        "error": "rate_limit_unavailable",
+                        "message": "Rate limiting backend is temporarily unavailable. Please retry shortly.",
+                    },
+                    headers={"Retry-After": "5"},
+                )
+            logger.warning(
+                "rate_limit_backend_unavailable",
+                extra={
+                    "event_type": "rate_limit_backend_unavailable",
+                    "tenant_id": str(tenant_context.tenant_id),
+                    "endpoint": endpoint,
+                    "method": request.method,
+                    "reason": str(exc),
+                    "action": "fail_open",
+                },
+            )
+            return await call_next(request)
+
         # If rate limit exceeded, return 429
         if not result.allowed:
             logger.warning(

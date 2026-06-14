@@ -22,6 +22,7 @@ from ..models.approval_workflow import (
 )
 from ..models.assumption_registry import (
     Assumption,
+    AssumptionEvidence,
     AssumptionImpact,
     AssumptionStatus,
 )
@@ -31,6 +32,12 @@ logger = logging.getLogger(__name__)
 
 # Impact levels that require approval
 REQUIRES_APPROVAL = {AssumptionImpact.HIGH.value, AssumptionImpact.CRITICAL.value}
+
+
+class AssumptionNotFoundError(Exception):
+    """Raised when an assumption cannot be found for the tenant."""
+
+    pass
 
 
 class AssumptionApprovalService:
@@ -56,6 +63,129 @@ class AssumptionApprovalService:
     async def requires_approval(self, assumption: Assumption) -> bool:
         """Check if an assumption requires approval based on impact level."""
         return assumption.impact_level in REQUIRES_APPROVAL
+
+    async def create_assumption(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        name: str,
+        slug: str,
+        assumption_type: str,
+        description: str,
+        value: dict,
+        value_type: str,
+        impact_level: str,
+        truth_object_id: UUID | None = None,
+        applies_to_opportunity_id: UUID | None = None,
+        applies_to_formula_id: UUID | None = None,
+        created_by: str | None = "system",
+    ) -> Assumption:
+        """Create a tenant-scoped assumption and apply approval gating."""
+        assumption = Assumption(
+            tenant_id=tenant_id,
+            name=name,
+            slug=slug,
+            assumption_type=assumption_type,
+            description=description,
+            value=value,
+            value_type=value_type,
+            impact_level=impact_level,
+            truth_object_id=truth_object_id,
+            applies_to_opportunity_id=applies_to_opportunity_id,
+            applies_to_formula_id=applies_to_formula_id,
+            status=AssumptionStatus.DRAFT.value,
+            is_active=True,
+            evidence_count=0,
+            created_by=created_by,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+        db.add(assumption)
+        await db.flush()
+
+        if await self.requires_approval(assumption):
+            await self.create_approval_request(db, assumption, requested_by=created_by or "system")
+        else:
+            assumption.status = AssumptionStatus.APPROVED.value
+            assumption.approved_by = created_by
+            assumption.approved_at = datetime.now(UTC)
+            assumption.updated_at = datetime.now(UTC)
+
+        await db.flush()
+        return assumption
+
+    async def list_assumptions(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        assumption_type: str | None = None,
+        impact_level: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[Assumption], int]:
+        """List tenant-scoped assumptions with optional filters."""
+        query = select(Assumption).where(Assumption.tenant_id == tenant_id)
+        if assumption_type:
+            query = query.where(Assumption.assumption_type == assumption_type)
+        if impact_level:
+            query = query.where(Assumption.impact_level == impact_level)
+        if status:
+            query = query.where(Assumption.status == status)
+
+        from sqlalchemy import func
+
+        total_result = await db.execute(select(func.count()).select_from(query.subquery()))
+        total = int(total_result.scalar() or 0)
+        result = await db.execute(
+            query.order_by(Assumption.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        )
+        return list(result.scalars().all()), total
+
+    async def add_evidence(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        assumption_id: UUID,
+        evidence_type: str,
+        truth_object_id: UUID | None = None,
+        source_url: str | None = None,
+        source_title: str | None = None,
+        excerpt: str | None = None,
+        confidence: str = "medium",
+        relevance: str = "medium",
+        notes: str | None = None,
+        added_by: str | None = "system",
+    ) -> Assumption:
+        """Add tenant-scoped evidence to an assumption."""
+        result = await db.execute(
+            select(Assumption).where(
+                and_(Assumption.id == assumption_id, Assumption.tenant_id == tenant_id)
+            )
+        )
+        assumption = result.scalar_one_or_none()
+        if assumption is None:
+            raise AssumptionNotFoundError(f"Assumption {assumption_id} not found")
+
+        evidence = AssumptionEvidence(
+            tenant_id=tenant_id,
+            assumption_id=assumption_id,
+            evidence_type=evidence_type,
+            truth_object_id=truth_object_id,
+            source_url=source_url,
+            source_title=source_title,
+            excerpt=excerpt,
+            confidence=confidence,
+            relevance=relevance,
+            notes=notes,
+            added_by=added_by,
+            added_at=datetime.now(UTC),
+        )
+        db.add(evidence)
+        assumption.evidence_count = (assumption.evidence_count or 0) + 1
+        assumption.updated_at = datetime.now(UTC)
+        await db.flush()
+        return assumption
 
     async def create_approval_request(
         self,

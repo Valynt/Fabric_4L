@@ -152,7 +152,7 @@ groups:
           escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # High Latency - p95 degradation warning
-      # RATIONALE: Changed from p99 to p95 because p99 is too noisy (catches outliers from 
+      # RATIONALE: Changed from p99 to p95 because p99 is too noisy (catches outliers from
       # occasional slow queries). p95 > 1.5s for 10m indicates sustained degradation affecting
       # real user experience. Warning severity = investigate before it becomes critical.
       - alert: HighLatency
@@ -426,7 +426,7 @@ groups:
       # Warning severity = ML team investigate, may impact model quality metrics.
       - alert: GroundTruthEvaluationsFailing
         expr: |
-          rate(evaluation_failures_total[1h]) / 
+          rate(evaluation_failures_total[1h]) /
           (rate(evaluation_failures_total[1h]) + rate(evaluation_successes_total[1h])) > 0.10
         for: 15m
         labels:

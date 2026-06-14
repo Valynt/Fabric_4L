@@ -234,3 +234,69 @@ class TestCheckpointPersistence:
         ckpt_b = await compiled.aget_state(config_b)
         assert ckpt_a.values["workflow_id"] == "wf-a"
         assert ckpt_b.values["workflow_id"] == "wf-b"
+
+
+class TestConcurrentStateUpdates:
+    """Regression: parallel (fan-in) nodes must be able to update the same
+    LangGraph state channel without raising ``InvalidUpdateError``.
+
+    Before the fix, ``BaseAgentState.metadata`` and ``.errors`` had no reducer,
+    so two nodes updating them in the same superstep failed with
+    ``InvalidUpdateError: At key 'metadata': Can receive only one value per step``.
+    The L4 workflow HTTP endpoint returned 200 while the workflow silently failed
+    internally. These tests build a real fan-in graph over the production
+    ``BaseAgentState`` schema and assert the workflow completes and accumulates
+    both nodes' contributions.
+    """
+
+    @staticmethod
+    def _build_fan_in_graph():
+        from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
+
+        async def start_node(state: BaseAgentState) -> dict:
+            return {"status": WorkflowStatus.RUNNING}
+
+        async def branch_a(state: BaseAgentState) -> dict:
+            return {"metadata": {"a": 1}, "errors": ["err_a"]}
+
+        async def branch_b(state: BaseAgentState) -> dict:
+            return {"metadata": {"b": 2}, "errors": ["err_b"]}
+
+        async def join_node(state: BaseAgentState) -> dict:
+            return {"status": WorkflowStatus.COMPLETED}
+
+        graph = StateGraph(BaseAgentState)
+        graph.add_node("start", start_node)
+        graph.add_node("branch_a", branch_a)
+        graph.add_node("branch_b", branch_b)
+        graph.add_node("join", join_node)
+        graph.set_entry_point("start")
+        # Fan out to two parallel branches, then fan in to join.
+        graph.add_edge("start", "branch_a")
+        graph.add_edge("start", "branch_b")
+        graph.add_edge("branch_a", "join")
+        graph.add_edge("branch_b", "join")
+        graph.add_edge("join", END)
+        return graph.compile()
+
+    @pytest.mark.asyncio
+    async def test_parallel_nodes_merge_metadata_without_error(self):
+        from layer4_agents.models.agent_state import (
+            BaseAgentState,
+            WorkflowStatus,
+            WorkflowType,
+        )
+
+        compiled = self._build_fan_in_graph()
+        initial = BaseAgentState(tenant_id="tenant-a", workflow_type=WorkflowType.ROI_CALCULATOR)
+
+        # Must not raise InvalidUpdateError.
+        result = await compiled.ainvoke(initial)
+
+        # Both parallel branches' metadata are merged (not dropped/overwritten).
+        assert result["metadata"]["a"] == 1
+        assert result["metadata"]["b"] == 2
+        # Both branches' errors are concatenated.
+        assert set(result["errors"]) == {"err_a", "err_b"}
+        # The workflow actually reaches its terminal state.
+        assert result["status"] == WorkflowStatus.COMPLETED

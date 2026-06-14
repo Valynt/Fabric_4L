@@ -11,6 +11,7 @@ import pytest
 from layer5_ground_truth.services.audit_write_monitor import (
     ADMIN_ROLES,
     AgentPermissionError,
+    get_audit_write_stats,
     is_admin_user,
     record_audit_write_failure,
     require_admin_for_audit_write,

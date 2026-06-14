@@ -38,7 +38,7 @@ class TestProductionJWTSecretValidation:
         for config_path in config_paths:
             source = config_path.read_text(encoding="utf-8")
             assert 'jwt_secret: str = Field(default="changeme"' not in source
-            assert "jwt_secret: str = Field(description=" in source
+            assert "jwt_secret: str = Field(" in source and "description=" in source
 
     def test_production_requires_jwt_secret(self):
         """P0: Production startup fails without JWT_SECRET."""

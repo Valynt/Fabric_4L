@@ -28,7 +28,7 @@ def upgrade() -> None:
         "model_versions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column(
-            "organization_id",
+            "tenant_id",
             postgresql.UUID(as_uuid=True),
             nullable=False,
             index=True,
@@ -76,14 +76,14 @@ def upgrade() -> None:
 
     # Create indexes for model_versions
     op.create_index(
-        "ix_model_versions_org_provider_name",
+        "ix_model_versions_tenant_provider_name",
         "model_versions",
-        ["organization_id", "provider", "name"],
+        ["tenant_id", "provider", "name"],
     )
     op.create_index(
-        "ix_model_versions_org_default",
+        "ix_model_versions_tenant_default",
         "model_versions",
-        ["organization_id", "is_default"],
+        ["tenant_id", "is_default"],
     )
 
     # Create model_deployments table
@@ -91,7 +91,7 @@ def upgrade() -> None:
         "model_deployments",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column(
-            "organization_id",
+            "tenant_id",
             postgresql.UUID(as_uuid=True),
             nullable=False,
             index=True,
@@ -143,14 +143,14 @@ def upgrade() -> None:
 
     # Create indexes for model_deployments
     op.create_index(
-        "ix_model_deployments_org_env_default",
+        "ix_model_deployments_tenant_env_default",
         "model_deployments",
-        ["organization_id", "environment", "is_default_for_env"],
+        ["tenant_id", "environment", "is_default_for_env"],
     )
     op.create_index(
-        "ix_model_deployments_org_env_status",
+        "ix_model_deployments_tenant_env_status",
         "model_deployments",
-        ["organization_id", "environment", "status"],
+        ["tenant_id", "environment", "status"],
     )
 
     # Create model_evaluations table
@@ -158,7 +158,7 @@ def upgrade() -> None:
         "model_evaluations",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column(
-            "organization_id",
+            "tenant_id",
             postgresql.UUID(as_uuid=True),
             nullable=False,
             index=True,
@@ -197,14 +197,14 @@ def upgrade() -> None:
 
     # Create indexes for model_evaluations
     op.create_index(
-        "ix_model_evaluations_org_benchmark",
+        "ix_model_evaluations_tenant_benchmark",
         "model_evaluations",
-        ["organization_id", "benchmark_name"],
+        ["tenant_id", "benchmark_name"],
     )
     op.create_index(
-        "ix_model_evaluations_org_model",
+        "ix_model_evaluations_tenant_model",
         "model_evaluations",
-        ["organization_id", "model_version_id"],
+        ["tenant_id", "model_version_id"],
     )
 
     # Add RLS policy for model_versions (follows existing RLS pattern)
@@ -212,7 +212,7 @@ def upgrade() -> None:
         """
         ALTER TABLE model_versions ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_versions_isolation_policy ON model_versions
-        USING (organization_id = current_setting('app.current_org')::UUID);
+        USING (tenant_id = current_setting('app.current_tenant')::UUID);
         """
     )
 
@@ -221,7 +221,7 @@ def upgrade() -> None:
         """
         ALTER TABLE model_deployments ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_deployments_isolation_policy ON model_deployments
-        USING (organization_id = current_setting('app.current_org')::UUID);
+        USING (tenant_id = current_setting('app.current_tenant')::UUID);
         """
     )
 
@@ -230,7 +230,7 @@ def upgrade() -> None:
         """
         ALTER TABLE model_evaluations ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_evaluations_isolation_policy ON model_evaluations
-        USING (organization_id = current_setting('app.current_org')::UUID);
+        USING (tenant_id = current_setting('app.current_tenant')::UUID);
         """
     )
 

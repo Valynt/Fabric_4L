@@ -306,7 +306,7 @@ class ModelDeployment(Base):
     # -------------------------------------------------------------------------
     model_version_id = Column(
         UUID,
-        ForeignKey("model_versions.id"),
+        ForeignKey("model_versions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Reference to the deployed model version",
@@ -472,7 +472,7 @@ class ModelEvaluation(Base):
     # -------------------------------------------------------------------------
     model_version_id = Column(
         UUID,
-        ForeignKey("model_versions.id"),
+        ForeignKey("model_versions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="Reference to evaluated model version",

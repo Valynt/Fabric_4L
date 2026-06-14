@@ -4,59 +4,58 @@ permissions:
   contents: read
   actions: read
 
-on:
+"on":
   workflow_call:
     inputs:
       environment:
-        description: 'Target environment'
-        required: true
+        description: "Target environment"
         type: string
-        default: 'staging'
+        default: "staging"
       image_ref:
-        description: 'Image digest or immutable tag to deploy'
+        description: "Image digest or immutable tag to deploy"
         required: true
         type: string
       registry:
-        description: 'Container registry'
-        default: 'ghcr.io'
+        description: "Container registry"
+        default: "ghcr.io"
         required: false
         type: string
       prod_readiness_verified:
-        description: 'Set to true only when the canonical prod-readiness workflow has produced a matching release packet.'
+        description: "Set to true only when the canonical prod-readiness workflow has produced a matching release packet."
         required: false
         type: boolean
         default: false
       supply_chain_artifact_sha:
-        description: 'Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA.'
+        description: "Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA."
         required: false
         type: string
-        default: ''
+        default: ""
 
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment'
+        description: "Target environment"
         required: true
         type: choice
         options:
           - dev
           - staging
           - production
-        default: 'staging'
+        default: "staging"
       image_ref:
-        description: 'Image digest or immutable tag to deploy'
+        description: "Image digest or immutable tag to deploy"
         required: true
         type: string
       registry:
-        description: 'Container registry'
-        default: 'ghcr.io'
+        description: "Container registry"
+        default: "ghcr.io"
         required: false
         type: string
       supply_chain_artifact_sha:
-        description: 'Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA.'
+        description: "Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA."
         required: false
         type: string
-        default: ''
+        default: ""
 
 env:
   REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
@@ -78,7 +77,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Verify image signatures
         uses: sigstore/cosign-installer@v3.8.1
@@ -92,19 +91,22 @@ jobs:
             echo "Mutable image reference is forbidden: $ref"
             exit 1
           fi
-          if [[ ! "$ref" =~ ^sha-[0-9a-f]{40}$ ]] && [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]] && [[ ! "$ref" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          if [[ ! "$ref" =~ ^sha-[0-9a-f]{40}$ ]] && \
+             [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]] && \
+             [[ ! "$ref" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "Image reference must be sha256 digest, sha-<40>, or signed semver release tag: $ref"
             exit 1
           fi
 
-          for layer in layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+          for layer in layer1-ingestion layer2-extraction layer3-knowledge \
+                       layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
             if [[ "$ref" == sha256:* ]]; then
               IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer@${ref}"
             else
               IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer:${ref}"
             fi
             echo "Verifying signature for: $IMAGE"
-            
+
             if ! cosign verify \
               --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/.*" \
               --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
@@ -113,7 +115,7 @@ jobs:
               exit 1
             fi
           done
-          
+
           echo "All image signatures verified ✓"
 
       - name: Resolve supply-chain artifact SHA
@@ -268,7 +270,9 @@ jobs:
             dev) PROFILE="pr-fast" ;;
             *) echo "Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
           esac
-          python scripts/ci/validate_deploy_profile_controls.py             --policy-file .fabric/prod-gates.policy.yaml             --profile "$PROFILE"
+          python scripts/ci/validate_deploy_profile_controls.py \
+            --policy-file .fabric/prod-gates.policy.yaml \
+            --profile "$PROFILE"
 
       - name: Block unverified production promotion
         if: env.ENVIRONMENT == 'production'
@@ -311,7 +315,7 @@ jobs:
       name: ${{ inputs.environment }}
       url: ${{ steps.deploy-info.outputs.url }}
     permissions:
-      id-token: write      # Required for AWS OIDC / IRSA
+      id-token: write # Required for AWS OIDC / IRSA
       contents: read
 
     steps:
@@ -320,12 +324,12 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
         with:
-          version: 'v1.31.2'
+          version: "v1.31.2"
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:
-          version: 'v3.16.2'
+          version: "v3.16.2"
 
       - name: Validate EKS kubeconfig inputs
         env:
@@ -392,7 +396,8 @@ jobs:
         run: |
           DEPLOY_NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
           if [[ "$DEPLOY_NS" != "${{ steps.overlay.outputs.namespace }}" ]]; then
-            echo "::error::Namespace resolver returned '$DEPLOY_NS' but overlay output is '${{ steps.overlay.outputs.namespace }}'"
+            echo "::error::Namespace resolver returned '$DEPLOY_NS' but overlay output is \
+              '${{ steps.overlay.outputs.namespace }}'"
             exit 1
           fi
           echo "Resolved namespace: $DEPLOY_NS"
@@ -514,23 +519,23 @@ jobs:
       - name: Health check endpoints
         run: |
           BASE_URL="https://api.${{ env.ENVIRONMENT }}.value-fabric.com"
-          
+
           endpoints=(
             "/health"
             "/health/version"
             "/api/v1/health"
           )
-          
+
           for endpoint in "${endpoints[@]}"; do
             url="${BASE_URL}${endpoint}"
             echo "Checking: $url"
-            
+
             if ! curl -fsS --max-time 30 "$url"; then
               echo "Health check failed: $url"
               exit 1
             fi
           done
-          
+
           echo "All health checks passed ✓"
 
       - name: Critical path tests
@@ -557,12 +562,12 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
         with:
-          version: 'v1.31.2'
+          version: "v1.31.2"
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
         with:
-          version: 'v3.16.2'
+          version: "v3.16.2"
 
       - name: Validate EKS kubeconfig inputs
         env:
@@ -656,7 +661,7 @@ jobs:
       - name: Record successful deployment
         run: |
           echo "Recording successful deployment to ${{ env.ENVIRONMENT }}"
-          
+
           # This would update a deployment tracking system
           # or create a GitHub release with deployment metadata
 
@@ -669,9 +674,7 @@ jobs:
     timeout-minutes: 10
     needs: [smoke-tests, verify]
     if: >
-      inputs.environment == 'production' &&
-      needs.smoke-tests.result == 'success' &&
-      needs.verify.result == 'success'
+      inputs.environment == 'production' && needs.smoke-tests.result == 'success' && needs.verify.result == 'success'
     permissions:
       contents: write
 
@@ -759,7 +762,7 @@ jobs:
     needs: [deploy, smoke-tests]
     if: always()
     permissions:
-      id-token: write  # Required for Infisical OIDC authentication
+      id-token: write # Required for Infisical OIDC authentication
 
     steps:
       - name: Map environment to Infisical slug
@@ -775,7 +778,7 @@ jobs:
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
         id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
           method: oidc
           env-slug: ${{ env.INFISICAL_ENV_SLUG }}
@@ -787,7 +790,7 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          channel: '#deployments'
+          channel: "#deployments"
           fields: repo,message,commit,author,action,eventName,ref,workflow
         env:
           SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
@@ -799,5 +802,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Image Tag**: ${{ env.IMAGE_REF }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ needs.smoke-tests.result == 'success' && '✅ Success' || (needs.deploy.result == 'failure' && '❌ Failed' || '🔄 In Progress') }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.smoke-tests.result }}" = "success" ]; then
+            status="✅ Success"
+          elif [ "${{ needs.deploy.result }}" = "failure" ]; then
+            status="❌ Failed"
+          else
+            status="🔄 In Progress"
+          fi
+          echo "- **Status**: ${status}" >> $GITHUB_STEP_SUMMARY
           echo "- **URL**: https://api.${{ env.ENVIRONMENT }}.value-fabric.com" >> $GITHUB_STEP_SUMMARY

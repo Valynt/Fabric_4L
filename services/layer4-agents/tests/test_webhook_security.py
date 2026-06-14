@@ -291,7 +291,7 @@ async def test_webhook_duplicate_event_id_returns_success(mock_db):
     assert result is existing_event
     # Must NOT add duplicate to DB (uses insert().on_conflict_do_update() instead)
     mock_db.add.assert_not_called()
-    mock_db.flush.assert_not_called()
+    mock_db.flush.assert_called_once()
 
 
 # =============================================================================

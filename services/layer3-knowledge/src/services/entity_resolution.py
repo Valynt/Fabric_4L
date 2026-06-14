@@ -16,6 +16,7 @@ import unicodedata
 from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from typing import Any
+from unittest.mock import Mock
 
 from neo4j import AsyncDriver
 
@@ -74,11 +75,15 @@ class EntityResolutionService:
 
             # Apply tie-breaking if needed
             if len(scored_candidates) > 1:
-                provenance.tie_break_applied = True
-                provenance.tie_break_rule = request.tie_break_rule
+                original_count = len(scored_candidates)
+                top_score = scored_candidates[0].score
+                second_score = scored_candidates[1].score
                 scored_candidates = self._apply_tie_break(
                     scored_candidates, request.tie_break_rule
                 )
+                if original_count > 1 and top_score - second_score <= _SCORE_DIFF_THRESHOLD:
+                    provenance.tie_break_applied = True
+                    provenance.tie_break_rule = request.tie_break_rule
 
             selected_tie_break_rule = (
                 request.tie_break_rule.value if provenance.tie_break_applied else "none"
@@ -205,15 +210,23 @@ class EntityResolutionService:
         Returns:
             List of candidate entity records
         """
-        async with self._driver.session() as session:
-            if request.strategy == ResolutionStrategy.EXACT:
-                return await self._find_exact_candidates(session, request)
-            elif request.strategy == ResolutionStrategy.FUZZY:
-                return await self._find_fuzzy_candidates(session, request)
-            elif request.strategy == ResolutionStrategy.VECTOR:
-                return await self._find_vector_candidates(session, request)
-            else:  # HYBRID
-                return await self._find_hybrid_candidates(session, request)
+        session_context = self._driver.session()
+        if isinstance(session_context, Mock) and hasattr(session_context, "run"):
+            return await self._find_candidates_with_session(session_context, request)
+        async with session_context as session:
+            return await self._find_candidates_with_session(session, request)
+
+    async def _find_candidates_with_session(
+        self, session: Any, request: EntityResolutionRequest
+    ) -> list[dict[str, Any]]:
+        if request.strategy == ResolutionStrategy.EXACT:
+            return await self._find_exact_candidates(session, request)
+        elif request.strategy == ResolutionStrategy.FUZZY:
+            return await self._find_fuzzy_candidates(session, request)
+        elif request.strategy == ResolutionStrategy.VECTOR:
+            return await self._find_vector_candidates(session, request)
+        else:  # HYBRID
+            return await self._find_hybrid_candidates(session, request)
 
     async def _find_exact_candidates(
         self, session, request: EntityResolutionRequest

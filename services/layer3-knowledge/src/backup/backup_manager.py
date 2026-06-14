@@ -564,7 +564,12 @@ class BackupManager:
         except Exception as e:
             logger.error(f"Failed to load existing backups: {e}")
 
-    async def create_backup(self, request: BackupRequest) -> BackupResponse:
+    async def create_backup(
+        self,
+        request: BackupRequest,
+        *,
+        authenticated_tenant_id: str | None = None,
+    ) -> BackupResponse:
         """Create a new backup.
 
         Args:
@@ -601,13 +606,27 @@ class BackupManager:
         self.active_backups[backup_id] = metadata
 
         try:
+            tenant_id = request.tenant_id
+            if authenticated_tenant_id is not None:
+                tenant_id = authenticated_tenant_id
+                if request.tenant_id and request.tenant_id != authenticated_tenant_id:
+                    raise ValueError(
+                        json.dumps(
+                            {
+                                "code": "TENANT_SCOPE_MISMATCH",
+                                "requested_tenant_hint": request.tenant_id,
+                            },
+                            sort_keys=True,
+                        )
+                    )
+
             if request.global_export:
                 await self._authorize_global_backup(admin_capability=request.admin_capability)
 
             # Generate backup data
             backup_data = await self._generate_backup_data(
                 backup_type=request.backup_type,
-                tenant_id=request.tenant_id,
+                tenant_id=tenant_id,
                 global_export=request.global_export,
                 admin_capability=request.admin_capability,
             )
@@ -661,6 +680,10 @@ class BackupManager:
                 duration_seconds=duration,
             )
 
+        except PermissionError:
+            metadata.status = BackupStatus.FAILED
+            metadata.completed_at = datetime.utcnow()
+            raise
         except Exception as e:
             metadata.status = BackupStatus.FAILED
             metadata.completed_at = datetime.utcnow()
@@ -672,7 +695,7 @@ class BackupManager:
                 status=metadata.status.value,
                 backup_type=metadata.backup_type,
                 created_at=metadata.created_at,
-                error="backup_failed",
+                error=str(e) if str(e) else "backup_failed",
             )
 
     async def _generate_backup_data(

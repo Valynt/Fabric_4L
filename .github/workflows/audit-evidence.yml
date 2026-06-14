@@ -7,7 +7,7 @@ on:
   # Monthly collection for compliance (1st of month at 1 AM UTC)
   schedule:
     - cron: '0 1 1 * *'
-  
+
   # On-demand collection for audits
   workflow_dispatch:
     inputs:
@@ -24,7 +24,7 @@ on:
         required: false
         default: true
         type: boolean
-  
+
   # Pre-release evidence collection
   workflow_call:
     inputs:
@@ -46,19 +46,19 @@ jobs:
     name: Collect Access Control Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full git history
-      
+
       - name: Generate access control evidence
         run: |
           mkdir -p audit-evidence/access-control
-          
+
           # Copy CODEOWNERS
           cp .github/CODEOWNERS audit-evidence/access-control/
-          
+
           # Generate RBAC summary
           cat > audit-evidence/access-control/rbac-summary.json << EOF
           {
@@ -79,7 +79,7 @@ jobs:
             ]
           }
           EOF
-      
+
       - name: Upload access control evidence
         uses: actions/upload-artifact@v4
         with:
@@ -94,27 +94,27 @@ jobs:
     name: Collect Change Management Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Generate commit history
         run: |
           mkdir -p audit-evidence/change-management
-          
+
           # Export commit history (last 90 days)
           git log --all --pretty=format:'%H|%an|%ae|%ad|%s' \
             --date=short --since="${{ env.DAYS_BACK }} days ago" \
             > audit-evidence/change-management/commit-history.csv
-          
+
           # Copy pre-commit config
           cp .pre-commit-config.yaml audit-evidence/change-management/
-          
+
           # Count commits
           COMMIT_COUNT=$(git log --oneline --since="${{ env.DAYS_BACK }} days ago" | wc -l)
-          
+
           cat > audit-evidence/change-management/change-summary.json << EOF
           {
             "generated_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -127,7 +127,7 @@ jobs:
             ]
           }
           EOF
-      
+
       - name: Upload change management evidence
         uses: actions/upload-artifact@v4
         with:
@@ -142,26 +142,26 @@ jobs:
     name: Collect Security Operations Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Collect security test evidence
         run: |
           mkdir -p audit-evidence/security-operations
-          
+
           # Copy security tests
           cp -r tests/security audit-evidence/security-operations/ || true
-          
+
           # Copy security gates workflow
           cp .github/workflows/security-gates.yml audit-evidence/security-operations/ || true
-          
+
           # Copy penetration tests
           cp -r tests/penetration audit-evidence/security-operations/ || true
-          
+
           # Copy threat model
           cp THREAT_MODEL.md audit-evidence/security-operations/ || true
-          
+
           # Generate security summary
           cat > audit-evidence/security-operations/security-summary.json << EOF
           {
@@ -184,7 +184,7 @@ jobs:
             "scan_frequency": "Weekly scheduled + On-demand"
           }
           EOF
-      
+
       - name: Upload security operations evidence
         uses: actions/upload-artifact@v4
         with:
@@ -199,20 +199,20 @@ jobs:
     name: Collect Availability Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Collect chaos engineering evidence
         run: |
           mkdir -p audit-evidence/availability
-          
+
           # Copy chaos experiments
           cp -r k8s/chaos audit-evidence/availability/ || true
-          
+
           # Copy GitOps configuration
           cp -r k8s/gitops audit-evidence/availability/ || true
-          
+
           # Generate availability summary
           cat > audit-evidence/availability/availability-summary.json << EOF
           {
@@ -248,7 +248,7 @@ jobs:
             "framework": "LitmusChaos"
           }
           EOF
-      
+
       - name: Upload availability evidence
         uses: actions/upload-artifact@v4
         with:
@@ -263,29 +263,29 @@ jobs:
     name: Collect Policy Documentation
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Collect policy documents
         run: |
           mkdir -p audit-evidence/policies
-          
+
           # Copy root policy documents
           for doc in SECURITY.md AGENTS.md VERSIONING.md COMPLIANCE.md SUPPLY_CHAIN.md GITOPS.md THREAT_MODEL.md RUNBOOK.md; do
             if [ -f "$doc" ]; then
               cp "$doc" audit-evidence/policies/
             fi
           done
-          
+
           # Copy docs directories
           cp -r docs/trust audit-evidence/policies/ || true
           cp -r docs/operations audit-evidence/policies/ || true
           cp -r docs/audit audit-evidence/policies/ || true
-          
+
           # List collected policies
           find audit-evidence/policies -type f -name "*.md" | sort > audit-evidence/policies/POLICY_MANIFEST.txt
-      
+
       - name: Upload policy evidence
         uses: actions/upload-artifact@v4
         with:
@@ -302,16 +302,16 @@ jobs:
     needs: [access-control-evidence, change-management-evidence, security-operations-evidence, availability-evidence, policy-evidence]
     if: always()
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download all evidence artifacts
         uses: actions/download-artifact@v4
         with:
           path: audit-evidence/
           merge-multiple: true
-      
+
       - name: Generate evidence index
         run: |
           # Generate JSON index
@@ -351,7 +351,7 @@ jobs:
             }
           }
           EOF
-          
+
           # Generate human-readable README using printf (avoids heredoc YAML issues)
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           printf '%s\n' "# SOC2/ISO27001 Audit Evidence Bundle" "" \
@@ -371,17 +371,17 @@ jobs:
             "Security: security@value-fabric.local" \
             "Compliance: compliance@value-fabric.local" \
             > audit-evidence/README.md
-      
+
       - name: Create evidence archive
         run: |
           tar -czf audit-evidence-${{ github.run_id }}.tar.gz audit-evidence/
-          
+
           # Generate checksum
           sha256sum audit-evidence-${{ github.run_id }}.tar.gz > audit-evidence-${{ github.run_id }}.sha256
-          
+
           echo "Archive created: audit-evidence-${{ github.run_id }}.tar.gz"
           echo "Size: $(du -h audit-evidence-${{ github.run_id }}.tar.gz | cut -f1)"
-      
+
       - name: Upload consolidated bundle
         uses: actions/upload-artifact@v4
         with:
@@ -390,7 +390,7 @@ jobs:
             audit-evidence-${{ github.run_id }}.tar.gz
             audit-evidence-${{ github.run_id }}.sha256
           retention-days: 2555
-      
+
       - name: Update workflow summary
         run: |
           echo "## 📋 Audit Evidence Bundle Complete" >> $GITHUB_STEP_SUMMARY
@@ -411,7 +411,6 @@ jobs:
           echo "- Policy docs: Permanent" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Download:** \\"complete-audit-evidence-bundle\\" artifact" >> $GITHUB_STEP_SUMMARY
-
 
   automated-control-evidence:
     name: Collect Automated Control Evidence Artifacts

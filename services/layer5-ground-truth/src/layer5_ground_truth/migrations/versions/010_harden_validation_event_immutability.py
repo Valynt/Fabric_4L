@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers
 revision = "010_harden_validation_event_immutability"
-down_revision = "009"
+down_revision = "009a_widen_alembic_version_num"
 branch_labels = None
 depends_on = None
 

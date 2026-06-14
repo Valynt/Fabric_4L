@@ -277,6 +277,12 @@ def _assert_session_has_tenant_context(session: AsyncSession, *, operation: str)
 class TenantEnforcedAsyncSession(AsyncSession):
     """AsyncSession that fails closed if SQL executes before tenant context is set."""
 
+    @property
+    def _tenant_id(self) -> str | None:
+        """Compatibility view over the canonical tenant context stored in session.info."""
+        value = self.info.get(_TENANT_CONTEXT_VALUE_KEY)
+        return str(value) if value is not None else None
+
     async def execute(self, statement, params=None, /, **kwargs):  # type: ignore[override]
         if not _statement_sets_tenant_context(statement):
             _assert_session_has_tenant_context(self, operation="statement execution")
@@ -1002,3 +1008,28 @@ async def init_db() -> None:
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+@asynccontextmanager
+async def get_system_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Async context manager for privileged/system database sessions.
+
+    Intended for background tasks and internal services that must query or
+    mutate data across tenant boundaries without a request-scoped tenant
+    context. The session is marked as a tenant-context bypass so the
+    fail-safe TenantEnforcedAsyncSession does not reject statements that do
+    not set app.tenant_id.
+
+    SECURITY: This must never be used to satisfy route dependencies; callers
+    must perform their own authorization when operating outside a single
+    tenant context.
+    """
+    factory = get_session_factory()
+    async with factory() as session:
+        _mark_session_tenant_bypass(session, reason="system_operation")
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

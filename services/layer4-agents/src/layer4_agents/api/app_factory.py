@@ -122,6 +122,11 @@ def create_app() -> FastAPI:
     )
     configure_middleware(app)
 
+    app.router.routes = [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) not in {"/health", "/health/live"}
+    ]
     register_core_routes(app)
     register_routers(app)
     return app

@@ -1,7 +1,9 @@
-"""Compatibility shim for the canonical Layer 4 module.
+"""Compatibility alias for the canonical Layer 4 billing service."""
 
-The implementation lives in ``layer4_agents.services.billing_service``. Keep this file as a thin
-re-export only so the packaged source of truth remains ``layer4_agents``.
-"""
+from __future__ import annotations
 
-from layer4_agents.services.billing_service import *  # noqa: F401,F403
+import sys
+
+from layer4_agents.services import billing_service as _canonical
+
+sys.modules[__name__] = _canonical

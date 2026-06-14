@@ -43,14 +43,14 @@ class PrometheusMetrics:
         self._metrics["requests_total"] = Counter(
             f"{prefix}http_requests_total",
             "Total HTTP requests",
-            ["method", "endpoint", "status_code"],
+            ["method", "endpoint", "status_code", "tenant_id"],
             registry=self.config.registry,
         )
 
         self._metrics["request_duration"] = Histogram(
             f"{prefix}http_request_duration_seconds",
             "HTTP request duration",
-            ["method", "endpoint"],
+            ["method", "endpoint", "tenant_id"],
             buckets=self.config.default_buckets,
             registry=self.config.registry,
         )
@@ -230,17 +230,34 @@ class PrometheusMetrics:
         )
         self._metrics["build_info"].info({"version": "1.0.0", "service": "layer1-ingestion"})
 
-    def increment_requests_total(self, method: str, endpoint: str, status_code: int) -> None:
+    def increment_requests_total(
+        self,
+        method: str,
+        endpoint: str,
+        status_code: int,
+        tenant_id: str = "unknown",
+    ) -> None:
         if self.config.enabled:
             self._metrics["requests_total"].labels(
-                method=method, endpoint=endpoint, status_code=str(status_code)
+                method=method,
+                endpoint=endpoint,
+                status_code=str(status_code),
+                tenant_id=tenant_id,
             ).inc()
 
-    def observe_request_duration(self, duration: float, method: str, endpoint: str) -> None:
+    def observe_request_duration(
+        self,
+        duration: float,
+        method: str,
+        endpoint: str,
+        tenant_id: str = "unknown",
+    ) -> None:
         if self.config.enabled:
-            self._metrics["request_duration"].labels(method=method, endpoint=endpoint).observe(
-                duration
-            )
+            self._metrics["request_duration"].labels(
+                method=method,
+                endpoint=endpoint,
+                tenant_id=tenant_id,
+            ).observe(duration)
 
     def increment_ingestion_jobs(self, status: str, target_type: str) -> None:
         if self.config.enabled:

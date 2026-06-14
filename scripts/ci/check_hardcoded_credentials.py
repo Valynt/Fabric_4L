@@ -30,8 +30,12 @@ ALLOWLIST = {
     "services/layer4-agents/README.md",
     # This script itself
     "scripts/ci/check_hardcoded_credentials.py",
-    # Pre-existing hardcoded defaults in other services (tracked as debt)
+    # Pre-existing hardcoded defaults in other services (tracked as debt).
+    # These config modules carry a dev-only default that is fail-closed in
+    # production via validate_production_safety (the URL is rejected when the
+    # environment is production-like), so the default cannot reach production.
     "services/layer1-ingestion/src/shared/config.py",
+    "services/layer1-ingestion/src/layer1_ingestion/shared/config.py",
     "services/layer7-billing/src/layer7_billing/database.py",
     # Validator pattern lists (false positives)
     "services/layer4-agents/src/layer4_agents/config/settings.py",
@@ -41,6 +45,11 @@ ALLOWLIST = {
 def _is_allowlisted(rel_path: str) -> bool:
     # Normalize to forward slashes
     normalized = rel_path.replace("\\", "/")
+    # pytest modules (``*_test.py`` / ``test_*.py``) are test fixtures regardless
+    # of directory; fake credentials in fixtures are standard practice.
+    filename = normalized.rsplit("/", 1)[-1]
+    if filename.endswith("_test.py") or filename.startswith("test_"):
+        return True
     for allowed in ALLOWLIST:
         if allowed in normalized:
             return True

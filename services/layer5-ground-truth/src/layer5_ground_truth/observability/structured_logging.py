@@ -38,7 +38,7 @@ def configure_structured_logging() -> None:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
-    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout, force=True)
 
 
 def set_request_log_context(request: Request) -> None:
@@ -54,5 +54,25 @@ def clear_request_log_context() -> None:
     _tenant_id_ctx.set(None)
 
 
+class _LoggerCompat:
+    """Accept legacy log calls that pass both positional and keyword event."""
+
+    def __init__(self, logger: Any) -> None:
+        self._logger = logger
+
+    def __getattr__(self, name: str) -> Any:
+        attr = getattr(self._logger, name)
+        if name not in {"debug", "info", "warning", "error", "critical", "exception"}:
+            return attr
+
+        def _log(*args: Any, **kwargs: Any) -> Any:
+            if args and "event" in kwargs:
+                kwargs = dict(kwargs)
+                kwargs.pop("event", None)
+            return attr(*args, **kwargs)
+
+        return _log
+
+
 def get_logger(name: str) -> Any:
-    return structlog.get_logger(name)
+    return _LoggerCompat(structlog.get_logger(name))

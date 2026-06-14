@@ -55,7 +55,7 @@ spec:
                 type: "string"
                 criteria: "notContains"
                 value: "OOMKilled"
-            
+
             # Verify extraction jobs are not lost
             - name: "extraction-job-persistence"
               type: "httpProbe"
@@ -72,7 +72,7 @@ spec:
                   get:
                     criteria: "!="
                     responseCode: "503"
-            
+
             # Post-chaos: verify graceful restart if OOM occurred
             - name: "graceful-recovery"
               type: "cmdProbe"

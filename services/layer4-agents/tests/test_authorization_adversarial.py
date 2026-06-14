@@ -24,6 +24,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from uuid import uuid4
+from unittest.mock import MagicMock
 
 from fastapi import FastAPI
 
@@ -47,7 +48,7 @@ test_app.include_router(accounts_router, prefix="/v1", tags=["Accounts"])
 
 
 @pytest_asyncio.fixture
-async def authenticated_client():
+async def authenticated_client(monkeypatch):
     """Create test client with valid authentication."""
     async def override_auth():
         return RequestContext(
@@ -57,7 +58,17 @@ async def authenticated_client():
             source="jwt",
         )
 
+    async def fake_list_accounts(self, **kwargs):
+        return [], 0
+
+    async def fake_db():
+        return MagicMock()
+
+    from layer4_agents.services.account_service import AccountService
+
+    monkeypatch.setattr(AccountService, "list_accounts", fake_list_accounts)
     test_app.dependency_overrides[require_authenticated] = override_auth
+    test_app.dependency_overrides[get_db_from_context] = fake_db
 
     try:
         async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
@@ -121,17 +132,27 @@ class TestTenantContextManipulation:
 
 
 @pytest_asyncio.fixture
-async def regular_user_client():
+async def regular_user_client(monkeypatch):
     """Create test client with regular user role (not admin)."""
     async def override_auth():
         return RequestContext(
             tenant_id="test-tenant-adversarial",
             user_id=str(uuid4()),
-            roles=[Role.USER.value],  # Regular user, not admin
+            roles=[Role.ANALYST.value],  # Regular user, not admin
             source="jwt",
         )
 
+    async def fake_list_accounts(self, **kwargs):
+        return [], 0
+
+    async def fake_db():
+        return MagicMock()
+
+    from layer4_agents.services.account_service import AccountService
+
+    monkeypatch.setattr(AccountService, "list_accounts", fake_list_accounts)
     test_app.dependency_overrides[require_authenticated] = override_auth
+    test_app.dependency_overrides[get_db_from_context] = fake_db
 
     try:
         async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:

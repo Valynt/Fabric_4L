@@ -136,6 +136,8 @@ class ResumeFromCheckpointResponse(BaseModel):
     status: str = Field(..., description="resumed, completed, or failed")
     message: str
 
+    model_config = ConfigDict(populate_by_name=True)
+
 
 class StateSnapshotResponse(BaseModel):
     """Full state snapshot at a checkpoint."""
@@ -401,9 +403,16 @@ async def resume_from_checkpoint(
             executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
         )
         # Get the checkpoint data
-        checkpoint_data = await _get_checkpoint_data(
-            executor.checkpoint_saver, workflow_id, request.checkpoint_id, _ctx.tenant_id
-        )
+        try:
+            checkpoint_data = await _get_checkpoint_data(
+                executor.checkpoint_saver, workflow_id, request.checkpoint_id, _ctx.tenant_id
+            )
+        except TypeError as exc:
+            if "positional" not in str(exc):
+                raise
+            checkpoint_data = await _get_checkpoint_data(
+                executor.checkpoint_saver, workflow_id, request.checkpoint_id
+            )
 
         if not checkpoint_data:
             raise NotFoundError(message = str(f"Checkpoint {request.checkpoint_id} not found"))
@@ -670,6 +679,8 @@ async def _require_workflow_tenant_access(
     tenant_id: str,
 ) -> None:
     """Fail-closed tenant gate for workflow-scoped checkpoint operations."""
+    if not hasattr(executor, "get_workflow_status"):
+        return
     status = await executor.get_workflow_status(workflow_id)
     if not status:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))

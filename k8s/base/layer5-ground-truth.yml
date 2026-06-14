@@ -38,8 +38,8 @@ spec:
             - name: DATABASE_URL_SYNC
               valueFrom:
                 secretKeyRef:
-                  name: layer5-db-credentials
-                  key: DATABASE_URL_SYNC
+                  name: layer5-database-secret
+                  key: database-url-sync
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

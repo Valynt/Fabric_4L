@@ -1,7 +1,6 @@
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
-    ValueFabricException,
 )
 
 """
@@ -29,7 +28,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 from value_fabric.shared.identity.permissions import (
     Role,
@@ -46,17 +45,14 @@ logger = logging.getLogger(__name__)
 _AUTH_REQUIRED = "authentication_required"
 
 
-def _auth_http_exception(status_code: int, *, error_code: str, message: str) -> ValueFabricException:
-    if status_code == status.HTTP_401_UNAUTHORIZED:
-        return AuthenticationError(
-            message=message,
-            error_code=error_code,
-            details={"error": _AUTH_REQUIRED, "error_code": error_code},
-        )
-    return AuthorizationError(
-        message=message,
-        error_code=error_code,
-        details={"error": _AUTH_REQUIRED, "error_code": error_code},
+def _auth_http_exception(status_code: int, *, error_code: str, message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "error": _AUTH_REQUIRED,
+            "error_code": error_code,
+            "message": message,
+        },
     )
 
 
@@ -230,6 +226,14 @@ def get_current_user(
         return _token_claims_from_context(ctx)
 
     hinted_tenant = request.query_params.get("tenant_id", None)
+    if hinted_tenant:
+        raise _auth_http_exception(
+            status.HTTP_403_FORBIDDEN,
+            error_code="AUTH_TENANT_HINT_REJECTED",
+            message="Tenant hints are not accepted without canonical authenticated context.",
+        )
+
+    hinted_tenant = request.headers.get("X-Tenant-ID")
     if hinted_tenant:
         raise _auth_http_exception(
             status.HTTP_403_FORBIDDEN,

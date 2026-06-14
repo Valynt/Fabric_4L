@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,8 +5,7 @@ Removal/migration target: 2026-09-30
 Reason: Operational routes extracted from the Layer 3 monolith.
 """
 
-# mypy: disable-error-code=import-untyped
-
+from __future__ import annotations
 
 import logging
 import platform
@@ -38,10 +33,12 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
     psutil = _PsutilFallback()
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
 
+from src.api.metrics_state import get_system_metrics, set_app_metrics
 from src.config import get_settings
 
 from ...api.dependencies import get_schema_initializer
@@ -51,13 +48,13 @@ from ...api.models import (
     HealthResponse,
 )
 
+# mypy: disable-error-code=import-untyped
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 SYSTEM_HEALTH_RESPONSES = {200: {"description": "Service health payload"}, 503: {"description": "Service unavailable"}}
-
-# Import shared metrics helpers from a non-route module to avoid circular imports.
-from ...api.metrics_state import get_system_metrics
+__all__ = ["router", "get_system_metrics", "set_app_metrics"]
 
 
 async def check_dependencies(schema_initializer: Any | None = None) -> list[DependencyStatus]:

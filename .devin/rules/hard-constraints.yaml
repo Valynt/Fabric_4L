@@ -95,7 +95,7 @@ rules:
     trigger:
       type: content_scan
       patterns:
-        - "(?i)(api[_-]?key|password|secret|token)\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+        - "(?i)(api[_-]?key|password|secret|token)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
         - "sk-[a-zA-Z0-9]{48}"
         - "AKIA[0-9A-Z]{16}"
     action:

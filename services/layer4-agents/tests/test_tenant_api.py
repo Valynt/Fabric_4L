@@ -364,7 +364,7 @@ class _TenantEntityCountDb:
         if "to_regclass" in sql:
             return _TenantEntityCountResult(self.exists[params["table_name"]])
         for table_name, count in self.counts.items():
-            if f"FROM {table_name}" in sql:
+            if f'FROM "{table_name}"' in sql or f"FROM {table_name}" in sql:
                 return _TenantEntityCountResult(count)
         return _TenantEntityCountResult(0)
 

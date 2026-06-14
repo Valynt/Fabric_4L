@@ -10,7 +10,7 @@ groups:
           team: revenue
           oncall_owner: sre-revenue
         annotations:
-          summary: "Billing payment failure rate is {{ $value | humanizePercentage }}"
+          summary: "Billing payment failure rate is {{$value | humanizePercentage}}"
           description: "More than 5% of payments are failing. Check Stripe dashboard."
           runbook_url: "https://wiki.fabric4l.io/runbooks/billing-payment-failures"
 
@@ -25,7 +25,7 @@ groups:
           oncall_owner: sre-revenue
         annotations:
           summary: "MRR dropped by more than 5% in 24h"
-          description: "MRR changed from {{ $labels.mrr_1d_ago }} to {{ $value }}. Investigate churn."
+          description: "MRR changed from {{$labels.mrr_1d_ago}} to {{$value}}. Investigate churn."
           runbook_url: "https://wiki.fabric4l.io/runbooks/mrr-drop"
 
       - alert: BillingStripeWebhookLatencyHigh
@@ -35,7 +35,7 @@ groups:
           severity: warning
           team: revenue
         annotations:
-          summary: "Stripe webhook p95 latency is {{ $value }}s"
+          summary: "Stripe webhook p95 latency is {{$value}}s"
           description: "Stripe webhooks are taking too long. Check webhook handler."
 
       - alert: BillingAPIUsageSpike
@@ -50,5 +50,5 @@ groups:
           severity: info
           team: revenue
         annotations:
-          summary: "API usage spiked {{ $value | humanize }}x above 1h average"
+          summary: "API usage spiked {{$value | humanize}}x above 1h average"
           description: "Unusual API usage pattern detected. May indicate abuse or viral growth."

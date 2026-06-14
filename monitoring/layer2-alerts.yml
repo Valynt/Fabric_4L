@@ -17,7 +17,7 @@ groups:
           summary: "Extraction failure rate exceeds 10%"
           description: "Extraction failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
           runbook_url: "/docs/runbooks/extraction-failures"
-          
+
       - alert: PromptInjectionAttempts
         expr: rate(prompt_injection_attempts_total[1m]) > 0
         for: 1m
@@ -29,7 +29,7 @@ groups:
           summary: "Prompt injection attempts detected"
           description: "{{ $value | humanize }} prompt injection attempts per minute"
           runbook_url: "/docs/runbooks/prompt-injection"
-          
+
       - alert: TenantIsolationBreach
         expr: rate(tenant_context_missing_total[5m]) > 0
         for: 1m
@@ -56,7 +56,7 @@ groups:
           summary: "Validation failure rate exceeds 20%"
           description: "Validation failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
           runbook_url: "/docs/runbooks/validation-failures"
-          
+
       - alert: QuarantineRateSpike
         expr: rate(quarantine_records_total[10m]) > 0.05
         for: 10m
@@ -68,7 +68,7 @@ groups:
           summary: "Quarantine rate exceeds 5%"
           description: "{{ $value | humanizePercentage }} of extractions quarantined over last 10 minutes"
           runbook_url: "/docs/runbooks/quarantine-spikes"
-          
+
       - alert: LLMCostSpike
         expr: rate(llm_cost_usd_total[1h]) > 10.0
         for: 15m
@@ -80,7 +80,7 @@ groups:
           summary: "LLM cost exceeds $10/hour"
           description: "Current LLM cost rate is ${{ $value }}/hour"
           runbook_url: "/docs/runbooks/cost-monitoring"
-          
+
       - alert: ExtractionLatencyP99
         expr: histogram_quantile(0.99, extraction_duration_seconds) > 300
         for: 15m
@@ -107,7 +107,7 @@ groups:
           summary: "Extraction job backlog growing"
           description: "{{ $value }} jobs pending in queue"
           runbook_url: "/docs/runbooks/job-backlog"
-          
+
       - alert: LowEntityExtractionRate
         expr: rate(entities_extracted_total[10m]) < 1.0
         for: 15m

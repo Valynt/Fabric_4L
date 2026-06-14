@@ -24,7 +24,7 @@ class ApprovalStatus(str, PyEnum):
 class AssumptionRecord(Base):
     __tablename__ = "assumption_records"
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     impact_value = Column(Float, nullable=False, default=0.0)
@@ -37,7 +37,7 @@ class AssumptionRecord(Base):
 class FormulaDefinition(Base):
     __tablename__ = "formula_definitions"
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     assumption_id = Column(UUID, ForeignKey("assumption_records.id", ondelete="CASCADE"), nullable=False)
     expression = Column(Text, nullable=False)
     lifecycle_state = Column(String(32), nullable=False, default=LifecycleState.DRAFT.value)
@@ -47,7 +47,7 @@ class BenchmarkDataset(Base):
     __tablename__ = "benchmark_datasets"
     __table_args__ = {"extend_existing": True}
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     name = Column(String(255), nullable=False)
     dataset_uri = Column(String(1024), nullable=False)
     lifecycle_state = Column(String(32), nullable=False, default=LifecycleState.DRAFT.value)
@@ -57,7 +57,7 @@ class PolicyRule(Base):
     __tablename__ = "policy_rules"
     __table_args__ = {"extend_existing": True}
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     name = Column(String(255), nullable=False)
     min_impact_threshold = Column(Float, nullable=False, default=0.0)
     required_reviewer_role = Column(String(128), nullable=False)
@@ -70,7 +70,7 @@ class AssumptionApprovalRequest(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     assumption_id = Column(UUID, ForeignKey("assumption_records.id", ondelete="CASCADE"), nullable=False)
     policy_rule_id = Column(UUID, ForeignKey("policy_rules.id", ondelete="SET NULL"), nullable=True)
     requested_by = Column(String(255), nullable=True)
@@ -83,7 +83,7 @@ class AssumptionApprovalDecision(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID, nullable=False, index=True)
+    tenant_id = Column(UUID, nullable=False)
     approval_request_id = Column(UUID, ForeignKey("assumption_approval_requests.id", ondelete="CASCADE"), nullable=False)
     reviewer_role = Column(String(128), nullable=False)
     decision = Column(String(32), nullable=False)

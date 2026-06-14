@@ -1,7 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer4 \
+        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
@@ -49,8 +49,10 @@ DB_MIGRATION_DATABASE_URL ?=
 PYTHON_BOOTSTRAP ?= python
 PYTHON ?= $(shell $(PYTHON_BOOTSTRAP) scripts/ci/resolve_python.py)
 PIP    := $(PYTHON) -m pip install -e
+PNPM ?= corepack pnpm
 # Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
 PYTEST := $(PYTHON) -m pytest -v --tb=short
+ROOT_MAKE := $(MAKE) -f $(firstword $(MAKEFILE_LIST))
 
 # Ensure mypy is available before running typecheck targets
 MYPY_VERSION_CHECK := $(shell $(PYTHON) -c "import shutil; print('mypy_found' if shutil.which('mypy') else 'mypy_not_found')")
@@ -230,13 +232,13 @@ lint-layer6: ## Lint Layer 6 only
 	@cd services/layer6-benchmarks && ruff check src/
 
 lint: ## Lint all Python layers with ruff (fails fast on first error)
-	@$(MAKE) lint-layer1 && \
-	 $(MAKE) lint-layer2 && \
-	 $(MAKE) lint-layer2-5 && \
-	 $(MAKE) lint-layer3 && \
-	 $(MAKE) lint-layer4 && \
-	 $(MAKE) lint-layer5 && \
-	 $(MAKE) lint-layer6 && \
+	@$(ROOT_MAKE) lint-layer1 && \
+	 $(ROOT_MAKE) lint-layer2 && \
+	 $(ROOT_MAKE) lint-layer2-5 && \
+	 $(ROOT_MAKE) lint-layer3 && \
+	 $(ROOT_MAKE) lint-layer4 && \
+	 $(ROOT_MAKE) lint-layer5 && \
+	 $(ROOT_MAKE) lint-layer6 && \
 	 echo "✅  Linting complete for all layers"
 
 # Per-layer mypy flags - stricter layers enforce more type safety
@@ -289,13 +291,13 @@ typecheck-layer6: ## Type-check Layer 6 only
 	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
-	@$(MAKE) typecheck-layer1 && \
-	 $(MAKE) typecheck-layer2 && \
-	 $(MAKE) typecheck-layer2-5 && \
-	 $(MAKE) typecheck-layer3 && \
-	 $(MAKE) typecheck-layer4 && \
-	 $(MAKE) typecheck-layer5 && \
-	 $(MAKE) typecheck-layer6 && \
+	@$(ROOT_MAKE) typecheck-layer1 && \
+	 $(ROOT_MAKE) typecheck-layer2 && \
+	 $(ROOT_MAKE) typecheck-layer2-5 && \
+	 $(ROOT_MAKE) typecheck-layer3 && \
+	 $(ROOT_MAKE) typecheck-layer4 && \
+	 $(ROOT_MAKE) typecheck-layer5 && \
+	 $(ROOT_MAKE) typecheck-layer6 && \
 	 echo "✅  Type-checking complete for all layers"
 
 # ─── Testing (4-Layer Strategy) ───────────────────────────────────────────────
@@ -341,16 +343,15 @@ test-e2e-full: ## Run full E2E suite: seed → contracts → journeys → reset
 
 contract-tests: ## Run cross-layer contract + architecture tests (fast, no secrets required)
 	@echo "→ Auditing contract test collection (static subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m contract_static -n 0
+	$(PYTEST) tests/contract/ --collect-only -q -m "contract_static and not service_required" -n 0 || exit $$?
 	@echo "→ Auditing contract test collection (service-required subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m service_required -n 0
+	$(PYTEST) tests/contract/ --collect-only -q -m service_required -n 0 || exit $$?
 	@echo "→ Running contract-static tests (deterministic, no live services)..."
-	$(PYTEST) tests/contract/ -v --tb=short -m contract_static -n 0
-	@echo "→ Running service-required contract tests (live services or explicit mock mode)..."
-	$(PYTEST) tests/contract/ -v --tb=short -m service_required -n 0
-	pnpm --dir packages/platform-contract run contract:test
+	$(PYTEST) tests/contract/ -v --tb=short -m "contract_static and not service_required" -n 0 || exit $$?
+	@echo "→ Service-required contract tests are collected above; execute them via live validation targets."
+	$(PNPM) --dir packages/platform-contract run contract:test || exit $$?
 	@echo "→ Running architecture tests (tenant isolation guards)..."
-	$(PYTEST) tests/arch/ -v --tb=short
+	$(PYTEST) tests/arch/ -v --tb=short || exit $$?
 	@echo "✅  Contract and architecture tests passed"
 
 pact-tests: ## Run Pact consumer tests (generates .pact files) and provider verification
@@ -398,7 +399,7 @@ bootstrap: ## One-command first-time setup: Infisical → corepack → pnpm → 
 	corepack enable
 	corepack prepare pnpm@10.18.1 --activate
 	@echo "=== Step 3: Install frontend dependencies ==="
-	pnpm install --frozen-lockfile
+	$(PNPM) install --frozen-lockfile
 	@echo "=== Step 4: Install Python service dependencies ==="
 	$(MAKE) setup
 	@echo "=== Step 5: Run database migrations ==="
@@ -413,14 +414,14 @@ setup: ## Install all service dev dependencies into the pytest Python environmen
 # ─── Layer-Specific Tests ─────────────────────────────────────────────────────
 
 test-layer1: ## Run Layer 1 tests
-	cd services/layer1-ingestion && $(PYTEST) -m "not postgres and not requires_postgres and not benchmark" tests/
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1 -m "not postgres and not requires_postgres and not benchmark" tests/
 
 test-layer1-crawler: ## Run focused Layer 1 crawler tests
-	cd services/layer1-ingestion && $(PYTEST) tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-crawler tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
 
 test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache isolation tests
-	cd services/layer1-ingestion && $(PYTEST) tests/crawler/test_smart_router.py tests/unit/test_smart_router.py tests/integration/test_router_edge_cases.py
-	$(PYTEST) tests/cache/test_redis_tenant_isolation.py tests/shared/identity/test_api_key_cache.py
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-router tests/crawler/test_smart_router.py tests/unit/test_smart_router.py tests/integration/test_router_edge_cases.py
+	$(PYTEST) --basetemp=.tmp/pytest-layer1-cache tests/cache/test_redis_tenant_isolation.py tests/shared/identity/test_api_key_cache.py
 
 test-layer1-benchmarks: ## Run Layer 1 benchmark and performance tests
 	cd services/layer1-ingestion && $(PYTEST) -m benchmark tests/benchmarks/ -v
@@ -430,30 +431,38 @@ test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (
 	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) -m "postgres or requires_postgres" tests/security/ tests/pipeline/ -v
 
 test-layer2: ## Run Layer 2 tests
-	cd services/layer2-extraction && $(PYTEST) tests/
+	cd services/layer2-extraction && $(PYTEST) --basetemp=../../.tmp/pytest-layer2 tests/
 
 test-layer2-5: ## Run Layer 2.5 tests
-	cd services/layer2-5-signal-refinery && $(PYTEST) tests/
+	cd services/layer2-5-signal-refinery && $(PYTEST) --basetemp=../../.tmp/pytest-layer2-5 tests/
 
 test-layer3: ## Run Layer 3 tests
 	$(PYTHON) scripts/ci/check_layer3_source_mirror.py
-	cd services/layer3-knowledge && $(PYTEST) tests/
+	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3 -m "not integration and not requires_neo4j and not vector" tests/
 
-test-layer4: ## Run Layer 4 tests
-	cd services/layer4-agents && $(PYTEST) tests/
+test-layer3-live: ## Run Layer 3 live Neo4j/vector integration tests
+	$(PYTHON) scripts/ci/check_layer3_source_mirror.py
+	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3-live -m "integration or requires_neo4j or vector" tests/
+
+test-layer4: ## Run Layer 4 local tests
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
+
+test-layer4-live: ## Run Layer 4 live Docker/PostgreSQL/integration tests
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/
 
 test-layer5: ## Run Layer 5 tests
-	cd services/layer5-ground-truth && $(PYTHON) scripts/check_no_duplicate_modules.py
-	cd services/layer5-ground-truth && $(PYTEST) tests/
+	cd services/layer5-ground-truth
+	$(PYTHON) scripts/check_no_duplicate_modules.py
+	$(PYTEST) --basetemp=../../.tmp/pytest-layer5 tests/
 
 test-layer6: ## Run Layer 6 tests
-	cd services/layer6-benchmarks && $(PYTEST) tests/
+	cd services/layer6-benchmarks && $(PYTEST) --basetemp=../../.tmp/pytest-layer6 tests/
 
 test-frontend: ## Run frontend unit tests
-	cd apps/web && pnpm run test
+	cd apps/web && $(PNPM) run test
 
 test-e2e: ## Run Playwright end-to-end tests (requires running stack)
-	cd apps/web && pnpm exec playwright test
+	cd apps/web && $(PNPM) exec playwright test
 
 # ─── Security Tests ───────────────────────────────────────────────────────────
 
@@ -517,7 +526,7 @@ perf-eval: ## Evaluate k6 results against versioned SLO thresholds
 # ─── Build ────────────────────────────────────────────────────────────────────
 
 build: ## Build frontend production bundle
-	cd apps/web && pnpm run build
+	cd apps/web && $(PNPM) run build
 
 docker-build: ## Build all deployable production Docker images locally
 	docker build -t fabric-4l/api-gateway:local -f services/api/Dockerfile .
@@ -816,7 +825,7 @@ gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-rea
 
 gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts ## Gate: API/platform contract compliance and tool contract structure
 	@echo "→ Gate: API Contracts"
-	@pnpm run check:contract-compliance
+	@$(PNPM) run check:contract-compliance
 	@echo "✅  gate-api-contracts passed"
 
 gate-auth-readiness: check-keycloak-realm-seed-security ## Gate: route auth dependencies and production auth-bypass prevention
@@ -855,7 +864,7 @@ gate-launch-blockers: check-conflict-markers check-no-nul-bytes check-readiness-
 
 gate-frontend-readiness: ## Gate: frontend beta readiness verification suite
 	@echo "→ Gate: Frontend Readiness"
-	@pnpm run verify:frontend
+	@$(PNPM) run verify:frontend
 	@echo "✅  gate-frontend-readiness passed"
 
 gate-reliability-readiness: gate-chaos gate-smoke ## Gate: reliability failure-mode and smoke coverage

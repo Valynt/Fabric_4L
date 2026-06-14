@@ -3,6 +3,7 @@ from __future__ import annotations
 from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
+    ValidationError,
 )
 
 """Documents domain router — business case PDF export via Layer 4.
@@ -27,6 +28,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["Documents"])
 
 
+def _tenant_headers_from_request(http_request: Request) -> dict[str, str]:
+    state = getattr(http_request, "state", None)
+    for attr in ("governance_context", "auth_context"):
+        context = getattr(state, attr, None)
+        tenant_id = getattr(context, "tenant_id", None)
+        if tenant_id:
+            resolved = str(tenant_id)
+            return {"X-Tenant-ID": resolved, "X-Value-Fabric-Tenant-ID": resolved}
+    raise ValidationError(message="tenant_id is required for document export")
+
+
 @router.post("/documents/export", response_model=DocumentExportResponse)
 async def export_document(
     request: DocumentExportRequest,
@@ -38,11 +50,12 @@ async def export_document(
     l4_api_url = os.getenv("LAYER4_API_URL", "http://layer4-agents:8004")
 
     try:
+        tenant_headers = _tenant_headers_from_request(http_request)
         async with httpx.AsyncClient(timeout=60.0) as client:
             l4_response = await client.get(
                 f"{l4_api_url}/v1/analysis/cases/{request.business_case_id}/export",
                 params={"format": request.format},
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", **tenant_headers},
             )
 
             if l4_response.status_code == 404:
@@ -67,6 +80,7 @@ async def export_document(
                         "format": request.format,
                         "include_provenance": request.include_provenance,
                     },
+                    headers={"Content-Type": "application/json", **tenant_headers},
                     timeout=120.0,
                 )
                 if gen_response.status_code != 200:
@@ -114,6 +128,8 @@ async def export_document(
     except httpx.ConnectError as e:
         logger.error("Cannot connect to L4 service: %s", e)
         raise ServiceUnavailableError(message = "Document generation service unavailable")
+    except (NotFoundError, ServiceUnavailableError, ValidationError):
+        raise
     except HTTPException:
         raise
     except Exception as exc:

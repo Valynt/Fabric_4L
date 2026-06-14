@@ -40,6 +40,11 @@ def _flag_is_truthy(value: Any) -> bool:
 
 def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | None = None) -> None:
     """Fail closed when production-like runtimes enable auth bypass toggles."""
+    if settings is not None and hasattr(settings, "effective_environment"):
+        effective_environment = str(getattr(settings, "effective_environment") or "").strip().lower()
+        if effective_environment in _EXPLICIT_LOCAL_TEST_ENVIRONMENTS:
+            return
+
     if _is_explicit_local_or_test_environment():
         return
 

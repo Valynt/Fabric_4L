@@ -154,8 +154,26 @@ class TestGovernanceAPIContract:
         self,
         client: AsyncClient,
         auth_headers_full_permissions: dict[str, str],
+        db: AsyncSession,
     ):
         """Test formula version lifecycle: create -> submit -> approve."""
+        from layer5_ground_truth.models.approval_workflow import ApprovalWorkflow, EntityType
+
+        db.add(
+            ApprovalWorkflow(
+                tenant_id="00000000-0000-0000-0000-000000000001",
+                entity_type=EntityType.FORMULA.value,
+                workflow_name="Formula approval",
+                required_approval_levels=1,
+                require_evidence=False,
+                require_justification=False,
+                approver_roles=["admin"],
+                is_active=True,
+                created_by="test",
+            )
+        )
+        await db.flush()
+
         # Create formula
         create_response = await client.post(
             "/api/v1/governance/formulas",
@@ -187,7 +205,7 @@ class TestGovernanceAPIContract:
         )
         assert version_response.status_code == 201
         version_data = version_response.json()
-        assert version_data["status"] == "DRAFT"
+        assert version_data["status"] == "draft"
 
         # Submit for approval
         submit_response = await client.post(
@@ -196,7 +214,7 @@ class TestGovernanceAPIContract:
         )
         assert submit_response.status_code == 200
         submit_data = submit_response.json()
-        assert submit_data["status"] == "PENDING_APPROVAL"
+        assert submit_data["status"] == "pending_approval"
 
         # Approve
         approve_response = await client.post(
@@ -205,7 +223,7 @@ class TestGovernanceAPIContract:
         )
         assert approve_response.status_code == 200
         approve_data = approve_response.json()
-        assert approve_data["status"] == "APPROVED"
+        assert approve_data["status"] == "approved"
         assert approve_data["approved_by"] is not None
         assert approve_data["approved_at"] is not None
 
@@ -315,7 +333,7 @@ class TestGovernanceAPIContract:
                 "slug": "test-assumption",
                 "assumption_type": "market_growth",
                 "description": "Test assumption",
-                "value": 0.1,
+                "value": {"rate": 0.1},
                 "value_type": "percentage",
                 "impact_level": "medium",
             },
@@ -328,12 +346,12 @@ class TestGovernanceAPIContract:
             f"/api/v1/governance/assumptions/{assumption_id}/evidence",
             headers=auth_headers_full_permissions,
             json={
-                "evidence_type": "research",
+                "evidence_type": "external_source",
                 "truth_object_id": "00000000-0000-0000-0000-000000000001",
                 "source_url": "https://example.com",
                 "source_title": "Research Paper",
-                "confidence": 0.8,
-                "relevance": 0.9,
+                "confidence": "high",
+                "relevance": "high",
             },
         )
         assert evidence_response.status_code == 201
@@ -351,7 +369,7 @@ class TestGovernanceAPIContract:
             "/api/v1/governance/value-entries",
             headers=auth_headers_full_permissions,
             json={
-                "entry_type": "revenue",
+                "entry_type": "revenue_impact",
                 "entry_name": "Test Entry",
                 "current_value": 1000.0,
             },
@@ -401,7 +419,8 @@ class TestGovernanceAPIContract:
         )
         assert response.status_code == 404
         data = response.json()
-        assert "detail" in data
+        assert "error" in data
+        assert data["error"]["code"] == "NOT_FOUND"
 
     async def test_error_envelope_409_conflict(
         self,
@@ -442,4 +461,5 @@ class TestGovernanceAPIContract:
         )
         assert response.status_code == 409
         data = response.json()
-        assert "detail" in data
+        assert "error" in data
+        assert data["error"]["code"] == "CONFLICT"

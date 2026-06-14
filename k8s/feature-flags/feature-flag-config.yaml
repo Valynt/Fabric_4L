@@ -13,12 +13,12 @@ data:
   FEATURE_SSO_OIDC: "true"
   FEATURE_EXPERIMENTAL_AI: "false"
   FEATURE_BETA_FORMULAS: "false"
-  
+
   # Rollout percentages (0-100)
   ROLLOUT_ADVANCED_MODE: "0"
   ROLLOUT_EXPERIMENTAL_AI: "0"
   ROLLOUT_BETA_FORMULAS: "0"
-  
+
   # Feature dependencies
   # advanced_mode requires: sso_oidc
   # experimental_ai requires: advanced_mode
@@ -39,7 +39,7 @@ data:
   FEATURE_SSO_OIDC: "true"
   FEATURE_EXPERIMENTAL_AI: "true"
   FEATURE_BETA_FORMULAS: "true"
-  
+
   ROLLOUT_ADVANCED_MODE: "100"
   ROLLOUT_EXPERIMENTAL_AI: "50"
   ROLLOUT_BETA_FORMULAS: "100"
@@ -59,7 +59,7 @@ data:
   FEATURE_SSO_OIDC: "true"
   FEATURE_EXPERIMENTAL_AI: "true"
   FEATURE_BETA_FORMULAS: "true"
-  
+
   ROLLOUT_ADVANCED_MODE: "100"
   ROLLOUT_EXPERIMENTAL_AI: "100"
   ROLLOUT_BETA_FORMULAS: "100"

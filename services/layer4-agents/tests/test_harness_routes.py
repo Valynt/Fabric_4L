@@ -52,11 +52,10 @@ def _make_gate(gate_id=_GATE_ID, run_id=_RUN_ID, tenant_id=_TENANT_A, status=Non
 def _build_app(registry_mock, tenant_id=_TENANT_A, user_id=_USER_ID):
     from fastapi import FastAPI
     from value_fabric.shared.identity.context import RequestContext
-    from src.api.routes.harness import get_harness_registry, router as harness_router
-    from value_fabric.shared.identity.dependencies import require_authenticated
+    from src.api.routes import harness as harness_routes
 
     app = FastAPI()
-    app.include_router(harness_router, prefix="/v1")
+    app.include_router(harness_routes.router, prefix="/v1")
 
     async def _mock_ctx():
         return RequestContext(user_id=user_id, tenant_id=tenant_id)
@@ -64,8 +63,9 @@ def _build_app(registry_mock, tenant_id=_TENANT_A, user_id=_USER_ID):
     async def _mock_registry():
         return registry_mock
 
-    app.dependency_overrides[require_authenticated] = _mock_ctx
-    app.dependency_overrides[get_harness_registry] = _mock_registry
+    app.dependency_overrides[harness_routes.require_authenticated] = _mock_ctx
+    app.dependency_overrides[harness_routes.require_content_admin] = _mock_ctx
+    app.dependency_overrides[harness_routes.get_harness_registry] = _mock_registry
     return app
 
 
@@ -129,7 +129,7 @@ async def test_decide_gate_uses_auth_context_for_decision_by():
             f"/v1/harness/gates/{_GATE_ID}/decide",
             json={"decision": "approved", "decision_reason": "Looks good"},
         )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert response.json()["decision_by"] == _USER_ID
     assert registry.decide_gate.call_args.kwargs["decision_by"] == _USER_ID
 
@@ -147,7 +147,7 @@ async def test_decide_gate_decision_by_falls_back_to_tenant_id():
     app = _build_app(registry, user_id=None, tenant_id=_TENANT_A)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(f"/v1/harness/gates/{_GATE_ID}/decide", json={"decision": "approved"})
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert registry.decide_gate.call_args.kwargs["decision_by"] == _TENANT_A
 
 
@@ -167,7 +167,7 @@ async def test_decide_gate_calls_registry_with_correct_args():
             f"/v1/harness/gates/{_GATE_ID}/decide",
             json={"decision": "approved", "decision_reason": "Verified"},
         )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     registry.decide_gate.assert_awaited_once()
     kw = registry.decide_gate.call_args.kwargs
     assert kw["gate_id"] == _GATE_ID
@@ -191,7 +191,7 @@ async def test_decide_gate_accepts_rejected_decision():
             f"/v1/harness/gates/{_GATE_ID}/decide",
             json={"decision": "rejected", "decision_reason": "Insufficient evidence"},
         )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert response.json()["status"] == "rejected"
 
 

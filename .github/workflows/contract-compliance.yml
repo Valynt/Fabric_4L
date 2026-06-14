@@ -85,7 +85,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: contract-compliance-${{ github.ref }}
+  group: contract-compliance-${{github.ref}}
   cancel-in-progress: true
 
 jobs:
@@ -123,16 +123,16 @@ jobs:
 
       - name: Run contract freshness and compatibility gate
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{ github.base_ref }}
+          if ["${{github.event_name}}" = "pull_request"]; then
+            python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{github.base_ref}}
           else
             python scripts/ci/contract_compliance_gate.py --mode full
           fi
 
       - name: Run OpenAPI breaking-change gate
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            pnpm contract:breaking --base-ref origin/${{ github.base_ref }}
+          if ["${{github.event_name}}" = "pull_request"]; then
+            pnpm contract:breaking --base-ref origin/${{github.base_ref}}
           else
             pnpm contract:breaking --base-ref origin/main
           fi
@@ -418,7 +418,7 @@ jobs:
           echo "Direct header access (headers['X-Tenant-ID']) is PROHIBITED."
           echo "All code must use: from shared.boundaries import require_tenant_context"
           echo ""
-          python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          python scripts/ci/boundary_check.py --base-ref "origin/${{github.base_ref || 'main'}}"
         # NO continue-on-error: This is a BLOCKING security gate
 
       - name: Run tenant boundary security tests
@@ -471,37 +471,36 @@ jobs:
       - name: Install dependencies
         run: |
           pip install fastapi uvicorn pydantic
-          if [ "${{ matrix.layer }}" = "layer3-knowledge" ]; then
+          if ["${{matrix.layer}}" = "layer3-knowledge"]; then
             pip install neo4j python-dotenv httpx psutil
-          elif [ "${{ matrix.layer }}" = "layer5-ground-truth" ]; then
+          elif ["${{matrix.layer}}" = "layer5-ground-truth"]; then
             pip install sqlalchemy asyncpg
           fi
 
       - name: Generate OpenAPI spec from code
-        working-directory: ./services/${{ matrix.layer }}
-        working-directory: ./services/${{ matrix.layer }}
+        working-directory: ./services/${{matrix.layer}}
         run: |
           python -c "
           import sys
           import json
           import traceback
-          
+
           sys.path.insert(0, 'src')
-          
+
           try:
-              from ${{ matrix.module }} import app
+              from ${{matrix.module}} import app
               openapi = app.openapi()
               with open('generated-openapi.json', 'w') as f:
                   json.dump(openapi, f, indent=2)
-              print(f'✅ Generated OpenAPI for ${{ matrix.layer }}')
+              print(f'✅ Generated OpenAPI for ${{matrix.layer}}')
               print(f'   Paths: {len(openapi.get(\"paths\", {}))}')
               sys.exit(0)
           except ImportError as e:
-              print(f'❌ Failed to import app for ${{ matrix.layer }}: {e}')
+              print(f'❌ Failed to import app for ${{matrix.layer}}: {e}')
               traceback.print_exc()
               sys.exit(1)
           except Exception as e:
-              print(f'❌ Failed to generate OpenAPI for ${{ matrix.layer }}: {e}')
+              print(f'❌ Failed to generate OpenAPI for ${{matrix.layer}}: {e}')
               traceback.print_exc()
               sys.exit(1)
           "
@@ -509,8 +508,8 @@ jobs:
       - name: Upload generated spec
         uses: actions/upload-artifact@v4
         with:
-          name: generated-openapi-${{ matrix.layer }}
-          path: services/${{ matrix.layer }}/generated-openapi.json
+          name: generated-openapi-${{matrix.layer}}
+          path: services/${{matrix.layer}}/generated-openapi.json
           retention-days: 7
 
   detect-drift:
@@ -530,7 +529,7 @@ jobs:
       - name: Download generated spec
         uses: actions/download-artifact@v4
         with:
-          name: generated-openapi-${{ matrix.layer }}
+          name: generated-openapi-${{matrix.layer}}
           path: generated/
 
       - name: Set up Python
@@ -541,15 +540,15 @@ jobs:
       - name: Compare OpenAPI specs
         id: compare
         run: |
-          if [ "${{ matrix.layer }}" = "layer5-ground-truth" ]; then
+          if ["${{matrix.layer}}" = "layer5-ground-truth"]; then
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \
-              > drift-report-${{ matrix.layer }}.md 2>&1 || EXIT_CODE=$?
+              > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
           else
             pip install jsondiff
             python scripts/compare_openapi.py \
-              contracts/openapi/${{ matrix.layer }}.json \
+              contracts/openapi/${{matrix.layer}}.json \
               generated/generated-openapi.json \
-              --output drift-report-${{ matrix.layer }}.md \
+              --output drift-report-${{matrix.layer}}.md \
               --exit-code || EXIT_CODE=$?
           fi
           echo "exit_code=${EXIT_CODE:-0}" >> $GITHUB_OUTPUT
@@ -560,19 +559,19 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const report = fs.readFileSync('drift-report-${{ matrix.layer }}.md', 'utf8');
+            const report = fs.readFileSync('drift-report-${{matrix.layer}}.md', 'utf8');
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🔍 API Contract Drift Detected: ${{ matrix.layer }}\n\n${report}`
+              body: `## 🔍 API Contract Drift Detected: ${{matrix.layer}}\n\n${report}`
             });
 
       - name: Fail on drift
         if: steps.compare.outputs.exit_code != '0'
         run: |
-          echo "::error::API contract drift detected in ${{ matrix.layer }}"
-          cat drift-report-${{ matrix.layer }}.md
+          echo "::error::API contract drift detected in ${{matrix.layer}}"
+          cat drift-report-${{matrix.layer}}.md
           exit 1
 
   openapi-contract-tests:
@@ -607,7 +606,7 @@ jobs:
 
       - name: Run contract tests
         run: |
-          pytest ${{ matrix.test_path }} -v --tb=short
+          pytest ${{matrix.test_path}} -v --tb=short
         env:
           FAIL_ON_CONTRACT_VIOLATION: "true"
 
@@ -615,7 +614,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: contract-test-results-${{ matrix.layer }}
+          name: contract-test-results-${{matrix.layer}}
           path: |
             .pytest_cache/
             test-results.xml
@@ -666,18 +665,18 @@ jobs:
           node -e "
             const fs = require('fs');
             const data = JSON.parse(fs.readFileSync('docs/governance/deprecations.json', 'utf8'));
-            
+
             // Required fields check
             if (!data.version) throw new Error('Missing version');
             if (!data.items || !Array.isArray(data.items)) throw new Error('Missing items array');
-            
+
             // Check each deprecation item
             data.items.forEach((item, idx) => {
               const required = ['id', 'pattern', 'contract', 'status', 'severity', 'owner', 'targetRemoval', 'replacement'];
               required.forEach(field => {
                 if (!item[field]) throw new Error(\`Item \${idx} missing \${field}\`);
               });
-              
+
               // Check for expired exceptions
               if (item.targetRemoval) {
                 const removal = new Date(item.targetRemoval);
@@ -691,7 +690,7 @@ jobs:
                 }
               }
             });
-            
+
             console.log(\`✅ Validated \${data.items.length} deprecations\`);
             console.log(\`📊 Compliance score: \${data.compliance?.overallScore || 'N/A'}%\`);
             console.log(\`🎯 Target: \${data.compliance?.targetScore || 'N/A'}% by \${data.compliance?.targetDate || 'N/A'}\`);
@@ -707,12 +706,11 @@ jobs:
             const expired = data.items.filter(i => new Date(i.targetRemoval) < now);
             console.log(expired.map(i => i.id).join(' ') || 'NONE');
           ")
-          if [ "$EXPIRED" != "NONE" ]; then
+          if ["$EXPIRED" != "NONE"]; then
             echo "::error::Expired deprecations found: $EXPIRED"
             exit 1
           fi
           echo "✅ No expired deprecations"
-
 
       - name: Baseline deprecation debt scan (warning mode)
         continue-on-error: true
@@ -724,7 +722,7 @@ jobs:
           python3 scripts/ci/validate_generated_contract_deprecations.py
 
       - name: Enforce agreed deprecation thresholds
-        if: ${{ vars.ENFORCE_DEPRECATION_DEBT == 'true' }}
+        if: ${{vars.ENFORCE_DEPRECATION_DEBT == 'true'}}
         run: |
           python3 scripts/report_deprecation_debt.py             --mode enforce             --thresholds docs/governance/deprecation-debt-registry.json             --output deprecation-debt-report-enforced.json
 
@@ -813,23 +811,23 @@ jobs:
           echo "### Code Quality Checks" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Plugin Tests | ${{ needs.plugin-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Contract Compliance + OpenAPI Breaking Gate | ${{ needs.contract-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Validate Dependabot Coverage | ${{ needs.validate-dependabot-coverage.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint Frontend | ${{ needs.lint-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Validate Canonical | ${{ needs.validate-canonical.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform Contract Tests | ${{ needs.platform-contract-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Python Lint | ${{ needs.python-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deprecation Register | ${{ needs.validate-deprecations.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Plugin Tests | ${{needs.plugin-tests.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract Compliance + OpenAPI Breaking Gate | ${{needs.contract-compliance.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validate Dependabot Coverage | ${{needs.validate-dependabot-coverage.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Frontend | ${{needs.lint-frontend.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validate Canonical | ${{needs.validate-canonical.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform Contract Tests | ${{needs.platform-contract-tests.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Lint | ${{needs.python-lint.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deprecation Register | ${{needs.validate-deprecations.result}} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### OpenAPI Contract Checks" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Generate OpenAPI | ${{ needs.generate-openapi.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Detect Drift | ${{ needs.detect-drift.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Contract Tests | ${{ needs.openapi-contract-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Contract Shape Regression | ${{ needs.contract-shape-regression.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| OpenAPI Breaking Changes | ${{ needs.contract-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Generate OpenAPI | ${{needs.generate-openapi.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Detect Drift | ${{needs.detect-drift.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract Tests | ${{needs.openapi-contract-tests.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract Shape Regression | ${{needs.contract-shape-regression.result}} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OpenAPI Breaking Changes | ${{needs.contract-compliance.result}} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Contract Enforcement Status" >> $GITHUB_STEP_SUMMARY
           echo "| Contract | ESLint | CI Gate | Runtime | Score |" >> $GITHUB_STEP_SUMMARY

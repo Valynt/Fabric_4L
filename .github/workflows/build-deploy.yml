@@ -1,22 +1,22 @@
 name: Build and Deploy
 
-on:
+"on":
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       registry:
-        description: 'Container registry'
-        default: 'ghcr.io'
+        description: "Container registry"
+        default: "ghcr.io"
         required: false
         type: string
       image_tag:
-        description: 'Image tag (default: git SHA)'
-        default: ''
+        description: "Image tag (default: git SHA)"
+        default: ""
         required: false
         type: string
       push_latest:
-        description: 'Push latest tag'
+        description: "Push latest tag"
         default: true
         required: false
         type: boolean
@@ -38,7 +38,16 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            frontend,
+          ]
         include:
           - layer: layer1-ingestion
             port: 8000
@@ -131,7 +140,16 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            frontend,
+          ]
         include:
           - layer: layer1-ingestion
             port: 8000
@@ -249,19 +267,20 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@7af7486c9e5f7fdffd86f25d1f43df89c7a7897c # v4
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
         with:
           version: v1.30.0
 
       - name: Install kind
-        uses: helm/kind-action@5d5a9f679a1b7e1b6b16a3f86dd6843f6d944a9d # v1
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
         with:
           cluster_name: fabric-ephemeral
           wait: 120s
 
       - name: Install kustomize
         run: |
-          curl -sSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz -o kustomize.tar.gz
+          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
+          curl -sSL "$url" -o kustomize.tar.gz
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
@@ -290,7 +309,8 @@ jobs:
 
       - name: Pull and load service images into kind
         run: |
-          for layer in layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+          for layer in layer1-ingestion layer2-extraction layer3-knowledge \
+                       layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
             image="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:sha-${{ steps.sha.outputs.short }}"
             docker pull "${image}"
             kind load docker-image "${image}" --name fabric-ephemeral
@@ -299,22 +319,33 @@ jobs:
       - name: Render manifests for ephemeral environment
         run: |
           kustomize build k8s/overlays/dev > /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer1-ingestion:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer1-ingestion:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer2-extraction:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer2-extraction:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer3-knowledge:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer3-knowledge:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer4-agents:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer4-agents:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer5-ground-truth:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer5-ground-truth:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/layer6-benchmarks:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/layer6-benchmarks:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
-          sed -i "s|value-fabric/frontend:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/frontend:sha-${{ steps.sha.outputs.short }}|g" /tmp/ephemeral.yaml
+          tag="sha-${{ steps.sha.outputs.short }}"
+          for layer in \
+            layer1-ingestion layer2-extraction layer3-knowledge \
+            layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            sed -i \
+              "s|value-fabric/${layer}:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:${tag}|g" \
+              /tmp/ephemeral.yaml
+          done
 
       - name: Create required secrets for ephemeral cluster
         run: |
           kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic postgres-secret --from-literal=password=$(openssl rand -base64 32) --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic neo4j-secret --from-literal=auth=$(openssl rand -base64 32) --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic openai-secret --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic jwt-secret --from-literal=secret=$(openssl rand -base64 48) --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic anthropic-secret --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic postgres-secret \
+            --from-literal=password=$(openssl rand -base64 32) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic neo4j-secret \
+            --from-literal=auth=$(openssl rand -base64 32) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic openai-secret \
+            --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic jwt-secret \
+            --from-literal=secret=$(openssl rand -base64 48) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic anthropic-secret \
+            --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply manifests to ephemeral environment
         run: kubectl apply -f /tmp/ephemeral.yaml

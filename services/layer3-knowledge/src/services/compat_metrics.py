@@ -18,12 +18,25 @@ DEPRECATION_ACCEPTANCE_THRESHOLDS: dict[str, int] = {
 }
 
 if PromCounter is not None:
-    _ROUTE_COUNTER = PromCounter(
+    from prometheus_client import REGISTRY
+
+    def _get_or_create_counter(name: str, description: str, labels: list[str]) -> PromCounter:
+        """Return an existing counter or create a new one, tolerating test re-imports."""
+        try:
+            return PromCounter(name, description, labels)
+        except ValueError as exc:
+            if "Duplicated timeseries" in str(exc):
+                for collector in REGISTRY._collector_to_names.keys():
+                    if isinstance(collector, PromCounter) and collector._name == name:
+                        return collector
+            raise
+
+    _ROUTE_COUNTER = _get_or_create_counter(
         "layer3_deprecated_route_hits_total",
         "Deprecated Layer 3 route hits",
         ["route", "tenant_id", "app_client"],
     )
-    _FIELD_COUNTER = PromCounter(
+    _FIELD_COUNTER = _get_or_create_counter(
         "layer3_legacy_field_usage_total",
         "Legacy field usage in Layer 3 compatibility paths",
         ["field", "tenant_id", "app_client"],

@@ -33,7 +33,7 @@ class _Neo4jStub:
                 "agent": "ExtractionEngine-v2.1",
                 "step_entity_id": params["entity_id"],
             }]
-        if "OPTIONAL MATCH (a:AuditEvent)" in query:
+        if "AuditEvent" in query:
             return [{
                 "id": "evt-1",
                 "timestamp": datetime(2026, 1, 2, tzinfo=UTC),
@@ -65,7 +65,18 @@ async def test_provenance_route_contract_shape():
 @pytest.mark.asyncio
 async def test_audit_logs_route_contract_shape():
     app_state = SimpleNamespace(neo4j_driver=_Neo4jStub())
-    payload = await provenance_audit.list_audit_logs(app_state=app_state)
+    payload = await provenance_audit.list_audit_logs(
+        _tenant_request(),
+        source="all",
+        from_date=None,
+        to_date=None,
+        entity_type=None,
+        event_type=None,
+        agent=None,
+        page=1,
+        per_page=50,
+        app_state=app_state,
+    )
 
     assert isinstance(payload, AuditLogResponse)
     assert payload.total == 1

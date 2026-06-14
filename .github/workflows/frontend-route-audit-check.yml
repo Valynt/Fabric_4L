@@ -45,4 +45,3 @@ jobs:
         with:
           name: router-contract-audit
           path: artifacts/router-contract/
-

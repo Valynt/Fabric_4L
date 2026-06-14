@@ -39,16 +39,20 @@ _JsonType = JSON
 
 # Base is resolved at import time. In the full service context (src/ on sys.path)
 # we use src.database.Base so harness tables are included in Alembic autogenerate.
+# In the packaged container context the module is `layer4_agents`, so use that first.
 # In standalone harness tests (SQLite, no full service stack) we fall back to a
 # local DeclarativeBase so the module remains importable without the service deps.
 try:
-    from src.database import Base  # full service context
+    from layer4_agents.database import Base  # packaged service context
 except ImportError:
-    from sqlalchemy.orm import DeclarativeBase  # type: ignore[assignment]
+    try:
+        from src.database import Base  # full service context
+    except ImportError:
+        from sqlalchemy.orm import DeclarativeBase  # type: ignore[assignment]
 
-    class Base(DeclarativeBase):  # type: ignore[no-redef]
-        """Fallback base for standalone harness tests."""
-        pass
+        class Base(DeclarativeBase):  # type: ignore[no-redef]
+            """Fallback base for standalone harness tests."""
+            pass
 
 
 class HarnessRunRow(Base):

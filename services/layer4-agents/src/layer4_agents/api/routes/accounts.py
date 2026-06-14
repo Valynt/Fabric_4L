@@ -181,8 +181,8 @@ async def list_accounts(
     page_size: int = Query(20, ge=1, le=100),
     sort_by: str = Query("updated_at", pattern="^(name|updated_at|company_size|last_synced_at)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
-    db: AsyncSession = Depends(get_db_from_context),
     _ctx: RequestContext = Depends(require_authenticated),
+    db: AsyncSession = Depends(get_db_from_context),
 ) -> AccountListResponse:
     """List accounts with filtering and pagination."""
     service = AccountService(db)

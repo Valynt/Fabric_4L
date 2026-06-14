@@ -15,16 +15,16 @@ data:
   # Do not store database credentials in ConfigMaps; use k8s/external-secrets/layer5-secrets.yaml
   # or create a Secret manually with DATABASE_URL and DATABASE_URL_SYNC keys.
   PINECONE_INDEX: ""
-  
+
   # Neo4j configuration
   NEO4J_URI: "bolt://neo4j:7687"
   NEO4J_USER: "neo4j"
-  
+
   # Redis configuration
   # REDIS_URL is injected via Secret redis-secret (created by
   # k8s/external-secrets/redis-secrets.yaml) for environments using
   # authenticated Redis. Dev environments may inject this via
   # docker-compose overrides or local secrets instead.
-  
+
   # Log level
   LOG_LEVEL: "info"

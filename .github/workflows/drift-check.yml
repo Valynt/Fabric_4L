@@ -23,7 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-
       - name: Validate workflow command/artifact references
         run: |
           python3 scripts/ci/check_workflow_references.py --workflow-glob "drift-check.yml"
@@ -43,7 +42,6 @@ jobs:
           pip install -e services/layer3-knowledge/
           pip install -e services/layer4-agents/
           pip install -e services/layer5-ground-truth/
-
 
       - name: Check Layer 3 app_monolith shim drift
         run: |

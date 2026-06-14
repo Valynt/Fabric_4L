@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from unittest.mock import AsyncMock
 
@@ -184,7 +185,7 @@ async def test_main_returns_explicit_response_for_layer3_security_failures() -> 
         base_url="http://test",
         headers={
             "X-Tenant-ID": str(TEST_ORG_ID),
-            "X-Service-Auth": "test-service-auth-secret-that-is-32-chars-long-ok",
+            "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
             "X-Request-ID": "req-layer3-policy-test",
         },
     ) as client:
@@ -267,11 +268,18 @@ def test_security_http_exception_uses_explicit_security_error_payload() -> None:
     from fastapi.testclient import TestClient
 
     with TestClient(app) as client:
-        response = client.get("/test/security-error", headers={"X-Tenant-ID": str(TEST_ORG_ID), "X-Service-Auth": "test-service-auth-secret-that-is-32-chars-long-ok"})
+        response = client.get(
+            "/test/security-error",
+            headers={
+                "X-Tenant-ID": str(TEST_ORG_ID),
+                "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
+            },
+        )
 
     assert response.status_code == 403
-    assert response.json()["error"] == "security_error"
-    assert response.json()["error_code"] == "INSUFFICIENT_SCOPE"
+    payload = response.json()
+    assert payload["error"]["code"] == "INSUFFICIENT_SCOPE"
+    assert payload["error"]["message"] == "Denied"
 
 
 @pytest.mark.asyncio
@@ -316,7 +324,7 @@ async def test_layer3_circuit_closes_after_recovery(
 
     responses = [
         httpx.ReadTimeout("timed out", request=_request())
-        for _ in range(6)
+        for _ in range(5)
     ]
     responses.append(_response(200, json_payload={"id": "kg-node-1", "node_id": "kg-node-1"}))
 

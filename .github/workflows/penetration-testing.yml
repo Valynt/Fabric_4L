@@ -27,7 +27,6 @@ on:
           - zap-only
           - nikto-only
 
-
 env:
   TARGET_URL: ${{ inputs.target_url || 'http://localhost:8000' }}
   SCAN_TYPE: ${{ inputs.scan_type || 'full' }}

@@ -35,6 +35,7 @@ if (sentryDsn) {
 import {
   getClerkPublishableKey,
   getClerkUrls,
+  isClerkAuthEnabled,
 } from "./auth/clerkConfig";
 import { shadcn } from "@clerk/ui/themes";
 
@@ -80,7 +81,8 @@ installAnalytics();
 installWebVitals();
 
 const clerkUrls = getClerkUrls();
-const clerkPublishableKey = getClerkPublishableKey();
+const clerkAuthEnabled = isClerkAuthEnabled();
+const clerkPublishableKey = clerkAuthEnabled ? getClerkPublishableKey() : "";
 
 // Brand Clerk's components with the official shadcn theme. The theme maps
 // Clerk's internal UI to the same shadcn CSS tokens the app already defines
@@ -92,12 +94,14 @@ const clerkPublishableKey = getClerkPublishableKey();
 // We intentionally do NOT hardcode colorPrimary (it previously drifted from
 // the app brand token); the shadcn theme derives it from --primary. Only the
 // app font is carried over so the widget matches the surrounding typography.
-const clerkAppearance = {
-  theme: shadcn,
-  variables: {
-    fontFamily: "var(--font-sans)",
-  },
-};
+const clerkAppearance = clerkAuthEnabled
+  ? {
+      theme: shadcn,
+      variables: {
+        fontFamily: "var(--font-sans)",
+      },
+    }
+  : {};
 
 const ClerkProvider = lazy(() =>
   import("@clerk/react").then((m) => ({ default: m.ClerkProvider }))
@@ -118,19 +122,23 @@ const AppRoot = (
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Suspense fallback={null}>
-      <ClerkProvider
-        publishableKey={clerkPublishableKey}
-        appearance={clerkAppearance}
-        signInUrl={clerkUrls.signInUrl}
-        signUpUrl={clerkUrls.signUpUrl}
-        signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
-        signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
-        afterSignOutUrl="/"
-      >
-        {AppRoot}
-      </ClerkProvider>
-    </Suspense>
+    {clerkAuthEnabled ? (
+      <Suspense fallback={null}>
+        <ClerkProvider
+          publishableKey={clerkPublishableKey}
+          appearance={clerkAppearance}
+          signInUrl={clerkUrls.signInUrl}
+          signUpUrl={clerkUrls.signUpUrl}
+          signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
+          signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
+          afterSignOutUrl="/"
+        >
+          {AppRoot}
+        </ClerkProvider>
+      </Suspense>
+    ) : (
+      AppRoot
+    )}
   </StrictMode>
 );
 

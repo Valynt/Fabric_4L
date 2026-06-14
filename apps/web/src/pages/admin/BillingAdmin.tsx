@@ -338,7 +338,7 @@ function BillingAdminContent() {
   } = useUsage(customerId);
 
   const handleOpenPortal = () => {
-    safeAsync(openCustomerPortal(window.location.href), "billing.openPortal");
+    safeAsync(openCustomerPortal(window.location.href), "billing.openPortal"); // navigation-guardrail: ignore — external Stripe customer portal requires current return URL
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
