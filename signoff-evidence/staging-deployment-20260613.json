@@ -1,0 +1,77 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging",
+  "deployed_at_utc": "2026-06-14T07:05:00Z",
+  "services": [
+    {
+      "name": "layer1",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8001/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 404 — endpoint not exposed"
+    },
+    {
+      "name": "layer2",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8002/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 503 'Metrics collection is disabled' — no metrics exposed"
+    },
+    {
+      "name": "layer3",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8003/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 503 'Metrics collection is disabled' — no metrics exposed"
+    },
+    {
+      "name": "layer4",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8004/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "fail (HTTP 503)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    },
+    {
+      "name": "layer5",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8005/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "fail (HTTP 503)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    },
+    {
+      "name": "layer6",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8006/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    }
+  ],
+  "migrations_clean": false,
+  "secrets_resolved": true,
+  "critical_path_smoke": {
+    "status": "pass",
+    "passed": 12,
+    "failed": 0,
+    "artifact": "signoff-evidence/e2e/e2e-critical-path-20260614.json"
+  },
+  "notes": [
+    "All compose-bound host ports (8001-8006, 3001) are reachable from the host.",
+    "vf-live-layer5-migrate fails repeatedly: initial migration 001 cannot create truth_objects because the table already exists (created by the Layer 5 service startup). Resetting the ground_truth database exposed additional migration-graph conflicts, including a duplicate CREATE INDEX in 014_add_value_realization_ledger and duplicate table 'benchmark_datasets' between 010_add_assumption_governance_models and 012_add_governance_entities.",
+    "Layer 5 /ready returns 503 schema_revision_behind because the alembic_version table is missing after migration failures; the service auto-created tables and is healthy for API traffic.",
+    "Layer 4 /ready returns 503 because the postgres readiness probe reports checkpoint_saver.conn unavailable, even though the service is operational and the critical-path smoke through Layer 4 passes.",
+    "Metrics endpoints on L4/L5/L6 accept unauthenticated GETs from the Docker host because verify_metrics_access treats the Docker gateway IP as an RFC1918/internal origin and returns 200 with metrics. L1 does not expose /metrics; L2/L3 return 503 with no metric body.",
+    "No SecretNotFound or missing-environment-variable errors were observed in service logs."
+  ]
+}
