@@ -123,7 +123,10 @@ def upgrade() -> None:
 
     op.create_index("ix_value_realization_updates_tenant_entry", "value_realization_updates", ["tenant_id", "entry_id"])
     op.create_index("ix_value_realization_updates_updated_by", "value_realization_updates", ["updated_by"])
-    op.create_index("ix_value_realization_updates_updated_at", "value_realization_updates", ["updated_at"])
+    # NOTE: ix_value_realization_updates_updated_at is omitted because the
+    # `updated_at` column above already has index=True, which causes Alembic to
+    # create the index automatically. The explicit CREATE INDEX below duplicated
+    # that work and failed with "relation already exists" on Postgres.
     op.create_index("ix_value_realization_updates_reason", "value_realization_updates", ["update_reason"])
 
 
