@@ -52,6 +52,7 @@ const E2E_SALES_USER_ID = 'e2e-sales-user';
 const MERIDIAN_BACKEND_ACCOUNT_UUID = '00000000-0000-4000-e2e0-000000000101';
 const DRAFT_BUSINESS_CASE_ID = 'case-draft-001';
 const APPROVED_BUSINESS_CASE_ID = 'case-e2e-approved-001';
+const MERIDIAN_BUSINESS_CASE_ID = 'case-meridian-e2e-001';
 const E2E_TENANT_SLUG = 'tenant-e2e-001';
 const E2E_VALIDATION_API_KEY_ID = 'vf_e2e_backend_integrated_validation';
 const E2E_VALIDATION_API_KEY = process.env.E2E_VALIDATION_API_KEY ?? '';
@@ -421,6 +422,7 @@ async function seedBusinessCaseLifecycle(accountId: string): Promise<boolean> {
     account_id: accountId,
     draft_case_id: DRAFT_BUSINESS_CASE_ID,
     approved_case_id: APPROVED_BUSINESS_CASE_ID,
+    approved_case_aliases: [APPROVED_BUSINESS_CASE_ID, MERIDIAN_BUSINESS_CASE_ID],
   });
 
   const blocked = Array.isArray((result.data as any)?.required_seed_rows_blocked)
@@ -749,28 +751,32 @@ async function main() {
   const lifecycleSeeded = await seedBusinessCaseLifecycle(backendAccountId);
   const draftVerified = await verifyBusinessCase(DRAFT_BUSINESS_CASE_ID, 'draft', false);
   const approvedVerified = await verifyBusinessCase(APPROVED_BUSINESS_CASE_ID, 'approved', true);
+  const meridianVerified = await verifyBusinessCase(MERIDIAN_BUSINESS_CASE_ID, 'approved', true);
   const workflowResultsVerified =
     (await verifyWorkflowResult(DRAFT_BUSINESS_CASE_ID)) &&
-    (await verifyWorkflowResult(APPROVED_BUSINESS_CASE_ID));
+    (await verifyWorkflowResult(APPROVED_BUSINESS_CASE_ID)) &&
+    (await verifyWorkflowResult(MERIDIAN_BUSINESS_CASE_ID));
   const workflowListVerified = await verifyWorkflowListIncludes(
     DRAFT_BUSINESS_CASE_ID,
     APPROVED_BUSINESS_CASE_ID,
+    MERIDIAN_BUSINESS_CASE_ID,
   );
   const lifecycleVerified =
     lifecycleSeeded &&
     draftVerified &&
     approvedVerified &&
+    meridianVerified &&
     workflowResultsVerified &&
     workflowListVerified;
 
   recordSeed({
     seedArea: 'Business case draft / approved / approval history / export state / audit trail',
     recordsCreated:
-      '2 deterministic business-case records, 2 workflow result states, approval/export/CRM/realization metadata',
+      '3 deterministic business-case records, 3 workflow result states, approval/export/CRM/realization metadata',
     method: 'Seeded through non-production Layer 4 validation API and verified through public case/workflow reads',
     persistenceVerified: lifecycleVerified
-      ? 'draft, approved, workflow result, workflow list, export gate metadata, approval history, and audit emission metadata verified'
-      : `draft=${draftVerified}; approved=${approvedVerified}; workflowResults=${workflowResultsVerified}; workflowList=${workflowListVerified}`,
+      ? 'draft, approved, meridian, workflow result, workflow list, export gate metadata, approval history, and audit emission metadata verified'
+      : `draft=${draftVerified}; approved=${approvedVerified}; meridian=${meridianVerified}; workflowResults=${workflowResultsVerified}; workflowList=${workflowListVerified}`,
     status: lifecycleVerified ? 'present' : 'blocked',
   });
 
