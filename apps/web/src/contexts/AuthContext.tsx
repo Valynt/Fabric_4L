@@ -69,20 +69,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clerkMode = isClerkAuthEnabled();
   const mockAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' && !clerkMode;
 
-  // Clerk hooks (only used when mock auth is disabled)
+  // Legacy / mock-auth path: do not call any Clerk hooks, because <ClerkProvider>
+  // is not mounted in legacy mode. Calling them here crashes the app with
+  // "useAuth can only be used within the <ClerkProvider /> component".
+  if (!clerkMode) {
+    const devBypass: AuthContextType['devBypass'] =
+      import.meta.env.DEV || import.meta.env.MODE === 'test'
+        ? () => {
+            log.info('devBypass called in legacy auth mode - no-op');
+          }
+        : undefined;
+
+    const value: AuthContextType = {
+      isAuthenticated: mockAuthEnabled,
+      isLoading: false,
+      user: mockAuthEnabled ? MOCK_USER_INFO : null,
+      currentTenantSlug: mockAuthEnabled ? MOCK_TENANT_SLUG : null,
+      accessToken: null,
+      initiateLogin: async () => {
+        if (mockAuthEnabled) return;
+        safeNavigate('/login');
+      },
+      handleCallback: async () => true,
+      logout: async () => {
+        safeNavigate('/');
+      },
+      refreshToken: async () => true,
+      ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
+
+  // Clerk hooks (only used when Clerk is enabled)
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();
   const { isLoaded: userLoaded, user: clerkUser } = useClerkUser();
   const { organization } = useOrganization();
 
   // Determine loading state and user info based on mode
-  const isLoading = mockAuthEnabled ? false : (!authLoaded || !userLoaded);
+  const isLoading = !authLoaded || !userLoaded;
 
   const user: UserInfo | null = useMemo(() => {
-    // Mock auth mode: return mock user immediately
-    if (mockAuthEnabled) {
-      return MOCK_USER_INFO;
-    }
-
     // Clerk mode: map Clerk user to UserInfo
     if (!clerkUser) return null;
 
@@ -116,13 +143,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     const parsed = UserInfoSchema.safeParse(mapped);
     return parsed.success ? parsed.data : null;
-  }, [mockAuthEnabled, clerkUser, organization]);
+  }, [clerkUser, organization]);
 
-  const currentTenantSlug = mockAuthEnabled ? MOCK_TENANT_SLUG : (organization?.slug ?? null);
+  const currentTenantSlug = organization?.slug ?? null;
 
   const initiateLogin = async () => {
-    // In mock mode, no-op since we're already "authenticated"
-    if (mockAuthEnabled) return;
     safeNavigate('/sign-in');
   };
 
@@ -132,11 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    // In mock mode, just reload to clear state
-    if (mockAuthEnabled) {
-      safeNavigate('/');
-      return;
-    }
     try {
       const { useClerk } = await import('@clerk/react');
       const clerk = useClerk();
@@ -148,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshToken = async () => {
-    // Clerk handles token refresh automatically; mock mode always succeeds
+    // Clerk handles token refresh automatically
     return true;
   };
 
@@ -161,18 +181,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
     devBypass = () => {
-      // In mock mode, devBypass is a no-op since we're already bypassing
-      // In Clerk mode, this remains a no-op for interface compatibility
-      if (mockAuthEnabled) {
-        log.info('devBypass called in mock auth mode - already bypassed');
-      } else {
-        log.warn('devBypass called in Clerk mode - not supported');
-      }
+      log.warn('devBypass called in Clerk mode - not supported');
     };
   }
 
   const value: AuthContextType = {
-    isAuthenticated: mockAuthEnabled ? true : (authLoaded && !!isSignedIn),
+    isAuthenticated: authLoaded && !!isSignedIn,
     isLoading,
     user,
     currentTenantSlug,
