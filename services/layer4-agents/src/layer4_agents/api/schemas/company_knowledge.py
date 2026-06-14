@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from ...models.company_knowledge import (
     AuthorityWeight,
@@ -304,20 +304,8 @@ class ICPProfileResponse(BaseModel):
 class CompanyKnowledgeProfileCreateRequest(BaseModel):
     """Request to create a draft company knowledge profile."""
 
-    model_config = ConfigDict(extra="forbid")
-
     company_name: str = Field(..., min_length=1, max_length=255)
     website: str | None = Field(None, max_length=255)
-
-    @field_validator("website")
-    @classmethod
-    def _website_must_be_http_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        normalized = value.strip().lower()
-        if not (normalized.startswith("http://") or normalized.startswith("https://")):
-            raise ValueError("website must use http or https")
-        return value
 
 
 class CompanyKnowledgeProfileUpdateRequest(BaseModel):

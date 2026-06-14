@@ -358,33 +358,30 @@ class Layer5GroundTruthClient:
             Dict with ``items``, ``total``, ``limit``, ``offset``,
             ``has_more``, or ``{"error": ...}`` on failure.
         """
-        try:
-            params: dict[str, Any] = {"limit": limit, "offset": offset}
-            params.update(
-                self._require_organization_id(
-                    organization_id,
-                    operation="list_truths",
-                    allow_system_call=allow_system_call,
-                    audit_reason=audit_reason,
-                )
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        params.update(
+            self._require_organization_id(
+                organization_id,
+                operation="list_truths",
+                allow_system_call=allow_system_call,
+                audit_reason=audit_reason,
             )
-            if status:
-                params["status"] = status
-            if claim_type:
-                params["claim_type"] = claim_type
-            if min_maturity is not None:
-                params["min_maturity"] = min_maturity
-            if min_confidence is not None:
-                params["min_confidence"] = min_confidence
-            if applies_to_opportunity:
-                params["applies_to_opportunity"] = applies_to_opportunity
+        )
+        if status:
+            params["status"] = status
+        if claim_type:
+            params["claim_type"] = claim_type
+        if min_maturity is not None:
+            params["min_maturity"] = min_maturity
+        if min_confidence is not None:
+            params["min_confidence"] = min_confidence
+        if applies_to_opportunity:
+            params["applies_to_opportunity"] = applies_to_opportunity
 
+        try:
             resp = await self._client.get("/api/v1/truths", params=params)
             resp.raise_for_status()
             return resp.json()
-        except ValueError as exc:
-            logger.warning("Layer 5 list_truths blocked: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
             return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": "Layer 5 list truths failed", "items": [], "total": 0})

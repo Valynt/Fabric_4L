@@ -20,7 +20,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ..models.agent_state import WorkflowStatus
 
 _SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
-_HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 
 @dataclass(frozen=True)
@@ -30,7 +29,6 @@ class NormalizedHash:
     algorithm: str
     encoding: str
     digest_hex: str
-    legacy_fragment: bool = False
 
 
 class HashNormalizationError(ValueError):
@@ -58,13 +56,6 @@ def _normalize_sha256_hash(value: str | None, *, field_name: str) -> NormalizedH
         candidate = candidate[2:]
 
     if not _SHA256_HEX_RE.fullmatch(candidate):
-        if _HEX_RE.fullmatch(candidate):
-            return NormalizedHash(
-                algorithm="legacy-fragment",
-                encoding="hex",
-                digest_hex=candidate,
-                legacy_fragment=True,
-            )
         raise HashNormalizationError(
             "Invalid hash encoding",
             {

@@ -50,17 +50,6 @@ def _merge_dicts(left: dict[str, Any] | None, right: dict[str, Any] | None) -> d
     return {**(left or {}), **(right or {})}
 
 
-def _concat_lists(left: list[Any] | None, right: list[Any] | None) -> list[Any]:
-    """Reducer that concatenates two lists.
-
-    Used with Annotated for list state fields (e.g. ``errors``) that may receive
-    updates from multiple nodes in the same LangGraph step. Without a reducer,
-    concurrent updates to a non-annotated channel raise
-    ``InvalidUpdateError: Can receive only one value per step``.
-    """
-    return [*(left or []), *(right or [])]
-
-
 class WorkflowStatus(str, Enum):
     """Status of a workflow execution."""
 
@@ -161,8 +150,8 @@ class BaseAgentState(BaseModel):
     current_node: Annotated[str | None, _last_value] = None
     input_data: Annotated[dict[str, Any], _merge_dicts] = Field(default_factory=dict)
     output_data: Annotated[dict[str, Any] | None, _merge_dicts] = Field(default_factory=dict)
-    errors: Annotated[list[str], _concat_lists] = Field(default_factory=list)
-    metadata: Annotated[dict[str, Any], _merge_dicts] = Field(default_factory=dict)
+    errors: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     reasoning_trace: ReasoningTrace | None = Field(
         default=None, description="Structured reasoning trace validated at output"
     )

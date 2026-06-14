@@ -231,11 +231,7 @@ class EnrichmentOrchestrator:
         """
         account = await self.db.get(Account, account_id)
         if account is None:
-            return EnrichmentOrchestrator_enrich_accountResult.model_validate({
-                "status": "error",
-                "message": f"Account {account_id} not found",
-                "enriched_at": None,
-            })
+            return EnrichmentOrchestrator_enrich_accountResult.model_validate({"status": "error", "message": f"Account {account_id} not found"})
 
         if account.enrichment_status == EnrichmentStatus.ENRICHED and not force:
             return EnrichmentOrchestrator_enrich_accountResult.model_validate({
@@ -299,8 +295,6 @@ class EnrichmentOrchestrator:
         return EnrichmentOrchestrator_enrich_accountResult.model_validate({
             "status": account.enrichment_status,
             "account_id": str(account_id),
-            "message": "Account enrichment completed",
-            "enriched_at": account.enriched_at.isoformat() if account.enriched_at else None,
             "sources_used": sources_used,
             "errors": errors,
             "results": results,

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    ServiceUnavailableError,
+)
 
 """Prospect API routes — Composite context and analysis workflow initiation.
 
@@ -13,11 +16,13 @@ Provides endpoints for:
 
 import os
 import uuid
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
@@ -29,7 +34,7 @@ from ...integration.layer1_client import Layer1IngestionClient
 from ...integration.layer2_client import Layer2ExtractionClient
 from ...integration.layer3_client import Layer3Client, Layer3ClientError
 from ...integration.layer5_client import Layer5GroundTruthClient
-from ...services.account_service import AccountService
+from ...models.account import Account
 
 router = APIRouter(prefix="/prospects", tags=["prospects"])
 
@@ -315,7 +320,6 @@ async def start_prospect_analysis(
     tenant_id: str = Depends(get_verified_tenant_id),
     ctx: RequestContext = Depends(require_authenticated),
     db: AsyncSession = Depends(get_db_from_context),
-    executor: Any = Depends(get_executor),
 ) -> StartAnalysisResponse:
     """Start prospect analysis workflow — real backend implementation.
 
@@ -367,25 +371,75 @@ async def start_prospect_analysis(
                 tenant_id=None,
                 user_id=ctx.user_id if ctx else None,
             )
-            raise HTTPException(status_code=401, detail="Tenant context required for prospect analysis")
+            raise AuthenticationError(message = "Tenant context required for prospect analysis")
 
         # -------------------------------------------------------------------
         # 2. Create or update prospect record
         # -------------------------------------------------------------------
         prospect_uuid = uuid.UUID(prospect_id) if prospect_id else uuid.uuid4()
 
-        setup_data = request.setup_data
-        await AccountService(db).upsert_value_fabric_prospect(
-            prospect_id=prospect_uuid,
-            tenant_id=tenant_id,
-            company_name=setup_data.company_name,
-            contact_name=setup_data.contact_name,
-            contact_title=setup_data.contact_title,
+        # Check if account/prospect exists
+        result = await db.execute(
+            select(Account).where(
+                Account.id == prospect_uuid,
+                Account.provider == "value_fabric",  # Internal prospects
+            )
         )
+        existing_account = result.scalar_one_or_none()
+
+        setup_data = request.setup_data
+
+        if existing_account:
+            # Update existing prospect with setup data
+            existing_account.name = setup_data.company_name
+            existing_account.stage = "prospect"
+            existing_account.contacts = existing_account.contacts or []
+            # Add or update primary contact
+            primary_contact = {
+                "provider_contact_id": str(uuid.uuid4()),
+                "name": setup_data.contact_name,
+                "title": setup_data.contact_title,
+                "is_primary": True,
+                "last_synced_at": datetime.now(UTC).isoformat(),
+            }
+            # Remove existing primary contact if present
+            existing_account.contacts = [
+                c for c in existing_account.contacts if not c.get("is_primary")
+            ]
+            existing_account.contacts.append(primary_contact)
+            existing_account.updated_at = datetime.now(UTC)
+            account = existing_account
+        else:
+            # Create new prospect account
+            account = Account(
+                id=prospect_uuid,
+                provider="value_fabric",
+                provider_record_id=f"vf_prospect_{prospect_uuid.hex[:8]}",
+                name=setup_data.company_name,
+                normalized_name=setup_data.company_name.lower().strip(),
+                stage="prospect",
+                contacts=[
+                    {
+                        "provider_contact_id": str(uuid.uuid4()),
+                        "name": setup_data.contact_name,
+                        "title": setup_data.contact_title,
+                        "is_primary": True,
+                        "last_synced_at": datetime.now(UTC).isoformat(),
+                    }
+                ],
+                opportunities=[],  # Will be populated if CRM match found
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+            db.add(account)
+
+        await db.flush()
+        await db.refresh(account)
 
         # -------------------------------------------------------------------
         # 3. Attempt workflow trigger (if executor available)
         # -------------------------------------------------------------------
+        executor = get_executor()
         if executor:
             try:
                 from ...engine.scheduler import TaskPriority

@@ -249,12 +249,18 @@ class TestOrchestrationControllerValidation:
                     workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR
                 ),
                 "workflow_id": "wf-1",
-                "timeout_seconds": 0.01,
             },
         )
 
-        with pytest.raises(Exception) as exc_info:
-            await controller._run_workflow_task(task)
+        # Patch settings to use a very short timeout
+        mock_settings = Mock()
+        mock_settings.workflow_timeout_seconds = 0.01
+        with patch(
+            "layer4_agents.config.settings.settings",
+            mock_settings,
+        ):
+            with pytest.raises(Exception) as exc_info:
+                await controller._run_workflow_task(task)
 
         assert "timeout" in str(exc_info.value).lower() or "exceeded" in str(
             exc_info.value

@@ -74,29 +74,15 @@ except ImportError:
 def pytest_configure(config):
     """Register custom pytest markers."""
     config.addinivalue_line("markers", "postgres: Tests requiring PostgreSQL (JSONB, RLS, etc.)")
-    config.addinivalue_line("markers", "requires_postgres: Tests requiring PostgreSQL/testcontainers")
-    config.addinivalue_line("markers", "docker: Tests requiring Docker/testcontainers")
     config.addinivalue_line("markers", "integration: Integration tests requiring external services")
 
 
 def pytest_collection_modifyitems(config, items):
-    """Route live-service tests behind explicit markers."""
-    docker_test_files = {
-        "test_accounts_api.py",
-        "test_billing_tenant_scoped_customer_keys.py",
-        "test_company_knowledge.py",
-        "test_feature_flags.py",
-    }
-    for item in items:
-        filename = Path(str(item.fspath)).name
-        if filename in docker_test_files:
-            item.add_marker(pytest.mark.docker)
-            item.add_marker(pytest.mark.requires_postgres)
-
+    """Skip postgres tests if testcontainers is not available."""
     if not POSTGRES_AVAILABLE:
         skip_postgres = pytest.mark.skip(reason="testcontainers.postgres not installed - run: pip install testcontainers")
         for item in items:
-            if "postgres" in item.keywords or "requires_postgres" in item.keywords:
+            if "postgres" in item.keywords:
                 item.add_marker(skip_postgres)
 
 

@@ -479,13 +479,8 @@ class BillingService:
                 where=(BillingWebhookEvent.status.in_(["failed", "retryable"])),
             )
         )
-        try:
-            await self.db.execute(stmt)
-            await self.db.flush()
-            await self.db.commit()
-        except Exception:
-            await self.db.rollback()
-            raise
+        await self.db.execute(stmt)
+        await self.db.commit()
         result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
         inbox = result.scalar_one()
         await self.db.commit()
@@ -1042,11 +1037,11 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
         plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
         if plan_version:
             feature_ids = set((plan_version.features or {}).get("ids", []))
             return feature_id in feature_ids or "*" in feature_ids
-        await self.plan_versions.ensure_bootstrap_defaults()
         return check_entitlement(plan_id, feature_id)
 
     async def get_entitlements(self, customer_id: str) -> dict[str, Any]:
@@ -1054,6 +1049,7 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
         plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
         if plan_version:
             feature_ids = set((plan_version.features or {}).get("ids", []))
@@ -1064,5 +1060,4 @@ class BillingService:
                 "plan_version_id": plan_version.id,
                 "plan_version": plan_version.version,
             }
-        await self.plan_versions.ensure_bootstrap_defaults()
         return get_entitlements_response(plan_id)

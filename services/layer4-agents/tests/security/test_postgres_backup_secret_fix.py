@@ -1,8 +1,8 @@
 """P0-007: Postgres backup cronjob must reference only existing secret keys.
 
-The postgres-backup CronJob previously tried to read a username from a secret.
-The fix hardcodes POSTGRES_USER and only reads the password from the canonical
-Patroni credential secret.
+The postgres-backup CronJob previously tried to read ``username`` from
+``postgres-secret``, but that secret only contains ``password``.
+The fix hardcodes POSTGRES_USER and only reads the password from the secret.
 """
 
 from __future__ import annotations
@@ -21,11 +21,7 @@ def _project_root() -> Path:
 def _load_cronjob():
     path = _project_root() / "k8s" / "base" / "postgres-backup-cronjob.yaml"
     with open(path, encoding="utf-8") as f:
-        docs = list(yaml.safe_load_all(f))
-    for doc in docs:
-        if doc and doc.get("kind") == "CronJob" and doc.get("metadata", {}).get("name") == "postgres-backup":
-            return doc
-    return None
+        return yaml.safe_load(f)
 
 
 def _load_secret():
@@ -49,7 +45,6 @@ class TestPostgresBackupSecretReferences:
 
     def test_backup_cronjob_does_not_reference_missing_username_key(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 
@@ -58,7 +53,7 @@ class TestPostgresBackupSecretReferences:
                 # Must be hardcoded, not sourced from secret key "username"
                 assert "valueFrom" not in entry, (
                     "POSTGRES_USER must not be sourced from a secretKeyRef; "
-                    "database secret contracts do not provide a POSTGRES_USER value"
+                    "postgres-secret does not contain a 'username' key"
                 )
                 assert entry.get("value") == "postgres", (
                     "POSTGRES_USER should be hardcoded to 'postgres'"
@@ -69,7 +64,6 @@ class TestPostgresBackupSecretReferences:
 
     def test_backup_cronjob_reads_password_from_correct_secret(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 
@@ -79,16 +73,15 @@ class TestPostgresBackupSecretReferences:
         assert password_entry is not None, "POSTGRES_PASSWORD env var must exist"
         assert "valueFrom" in password_entry, "POSTGRES_PASSWORD must be sourced from a secret"
         secret_ref = password_entry["valueFrom"]["secretKeyRef"]
-        assert secret_ref["name"] == "postgres-patroni-credentials", (
-            f"Expected secret name 'postgres-patroni-credentials', got '{secret_ref['name']}'"
+        assert secret_ref["name"] == "postgres-secret", (
+            f"Expected secret name 'postgres-secret', got '{secret_ref['name']}'"
         )
-        assert secret_ref["key"] == "superuser-password", (
-            f"Expected secret key 'superuser-password', got '{secret_ref['key']}'"
+        assert secret_ref["key"] == "password", (
+            f"Expected secret key 'password', got '{secret_ref['key']}'"
         )
 
     def test_backup_cronjob_has_no_inline_secrets(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 

@@ -1,9 +1,7 @@
-"""Compatibility alias for the canonical Layer 4 checkpoints routes."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.api.routes.checkpoints``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-import sys
-
-from layer4_agents.api.routes import checkpoints as _canonical
-
-sys.modules[__name__] = _canonical
+from layer4_agents.api.routes.checkpoints import *  # noqa: F401,F403

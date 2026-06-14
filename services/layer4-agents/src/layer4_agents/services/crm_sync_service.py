@@ -38,7 +38,7 @@ class CRMSyncService__get_crm_configResult(TypedDictModel):
     api_key: Any
     crm_api_key: Any
     crm_api_secret: Any
-    crm_instance_url: str | None
+    crm_instance_url: bool
     crm_type: Any
 
 logger = logging.getLogger(__name__)

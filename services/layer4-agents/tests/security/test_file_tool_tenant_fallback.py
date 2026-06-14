@@ -75,9 +75,6 @@ sys.modules.setdefault("value_fabric.shared.identity", _vf.shared.identity)
 sys.modules.setdefault("value_fabric.shared.identity.context", _vf.shared.identity.context)
 
 spec.loader.exec_module(_test_files)
-from layer4_agents.tools import files as _canonical_files
-
-_test_files = _canonical_files
 
 TenantRequiredError = _test_files.TenantRequiredError
 _get_tenant_id = _test_files._get_tenant_id

@@ -6,8 +6,6 @@ import pytest
 
 from layer4_agents.api.routes import tools
 from layer4_agents.models.tool_schemas import ToolCategory
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.permissions import Permission
 
 
 class _StubTool:
@@ -32,19 +30,12 @@ class _StubRegistry:
         return _StubTool()
 
 
-def _ctx() -> RequestContext:
-    return RequestContext(
-        tenant_id="tenant-1",
-        permissions=frozenset({Permission.READ_AGENTS.value}),
-    )
-
-
 @pytest.mark.asyncio
 async def test_get_tool_schema_returns_typed_shape() -> None:
     response = await tools.get_tool_schema(
         tool_name="stub_tool",
         registry=_StubRegistry(),
-        ctx=_ctx(),
+        ctx=SimpleNamespace(tenant_id="tenant-1"),
     )
 
     payload = response.model_dump()
@@ -63,7 +54,7 @@ async def test_get_tool_schema_returns_typed_shape() -> None:
 
 @pytest.mark.asyncio
 async def test_list_tool_categories_returns_typed_items() -> None:
-    response = await tools.list_tool_categories(ctx=_ctx())
+    response = await tools.list_tool_categories(ctx=SimpleNamespace(tenant_id="tenant-1"))
 
     payload = response.model_dump()
     assert isinstance(payload["categories"], list)

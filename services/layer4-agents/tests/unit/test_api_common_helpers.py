@@ -74,11 +74,11 @@ async def test_emit_route_audit_delegates_to_emit_and_persist(monkeypatch: pytes
     assert captured["resource_id"] == "wf-123"
     assert captured["details"] == {"archived_at": "2026-05-07T00:00:00Z"}
 def test_raise_normalized_with_log_logs_non_http_exception(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[tuple[str, dict[str, object] | None]] = []
+    calls: list[str] = []
 
     class _Logger:
-        def exception(self, message: str, *, extra: dict[str, object] | None = None) -> None:
-            calls.append((message, extra))
+        def exception(self, message: str) -> None:
+            calls.append(message)
 
     with pytest.raises(HTTPException) as raised:
         raise_normalized_with_log(
@@ -94,24 +94,14 @@ def test_raise_normalized_with_log_logs_non_http_exception(monkeypatch: pytest.M
     assert raised.value.status_code == 500
     assert raised.value.detail["message"] == "Failed to pause workflow"
     assert raised.value.detail["error_code"] == "L4_WORKFLOW_PAUSE_FAILED"
-    assert calls == [
-        (
-            "Unexpected error pausing workflow wf-123",
-            {
-                "error_code": "L4_WORKFLOW_PAUSE_FAILED",
-                "request_id": "req-123",
-                "correlation_id": "req-123",
-                "exception_type": "RuntimeError",
-            },
-        )
-    ]
+    assert calls == ["Unexpected error pausing workflow wf-123"]
 
 
 def test_raise_normalized_with_log_skips_logging_http_exception() -> None:
     calls: list[str] = []
 
     class _Logger:
-        def exception(self, message: str, *, extra: dict[str, object] | None = None) -> None:
+        def exception(self, message: str) -> None:
             calls.append(message)
 
     with pytest.raises(HTTPException) as raised:
