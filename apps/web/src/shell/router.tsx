@@ -111,10 +111,15 @@ const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 function RootRedirect() {
   const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
   const clerkEnabled = isClerkAuthEnabled();
-  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
 
-  const isLoading = clerkEnabled ? !clerkLoaded : legacyIsLoading;
-  const isAuthenticated = clerkEnabled ? (clerkLoaded && !!isSignedIn) : legacyIsAuthenticated;
+  let isLoading = legacyIsLoading;
+  let isAuthenticated = legacyIsAuthenticated;
+
+  if (clerkEnabled) {
+    const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
+    isLoading = !clerkLoaded;
+    isAuthenticated = clerkLoaded && !!isSignedIn;
+  }
 
   if (isLoading) {
     return (
