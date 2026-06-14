@@ -1,0 +1,36 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging-surrogate",
+  "executed_at_utc": "2026-06-14T13:30:00Z",
+  "result": "BLOCKED",
+  "playwright_command": "E2E_SEED_DATA=false SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 npx playwright test --project=backend-integrated e2e/journeys/j1-golden-path-backend-integrated.spec.ts e2e/journeys/j11-business-case-lifecycle-backend-integrated.spec.ts",
+  "summary": {
+    "total": 41,
+    "passed": 0,
+    "failed": 41,
+    "skipped": 0,
+    "status": "all journeys blocked by frontend runtime crash"
+  },
+  "root_causes": [
+    {
+      "category": "auth_provider_boundary",
+      "description": "The frontend is configured for legacy/mock auth (VITE_AUTH_PROVIDER=legacy, VITE_ENABLE_MOCK_AUTH=true) and main.tsx no longer mounts <ClerkProvider>. However, AuthContext.tsx, ClerkAuthBridge.tsx, and RootRedirect.tsx call Clerk hooks (useAuth, useUser, useOrganization) unconditionally, which throw 'useAuth can only be used within the <ClerkProvider /> component' at runtime."
+    },
+    {
+      "category": "missing_seed_data",
+      "description": "Journey tests expect business-case workflow state for case id 'case-meridian-e2e-001', but scripts/db/seed-e2e-data.ts only creates 'case-draft-001' and 'case-e2e-approved-001'."
+    },
+    {
+      "category": "windows_execution_environment",
+      "description": "Global setup (global-setup.ts) and package.json scripts use 'pnpm exec tsx' / 'sh -lc' wrappers that fail on Windows (spawn pnpm ENOENT), preventing automated seeding via the documented pnpm command."
+    }
+  ],
+  "evidence_artifacts": [
+    "apps/web/playwright-report/index.html",
+    "apps/web/e2e-results/error-context.md",
+    "signoff-evidence/e2e/e2e-critical-path-20260614.json"
+  ],
+  "sample_error": "Error: @clerk/react: useAuth can only be used within the <ClerkProvider /> component. at AuthProvider (http://localhost:3001/src/contexts/AuthContext.tsx:36:48)",
+  "classification": "ENVIRONMENT_BLOCKED",
+  "recommendation": "Either (a) refactor Clerk hook usage to be conditional on VITE_AUTH_PROVIDER=clerk and add 'case-meridian-e2e-001' to the seeder, then re-run locally; or (b) execute P0 Playwright in a Clerk-configured staging environment with a real IdP/test tenant and the correct seed data."
+}

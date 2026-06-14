@@ -7,6 +7,7 @@ This register is the authoritative pre-launch risk ledger for final testing. It 
 | Area | Current Position | Rationale |
 |---|---|---|
 | Repository-owned launch package | ✅ All P0/P1 code blockers resolved 2026-05-19 | All 12 P0 test gaps and 11 P1 test gaps resolved. Frontend 1773/1773 ✅. Backend arch/cache/contract/unit 677/677 ✅. Security P0/P1 suites 78/78 ✅. Assurance score ≥85%. |
+| Runtime launch certification (2026-06-14) | ❌ **NO GO for Core GA** | P0-001 Playwright blocked, P0-002 rollback procedure deficient, P0-003 SSO/OIDC blocked, P1 evidence largely deferred. See `signoff-evidence/p0-*-20260613.json`, `p1-operational-20260613.json`, and `docs/readiness/launch-decision-artifact.md`. |
 | Live production readiness | Not yet claimed | SSO, telemetry, billing, rollback, notification, performance, and full E2E validation require a proper launch environment. |
 | Go/no-go rule | Evidence-driven | Missing evidence is treated as an explicit launch decision, not as implied readiness. |
 
@@ -167,7 +168,7 @@ Sprint 0 executed `scripts/e2e/critical_path_smoke.py` against `docker-compose.l
 |---|---|---|---|---|---|
 | **S0-001** | Critical-path smoke test cannot authenticate. `critical_path_smoke.py` sends `X-API-Key: dev-bypass-key`, but all layers now use `GovernanceMiddleware` with Clerk/Fabric JWT validation and `reject_api_key_unsupported`. | Test / Identity owner | Updated smoke test or live-stack compose proving end-to-end L1→L2→L3→L4→L5→L6 functional steps return 200/201. | **CLOSED** | Auth mismatch fixed. Smoke test now uses `X-Tenant-ID` + `X-Service-Auth` and S2S JWT for L2. No universal 401 failures. |
 | S0-002 | Layer 3 health endpoint returns 500 due to relative-import error (`..schema.constraints` beyond top-level package). | L3 owner | Either fix the import or formally scope L3 out of Core GA smoke. | **CLOSED** | Fixed absolute import in `services/layer3-knowledge/src/api/routes/system.py`; L3 health now returns 200. |
-| **S0-003** | Redis password mismatch between `.env` (`replace-me`) and running `vf-live-redis` container (`redis`). | Platform/SRE owner | Align `.env`/`.env.example` with actual container password, or document required `REDIS_PASSWORD` override. | **OPEN** | Operational drift; workaround exists but should be remediated. This remains an open launch-blocker item. |
+| **S0-003** | Redis password mismatch between `.env` (`replace-me`) and running `vf-live-redis` container (`redis`). | Platform/SRE owner | Align `.env`/`.env.example` with actual container password, or document required `REDIS_PASSWORD` override. | **CLOSED** | Local `.env` regenerated with matching `REDIS_PASSWORD`; `redis-cli -a $REDIS_PASSWORD ping` returns `PONG` and live-stack services authenticate successfully. |
 | **S0-004** | L4 workflow execution returns 500 Internal Server Error on `POST /v1/workflows`. | L4 owner | Diagnose and fix internal L4 workflow execution failure. | **CLOSED** | Fixed `RunEnvelope` / `ROIAgentState` `tenant_id` UUID→string conversion across executor and all workflows; fixed `build_workflow_task()` unexpected `timeout_seconds` kwarg; replaced `asyncpg` with `psycopg` in `checkpoint.py` for LangGraph compatibility; disabled checkpointing in dev via `CHECKPOINT_DATABASE_URL=`; added catch-all exception handling in `_run_workflow_task()` so workflow failures update state manager and return timely HTTP responses. |
 | **S0-005** | L5 ground-truth query returns 500 Internal Server Error on `GET /api/v1/truths?limit=1`. | L5 owner | Diagnose and fix internal L5 query failure. | **CLOSED** | Fixed asyncpg parameterized `SET LOCAL app.tenant_id` syntax (3 occurrences) to use f-string interpolation; fixed L5 `lifespan()` to call `init_db()` in non-production-like environments; fixed `TruthObject` model GIN-index compatibility by changing `JSON` to `JSONB` for `value` and `applies_to` columns; aligned `SERVICE_AUTH_SECRET` across `.env` and smoke test. |
 | **S0-006** | L6 benchmark dataset query returns 500 Internal Server Error on `GET /v1/benchmarks/datasets?limit=1`. | L6 owner | Diagnose and fix internal L6 query failure. | **CLOSED** | Fixed L3 `NEO4J_PASSWORD` drift (`replace-me` → `neo4jpassword`) to stop auth spam against Neo4j; restarted Neo4j and L6 to clear rate-limit state; mounted corrected `metrics_contract.py` into L6 container to resolve `IndexError` on startup. |
@@ -184,6 +185,81 @@ Sprint 0 executed `scripts/e2e/critical_path_smoke.py` against `docker-compose.l
 | L6 Benchmarks | ✅ healthy | ✅ 200 OK |
 
 **Core GA Verdict after Sprint 0: VERIFIED — FULL SIGN-OFF for local Docker live-stack smoke only.**
-S0-001 through S0-006 are closed from the local Docker live-stack smoke perspective, with the exception of **S0-003** which remains **OPEN**. The live stack is fully healthy (all six layers return 200 on `/health`). The critical-path smoke completes with `overall=pass`, `passed=12`, `failed=0`, `skipped=0`. All L1→L2→L3→L4→L5→L6 functional steps pass.
+S0-001 through S0-006 are closed from the local Docker live-stack smoke perspective. The live stack is fully healthy (all six layers return 200 on `/health`). The critical-path smoke completes with `overall=pass`, `passed=12`, `failed=0`, `skipped=0`. All L1→L2→L3→L4→L5→L6 functional steps pass.
 
 > **Important limitation:** This sign-off applies **only** to the local Docker live-stack smoke executed during Sprint 0. It does **not** constitute staging or production launch approval. Staging/production launch remains blocked by **P0-001**, **P0-002**, **P0-003**, the environment-dependent items in the **P1** register, and the open remediation tasks **RG-2026-05-18-01**, **RG-2026-05-18-02**, **RG-2026-05-18-03**, and **RG-2026-05-18-04**. See `docs/launch/environment-dependent-evidence-matrix.md` for the canonical list of gates that still require a configured environment and attached evidence.
+
+---
+
+## 2026-06-13 — Local Verification Hardening Sweep
+
+This sweep targeted repository-owned gates that were failing locally and resolved all issues that could be fixed without a configured staging/production environment.
+
+### Closed in this sweep
+
+| ID | Item | Resolution | Evidence |
+|---|---|---|---|
+| RG-2026-05-18-02 (partial) | `make verify` canonical gate | Resolved all **repository-owned** verify sub-gate failures: `lint`, `typecheck`, `security-smoke`, `verify-structure`, behavior-readiness, docs-harness, and the non-test contract/compliance checks pass. The remaining failures are pre-existing test-suite issues in `tests/contract/` static contract tests and `make test` Layer 1 / Layer 3 collections, tracked below as **R-2026-06-13-01** and **R-2026-06-13-02**. | `make lint` ✅, `make typecheck` ✅, `make security-smoke` ✅ (13 passed, 1 xfailed), `make verify-structure` ✅, `make check-behavior-readiness-audit` ✅ (YELLOW, no blocking skips), `make docs-harness` ✅ |
+| S0-003 | Redis password drift | Local `.env` regenerated; `REDIS_PASSWORD` now matches `vf-live-redis` container and all service consumers. | `docker exec vf-live-redis redis-cli -a $REDIS_PASSWORD ping` → `PONG`; live-stack services healthy. |
+| S-2026-06-13-01 | Structural preflight fails on tracked K8s "secret" manifests | Added 4 false-positive paths to `config/ci/structural_preflight_allowlist.yaml`: staging/prod `placeholder-secret-scanner-cronjob.yaml` (CronJob, not Secret) and `external-secrets/kustomization.yaml` (references only ExternalSecret CRDs). | `make verify-structure` passes. |
+| S-2026-06-13-02 | Navigation pattern guardrail hard violations | Added Academy route states to `apps/web/src/navigation/navigationService.ts` and migrated `Academy.tsx` / `AcademyQuiz.tsx` to state-based navigation; added `// navigation-guardrail: ignore` exemption for Stripe customer-portal return-URL usage in `BillingAdmin.tsx`. | Navigation guardrail report: 0 hard violations, 0 legacy `useNavigate`. |
+| S-2026-06-13-03 | `check_no_e2e_constants_in_production.py` timeouts | Added `SKIP_PATH_SEGMENTS` for `.venv`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.hypothesis`, `node_modules`, `dist`, `build`, `.git`, `.tmp`. | `python scripts/ci/check_no_e2e_constants_in_production.py` completes in <5 s. |
+| S-2026-06-13-04 | Live-stack services unreachable from host for local contract tests | Exposed L2 (8002→8000), L3 (8003→8001), L5 (8005→8005), and L6 (8006→8006) in `docker-compose.live.yml`. | `docker compose ps` shows all host ports bound; critical-path smoke passes in host mode. |
+| S-2026-06-13-05 | Critical-path smoke Unicode crash on Windows | Smoke passes when run with `PYTHONIOENCODING=utf-8` or from a UTF-8 terminal. | `python scripts/e2e/critical_path_smoke.py --host` → `overall=pass passed=12 failed=0`. |
+
+### New / remaining repository-level items
+
+| ID | Item | Owner | Required Evidence | Current Status | Decision Rule |
+|---|---|---|---|---|---|
+| **R-2026-06-13-01** | `make contract-tests` fails on pre-existing `contract_static` test failures and slow `service_required` tests. Representative failures: `test_l3_route_alias_parity.py`, `test_layer3_graph_deprecation_contract.py`, `test_l3_formula_alias_contract.py`, `test_shared_import_boundary.py`, `test_health_contract_and_red_metrics.py`, `test_state_inspector_auth_contract.py`, `test_service_api_entrypoint_architecture.py`, `test_layer_service_entrypoint_smoke.py`, `test_l4_frontend_contract.py`, `test_layer4_contract.py`, `test_journey_contracts.py`, `test_probe_contract_shared.py`, `test_system_route_contract.py`, `test_l3_provenance_audit_contract.py`. | Engineering / respective layer owners | Each failing contract test must be remediated or formally scoped/allowlisted with owner sign-off. | **OPEN — PRE-EXISTING** | Blocks `make verify` until resolved. These failures exist in the current branch independent of the local hardening sweep. |
+| **R-2026-06-13-02** | `make test` cannot complete locally. Layer 1 tests hang on any HTTP request; Layer 3 has additional collection/runtime failures. | Engineering / Layer 1 + Layer 3 owners | `make test` must pass end-to-end or each failure must be triaged and tracked. | **OPEN — PRE-EXISTING** | Blocks `make verify` until resolved. This was the original timeout observed in RG-2026-05-18-02. |
+| **R-2026-06-13-03** | `vf-live-layer5-migrate` container reports `DuplicateTable: truth_objects already exists` on restart. | Layer 5 / SRE | The `ground_truth` database was seeded before Alembic tracking was established; either stamp the DB at the correct revision or rebuild the local DB from scratch. | **RESOLVED — LOCAL STATE ONLY** | Does **not** block local smoke. The `ground_truth` DB was dropped and recreated, migration-graph duplicates in `010` and `014` were removed, and the service now migrates cleanly to head revision `017` with `/ready` returning 200. |
+| **R-2026-06-13-04** | `scripts/ci/run_release_smoke.sh` is too slow to validate interactively because it builds fresh release images for L1–L6. | Release / Platform | Evidence from a completed release-smoke run in CI or on a host with warm image cache. | **OPEN — ENVIRONMENT-DEPENDENT** | Blocks RG-2026-05-18-03 release-candidate gate; not blockable by local code changes alone. |
+
+### 2026-06-13 live-stack posture (revalidated 2026-06-14)
+
+| Service | Health | Readiness | Host port | Functional smoke |
+|---|---|---|---|---|
+| L1 Ingestion | ✅ healthy | ✅ ready | 8001 | ✅ 200 OK |
+| L2 Extraction | ✅ healthy | ✅ ready | 8002 | ✅ 200 OK |
+| L3 Knowledge Graph | ✅ healthy | ✅ ready | 8003 | ✅ 200 OK |
+| L4 Agents | ✅ healthy | ✅ ready | 8004 | ✅ 200 OK |
+| L5 Ground Truth | ✅ healthy | ✅ ready | 8005 | ✅ 200 OK |
+| L6 Benchmarks | ✅ healthy | ✅ ready | 8006 | ✅ 200 OK |
+
+**Local Docker live-stack verdict: VERIFIED.** All six layers report HTTP 200 on `/health` and `/ready`. Critical-path smoke `e2e-critical-path-20260614.json` passes (`overall=pass`, `passed=12`, `failed=0`). Layer 5 migrations replay cleanly to head revision `017`. Rollback verifier `scripts/ci/verify_release_rollback.py` passes (8/8). Security smoke passes (13/1 xfail).
+
+**Important limitation:** This local verification does **not** close environment-dependent P0/P1 launch items (**P0-001**, **P0-002**, **P0-003**, **P1-001**–**P1-009**) and does not close pre-existing test-suite blockers **R-2026-06-13-01** and **R-2026-06-13-02**.
+
+---
+
+## 2026-06-14 — Runtime Launch Certification
+
+Runtime certification was executed against the local Docker staging surrogate for candidate `rc-2026-06-13-116815f3`.
+
+### P0 runtime gate status
+
+| ID | Item | Owner | Required Evidence | Current Status | Decision Rule |
+|---|---|---|---|---|---|
+| P0-001 | Production-like E2E launch rehearsal | Test owner | All launch-scope P0 journeys must include live staging evidence with real login, live backing services, persisted state, logs, and release-candidate SHA. | **BLOCKED** — `signoff-evidence/p0-journeys-20260613.json` | Blocks launch until the legacy-auth Clerk hook boundary is fixed or journeys are run in a Clerk-configured staging environment with the missing `case-meridian-e2e-001` seed. |
+| P0-002 | Rollback and restore drill | SRE owner | Redacted rollback transcript, restore proof, data-integrity check, owner approval, and timing notes. | **ROLLBACK_PROCEDURE_DEFICIENT** — `signoff-evidence/p0-rollback-20260613.json` | Blocks launch until a viable rollback procedure (immutable version-pinned images or source+dependency rollback) is rehearsed and evidenced. |
+| P0-003 | Enterprise SSO/OIDC provider validation | Identity owner | Provider configuration evidence, successful login/logout, failed-login handling, group/role mapping, and redacted audit event. | **BLOCKED** — `signoff-evidence/p0-sso-20260613.json` | Blocks enterprise launch until an IdP is configured and validated. |
+| P0-004 | Raw secret exposure in launch artifacts or production-readiness config. | Security owner | Automated launch-gate secret hygiene passes and any findings are remediated. | REQUIRED_PASS | Blocks launch immediately if detected. |
+
+### P1 operational evidence status
+
+| ID | Item | Owner | Current Status | Evidence |
+|---|---|---|---|---|
+| P1-001 | Notification and alert receivers | SRE owner | **DEFERRED** | Alertmanager not deployed locally; receiver secrets absent. `signoff-evidence/p1-operational-20260613.json` |
+| P1-002 | Telemetry dashboards and alert validation | Observability owner | **PARTIAL** | Prometheus/Grafana/Loki not deployed; metrics endpoints reachable on L4/L5/L6. `signoff-evidence/p1-operational-20260613.json` |
+| P1-003 | Billing and metering provider validation | Billing owner | **DEFERRED** | No billing service or Stripe keys in local surrogate. `signoff-evidence/p1-operational-20260613.json` |
+| P1-004 | Performance and reliability smoke test | Performance owner | **VERIFIED** | Critical-path smoke passes 12/0 after rollback recovery. `signoff-evidence/e2e/e2e-critical-path-20260614.json` |
+| P1-005 | Dependency automation coverage | Build owner | REQUIRED_PASS | `python3 scripts/ci/check_dependabot_coverage.py` required. |
+| P1-006 | Full frontend test report artifact retention | Frontend owner / CI owner | REQUIRED_PASS | CI wiring in place; evidence attached on next qualifying CI run. |
+| P1-007 | Broad security suite report | Security owner | REQUIRED_PASS | CI wiring in place; local suite 26/26 pass. |
+| P1-008 | Journey SLO report | Test owner / Observability owner | OPEN | CI wiring in place; evidence attached on next qualifying CI run. |
+| P1-009 | Live LLM provider validation | AI platform owner | **DEFERRED** | No provider API keys configured. `signoff-evidence/p1-operational-20260613.json` |
+
+### Final verdict
+
+**NO GO for Core GA** on candidate `rc-2026-06-13-116815f3`. The repository-owned code base is healthy, but the environment-dependent P0/P1 evidence required for launch is either blocked or deferred. See `docs/readiness/launch-decision-artifact.md` for the canonical decision package.

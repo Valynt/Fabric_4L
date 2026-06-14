@@ -1,0 +1,162 @@
+{
+  "run_id": "82cc5da04dbd",
+  "started_at": "2026-06-14T15:52:02.733993+00:00",
+  "completed_at": "2026-06-14T15:52:07.485591+00:00",
+  "overall_status": "pass",
+  "dry_run": false,
+  "layer_health": {
+    "L1": "healthy",
+    "L2": "healthy",
+    "L3": "healthy",
+    "L4": "healthy",
+    "L5": "healthy",
+    "L6": "healthy"
+  },
+  "steps": [
+    {
+      "step": "health_L1",
+      "layer": "L1",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8001/health",
+      "request_summary": "",
+      "response_summary": "{\"dependencies\": [{\"name\": \"database\", \"status\": \"healthy\", \"error\": null}, {\"name\": \"redis\", \"status\": \"healthy\", \"error\": null}], \"note\": \"Legacy endpoint; use /api/v1/ingestion/health for full sche",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:02.944281+00:00"
+    },
+    {
+      "step": "health_L2",
+      "layer": "L2",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8002/health",
+      "request_summary": "",
+      "response_summary": "{\"status\": \"ok\", \"service\": \"layer2-extraction\", \"timestamp\": \"2026-06-14T15:52:02.953636+00:00\"}",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:02.950274+00:00"
+    },
+    {
+      "step": "health_L3",
+      "layer": "L3",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8003/health",
+      "request_summary": "",
+      "response_summary": "{\"status\": \"healthy\", \"service\": \"layer3-knowledge\", \"readiness\": {\"is_ready\": true, \"reason\": \"dependencies_available\"}, \"version\": \"1.0.0\", \"timestamp\": \"2026-06-14T15:52:03.007093Z\", \"uptime_second",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:03.004099+00:00"
+    },
+    {
+      "step": "health_L4",
+      "layer": "L4",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8004/health",
+      "request_summary": "",
+      "response_summary": "{\"status\": \"ok\", \"service\": \"layer4-agents\", \"timestamp\": \"2026-06-14T15:52:03.013037+00:00\"}",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:03.009900+00:00"
+    },
+    {
+      "step": "health_L5",
+      "layer": "L5",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8005/health",
+      "request_summary": "",
+      "response_summary": "{\"status\": \"ok\", \"service\": \"layer5-ground-truth\", \"version\": \"0.1.0\", \"timestamp\": \"2026-06-14T15:52:03.036287Z\", \"database\": \"ok\", \"layer3_connected\": null, \"layer3_url\": null}",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:03.092254+00:00"
+    },
+    {
+      "step": "health_L6",
+      "layer": "L6",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8006/health",
+      "request_summary": "",
+      "response_summary": "{\"response_time_ms\": 0.0, \"service\": \"layer6-benchmarks\", \"status\": \"healthy\", \"timestamp\": \"2026-06-14T15:52:03.104772+00:00\", \"version\": \"1.0.0\"}",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:03.103065+00:00"
+    },
+    {
+      "step": "l1_ingest",
+      "layer": "L1",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8001/api/v1/ingestion/jobs",
+      "request_summary": "GET http://localhost:8001/api/v1/ingestion/jobs tenant=00000000-0000-4000-8000-000000000001",
+      "response_summary": "job_id=None status=200",
+      "duration_ms": 777.8057999967132,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:03.880972+00:00"
+    },
+    {
+      "step": "l2_extract",
+      "layer": "L2",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8002/v1/extract",
+      "request_summary": "POST http://localhost:8002/v1/extract job_id=listed",
+      "response_summary": "entity_id=None status=200",
+      "duration_ms": 201.81810000212863,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:04.082863+00:00"
+    },
+    {
+      "step": "l3_graph",
+      "layer": "L3",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8003/v1/formulas?limit=1",
+      "request_summary": "GET http://localhost:8003/v1/formulas?limit=1",
+      "response_summary": "status=200 entity_count=0",
+      "duration_ms": 278.1286999816075,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:04.361062+00:00"
+    },
+    {
+      "step": "l4_agent",
+      "layer": "L4",
+      "status": "pass",
+      "http_status": 201,
+      "url": "http://localhost:8004/v1/workflows",
+      "request_summary": "POST http://localhost:8004/v1/workflows tenant=00000000-0000-4000-8000-000000000001",
+      "response_summary": "workflow_id=None status=201",
+      "duration_ms": 551.2278999958653,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:04.912367+00:00"
+    },
+    {
+      "step": "l5_ground_truth",
+      "layer": "L5",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8005/api/v1/truths?limit=1",
+      "request_summary": "GET http://localhost:8005/api/v1/truths?limit=1",
+      "response_summary": "status=200",
+      "duration_ms": 1728.183800005354,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:06.640690+00:00"
+    },
+    {
+      "step": "l6_benchmark",
+      "layer": "L6",
+      "status": "pass",
+      "http_status": 200,
+      "url": "http://localhost:8006/v1/benchmarks/datasets?limit=1",
+      "request_summary": "GET http://localhost:8006/v1/benchmarks/datasets?limit=1",
+      "response_summary": "status=200",
+      "duration_ms": 844.7539000189863,
+      "error": null,
+      "timestamp": "2026-06-14T15:52:07.485536+00:00"
+    }
+  ],
+  "summary": "overall=pass passed=12 failed=0 skipped=0"
+}

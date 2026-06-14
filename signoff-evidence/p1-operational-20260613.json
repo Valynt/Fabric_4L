@@ -1,0 +1,56 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging-surrogate",
+  "executed_at_utc": "2026-06-14T16:00:00Z",
+  "items": [
+    {
+      "id": "P1-001",
+      "name": "Notification / alert receivers",
+      "classification": "DEFERRED",
+      "reason": "Alertmanager is not deployed in docker-compose.live.yml and receiver secrets (Slack webhook, PagerDuty keys, SMTP credentials) are not configured in the local surrogate. Config files exist under monitoring/alertmanager/ but were not exercised."
+    },
+    {
+      "id": "P1-002",
+      "name": "Telemetry dashboards / metrics",
+      "classification": "PARTIAL",
+      "reason": "Prometheus/Grafana/Loki are not deployed locally. Metrics endpoints were verified reachable on L4 (200), L5 (200), and L6 (200); L2/L3 return 503 (auth-gated) and L1 returns 404. Dashboards and alert rules were not validated end-to-end."
+    },
+    {
+      "id": "P1-003",
+      "name": "Billing / Stripe webhooks",
+      "classification": "DEFERRED",
+      "reason": "No billing service or Stripe integration is deployed in the local surrogate; CLERK_WEBHOOK_SECRET is unset and there are no Stripe keys. Webhook path exists only in the API gateway (services/api/app/core) and was not exercised."
+    },
+    {
+      "id": "P1-004",
+      "name": "Performance / SLO smoke",
+      "classification": "VERIFIED",
+      "reason": "scripts/e2e/critical_path_smoke.py --host passed 12/0 after rollback recovery. No explicit latency SLO thresholds are defined in this environment; gate confirms critical path is functional under light load.",
+      "evidence": "signoff-evidence/e2e/e2e-critical-path-20260614.json"
+    },
+    {
+      "id": "P1-005",
+      "name": "Live LLM provider path",
+      "classification": "DEFERRED",
+      "reason": "OPENAI_API_KEY and ANTHROPIC_API_KEY are unset in the running Layer 4 container. A real LLM call cannot be validated without provider credentials or a sandbox LLM."
+    },
+    {
+      "id": "P1-006",
+      "name": "Production-safety / auth fail-closed",
+      "classification": "VERIFIED",
+      "reason": "Scanned vf-live-layer4 environment for dev auth bypass flags (DEV_AUTH_BYPASS, ALLOW_DEV_AUTH_BYPASS, AUTH_BYPASS_ENABLED, ALLOW_INSECURE_DEV_AUTH_BYPASS) — none present. Unauthenticated and invalid-token requests to /api/v1/workflows returned HTTP 401."
+    },
+    {
+      "id": "P1-007",
+      "name": "Log aggregation / tracing",
+      "classification": "DEFERRED",
+      "reason": "Fluent-bit/Loki/Jaeger are not deployed locally. Services emit structured logs to stdout/stderr only. Sentry is disabled because VITE_SENTRY_DSN is unset."
+    }
+  ],
+  "summary": {
+    "VERIFIED": 2,
+    "PARTIAL": 1,
+    "DEFERRED": 4
+  },
+  "recommendation": "P1 operational readiness is incomplete in the local surrogate. Items marked DEFERRED must be exercised in a production-like environment with real provider credentials, observability stack, and billing sandbox before Core GA."
+}

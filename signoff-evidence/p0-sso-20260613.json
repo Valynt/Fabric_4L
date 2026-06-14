@@ -1,0 +1,34 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging-surrogate",
+  "executed_at_utc": "2026-06-14T15:55:00Z",
+  "provider": "OIDC/SSO (enterprise IdP)",
+  "result": "BLOCKED",
+  "blocking_reason": "No enterprise OIDC identity provider is configured or deployed in the local Docker staging surrogate. .env.example shows OIDC_ISSUER, OIDC_AUDIENCE, OIDC_JWKS_URL, OIDC_JWKS_JSON, CLERK_ISSUER, and CLERK_SECRET_KEY are empty; docker-compose.live.yml does not include a Keycloak container; no live IdP credentials are present in the running container environment.",
+  "configuration_state": {
+    "OIDC_ISSUER": "unset/empty",
+    "OIDC_AUDIENCE": "unset/empty",
+    "OIDC_JWKS_URL": "unset/empty",
+    "CLERK_ISSUER": "unset/empty",
+    "CLERK_SECRET_KEY": "unset/empty",
+    "KEYCLOAK_URL": "http://localhost:8080 (no container running)",
+    "VITE_AUTH_PROVIDER": "legacy (local staging)",
+    "dev_auth_bypass_flags": "none detected in vf-live-layer4 environment"
+  },
+  "checks": {
+    "login": "BLOCKED — no IdP to initiate flow",
+    "logout": "BLOCKED — no session to terminate",
+    "token_validation": "VERIFIED_FAIL_CLOSED — missing OIDC config yields 401 on protected routes",
+    "tenant_mapping": "BLOCKED — cannot map claims without IdP tokens",
+    "invalid_token_rejected": "PASS — fabricated Bearer token rejected with 401",
+    "staging_fail_closed": "PASS — no dev auth bypass flags present; unauthenticated requests to /api/v1/workflows return 401"
+  },
+  "evidence": {
+    "unauthenticated_request_to_layer4_workflows": "HTTP 401",
+    "invalid_bearer_token_request": "HTTP 401",
+    "keycloak_container_status": "not_running",
+    "container_env_dev_bypass_scan": "none"
+  },
+  "classification": "ENVIRONMENT_BLOCKED",
+  "recommendation": "SSO/OIDC validation must be executed in a staging environment with a configured enterprise IdP (Keycloak/Clerk) and valid client credentials before Core GA. The current local surrogate cannot simulate production auth semantics."
+}
