@@ -28,7 +28,6 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ...database import get_db
 from ...models.billing import (
     BillingCharge,
     BillingCustomer,
@@ -42,7 +41,7 @@ from ...services.billing_service import BillingService
 from ...services.invoice_service import InvoiceService
 from ...services.overage_service import OverageService
 from ...services.usage_service import UsageService
-from ..common.db import get_route_db
+from ..common.db import get_route_db, get_webhook_db
 
 logger = logging.getLogger(__name__)
 
@@ -775,7 +774,7 @@ async def stripe_webhook(
             enforce_ip_check=not STRIPE_WEBHOOK_SKIP_IP_CHECK,
         )
         if db is None:
-            async for session in get_db():
+            async for session in get_webhook_db():
                 db = session
                 break
         if db is None:

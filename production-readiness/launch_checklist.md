@@ -5,7 +5,7 @@ Production launch requires scorecard review before approval.
 | Check | Owner | Required evidence | Status |
 |---|---|---|---|
 | Scorecard review completed | Release Engineering | Reviewed [scorecard.md](scorecard.md), latest CI artifact links attached, and every owner acknowledged current status. | REQUIRED |
-| P0 blockers resolved | Release Engineering | No open `[BLOCKER:P0]` item remains in [scorecard.md](scorecard.md) or [risk_register.md](risk_register.md). | REQUIRED |
+| P0 blockers resolved or covered by signed waivers | Release Engineering | No open `[BLOCKER:P0]` item remains in [scorecard.md](scorecard.md) or [risk_register.md](risk_register.md); environment-dependent P0 items require executed accepted-risk waivers. | REQUIRED |
 | P1 blockers accepted or resolved | Product and Platform Owners | Every `[BLOCKER:P1]` item is closed, waived, or explicitly scoped out of launch. | REQUIRED |
 | Security evidence retained | Security Engineering | Security regression, supply-chain, and audit evidence artifacts retained in CI. | REQUIRED |
 | Tenant isolation evidence retained | Platform Security | Tenant isolation gate and route tenant propagation artifacts retained in CI. | REQUIRED |

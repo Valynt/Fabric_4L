@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from layer4_agents.api.app_factory import create_app
@@ -19,6 +20,22 @@ def _app_with_noop_lifespan(monkeypatch):
     return create_app()
 
 
+def _collect_paths(routes, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        if isinstance(route, APIRoute):
+            paths.add(prefix + route.path)
+        elif hasattr(route, "original_router"):
+            include_context = getattr(route, "include_context", None)
+            sub_prefix = prefix + (
+                getattr(include_context, "prefix", "") if include_context else ""
+            )
+            paths.update(_collect_paths(route.original_router.routes, sub_prefix))
+        elif hasattr(route, "routes"):
+            paths.update(_collect_paths(route.routes, prefix + getattr(route, "path", "")))
+    return paths
+
+
 def test_l4_middleware_registration_and_effective_wrapping_order(monkeypatch):
     app = _app_with_noop_lifespan(monkeypatch)
 
@@ -34,7 +51,7 @@ def test_l4_middleware_registration_and_effective_wrapping_order(monkeypatch):
 def test_l4_health_and_metrics_route_contract_presence(monkeypatch):
     app = _app_with_noop_lifespan(monkeypatch)
 
-    paths = {route.path for route in app.routes}
+    paths = _collect_paths(app.routes)
     assert "/health" in paths
     assert "/metrics" in paths
 

@@ -1,4 +1,4 @@
-﻿# Fabric 4L Platform Contract - Deprecation Map
+# Fabric 4L Platform Contract - Deprecation Map
 
 > Forbidden in new code. Migration deadlines are enforced by CI warnings that escalate to errors.
 
@@ -9,8 +9,8 @@
 | get_db() | get_db_from_context() | 2026-06-01 | Health checks excepted | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
 | get_db_with_tenant() | get_db_from_context() | 2026-06-01 | Header-based session creation | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
 | db_session() context manager | db_session_for_context() | 2026-06-01 | Background tasks | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
-| get_tiered_db_session() | get_db_from_context() | 2026-06-15 | Tier routing not yet implemented | in-progress | Pending migration/validation |
-| get_db_with_optional_tenant() | get_db_from_context() + require_super_admin() | 2026-06-15 | Admin routes only | in-progress | Pending migration/validation |
+| get_tiered_db_session() | get_db_from_context() | 2026-06-15 | Tier routing not yet implemented | complete | `rg` scan across canonical runtime paths (no hits); deprecated surface retained for compatibility tests only |
+| get_db_with_optional_tenant() | get_db_from_context() + require_super_admin() | 2026-06-15 | Admin routes only | complete | `rg` scan across canonical runtime paths (no hits); deprecated surface retained for compatibility tests only |
 | Layer 3 AuthenticationMiddleware | shared.identity.GovernanceMiddleware | 2026-05-15 | Remove duplicate middleware | waived-with-exception | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE |
 | Raw dict agent returns | AgentResultEnvelope | 2026-06-30 | Gradual migration | in-progress | Pending migration/validation |
 | ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-07-15 | Agents must use ctx['tool_gateway'] | in-progress | Pending migration/validation |
@@ -19,8 +19,8 @@
 | asyncio.get_event_loop().time() | asyncio.get_running_loop().time() | 2026-06-01 | Deprecated in Python 3.10 | waived-with-exception | DEP-EXC-2026-06-04-LOOP-TIME |
 | useWorkflowStore + usePilotStore | useValuePilotStore (merged) | 2026-05-30 | Consolidate to one 7-step store | waived-with-exception | DEP-EXC-2026-06-04-VALUE-PILOT-STORE |
 | window.location.href | useLocation from wouter | 2026-05-15 | Immediate | waived-with-exception | DEP-EXC-2026-05-15-WEB-HREF |
-| React Context for server state | TanStack Query hooks | 2026-06-15 | Billing/Auth contexts excepted | in-progress | Pending migration/validation |
-| `{"detail": ...}` error-only HTTP payloads | Canonical error envelope: `{"message","code","trace_id"}` | 2026-06-15 | Layer 1 keeps temporary `error=authentication_required` compatibility field for legacy clients | in-progress | Pending migration/validation |
+| React Context for server state | TanStack Query hooks | 2026-06-15 | Billing/Auth contexts excepted | waived-with-exception | DEP-EXC-2026-06-15-WEB-CONTEXT |
+| `{"detail": ...}` error-only HTTP payloads | Canonical error envelope: `{"message","code","trace_id"}` | 2026-06-15 | Layer 1 keeps temporary `error=authentication_required` compatibility field for legacy clients | waived-with-exception | DEP-EXC-2026-06-15-ERROR-ENVELOPE |
 
 
 ## Release Checklist — Planned Release 2026-05-15
@@ -49,6 +49,8 @@ Reference validation scope required by release policy:
 | DEP-EXC-2026-06-04-UTCNOW | `datetime.utcnow()` | TE | layer3-knowledge@valuefabric.ai | Medium: naive timestamp migration may affect persisted/API timestamp shape | 2026-06-30 | `docs/governance/deprecations.json` + release suite |
 | DEP-EXC-2026-06-04-LOOP-TIME | `asyncio.get_event_loop().time()` | TE | platform-engineering@valuefabric.ai | Low: runtime loop API migration remains mechanical but overdue | 2026-06-30 | release suite |
 | DEP-EXC-2026-06-04-VALUE-PILOT-STORE | `useWorkflowStore + usePilotStore` | TE | frontend-platform@valuefabric.ai | Medium: store consolidation touches user workflow state and needs frontend owner validation | 2026-06-30 | release suite |
+| DEP-EXC-2026-06-15-WEB-CONTEXT | `React Context for server state` | TE | frontend-platform@valuefabric.ai | Medium: billing/auth contexts retain Context-based state; migration to TanStack Query requires frontend owner validation | 2026-07-15 | release suite |
+| DEP-EXC-2026-06-15-ERROR-ENVELOPE | `{"detail": ...}` error-only HTTP payloads | TE | platform-engineering@valuefabric.ai | Low: Layer 1 legacy `error=authentication_required` compatibility field retained for existing clients; canonical envelope used elsewhere | 2026-07-15 | release suite |
 
 ## Layer 3 API Alias Deprecation Governance (Contract Council Tracked)
 
