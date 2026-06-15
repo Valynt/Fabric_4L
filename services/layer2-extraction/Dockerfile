@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Layer 2: Extraction Service - Deterministic build with uv
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python:3.14.0-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -18,7 +18,7 @@ RUN uv sync --frozen --no-install-project
 
 COPY src/ ./src/
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python:3.14.0-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
