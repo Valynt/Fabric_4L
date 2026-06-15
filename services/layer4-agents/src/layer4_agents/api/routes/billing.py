@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
@@ -28,6 +28,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ...database import get_db
 from ...models.billing import (
     BillingCharge,
     BillingCustomer,
@@ -36,6 +37,7 @@ from ...models.billing import (
     BillingSubscription,
     BillingUsageEvent,
 )
+from ...services.billing_security import validate_webhook_request_security
 from ...services.billing_service import BillingService
 from ...services.invoice_service import InvoiceService
 from ...services.overage_service import OverageService
@@ -47,6 +49,8 @@ logger = logging.getLogger(__name__)
 # Known Stripe webhook IPs (documented by Stripe) + loopback for local dev
 _STRIPE_WEBHOOK_IPS = {"3.18.12.63", "52.15.183.38", "54.187.174.170", "127.0.0.1", "::1"}
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_WEBHOOK_SECRET = _STRIPE_WEBHOOK_SECRET
+STRIPE_WEBHOOK_SKIP_IP_CHECK = False
 
 
 def _is_stripe_webhook_ip(ip: str) -> bool:
@@ -750,27 +754,20 @@ async def sync_customer(
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
-    background_tasks: Any,
+    background_tasks: BackgroundTasks,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
-    db: AsyncSession = Depends(get_route_db),
+    db: AsyncSession | None = Depends(_defer_webhook_db),
 ) -> dict[str, Any]:
     """Handle Stripe webhook events."""
     client_ip = _get_client_ip(request)
-    if not _is_stripe_webhook_ip(client_ip):
-        logger.warning(
-            "Stripe webhook rejected from non-Stripe IP",
-            extra={"client_ip": client_ip},
-        )
-        # Still accept in dev/test; in production this could be tightened
-
-    if not _STRIPE_WEBHOOK_SECRET:
+    webhook_secret = STRIPE_WEBHOOK_SECRET or _STRIPE_WEBHOOK_SECRET
+    if not webhook_secret:
         raise ServiceUnavailableError(
             message="Stripe webhook secret not configured",
             details={"env_var": "STRIPE_WEBHOOK_SECRET"},
         )
 
     payload = await request.body()
-    svc = BillingService(db)
     try:
         validate_webhook_request_security(
             request,
@@ -787,14 +784,14 @@ async def stripe_webhook(
         webhook_event = await svc.handle_webhook(
             payload=payload,
             signature=stripe_signature,
-            webhook_secret=_STRIPE_WEBHOOK_SECRET,
+            webhook_secret=webhook_secret,
         )
         # Process the event inline (durable inbox pattern)
         await svc.process_webhook_event(
             event_id=webhook_event.id,
             payload=payload,
             signature=stripe_signature,
-            webhook_secret=_STRIPE_WEBHOOK_SECRET,
+            webhook_secret=webhook_secret,
         )
         await _emit_billing_audit(
             action=AuditAction.BILLING_WEBHOOK_RECEIVED,
@@ -804,7 +801,9 @@ async def stripe_webhook(
         )
         return {"received": True}
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        raise BadRequestError(message="Invalid webhook payload") from exc
+    except ValueFabricException:
+        raise
     except Exception as exc:
         logger.error("Webhook processing failed", extra={"error": str(exc)})
         await _emit_billing_audit(

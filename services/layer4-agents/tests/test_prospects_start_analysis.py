@@ -73,6 +73,10 @@ async def test_start_analysis_missing_tenant_fails_closed(prospects_app: FastAPI
     """Missing tenant context should return 401 (fail closed)."""
     # Override auth to return empty tenant
     prospects_app.dependency_overrides[prospects.get_verified_tenant_id] = lambda: None
+    prospects_app.dependency_overrides[prospects.require_authenticated] = lambda: MagicMock(
+        user_id="user-tenant-missing"
+    )
+    prospects_app.dependency_overrides[prospects.get_db_from_context] = lambda: AsyncMock(spec=AsyncSession)
 
     async with AsyncClient(transport=ASGITransport(app=prospects_app), base_url="http://test") as client:
         response = await client.post(

@@ -70,6 +70,7 @@ class _AuditDb:
 @pytest.fixture
 def audit_app() -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(audit.router, prefix="/v1")
     return app
 
@@ -114,5 +115,5 @@ async def test_audit_logs_provenance_source_fails_closed(audit_app: FastAPI) -> 
     async with AsyncClient(transport=ASGITransport(app=audit_app), base_url="http://test") as client:
         response = await client.get("/v1/audit/logs", params={"source": "provenance"})
 
-    assert response.status_code == 501
-    assert "Provenance" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "Provenance" in response.json()["error"]["message"]

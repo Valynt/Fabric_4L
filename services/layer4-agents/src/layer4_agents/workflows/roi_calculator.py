@@ -206,10 +206,6 @@ class ROICalculatorWorkflow(BaseWorkflow):
             if custom_data.get("use_case_ids") and not roi_input_data["value_driver_ids"]:
                 roi_input_data["value_driver_ids"] = custom_data["use_case_ids"]
 
-        # Ensure at least one default value driver for smoke-test compatibility
-        if not roi_input_data["value_driver_ids"]:
-            roi_input_data["value_driver_ids"] = ["vd-default-001"]
-
         roi_input = ROIInputData(**roi_input_data)
         wf_id = workflow_id or str(uuid4())
         r_id = run_id or str(uuid4())

@@ -239,8 +239,10 @@ async def require_tenant_context(context: RequestContext | None = None) -> Reque
 def require_role(*roles: Role | str) -> Callable[[RequestContext | None], object]:
     allowed = {_role_value(role) for role in roles}
 
-    async def dependency(context: RequestContext | None = None) -> RequestContext:
-        ctx = await require_authenticated(context)
+    async def dependency(
+        context: RequestContext | None = Depends(require_authenticated),
+    ) -> RequestContext:
+        ctx = await require_authenticated(context=context)
         if not allowed.intersection(set(ctx.roles or [])):
             raise _forbidden(f"One of these roles is required: {sorted(allowed)}")
         return ctx
@@ -470,10 +472,7 @@ def require_privileged_access(
 
 
 # Convenience aliases matching canonical shared dependencies.
-# NOTE: ``require_super_admin`` is intentionally NOT re-aliased here. The
-# explicit ``async def require_super_admin`` defined above uses
-# ``ctx.is_super_admin()`` and must remain the exported implementation;
-# re-aliasing it to ``require_role(Role.SUPER_ADMIN)`` would silently shadow it.
+require_super_admin = require_role(Role.SUPER_ADMIN)
 require_tenant_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
 require_content_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN)
 require_analyst = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN, Role.ANALYST)

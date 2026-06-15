@@ -71,7 +71,13 @@ def register_core_routes(app: FastAPI) -> None:
             "timestamp": datetime.now(UTC).isoformat(),
             "executor_ready": executor_ready,
             "uptime_seconds": uptime,
-            "dependencies": [],
+            "dependencies": [
+                {
+                    "name": "workflow_executor",
+                    "status": "healthy" if executor_ready else "degraded",
+                    "failure_reason": None if executor_ready else "workflow_executor_unavailable",
+                }
+            ],
             "metrics": {
                 "memory_usage_mb": memory_info.used / (1024 * 1024),
                 "cpu_percent": psutil.cpu_percent(),

@@ -212,8 +212,6 @@ async def invoke_tool(
             tenant_id=str(ctx.tenant_id) if ctx else None,
         )
         result = await gateway.execute(request.tool_name, request.input_data)
-        # Ungoverned compatibility fallback intentionally disabled:
-        # registry.execute(request.tool_name, request.input_data)
 
         return ToolInvokeResponse(
             tool_name=request.tool_name, success=True, result=result, error=None
@@ -228,6 +226,9 @@ async def invoke_tool(
             tool_name=request.tool_name, success=False, result=None,
             error=f"Policy denied: {e}",
         )
+
+    except ValueFabricException:
+        raise
 
     except Exception:
         # Log full exception server-side for debugging

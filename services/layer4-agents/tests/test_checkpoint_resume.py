@@ -339,7 +339,7 @@ class TestCheckpointConfiguration:
         mock_saver = MagicMock()
         mock_saver_cls.return_value = mock_saver
 
-        with patch("asyncpg.connect") as mock_connect:
+        with patch("psycopg.AsyncConnection.connect", new_callable=AsyncMock) as mock_connect:
             with patch.dict("sys.modules", {"langgraph.checkpoint.postgres.aio": MagicMock(AsyncPostgresSaver=mock_saver_cls)}):
                 mock_conn = AsyncMock()
                 mock_connect.return_value = mock_conn
@@ -373,12 +373,11 @@ class TestCheckpointConfiguration:
         persistence failures gracefully.
         """
         # When database is unavailable, should raise CheckpointConnectionError
-        # Patch asyncpg at the source module where connect is actually used
-        # Mock the langgraph postgres module to avoid psycopg dependency
-        with patch("asyncpg.connect") as mock_connect:
+        # Patch psycopg at the source module where connect is actually used.
+        with patch("psycopg.AsyncConnection.connect", new_callable=AsyncMock) as mock_connect:
             with patch.dict("sys.modules", {"langgraph.checkpoint.postgres.aio": MagicMock()}):
-                import asyncpg
-                mock_connect.side_effect = asyncpg.PostgresError("Database unavailable")
+                import psycopg
+                mock_connect.side_effect = psycopg.OperationalError("Database unavailable")
 
                 with pytest.raises(CheckpointConnectionError) as exc_info:
                     async with CheckpointConfig.get_saver() as _:

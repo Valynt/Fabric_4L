@@ -9,6 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from layer4_agents.tools import admin
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -25,17 +26,21 @@ async def test_suspend_tenant_requires_real_db_session() -> None:
     """The admin tool must not report success when no persistence layer is present."""
     ctx = RequestContext(tenant_id=uuid4(), user_id="admin-user", roles=["super_admin"])
 
-    with pytest.raises(HTTPException) as excinfo:
+    with pytest.raises(ServiceUnavailableError) as excinfo:
         await admin.suspend_tenant(uuid4(), context=ctx)
 
-    assert excinfo.value.status_code == 501
-    assert "database session" in excinfo.value.detail
+    assert "database session" in excinfo.value.message
 
 
 @pytest.mark.asyncio
 async def test_suspend_tenant_uses_lifecycle_service_and_commits(monkeypatch: pytest.MonkeyPatch) -> None:
     tenant_id = uuid4()
-    ctx = RequestContext(tenant_id=tenant_id, user_id="admin-user", roles=["tenant_admin"])
+    ctx = RequestContext(
+        tenant_id=tenant_id,
+        user_id="admin-user",
+        roles=["tenant_admin"],
+        permissions=frozenset({"admin:tenants"}),
+    )
     db = _FakeDb()
     calls = {}
 

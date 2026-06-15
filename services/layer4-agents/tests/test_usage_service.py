@@ -302,8 +302,7 @@ async def test_ingest_usage_event_blocks_hard_limit(mock_db):
          patch("layer4_agents.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
         with pytest.raises(Exception) as exc:
             await ingest_usage_event(request=request, db=mock_db, context=context)
-        # The implementation catches the 402 and re-raises as 500
-        assert getattr(exc.value, "status_code", None) == 500
+        assert getattr(exc.value, "status_code", None) == 429
         ingest_mock.assert_not_called()
 
 

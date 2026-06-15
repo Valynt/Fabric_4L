@@ -20,6 +20,7 @@ from uuid import uuid4
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 
+from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
     RateLimiterConfigurationError,
@@ -176,14 +177,13 @@ def _request(path="/private", method="GET"):
 
 
 def _context(tenant_id=None):
-    return SimpleNamespace(
+    return RequestContext(
         tenant_id=tenant_id or uuid4(),
         user_id="user-1",
         api_key_id=None,
         roles=["read_only"],
         source="jwt",
         raw={},
-        has_any_role=lambda *roles: False,
     )
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     ServiceUnavailableError,
+    ValueFabricException,
 )
 
 """Prospect API routes — Composite context and analysis workflow initiation.
@@ -321,6 +322,7 @@ async def start_prospect_analysis(
     tenant_id: str = Depends(get_verified_tenant_id),
     ctx: RequestContext = Depends(require_authenticated),
     db: AsyncSession = Depends(get_db_from_context),
+    executor: Any | None = Depends(get_executor),
 ) -> StartAnalysisResponse:
     """Start prospect analysis workflow — real backend implementation.
 
@@ -440,7 +442,6 @@ async def start_prospect_analysis(
         # -------------------------------------------------------------------
         # 3. Attempt workflow trigger (if executor available)
         # -------------------------------------------------------------------
-        executor = get_executor()
         if executor:
             try:
                 from ...engine.scheduler import TaskPriority

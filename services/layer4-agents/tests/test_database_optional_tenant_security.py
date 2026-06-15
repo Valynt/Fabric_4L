@@ -52,7 +52,7 @@ async def test_optional_tenant_rejects_non_super_admin_without_tenant(monkeypatc
     )
 
     agen = database.get_db_with_optional_tenant(request=_make_request("case-review"), context=context)
-    with pytest.raises(HTTPException, match="super admin role"):
+    with pytest.raises(AuthorizationError, match="super admin role"):
         await agen.__anext__()
 
     assert database.get_privileged_db_session_metrics()["denials_total"] == 1
@@ -73,7 +73,7 @@ async def test_optional_tenant_super_admin_requires_privileged_reason(monkeypatc
     )
 
     agen = database.get_db_with_optional_tenant(request=_make_request(), context=context)
-    with pytest.raises(HTTPException, match="X-Privileged-Reason"):
+    with pytest.raises(ValidationError, match="X-Privileged-Reason"):
         await agen.__anext__()
 
     assert database.get_privileged_db_session_metrics()["missing_reason_total"] == 1
