@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python:3.14.0-slim-bookworm AS builder
 
 LABEL maintainer="Value Fabric Engineering"
 LABEL description="Layer 7 — Billing Service"
@@ -21,7 +21,7 @@ COPY services/layer7-billing/src/ ./src/
 COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python:3.14.0-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
