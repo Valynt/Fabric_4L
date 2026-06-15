@@ -42,26 +42,28 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
-  const clerkEnabled = isClerkAuthEnabled();
   const { navigateTo } = useNavigation();
   const urls = getClerkUrls();
-  // Clerk hooks may only be called inside <ClerkProvider>.
-  const clerkOrg = clerkEnabled ? useOrganization() : { isLoaded: true, organization: null };
-  const orgLoaded = clerkOrg?.isLoaded ?? true;
-  const organization = clerkOrg?.organization ?? null;
+  // This component is only rendered behind the <RequireClerkAuth> gate, which
+  // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
+  // called unconditionally here.
+  const { isLoaded: orgLoaded, organization } = useOrganization();
   const hasNavigated = useRef(false);
+
+  // All hooks must run on every render before any conditional return, so the
+  // redirect effect is registered before the loading/redirect short-circuits
+  // below (orgLoaded transitions false→true as Clerk loads).
+  useLayoutEffect(() => {
+    if (requireOrganization && orgLoaded && !organization && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigateTo(urls.selectOrgUrl, { replace: true });
+    }
+  }, [requireOrganization, orgLoaded, organization, navigateTo, urls.selectOrgUrl]);
 
   if (requireOrganization && !orgLoaded) {
     // Render nothing while org state loads to prevent UI flash
     return null;
   }
-
-  useLayoutEffect(() => {
-    if (requireOrganization && !organization && !hasNavigated.current) {
-      hasNavigated.current = true;
-      navigateTo(urls.selectOrgUrl, { replace: true });
-    }
-  }, [requireOrganization, organization, navigateTo, urls.selectOrgUrl]);
 
   if (requireOrganization && !organization) {
     // Redirect in progress — render nothing to prevent UI flash
@@ -75,33 +77,24 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
-  const clerkEnabled = isClerkAuthEnabled();
   const { navigateTo } = useNavigation();
   const location = useLocation();
   const urls = getClerkUrls();
-  // Clerk hooks may only be called inside <ClerkProvider>.
-  const clerkAuth = clerkEnabled ? useAuth() : { isLoaded: true, isSignedIn: false };
-  const authLoaded = clerkAuth?.isLoaded ?? true;
-  const isSignedIn = clerkAuth?.isSignedIn ?? false;
+  // This component is only rendered behind the <RequireClerkAuth> gate, which
+  // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
+  // called unconditionally here.
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const hasNavigated = useRef(false);
-
-  // DEBUG: log auth state
-  // eslint-disable-next-line no-console
-  console.log('[RequireClerkAuth]', { path: location.pathname, authLoaded, isSignedIn });
 
   // Redirect synchronously before paint to prevent ANY protected UI from flashing.
   // useLayoutEffect runs after DOM mutations but before the browser paints,
   // so the user never sees the protected route content.
   useLayoutEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('[RequireClerkAuth] useLayoutEffect', { path: location.pathname, authLoaded, isSignedIn, hasNavigated: hasNavigated.current });
     if (authLoaded && !isSignedIn && !hasNavigated.current) {
       hasNavigated.current = true;
       const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
         location.pathname + location.search,
       )}`;
-      // eslint-disable-next-line no-console
-      console.log('[RequireClerkAuth] navigating to', redirectTo);
       navigateTo(redirectTo, { replace: true });
     }
   }, [authLoaded, isSignedIn, navigateTo, urls.signInUrl, location.pathname, location.search]);

@@ -37,8 +37,6 @@ function ClerkSignUpInner() {
 }
 
 export default function ClerkSignUpPage() {
-  const urls = getClerkUrls();
-
   // Under legacy auth there is no ClerkProvider mounted. Redirect to the
   // legacy sign-in route to avoid a runtime crash from <SignUp />.
   if (!isClerkAuthEnabled()) {

@@ -55,12 +55,15 @@ function useHeaderMeta(): { title: string; subtitle: string } {
 }
 
 function ClerkAuthControl() {
-  const clerkEnabled = isClerkAuthEnabled();
   // Hooks from @clerk/react may only be called inside <ClerkProvider>.
-  // In legacy mode the provider is not mounted, so skip the hook entirely.
-  const { isSignedIn } = clerkEnabled ? useAuth() : { isSignedIn: false };
+  // In legacy mode the provider is not mounted, so render nothing and never
+  // reach the inner component that calls Clerk hooks.
+  if (!isClerkAuthEnabled()) return null;
+  return <ClerkAuthControlInner />;
+}
 
-  if (!clerkEnabled) return null;
+function ClerkAuthControlInner() {
+  const { isSignedIn } = useAuth();
 
   if (isSignedIn) {
     return <UserButton />;

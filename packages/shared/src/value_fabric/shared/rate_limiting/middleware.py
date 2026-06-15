@@ -83,10 +83,19 @@ class TenantRateLimitMiddleware(BaseHTTPMiddleware):
         endpoint = self._normalize_endpoint(request.url.path)
         route_group = self._resolve_route_group(endpoint, request.method)
         
-        # Validate and normalize tenant tier
-        # RequestContext may not have tenant_tier (it has isolation_tier instead);
-        # use getattr to avoid AttributeError and safely default to SHARED.
+        # Validate and normalize tenant tier.
+        # RequestContext exposes ``isolation_tier`` (shared|schema|database),
+        # not ``tenant_tier``. Map dedicated isolation (schema/database) onto the
+        # DEDICATED rate-limit tier so premium tenants are not throttled at
+        # shared-tier limits. Fall back to SHARED for unknown/missing values.
         raw_tier = getattr(tenant_context, "tenant_tier", None)
+        if raw_tier is None:
+            isolation_tier = getattr(tenant_context, "isolation_tier", None)
+            raw_tier = (
+                TenantTier.DEDICATED.value
+                if isolation_tier in {"schema", "database"}
+                else TenantTier.SHARED.value
+            )
         try:
             tier = TenantTier(raw_tier or "shared")
         except ValueError:

@@ -11,10 +11,20 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function OnboardingPage() {
-  const clerkEnabled = isClerkAuthEnabled();
   // Clerk hooks may only be invoked inside <ClerkProvider>. In legacy mode the
-  // onboarding page is a simple placeholder, so skip the hook entirely.
-  const clerkUser = clerkEnabled ? useUser().user : null;
+  // provider is not mounted, so render the placeholder without a Clerk name.
+  if (!isClerkAuthEnabled()) {
+    return <OnboardingView firstName={null} />;
+  }
+  return <OnboardingClerkView />;
+}
+
+function OnboardingClerkView() {
+  const { user } = useUser();
+  return <OnboardingView firstName={user?.firstName ?? null} />;
+}
+
+function OnboardingView({ firstName }: { firstName: string | null }) {
   const { navigateTo } = useNavigation();
 
   return (
@@ -24,8 +34,8 @@ export default function OnboardingPage() {
           Welcome to Fabric4L
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          {clerkUser?.firstName
-            ? `Great to have you here, ${clerkUser.firstName}.`
+          {firstName
+            ? `Great to have you here, ${firstName}.`
             : "Great to have you here."}{" "}
           Let&apos;s get your workspace set up.
         </p>

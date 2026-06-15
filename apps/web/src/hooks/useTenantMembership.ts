@@ -10,35 +10,51 @@ import { useOrganization } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
-export function useTenantMembership(tenantSlug: string | undefined) {
-  const { user, isLoading: legacyLoading } = useAuthContext();
-  const clerkEnabled = isClerkAuthEnabled();
-  // Clerk hooks may only be called when Clerk is enabled. Calling useOrganization()
-  // outside <ClerkProvider> (legacy mode) throws at render time.
-  const clerkOrg = clerkEnabled ? useOrganization() : { organization: undefined, isLoaded: true };
-  const organization = clerkOrg?.organization;
-  const orgLoaded = clerkOrg?.isLoaded ?? true;
+interface TenantMembership {
+  isMemberOfTenant: boolean;
+  isLoading: boolean;
+}
+
+/**
+ * Clerk-mode implementation. Membership is derived from the active Clerk
+ * organization slug. useOrganization() is called unconditionally because this
+ * hook is only selected when Clerk is enabled and <ClerkProvider> is mounted.
+ */
+function useTenantMembershipClerk(tenantSlug: string | undefined): TenantMembership {
+  const { organization, isLoaded: orgLoaded } = useOrganization();
 
   const isMemberOfTenant = useMemo(() => {
     if (!tenantSlug) return false;
+    // Under Clerk, membership is determined by active organization slug.
+    // The backend is the ultimate authority; this is a UX convenience.
+    if (!orgLoaded) return false;
+    return organization?.slug === tenantSlug;
+  }, [tenantSlug, orgLoaded, organization?.slug]);
 
-    if (clerkEnabled) {
-      // Under Clerk, membership is determined by active organization slug.
-      // The backend is the ultimate authority; this is a UX convenience.
-      if (!orgLoaded) return false;
-      return organization?.slug === tenantSlug;
-    }
-
-    // Legacy path: user's current tenant slug matches URL slug
-    if (!user) return false;
-    if (user.tenantSlug === tenantSlug) return true;
-    return false;
-  }, [tenantSlug, user, clerkEnabled, orgLoaded, organization?.slug]);
-
-  const isLoading = clerkEnabled ? !orgLoaded : legacyLoading;
-
-  return {
-    isMemberOfTenant,
-    isLoading,
-  };
+  return { isMemberOfTenant, isLoading: !orgLoaded };
 }
+
+/**
+ * Legacy-mode implementation. Never calls Clerk hooks, so it is safe to use
+ * when <ClerkProvider> is not mounted.
+ */
+function useTenantMembershipLegacy(tenantSlug: string | undefined): TenantMembership {
+  const { user, isLoading: legacyLoading } = useAuthContext();
+
+  const isMemberOfTenant = useMemo(() => {
+    if (!tenantSlug) return false;
+    if (!user) return false;
+    return user.tenantSlug === tenantSlug;
+  }, [tenantSlug, user]);
+
+  return { isMemberOfTenant, isLoading: legacyLoading };
+}
+
+/**
+ * Selected once at module load based on the build-time auth provider flag.
+ * A component therefore uses a single, stable hook implementation for its
+ * entire lifetime, satisfying the Rules of Hooks.
+ */
+export const useTenantMembership = isClerkAuthEnabled()
+  ? useTenantMembershipClerk
+  : useTenantMembershipLegacy;

@@ -188,13 +188,17 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
   // context, and httpOnly cookies cannot be set from JavaScript.
   const setCookieHeader = response.headers()['set-cookie'];
   if (setCookieHeader) {
-    const cookies = parseSetCookieHeader(setCookieHeader, new URL(sessionUrl).hostname);
+    // The browser sends API requests to the frontend origin (Vite proxies them
+    // to the backend in legacy mode), so the cookie must be scoped to the
+    // frontend hostname — not the backend host the session was minted from.
+    const cookieDomain = new URL(frontendOrigin).hostname;
+    const cookies = parseSetCookieHeader(setCookieHeader, cookieDomain);
     if (cookies.length > 0) {
       await page.context().addCookies(
         cookies.map((c) => ({
           name: c.name,
           value: c.value,
-          domain: 'localhost',
+          domain: cookieDomain,
           path: c.path,
           httpOnly: c.httpOnly,
           secure: c.secure,

@@ -59,8 +59,6 @@ function ClerkSignInInner() {
 }
 
 export default function ClerkSignInPage() {
-  const urls = getClerkUrls();
-
   // Under legacy auth there is no ClerkProvider mounted and no Clerk session
   // to consult. Render a legacy-compatible placeholder that redirects to the
   // legacy login route so the app does not crash on the Clerk <SignIn />

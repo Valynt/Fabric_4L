@@ -472,7 +472,10 @@ def require_privileged_access(
 
 
 # Convenience aliases matching canonical shared dependencies.
-require_super_admin = require_role(Role.SUPER_ADMIN)
+# NOTE: ``require_super_admin`` is intentionally NOT re-aliased here. The
+# explicit ``async def require_super_admin`` defined above uses
+# ``ctx.is_super_admin()`` and must remain the exported implementation;
+# re-aliasing it to ``require_role(Role.SUPER_ADMIN)`` would silently shadow it.
 require_tenant_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
 require_content_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN)
 require_analyst = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN, Role.ANALYST)
