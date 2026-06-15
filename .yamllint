@@ -4,6 +4,12 @@ yaml-files:
   - '*.yml'
   - '.yamllint'
 
+ignore:
+  - '**/.venv/**'
+  - '**/.tmp/**'
+  - '**/node_modules/**'
+  - 'infra/helm/fabric-chart/templates/**'
+
 rules:
   braces:
     min-spaces-inside: 0

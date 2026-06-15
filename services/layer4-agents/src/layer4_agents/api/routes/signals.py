@@ -364,7 +364,7 @@ async def review_signal(
             review_status=request.review_status,
             reviewer_id=ctx.user_id,
             decision_note=request.decision_note,
-            tenant_id=ctx.tenant_id,
+            tenant_id=str(ctx.tenant_id),
         )
     return SignalReviewResponse(
         signal_id=signal_id,
@@ -597,7 +597,7 @@ async def decide_evidence(
             decision=request.decision,
             reviewer_id=ctx.user_id,
             decision_note=request.decision_note,
-            tenant_id=ctx.tenant_id,
+            tenant_id=str(ctx.tenant_id),
         )
     return EvidenceDecisionResponse(
         evidence_id=evidence_id,
@@ -625,6 +625,6 @@ async def link_evidence_driver(
             driver_id=driver_id,
             account_id=request.account_id,
             case_id=request.case_id,
-            tenant_id=ctx.tenant_id,
+            tenant_id=str(ctx.tenant_id),
         )
     return {"evidence_id": evidence_id, "driver_id": driver_id, **(response or {})}

@@ -9,6 +9,7 @@ Full suite in other test files runs on scheduled workflows.
 """
 
 import time
+from datetime import datetime, timedelta
 from typing import Callable
 
 import jwt as jwt_lib
@@ -42,6 +43,24 @@ def _disable_rate_limiting_for_smoke(monkeypatch):
         return RateLimitResult(allowed=True, remaining=999, reset_at=time.time() + 60, retry_after=None)
 
     monkeypatch.setattr(RedisRateLimiter, "check", _always_allow)
+
+    try:
+        from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
+            RateLimitResult as TenantRateLimitResult,
+            TenantRateLimiter,
+        )
+    except ImportError:
+        return
+
+    async def _tenant_always_allow(self, **kwargs):
+        return TenantRateLimitResult(
+            allowed=True,
+            limit=1000,
+            remaining=999,
+            reset_at=datetime.utcnow() + timedelta(seconds=60),
+        )
+
+    monkeypatch.setattr(TenantRateLimiter, "check_rate_limit", _tenant_always_allow)
 
 
 class TestCriticalTenantIsolation:

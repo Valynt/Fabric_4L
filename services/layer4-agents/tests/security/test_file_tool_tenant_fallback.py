@@ -75,9 +75,6 @@ sys.modules.setdefault("value_fabric.shared.identity", _vf.shared.identity)
 sys.modules.setdefault("value_fabric.shared.identity.context", _vf.shared.identity.context)
 
 spec.loader.exec_module(_test_files)
-from layer4_agents.tools import files as _canonical_files
-
-_test_files = _canonical_files
 
 TenantRequiredError = _test_files.TenantRequiredError
 _get_tenant_id = _test_files._get_tenant_id
@@ -85,6 +82,7 @@ _validate_path = _test_files._validate_path
 read_file = _test_files.read_file
 write_file = _test_files.write_file
 delete_file = _test_files.delete_file
+_canonical_files = sys.modules[write_file.__module__]
 
 
 @pytest.fixture
@@ -92,6 +90,7 @@ def temp_storage(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp:
         monkeypatch.setenv("TENANT_STORAGE_PATH", tmp)
         _test_files.TENANT_STORAGE_ROOT = Path(tmp)
+        _canonical_files.TENANT_STORAGE_ROOT = Path(tmp)
         yield Path(tmp)
 
 
@@ -123,13 +122,13 @@ class TestGetTenantId:
 
     def test_ambient_context_used_when_no_explicit(self):
         ambient = _ctx("tenant-ambient")
-        with patch.object(_test_files, "require_context", return_value=ambient):
+        with patch.object(_canonical_files, "require_context", return_value=ambient):
             assert _get_tenant_id() == "tenant-ambient"
 
     def test_explicit_context_wins_over_ambient(self):
         ambient = _ctx("tenant-ambient")
         explicit = _ctx("tenant-explicit")
-        with patch.object(_test_files, "require_context", return_value=ambient):
+        with patch.object(_canonical_files, "require_context", return_value=ambient):
             assert _get_tenant_id(explicit) == "tenant-explicit"
 
 

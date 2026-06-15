@@ -13,6 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 import layer4_agents.services.conversation as conversation_module
 from layer4_agents.api.routes import analysis
+from layer4_agents.api.common.db import get_route_db
 from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.error_handling import register_exception_handlers
@@ -87,7 +88,8 @@ async def test_business_case_smoke_draft_creates_audit_event(
         return RequestContext(
             tenant_id=tenant_id,
             user_id="smoke-user",
-            permissions=frozenset({"read:agents", "write:agents"}),
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
         )
 
     class RaisingExecutor:
@@ -117,8 +119,8 @@ async def test_business_case_smoke_draft_creates_audit_event(
 
     tenant_id_context = tenant_id
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: RaisingExecutor()
-    analysis_app.dependency_overrides[analysis.get_db_from_context] = lambda: object()
+    analysis_app.dependency_overrides[get_route_db] = lambda: object()
+    monkeypatch.setattr(analysis, "get_executor", lambda: RaisingExecutor())
     monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
     monkeypatch.setattr(analysis, "BusinessCaseService", FakeBusinessCaseService)
     monkeypatch.setattr(analysis, "emit_audit_event", capture_audit)
@@ -152,7 +154,8 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
         return RequestContext(
             tenant_id=tenant_id,
             user_id="smoke-user",
-            permissions=frozenset({"read:agents", "write:agents"}),
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
         )
 
     class FakeExecutor:
@@ -176,8 +179,9 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
 
     tenant_id_context = tenant_id
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
+    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDB()
     analysis_app.dependency_overrides[analysis.get_executor] = lambda: FakeExecutor()
-    analysis_app.dependency_overrides[analysis.get_db_from_context] = lambda: FakeDB()
+    monkeypatch.setattr(analysis, "get_executor", lambda: FakeExecutor())
     monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:

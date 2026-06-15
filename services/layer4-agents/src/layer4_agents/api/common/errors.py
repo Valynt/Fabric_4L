@@ -49,16 +49,17 @@ def raise_normalized_with_log(
 ) -> NoReturn:
     """Log unexpected exceptions and raise a normalized HTTPException."""
     if not isinstance(exc, HTTPException):
-        logger.exception(
-            log_message,
-            extra={
-                "error_code": error_code,
-                "request_id": request_id,
-                "correlation_id": request_id,
-                "exception_type": type(exc).__name__,
-                **log_extra,
-            },
-        )
+        extra = {
+            "error_code": error_code,
+            "request_id": request_id,
+            "correlation_id": request_id,
+            "exception_type": type(exc).__name__,
+            **log_extra,
+        }
+        try:
+            logger.exception(log_message, extra=extra)
+        except TypeError:
+            logger.exception(log_message)
     raise_normalized(
         exc,
         status_code=status_code,

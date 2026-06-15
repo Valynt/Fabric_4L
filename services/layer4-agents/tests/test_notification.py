@@ -46,7 +46,7 @@ class TestQuietHoursEnforcement:
         # Mock current time to be within quiet hours (10:00)
         mock_now = MagicMock()
         mock_now.hour = 10
-        with patch('src.services.notification.datetime') as mock_datetime:
+        with patch("layer4_agents.services.notification.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_now
             channels = service._get_channels_for_user(user_with_quiet_hours, PauseSeverity.WARNING)
 
@@ -59,7 +59,7 @@ class TestQuietHoursEnforcement:
         """Test that in-app notifications are allowed during quiet hours."""
         mock_now = MagicMock()
         mock_now.hour = 10
-        with patch('src.services.notification.datetime') as mock_datetime:
+        with patch("layer4_agents.services.notification.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_now
             channels = service._get_channels_for_user(user_with_quiet_hours, PauseSeverity.CRITICAL)
 
@@ -71,7 +71,7 @@ class TestQuietHoursEnforcement:
         # Mock current time to be outside quiet hours (20:00)
         mock_now = MagicMock()
         mock_now.hour = 20
-        with patch('src.services.notification.datetime') as mock_datetime:
+        with patch("layer4_agents.services.notification.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_now
             channels = service._get_channels_for_user(user_with_quiet_hours, PauseSeverity.WARNING)
 
@@ -93,7 +93,7 @@ class TestQuietHoursEnforcement:
         # Test at midnight (within quiet hours)
         mock_midnight = MagicMock()
         mock_midnight.hour = 0
-        with patch('src.services.notification.datetime') as mock_datetime:
+        with patch("layer4_agents.services.notification.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_midnight
             channels = service._get_channels_for_user("user-002", PauseSeverity.WARNING)
             assert channels == [NotificationChannel.IN_APP]
@@ -101,7 +101,7 @@ class TestQuietHoursEnforcement:
         # Test at noon (outside quiet hours)
         mock_noon = MagicMock()
         mock_noon.hour = 12
-        with patch('src.services.notification.datetime') as mock_datetime:
+        with patch("layer4_agents.services.notification.datetime") as mock_datetime:
             mock_datetime.now.return_value = mock_noon
             channels = service._get_channels_for_user("user-002", PauseSeverity.WARNING)
             assert NotificationChannel.EMAIL in channels

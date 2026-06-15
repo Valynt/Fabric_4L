@@ -382,12 +382,9 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/truths", params=params)
             resp.raise_for_status()
             return resp.json()
-        except ValueError as exc:
-            logger.warning("Layer 5 list_truths blocked: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": "Layer 5 list truths failed", "items": [], "total": 0})
+            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
 
     async def validate_truth(
         self,

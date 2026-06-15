@@ -3,6 +3,7 @@ from __future__ import annotations
 """Prometheus metrics collection for Layer 6 Benchmark Service."""
 
 
+import hashlib
 import logging
 import time
 from typing import Any
@@ -97,6 +98,13 @@ class PrometheusMetrics:
         code = int(status_code)
         return f"{code // 100}xx"
 
+    @staticmethod
+    def _tenant_bucket(tenant_id: str) -> str:
+        if not tenant_id or tenant_id == "unknown":
+            return "unknown"
+        digest = hashlib.sha256(tenant_id.encode("utf-8")).digest()
+        return f"bucket_{digest[0] % 64:02d}"
+
     def increment_requests_total(
         self,
         *,
@@ -111,7 +119,7 @@ class PrometheusMetrics:
             route=route,
             method=method,
             status_class=self._status_class(status_code),
-            tenant_id=tenant_id,
+            tenant_bucket=self._tenant_bucket(tenant_id),
         ).inc()
 
     def observe_request_duration(
@@ -127,7 +135,7 @@ class PrometheusMetrics:
         self._metrics["request_duration"].labels(
             route=route,
             method=method,
-            tenant_id=tenant_id,
+            tenant_bucket=self._tenant_bucket(tenant_id),
         ).observe(duration)
 
     def increment_dataset_comparisons(self, *, industry: str, outcome: str) -> None:

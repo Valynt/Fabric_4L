@@ -184,8 +184,8 @@ sanitize_stream() {
   perl -pe '
     s#(postgresql|postgres|mysql|redis|mongodb)://[^\s@]+:[^\s@]+@#$1://[REDACTED]@#ig;
     s#(Authorization:\s*)\S+#$1[REDACTED]#ig;
-    s#((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)\S+#$1[REDACTED]#ig;
-    s#(^\s*[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY|PRIVATE_KEY)[A-Z0-9_]*:\s*)\S+#$1[REDACTED]#ig;
+    s#((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)\S+#${1}[REDACTED]#ig;
+    s#(^\s*[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY|PRIVATE_KEY)[A-Z0-9_]*:\s*)\S+#${1}[REDACTED]#ig;
   '
 }
 

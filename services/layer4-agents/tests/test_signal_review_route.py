@@ -21,9 +21,9 @@ def app() -> FastAPI:
     return app
 
 
-class _FakeLayer3Client:
-    def __init__(self, **kwargs) -> None:
-        self.calls: list[dict] = []
+class _FakeNeo4jSession:
+    def __init__(self, calls: list[tuple[str, dict]]) -> None:
+        self.calls = calls
 
     async def __aenter__(self):
         return self
@@ -31,23 +31,16 @@ class _FakeLayer3Client:
     async def __aexit__(self, exc_type, exc, tb):
         return None
 
-    async def link_evidence_driver(
-        self,
-        evidence_id: str,
-        driver_id: str,
-        account_id: str,
-        case_id: str,
-        tenant_id=None,
-    ) -> dict:
-        call = {
-            "evidence_id": evidence_id,
-            "driver_id": driver_id,
-            "account_id": account_id,
-            "case_id": case_id,
-            "tenant_id": str(tenant_id),
-        }
-        self.calls.append(call)
-        return {"linked": True, **call}
+    async def run(self, query: str, params: dict) -> None:
+        self.calls.append((query, params))
+
+
+class _FakeNeo4jDriver:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict]] = []
+
+    def session(self) -> _FakeNeo4jSession:
+        return _FakeNeo4jSession(self.calls)
 
 
 @pytest.mark.asyncio
@@ -76,7 +69,7 @@ async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app
             }
             return persisted[signal_id]
 
-    monkeypatch.setattr(signals, "Layer3Client", FakeLayer3Client)
+    monkeypatch.setattr("layer4_agents.api.routes.signals.Layer3Client", FakeLayer3Client)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         approve = await client.patch("/v1/signals/sig-1/review", json={"account_id": "acct-1", "review_status": "approved"})
@@ -91,8 +84,23 @@ async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app
 
 @pytest.mark.asyncio
 async def test_evidence_attach_writes_driver_relation(app: FastAPI, monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_client = _FakeLayer3Client()
-    monkeypatch.setattr(signals, "Layer3Client", lambda **kwargs: fake_client)
+    calls: list[dict] = []
+
+    class FakeLayer3Client:
+        def __init__(self, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def link_evidence_driver(self, **kwargs):
+            calls.append(kwargs)
+            return {"decision": "attached_to_driver"}
+
+    monkeypatch.setattr("layer4_agents.api.routes.signals.Layer3Client", FakeLayer3Client)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
@@ -104,8 +112,13 @@ async def test_evidence_attach_writes_driver_relation(app: FastAPI, monkeypatch:
         )
 
     assert response.status_code == 200
-    assert response.json()["linked"] is True
-    assert len(fake_client.calls) == 1
-    params = fake_client.calls[0]
-    assert params["evidence_id"] == "ev-1"
-    assert params["driver_id"] == "drv-1"
+    assert response.json()["decision"] == "attached_to_driver"
+    assert calls == [
+        {
+            "evidence_id": "ev-1",
+            "driver_id": "drv-1",
+            "account_id": "acct-1",
+            "case_id": "case-1",
+            "tenant_id": "12345678-1234-1234-1234-123456789abc",
+        }
+    ]

@@ -142,9 +142,19 @@ If smoke checks fail or production SLOs regress:
 3. **Rollback**
    - For a `Deployment`: `kubectl rollout undo deployment/<name> -n value-fabric`
    - For blue-green: switch traffic back to previous service selector (`track=blue` or `track=green`).
+   - **Image-only rollback is unsafe when the new candidate introduced source-level dependencies** (e.g., a new Python package such as `canonical`). Rolling back to the previous runtime image while still mounting the current source tree, or while database migrations expect the new code, will crash services. A safe rollback must use either:
+     - An immutable image built entirely from the target commit (including all dependencies), or
+     - A coordinated rollback of both image and source/config dependencies.
 4. **Verify**
    - Wait for rollout completion.
    - Re-run smoke checks for L1–L5 and frontend.
 5. **Escalate if persistent**
    - Follow service-specific runbook in this folder.
    - Open incident and include root cause plus corrective action.
+
+### Local Docker Surrogate Rollback Drill Notes
+
+- The local `docker-compose.live.yml` mounts `packages/shared/src/value_fabric/shared` and `services/layer4-agents/src` into containers. This makes the runtime a mix of the built image and the current working tree.
+- An image-level rollback of Layer 4 to the previous release-smoke image failed with `ModuleNotFoundError: No module named 'canonical'` because the old image did not include the `canonical` package introduced in candidate `rc-2026-06-13-116815f3`.
+- Roll-forward to the candidate image built from the current commit restored health and the critical-path smoke passed 12/0.
+- **Recommendation:** In production-like environments, tag and deploy immutable images per commit (e.g., `fabric_4l-layer4:rc-116815f3`) and rehearse rollback with those images, not with source-mount overlays.

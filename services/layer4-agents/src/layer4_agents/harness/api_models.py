@@ -163,7 +163,6 @@ class GateResponse(BaseModel):
     run_id: str
     tenant_id: str
     gate_type: GateType
-    action_class: ActionClass | None = None
     status: GateStatus
     decision_by: str | None
     decision_reason: str | None
@@ -172,7 +171,17 @@ class GateResponse(BaseModel):
 
     @classmethod
     def from_domain(cls, gate: HumanGate) -> GateResponse:
-        return cls(**gate.model_dump())
+        return cls(
+            id=gate.id,
+            run_id=gate.run_id,
+            tenant_id=gate.tenant_id,
+            gate_type=gate.gate_type,
+            status=gate.status,
+            decision_by=gate.decision_by,
+            decision_reason=gate.decision_reason,
+            created_at=gate.created_at,
+            decided_at=gate.decided_at,
+        )
 
 
 class GateListResponse(BaseModel):

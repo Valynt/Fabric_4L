@@ -230,12 +230,10 @@ class TenantProvisioningService:
         if not request.admin_email or "@" not in request.admin_email:
             raise ValueError("admin_email must be a valid email address")
         
-        if request.isolation_tier not in ("shared", "schema", "database"):
-            raise ValueError("isolation_tier must be one of: shared, schema, database")
         if request.isolation_tier != "shared":
             raise ValueError(
-                f"isolation_tier '{request.isolation_tier}' is reserved for future use; "
-                "only 'shared' is supported in v1"
+                f"isolation_tier {request.isolation_tier!r} is not supported for provisioning. "
+                "Use isolation_tier='shared'."
             )
     
     async def _get_tenant_by_name(self, tenant_name: str) -> dict[str, Any] | None:

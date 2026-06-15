@@ -29,15 +29,7 @@ class TestLLMCostTracking:
         """Token counting must match actual usage from LLM response."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Test content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 150
-        mock_response.usage.completion_tokens = 50
-        mock_response.usage.total_tokens = 200
-
-        with patch.object(tool, "_call_llm", AsyncMock(return_value="Test content")):
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Test content")):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test Corp"},
@@ -54,15 +46,7 @@ class TestLLMCostTracking:
         """Cost calculation must use correct pricing per model."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Executive summary content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 1000
-        mock_response.usage.completion_tokens = 500
-        mock_response.usage.total_tokens = 1500
-
-        with patch.object(tool, "_call_llm", AsyncMock(return_value="Executive summary content")):
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Executive summary content")):
             with patch(
                 "src.metrics.llm_cost_calculator.COST_PER_1K_TOKENS",
                 {("openai", "gpt-4o"): {"prompt": 5.0, "completion": 15.0}},
@@ -84,14 +68,7 @@ class TestLLMCostTracking:
         """Cost is tracked when LLM call succeeds."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Generated content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 100
-        mock_response.usage.completion_tokens = 50
-
-        with patch.object(tool, "_call_llm", AsyncMock(return_value="Generated content")):
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Generated content")):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test"},
@@ -138,15 +115,11 @@ class TestLLMCostTracking:
 
         from layer4_agents.services.llm_budget_guardrails import LLMBudgetExceededError
 
-        with patch(
-            "src.tools.generation_tools.get_llm_budget_guardrails"
-        ) as mock_guardrails:
-            mock_guard = Mock()
-            mock_guard.precheck_or_raise = AsyncMock(
-                side_effect=LLMBudgetExceededError("Budget cap exceeded")
-            )
-            mock_guardrails.return_value = mock_guard
-
+        with patch.object(
+            tool,
+            "_call_llm",
+            new=AsyncMock(side_effect=LLMBudgetExceededError("Budget cap exceeded")),
+        ):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test"},

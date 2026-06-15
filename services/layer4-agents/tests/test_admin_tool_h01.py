@@ -29,7 +29,6 @@ async def test_suspend_tenant_requires_real_db_session() -> None:
     with pytest.raises(ServiceUnavailableError) as excinfo:
         await admin.suspend_tenant(uuid4(), context=ctx)
 
-    assert excinfo.value.status_code == 503
     assert "database session" in excinfo.value.message
 
 

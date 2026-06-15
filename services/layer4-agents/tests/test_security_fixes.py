@@ -296,11 +296,11 @@ class HealthEndpointAuthTests(unittest.TestCase):
 class FailClosedToolGatewayRegressionTests(unittest.TestCase):
     """Ensure C-03 fail-closed source guards remain present while C-06 runs."""
 
-    def test_tool_gateway_raises_http_exception_when_gateway_unavailable(self) -> None:
+    def test_tool_gateway_raises_service_unavailable_when_gateway_unavailable(self) -> None:
         source = TOOLS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("def require_tool_gateway_available()", source)
-        self.assertIn("raise HTTPException(", source)
-        self.assertIn("503", source)
+        self.assertIn("raise ServiceUnavailableError(", source)
+        self.assertIn("Tool governance gateway unavailable", source)
         self.assertNotIn("lambda: None", source)
 
 

@@ -31,6 +31,13 @@ const FABRIC_AUTH_TEMPLATE_NAME =
   (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
 
 function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
+  // Guard: OrgSync is only rendered when Clerk is enabled and signed in,
+  // but keep the hook call conditional on isClerkAuthEnabled to avoid a
+  // hard crash if this component is ever mounted outside <ClerkProvider>.
+  if (!isClerkAuthEnabled()) {
+    return null;
+  }
+
   const { organization } = useOrganization();
 
   useEffect(() => {

@@ -62,21 +62,20 @@ def register_core_routes(app: FastAPI) -> None:
 
         uptime = time.time() - app_start_time
         memory_info = psutil.virtual_memory()
+        executor_ready = runtime_state.workflow_executor is not None
 
         return health_checkResult.model_validate({
             "status": "healthy",
             "service": "layer4-agents",
             "version": "0.2.0",
             "timestamp": datetime.now(UTC).isoformat(),
-            "executor_ready": runtime_state.workflow_executor is not None,
+            "executor_ready": executor_ready,
             "uptime_seconds": uptime,
             "dependencies": [
                 {
                     "name": "workflow_executor",
-                    "status": "healthy" if runtime_state.workflow_executor is not None else "degraded",
-                    "failure_reason": None
-                    if runtime_state.workflow_executor is not None
-                    else "workflow executor is not initialized",
+                    "status": "healthy" if executor_ready else "degraded",
+                    "failure_reason": None if executor_ready else "workflow_executor_unavailable",
                 }
             ],
             "metrics": {

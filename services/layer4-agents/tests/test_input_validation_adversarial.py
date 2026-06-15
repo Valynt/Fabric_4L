@@ -63,22 +63,19 @@ async def authenticated_client():
         # Mock DB session for validation testing
         from unittest.mock import AsyncMock, MagicMock
         mock_db = MagicMock()
-        mock_db.execute = AsyncMock()
         mock_db.begin = MagicMock()
         mock_db.commit = AsyncMock()
         mock_db.rollback = AsyncMock()
         mock_db.flush = AsyncMock()
 
-        async def _refresh(instance):
-            if getattr(instance, "id", None) is None:
-                instance.id = uuid4()
+        async def refresh(instance):
             now = datetime.now(UTC)
-            if getattr(instance, "created_at", None) is None:
-                instance.created_at = now
-            if getattr(instance, "updated_at", None) is None:
-                instance.updated_at = now
+            instance.id = instance.id or uuid4()
+            instance.created_at = instance.created_at or now
+            instance.updated_at = instance.updated_at or now
+            instance.active_source_ids = instance.active_source_ids or []
 
-        mock_db.refresh = AsyncMock(side_effect=_refresh)
+        mock_db.refresh = AsyncMock(side_effect=refresh)
         yield mock_db
 
     test_app.dependency_overrides[require_authenticated] = override_auth
@@ -338,4 +335,4 @@ class TestUUIDValidation:
             "/v1/company-knowledge/profiles/"
         )
         # Should reject with 404 or 422
-        assert response.status_code in [307, 404, 422], "Empty UUID should be rejected or redirected away"
+        assert response.status_code in [307, 404, 422], "Empty UUID should be rejected or redirected away from UUID handler"

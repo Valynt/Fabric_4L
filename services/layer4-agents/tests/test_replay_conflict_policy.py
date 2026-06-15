@@ -44,6 +44,9 @@ class TestReplayConflictPolicy:
 
 
 class TestReplayConflictResolver:
+    VALID_HASH_A = "a" * 64
+    VALID_HASH_B = "b" * 64
+
     def test_compute_replay_fingerprint_deterministic(self) -> None:
         resolver = ReplayConflictResolver()
         fp1 = resolver.compute_replay_fingerprint("run_123", "tenant_a", "chk_456")
@@ -62,9 +65,9 @@ class TestReplayConflictResolver:
         resolver.validate_resume_attempt(
             workflow_status=WorkflowStatus.INTERRUPTED,
             checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
-            checkpoint_hash="abc",
-            expected_hash="abc",
-            latest_checkpoint_hash="abc",
+            checkpoint_hash=self.VALID_HASH_A,
+            expected_hash=self.VALID_HASH_A,
+            latest_checkpoint_hash=self.VALID_HASH_A,
         )
 
     def test_validate_resume_attempt_rejects_disallowed_status(self) -> None:
@@ -73,9 +76,9 @@ class TestReplayConflictResolver:
             resolver.validate_resume_attempt(
                 workflow_status=WorkflowStatus.COMPLETED,
                 checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
-                checkpoint_hash="abc",
-                expected_hash="abc",
-                latest_checkpoint_hash="abc",
+                checkpoint_hash=self.VALID_HASH_A,
+                expected_hash=self.VALID_HASH_A,
+                latest_checkpoint_hash=self.VALID_HASH_A,
             )
 
     def test_validate_resume_attempt_rejects_old_checkpoint(self) -> None:
@@ -84,9 +87,9 @@ class TestReplayConflictResolver:
             resolver.validate_resume_attempt(
                 workflow_status=WorkflowStatus.INTERRUPTED,
                 checkpoint_created_at=datetime.now(UTC) - timedelta(days=2),
-                checkpoint_hash="abc",
-                expected_hash="abc",
-                latest_checkpoint_hash="abc",
+                checkpoint_hash=self.VALID_HASH_A,
+                expected_hash=self.VALID_HASH_A,
+                latest_checkpoint_hash=self.VALID_HASH_A,
             )
 
     def test_validate_resume_attempt_rejects_hash_mismatch(self) -> None:
@@ -95,9 +98,9 @@ class TestReplayConflictResolver:
             resolver.validate_resume_attempt(
                 workflow_status=WorkflowStatus.INTERRUPTED,
                 checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
-                checkpoint_hash="abc",
-                expected_hash="def",
-                latest_checkpoint_hash="abc",
+                checkpoint_hash=self.VALID_HASH_A,
+                expected_hash=self.VALID_HASH_B,
+                latest_checkpoint_hash=self.VALID_HASH_A,
             )
 
     def test_validate_resume_attempt_accepts_equal_canonical_hash_variants(self) -> None:

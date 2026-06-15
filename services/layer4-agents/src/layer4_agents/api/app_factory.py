@@ -46,16 +46,9 @@ def init_telemetry() -> TracerProvider | None:
 async def _postgres_probe() -> ProbeResult:
     try:
         saver = runtime_state.checkpoint_saver
-        if saver is not None:
-            # AsyncPostgresSaver stores the psycopg connection either as a public
-            # `conn` attribute or keeps the reference we attached privately. Probe
-            # both locations so readiness reflects actual DB reachability rather
-            # than an implementation detail of the saver.
-            conn = getattr(saver, "conn", None) or getattr(saver, "_conn", None)
-            if conn is not None:
-                await conn.execute("SELECT 1")
-                return ProbeResult(name="postgres", healthy=True)
-            return ProbeResult(name="postgres", healthy=False, detail="checkpoint_connection_not_found")
+        if saver is not None and getattr(saver, "conn", None):
+            await saver.conn.execute("SELECT 1")
+            return ProbeResult(name="postgres", healthy=True)
         return ProbeResult(name="postgres", healthy=False, detail="checkpointing_not_configured")
     except Exception as exc:
         import logging
@@ -122,11 +115,6 @@ def create_app() -> FastAPI:
     )
     configure_middleware(app)
 
-    app.router.routes = [
-        route
-        for route in app.router.routes
-        if getattr(route, "path", None) not in {"/health", "/health/live"}
-    ]
     register_core_routes(app)
     register_routers(app)
     return app

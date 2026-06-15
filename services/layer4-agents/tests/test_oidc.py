@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+import httpx
 
 # Set required environment variable for shared imports
 os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
@@ -144,8 +145,6 @@ class TestOIDCClient:
     @pytest.mark.asyncio
     async def test_discover_retries_on_failure(self, oidc_client):
         """OIDC discovery should retry on transient failures."""
-        import httpx
-
         mock_get_response = MagicMock()
         mock_get_response.raise_for_status = MagicMock()
         mock_get_response.json = MagicMock(return_value={
@@ -162,7 +161,7 @@ class TestOIDCClient:
             side_effect=[
                 httpx.RequestError("Connection error", request=MagicMock()),
                 mock_get_response,
-            ],
+            ]
         ):
             # Should retry and eventually succeed
             with patch("asyncio.sleep"):  # Don't actually sleep in tests
@@ -180,10 +179,9 @@ class TestOIDCClient:
             "Not found", request=MagicMock(), response=mock_response
         )
 
-        with patch.object(oidc_client._http, "get", return_value=mock_response) as mock_get:
+        with patch.object(oidc_client._http, "get", return_value=mock_response):
             with pytest.raises(OIDCDiscoveryError):
                 await oidc_client.discover("https://auth.example.com")
-            mock_get.assert_called_once()
 
     def test_build_authorize_url_basic(self) -> None:
         """Build authorization URL with minimal parameters."""

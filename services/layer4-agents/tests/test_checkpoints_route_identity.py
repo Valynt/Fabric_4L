@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
 
-from src.api.routes import checkpoints
+from layer4_agents.api.routes import checkpoints
+
+TENANT_ID = "11111111-1111-4111-8111-111111111111"
 
 
 class _FakeExecutor:
@@ -17,6 +19,9 @@ class _FakeExecutor:
         self.resume_calls.append(kwargs)
         return {"status": "resumed"}
 
+    async def get_workflow_status(self, workflow_id: str):
+        return {"workflow_id": workflow_id, "tenant_id": TENANT_ID}
+
 
 @pytest.mark.asyncio
 async def test_resume_from_checkpoint_uses_authenticated_identity(monkeypatch):
@@ -26,9 +31,11 @@ async def test_resume_from_checkpoint_uses_authenticated_identity(monkeypatch):
     fake_executor = _FakeExecutor()
 
     async def _mock_context() -> RequestContext:
-        return RequestContext(user_id="auth-user-42", tenant_id="tenant-a")
+        return RequestContext(user_id="auth-user-42", tenant_id=TENANT_ID)
 
-    async def _mock_get_checkpoint_data(_saver, _workflow_id: str, _checkpoint_id: str):
+    async def _mock_get_checkpoint_data(
+        _saver, _workflow_id: str, _checkpoint_id: str, _tenant_id: str
+    ):
         return {"node_name": "validation_node"}
 
     monkeypatch.setattr(checkpoints, "_get_checkpoint_data", _mock_get_checkpoint_data)
@@ -55,7 +62,7 @@ async def test_resume_from_checkpoint_rejects_body_identity_fields():
     app.include_router(checkpoints.checkpoint_router, prefix="/v1")
 
     async def _mock_context() -> RequestContext:
-        return RequestContext(user_id="auth-user-42", tenant_id="tenant-a")
+        return RequestContext(user_id="auth-user-42", tenant_id=TENANT_ID)
 
     app.dependency_overrides[checkpoints.get_executor] = lambda: _FakeExecutor()
     app.dependency_overrides[checkpoints.require_authenticated] = _mock_context

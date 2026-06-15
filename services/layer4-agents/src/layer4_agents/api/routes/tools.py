@@ -4,6 +4,7 @@ from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
     ValidationError,
+    ValueFabricException,
 )
 
 """Tools API routes."""
@@ -15,7 +16,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome, emit_audit_event
@@ -110,10 +111,7 @@ def require_tool_gateway_available() -> None:
             "Tool governance gateway unavailable; refusing ungoverned tool execution",
             exc_info=_GATE_IMPORT_ERROR,
         )
-        raise HTTPException(
-            status_code=503,
-            detail="Tool governance gateway unavailable; refusing ungoverned tool execution.",
-        )
+        raise ServiceUnavailableError(message = "Tool governance gateway unavailable; refusing ungoverned tool execution.")
 
 
 @router.get("/tools", response_model=list[ToolListResponse])
@@ -229,7 +227,7 @@ async def invoke_tool(
             error=f"Policy denied: {e}",
         )
 
-    except HTTPException:
+    except ValueFabricException:
         raise
 
     except Exception:
@@ -479,9 +477,6 @@ async def export_document_tool(
             url_expires_at=expires_at_iso,
             format=request.format,
         )
-
-    except HTTPException:
-        raise
 
     except Exception:
         logger.exception("Document export failed")

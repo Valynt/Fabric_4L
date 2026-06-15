@@ -221,7 +221,11 @@ class TestNoCrossTenantReadsBeforeContext:
         if tenant_registry_line is not None and raw_content_line is not None:
             # In system-scoped mode, TenantRegistry comes first
             # Then loop over tenants with require_tenant=True
-            pass  # Pattern is correct by inspection
+            assert tenant_registry_line is not None, "TenantRegistry query not found"
+            assert raw_content_line is not None, "RawContent query not found"
+            assert tenant_registry_line < raw_content_line, (
+                "TenantRegistry must be queried before any tenant-owned RawContent query"
+            )
 
     def test_tenant_registry_is_system_table(self, db):
         """TenantRegistry should be a system table (no RLS needed)."""
@@ -231,7 +235,9 @@ class TestNoCrossTenantReadsBeforeContext:
         tenant_registry = db.query(TenantRegistry).first()
         # If TenantRegistry exists, it's a system table
         # This is a documentation test
-        assert True  # Placeholder for schema verification
+        from layer1_ingestion.shared.tasks import _enumerate_authorized_tenants_for_cleanup
+        source = inspect.getsource(_enumerate_authorized_tenants_for_cleanup)
+        assert "get_db_session(tenant_id=None, require_tenant=False)" in source,             "TenantRegistry must be queried without tenant RLS (system-owned table)"
 
 
 class TestRLSEnforcementPerTenant:
@@ -253,8 +259,10 @@ class TestRLSEnforcementPerTenant:
         """Loop should not access cross-tenant data."""
         # This test verifies that the loop doesn't accidentally access
         # other tenants' data during iteration
-        # This is a documentation test - actual enforcement is via code review
-        assert True  # Placeholder for static analysis
+        source = inspect.getsource(cleanup_old_content)
+        loop_body = source.split("for tenant_uuid in tenant_ids:", 1)[1]
+        # Each iteration must open a tenant-scoped session
+        assert "get_db_session(tenant_id=tenant_uuid, require_tenant=True)" in loop_body,             "Tenant loop must use require_tenant=True to scope data access"
 
 
 class TestAuditLogVerification:
@@ -295,10 +303,9 @@ class TestMaintenanceAuthorization:
 
     def test_maintenance_operations_require_authorization(self):
         """Maintenance operations should require proper authorization."""
-        # This test documents that maintenance operations should be protected
-        # In production, verify via auth checks
-        # For now, we document the requirement
-        assert True  # Placeholder for auth verification
+        from layer1_ingestion.shared.tasks import _enumerate_authorized_tenants_for_cleanup
+        source = inspect.getsource(_enumerate_authorized_tenants_for_cleanup)
+        assert "authorize_maintenance_operation" in source,             "System-scoped maintenance must call authorize_maintenance_operation before tenant enumeration"
 
     def test_system_maintenance_uses_system_identity(self, db):
         """System maintenance should use system identity."""

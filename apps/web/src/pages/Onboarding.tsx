@@ -8,9 +8,13 @@
 import { useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { useNavigation } from "@/hooks/useNavigation";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function OnboardingPage() {
-  const { user } = useUser();
+  const clerkEnabled = isClerkAuthEnabled();
+  // Clerk hooks may only be invoked inside <ClerkProvider>. In legacy mode the
+  // onboarding page is a simple placeholder, so skip the hook entirely.
+  const clerkUser = clerkEnabled ? useUser().user : null;
   const { navigateTo } = useNavigation();
 
   return (
@@ -20,8 +24,8 @@ export default function OnboardingPage() {
           Welcome to Fabric4L
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          {user?.firstName
-            ? `Great to have you here, ${user.firstName}.`
+          {clerkUser?.firstName
+            ? `Great to have you here, ${clerkUser.firstName}.`
             : "Great to have you here."}{" "}
           Let&apos;s get your workspace set up.
         </p>

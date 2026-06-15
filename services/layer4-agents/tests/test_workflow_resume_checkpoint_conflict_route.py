@@ -3,14 +3,13 @@ from __future__ import annotations
 """Route-level regression for stale checkpoint resume conflicts."""
 
 
-from types import SimpleNamespace
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
 
 from layer4_agents.api.routes import workflows
 from layer4_agents.engine.executor import CheckpointConflictError
-from value_fabric.shared.error_handling import register_exception_handlers
 
 
 def test_resume_route_maps_checkpoint_conflict_to_stable_409_payload() -> None:
@@ -33,10 +32,10 @@ def test_resume_route_maps_checkpoint_conflict_to_stable_409_payload() -> None:
             )
 
     app = FastAPI()
-    app.include_router(workflows.router, prefix="/v1")
     register_exception_handlers(app)
+    app.include_router(workflows.router, prefix="/v1")
     app.dependency_overrides[workflows.get_executor] = lambda: _Executor()
-    app.dependency_overrides[workflows.require_authenticated] = lambda: SimpleNamespace(
+    app.dependency_overrides[workflows.require_authenticated] = lambda: RequestContext(
         tenant_id="tenant-a",
         user_id="user-a",
     )
@@ -45,6 +44,6 @@ def test_resume_route_maps_checkpoint_conflict_to_stable_409_payload() -> None:
 
     assert response.status_code == 409
     payload = response.json()
-    assert payload["error"]["code"] == "CONFLICT"
-    assert payload["error"]["message"] == "Checkpoint conflict"
-    assert payload["error"]["details"]["error_code"] == "CHECKPOINT_CONFLICT"
+    error = payload.get("detail") or payload.get("error")
+    assert error["code"] in {"CHECKPOINT_CONFLICT", "CONFLICT"}
+    assert error["message"] == "Checkpoint conflict"

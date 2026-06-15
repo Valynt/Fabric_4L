@@ -25,7 +25,7 @@ async def test_billing_webhook_malformed_payload_translates_to_value_error():
     db = AsyncMock()
     service = BillingService(db)
 
-    with patch("src.services.billing_service._get_stripe") as get_stripe:
+    with patch("layer4_agents.services.billing_service._get_stripe") as get_stripe:
         stripe = get_stripe.return_value
         stripe.Webhook.construct_event.side_effect = KeyError("missing signature")
 
@@ -36,11 +36,10 @@ async def test_billing_webhook_malformed_payload_translates_to_value_error():
 @pytest.mark.asyncio
 async def test_webhook_db_failure_not_swallowed():
     db = AsyncMock()
-    db.execute.return_value.scalar_one_or_none.return_value = None
-    db.flush.side_effect = SQLAlchemyError("write failed")
+    db.execute.side_effect = SQLAlchemyError("write failed")
     service = BillingService(db)
 
-    with patch("src.services.billing_service._get_stripe") as get_stripe:
+    with patch("layer4_agents.services.billing_service._get_stripe") as get_stripe:
         stripe = get_stripe.return_value
         stripe.Webhook.construct_event.return_value = {
             "id": "evt_1",

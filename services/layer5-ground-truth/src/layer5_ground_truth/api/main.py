@@ -699,6 +699,15 @@ def create_app() -> FastAPI:
                 return None
             return await limiter.check(rate_key, config)
 
+        async def sismember(self, key, member):
+            redis_client = getattr(self._application.state, "redis_client", None)
+            if redis_client is None:
+                return False
+            sismember = getattr(redis_client, "sismember", None)
+            if sismember is None:
+                return False
+            return await sismember(key, member)
+
     # GovernanceMiddleware — provides auth and tenant context with rate limiting.
     # Fail closed in production and staging; dev bypass requires explicit opt-in.
     #

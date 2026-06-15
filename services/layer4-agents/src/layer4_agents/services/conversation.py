@@ -1001,8 +1001,8 @@ class ConversationService:
             ("secret_exfiltration", ("reveal internal secret", "reveal secrets", "api key", "token", "password")),
             ("approval_bypass", ("bypass approval", "mark them approved", "export immediately", "approval gates")),
             ("unsupported_roi", ("guarantee", "without evidence", "unsupported roi", "900% roi")),
-            ("fabricated_benchmark", ("fabricate benchmark", "invent benchmark", "fake benchmark")),
-            ("fabricated_citation", ("source that does not exist", "citation that does not exist", "fake citation")),
+            ("fabricated_benchmark", ("fabricate benchmark", "invent benchmark", "fake benchmark", "invent a benchmark source", "fabricate a benchmark")),
+            ("fabricated_citation", ("source that does not exist", "citation that does not exist", "fake citation", "create a fake citation")),
         ]
         for reason, tokens in rules:
             if any(token in combined for token in tokens):

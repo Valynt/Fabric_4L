@@ -3,11 +3,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from value_fabric.shared.identity.context import RequestContext
 
 from layer4_agents.api.routes import tools
 from layer4_agents.models.tool_schemas import ToolCategory
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.permissions import Permission
 
 
 class _StubTool:
@@ -35,7 +34,10 @@ class _StubRegistry:
 def _ctx() -> RequestContext:
     return RequestContext(
         tenant_id="tenant-1",
-        permissions=frozenset({Permission.READ_AGENTS.value}),
+        user_id="user-tools",
+        roles=["tenant_member"],
+        permissions=frozenset({"read:agents"}),
+        request_id="req-tools",
     )
 
 

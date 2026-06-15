@@ -13,13 +13,14 @@ Validates:
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.routes import prospects
 from layer4_agents.models.account import Account
@@ -29,6 +30,7 @@ from layer4_agents.models.account import Account
 def prospects_app() -> FastAPI:
     """Build FastAPI app with prospects routes."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(prospects.router, prefix="/v1")
     return app
 
@@ -71,9 +73,10 @@ async def test_start_analysis_missing_tenant_fails_closed(prospects_app: FastAPI
     """Missing tenant context should return 401 (fail closed)."""
     # Override auth to return empty tenant
     prospects_app.dependency_overrides[prospects.get_verified_tenant_id] = lambda: None
-    prospects_app.dependency_overrides[prospects.require_authenticated] = lambda: MagicMock(user_id="user-1")
+    prospects_app.dependency_overrides[prospects.require_authenticated] = lambda: MagicMock(
+        user_id="user-tenant-missing"
+    )
     prospects_app.dependency_overrides[prospects.get_db_from_context] = lambda: AsyncMock(spec=AsyncSession)
-    prospects_app.dependency_overrides[prospects.get_executor] = lambda: None
 
     async with AsyncClient(transport=ASGITransport(app=prospects_app), base_url="http://test") as client:
         response = await client.post(
@@ -93,7 +96,7 @@ async def test_start_analysis_missing_tenant_fails_closed(prospects_app: FastAPI
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    detail = data.get("detail", "")
+    detail = data.get("detail") or data.get("error", {}).get("message", "")
     if isinstance(detail, str):
         assert "tenant" in detail.lower()
     else:
@@ -192,7 +195,9 @@ async def test_start_analysis_creates_new_prospect(
     assert added_account.provider == "value_fabric"
     assert added_account.stage == "prospect"
     assert added_account.name == "New Company"
-    mock_db_session.commit.assert_called_once()
+    mock_db_session.flush.assert_awaited_once()
+    mock_db_session.refresh.assert_awaited_once_with(added_account)
+    mock_db_session.commit.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -196,25 +196,6 @@ class OverageService:
                 period_end=datetime.now(UTC),
             )
 
-        static_limit = plan.get_usage_limit(metric_name)
-        if not static_limit:
-            # No limit configured for this metric
-            return UsageCheckResult(
-                metric_name=metric_name,
-                current_usage=0.0,
-                limit=float("inf"),
-                percentage_used=0.0,
-                remaining=float("inf"),
-                overage=0.0,
-                warning_triggered=False,
-                limit_exceeded=False,
-                overage_cost=0.0,
-                period_start=datetime.now(UTC),
-                period_end=datetime.now(UTC),
-            )
-
-        limit = static_limit
-
         # Prefer persisted, effective plan version limits for billing reproducibility
         subscription_query = select(BillingSubscription).where(
             BillingSubscription.tenant_id == self.tenant_id,
@@ -238,6 +219,25 @@ class OverageService:
                 limit.warning_threshold = float(serialized.get("warning_threshold", 80.0))
                 limit.hard_limit = bool(serialized.get("hard_limit", False))
                 limit.overage_rate = float(serialized.get("overage_rate", 0.0))
+            else:
+                limit = None
+        else:
+            limit = plan.get_usage_limit(metric_name)  # type: ignore[assignment]
+        if not limit:
+            # No limit configured for this metric
+            return UsageCheckResult(
+                metric_name=metric_name,
+                current_usage=0.0,
+                limit=float("inf"),
+                percentage_used=0.0,
+                remaining=float("inf"),
+                overage=0.0,
+                warning_triggered=False,
+                limit_exceeded=False,
+                overage_cost=0.0,
+                period_start=datetime.now(UTC),
+                period_end=datetime.now(UTC),
+            )
 
         # Get period dates
         period_start, period_end = self._get_period_dates(limit.period)

@@ -1,8 +1,9 @@
-"""P0-007: Postgres backup cronjob must reference only existing secret keys.
+"""P0-007: Postgres backup cronjob must reference valid Postgres credentials.
 
-The postgres-backup CronJob previously tried to read a username from a secret.
-The fix hardcodes POSTGRES_USER and only reads the password from the canonical
-Patroni credential secret.
+The postgres-backup CronJob previously tried to read ``username`` from
+``postgres-secret``, but that secret only contains ``password``.
+The fix hardcodes POSTGRES_USER and reads the password from the same
+ExternalSecrets-managed Patroni credential used by the HA Postgres deployment.
 """
 
 from __future__ import annotations
@@ -23,9 +24,9 @@ def _load_cronjob():
     with open(path, encoding="utf-8") as f:
         docs = list(yaml.safe_load_all(f))
     for doc in docs:
-        if doc and doc.get("kind") == "CronJob" and doc.get("metadata", {}).get("name") == "postgres-backup":
+        if doc and doc.get("kind") == "CronJob":
             return doc
-    return None
+    raise AssertionError("CronJob document not found in postgres-backup-cronjob.yaml")
 
 
 def _load_secret():
@@ -36,6 +37,16 @@ def _load_secret():
         if doc and doc.get("metadata", {}).get("name") == "postgres-secret":
             return doc
     return None
+
+
+def _load_patroni_statefulset():
+    path = _project_root() / "k8s" / "base" / "postgres-patroni.yaml"
+    with open(path, encoding="utf-8") as f:
+        docs = list(yaml.safe_load_all(f))
+    for doc in docs:
+        if doc and doc.get("kind") == "StatefulSet":
+            return doc
+    raise AssertionError("StatefulSet document not found in postgres-patroni.yaml")
 
 
 class TestPostgresBackupSecretReferences:
@@ -49,7 +60,6 @@ class TestPostgresBackupSecretReferences:
 
     def test_backup_cronjob_does_not_reference_missing_username_key(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 
@@ -58,7 +68,7 @@ class TestPostgresBackupSecretReferences:
                 # Must be hardcoded, not sourced from secret key "username"
                 assert "valueFrom" not in entry, (
                     "POSTGRES_USER must not be sourced from a secretKeyRef; "
-                    "database secret contracts do not provide a POSTGRES_USER value"
+                    "postgres-secret does not contain a 'username' key"
                 )
                 assert entry.get("value") == "postgres", (
                     "POSTGRES_USER should be hardcoded to 'postgres'"
@@ -69,7 +79,6 @@ class TestPostgresBackupSecretReferences:
 
     def test_backup_cronjob_reads_password_from_correct_secret(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 
@@ -79,16 +88,27 @@ class TestPostgresBackupSecretReferences:
         assert password_entry is not None, "POSTGRES_PASSWORD env var must exist"
         assert "valueFrom" in password_entry, "POSTGRES_PASSWORD must be sourced from a secret"
         secret_ref = password_entry["valueFrom"]["secretKeyRef"]
-        assert secret_ref["name"] == "postgres-patroni-credentials", (
-            f"Expected secret name 'postgres-patroni-credentials', got '{secret_ref['name']}'"
+
+        patroni = _load_patroni_statefulset()
+        patroni_container = patroni["spec"]["template"]["spec"]["containers"][0]
+        patroni_env = patroni_container.get("env", [])
+        patroni_password_entry = next(
+            (
+                e
+                for e in patroni_env
+                if e.get("name") == "PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_PASSWORD"
+            ),
+            None,
         )
-        assert secret_ref["key"] == "superuser-password", (
-            f"Expected secret key 'superuser-password', got '{secret_ref['key']}'"
+        assert patroni_password_entry is not None, "Patroni superuser password env var must exist"
+        patroni_secret_ref = patroni_password_entry["valueFrom"]["secretKeyRef"]
+        assert secret_ref == patroni_secret_ref, (
+            "Backup job must use the same Patroni superuser secretKeyRef as the "
+            f"HA Postgres StatefulSet; got {secret_ref!r}, expected {patroni_secret_ref!r}"
         )
 
     def test_backup_cronjob_has_no_inline_secrets(self):
         cronjob = _load_cronjob()
-        assert cronjob is not None, "postgres-backup CronJob must exist"
         container = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
         env = container.get("env", [])
 

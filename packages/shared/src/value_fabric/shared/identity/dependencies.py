@@ -240,12 +240,9 @@ def require_role(*roles: Role | str) -> Callable[[RequestContext | None], object
     allowed = {_role_value(role) for role in roles}
 
     async def dependency(
-        *,
-        context: RequestContext | None = Depends(_no_explicit_context),
+        context: RequestContext | None = Depends(require_authenticated),
     ) -> RequestContext:
-        if isinstance(context, DependsParam):
-            context = None
-        ctx = await require_authenticated(context)
+        ctx = await require_authenticated(context=context)
         if not allowed.intersection(set(ctx.roles or [])):
             raise _forbidden(f"One of these roles is required: {sorted(allowed)}")
         return ctx
@@ -256,12 +253,7 @@ def require_role(*roles: Role | str) -> Callable[[RequestContext | None], object
 def require_permission(permission: Permission | str) -> Callable[[RequestContext | None], object]:
     needed = _permission_value(permission)
 
-    async def dependency(
-        *,
-        context: RequestContext | None = Depends(_no_explicit_context),
-    ) -> RequestContext:
-        if isinstance(context, DependsParam):
-            context = None
+    async def dependency(context: RequestContext | None = None) -> RequestContext:
         ctx = await require_authenticated(context)
         if not ctx.has_permission(needed):
             raise _forbidden(f"Permission required: {needed}")
@@ -273,12 +265,7 @@ def require_permission(permission: Permission | str) -> Callable[[RequestContext
 def require_any_permission(*permissions: Permission | str) -> Callable[[RequestContext | None], object]:
     needed = {_permission_value(permission) for permission in permissions}
 
-    async def dependency(
-        *,
-        context: RequestContext | None = Depends(_no_explicit_context),
-    ) -> RequestContext:
-        if isinstance(context, DependsParam):
-            context = None
+    async def dependency(context: RequestContext | None = None) -> RequestContext:
         ctx = await require_authenticated(context)
         if ctx.has_any_permission(*needed):
             return ctx
@@ -290,12 +277,7 @@ def require_any_permission(*permissions: Permission | str) -> Callable[[RequestC
 def require_all_permissions(*permissions: Permission | str) -> Callable[[RequestContext | None], object]:
     needed = {_permission_value(permission) for permission in permissions}
 
-    async def dependency(
-        *,
-        context: RequestContext | None = Depends(_no_explicit_context),
-    ) -> RequestContext:
-        if isinstance(context, DependsParam):
-            context = None
+    async def dependency(context: RequestContext | None = None) -> RequestContext:
         ctx = await require_authenticated(context)
         missing = sorted(permission for permission in needed if not ctx.has_permission(permission))
         if missing:
@@ -306,12 +288,7 @@ def require_all_permissions(*permissions: Permission | str) -> Callable[[Request
 
 
 def require_action(action: str) -> Callable[[RequestContext | None], object]:
-    async def dependency(
-        *,
-        context: RequestContext | None = Depends(_no_explicit_context),
-    ) -> RequestContext:
-        if isinstance(context, DependsParam):
-            context = None
+    async def dependency(context: RequestContext | None = None) -> RequestContext:
         ctx = await require_authenticated(context)
         return authorize_action(action, ctx)
 

@@ -1,34 +1,62 @@
 {
   "candidate_id": "rc-2026-06-13-116815f3",
   "environment": "local-docker-staging-surrogate",
-  "executed_at_utc": "2026-06-14T15:55:00Z",
-  "provider": "OIDC/SSO (enterprise IdP)",
-  "result": "BLOCKED",
-  "blocking_reason": "No enterprise OIDC identity provider is configured or deployed in the local Docker staging surrogate. .env.example shows OIDC_ISSUER, OIDC_AUDIENCE, OIDC_JWKS_URL, OIDC_JWKS_JSON, CLERK_ISSUER, and CLERK_SECRET_KEY are empty; docker-compose.live.yml does not include a Keycloak container; no live IdP credentials are present in the running container environment.",
+  "executed_at_utc": "2026-06-14T21:30:00Z",
+  "provider": "Keycloak OIDC local surrogate (enterprise IdP placeholder)",
+  "result": "RE_TESTABLE",
   "configuration_state": {
     "OIDC_ISSUER": "unset/empty",
     "OIDC_AUDIENCE": "unset/empty",
     "OIDC_JWKS_URL": "unset/empty",
     "CLERK_ISSUER": "unset/empty",
     "CLERK_SECRET_KEY": "unset/empty",
-    "KEYCLOAK_URL": "http://localhost:8080 (no container running)",
+    "KEYCLOAK_URL": "http://127.0.0.1:8080",
+    "KEYCLOAK_REALM": "fabric",
+    "KEYCLOAK_CLIENT_ID": "fabric-frontend",
     "VITE_AUTH_PROVIDER": "legacy (local staging)",
     "dev_auth_bypass_flags": "none detected in vf-live-layer4 environment"
   },
+  "surrogate_deployment": {
+    "container": "vf-dev-keycloak",
+    "image": "quay.io/keycloak/keycloak:25.0",
+    "realm": "fabric",
+    "users": [
+      { "username": "admin", "password": "admin", "roles": ["tenant_admin"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } },
+      { "username": "analyst", "password": "analyst", "roles": ["analyst"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } }
+    ],
+    "clients": [
+      { "clientId": "fabric-frontend", "publicClient": true, "directAccessGrantsEnabled": true, "redirectUris": ["http://localhost:3001/*", "http://localhost:3000/*"] },
+      { "clientId": "fabric-api", "bearerOnly": true, "serviceAccountsEnabled": true }
+    ]
+  },
   "checks": {
-    "login": "BLOCKED — no IdP to initiate flow",
-    "logout": "BLOCKED — no session to terminate",
-    "token_validation": "VERIFIED_FAIL_CLOSED — missing OIDC config yields 401 on protected routes",
-    "tenant_mapping": "BLOCKED — cannot map claims without IdP tokens",
-    "invalid_token_rejected": "PASS — fabricated Bearer token rejected with 401",
+    "well_known": "PASS — GET /realms/fabric/.well-known/openid-configuration returns valid OIDC metadata",
+    "token_password_grant": "PASS — admin and analyst users obtain access_token and id_token via Resource Owner Password Credentials grant",
+    "token_claims": "PASS — access tokens contain realm_access.roles, tenant_id, org_id, email, and profile claims",
+    "invalid_credentials_rejected": "PASS — invalid password returns 401 unauthorized_client/invalid_grant",
+    "token_validation": "VERIFIED_FAIL_CLOSED — missing OIDC config in live stack yields 401 on protected routes",
+    "invalid_bearer_token_rejected": "PASS — fabricated Bearer token rejected with 401",
     "staging_fail_closed": "PASS — no dev auth bypass flags present; unauthenticated requests to /api/v1/workflows return 401"
   },
+  "sample_token_claims": {
+    "iss": "http://127.0.0.1:8080/realms/fabric",
+    "typ": "Bearer",
+    "azp": "fabric-frontend",
+    "realm_access": { "roles": ["tenant_admin"] },
+    "scope": "openid profile email",
+    "tenant_id": "demo-tenant",
+    "org_id": "demo-org",
+    "roles": ["tenant_admin"],
+    "email": "admin@fabric.local"
+  },
   "evidence": {
+    "well_known_url": "http://127.0.0.1:8080/realms/fabric/.well-known/openid-configuration",
+    "token_endpoint": "http://127.0.0.1:8080/realms/fabric/protocol/openid-connect/token",
     "unauthenticated_request_to_layer4_workflows": "HTTP 401",
     "invalid_bearer_token_request": "HTTP 401",
-    "keycloak_container_status": "not_running",
+    "keycloak_container_status": "running",
     "container_env_dev_bypass_scan": "none"
   },
-  "classification": "ENVIRONMENT_BLOCKED",
-  "recommendation": "SSO/OIDC validation must be executed in a staging environment with a configured enterprise IdP (Keycloak/Clerk) and valid client credentials before Core GA. The current local surrogate cannot simulate production auth semantics."
+  "classification": "RE_TESTABLE",
+  "recommendation": "SSO/OIDC validation against a real enterprise IdP (or Clerk staging tenant) remains required before Core GA. The local Keycloak surrogate proves the OIDC wiring and claim shape; enterprise integration is environment-dependent."
 }

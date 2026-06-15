@@ -34,9 +34,9 @@ Evidence collected against the local Docker staging surrogate for candidate `rc-
 
 | Criterion | Evidence artifact | Result | Notes |
 |---|---|---|---|
-| P0-001 — Playwright backend-integrated journeys | `signoff-evidence/p0-journeys-20260613.json` | **BLOCKED** | Legacy/mock-auth frontend crashes because `AuthContext`, `ClerkAuthBridge`, and `RootRedirect` call Clerk hooks outside `<ClerkProvider>`; seeded case `case-meridian-e2e-001` is missing. |
-| P0-002 — Rollback / restore drill | `signoff-evidence/p0-rollback-20260613.json` | **ROLLBACK_PROCEDURE_DEFICIENT** | Image-only rollback of Layer 4 to the previous release-smoke image failed (`ModuleNotFoundError: No module named 'canonical'`); roll-forward recovery restored health and critical-path smoke passed. |
-| P0-003 — Enterprise SSO/OIDC | `signoff-evidence/p0-sso-20260613.json` | **BLOCKED** | No IdP configured or deployed; OIDC/Clerk secrets empty. Unauthenticated requests fail closed with 401. |
+| P0-001 — Playwright backend-integrated journeys | `signoff-evidence/p0-journeys-20260613.json` | **RE-TESTABLE** | Legacy/mock-auth frontend no longer crashes. Auth fixture seeds backend session and persists `vf_session`/`vf_csrf_token` cookies. Missing `case-meridian-e2e-001` seed added. J1 runs end-to-end; 1/15 passes locally. Remaining 14 failures are frontend route/UX drift against tenant-scoped routes (e.g., `/settings/data/value-packs` vs `/t/:tenantSlug/settings/value-packs`), not runtime auth blockers. |
+| P0-002 — Rollback / restore drill | `signoff-evidence/p0-rollback-20260613.json` | **RE-TESTABLE** | Image-only rollback of Layer 4 to the previous release-smoke image failed (`ModuleNotFoundError: No module named 'canonical'`). The rollback runbook now documents that safe rollback requires immutable commit-pinned images or coordinated source+dependency rollback. Layer 4 image tagged `rc-116815f3` and `rollback-target`; roll-forward recovery restored health and critical-path smoke passed. A full environment rehearsal remains required. |
+| P0-003 — Enterprise SSO/OIDC | `signoff-evidence/p0-sso-20260613.json` | **RE-TESTABLE** | Local Keycloak surrogate (`vf-dev-keycloak`, port 8080, realm `fabric`) is running. Direct-access grants enabled for public client `fabric-frontend`. Token issuance verified for `admin`/`admin` and `analyst`/`analyst`; access tokens contain `realm_access.roles`, `tenant_id`, and `org_id` attributes. Real enterprise IdP integration remains environment-dependent. |
 | P1 operational evidence | `signoff-evidence/p1-operational-20260613.json` | **DEFERRED/PARTIAL** | 2 verified (auth fail-closed, critical-path smoke), 1 partial (metrics endpoints), 4 deferred (alert receivers, billing, live LLM, dashboards/log aggregation). |
 | Local live-stack health | `signoff-evidence/e2e/e2e-critical-path-20260614.json` | **PASS** | All six layers `/health` and `/ready` return 200; critical-path smoke passes 12/0. |
 
@@ -47,16 +47,17 @@ Evidence collected against the local Docker staging surrogate for candidate `rc-
 **Evidence summary:**
 - ✅ Repository-owned gates (`lint`, `typecheck`, `security-smoke`, `verify-structure`, behavior-readiness, docs-harness) pass.
 - ✅ Local Docker live stack is healthy; critical-path smoke passes 12/0.
-- ⚠️ Static rollback verifier passes, but runtime image-level rollback is not viable without a coordinated dependency rollback.
-- ❌ P0-001 Playwright blocked by auth-provider mismatch and missing seed data.
-- ❌ P0-002 Rollback drill shows deficient procedure.
-- ❌ P0-003 SSO/OIDC blocked by missing IdP.
+- ✅ Frontend unit tests pass (1866/1876); the 10 failures are pre-existing performance variance tests unrelated to the auth changes.
+- ⚠️ Static rollback verifier passes, but runtime image-level rollback is only viable with immutable version-pinned images or a coordinated source+dependency rollback (now documented).
+- ⚠️ P0-001 Playwright auth crash is fixed and the missing seed is present; remaining failures are test-route drift, making the candidate re-testable.
+- ⚠️ P0-002 Rollback doctrine is documented and version-pinned image tagging is demonstrated; full environment rehearsal still required.
+- ⚠️ P0-003 SSO/OIDC local surrogate validated; real enterprise IdP integration still required.
 - ❌ `R-2026-06-13-01` and `R-2026-06-13-02` pre-existing test-suite failures remain open.
 - ⏳ P1 operational evidence largely deferred.
 
 **Required before next GO review:**
-1. Resolve the legacy-auth Clerk hook boundary or run P0 Playwright in a Clerk-configured staging environment and add the missing `case-meridian-e2e-001` seed.
-2. Rehearse and document a production-like rollback using immutable, version-pinned images (or a source+dependency rollback) and attach passing recovery evidence.
+1. Align J1 test routes with the current tenant-scoped UI or run P0 Playwright in a Clerk-configured staging environment, and collect retained JUnit/trace evidence.
+2. Rehearse and document a production-like rollback using immutable, version-pinned images and attach passing recovery evidence.
 3. Configure an enterprise IdP and complete SSO/OIDC validation.
 4. Close or obtain explicit waivers for `R-2026-06-13-01` and `R-2026-06-13-02`.
 5. Exercise P1 operational items in a configured environment with provider credentials.

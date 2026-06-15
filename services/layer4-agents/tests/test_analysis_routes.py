@@ -16,6 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from layer4_agents.api.routes import analysis
 from layer4_agents.api.common.db import get_route_db
 from layer4_agents.config.settings import settings
+from value_fabric.shared.error_handling import register_exception_handlers
 
 
 async def _async_return(value: Any) -> Any:
@@ -85,6 +86,7 @@ class FakeScenarioDb:
 def analysis_app() -> FastAPI:
     """Build a small FastAPI app with analysis routes only."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     return app
 
@@ -350,9 +352,9 @@ async def test_get_workspace_tab_invalid_tab_key(analysis_app: FastAPI) -> None:
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.get("/v1/cases/test-case/workspace/invalid-tab")
-        assert response.status_code == 400
-        payload = response.json()
-        assert "Invalid tab_key" in payload["detail"]
+    assert response.status_code == 422
+    payload = response.json()
+    assert "Invalid tab_key" in payload["error"]["message"]
 
 
 @pytest.mark.asyncio

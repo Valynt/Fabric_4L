@@ -4,6 +4,16 @@ permissions:
   contents: read
   actions: read
 
+env:
+  DEV_API_BASE_URL: 'https://api.dev.value-fabric.com'
+  STAGING_API_BASE_URL: 'https://api.staging.value-fabric.com'
+  PRODUCTION_API_BASE_URL: 'https://api.production.value-fabric.com'
+  AWS_REGION: 'us-east-1'
+  EKS_CLUSTER_NAME: 'value-fabric'
+  REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+  IMAGE_REF: ${{ inputs.image_ref }}
+  ENVIRONMENT: ${{ inputs.environment }}
+
 "on":
   workflow_call:
     inputs:
@@ -56,11 +66,11 @@ permissions:
         required: false
         type: string
         default: ""
-
-env:
-  REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
-  IMAGE_REF: ${{ inputs.image_ref }}
-  ENVIRONMENT: ${{ inputs.environment }}
+      prod_readiness_verified:
+        description: "Set to true only when the canonical prod-readiness workflow has produced a matching release packet."
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # ============================================
@@ -222,17 +232,13 @@ jobs:
           echo "All SBOM artifacts and registry attestations match deployed image digests ✓"
 
       - name: Check environment health
-        env:
-          DEV_API_BASE_URL: ${{ vars.DEV_API_BASE_URL || 'https://api.dev.value-fabric.com' }}
-          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL || 'https://api.staging.value-fabric.com' }}
-          PRODUCTION_API_BASE_URL: ${{ vars.PRODUCTION_API_BASE_URL || 'https://api.production.value-fabric.com' }}
         run: |
           set -euo pipefail
 
           case "${{ env.ENVIRONMENT }}" in
-            dev)        BASE_URL="$DEV_API_BASE_URL" ;;
-            staging)    BASE_URL="$STAGING_API_BASE_URL" ;;
-            production) BASE_URL="$PRODUCTION_API_BASE_URL" ;;
+            dev)        BASE_URL="${{ env.DEV_API_BASE_URL }}" ;;
+            staging)    BASE_URL="${{ env.STAGING_API_BASE_URL }}" ;;
+            production) BASE_URL="${{ env.PRODUCTION_API_BASE_URL }}" ;;
             *) echo "::error::Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
           esac
 
@@ -334,8 +340,8 @@ jobs:
       - name: Validate EKS kubeconfig inputs
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-          EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'value-fabric' }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
         run: |
           set -euo pipefail
           if [[ -z "$AWS_DEPLOY_ROLE_ARN" ]]; then
@@ -351,13 +357,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Configure kubeconfig (EKS)
         run: |
           set -euo pipefail
-          CLUSTER_NAME="${{ vars.EKS_CLUSTER_NAME || 'value-fabric' }}"
-          AWS_REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
+          CLUSTER_NAME="${{ env.EKS_CLUSTER_NAME }}"
+          AWS_REGION="${{ env.AWS_REGION }}"
 
           echo "Configuring kubeconfig for EKS cluster: ${CLUSTER_NAME} in ${AWS_REGION}"
           aws eks update-kubeconfig \
@@ -572,8 +578,8 @@ jobs:
       - name: Validate EKS kubeconfig inputs
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-          EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME || 'value-fabric' }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
         run: |
           set -euo pipefail
           if [[ -z "$AWS_DEPLOY_ROLE_ARN" ]]; then
@@ -589,13 +595,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Configure kubeconfig (EKS)
         run: |
           set -euo pipefail
-          CLUSTER_NAME="${{ vars.EKS_CLUSTER_NAME || 'value-fabric' }}"
-          AWS_REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
+          CLUSTER_NAME="${{ env.EKS_CLUSTER_NAME }}"
+          AWS_REGION="${{ env.AWS_REGION }}"
 
           echo "Configuring kubeconfig for EKS cluster: ${CLUSTER_NAME} in ${AWS_REGION}"
           aws eks update-kubeconfig \

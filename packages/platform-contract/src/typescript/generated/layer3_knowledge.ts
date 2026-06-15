@@ -4220,7 +4220,8 @@ export interface components {
             id: string;
             /**
              * Formula Id
-             * @description Alias for id (frontend compatibility)
+             * @description Deprecated alias of id. Removal target: v2.5 (2026-10-01).
+             * @deprecated
              */
             formula_id?: string | null;
             /**

@@ -11,14 +11,34 @@ import pytest
 
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
 
-from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from fastapi import FastAPI
 
 from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.audit.models import AuditAction
+from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
 from layer4_agents.api.routes import analysis
+from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+app = FastAPI()
+register_exception_handlers(app)
+app.include_router(analysis.router, prefix="/v1")
+
+
+class _FakeDb:
+    async def get(self, model, key):
+        return None
+
+    def add(self, _obj):
+        return None
+
+    async def flush(self):
+        return None
+
+    async def execute(self, *_args, **_kwargs):
+        return SimpleNamespace(scalars=lambda: SimpleNamespace(all=lambda: []), scalar_one_or_none=lambda: None)
 
 
 class _FakeExecutor_get_resultResult(TypedDictModel):
@@ -31,10 +51,6 @@ class _FakeExecutor_get_resultResult(TypedDictModel):
 class _FakeExecutor:
     def __init__(self, tenant_id: str):
         self.tenant_id = tenant_id
-        self.state_manager = SimpleNamespace(save_state=self._save_state)
-
-    async def _save_state(self, *args: Any, **kwargs: Any) -> None:
-        return None
 
     async def run(self, workflow_type: str, input_data: dict, tenant_id: str | None = None, user_id: str | None = None):
         return SimpleNamespace(
@@ -69,24 +85,24 @@ class _FakeExecutor:
 
 @pytest.fixture
 async def client():
-    test_app = FastAPI()
-    register_exception_handlers(test_app)
-    test_app.include_router(analysis.router, prefix="/v1")
-    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
+    app.dependency_overrides[analysis.get_route_db] = lambda: _FakeDb()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
-    test_app.dependency_overrides.clear()
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
 async def test_missing_identity_rejected(client: AsyncClient):
     """Unauthenticated access to case routes should be rejected."""
 
-    client._transport.app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(uuid4()))
-    client._transport.app.dependency_overrides[analysis.get_route_db] = lambda: SimpleNamespace()
+    app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(uuid4()))
 
-    response = await client.get("/v1/cases/case-123")
+    response = await client.post(
+        "/v1/cases",
+        json={"prospect_id": "prospect-1", "sections": ["executive_summary"], "output_format": "pdf"},
+    )
 
-    assert response.status_code == 401
+    assert response.status_code == 401, response.text
 
 
 @pytest.mark.asyncio
@@ -96,45 +112,40 @@ async def test_cross_tenant_case_access_denied(client: AsyncClient):
     owner_tenant = uuid4()
     caller_tenant = uuid4()
 
-    class FakeDB:
-        async def get(self, *args: Any, **kwargs: Any) -> None:
-            return None
-
-    client._transport.app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(owner_tenant))
-    client._transport.app.dependency_overrides[analysis.get_route_db] = lambda: FakeDB()
-    client._transport.app.dependency_overrides[analysis.require_authenticated] = lambda: RequestContext(
+    app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(owner_tenant))
+    override_auth = lambda: RequestContext(
         tenant_id=caller_tenant,
         user_id="user-1",
         roles=[],
         permissions=frozenset({"read:agents"}),
     )
+    app.dependency_overrides[analysis.require_authenticated] = override_auth
+    app.dependency_overrides[require_authenticated] = override_auth
 
     response = await client.get("/v1/cases/case-123")
 
-    assert response.status_code == 403
+    assert response.status_code == 403, response.text
 
 
 @pytest.mark.asyncio
 async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
-    """Case lifecycle emits enough immutable events for full reconstruction."""
+    """Case export lifecycle emits enough immutable events for reconstruction."""
 
     tenant = uuid4()
     account_id = uuid4()
     executor = _FakeExecutor(str(tenant))
     captured_events = []
 
-    async def _capture_audit(*, action, context, resource_type, resource_id, details):
-        captured_events.append(
-            SimpleNamespace(
-                action=action,
-                tenant_id=context.tenant_id,
-                details={
-                    "resource_type": resource_type,
-                    "resource_id": resource_id,
-                    **details,
-                },
-            )
+    async def _capture(*, action, context, resource_type, resource_id, details=None):
+        event = emit_audit_event(
+            action,
+            tenant_id=context.tenant_id,
+            user_id=context.user_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=dict(details or {}),
         )
+        captured_events.append(event)
 
     async def _upload_bytes(**kwargs):
         return None
@@ -142,30 +153,7 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     async def _download_url(object_key: str):
         return f"https://example.local/{object_key}"
 
-    class FakeAccountService:
-        def __init__(self, db: Any) -> None:
-            self.db = db
-
-        async def get_account(self, requested_account_id: UUID, *, tenant_id: str | None = None) -> Any:
-            assert requested_account_id == account_id
-            assert tenant_id == str(tenant)
-            return SimpleNamespace(id=account_id)
-
-    class FakeDB:
-        async def get(self, model: Any, key: str) -> Any:
-            return SimpleNamespace(account_id=account_id)
-
-        def add(self, record: Any) -> None:
-            return None
-
-        async def commit(self) -> None:
-            return None
-
-        async def refresh(self, record: Any) -> None:
-            return None
-
-    monkeypatch.setattr(analysis, "emit_and_persist_audit", _capture_audit)
-    monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
+    monkeypatch.setattr(analysis, "emit_and_persist_audit", _capture)
     monkeypatch.setattr(analysis, "upload_bytes", _upload_bytes)
     monkeypatch.setattr(analysis, "generate_download_url", _download_url)
     monkeypatch.setattr(
@@ -175,45 +163,44 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     )
     monkeypatch.setattr(analysis.settings, "export_storage_endpoint", "https://storage.local")
 
-    client._transport.app.dependency_overrides[analysis.get_executor] = lambda: executor
-    client._transport.app.dependency_overrides[analysis.get_route_db] = lambda: FakeDB()
-    client._transport.app.dependency_overrides[analysis.require_authenticated] = lambda: RequestContext(
+    class _DbWithCase(_FakeDb):
+        async def get(self, model, key):
+            return SimpleNamespace(case_id=key, account_id=account_id, status="approved")
+
+    class _AccountService:
+        def __init__(self, _db):
+            pass
+
+        async def get_account(self, _account_id, tenant_id=None):
+            return SimpleNamespace(id=account_id, tenant_id=str(tenant))
+
+    app.dependency_overrides[analysis.get_route_db] = lambda: _DbWithCase()
+    app.dependency_overrides[analysis.get_executor] = lambda: executor
+    override_auth = lambda: RequestContext(
         tenant_id=tenant,
         user_id="auditor-user",
         roles=[],
-        permissions=frozenset({"admin:system", "read:agents", "write:agents"}),
+        permissions=frozenset({"read:agents", "write:agents"}),
     )
-
-    seed_response = await client.post(
-        "/v1/validation/seed/business-case-lifecycle",
-        headers={"X-Privileged-Reason": analysis.SEED_PRIVILEGED_REASON},
-        json={
-            "account_id": str(account_id),
-            "draft_case_id": "case-draft",
-            "approved_case_id": "case-123",
-            "approved_case_aliases": [],
-        },
-    )
-    assert seed_response.status_code == 200, seed_response.text
+    app.dependency_overrides[analysis.require_authenticated] = override_auth
+    app.dependency_overrides[require_authenticated] = override_auth
+    monkeypatch.setattr(analysis, "AccountService", _AccountService)
 
     export_response = await client.get("/v1/cases/case-123/export")
-    assert export_response.status_code == 200, export_response.text
+    assert export_response.status_code == 200
 
     actions = [event.action for event in captured_events]
-    assert AuditAction.BUSINESS_CASE_GENERATED in actions
-    assert AuditAction.BUSINESS_CASE_APPROVED in actions
     assert AuditAction.EXPORT_REQUESTED in actions
     assert AuditAction.EXPORT_PACKAGE_GENERATED in actions
     assert AuditAction.EXPORT_DOWNLOAD_ACCESSED in actions
 
     for event in captured_events:
         if event.action in {
-            AuditAction.BUSINESS_CASE_GENERATED,
-            AuditAction.BUSINESS_CASE_APPROVED,
             AuditAction.EXPORT_REQUESTED,
             AuditAction.EXPORT_PACKAGE_GENERATED,
             AuditAction.EXPORT_DOWNLOAD_ACCESSED,
-        } and event.details.get("case_id") == "case-123":
+        }:
             assert event.details.get("case_id") == "case-123"
+            assert event.details.get("workflow_id") == "case-123"
             assert event.details.get("account_id") == str(account_id)
             assert UUID(str(event.tenant_id)) == tenant

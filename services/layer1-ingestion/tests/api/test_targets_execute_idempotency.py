@@ -118,23 +118,8 @@ class TestIdempotencyKeyBehavior:
         self, client, db, org_id, other_org_id, make_target
     ):
         """Idempotency keys should be scoped per tenant."""
-        target_a = make_target(org_id, status="ACTIVE")
-        target_b = make_target(other_org_id, status="ACTIVE")
-        idempotency_key = str(uuid4())
-
-        # Tenant A request
-        resp_a = client.post(
-            f"/api/v1/ingestion/targets/{target_a.id}/execute",
-            json={"idempotency_key": idempotency_key},
-        )
-        assert resp_a.status_code == 202
-        job_id_a = resp_a.json().get("job_id")
-
-        # Tenant B request with same idempotency_key (different client context)
-        # This would require authenticating as other_org_id
-        # For now, we document the expected behavior
-        # Expected: Tenant B should get a different job_id (keys are tenant-scoped)
-        pass
+        # TODO(behavior-debt): implement per-tenant idempotency key scoping.
+        pytest.skip("TODO(behavior-debt): idempotency key scoping not yet implemented")
 
 
 class TestIdempotencyKeyExpiration:
@@ -144,19 +129,15 @@ class TestIdempotencyKeyExpiration:
         self, client, db, org_id, make_target
     ):
         """Idempotency keys should expire after TTL (e.g., 24 hours)."""
-        # This test would require mocking time or using a short TTL for testing
-        # Expected: After TTL, same idempotency_key creates new job
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(behavior-debt): idempotency key TTL not yet implemented")
 
     def test_expired_idempotency_key_allows_new_job(
         self, client, db, org_id, make_target
     ):
         """After expiration, same idempotency_key should allow new job creation."""
-        # This test would require mocking time or using a short TTL for testing
-        # Expected: Expired key doesn't block new job creation
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(behavior-debt): idempotency key TTL not yet implemented")
 
 
 class TestReplayAfterJobCompletion:
@@ -166,67 +147,15 @@ class TestReplayAfterJobCompletion:
         self, client, db, org_id, make_target
     ):
         """Replay after job completion should return completed job status."""
-        target = make_target(org_id, status="ACTIVE")
-        idempotency_key = str(uuid4())
-
-        # First request
-        resp1 = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": idempotency_key},
-        )
-        assert resp1.status_code == 202
-        job_id = resp1.json().get("job_id")
-
-        # Mark job as completed
-        from layer1_ingestion.shared.models import ScrapingJob, JobStatus
-        job = db.query(ScrapingJob).get(UUID(job_id))
-        job.status = JobStatus.COMPLETED.value
-        db.commit()
-
-        # Replay request with same idempotency_key
-        resp2 = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": idempotency_key},
-        )
-        assert resp2.status_code == 202
-
-        # Should return completed job status
-        # Expected: status="already_exists" or similar
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotent replay returning completed status.
+        pytest.skip("TODO(behavior-debt): idempotent replay not yet implemented")
 
     def test_replay_after_job_failure_returns_failed_status(
         self, client, db, org_id, make_target
     ):
         """Replay after job failure should return failed job status."""
-        target = make_target(org_id, status="ACTIVE")
-        idempotency_key = str(uuid4())
-
-        # First request
-        resp1 = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": idempotency_key},
-        )
-        assert resp1.status_code == 202
-        job_id = resp1.json().get("job_id")
-
-        # Mark job as failed
-        from layer1_ingestion.shared.models import ScrapingJob, JobStatus
-        job = db.query(ScrapingJob).get(UUID(job_id))
-        job.status = JobStatus.FAILED.value
-        db.commit()
-
-        # Replay request with same idempotency_key
-        resp2 = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": idempotency_key},
-        )
-        assert resp2.status_code == 202
-
-        # Should return failed job status
-        # Expected: status="already_exists" with job status included
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotent replay returning failed status.
+        pytest.skip("TODO(behavior-debt): idempotent replay not yet implemented")
 
 
 class TestIdempotencyKeyValidation:
@@ -236,32 +165,15 @@ class TestIdempotencyKeyValidation:
         self, client, db, org_id, make_target
     ):
         """Invalid idempotency key format should be rejected."""
-        target = make_target(org_id, status="ACTIVE")
-
-        # Request with invalid idempotency_key
-        resp = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": "invalid-format"},
-        )
-        # Expected: 400 Bad Request
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key format validation.
+        pytest.skip("TODO(behavior-debt): idempotency key validation not yet implemented")
 
     def test_too_long_idempotency_key_rejected(
         self, client, db, org_id, make_target
     ):
         """Too long idempotency key should be rejected."""
-        target = make_target(org_id, status="ACTIVE")
-
-        # Request with overly long idempotency_key
-        long_key = "x" * 1000
-        resp = client.post(
-            f"/api/v1/ingestion/targets/{target.id}/execute",
-            json={"idempotency_key": long_key},
-        )
-        # Expected: 400 Bad Request
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key length validation.
+        pytest.skip("TODO(behavior-debt): idempotency key validation not yet implemented")
 
 
 class TestIdempotencyKeyMetrics:
@@ -269,14 +181,10 @@ class TestIdempotencyKeyMetrics:
 
     def test_idempotency_key_hit_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key hit should emit metric."""
-        # This test would require mocking the metrics system
-        # Expected: increment_idempotency_key_hits_total()
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key metrics.
+        pytest.skip("TODO(behavior-debt): idempotency key metrics not yet implemented")
 
     def test_idempotency_key_miss_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key miss should emit metric."""
-        # This test would require mocking the metrics system
-        # Expected: increment_idempotency_key_misses_total()
-        # This is a placeholder for when idempotency is implemented
-        pass
+        # TODO(behavior-debt): implement idempotency key metrics.
+        pytest.skip("TODO(behavior-debt): idempotency key metrics not yet implemented")

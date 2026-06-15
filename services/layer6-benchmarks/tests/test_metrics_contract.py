@@ -4,9 +4,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
-import layer6_benchmarks.api.main as main_module
 from httpx import ASGITransport, AsyncClient
 from prometheus_client import CollectorRegistry
+
+import layer6_benchmarks.api.main as main_module
 from layer6_benchmarks.api.main import app
 from layer6_benchmarks.metrics.prometheus_metrics import (
     MetricsConfig,

@@ -61,17 +61,14 @@ function ClerkSignInInner() {
 export default function ClerkSignInPage() {
   const urls = getClerkUrls();
 
-  // Under legacy auth there is no Clerk session to consult; preserve the
-  // original behavior and render <SignIn /> directly.
+  // Under legacy auth there is no ClerkProvider mounted and no Clerk session
+  // to consult. Render a legacy-compatible placeholder that redirects to the
+  // legacy login route so the app does not crash on the Clerk <SignIn />
+  // component.
   if (!isClerkAuthEnabled()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <SignIn
-          routing="path"
-          path={urls.signInUrl}
-          signUpUrl={urls.signUpUrl}
-          fallbackRedirectUrl={urls.afterSignInUrl}
-        />
+        <Navigate to="/login" replace />
       </div>
     );
   }

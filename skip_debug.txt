@@ -1,19 +1,9 @@
-Exception: 'Settings' object has no attribute 'rate_limit_enabled'
+Exception: layer3-knowledge startup rejected: production-like environment cannot enable auth bypass flags: ALLOW_DEV_AUTH_BYPASS.
 Traceback (most recent call last):
   File "C:\Users\BBB\Fabric_4L\tests\contract\test_l3_route_alias_parity.py", line 5, in <module>
     from src.api.main import app
-  File "C:\Users\BBB\Fabric_4L\services\layer3-knowledge\src\api\main.py", line 311, in <module>
-    app = create_fabric_app(
-        service_name="layer3-knowledge",
-    ...<39 lines>...
-        ],
-    )
-  File "C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\fastapi_framework\app.py", line 503, in create_fabric_app
-    post_core_middleware_hook(app)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
-  File "C:\Users\BBB\Fabric_4L\services\layer3-knowledge\src\api\main.py", line 301, in _post_core_middleware_hook
-    enabled=_settings.rate_limit_enabled if _settings else True,
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\BBB\Fabric_4L\.venv\Lib\site-packages\pydantic\main.py", line 1042, in __getattr__
-    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
-AttributeError: 'Settings' object has no attribute 'rate_limit_enabled'
+  File "C:\Users\BBB\Fabric_4L\services\layer3-knowledge\src\api\main.py", line 310, in <module>
+    reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
+  File "C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\startup\validator.py", line 72, in reject_insecure_bypass_in_production
+    raise RuntimeError(
+RuntimeError: layer3-knowledge startup rejected: production-like environment cannot enable auth bypass flags: ALLOW_DEV_AUTH_BYPASS.

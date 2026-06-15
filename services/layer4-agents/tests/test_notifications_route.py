@@ -28,8 +28,8 @@ def clear_notification_store() -> None:
 
 def build_app(tenant_id: UUID = TENANT_A) -> FastAPI:
     app = FastAPI()
-    app.include_router(notifications.router, prefix="/v1")
     register_exception_handlers(app)
+    app.include_router(notifications.router, prefix="/v1")
     app.dependency_overrides[notifications.require_authenticated] = lambda: RequestContext(
         tenant_id=tenant_id,
         user_id="reviewer-123",

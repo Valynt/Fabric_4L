@@ -63,7 +63,6 @@ from ..common.db import get_route_db
 from ..common.errors import normalize_exception
 from ..security.csrf import CSRF_COOKIE_NAME, SESSION_COOKIE_NAME, issue_csrf_token
 
-settings = get_settings()
 get_db_from_context = get_route_db
 
 
@@ -88,6 +87,7 @@ class generate_workspace_intelligenceResult(TypedDictModel):
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 from ...test_support.seed_runtime_config import (
     SEED_APPROVED_CASE_ALIASES,
@@ -446,12 +446,12 @@ async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: R
 def _require_validation_seed_allowed(http_request: Request, context: RequestContext) -> None:
     """Fail closed unless this is an authenticated, non-production seed request."""
     if settings.environment == "production":
-        raise HTTPException(status_code=403, detail="Validation seeding is disabled in production")
+        raise AuthorizationError(message = "Validation seeding is disabled in production")
     if not context.tenant_id:
-        raise HTTPException(status_code=403, detail="Validation seeding requires tenant context")
+        raise AuthorizationError(message = "Validation seeding requires tenant context")
     reason = http_request.headers.get("X-Privileged-Reason", "").strip()
     if reason != SEED_PRIVILEGED_REASON:
-        raise HTTPException(status_code=403, detail="Validation seeding requires privileged reason")
+        raise AuthorizationError(message = "Validation seeding requires privileged reason")
 
 
 def _context_tenant_uuid(context: RequestContext) -> UUID:
@@ -605,7 +605,7 @@ async def seed_validation_auth_context(
     _require_validation_seed_allowed(http_request, context)
     tenant_id = _context_tenant_uuid(context)
     if payload.tenant_id is not None and payload.tenant_id != tenant_id:
-        raise HTTPException(status_code=403, detail="Validation seed tenant mismatch")
+        raise AuthorizationError(message = "Validation seed tenant mismatch")
 
     await _upsert_validation_tenant(
         db,
@@ -934,7 +934,6 @@ async def generate_business_case(
     request: BusinessCaseRequest,
     background_tasks: BackgroundTasks,
     http_request: Request,
-    executor: WorkflowExecutor = Depends(get_executor),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> BusinessCaseResponse:
@@ -973,6 +972,7 @@ async def generate_business_case(
                 },
             )
 
+        executor = get_executor()
         account_service = AccountService(db)
         account = await account_service.get_account(request.account_id, tenant_id=str(context.tenant_id))
         if not account:
@@ -1339,7 +1339,7 @@ async def export_business_case(
     if not isinstance(document_bytes, bytes):
         document_bytes = bytes(document_bytes)
 
-    if not settings.export_storage_endpoint:
+    if not get_settings().export_storage_endpoint:
         raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
 
     workflow_id = (
@@ -1368,7 +1368,7 @@ async def export_business_case(
         "tenant-id": str(context.tenant_id),
         "tenant_id": str(context.tenant_id),
         "actor-user-id": str(context.user_id or ""),
-        "actor-subject": str(getattr(context, "subject", None) or ""),
+        "actor-subject": str(getattr(context, "subject", "") or ""),
         "account-id": str(account.id),
     }
 
@@ -1390,7 +1390,7 @@ async def export_business_case(
     document_url = await generate_download_url(object_key=object_key)
     manifest_url = await generate_download_url(object_key=manifest_key)
     expires_at = datetime.fromtimestamp(
-        datetime.now(UTC).timestamp() + settings.export_signed_url_ttl_seconds,
+        datetime.now(UTC).timestamp() + get_settings().export_signed_url_ttl_seconds,
         tz=UTC,
     ).isoformat()
 
@@ -1417,9 +1417,9 @@ async def export_business_case(
             "case_id": case_id,
             "workflow_id": workflow_id,
             "export_id": export_id,
-            "account_id": str(account.id),
             "pdf_object_key": object_key,
             "manifest_object_key": manifest_key,
+            "account_id": str(account.id),
             "truth_object_ids": manifest.get("truth_object_ids", []),
             "source_references": manifest.get("source_references", []),
         },
@@ -1434,8 +1434,8 @@ async def export_business_case(
             "case_id": case_id,
             "workflow_id": workflow_id,
             "export_id": export_id,
-            "account_id": str(account.id),
             "pdf_object_key": object_key,
+            "account_id": str(account.id),
         },
     )
 
@@ -1745,7 +1745,7 @@ async def delete_saved_scenario(
         )
     )
     if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Saved scenario not found")
+        raise NotFoundError(message = "Saved scenario not found")
 
 
 @router.get("/cases/{case_id}/workspace/evidence", response_model=WorkspaceEvidenceResponse)
@@ -1799,7 +1799,7 @@ async def get_workspace_tab(
     authorize_action("layer4.analysis.read_case", context)
     valid_tabs = {"signals", "drivers", "evidence", "stakeholders", "action-plan", "value-model", "narrative", "intake", "evidence-links"}
     if tab_key not in valid_tabs:
-        raise HTTPException(status_code=400, detail=f"Invalid tab_key. Must be one of: {valid_tabs}")
+        raise ValidationError(message = str(f"Invalid tab_key. Must be one of: {valid_tabs}"))
 
     tenant_id = str(context.tenant_id)
     result = await db.execute(

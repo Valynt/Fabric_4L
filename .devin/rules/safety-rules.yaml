@@ -36,9 +36,9 @@ rules:
       files:
         - "**/*.py"
       patterns:
-        - 'execute\s*\(\s*["\'].*\+.*\)'
-        - 'execute\s*\(\s*f["\']'
-        - 'text\s*\(\s*f["\']'
+        - 'execute\s*\(\s*["''].*\+.*\)'
+        - 'execute\s*\(\s*f["'']'
+        - 'text\s*\(\s*f["'']'
     action:
       type: block
       message: "Raw SQL string concatenation detected. Use SQLAlchemy parameters or prepared statements."
@@ -104,7 +104,7 @@ rules:
         - "**/*.yml"
         - "**/*.json"
       patterns:
-        - "(?i)(api[_-]?key|password|secret|token)\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+        - '(?i)(api[_-]?key|password|secret|token)\s*[:=]\s*[''"][^''"]{8,}[''"]'
     action:
       type: block
       message: "Secret detected. Store in Vault/Infisical and inject via environment."
@@ -123,11 +123,11 @@ rules:
       files:
         - "**/*.py"
       patterns:
-        - 'f["\']SELECT.*\{.*\}.*FROM'
-        - 'f["\']INSERT INTO.*\{.*\}'
-        - 'f["\']UPDATE.*SET.*\{.*\}'
-        - 'f["\']DELETE FROM.*\{.*\}'
-        - 'f["\']MATCH \(.*\{.*\}'
+        - 'f["'']SELECT.*\{.*\}.*FROM'
+        - 'f["'']INSERT INTO.*\{.*\}'
+        - 'f["'']UPDATE.*SET.*\{.*\}'
+        - 'f["'']DELETE FROM.*\{.*\}'
+        - 'f["'']MATCH \(.*\{.*\}'
     action:
       type: block
       message: "SOQL/SQL string interpolation detected. Use parameterized queries or query builders."

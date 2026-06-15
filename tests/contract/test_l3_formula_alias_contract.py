@@ -22,5 +22,5 @@ def test_formula_pages_use_canonical_id_navigation() -> None:
 
 
 def test_generated_types_include_formula_alias_deprecation_notice() -> None:
-    generated = Path("packages/platform-contract/src/typescript/generated/src.ts").read_text(encoding="utf-8")
+    generated = Path("packages/platform-contract/src/typescript/generated/layer3_knowledge.ts").read_text(encoding="utf-8")
     assert "Deprecated alias of id. Removal target: v2.5 (2026-10-01)." in generated

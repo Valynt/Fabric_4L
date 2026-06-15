@@ -11,13 +11,13 @@
         "route",
         "method",
         "status_class",
-        "tenant_id"
+        "tenant_bucket"
       ],
       "max_cardinality": {
         "route": 20,
         "method": 8,
         "status_class": 5,
-        "tenant_id": 1000
+        "tenant_bucket": 65
       }
     },
     {
@@ -28,12 +28,12 @@
       "labels": [
         "route",
         "method",
-        "tenant_id"
+        "tenant_bucket"
       ],
       "max_cardinality": {
         "route": 20,
         "method": 8,
-        "tenant_id": 1000
+        "tenant_bucket": 65
       }
     },
     {

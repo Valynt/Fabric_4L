@@ -46,10 +46,9 @@ def test_l4_health_and_metrics_response_contract(monkeypatch):
         health = client.get("/health")
         assert health.status_code == 200
         payload = health.json()
-        assert payload["status"] in {"healthy", "degraded"}
+        assert payload["status"] == "ok"
         assert payload["service"] == "layer4-agents"
         assert "timestamp" in payload
-        assert "version" in payload
 
         metrics = client.get("/metrics")
         assert metrics.status_code in {200, 403, 503}

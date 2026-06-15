@@ -64,7 +64,10 @@ def _import_runtime_module(relative_name: str, fallback_name: str) -> Any:
     try:
         return import_module(relative_name, package=__package__)
     except ImportError:
-        return import_module(fallback_name)
+        try:
+            return import_module(f"src.{fallback_name}")
+        except ImportError:
+            return import_module(fallback_name)
 
 
 def _load_settings_dependency() -> None:
@@ -91,6 +94,23 @@ def _load_runtime_dependencies() -> None:
     ingestion_module = _import_runtime_module("..ingestion", "ingestion")
     retrieval_module = _import_runtime_module("..retrieval", "retrieval")
     schema_module = _import_runtime_module("..schema", "schema")
+
+    if not hasattr(agents_module, "NarrativeSynthesisAgent"):
+        agents_module.NarrativeSynthesisAgent = _import_runtime_module(
+            "..agents.narrative_synthesis", "agents.narrative_synthesis"
+        ).NarrativeSynthesisAgent
+        agents_module.ProvenanceTrackingAgent = _import_runtime_module(
+            "..agents.provenance_tracking", "agents.provenance_tracking"
+        ).ProvenanceTrackingAgent
+        agents_module.ROICalculationAgent = _import_runtime_module(
+            "..agents.roi_calculation", "agents.roi_calculation"
+        ).ROICalculationAgent
+        agents_module.ValueTreeProjectionAgent = _import_runtime_module(
+            "..agents.value_tree_projection", "agents.value_tree_projection"
+        ).ValueTreeProjectionAgent
+        agents_module.WhitespaceAnalysisAgent = _import_runtime_module(
+            "..agents.whitespace_analysis", "agents.whitespace_analysis"
+        ).WhitespaceAnalysisAgent
 
     globals().update(
         {

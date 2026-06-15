@@ -31,6 +31,7 @@
     "test:e2e:webkit": "pnpm run test:e2e:guard && playwright test --project=contracts-webkit",
     "test:e2e:report": "playwright show-report",
     "preinstall": "node ./scripts/enforce-package-manager.cjs",
+    "generate:api": "pnpm run generate:types",
     "generate:types": "npx tsx scripts/generate-api-types.ts",
     "generate:api-types": "pnpm run generate:types",
     "test:a11y:components": "vitest run src/accessibility.a11y.spec.tsx",

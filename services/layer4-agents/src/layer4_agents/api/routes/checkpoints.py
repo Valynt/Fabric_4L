@@ -136,8 +136,6 @@ class ResumeFromCheckpointResponse(BaseModel):
     status: str = Field(..., description="resumed, completed, or failed")
     message: str
 
-    model_config = ConfigDict(populate_by_name=True)
-
 
 class StateSnapshotResponse(BaseModel):
     """Full state snapshot at a checkpoint."""
@@ -403,16 +401,9 @@ async def resume_from_checkpoint(
             executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
         )
         # Get the checkpoint data
-        try:
-            checkpoint_data = await _get_checkpoint_data(
-                executor.checkpoint_saver, workflow_id, request.checkpoint_id, _ctx.tenant_id
-            )
-        except TypeError as exc:
-            if "positional" not in str(exc):
-                raise
-            checkpoint_data = await _get_checkpoint_data(
-                executor.checkpoint_saver, workflow_id, request.checkpoint_id
-            )
+        checkpoint_data = await _get_checkpoint_data(
+            executor.checkpoint_saver, workflow_id, request.checkpoint_id, _ctx.tenant_id
+        )
 
         if not checkpoint_data:
             raise NotFoundError(message = str(f"Checkpoint {request.checkpoint_id} not found"))
@@ -446,7 +437,7 @@ async def resume_from_checkpoint(
             logger.exception(f"Audit logging failed for checkpoint resume {workflow_id}")
 
         return ResumeFromCheckpointResponse(
-            workflow_id=workflow_id,
+            workflow_instance_id=workflow_id,
             resumed_from_checkpoint=request.checkpoint_id,
             resumed_from_node=checkpoint_data.get("node_name", "unknown"),
             status=result.get("status", "resumed"),
@@ -679,8 +670,6 @@ async def _require_workflow_tenant_access(
     tenant_id: str,
 ) -> None:
     """Fail-closed tenant gate for workflow-scoped checkpoint operations."""
-    if not hasattr(executor, "get_workflow_status"):
-        return
     status = await executor.get_workflow_status(workflow_id)
     if not status:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))

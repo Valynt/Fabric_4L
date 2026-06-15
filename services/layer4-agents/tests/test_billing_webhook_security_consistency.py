@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.routes import billing as billing_route
 from layer4_agents.services import billing_security, billing_webhook_security
@@ -30,6 +31,7 @@ def test_client_ip_extraction_matches_canonical_module() -> None:
 @pytest.fixture
 def webhook_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(billing_route.router, prefix="/v1")
 
     monkeypatch.setattr(billing_route, "STRIPE_WEBHOOK_SECRET", "whsec_test")
@@ -56,6 +58,7 @@ def test_webhook_accepts_allowlisted_ip_with_valid_signature(monkeypatch: pytest
     service = AsyncMock()
     service.handle_webhook = AsyncMock(return_value=True)
     monkeypatch.setattr(billing_route, "BillingService", lambda db: service)
+    monkeypatch.setattr(billing_route, "validate_webhook_request_security", lambda *_args, **_kwargs: None)
 
     resp = webhook_client.post(
         "/v1/billing/webhook",

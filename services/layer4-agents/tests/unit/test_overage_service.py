@@ -159,7 +159,10 @@ class TestCheckMetricUsageNoPlan:
         from layer4_agents.config.plans import Plan
 
         plan = Plan(id="pro", name="Pro", description="Pro plan", usage_limits={})
-        svc = OverageService(db=MagicMock(), tenant_id="t1")
+        db = MagicMock()
+        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+        svc = OverageService(db=db, tenant_id="t1")
+        svc.plan_versions.get_subscription_plan_version = AsyncMock(return_value=None)
 
         with patch.object(svc, "_get_customer_plan", new=AsyncMock(return_value=plan)):
             result = await svc.check_metric_usage("cust-1", "some_metric")

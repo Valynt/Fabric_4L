@@ -77,10 +77,12 @@ def test_l4_workflow_status_success_shape_is_stable() -> None:
 
 def test_l4_workflow_resume_validation_error_shape_is_stable() -> None:
     payload = {
-        "message": "resume_data is required",
-        "code": "validation_error",
-        "trace_id": "trace-l4-resume-001",
-        "details": {"field": "resume_data"},
+        "error": {
+            "message": "resume_data is required",
+            "code": "validation_error",
+            "request_id": "trace-l4-resume-001",
+            "details": {"field": "resume_data"},
+        },
     }
     _assert_response_shape(
         L4_OPENAPI,
@@ -122,10 +124,12 @@ def test_l5_truth_detail_success_shape_is_stable() -> None:
 
 def test_l5_truth_detail_validation_error_shape_is_stable() -> None:
     payload = {
-        "message": "truth_id must be a valid UUID",
-        "code": "validation_error",
-        "trace_id": "trace-l5-truth-001",
-        "details": {"path": ["truth_id"]},
+        "error": {
+            "message": "truth_id must be a valid UUID",
+            "code": "validation_error",
+            "request_id": "trace-l5-truth-001",
+            "details": {"path": ["truth_id"]},
+        },
     }
     _assert_response_shape(
         L5_OPENAPI,

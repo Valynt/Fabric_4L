@@ -16,6 +16,7 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from pydantic import ValidationError
 
 from layer4_agents.models.agent_state import ROIAgentState, WorkflowStatus
 from layer4_agents.tools.registry import ToolResult
@@ -87,9 +88,10 @@ class TestCreateInitialState:
         assert state.roi_input.value_driver_ids == ["vd-1", "vd-2"]
         assert state.tenant_id == "test-tenant"
 
-    def test_empty_value_driver_ids_raises(self, workflow):
+    def test_empty_value_driver_ids_are_rejected(self, workflow):
         wf, _ = workflow
-        with pytest.raises(ValueError):
+
+        with pytest.raises(ValidationError, match="At least one value_driver_id is required"):
             wf.create_initial_state(
                 {"prospect_id": "p-001", "value_driver_ids": []},
                 tenant_id="test-tenant",
@@ -428,7 +430,7 @@ class TestExecuteEvaluateFormula:
 
         res = result["results"][0]
         assert res["confidence"] == CONFIDENCE_NONE
-        assert "evaluator crashed" in res["missing_variables"][0]
+        assert res["missing_variables"][0] == "RuntimeError: formula_evaluation_failed"
 
     @pytest.mark.asyncio
     async def test_missing_value_driver_formula(self, workflow):

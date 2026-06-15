@@ -68,7 +68,9 @@ def test_replay_is_deterministic_for_historical_events() -> None:
     assert result_a.state.status == WorkflowStatus.COMPLETED
     assert result_a.state.current_node == "roi_compute"
     assert result_a.state.output_data == {"roi": 12.3}
-    assert result_a.state.model_dump() == result_b.state.model_dump()
+    state_a = result_a.state.model_dump(exclude={"run_id", "trace_id"})
+    state_b = result_b.state.model_dump(exclude={"run_id", "trace_id"})
+    assert state_a == state_b
 
 
 def test_replay_rejects_cross_tenant_events() -> None:

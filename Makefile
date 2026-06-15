@@ -343,15 +343,15 @@ test-e2e-full: ## Run full E2E suite: seed → contracts → journeys → reset
 
 contract-tests: ## Run cross-layer contract + architecture tests (fast, no secrets required)
 	@echo "→ Auditing contract test collection (static subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m "contract_static and not service_required" -n 0 || exit $$?
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract --collect-only -q -m "contract_static and not service_required" -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "→ Auditing contract test collection (service-required subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m service_required -n 0 || exit $$?
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract --collect-only -q -m service_required -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "→ Running contract-static tests (deterministic, no live services)..."
-	$(PYTEST) tests/contract/ -v --tb=short -m "contract_static and not service_required" -n 0 || exit $$?
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract -v --tb=short -m "contract_static and not service_required" -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "→ Service-required contract tests are collected above; execute them via live validation targets."
 	$(PNPM) --dir packages/platform-contract run contract:test || exit $$?
 	@echo "→ Running architecture tests (tenant isolation guards)..."
-	$(PYTEST) tests/arch/ -v --tb=short || exit $$?
+	$(PYTEST) tests/arch/ --basetemp=.tmp/pytest-contract-arch -v --tb=short -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "✅  Contract and architecture tests passed"
 
 pact-tests: ## Run Pact consumer tests (generates .pact files) and provider verification
@@ -445,10 +445,10 @@ test-layer3-live: ## Run Layer 3 live Neo4j/vector integration tests
 	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3-live -m "integration or requires_neo4j or vector" tests/
 
 test-layer4: ## Run Layer 4 local tests
-	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -o cache_dir=../../.tmp/pytest-cache-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
 
 test-layer4-live: ## Run Layer 4 live Docker/PostgreSQL/integration tests
-	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -o cache_dir=../../.tmp/pytest-cache-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/
 
 test-layer5: ## Run Layer 5 tests
 	cd services/layer5-ground-truth

@@ -45,7 +45,7 @@ async def test_dependency_checks_fail_contract(monkeypatch):
     monkeypatch.setattr("layer4_agents.api.startup.init_db", fail_db)
     db_result = await check_database_ready()
     assert db_result.ok is False
-    assert "db down" in (db_result.detail or "")
+    assert db_result.detail == "Database connection failed"
 
 
 def test_route_table_integrity_after_refactor():

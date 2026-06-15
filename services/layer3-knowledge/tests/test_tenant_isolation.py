@@ -204,13 +204,51 @@ class TestTenantIsolation:
         with pytest.raises((HTTPException, ValueError, TypeError)):
             await hybrid_search_impl(request, hybrid_search=MagicMock(), ctx=None, http_request=None)
 
-    def test_cross_tenant_access_blocked_in_list_entities(self):
+    @pytest.mark.asyncio
+    async def test_cross_tenant_access_blocked_in_list_entities(self):
         """Tenant A cannot see Tenant B's entities via list_entities."""
-        # Integration coverage requires a live Neo4j instance.
-        # Unit-level coverage is provided by the query-inspection tests above.
-        pass
+        # Unit-level simulation: verify the query is scoped to tenant-a.
+        mock_session = MagicMock()
+        mock_session.tenant_id = "tenant-a"
+        mock_session.execute_query = AsyncMock(return_value=[])
 
-    def test_cross_tenant_access_blocked_in_get_full_graph(self):
+        ctx = MagicMock()
+        ctx.tenant_id = "tenant-a"
+
+        await list_entities(
+            search_text=None,
+            entity_types=None,
+            confidence_min=0.0,
+            limit=25,
+            offset=0,
+            sort_by="updated_at",
+            sort_order="desc",
+            _ctx=ctx,
+            neo4j=mock_session,
+        )
+
+        # The implementation must pass tenant_id to the query parameters.
+        call = mock_session.execute_query.call_args
+        params = call.kwargs if call.kwargs else (call[0][1] if len(call[0]) > 1 else {})
+        effective_tenant = params.get("_tenant_id") or params.get("tenant_id")
+        assert effective_tenant == "tenant-a", "list_entities must scope query to request tenant"
+
+    @pytest.mark.asyncio
+    async def test_cross_tenant_access_blocked_in_get_full_graph(self):
         """Tenant A cannot see Tenant B's entities via get_full_graph."""
-        # Integration coverage requires a live Neo4j instance.
-        pass
+        mock_state = MagicMock()
+        mock_neo4j = AsyncMock()
+        mock_neo4j.execute_query.return_value = []
+        mock_state.neo4j_driver = mock_neo4j
+
+        await get_full_graph(
+            limit=1000,
+            app_state=mock_state,
+            tenant_id="tenant-a",
+        )
+
+        for call in mock_neo4j.execute_query.call_args_list:
+            params = call.kwargs if call.kwargs else (call[0][1] if len(call[0]) > 1 else {})
+            effective_tenant = params.get("_tenant_id") or params.get("tenant_id")
+            if effective_tenant is not None:
+                assert effective_tenant == "tenant-a", "get_full_graph must scope query to request tenant"

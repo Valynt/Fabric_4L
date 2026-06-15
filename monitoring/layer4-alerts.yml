@@ -2,7 +2,7 @@
 #
 # Runbook: docs/runbooks/layer4-alerts.md
 
- groups:
+groups:
   - name: layer4_workflow_health
     interval: 30s
     rules:

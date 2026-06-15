@@ -27,7 +27,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run zero-trust checks
-        run: bash scripts/security/zero_trust_checks.sh
+        run: |
+          mkdir -p artifacts/zero-trust
+          bash scripts/security/zero_trust_checks.sh
 
       - name: Upload zero-trust evidence
         if: always()

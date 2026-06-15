@@ -373,10 +373,8 @@ class TestNoOrphanedRunningStates:
 
     def test_stuck_jobs_metric_reflects_non_terminal_count(self, db, org_id):
         """The stuck_jobs metric should reflect the count of non-terminal jobs."""
-        # This test would require mocking the metrics system
-        # Expected: metrics.set_stuck_jobs(count, stage) for each stage
-        # This is a placeholder for when metrics are fully integrated
-        pass
+        # TODO(behavior-debt): implement stuck-jobs reconciliation metrics.
+        pytest.skip("TODO(behavior-debt): stuck-jobs metrics not yet implemented")
 
 
 class TestRetryMechanismBehavior:
@@ -406,10 +404,8 @@ class TestRetryMechanismBehavior:
 
     def test_retry_countdown_increases(self):
         """Verify that retry countdown increases with each retry."""
-        # This would require testing actual Celery retry behavior
-        # For now, we document the expected behavior
-        # Expected: countdown increases (e.g., 30s, 60s, 120s)
-        pass
+        # TODO(behavior-debt): implement exponential-backoff retry countdown test.
+        pytest.skip("TODO(behavior-debt): retry countdown test not yet implemented")
 
 
 # Helper function for tests

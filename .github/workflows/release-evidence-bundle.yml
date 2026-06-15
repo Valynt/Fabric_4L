@@ -227,7 +227,6 @@ jobs:
   live-stack-evidence:
     name: Live stack health evidence
     runs-on: ubuntu-latest
-    needs: []
     steps:
       - uses: actions/checkout@v4
 
@@ -238,6 +237,10 @@ jobs:
       - name: Wait for healthy services
         run: |
           python scripts/ci/stack_health_check.py --timeout 300 --output stack-health.json
+
+      - name: Prepare ZAP report placeholders
+        run: |
+          touch report_base.html report_base.json
 
       - name: OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.12.0

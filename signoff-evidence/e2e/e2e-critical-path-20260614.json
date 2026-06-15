@@ -1,7 +1,7 @@
 {
-  "run_id": "82cc5da04dbd",
-  "started_at": "2026-06-14T15:52:02.733993+00:00",
-  "completed_at": "2026-06-14T15:52:07.485591+00:00",
+  "run_id": "d53c83e8283d",
+  "started_at": "2026-06-14T20:14:29.307386+00:00",
+  "completed_at": "2026-06-14T20:14:36.632398+00:00",
   "overall_status": "pass",
   "dry_run": false,
   "layer_health": {
@@ -23,7 +23,7 @@
       "response_summary": "{\"dependencies\": [{\"name\": \"database\", \"status\": \"healthy\", \"error\": null}, {\"name\": \"redis\", \"status\": \"healthy\", \"error\": null}], \"note\": \"Legacy endpoint; use /api/v1/ingestion/health for full sche",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:02.944281+00:00"
+      "timestamp": "2026-06-14T20:14:29.600514+00:00"
     },
     {
       "step": "health_L2",
@@ -32,10 +32,10 @@
       "http_status": 200,
       "url": "http://localhost:8002/health",
       "request_summary": "",
-      "response_summary": "{\"status\": \"ok\", \"service\": \"layer2-extraction\", \"timestamp\": \"2026-06-14T15:52:02.953636+00:00\"}",
+      "response_summary": "{\"status\": \"ok\", \"service\": \"layer2-extraction\", \"timestamp\": \"2026-06-14T20:14:29.604555+00:00\"}",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:02.950274+00:00"
+      "timestamp": "2026-06-14T20:14:29.611659+00:00"
     },
     {
       "step": "health_L3",
@@ -44,10 +44,10 @@
       "http_status": 200,
       "url": "http://localhost:8003/health",
       "request_summary": "",
-      "response_summary": "{\"status\": \"healthy\", \"service\": \"layer3-knowledge\", \"readiness\": {\"is_ready\": true, \"reason\": \"dependencies_available\"}, \"version\": \"1.0.0\", \"timestamp\": \"2026-06-14T15:52:03.007093Z\", \"uptime_second",
+      "response_summary": "{\"status\": \"healthy\", \"service\": \"layer3-knowledge\", \"readiness\": {\"is_ready\": true, \"reason\": \"dependencies_available\"}, \"version\": \"1.0.0\", \"timestamp\": \"2026-06-14T20:14:29.649951Z\", \"uptime_second",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:03.004099+00:00"
+      "timestamp": "2026-06-14T20:14:29.658452+00:00"
     },
     {
       "step": "health_L4",
@@ -56,10 +56,10 @@
       "http_status": 200,
       "url": "http://localhost:8004/health",
       "request_summary": "",
-      "response_summary": "{\"status\": \"ok\", \"service\": \"layer4-agents\", \"timestamp\": \"2026-06-14T15:52:03.013037+00:00\"}",
+      "response_summary": "{\"dependencies\": [{\"name\": \"workflow_executor\", \"status\": \"healthy\", \"failure_reason\": null}], \"executor_ready\": true, \"metrics\": {\"memory_usage_mb\": 3330.02734375, \"cpu_percent\": 12.2, \"active_connec",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:03.009900+00:00"
+      "timestamp": "2026-06-14T20:14:29.667443+00:00"
     },
     {
       "step": "health_L5",
@@ -68,10 +68,10 @@
       "http_status": 200,
       "url": "http://localhost:8005/health",
       "request_summary": "",
-      "response_summary": "{\"status\": \"ok\", \"service\": \"layer5-ground-truth\", \"version\": \"0.1.0\", \"timestamp\": \"2026-06-14T15:52:03.036287Z\", \"database\": \"ok\", \"layer3_connected\": null, \"layer3_url\": null}",
+      "response_summary": "{\"status\": \"ok\", \"service\": \"layer5-ground-truth\", \"version\": \"0.1.0\", \"timestamp\": \"2026-06-14T20:14:29.672563Z\", \"database\": \"ok\", \"layer3_connected\": null, \"layer3_url\": null}",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:03.092254+00:00"
+      "timestamp": "2026-06-14T20:14:29.680849+00:00"
     },
     {
       "step": "health_L6",
@@ -80,10 +80,10 @@
       "http_status": 200,
       "url": "http://localhost:8006/health",
       "request_summary": "",
-      "response_summary": "{\"response_time_ms\": 0.0, \"service\": \"layer6-benchmarks\", \"status\": \"healthy\", \"timestamp\": \"2026-06-14T15:52:03.104772+00:00\", \"version\": \"1.0.0\"}",
+      "response_summary": "{\"response_time_ms\": 0.0, \"service\": \"layer6-benchmarks\", \"status\": \"healthy\", \"timestamp\": \"2026-06-14T20:14:29.694465+00:00\", \"version\": \"1.0.0\"}",
       "duration_ms": 0.0,
       "error": null,
-      "timestamp": "2026-06-14T15:52:03.103065+00:00"
+      "timestamp": "2026-06-14T20:14:29.701091+00:00"
     },
     {
       "step": "l1_ingest",
@@ -93,9 +93,9 @@
       "url": "http://localhost:8001/api/v1/ingestion/jobs",
       "request_summary": "GET http://localhost:8001/api/v1/ingestion/jobs tenant=00000000-0000-4000-8000-000000000001",
       "response_summary": "job_id=None status=200",
-      "duration_ms": 777.8057999967132,
+      "duration_ms": 675.6984999810811,
       "error": null,
-      "timestamp": "2026-06-14T15:52:03.880972+00:00"
+      "timestamp": "2026-06-14T20:14:30.376956+00:00"
     },
     {
       "step": "l2_extract",
@@ -105,9 +105,9 @@
       "url": "http://localhost:8002/v1/extract",
       "request_summary": "POST http://localhost:8002/v1/extract job_id=listed",
       "response_summary": "entity_id=None status=200",
-      "duration_ms": 201.81810000212863,
+      "duration_ms": 328.302599984454,
       "error": null,
-      "timestamp": "2026-06-14T15:52:04.082863+00:00"
+      "timestamp": "2026-06-14T20:14:30.705377+00:00"
     },
     {
       "step": "l3_graph",
@@ -117,9 +117,9 @@
       "url": "http://localhost:8003/v1/formulas?limit=1",
       "request_summary": "GET http://localhost:8003/v1/formulas?limit=1",
       "response_summary": "status=200 entity_count=0",
-      "duration_ms": 278.1286999816075,
+      "duration_ms": 85.68560000276193,
       "error": null,
-      "timestamp": "2026-06-14T15:52:04.361062+00:00"
+      "timestamp": "2026-06-14T20:14:30.791169+00:00"
     },
     {
       "step": "l4_agent",
@@ -129,9 +129,9 @@
       "url": "http://localhost:8004/v1/workflows",
       "request_summary": "POST http://localhost:8004/v1/workflows tenant=00000000-0000-4000-8000-000000000001",
       "response_summary": "workflow_id=None status=201",
-      "duration_ms": 551.2278999958653,
+      "duration_ms": 2278.5686000133865,
       "error": null,
-      "timestamp": "2026-06-14T15:52:04.912367+00:00"
+      "timestamp": "2026-06-14T20:14:33.069997+00:00"
     },
     {
       "step": "l5_ground_truth",
@@ -141,9 +141,9 @@
       "url": "http://localhost:8005/api/v1/truths?limit=1",
       "request_summary": "GET http://localhost:8005/api/v1/truths?limit=1",
       "response_summary": "status=200",
-      "duration_ms": 1728.183800005354,
+      "duration_ms": 1842.248600005405,
       "error": null,
-      "timestamp": "2026-06-14T15:52:06.640690+00:00"
+      "timestamp": "2026-06-14T20:14:34.912423+00:00"
     },
     {
       "step": "l6_benchmark",
@@ -153,9 +153,9 @@
       "url": "http://localhost:8006/v1/benchmarks/datasets?limit=1",
       "request_summary": "GET http://localhost:8006/v1/benchmarks/datasets?limit=1",
       "response_summary": "status=200",
-      "duration_ms": 844.7539000189863,
+      "duration_ms": 1719.7524999792222,
       "error": null,
-      "timestamp": "2026-06-14T15:52:07.485536+00:00"
+      "timestamp": "2026-06-14T20:14:36.632344+00:00"
     }
   ],
   "summary": "overall=pass passed=12 failed=0 skipped=0"

@@ -12,8 +12,12 @@ import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export function useTenantMembership(tenantSlug: string | undefined) {
   const { user, isLoading: legacyLoading } = useAuthContext();
-  const { organization, isLoaded: orgLoaded } = useOrganization();
   const clerkEnabled = isClerkAuthEnabled();
+  // Clerk hooks may only be called when Clerk is enabled. Calling useOrganization()
+  // outside <ClerkProvider> (legacy mode) throws at render time.
+  const clerkOrg = clerkEnabled ? useOrganization() : { organization: undefined, isLoaded: true };
+  const organization = clerkOrg?.organization;
+  const orgLoaded = clerkOrg?.isLoaded ?? true;
 
   const isMemberOfTenant = useMemo(() => {
     if (!tenantSlug) return false;

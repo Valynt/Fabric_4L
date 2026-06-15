@@ -1,9 +1,7 @@
-"""Compatibility alias for the canonical Layer 4 notification service."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.services.notification``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-import sys
-
-from layer4_agents.services import notification as _canonical
-
-sys.modules[__name__] = _canonical
+from layer4_agents.services.notification import *  # noqa: F401,F403

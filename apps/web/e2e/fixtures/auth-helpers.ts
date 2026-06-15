@@ -48,7 +48,9 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
 async function ensureSameOrigin(page: Page): Promise<void> {
   const url = page.url();
   if (url === 'about:blank' || url === '' || url === 'chrome://newtab/') {
-    await page.goto('/login', { waitUntil: 'commit' });
+    // Navigate to the app root rather than /login; /login may not exist in
+    // legacy auth builds and would cause a 404 before localStorage seeding.
+    await page.goto('/', { waitUntil: 'commit' });
   }
 }
 
@@ -149,9 +151,17 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
     throw new Error('SERVICE_AUTH_SECRET is required for backend-integrated Playwright auth seeding.');
   }
 
+  const backendUrl = process.env.PLAYWRIGHT_BACKEND_URL;
   const frontendOrigin = liveFrontendOrigin(page);
+  // Use the backend directly when available to avoid Vite proxy timeouts/noise
+  // during test fixture setup. The validation/session endpoint is still
+  // requested service-to-service (X-Service-Auth), so the URL origin does not
+  // affect authorization semantics.
+  const sessionUrl = backendUrl
+    ? `${backendUrl.replace(/\/$/, '')}/v1/validation/session`
+    : `${frontendOrigin}/api/v1/agents/validation/session`;
   const requestUser = normalizeLiveUser(user);
-  const response = await page.request.post(`${frontendOrigin}/api/v1/agents/validation/session`, {
+  const response = await page.request.post(sessionUrl, {
     headers: {
       'Content-Type': 'application/json',
       'X-Tenant-ID': requestUser.tenantId,
@@ -171,7 +181,105 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
   }
 
   const payload = await response.json();
+
+  // Persist the httpOnly vf_session cookie into the Playwright browser context
+  // so that legacy mode API requests are authenticated. Playwright's
+  // page.request does not automatically transfer Set-Cookie into the browser
+  // context, and httpOnly cookies cannot be set from JavaScript.
+  const setCookieHeader = response.headers()['set-cookie'];
+  if (setCookieHeader) {
+    const cookies = parseSetCookieHeader(setCookieHeader, new URL(sessionUrl).hostname);
+    if (cookies.length > 0) {
+      await page.context().addCookies(
+        cookies.map((c) => ({
+          name: c.name,
+          value: c.value,
+          domain: 'localhost',
+          path: c.path,
+          httpOnly: c.httpOnly,
+          secure: c.secure,
+          sameSite: c.sameSite as 'Strict' | 'Lax' | 'None' | undefined,
+          expires: c.expires,
+        }))
+      );
+    }
+  }
+
   return payload.user as TestUserInfo;
+}
+
+/**
+ * Parse a raw Set-Cookie header value (possibly comma-joined) into cookie
+ * objects suitable for Playwright's context.addCookies().
+ */
+function parseSetCookieHeader(
+  header: string | string[],
+  defaultDomain: string
+): Array<{
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'Strict' | 'Lax' | 'None' | undefined;
+  expires: number;
+}> {
+  const raw = Array.isArray(header) ? header.join(', ') : header;
+  // Split on cookie-name boundaries; a new cookie starts with a name=value pair
+  // followed by attributes. The two cookie names we issue are vf_session and
+  // vf_csrf_token.
+  const cookieTexts = raw
+    .split(/,(?=[^\s=]+=)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return cookieTexts
+    .map((text) => {
+      const parts = text.split(';').map((p) => p.trim());
+      const [name, ...valueParts] = parts[0].split('=');
+      if (!name) return null;
+      const value = valueParts.join('=').trim();
+      const attrs = new Map<string, string>();
+      let httpOnly = false;
+      let secure = false;
+      let sameSite: 'Strict' | 'Lax' | 'None' | undefined = undefined;
+      let path = '/';
+      let maxAge: number | undefined;
+      let expires: number | undefined;
+
+      for (let i = 1; i < parts.length; i++) {
+        const part = parts[i];
+        const [attrName, ...attrValueParts] = part.split('=');
+        const normalized = attrName.trim().toLowerCase();
+        const attrValue = attrValueParts.join('=').trim();
+        if (normalized === 'httponly') httpOnly = true;
+        else if (normalized === 'secure') secure = true;
+        else if (normalized === 'samesite') {
+          const v = attrValue.toLowerCase();
+          if (v === 'strict') sameSite = 'Strict';
+          else if (v === 'lax') sameSite = 'Lax';
+          else if (v === 'none') sameSite = 'None';
+        } else if (normalized === 'path') path = attrValue || '/';
+        else if (normalized === 'max-age') maxAge = parseInt(attrValue, 10);
+        else if (normalized === 'expires') {
+          const ts = Date.parse(attrValue);
+          if (!Number.isNaN(ts)) expires = Math.round(ts / 1000);
+        }
+      }
+
+      return {
+        name: name.trim(),
+        value,
+        domain: defaultDomain,
+        path,
+        httpOnly,
+        secure,
+        sameSite,
+        expires: expires ?? (maxAge ? Math.floor(Date.now() / 1000) + maxAge : Math.floor(Date.now() / 1000) + 3600),
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 }
 
 /**

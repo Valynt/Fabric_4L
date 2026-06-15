@@ -44,14 +44,14 @@ class FailClosedAuthzGuardTests(unittest.TestCase):
         self.assertIn("require_tool_gateway_available()", source)
         self.assertIn("Tool governance gateway unavailable; refusing ungoverned tool execution", source)
 
-    def test_tool_route_preserves_deliberate_http_fail_closed_errors(self) -> None:
-        """HTTPException raised by fail-closed checks must not be swallowed as 200 responses."""
+    def test_tool_route_preserves_deliberate_platform_fail_closed_errors(self) -> None:
+        """Platform exceptions raised by fail-closed checks must not be swallowed as 200 responses."""
         source = _read(TOOLS_ROUTE)
 
-        self.assertIn("except HTTPException:\n        raise", source)
+        self.assertIn("except ValueFabricException:\n        raise", source)
         self.assertLess(
             source.index("require_tool_gateway_available()"),
-            source.index("except HTTPException:\n        raise"),
+            source.index("except ValueFabricException:\n        raise"),
         )
 
 

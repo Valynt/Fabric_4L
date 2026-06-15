@@ -10,6 +10,7 @@ from uuid import UUID
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 
 os.environ.setdefault("API_KEY_HMAC_SECRET", "test-api-key-hmac-secret-for-validation-seed-1234567890")
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test")
@@ -47,6 +48,7 @@ class FakeDb:
 @pytest.fixture
 def validation_app(monkeypatch: pytest.MonkeyPatch) -> tuple[FastAPI, FakeDb]:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     db = FakeDb()
 

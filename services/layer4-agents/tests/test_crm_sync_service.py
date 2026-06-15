@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from layer4_agents.api.routes.crm_webhooks import router as crm_webhooks_router
+from layer4_agents.api.main import app
 from layer4_agents.models.account import (
     Account,
     CRMProvider,
@@ -33,10 +33,25 @@ from layer4_agents.models.account import (
 )
 from layer4_agents.services.crm_sync_service import CRMSyncService
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from layer4_agents.api.routes import crm_webhooks
+
+AUTH_HEADERS = {
+    "Authorization": "Bearer test-token",
+    "X-Tenant-ID": "tenant-a",
+    "X-User-ID": "user-a",
+    "X-Roles": "tenant_admin",
+}
 
 
-app = FastAPI()
-app.include_router(crm_webhooks_router, prefix="/v1")
+def _crm_webhook_test_client(mock_db) -> TestClient:
+    test_app = FastAPI()
+
+    async def _override():
+        yield mock_db
+
+    test_app.include_router(crm_webhooks.router, prefix="/v1")
+    test_app.dependency_overrides[crm_webhooks.get_db_from_context] = _override
+    return TestClient(test_app)
 
 
 class mock_crm_configResult(TypedDictModel):
@@ -80,30 +95,12 @@ def mock_db():
 
 
 @pytest.fixture(autouse=True)
-def override_app_db_dependency(mock_db, monkeypatch):
+def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
     from layer4_agents.database import get_db_from_context
-    from layer4_agents.api.routes import crm_webhooks
-
     async def _override():
         yield mock_db
-
-    async def _resolve_integration(**kwargs):
-        integration = MagicMock()
-        integration.tenant_id = kwargs.get("tenant_id") or "tenant-a"
-        integration.provider = kwargs.get("provider")
-        integration.enabled = True
-        integration.credentials_encrypted = b"test"
-        integration.encryption_key_id = "test"
-        integration.salesforce_org_id = None
-        return integration, kwargs.get("tenant_id") is None
-
-    async def _authenticate_webhook(*args, **kwargs):
-        return {}, "token"
-
     app.dependency_overrides[get_db_from_context] = _override
-    monkeypatch.setattr(crm_webhooks, "_resolve_webhook_integration", _resolve_integration)
-    monkeypatch.setattr(crm_webhooks, "_authenticate_webhook", _authenticate_webhook)
     yield
     app.dependency_overrides.pop(get_db_from_context, None)
 
@@ -214,7 +211,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    "tenant-a",
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -253,7 +250,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    "tenant-a",
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -274,14 +271,14 @@ class TestCRMSyncService:
             # Act
             stats = await sync_service.sync_provider(
                 CRMProvider.SALESFORCE,
-                "tenant-a",
+                tenant_id="tenant-a",
                 incremental=True
             )
             
             # Assert
             assert stats["failed"] == 0
             assert len(stats["errors"]) == 1
-            assert stats["errors"][0] == "CRM sync failed due to internal error"
+            assert stats["errors"] == ["CRM sync failed due to internal error"]
     
     @pytest.mark.asyncio
     async def test_sync_provider_with_hubspot(self, mock_db):
@@ -307,7 +304,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.HUBSPOT,
-                    "tenant-a",
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["123456789"]
                 )
@@ -341,14 +338,14 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    "tenant-a",
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
                 
                 # Assert
                 assert stats["failed"] == 1
-                assert stats["errors"][0] == "001TEST123: SYNC_ERROR"
+                assert stats["errors"] == ["001TEST123: SYNC_ERROR"]
     
     @pytest.mark.asyncio
     async def test_refresh_single_account_success(self, mock_db, mock_crm_config):
@@ -475,10 +472,10 @@ class TestCRMSyncService:
 class TestCRMWebhooks:
     """Test suite for CRM webhook handlers."""
     
-    def test_salesforce_webhook_health(self):
+    def test_salesforce_webhook_health(self, mock_db):
         """Test Salesforce webhook health endpoint."""
-        client = TestClient(app)
-        response = client.get("/v1/webhooks/crm/health")
+        client = _crm_webhook_test_client(mock_db)
+        response = client.get("/v1/webhooks/crm/health", headers=AUTH_HEADERS)
         
         assert response.status_code == 200
         data = response.json()
@@ -489,7 +486,7 @@ class TestCRMWebhooks:
     @pytest.mark.asyncio
     async def test_salesforce_webhook_accepts_platform_event(self):
         """Test that Salesforce platform event webhook is accepted."""
-        client = TestClient(app)
+        client = _crm_webhook_test_client(mock_db)
         
         payload = {
             "data": {
@@ -498,13 +495,21 @@ class TestCRMWebhooks:
                     "ChangeEventHeader": {
                         "entityName": "Account",
                         "recordIds": ["001TEST123"],
-                        "changeType": "UPDATE"
+                        "changeType": "CHANGED"
                     }
                 }
             }
         }
         
-        with patch('src.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class:
+        integration = MagicMock()
+        integration.tenant_id = "tenant-a"
+        integration.provider = CRMProvider.SALESFORCE
+        integration.salesforce_org_id = None
+        with (
+            patch('layer4_agents.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class,
+            patch('layer4_agents.api.routes.crm_webhooks._resolve_webhook_integration', AsyncMock(return_value=(integration, False))),
+            patch('layer4_agents.api.routes.crm_webhooks._authenticate_webhook', AsyncMock(return_value=({}, "token"))),
+        ):
             mock_sync = AsyncMock()
             mock_sync_class.return_value = mock_sync
             mock_sync.sync_provider.return_value = {
@@ -515,7 +520,8 @@ class TestCRMWebhooks:
             
             response = client.post(
                 "/v1/webhooks/crm/salesforce",
-                json=payload
+                json=payload,
+                headers=AUTH_HEADERS,
             )
 
             assert response.status_code == 202
@@ -526,7 +532,7 @@ class TestCRMWebhooks:
     @pytest.mark.asyncio
     async def test_hubspot_webhook_accepts_company_events(self):
         """Test that HubSpot company webhook events are accepted."""
-        client = TestClient(app)
+        client = _crm_webhook_test_client(mock_db)
         
         events = [
             {
@@ -541,7 +547,14 @@ class TestCRMWebhooks:
             }
         ]
         
-        with patch('src.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class:
+        integration = MagicMock()
+        integration.tenant_id = "tenant-a"
+        integration.provider = CRMProvider.HUBSPOT
+        with (
+            patch('layer4_agents.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class,
+            patch('layer4_agents.api.routes.crm_webhooks._resolve_webhook_integration', AsyncMock(return_value=(integration, False))),
+            patch('layer4_agents.api.routes.crm_webhooks._authenticate_webhook', AsyncMock(return_value=({}, "token"))),
+        ):
             mock_sync = AsyncMock()
             mock_sync_class.return_value = mock_sync
             mock_sync.sync_provider.return_value = {
@@ -552,7 +565,8 @@ class TestCRMWebhooks:
             
             response = client.post(
                 "/v1/webhooks/crm/hubspot",
-                json=events
+                json=events,
+                headers=AUTH_HEADERS,
             )
 
             assert response.status_code == 202
@@ -564,7 +578,7 @@ class TestCRMWebhooks:
     @pytest.mark.asyncio
     async def test_hubspot_webhook_handles_multiple_events(self):
         """Test that HubSpot webhook handles multiple company events."""
-        client = TestClient(app)
+        client = _crm_webhook_test_client(mock_db)
         
         events = [
             {
@@ -584,7 +598,14 @@ class TestCRMWebhooks:
             }
         ]
         
-        with patch('src.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class:
+        integration = MagicMock()
+        integration.tenant_id = "tenant-a"
+        integration.provider = CRMProvider.HUBSPOT
+        with (
+            patch('layer4_agents.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class,
+            patch('layer4_agents.api.routes.crm_webhooks._resolve_webhook_integration', AsyncMock(return_value=(integration, False))),
+            patch('layer4_agents.api.routes.crm_webhooks._authenticate_webhook', AsyncMock(return_value=({}, "token"))),
+        ):
             mock_sync = AsyncMock()
             mock_sync_class.return_value = mock_sync
             mock_sync.sync_provider.return_value = {
@@ -595,7 +616,8 @@ class TestCRMWebhooks:
             
             response = client.post(
                 "/v1/webhooks/crm/hubspot",
-                json=events
+                json=events,
+                headers=AUTH_HEADERS,
             )
 
             assert response.status_code == 202
@@ -645,7 +667,7 @@ class TestSyncFlow:
                 # Act
                 await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    "tenant-a",
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -681,8 +703,8 @@ class TestAccountServiceIntegration:
             
             # Act
             result = await account_service.trigger_sync(
-                tenant_id="tenant-a",
                 provider=CRMProvider.SALESFORCE,
+                tenant_id="tenant-a",
                 force_refresh=False
             )
             

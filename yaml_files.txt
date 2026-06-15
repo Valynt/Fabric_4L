@@ -100,8 +100,6 @@
 ./docker-compose.full.yml
 ./docker-compose.ha.yml
 ./docker-compose.live.yml
-./docker-compose.live-rollback.override.yml
-./docker-compose.live-seed-override.yml
 ./docker-compose.monitoring.yml
 ./docker-compose.playwright.yml
 ./docker-compose.playwright-live.yml

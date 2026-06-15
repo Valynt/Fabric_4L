@@ -244,7 +244,9 @@ jobs:
         run: |
           # Uses .eslintrc.cjs to enforce blocking contract rules while surfacing
           # Phase 2 semantic-contract metadata findings in warning mode.
-          pnpm exec eslint src/ server/ --ext .ts,.tsx
+          pnpm exec eslint src/ server/ --ext .ts,.tsx \
+            --cache --cache-location .eslintcache \
+            --format json --output-file eslint-report.json
 
       - name: Upload lint results
         uses: actions/upload-artifact@v4
@@ -436,8 +438,6 @@ jobs:
         with:
           name: python-contract-scan
           path: |
-            contract-scan-results.json
-            deprecation-tracking.json
             artifacts/canonical-import-drift.txt
 
   # ==========================================================================
@@ -606,7 +606,7 @@ jobs:
 
       - name: Run contract tests
         run: |
-          pytest ${{matrix.test_path}} -v --tb=short
+          pytest ${{matrix.test_path}} -v --tb=short --junitxml=test-results.xml
         env:
           FAIL_ON_CONTRACT_VIOLATION: "true"
 

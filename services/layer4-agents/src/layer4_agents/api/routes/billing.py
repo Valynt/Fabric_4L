@@ -9,13 +9,12 @@ OverageService) with Stripe SDK integration, tenant isolation, and
 audit-grade record keeping.
 """
 
-import inspect
 import logging
 import os
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
@@ -23,6 +22,7 @@ from value_fabric.shared.error_handling.exceptions import (
     BadRequestError,
     NotFoundError,
     ServiceUnavailableError,
+    ValueFabricException,
 )
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -50,8 +50,7 @@ logger = logging.getLogger(__name__)
 _STRIPE_WEBHOOK_IPS = {"3.18.12.63", "52.15.183.38", "54.187.174.170", "127.0.0.1", "::1"}
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_WEBHOOK_SECRET = _STRIPE_WEBHOOK_SECRET
-STRIPE_WEBHOOK_SKIP_IP_CHECK = os.environ.get("STRIPE_WEBHOOK_SKIP_IP_CHECK", "").lower() in {"1", "true", "yes"}
-_CANONICAL_VALIDATE_WEBHOOK_REQUEST_SECURITY = validate_webhook_request_security
+STRIPE_WEBHOOK_SKIP_IP_CHECK = False
 
 
 def _is_stripe_webhook_ip(ip: str) -> bool:
@@ -70,6 +69,11 @@ def _get_client_ip(request: Request) -> str:
     if request.client is not None:
         return request.client.host
     return ""
+
+
+async def _defer_webhook_db() -> None:
+    """Defer webhook DB acquisition until after Stripe security checks pass."""
+    return None
 
 
 async def _emit_billing_audit(
@@ -747,76 +751,47 @@ async def sync_customer(
 # ---------------------------------------------------------------------------
 
 
+@router.post("/webhook")
 async def stripe_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
+    db: AsyncSession | None = Depends(_defer_webhook_db),
 ) -> dict[str, Any]:
     """Handle Stripe webhook events."""
     client_ip = _get_client_ip(request)
-    if validate_webhook_request_security is not _CANONICAL_VALIDATE_WEBHOOK_REQUEST_SECURITY:
-        try:
-            validate_webhook_request_security(
-                request,
-                stripe_signature,
-                enforce_ip_check=not STRIPE_WEBHOOK_SKIP_IP_CHECK,
-            )
-        except Exception as exc:
-            if "ip" not in str(exc).lower():
-                raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
-            raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-    if not STRIPE_WEBHOOK_SKIP_IP_CHECK and not _is_stripe_webhook_ip(client_ip):
-        logger.warning(
-            "Stripe webhook rejected from non-Stripe IP",
-            extra={"client_ip": client_ip},
-        )
-        raise HTTPException(status_code=403, detail="Stripe webhook source IP is not allowlisted")
-
-    try:
-        _CANONICAL_VALIDATE_WEBHOOK_REQUEST_SECURITY(
-            request,
-            stripe_signature,
-            enforce_ip_check=False,
-        )
-    except Exception as exc:
-        if not STRIPE_WEBHOOK_SKIP_IP_CHECK and "origin" in str(exc).lower():
-            raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-    if not STRIPE_WEBHOOK_SECRET:
+    webhook_secret = STRIPE_WEBHOOK_SECRET or _STRIPE_WEBHOOK_SECRET
+    if not webhook_secret:
         raise ServiceUnavailableError(
             message="Stripe webhook secret not configured",
             details={"env_var": "STRIPE_WEBHOOK_SECRET"},
         )
 
     payload = await request.body()
-    override = request.app.dependency_overrides.get(get_route_db)
-    db_cm = get_db()
-    if override is not None:
-        maybe_db = override()
-        if inspect.isasyncgen(maybe_db):
-            db = await maybe_db.__anext__()
-        elif inspect.isawaitable(maybe_db):
-            db = await maybe_db
-        else:
-            db = maybe_db
-        close_db = None
-    else:
-        db = await db_cm.__anext__()
-        close_db = db_cm
-    svc = BillingService(db)
     try:
+        validate_webhook_request_security(
+            request,
+            stripe_signature,
+            enforce_ip_check=not STRIPE_WEBHOOK_SKIP_IP_CHECK,
+        )
+        if db is None:
+            async for session in get_db():
+                db = session
+                break
+        if db is None:
+            raise ServiceUnavailableError(message="Billing database unavailable")
+        svc = BillingService(db)
         webhook_event = await svc.handle_webhook(
             payload=payload,
             signature=stripe_signature,
-            webhook_secret=STRIPE_WEBHOOK_SECRET,
+            webhook_secret=webhook_secret,
         )
         # Process the event inline (durable inbox pattern)
         await svc.process_webhook_event(
             event_id=webhook_event.id,
             payload=payload,
             signature=stripe_signature,
-            webhook_secret=STRIPE_WEBHOOK_SECRET,
+            webhook_secret=webhook_secret,
         )
         await _emit_billing_audit(
             action=AuditAction.BILLING_WEBHOOK_RECEIVED,
@@ -826,7 +801,9 @@ async def stripe_webhook(
         )
         return {"received": True}
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise BadRequestError(message="Invalid webhook payload") from exc
+    except ValueFabricException:
+        raise
     except Exception as exc:
         logger.error("Webhook processing failed", extra={"error": str(exc)})
         await _emit_billing_audit(
@@ -838,12 +815,6 @@ async def stripe_webhook(
         )
         # Return 200 to Stripe so it doesn't retry indefinitely for unrecoverable errors
         return {"received": True}
-    finally:
-        if close_db is not None:
-            try:
-                await close_db.__anext__()
-            except StopAsyncIteration:
-                pass
 
 
 # ---------------------------------------------------------------------------

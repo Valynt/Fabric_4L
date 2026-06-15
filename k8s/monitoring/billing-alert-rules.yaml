@@ -15,9 +15,7 @@ groups:
           runbook_url: "https://wiki.fabric4l.io/runbooks/billing-payment-failures"
 
       - alert: BillingMRRDrop
-        expr: (
-          sum(billing_mrr_usd) - sum(billing_mrr_usd offset 1d)
-        ) / sum(billing_mrr_usd offset 1d) < -0.05
+        expr: (sum(billing_mrr_usd) - sum(billing_mrr_usd offset 1d)) / sum(billing_mrr_usd offset 1d) < -0.05
         for: 15m
         labels:
           severity: critical

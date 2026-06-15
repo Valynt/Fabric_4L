@@ -15,9 +15,9 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.routes import audit
-from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -70,8 +70,8 @@ class _AuditDb:
 @pytest.fixture
 def audit_app() -> FastAPI:
     app = FastAPI()
-    app.include_router(audit.router, prefix="/v1")
     register_exception_handlers(app)
+    app.include_router(audit.router, prefix="/v1")
     return app
 
 

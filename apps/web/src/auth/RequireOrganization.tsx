@@ -18,6 +18,10 @@ interface RequireOrganizationProps {
 }
 
 function RequireOrganizationOrgCheck({ children }: RequireOrganizationProps) {
+  if (!isClerkAuthEnabled()) {
+    return <>{children}</>;
+  }
+
   const { organization, isLoaded: orgLoaded } = useOrganization();
 
   if (!orgLoaded) {
@@ -39,6 +43,10 @@ function RequireOrganizationOrgCheck({ children }: RequireOrganizationProps) {
 }
 
 function RequireOrganizationInner({ children }: RequireOrganizationProps) {
+  if (!isClerkAuthEnabled()) {
+    return <>{children}</>;
+  }
+
   const { isLoaded: userLoaded, isSignedIn } = useUser();
 
   if (!userLoaded) {

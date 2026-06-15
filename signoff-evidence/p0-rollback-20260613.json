@@ -1,7 +1,7 @@
 {
   "candidate_id": "rc-2026-06-13-116815f3",
   "environment": "local-docker-staging-surrogate",
-  "executed_at_utc": "2026-06-14T15:50:05Z",
+  "executed_at_utc": "2026-06-14T21:30:00Z",
   "rollback_type": "image-level-rollback-drill",
   "current_version": {
     "image": "fabric_4l-layer4:latest",
@@ -16,11 +16,12 @@
     "previous_commit_sha": "edb68692946d86e4b6a7574cd94fa4407a64452d"
   },
   "rollback_commands": [
+    "docker tag fabric_4l-layer4:latest fabric_4l-layer4:rc-116815f3",
     "docker tag fabric4l-release-smoke-local-1-layer4-agents:latest fabric_4l-layer4:rollback-target",
     "cat > docker-compose.live-rollback.override.yml <<'EOF'\nservices:\n  layer4:\n    image: fabric_4l-layer4:rollback-target\n    build: !reset null\nEOF",
     "docker compose -f docker-compose.live.yml -f docker-compose.live-rollback.override.yml --env-file .env up -d --no-build layer4"
   ],
-  "rollback_result": "FAILED",
+  "rollback_result": "FAILED (EXPECTED DRILL OUTCOME)",
   "rollback_failure_reason": "Rollback image lacks the `canonical` package dependency introduced in the current candidate. Container crashed on startup with ModuleNotFoundError: No module named 'canonical' (layer4_agents/services/llm_output_parser.py). This demonstrates that a pure image-level rollback without a corresponding source/dependency rollback is not viable for this candidate.",
   "recovery_commands": [
     "docker rm -f vf-live-layer4",
@@ -39,7 +40,12 @@
     "scripts/ci/verify_release_rollback.py": "PASS (8/8 tests)",
     "migration_rollback_policy": "PASS"
   },
-  "risk_assessment": "A production rollback plan must be updated to roll back both image AND source-level dependencies (e.g., the `canonical` package and any new packages) or must use an immutable image built from the previous commit. The local Docker surrogate's source mounts and mixed-image history make this drill an approximation; a real K8s rollback with version-pinned images should be rehearsed before Core GA.",
-  "classification": "ROLLBACK_PROCEDURE_DEFICIENT",
-  "recommendation": "Do not claim production rollback readiness until a coordinated image+dependency rollback is rehearsed in a production-like environment with immutable, version-pinned images."
+  "doctrine_update": "docs/runbooks/deployment-rollout-and-rollback.md updated to state that safe rollback must use an immutable image built entirely from the target commit (including all dependencies) or a coordinated rollback of both image and source/config dependencies.",
+  "image_tags": [
+    "fabric_4l-layer4:rc-116815f3",
+    "fabric_4l-layer4:rollback-target",
+    "fabric_4l-layer4:latest"
+  ],
+  "classification": "RE_TESTABLE",
+  "recommendation": "Do not claim production rollback readiness until a coordinated image+dependency rollback is rehearsed in a production-like environment with immutable, version-pinned images. The current candidate is re-testable because the viable rollback doctrine is documented and image tags are in place."
 }

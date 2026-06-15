@@ -10,6 +10,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
+from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.routes import agent_stream
 from layer4_agents.services.conversation import (
@@ -26,6 +27,7 @@ from unittest.mock import AsyncMock
 @pytest.fixture
 def app() -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(agent_stream.router, prefix="/v1")
     
     # Mock database dependency to avoid PostgreSQL connection
@@ -74,8 +76,8 @@ async def test_agent_missing_tenant_context_fails_closed(app: FastAPI) -> None:
             },
         )
 
-    assert response.status_code == 400
-    assert "tenant context" in response.text.lower()
+    assert response.status_code == 422
+    assert "tenant context" in response.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio

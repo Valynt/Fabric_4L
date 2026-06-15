@@ -13,7 +13,6 @@ Tests verify:
 """
 
 from typing import Any
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -798,6 +797,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
         mock_roi_state.completed_at = None
         mock_roi_state.errors = []
         mock_roi_state.output_data = {}
+        mock_roi_state.metadata = {}
+        mock_roi_state.reasoning_trace = None
         mock_roi_state.model_dump.return_value = {
             "workflow_id": "wf-test-001",
             "workflow_type": "roi_calculator",
@@ -842,6 +843,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
         mock_state = Mock(status=WorkflowStatus.COMPLETED)
+        mock_state.metadata = {}
+        mock_state.reasoning_trace = None
         mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
 
         with (
@@ -854,7 +857,7 @@ class TestOrchestrationControllerWorkflowLifecycle:
             await controller.execute_workflow(
                 "roi_calculator",
                 {"prospect_id": "p", "value_driver_ids": ["v"]},
-                tenant_id="00000000-0000-0000-0000-000000000123",
+                tenant_id="tenant-default-timeout",
             )
 
         metadata = next(iter(controller._workflow_metadata.values()))
@@ -868,6 +871,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
         mock_state = Mock(status=WorkflowStatus.COMPLETED)
+        mock_state.metadata = {}
+        mock_state.reasoning_trace = None
         mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
 
         with (
@@ -885,20 +890,19 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
     @pytest.mark.asyncio
     async def test_resolve_timeout_out_of_range_uses_safe_fallback(self) -> None:
-        from layer4_agents.config.settings import settings
+        from layer4_agents.config.settings import get_settings
         from layer4_agents.engine.executor import OrchestrationController
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry())
-        fake_settings = SimpleNamespace(
-            workflow_timeout_seconds=settings.workflow_timeout_max_seconds + 1,
-            workflow_timeout_min_seconds=settings.workflow_timeout_min_seconds,
-            workflow_timeout_max_seconds=settings.workflow_timeout_max_seconds,
-            workflow_timeout_fallback_seconds=settings.workflow_timeout_fallback_seconds,
-        )
-        with patch("layer4_agents.config.settings.get_settings", return_value=fake_settings):
+        settings = get_settings()
+        original_default = settings.workflow_timeout_seconds
+        try:
+            settings.workflow_timeout_seconds = settings.workflow_timeout_max_seconds + 1
             resolved, source = await controller._resolve_workflow_timeout_seconds(None)
-        assert resolved == settings.workflow_timeout_fallback_seconds
-        assert source == "safe_fallback"
+            assert resolved == settings.workflow_timeout_fallback_seconds
+            assert source == "safe_fallback"
+        finally:
+            settings.workflow_timeout_seconds = original_default
 
     @pytest.mark.asyncio
     async def test_get_workflow_status_returns_none_for_unknown(self) -> None:

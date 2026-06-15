@@ -8,12 +8,22 @@
 import { OrganizationList } from "@clerk/react";
 import { useOrganization } from "@clerk/react";
 import { Navigate } from "react-router-dom";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function SelectOrganizationPage() {
   const postOrgRedirectUrl = "/home";
-  const { isLoaded: orgLoaded, organization } = useOrganization();
+  const clerkEnabled = isClerkAuthEnabled();
+  // Clerk hooks may only be called inside <ClerkProvider>. In legacy mode the
+  // workspace-selection concept does not exist, so redirect home immediately.
+  const clerkOrg = clerkEnabled ? useOrganization() : { isLoaded: true, organization: null };
+  const orgLoaded = clerkOrg?.isLoaded ?? true;
+  const organization = clerkOrg?.organization ?? null;
 
   if (orgLoaded && organization) {
+    return <Navigate to={postOrgRedirectUrl} replace />;
+  }
+
+  if (!clerkEnabled) {
     return <Navigate to={postOrgRedirectUrl} replace />;
   }
 

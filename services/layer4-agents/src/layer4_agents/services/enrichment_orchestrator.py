@@ -36,9 +36,9 @@ from ..models.account import Account
 
 class EnrichmentOrchestrator_enrich_accountResult(TypedDictModel):
     account_id: Any | None = None
-    enriched_at: Any
+    enriched_at: Any | None = None
     errors: Any | None = None
-    message: str
+    message: str = ""
     results: Any | None = None
     sources_used: Any | None = None
     status: str
@@ -231,11 +231,7 @@ class EnrichmentOrchestrator:
         """
         account = await self.db.get(Account, account_id)
         if account is None:
-            return EnrichmentOrchestrator_enrich_accountResult.model_validate({
-                "status": "error",
-                "message": f"Account {account_id} not found",
-                "enriched_at": None,
-            })
+            return EnrichmentOrchestrator_enrich_accountResult.model_validate({"status": "error", "message": f"Account {account_id} not found"})
 
         if account.enrichment_status == EnrichmentStatus.ENRICHED and not force:
             return EnrichmentOrchestrator_enrich_accountResult.model_validate({
@@ -299,8 +295,6 @@ class EnrichmentOrchestrator:
         return EnrichmentOrchestrator_enrich_accountResult.model_validate({
             "status": account.enrichment_status,
             "account_id": str(account_id),
-            "message": "Account enrichment completed",
-            "enriched_at": account.enriched_at.isoformat() if account.enriched_at else None,
             "sources_used": sources_used,
             "errors": errors,
             "results": results,

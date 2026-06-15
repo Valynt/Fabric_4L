@@ -9,7 +9,6 @@ Critical P0 test - immutability bypass could allow tenant context switching.
 
 import pytest
 from uuid import uuid4
-from contextvars import ContextVar
 
 from value_fabric.shared.identity.context import (
     RequestContext,
@@ -154,15 +153,34 @@ class TestRequestContextImmutability:
 class TestContextVarIsolation:
     """Test suite for ContextVar isolation invariants."""
 
-    @pytest.mark.skip(reason="Requires async event loop setup incompatible with pytest-xdist")
-    def test_context_var_isolation_between_tasks(self):
+    @pytest.mark.asyncio
+    async def test_context_var_isolation_between_tasks(self):
         """
         POSITIVE: ContextVar should be isolated between async tasks.
         Tests for context bleeding across concurrent operations.
         """
-        # Skipped due to asyncio event loop issues with pytest-xdist on Windows
-        # This test requires a dedicated async test runner configuration
-        pass
+        import asyncio
+
+        async def _set_context_and_return_tenant(context):
+            set_current_context(context)
+            await asyncio.sleep(0)  # force context switch
+            ctx = get_current_context()
+            return ctx.tenant_id if ctx is not None else None
+
+        tenant_a = str(uuid4())
+        tenant_b = str(uuid4())
+
+        ctx_a = RequestContext(tenant_id=tenant_a, user_id="user_a")
+        ctx_b = RequestContext(tenant_id=tenant_b, user_id="user_b")
+
+        task_a = asyncio.create_task(_set_context_and_return_tenant(ctx_a))
+        task_b = asyncio.create_task(_set_context_and_return_tenant(ctx_b))
+
+        result_a, result_b = await asyncio.gather(task_a, task_b)
+
+        assert result_a == tenant_a
+        assert result_b == tenant_b
+        assert get_current_context() is None
 
     def test_clear_current_context_removes_context(self):
         """

@@ -544,8 +544,6 @@ class OrchestrationController:
         resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
 
         initial_state.run_envelope = envelope
-        if not isinstance(initial_state.metadata, dict):
-            initial_state.metadata = {}
         if approval_evidence is not None:
             initial_state.metadata["approval_decision"] = approval_evidence
         initial_state.metadata["workflow_timeout_seconds"] = resolved_timeout_seconds
@@ -615,7 +613,7 @@ class OrchestrationController:
             try:
                 from ..models.reasoning_trace import validate_reasoning_trace
                 validate_reasoning_trace(result.reasoning_trace, strict=True)
-            except (AttributeError, TypeError, ValueError) as exc:
+            except ValueError as exc:
                 result.status = WorkflowStatus.FAILED
                 result.errors.append(f"{type(exc).__name__}: reasoning_trace_invalid")
                 lifecycle_logger.emit(
@@ -1533,10 +1531,6 @@ class OrchestrationController:
                     workflow.run(initial_state, thread_id=workflow_id),
                     timeout=timeout_seconds,
                 )
-                if result is None:
-                    raise WorkflowExecutionError(
-                        f"Workflow {workflow_id} returned no execution state"
-                    )
                 span.set_attribute("workflow.status", self._fmt_enum(result.status))
 
             if result.status == WorkflowStatus.COMPLETED:

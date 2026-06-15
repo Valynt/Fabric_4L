@@ -57,7 +57,7 @@ _PRODUCTION_LIKE_MARKER_KEYS = (
     "DYNO",
 )
 _PRODUCTION_LIKE_ENVIRONMENTS = {"prod", "production", "staging", "stage", "preprod", "pre-production"}
-_REQUIRED_REGISTERED_CLAIMS = ("exp", "iss", "aud", "sub")
+_REQUIRED_REGISTERED_CLAIMS = ("exp", "iss", "aud")
 _ALLOWED_EXTERNAL_ALGORITHMS = {"RS256", "ES256"}
 
 

@@ -238,8 +238,8 @@ class TestTierEnforcement:
         with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("free", "sso_integration")
 
-        assert exc_info.value.status_code == 403
-        assert "feature_not_available" in str(exc_info.value.details)
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "sso_integration"
 
     def test_require_feature_passes_when_enabled(self) -> None:
         from src.tenants.tier_enforcement import TierEnforcement
@@ -414,7 +414,7 @@ class TestAdminDashboardAuthorization:
     def test_authorize_own_tenant(
         self, mock_context_admin: MagicMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         # Should not raise — accessing own tenant
         _authorize_tenant_access(mock_context_admin, tenant_id)
@@ -423,19 +423,18 @@ class TestAdminDashboardAuthorization:
         self, mock_context_admin: MagicMock,
     ) -> None:
         from value_fabric.shared.error_handling.exceptions import AuthorizationError
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         other_tenant = uuid4()
         with pytest.raises(AuthorizationError) as exc_info:
             _authorize_tenant_access(mock_context_admin, other_tenant)
 
-        assert exc_info.value.status_code == 403
-        assert "access_denied" in str(exc_info.value.details)
+        assert exc_info.value.details["error"] == "access_denied"
 
     def test_authorize_super_admin_any_tenant(
         self, mock_context_super_admin: MagicMock,
     ) -> None:
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         any_tenant = uuid4()
         # Should not raise — super admin can access any tenant
@@ -453,7 +452,8 @@ class TestSettingsFeatureGate:
         with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("free", "custom_branding")
 
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "custom_branding"
 
     def test_branding_allowed_on_pro_tier(self) -> None:
         from src.tenants.tier_enforcement import TierEnforcement
@@ -467,8 +467,10 @@ class TestSettingsFeatureGate:
         from src.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(AuthorizationError):
+        with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("basic", "sso_integration")
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "sso_integration"
 
     def test_audit_export_allowed_on_basic_tier(self) -> None:
         from src.tenants.tier_enforcement import TierEnforcement

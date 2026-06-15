@@ -1379,7 +1379,9 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Behavior-first E2E contracts
-        run: pnpm run test:e2e:behaviors
+        run: |
+          mkdir -p e2e-results playwright-report
+          pnpm run test:e2e:behaviors
 
       - name: Upload behavior test results
         if: always()
@@ -1433,7 +1435,9 @@ jobs:
         run: docker compose -f docker-compose.e2e.yml up -d --build --wait
 
       - name: Run P0 E2E gate
-        run: pnpm run test:e2e:live:p0
+        run: |
+          mkdir -p e2e-results playwright-report
+          pnpm run test:e2e:live:p0
 
       - name: Upload P0 E2E artifacts
         if: always()
@@ -1945,6 +1949,9 @@ jobs:
     name: Docker Image Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BASE_IMAGE: ""
+      BUILDER_BASE_IMAGE: ""
     strategy:
       matrix:
         layer:
@@ -1997,8 +2004,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            BASE_IMAGE=${{ vars.BASE_IMAGE || '' }}
-            BUILDER_BASE_IMAGE=${{ vars.BUILDER_BASE_IMAGE || '' }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            BUILDER_BASE_IMAGE=${{ env.BUILDER_BASE_IMAGE }}
 
       - name: Run Trivy image scan (PR security stage)
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98

@@ -311,11 +311,10 @@ class CompanyKnowledgeProfileCreateRequest(BaseModel):
 
     @field_validator("website")
     @classmethod
-    def _website_must_be_http_url(cls, value: str | None) -> str | None:
+    def validate_website_scheme(cls, value: str | None) -> str | None:
         if value is None:
             return value
-        normalized = value.strip().lower()
-        if not (normalized.startswith("http://") or normalized.startswith("https://")):
+        if not value.startswith(("https://", "http://")):
             raise ValueError("website must use http or https")
         return value
 

@@ -74,21 +74,17 @@ class TestL4WorkflowStatusContracts:
         """GET /workflows/{id} response matches OpenAPI schema."""
         l4_openapi = _load_json(OPENAPI_L4_PATH)
         sample = {
-            "workflow_id": "wf-123",
-            "workflow_instance_id": "wf-123",
-            "name": "Q1 ROI Analysis",
+            "id": "wf-123",
             "workflow_type": "business_case",
             "status": "running",
-            "progress_percentage": 65,
-            "current_step": "calculate_roi",
-            "steps_completed": ["fetch_data", "validate_inputs"],
-            "steps_pending": ["calculate_roi", "generate_report"],
-            "result": None,
-            "error": None,
-            "created_at": "2024-01-15T10:00:00Z",
-            "updated_at": "2024-01-15T10:05:00Z",
+            "current_state": "calculate_roi",
+            "current_node": "calculate_roi",
+            "progress": 65,
+            "started_at": "2024-01-15T10:00:00Z",
             "completed_at": None,
-            "created_by": "user-1",
+            "error_count": 0,
+            "has_output": False,
+            "results": None,
         }
         schema = _schema_ref(l4_openapi, "WorkflowStatusResponse")
         assert_matches_schema(sample, schema, root=l4_openapi)
@@ -98,23 +94,18 @@ class TestL4WorkflowStatusContracts:
         l4_openapi = _load_json(OPENAPI_L4_PATH)
         sample = [
             {
-                "workflow_id": "wf-1",
-                "workflow_instance_id": "wf-1",
-                "name": "Market Analysis",
+                "id": "wf-1",
                 "workflow_type": "market_analysis",
                 "status": "running",
-                "progress_percentage": 65,
-                "created_at": "2024-01-15T10:00:00Z",
-                "updated_at": "2024-01-15T10:30:00Z",
+                "progress": 65,
+                "started_at": "2024-01-15T10:00:00Z",
             },
             {
-                "workflow_id": "wf-2",
-                "workflow_instance_id": "wf-2",
-                "name": "Entity Extraction",
+                "id": "wf-2",
                 "workflow_type": "entity_extraction",
                 "status": "completed",
-                "progress_percentage": 100,
-                "created_at": "2024-01-14T09:00:00Z",
+                "progress": 100,
+                "started_at": "2024-01-14T09:00:00Z",
                 "completed_at": "2024-01-14T10:30:00Z",
             },
         ]
@@ -179,7 +170,7 @@ class TestL4WorkflowStatusEnum:
         """Workflow status enum includes all expected values."""
         l4_openapi = _load_json(OPENAPI_L4_PATH)
         expected_statuses = {
-            "pending", "started", "running", "paused", 
+            "pending", "running", "paused", "interrupted",
             "completed", "failed", "cancelled"
         }
         

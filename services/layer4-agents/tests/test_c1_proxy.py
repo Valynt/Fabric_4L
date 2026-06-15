@@ -11,31 +11,27 @@ import pytest
 # test setup does not require the full L4 application (DB, LangGraph, etc.).
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-from api.routes.c1 import C1Message, C1StreamRequest, router
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
-from value_fabric.shared.identity.permissions import Role
+
+from layer4_agents.api.routes import c1 as c1_route
+
+C1Message = c1_route.C1Message
+C1StreamRequest = c1_route.C1StreamRequest
+router = c1_route.router
 
 _app = FastAPI()
+register_exception_handlers(_app)
 _app.include_router(router, prefix="/v1")
+_app.dependency_overrides[c1_route.require_authenticated] = lambda: RequestContext(
+    tenant_id="tenant-c1-test",
+    user_id="user-c1-test",
+)
 
 
 @pytest.fixture()
 def client():
-    async def _auth_override():
-        return RequestContext(
-            tenant_id="tenant-c1-test",
-            user_id="user-c1-test",
-            roles=[Role.TENANT_ADMIN.value],
-            source="test",
-        )
-
-    _app.dependency_overrides[require_authenticated] = _auth_override
-    try:
-        yield TestClient(_app)
-    finally:
-        _app.dependency_overrides.clear()
+    return TestClient(_app)
 
 
 # ---------------------------------------------------------------------------
@@ -80,10 +76,10 @@ class TestStreamC1Endpoint:
 
     def test_returns_503_when_api_key_not_set(self, client: TestClient):
         """Without THESYS_API_KEY the endpoint should return 503."""
-        with patch("src.api.routes.c1.THESYS_API_KEY", ""):
+        with patch("layer4_agents.api.routes.c1.THESYS_API_KEY", ""):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
         assert resp.status_code == 503
-        assert "not configured" in resp.json()["detail"]
+        assert "not configured" in resp.json()["error"]["message"]
 
     def test_returns_422_on_invalid_body(self, client: TestClient):
         """Missing required fields should trigger validation error."""
@@ -112,8 +108,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("src.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("src.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 
@@ -140,8 +136,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("src.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("src.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 
@@ -158,8 +154,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("src.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("src.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 

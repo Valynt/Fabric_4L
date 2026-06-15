@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,5 +37,6 @@ async def test_entitlement_uses_pinned_plan_version_for_historical_reproducibili
     mock_db.execute.side_effect = [res1, res2]
 
     service = BillingService(mock_db)
+    service.plan_versions.ensure_bootstrap_defaults = AsyncMock()
     has_advanced = await service.check_entitlement('cust_1', 'advanced_models')
     assert has_advanced is False

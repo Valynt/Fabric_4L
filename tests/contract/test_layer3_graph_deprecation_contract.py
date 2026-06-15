@@ -64,7 +64,7 @@ def test_deprecated_field_usage_counters_increment_for_request_and_response() ->
     before = get_deprecated_field_usage_counters()
 
     GraphNode.model_validate({"id": "n2", "label": "Legacy", "type": "Capability", "confidence": 0.7})
-    GraphEdge.model_validate({"source": "n2", "target": "n3", "type": "DEPENDS_ON"})
+    GraphEdge.model_validate({"source": "n2", "target": "n3", "relationship_type": "DEPENDS_ON"})
     GraphNode(id="n3", label="New", type="Outcome").model_dump()
     GraphEdge(source="n3", target="n4", type="ENABLES").model_dump()
 
@@ -93,5 +93,5 @@ def test_openapi_graph_node_fields_are_canonical_plus_explicit_aliases_only() ->
 
 def test_deprecated_alias_routes_remain_marked_deprecated() -> None:
     schema = _load_openapi()["paths"]
-    for route in ("/api/v1/query", "/api/v1/query/graph", "/api/v1/query/search", "/api/v1/graphrag"):
+    for route in ("/v1/graphrag", "/v1/query/graph", "/v1/query/search"):
         assert schema[route]["post"].get("deprecated") is True

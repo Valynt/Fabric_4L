@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-from layer4_agents.contracts.tool_dto import ToolCategoryListResponse, ToolSchemaResponse
+from layer4_agents.contracts.tool_dto import (
+    JsonValue,
+    ToolCategoryListResponse,
+    ToolSchemaExample,
+    ToolSchemaResponse,
+)
 
 
 def test_tool_schema_response_has_typed_fields() -> None:
     fields = ToolSchemaResponse.model_fields
 
     assert fields["category"].annotation.__name__ == "ToolCategory"
-    assert str(fields["input_schema"].annotation) == "dict[str, JsonValue]"
-    assert str(fields["output_schema"].annotation) == "dict[str, JsonValue]"
-    assert str(fields["examples"].annotation) == "list[layer4_agents.contracts.tool_dto.ToolSchemaExample]"
+    assert fields["input_schema"].annotation == dict[str, JsonValue]
+    assert fields["output_schema"].annotation == dict[str, JsonValue]
+    assert fields["examples"].annotation == list[ToolSchemaExample]
     assert fields["timeout_seconds"].annotation is int
     assert fields["requires_auth"].annotation is bool
 

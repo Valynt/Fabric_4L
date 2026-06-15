@@ -9,9 +9,9 @@ rules:
     severity: WARNING
     patterns:
       - pattern-either:
-          - pattern: logger.$METHOD(..., extra={..., "error": str($E), ...})
-          - pattern: logger.$METHOD(..., extra={..., "error": str($E)})
-          - pattern: logger.$METHOD(..., extra={"error": str($E), ...})
+          - pattern: 'logger.$METHOD(..., extra={..., "error": str($E), ...})'
+          - pattern: 'logger.$METHOD(..., extra={..., "error": str($E)})'
+          - pattern: 'logger.$METHOD(..., extra={"error": str($E), ...})'
     fix: |
       logger.$METHOD(..., extra={..., "error_code": "ERROR_CODE", "error": sanitize_log_error($E), ...})
     metadata:
@@ -64,8 +64,8 @@ rules:
     severity: WARNING
     patterns:
       - pattern-either:
-          - pattern: JSONResponse(..., content={..., "error": str($E), ...})
-          - pattern: JSONResponse(..., content={"error": str($E), ...})
+          - pattern: 'JSONResponse(..., content={..., "error": str($E), ...})'
+          - pattern: 'JSONResponse(..., content={"error": str($E), ...})'
     metadata:
       category: security
       technology:

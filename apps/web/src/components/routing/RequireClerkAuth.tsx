@@ -42,9 +42,13 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
+  const clerkEnabled = isClerkAuthEnabled();
   const { navigateTo } = useNavigation();
   const urls = getClerkUrls();
-  const { isLoaded: orgLoaded, organization } = useOrganization();
+  // Clerk hooks may only be called inside <ClerkProvider>.
+  const clerkOrg = clerkEnabled ? useOrganization() : { isLoaded: true, organization: null };
+  const orgLoaded = clerkOrg?.isLoaded ?? true;
+  const organization = clerkOrg?.organization ?? null;
   const hasNavigated = useRef(false);
 
   if (requireOrganization && !orgLoaded) {
@@ -71,10 +75,14 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
+  const clerkEnabled = isClerkAuthEnabled();
   const { navigateTo } = useNavigation();
   const location = useLocation();
   const urls = getClerkUrls();
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  // Clerk hooks may only be called inside <ClerkProvider>.
+  const clerkAuth = clerkEnabled ? useAuth() : { isLoaded: true, isSignedIn: false };
+  const authLoaded = clerkAuth?.isLoaded ?? true;
+  const isSignedIn = clerkAuth?.isSignedIn ?? false;
   const hasNavigated = useRef(false);
 
   // DEBUG: log auth state
@@ -112,8 +120,6 @@ function RequireClerkAuthInner({
 }
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {
-  // eslint-disable-next-line no-console
-  console.log('[RequireClerkAuth] render', { clerkEnabled: isClerkAuthEnabled() });
   // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
   if (!isClerkAuthEnabled()) {
     return <>{props.children}</>;

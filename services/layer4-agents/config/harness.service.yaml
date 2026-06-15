@@ -1,4 +1,5 @@
-# harness.service.yaml — Service deployment configuration for the Fabric Harness.
+---
+# harness.service.yaml — Service deployment config for the Fabric Harness.
 #
 # Defines environment variables, feature flags, service dependencies,
 # concurrency, timeouts, observability, and security posture.
@@ -114,12 +115,12 @@ security:
   # Must be true in production.
   require_tenant_context: true
 
-  # Cross-check request.tenant_id against authenticated context in validate_claims.
-  # Raises HarnessRegistryError on mismatch.
+  # Cross-check request.tenant_id against authenticated context in
+  # validate_claims. Raises HarnessRegistryError on mismatch.
   validate_claim_tenant_on_submit: true
 
-  # Minimum RBAC role required to call harness write endpoints.
-  # Reads from the existing RBAC middleware; set to null to allow any authenticated user.
+  # Minimum RBAC role required to call harness write endpoints. Reads from the
+  # existing RBAC middleware; set to null to allow any authenticated user.
   required_role: null
 
 # ── Health / readiness ────────────────────────────────────────────────────────
@@ -130,7 +131,8 @@ health:
     - name: database
       description: "PostgreSQL session is reachable"
     - name: l5_ground_truth
-      description: "Layer 5 Ground Truth service responds to get_freshness_summary"
+      description: >-
+        Layer 5 Ground Truth service responds to get_freshness_summary
       required: false   # degraded (not down) if L5 is unreachable
 
 # ── Service dependencies ──────────────────────────────────────────────────────

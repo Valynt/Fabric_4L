@@ -481,14 +481,15 @@ class BillingService:
         )
         try:
             await self.db.execute(stmt)
-            await self.db.flush()
             await self.db.commit()
-        except Exception:
+            result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+            inbox = result.scalar_one()
+            await self.db.commit()
+        except SQLAlchemyError:
             await self.db.rollback()
+            logger.exception("billing.webhook.persistence_failed", extra={"event_id": event_id, "event_type": event_type})
+            self._emit_webhook_metric("persistence_failed", event_id=event_id, event_type=event_type)
             raise
-        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
-        inbox = result.scalar_one()
-        await self.db.commit()
         if inbox.status == "processed":
             logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type, "duplicate_count": 1})
             self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
@@ -1042,11 +1043,11 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
         plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
         if plan_version:
             feature_ids = set((plan_version.features or {}).get("ids", []))
             return feature_id in feature_ids or "*" in feature_ids
-        await self.plan_versions.ensure_bootstrap_defaults()
         return check_entitlement(plan_id, feature_id)
 
     async def get_entitlements(self, customer_id: str) -> dict[str, Any]:
@@ -1054,6 +1055,7 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
         plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
         if plan_version:
             feature_ids = set((plan_version.features or {}).get("ids", []))
@@ -1064,5 +1066,4 @@ class BillingService:
                 "plan_version_id": plan_version.id,
                 "plan_version": plan_version.version,
             }
-        await self.plan_versions.ensure_bootstrap_defaults()
         return get_entitlements_response(plan_id)

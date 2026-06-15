@@ -151,7 +151,7 @@ class TestTenantProvisioningService:
             isolation_tier="invalid",
         )
         
-        with pytest.raises(ValueError, match="shared, schema, database"):
+        with pytest.raises(ValueError, match="Use isolation_tier='shared'"):
             await provisioning_service.provision_tenant(request)
     
     @pytest.mark.asyncio
@@ -307,17 +307,16 @@ class TestTenantProvisioningService:
         assert result.status == "success"
     
     @pytest.mark.asyncio
-    async def test_provision_tenant_schema_isolation(self, provisioning_service, mock_db_session):
-        """Schema-level isolation is reserved and rejected before provisioning."""
+    async def test_provision_tenant_schema_isolation_rejected(self, provisioning_service):
+        """Verify schema-level isolation is not provisioned by the local service."""
         request = TenantProvisionRequest(
             tenant_name="test-tenant",
             admin_email="admin@test.com",
             isolation_tier="schema",
         )
 
-        with pytest.raises(ValueError, match="reserved for future use"):
+        with pytest.raises(ValueError, match="Use isolation_tier='shared'"):
             await provisioning_service.provision_tenant(request)
-        mock_db_session.execute.assert_not_called()
 
 
 class TestTenantProvisionRequest:

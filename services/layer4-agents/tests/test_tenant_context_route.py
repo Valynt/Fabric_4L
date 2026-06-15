@@ -16,8 +16,8 @@ from layer4_agents.api.routes import tenant_context as tenant_context_route
 @pytest.fixture
 def app(monkeypatch) -> FastAPI:
     test_app = FastAPI()
-    test_app.include_router(tenant_context_route.router, prefix="/v1")
     register_exception_handlers(test_app)
+    test_app.include_router(tenant_context_route.router, prefix="/v1")
 
     tenant_id = uuid4()
 
