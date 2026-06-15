@@ -10,7 +10,7 @@
 # node_modules with Linux binaries.
 # =============================================================================
 
-FROM mcr.microsoft.com/playwright:v1.60.0-noble
+FROM mcr.microsoft.com/playwright:v1.61.0-noble
 
 # Playwright v1.60+ images ship Node 22 — no upgrade needed
 
