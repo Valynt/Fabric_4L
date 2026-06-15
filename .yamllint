@@ -8,7 +8,7 @@ ignore:
   - '**/.venv/**'
   - '**/.tmp/**'
   - '**/node_modules/**'
-  - 'infra/helm/fabric-chart/templates/**'
+  - '**/fabric-chart/templates/**'
 
 rules:
   braces:
