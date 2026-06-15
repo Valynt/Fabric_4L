@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError,
-    NotFoundError,
-    ValidationError,
-)
-
 """FastAPI routes for the Fabric Harness.
 
 Exposes the SqlHarnessRegistry as a REST API under /v1/harness/*.
@@ -21,11 +15,16 @@ All routes:
 
 import logging
 import os
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated, require_content_admin
 
@@ -90,6 +89,34 @@ HarnessRegistryDep = Annotated[SqlHarnessRegistry, Depends(get_harness_registry)
 AuthCtxDep = Annotated[RequestContext, Depends(require_authenticated)]
 # Gate decisions require content_admin or higher (reviewer/admin role).
 ContentAdminCtxDep = Annotated[RequestContext, Depends(require_content_admin)]
+
+
+def _raise_registry_access_denied(
+    exc: HarnessRegistryError,
+    *,
+    event: str = "harness_registry_error",
+    error_code: str = "HARNESS_REGISTRY_ERROR",
+    message: str = "Harness registry access denied",
+) -> None:
+    logger.warning(
+        event,
+        extra={"error_code": error_code, "error": sanitize_log_error(exc)},
+    )
+    raise AuthorizationError(message=message)
+
+
+async def _require_run(
+    registry: SqlHarnessRegistry,
+    *,
+    run_id: str,
+    tenant_id: str,
+) -> Any:
+    try:
+        return await registry.get_run(run_id, tenant_id)
+    except KeyError:
+        raise NotFoundError(message=f"Run {run_id} not found")
+    except HarnessRegistryError as exc:
+        _raise_registry_access_denied(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -161,13 +188,7 @@ async def get_run(
     ctx: AuthCtxDep,
 ) -> RunResponse:
     """Get a single harness run by ID."""
-    try:
-        run = await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    run = await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
     return RunResponse.from_domain(run)
 
 
@@ -193,10 +214,9 @@ async def transition_run(
             state_payload=body.state_payload,
         )
     except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
+        raise NotFoundError(message=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+        _raise_registry_access_denied(exc)
     except ValueError as exc:
         raise ValidationError(message=str(exc))
     except Exception:
@@ -220,13 +240,7 @@ async def cancel_run(
     ctx: AuthCtxDep,
 ) -> None:
     """Cancel (transition to CANCELLED) a harness run."""
-    try:
-        run = await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    run = await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     if run.current_state.is_terminal:
         raise ValidationError(message=f"Run {run_id} is already in terminal state {run.current_state}")
@@ -239,8 +253,7 @@ async def cancel_run(
             human_override=True,
         )
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+        _raise_registry_access_denied(exc)
     except Exception:
         logger.exception("Error cancelling run %s", run_id)
         raise ValidationError(message="Run cancellation failed")
@@ -262,13 +275,7 @@ async def list_checkpoints(
     ctx: AuthCtxDep,
 ) -> CheckpointListResponse:
     """List all checkpoints for a harness run."""
-    try:
-        await registry.get_run(run_id, ctx.tenant_id)  # tenant check
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     checkpoints = await registry.get_checkpoints(run_id, ctx.tenant_id)
     return CheckpointListResponse(
@@ -288,13 +295,7 @@ async def get_latest_checkpoint(
     ctx: AuthCtxDep,
 ) -> CheckpointResponse:
     """Get the most recent checkpoint for a harness run."""
-    try:
-        await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     checkpoints = await registry.get_checkpoints(run_id, ctx.tenant_id)
     if not checkpoints:
@@ -319,13 +320,7 @@ async def list_gates(
     ctx: AuthCtxDep,
 ) -> GateListResponse:
     """List all human gates for a harness run."""
-    try:
-        await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     gates = await registry.list_gates_for_run(run_id, ctx.tenant_id)
     return GateListResponse(
@@ -347,13 +342,7 @@ async def create_gate(
     ctx: AuthCtxDep,
 ) -> GateResponse:
     """Create a human gate for a harness run."""
-    try:
-        await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     gate = await registry.create_human_gate(
         run_id=run_id,
@@ -384,10 +373,9 @@ async def decide_gate(
     try:
         _gate = await registry.get_gate(gate_id, ctx.tenant_id)
     except KeyError:
-        raise NotFoundError(message = str(f"Gate {gate_id} not found"))
+        raise NotFoundError(message=f"Gate {gate_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+        _raise_registry_access_denied(exc)
 
     decision_map = {
         "approved": GateStatus.APPROVED,
@@ -408,7 +396,10 @@ async def decide_gate(
             decision_reason=body.decision_reason,
         )
     except (ValueError, HarnessRegistryError) as exc:
-        logger.warning("harness_gate_decision_error", extra={"error_code": "HARNESS_GATE_DECISION_ERROR", "error": sanitize_log_error(exc)})
+        logger.warning(
+            "harness_gate_decision_error",
+            extra={"error_code": "HARNESS_GATE_DECISION_ERROR", "error": sanitize_log_error(exc)},
+        )
         raise ValidationError(message = "Invalid gate decision request")
 
     return GateResponse.from_domain(updated_gate)
@@ -431,13 +422,7 @@ async def validate_claims(
     ctx: AuthCtxDep,
 ) -> ValidateClaimsResponse:
     """Validate a list of claims through the L5 ValidationHook."""
-    try:
-        await registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     domain_requests = [
         DomainClaimValidationRequest(
@@ -485,13 +470,7 @@ async def get_run_validation(
     Returns an empty summary when no claims have been validated yet.
     Tenant-scoped: 403 if run belongs to a different tenant.
     """
-    try:
-        registry.get_run(run_id, ctx.tenant_id)
-    except KeyError:
-        raise NotFoundError(message = str(f"Run {run_id} not found"))
-    except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
-        raise AuthorizationError(message = "Harness registry access denied")
+    await _require_run(registry, run_id=run_id, tenant_id=ctx.tenant_id)
 
     # Retrieve stored validation results from the SQL registry if available.
     results = []

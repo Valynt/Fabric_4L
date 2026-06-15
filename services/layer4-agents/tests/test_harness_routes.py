@@ -27,7 +27,11 @@ _TRACE_ID = "trace-abc"
 
 def _make_run(run_id=_RUN_ID, tenant_id=_TENANT_A, state=None, status=None):
     from src.harness.models import (
-        HarnessRun, HarnessRunStatus, HarnessState, HarnessWorkflowType, InitiatedBy,
+        HarnessRun,
+        HarnessRunStatus,
+        HarnessState,
+        HarnessWorkflowType,
+        InitiatedBy,
     )
     return HarnessRun(
         id=run_id, tenant_id=tenant_id, account_id=None,
@@ -53,8 +57,13 @@ def _build_app(registry_mock, tenant_id=_TENANT_A, user_id=_USER_ID):
     from fastapi import FastAPI
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
     from value_fabric.shared.identity.context import RequestContext
-    from src.api.routes.harness import get_harness_registry, router as harness_router
-    from value_fabric.shared.identity.dependencies import require_authenticated, require_content_admin
+    from value_fabric.shared.identity.dependencies import (
+        require_authenticated,
+        require_content_admin,
+    )
+
+    from src.api.routes.harness import get_harness_registry
+    from src.api.routes.harness import router as harness_router
 
     app = FastAPI()
     register_exception_handlers(app)
@@ -94,6 +103,7 @@ async def test_invalid_transition_returns_422():
 async def test_cancel_terminal_run_returns_422():
     """Cancelling a terminal run must return 422."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.models import HarnessRunStatus, HarnessState
     terminal_run = _make_run(state=HarnessState.DONE, status=HarnessRunStatus.COMPLETED)
     registry = MagicMock()
@@ -109,6 +119,7 @@ async def test_cancel_terminal_run_returns_422():
 async def test_cross_tenant_run_returns_404():
     """Registry raises RunNotFoundError for a run not visible to the requesting tenant; route returns 404."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.registry import RunNotFoundError
     registry = MagicMock()
     registry.get_run = AsyncMock(side_effect=RunNotFoundError(_RUN_ID))
@@ -121,9 +132,28 @@ async def test_cross_tenant_run_returns_404():
 
 
 @pytest.mark.asyncio
+async def test_get_run_validation_checks_run_with_authenticated_tenant():
+    """Validation lookup must await the tenant-scoped run check before returning results."""
+    from httpx import ASGITransport, AsyncClient
+
+    registry = MagicMock()
+    registry.get_run = AsyncMock(return_value=_make_run())
+    registry.get_validation_results = AsyncMock(return_value=[])
+    app = _build_app(registry, tenant_id=_TENANT_A)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(f"/v1/harness/runs/{_RUN_ID}/validation")
+
+    assert response.status_code == 200
+    registry.get_run.assert_awaited_once_with(_RUN_ID, _TENANT_A)
+    registry.get_validation_results.assert_awaited_once_with(_RUN_ID, _TENANT_A)
+
+
+@pytest.mark.asyncio
 async def test_decide_gate_uses_auth_context_for_decision_by():
     """decision_by must come from ctx.user_id, not the request body."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.models import GateStatus
     decided_gate = _make_gate(status=GateStatus.APPROVED, decision_by=_USER_ID)
     decided_gate = decided_gate.model_copy(update={"decided_at": _NOW, "decision_reason": "Looks good"})
@@ -145,6 +175,7 @@ async def test_decide_gate_uses_auth_context_for_decision_by():
 async def test_decide_gate_decision_by_falls_back_to_tenant_id():
     """When ctx.user_id is None, decision_by falls back to ctx.tenant_id."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.models import GateStatus
     decided_gate = _make_gate(status=GateStatus.APPROVED, decision_by=_TENANT_A)
     decided_gate = decided_gate.model_copy(update={"decided_at": _NOW})
@@ -162,6 +193,7 @@ async def test_decide_gate_decision_by_falls_back_to_tenant_id():
 async def test_decide_gate_calls_registry_with_correct_args():
     """Route calls registry.decide_gate with gate_id, tenant_id, and decision_reason."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.models import GateStatus
     decided_gate = _make_gate(status=GateStatus.APPROVED, decision_by=_USER_ID)
     decided_gate = decided_gate.model_copy(update={"decided_at": _NOW})
@@ -186,6 +218,7 @@ async def test_decide_gate_calls_registry_with_correct_args():
 async def test_decide_gate_accepts_rejected_decision():
     """POST decide with 'rejected' must return 200 with status=rejected."""
     from httpx import ASGITransport, AsyncClient
+
     from src.harness.models import GateStatus
     decided_gate = _make_gate(status=GateStatus.REJECTED, decision_by=_USER_ID)
     decided_gate = decided_gate.model_copy(update={"decided_at": _NOW, "decision_reason": "Insufficient evidence"})
