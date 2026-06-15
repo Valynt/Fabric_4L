@@ -14,10 +14,10 @@ import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (
 from httpx import ASGITransport, AsyncClient
 from fastapi import FastAPI
 
-from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.audit.models import AuditAction
 from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
+from layer4_agents.api.main import app
 from layer4_agents.api.routes import analysis
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -85,7 +85,6 @@ class _FakeExecutor:
 
 @pytest.fixture
 async def client():
-    app.dependency_overrides[analysis.get_route_db] = lambda: _FakeDb()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
@@ -113,11 +112,10 @@ async def test_cross_tenant_case_access_denied(client: AsyncClient):
     caller_tenant = uuid4()
 
     app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(owner_tenant))
-    override_auth = lambda: RequestContext(
+    app.dependency_overrides[require_authenticated] = lambda: RequestContext(
         tenant_id=caller_tenant,
         user_id="user-1",
         roles=[],
-        permissions=frozenset({"read:agents"}),
     )
     app.dependency_overrides[analysis.require_authenticated] = override_auth
     app.dependency_overrides[require_authenticated] = override_auth
@@ -132,19 +130,10 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     """Case export lifecycle emits enough immutable events for reconstruction."""
 
     tenant = uuid4()
-    account_id = uuid4()
     executor = _FakeExecutor(str(tenant))
     captured_events = []
 
-    async def _capture(*, action, context, resource_type, resource_id, details=None):
-        event = emit_audit_event(
-            action,
-            tenant_id=context.tenant_id,
-            user_id=context.user_id,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            details=dict(details or {}),
-        )
+    async def _capture(event, _db_factory):
         captured_events.append(event)
 
     async def _upload_bytes(**kwargs):
@@ -153,54 +142,66 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     async def _download_url(object_key: str):
         return f"https://example.local/{object_key}"
 
-    monkeypatch.setattr(analysis, "emit_and_persist_audit", _capture)
-    monkeypatch.setattr(analysis, "upload_bytes", _upload_bytes)
-    monkeypatch.setattr(analysis, "generate_download_url", _download_url)
+    monkeypatch.setattr("src.api.routes.analysis.AuditEmitter.write_to_db", _capture)
+    monkeypatch.setattr("src.api.routes.analysis.upload_bytes", _upload_bytes)
+    monkeypatch.setattr("src.api.routes.analysis.generate_download_url", _download_url)
     monkeypatch.setattr(
-        analysis,
-        "build_export_provenance_manifest",
+        "src.api.routes.analysis.build_export_provenance_manifest",
         lambda **_: {"truth_object_ids": [], "source_references": []},
     )
-    monkeypatch.setattr(analysis.settings, "export_storage_endpoint", "https://storage.local")
+    monkeypatch.setattr("src.api.routes.analysis.settings.export_storage_endpoint", "https://storage.local")
 
-    class _DbWithCase(_FakeDb):
-        async def get(self, model, key):
-            return SimpleNamespace(case_id=key, account_id=account_id, status="approved")
-
-    class _AccountService:
-        def __init__(self, _db):
-            pass
-
-        async def get_account(self, _account_id, tenant_id=None):
-            return SimpleNamespace(id=account_id, tenant_id=str(tenant))
-
-    app.dependency_overrides[analysis.get_route_db] = lambda: _DbWithCase()
     app.dependency_overrides[analysis.get_executor] = lambda: executor
-    override_auth = lambda: RequestContext(
+    app.dependency_overrides[require_authenticated] = lambda: RequestContext(
         tenant_id=tenant,
         user_id="auditor-user",
         roles=[],
-        permissions=frozenset({"read:agents", "write:agents"}),
     )
-    app.dependency_overrides[analysis.require_authenticated] = override_auth
-    app.dependency_overrides[require_authenticated] = override_auth
-    monkeypatch.setattr(analysis, "AccountService", _AccountService)
+
+    create_response = await client.post(
+        "/v1/cases",
+        json={
+            "prospect_id": "prospect-1",
+            "sections": ["executive_summary"],
+            "output_format": "pdf",
+            "custom_inputs": {"account_id": "acct-001"},
+        },
+    )
+    assert create_response.status_code == 200
+
+    update_response = await client.patch(
+        "/v1/cases/case-123",
+        json={"workflow_id": "case-123", "account_id": "acct-001", "updates": {"summary": "new"}},
+    )
+    assert update_response.status_code == 200
+
+    approve_response = await client.post(
+        "/v1/cases/case-123/approve",
+        json={"workflow_id": "case-123", "account_id": "acct-001", "approved": True, "notes": "ship it"},
+    )
+    assert approve_response.status_code == 200
 
     export_response = await client.get("/v1/cases/case-123/export")
     assert export_response.status_code == 200
 
     actions = [event.action for event in captured_events]
+    assert AuditAction.BUSINESS_CASE_GENERATED in actions
+    assert AuditAction.BUSINESS_CASE_UPDATED in actions
+    assert AuditAction.BUSINESS_CASE_APPROVED in actions
     assert AuditAction.EXPORT_REQUESTED in actions
     assert AuditAction.EXPORT_PACKAGE_GENERATED in actions
     assert AuditAction.EXPORT_DOWNLOAD_ACCESSED in actions
 
     for event in captured_events:
         if event.action in {
+            AuditAction.BUSINESS_CASE_GENERATED,
+            AuditAction.BUSINESS_CASE_UPDATED,
+            AuditAction.BUSINESS_CASE_APPROVED,
             AuditAction.EXPORT_REQUESTED,
             AuditAction.EXPORT_PACKAGE_GENERATED,
             AuditAction.EXPORT_DOWNLOAD_ACCESSED,
         }:
             assert event.details.get("case_id") == "case-123"
             assert event.details.get("workflow_id") == "case-123"
-            assert event.details.get("account_id") == str(account_id)
+            assert event.details.get("account_id") == "acct-001"
             assert UUID(str(event.tenant_id)) == tenant

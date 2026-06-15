@@ -854,11 +854,7 @@ class TestOrchestrationControllerWorkflowLifecycle:
             patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(1800, "service_default"))),
         ):
             mock_scheduler.schedule_task = AsyncMock()
-            await controller.execute_workflow(
-                "roi_calculator",
-                {"prospect_id": "p", "value_driver_ids": ["v"]},
-                tenant_id="tenant-default-timeout",
-            )
+            await controller.execute_workflow("roi_calculator", {"prospect_id": "p", "value_driver_ids": ["v"]})
 
         metadata = next(iter(controller._workflow_metadata.values()))
         assert metadata["timeout_seconds"] == 1800
@@ -894,7 +890,6 @@ class TestOrchestrationControllerWorkflowLifecycle:
         from layer4_agents.engine.executor import OrchestrationController
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry())
-        settings = get_settings()
         original_default = settings.workflow_timeout_seconds
         try:
             settings.workflow_timeout_seconds = settings.workflow_timeout_max_seconds + 1

@@ -63,8 +63,6 @@ from ..common.db import get_route_db
 from ..common.errors import normalize_exception
 from ..security.csrf import CSRF_COOKIE_NAME, SESSION_COOKIE_NAME, issue_csrf_token
 
-get_db_from_context = get_route_db
-
 
 class export_business_caseResult(TypedDictModel):
     blocked: bool
@@ -445,7 +443,7 @@ async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: R
 
 def _require_validation_seed_allowed(http_request: Request, context: RequestContext) -> None:
     """Fail closed unless this is an authenticated, non-production seed request."""
-    if settings.environment == "production":
+    if get_settings().environment == "production":
         raise AuthorizationError(message = "Validation seeding is disabled in production")
     if not context.tenant_id:
         raise AuthorizationError(message = "Validation seeding requires tenant context")
@@ -1330,7 +1328,7 @@ async def export_business_case(
                     "requirements": truth_gate.get("requirements", []),
                 },
             },
-        }).model_dump()
+        })
 
 
     if not document_bytes:
@@ -1368,7 +1366,7 @@ async def export_business_case(
         "tenant-id": str(context.tenant_id),
         "tenant_id": str(context.tenant_id),
         "actor-user-id": str(context.user_id or ""),
-        "actor-subject": str(getattr(context, "subject", "") or ""),
+        "actor-subject": str(context.subject or ""),
         "account-id": str(account.id),
     }
 
@@ -1404,7 +1402,6 @@ async def export_business_case(
             "workflow_id": workflow_id,
             "export_id": export_id,
             "format": format,
-            "account_id": str(account.id),
         },
     )
 
@@ -1447,11 +1444,10 @@ async def export_business_case(
         "manifest_url": manifest_url,
         "download_ready": True,
         "blocked": False,
-        "manifest": manifest,
         "remediation_items": remediation_items,
         "truth_references": truth_references,
         "url_expires_at": expires_at,
-    }).model_dump()
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -30,7 +30,7 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_even
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated, require_super_admin
 
-from ....database import get_db, get_db_from_context
+from ....database import get_db_from_context
 from ...provisioning import (
     ProvisioningStatus,
     TenantProvisioningService,
@@ -45,7 +45,6 @@ router = APIRouter(prefix="/tenants/{tenant_id}/provisioning", tags=["Provisioni
 _WEBHOOK_CACHE_TTL_SECONDS = 86400  # 24 hours
 _WEBHOOK_SIGNATURE_TOLERANCE_SECONDS = 300  # 5 minutes
 _WEBHOOK_IDEMPOTENCY_PREFIX = "provisioning:webhook:"
-_memory_webhook_cache: dict[str, dict] = {}
 
 
 def _get_redis_client():
@@ -162,7 +161,7 @@ async def _get_cached_webhook(webhook_id: str) -> dict | None:
     """Get cached webhook result from Redis for idempotency."""
     redis = _ensure_redis()
     if redis is None:
-        return _memory_webhook_cache.get(webhook_id)
+        return None
     
     key = f"{_WEBHOOK_IDEMPOTENCY_PREFIX}{webhook_id}"
     try:
@@ -177,6 +176,10 @@ async def _get_cached_webhook(webhook_id: str) -> dict | None:
 async def _cache_webhook_result(webhook_id: str, tenant_id: str, status: str) -> None:
     """Cache webhook result in Redis for idempotency."""
     redis = _ensure_redis()
+    if redis is None:
+        return
+    
+    key = f"{_WEBHOOK_IDEMPOTENCY_PREFIX}{webhook_id}"
     data = {
         "status": status,
         "tenant_id": str(tenant_id),
@@ -300,7 +303,7 @@ async def webhook_provisioning(
     ),
     # SECURITY: Webhook uses get_db intentionally — external systems
     # authenticate via HMAC signature, not JWT.
-    db: AsyncSession | None = Depends(_defer_webhook_db),
+    db: AsyncSession = Depends(get_db_from_context),
 ) -> WebhookProvisioningResponse:
     """Trigger provisioning via webhook (external systems).
 
@@ -365,13 +368,6 @@ async def webhook_provisioning(
             status=cached["status"],
             webhook_id=x_webhook_id,
         )
-
-    if db is None:
-        async for session in get_db():
-            db = session
-            break
-    if db is None:
-        raise ServiceUnavailableError(message="Provisioning database unavailable")
 
     # --- Step 4: Verify tenant exists ---
     tenant = await get_tenant(db, payload.tenant_id)

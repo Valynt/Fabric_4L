@@ -11,14 +11,8 @@ import pytest
 # test setup does not require the full L4 application (DB, LangGraph, etc.).
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.identity.context import RequestContext
 
-from layer4_agents.api.routes import c1 as c1_route
-
-C1Message = c1_route.C1Message
-C1StreamRequest = c1_route.C1StreamRequest
-router = c1_route.router
+from api.routes.c1 import C1Message, C1StreamRequest, router
 
 _app = FastAPI()
 register_exception_handlers(_app)

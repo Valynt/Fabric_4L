@@ -24,7 +24,6 @@ Date: 2026-05-27
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -61,21 +60,12 @@ async def authenticated_client():
 
     async def override_get_db():
         # Mock DB session for validation testing
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import MagicMock
         mock_db = MagicMock()
         mock_db.begin = MagicMock()
-        mock_db.commit = AsyncMock()
-        mock_db.rollback = AsyncMock()
-        mock_db.flush = AsyncMock()
-
-        async def refresh(instance):
-            now = datetime.now(UTC)
-            instance.id = instance.id or uuid4()
-            instance.created_at = instance.created_at or now
-            instance.updated_at = instance.updated_at or now
-            instance.active_source_ids = instance.active_source_ids or []
-
-        mock_db.refresh = AsyncMock(side_effect=refresh)
+        mock_db.commit = MagicMock()
+        mock_db.rollback = MagicMock()
+        mock_db.flush = MagicMock()
         yield mock_db
 
     test_app.dependency_overrides[require_authenticated] = override_auth
@@ -335,4 +325,4 @@ class TestUUIDValidation:
             "/v1/company-knowledge/profiles/"
         )
         # Should reject with 404 or 422
-        assert response.status_code in [307, 404, 422], "Empty UUID should be rejected or redirected away from UUID handler"
+        assert response.status_code in [404, 422], "Empty UUID should be rejected"

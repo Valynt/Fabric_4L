@@ -12,9 +12,9 @@ def test_tool_schema_response_has_typed_fields() -> None:
     fields = ToolSchemaResponse.model_fields
 
     assert fields["category"].annotation.__name__ == "ToolCategory"
-    assert fields["input_schema"].annotation == dict[str, JsonValue]
-    assert fields["output_schema"].annotation == dict[str, JsonValue]
-    assert fields["examples"].annotation == list[ToolSchemaExample]
+    assert str(fields["input_schema"].annotation) == "dict[str, str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]]"
+    assert str(fields["output_schema"].annotation) == "dict[str, str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]]"
+    assert str(fields["examples"].annotation) == "list[value_fabric.layer4.contracts.tool_dto.ToolSchemaExample]"
     assert fields["timeout_seconds"].annotation is int
     assert fields["requires_auth"].annotation is bool
 

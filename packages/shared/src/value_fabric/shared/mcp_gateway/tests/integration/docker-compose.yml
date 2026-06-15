@@ -18,17 +18,17 @@ services:
       - MCP_UPSTREAM_RESOURCES_URL=http://upstream-resources:8080
       - MCP_UPSTREAM_PROMPTS_URL=http://upstream-prompts:8080
       - MCP_UPSTREAM_FAULTY_URL=http://upstream-faulty:8080
-
+      
       # Auth configuration
       - MCP_AUTH_PUBLIC_KEY=/secrets/public.pem
       - MCP_AUTH_ISSUER=https://auth.example.com
       - MCP_AUTH_AUDIENCE=mcp-gateway
-
+      
       # Observability
       - MCP_LOG_LEVEL=debug
       - MCP_ENABLE_METRICS=true
       - MCP_TRACE_EXPORTER=console
-
+      
       # Circuit breaker settings
       - MCP_CIRCUIT_FAILURE_THRESHOLD=5
       - MCP_CIRCUIT_TIMEOUT_SECONDS=30

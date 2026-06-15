@@ -1516,7 +1516,7 @@ class OrchestrationController:
 
         try:
             from ..config.settings import get_settings
-            timeout_seconds = float(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
+            timeout_seconds = int(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
             wf_type = task.parameters.get("workflow_type", "unknown")
             tenant_id_for_trace = task.get_tenant_id() or "unknown"
             with _tracer.start_as_current_span(

@@ -153,14 +153,9 @@ async def workflow_websocket(
     _log["tenant_id"] = tenant_id
 
     # SEC-L4-WS-001: Verify the requested workflow belongs to the authenticated tenant.
-    auth_result = await _resolve_workflow_authorization(
+    authorized, auth_code = await _resolve_workflow_authorization(
         workflow_id, tenant_id, user_id
     )
-    if isinstance(auth_result, tuple):
-        authorized, auth_code = auth_result
-    else:
-        authorized = bool(auth_result)
-        auth_code = "AUTHZ_OK" if authorized else "AUTHZ_WORKFLOW_DENIED"
     if not authorized:
         logger.warning(
             "WebSocket workflow authorization failed",

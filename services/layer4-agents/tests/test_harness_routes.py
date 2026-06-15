@@ -54,10 +54,9 @@ def _build_app(registry_mock, tenant_id=_TENANT_A, user_id=_USER_ID):
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
     from value_fabric.shared.identity.context import RequestContext
     from src.api.routes.harness import get_harness_registry, router as harness_router
-    from value_fabric.shared.identity.dependencies import require_authenticated, require_content_admin
+    from value_fabric.shared.identity.dependencies import require_authenticated
 
     app = FastAPI()
-    register_exception_handlers(app)
     app.include_router(harness_router, prefix="/v1")
 
     async def _mock_ctx():
@@ -71,7 +70,6 @@ def _build_app(registry_mock, tenant_id=_TENANT_A, user_id=_USER_ID):
         return registry_mock
 
     app.dependency_overrides[require_authenticated] = _mock_ctx
-    app.dependency_overrides[require_content_admin] = _mock_ctx
     app.dependency_overrides[get_harness_registry] = _mock_registry
     return app
 

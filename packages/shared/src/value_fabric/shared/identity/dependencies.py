@@ -239,10 +239,8 @@ async def require_tenant_context(context: RequestContext | None = None) -> Reque
 def require_role(*roles: Role | str) -> Callable[[RequestContext | None], object]:
     allowed = {_role_value(role) for role in roles}
 
-    async def dependency(
-        context: RequestContext | None = Depends(require_authenticated),
-    ) -> RequestContext:
-        ctx = await require_authenticated(context=context)
+    async def dependency(context: RequestContext | None = None) -> RequestContext:
+        ctx = await require_authenticated(context)
         if not allowed.intersection(set(ctx.roles or [])):
             raise _forbidden(f"One of these roles is required: {sorted(allowed)}")
         return ctx

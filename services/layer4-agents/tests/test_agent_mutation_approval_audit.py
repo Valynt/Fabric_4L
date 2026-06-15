@@ -16,14 +16,12 @@ from layer4_agents.api.routes import analysis
 from layer4_agents.api.common.db import get_route_db
 from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
-from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
 
 @pytest.fixture
 def analysis_app() -> FastAPI:
     app = FastAPI()
-    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     return app
 
@@ -85,12 +83,7 @@ async def test_business_case_smoke_draft_creates_audit_event(
     events: list[dict[str, Any]] = []
 
     async def mock_require_authenticated() -> RequestContext:
-        return RequestContext(
-            tenant_id=tenant_id,
-            user_id="smoke-user",
-            roles=["tenant_admin"],
-            permissions=frozenset(["read:agents", "write:agents"]),
-        )
+        return RequestContext(tenant_id=tenant_id, user_id="smoke-user")
 
     class RaisingExecutor:
         async def run(self, **kwargs: Any) -> Any:
@@ -151,12 +144,7 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
     case_id = "smoke-case-draft"
 
     async def mock_require_authenticated() -> RequestContext:
-        return RequestContext(
-            tenant_id=tenant_id,
-            user_id="smoke-user",
-            roles=["tenant_admin"],
-            permissions=frozenset(["read:agents", "write:agents"]),
-        )
+        return RequestContext(tenant_id=tenant_id, user_id="smoke-user")
 
     class FakeExecutor:
         async def get_result(self, requested_case_id: str) -> Any:

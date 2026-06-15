@@ -120,7 +120,7 @@ class Layer3Client:
         url: str,
         tenant_id: str,
         json: dict[str, Any] | None = None,
-        params: dict[str, Any] | list[tuple[str, Any]] | None = None,
+        params: dict[str, Any] | None = None,
         allow_404: bool = False,
     ) -> dict[str, Any] | None:
         """Make HTTP request with retry logic and error handling.

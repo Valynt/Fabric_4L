@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from value_fabric.shared.error_handling.handlers import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
-from layer4_agents.api.routes import checkpoints
+from layer4_agents.api.main import app
+from layer4_agents.api.routes.checkpoints import get_executor
 
 
 class _FailingConn:
@@ -45,30 +45,28 @@ async def _override_auth():
     return RequestContext(user_id="test-user", tenant_id="tenant-test")
 
 
-def _build_app(executor_override):
-    app = FastAPI()
-    register_exception_handlers(app)
-    app.include_router(checkpoints.checkpoint_router, prefix="/v1")
-    app.dependency_overrides[checkpoints.get_executor] = executor_override
-    app.dependency_overrides[checkpoints.require_authenticated] = _override_auth
-    return app
-
-
 def test_list_checkpoints_returns_structured_500_on_query_failure() -> None:
-    app = _build_app(_override_executor)
-    client = TestClient(app)
-    response = client.get("/v1/workflows/wf-123/checkpoints")
+    app.dependency_overrides[get_executor] = _override_executor
+    try:
+        client = TestClient(app)
+        response = client.get("/v1/workflows/wf-123/checkpoints")
+    finally:
+        app.dependency_overrides.pop(get_executor, None)
 
-    assert response.status_code == 503
+    assert response.status_code == 500
     payload = response.json()
-    assert payload["error"]["code"] == "SERVICE_UNAVAILABLE"
-    assert payload["error"]["message"] == "Failed to retrieve checkpoints"
+    assert payload["detail"]["code"] == "CHECKPOINT_QUERY_FAILED"
+    assert payload["detail"]["message"] == "Failed to retrieve checkpoints"
+    assert payload["detail"]["workflow_id"] == "wf-123"
 
 
 def test_list_checkpoints_returns_empty_200_when_no_checkpoints_exist() -> None:
-    app = _build_app(_override_executor_empty)
-    client = TestClient(app)
-    response = client.get("/v1/workflows/wf-empty/checkpoints")
+    app.dependency_overrides[get_executor] = _override_executor_empty
+    try:
+        client = TestClient(app)
+        response = client.get("/v1/workflows/wf-empty/checkpoints")
+    finally:
+        app.dependency_overrides.pop(get_executor, None)
 
     assert response.status_code == 200
     payload = response.json()

@@ -140,7 +140,7 @@ async def regular_user_client():
         return RequestContext(
             tenant_id="test-tenant-adversarial",
             user_id=str(uuid4()),
-            roles=["user"],  # Regular user, not admin
+            roles=[Role.USER.value],  # Regular user, not admin
             source="jwt",
         )
 

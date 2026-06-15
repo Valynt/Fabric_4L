@@ -231,15 +231,15 @@ class TestTierEnforcement:
         assert enforcer.check_feature("free", "custom_branding") is False
 
     def test_require_feature_raises_when_disabled(self) -> None:
-        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from fastapi import HTTPException
         from src.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(AuthorizationError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             enforcer.require_feature("free", "sso_integration")
 
-        assert exc_info.value.details["error"] == "feature_not_available"
-        assert exc_info.value.details["feature"] == "sso_integration"
+        assert exc_info.value.status_code == 403
+        assert "feature_not_available" in str(exc_info.value.detail)
 
     def test_require_feature_passes_when_enabled(self) -> None:
         from src.tenants.tier_enforcement import TierEnforcement
@@ -422,14 +422,15 @@ class TestAdminDashboardAuthorization:
     def test_authorize_other_tenant_denied(
         self, mock_context_admin: MagicMock,
     ) -> None:
-        from value_fabric.shared.error_handling.exceptions import AuthorizationError
-        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from fastapi import HTTPException
+        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         other_tenant = uuid4()
-        with pytest.raises(AuthorizationError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             _authorize_tenant_access(mock_context_admin, other_tenant)
 
-        assert exc_info.value.details["error"] == "access_denied"
+        assert exc_info.value.status_code == 403
+        assert "access_denied" in str(exc_info.value.detail)
 
     def test_authorize_super_admin_any_tenant(
         self, mock_context_super_admin: MagicMock,
@@ -445,11 +446,11 @@ class TestSettingsFeatureGate:
     """Test that branding updates require the custom_branding feature."""
 
     def test_branding_blocked_on_free_tier(self) -> None:
-        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from fastapi import HTTPException
         from src.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(AuthorizationError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             enforcer.require_feature("free", "custom_branding")
 
         assert exc_info.value.details["error"] == "feature_not_available"
@@ -463,11 +464,11 @@ class TestSettingsFeatureGate:
         enforcer.require_feature("pro", "custom_branding")
 
     def test_sso_blocked_on_basic_tier(self) -> None:
-        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from fastapi import HTTPException
         from src.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(AuthorizationError) as exc_info:
+        with pytest.raises(HTTPException):
             enforcer.require_feature("basic", "sso_integration")
         assert exc_info.value.details["error"] == "feature_not_available"
         assert exc_info.value.details["feature"] == "sso_integration"

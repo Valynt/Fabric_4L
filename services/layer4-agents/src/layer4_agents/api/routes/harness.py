@@ -197,8 +197,6 @@ async def transition_run(
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", extra={"error_code": "HARNESS_REGISTRY_ERROR", "error": sanitize_log_error(exc)})
         raise AuthorizationError(message = "Harness registry access denied")
-    except ValueError as exc:
-        raise ValidationError(message=str(exc))
     except Exception:
         logger.exception("Unexpected error transitioning run %s", run_id)
         raise ValidationError(message="Run transition failed")

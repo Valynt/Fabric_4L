@@ -479,17 +479,11 @@ class BillingService:
                 where=(BillingWebhookEvent.status.in_(["failed", "retryable"])),
             )
         )
-        try:
-            await self.db.execute(stmt)
-            await self.db.commit()
-            result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
-            inbox = result.scalar_one()
-            await self.db.commit()
-        except SQLAlchemyError:
-            await self.db.rollback()
-            logger.exception("billing.webhook.persistence_failed", extra={"event_id": event_id, "event_type": event_type})
-            self._emit_webhook_metric("persistence_failed", event_id=event_id, event_type=event_type)
-            raise
+        await self.db.execute(stmt)
+        await self.db.commit()
+        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+        inbox = result.scalar_one()
+        await self.db.commit()
         if inbox.status == "processed":
             logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type, "duplicate_count": 1})
             self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
