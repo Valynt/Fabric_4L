@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python:3.14.0-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -17,7 +17,7 @@ RUN uv sync --frozen --no-install-project
 COPY app/ ./app/
 COPY migrations/ ./migrations/
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python:3.14.0-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
