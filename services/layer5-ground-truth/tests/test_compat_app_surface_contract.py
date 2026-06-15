@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import HTTPException
+from fastapi.routing import APIRoute
 from starlette.requests import Request
 
 from layer5_ground_truth.api.main import (
@@ -11,6 +12,32 @@ from layer5_ground_truth.api.main import (
     Layer3TenantMismatchError,
     create_app,
 )
+
+
+def _get_route_prefix(route: object) -> str:
+    include_context = getattr(route, "include_context", None)
+    if include_context is not None:
+        return getattr(include_context, "prefix", "") or ""
+    return getattr(route, "path", "") or ""
+
+
+def _collect_paths(routes, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        if isinstance(route, APIRoute):
+            paths.add(prefix + route.path)
+        elif hasattr(route, "original_router"):
+            paths.update(
+                _collect_paths(
+                    route.original_router.routes,
+                    prefix + _get_route_prefix(route),
+                )
+            )
+        elif hasattr(route, "routes"):
+            paths.update(
+                _collect_paths(route.routes, prefix + _get_route_prefix(route))
+            )
+    return paths
 
 
 def test_l5_middleware_registration_and_effective_wrapping_order():
@@ -47,7 +74,7 @@ def test_l5_exception_handler_registrations_and_custom_shape_contracts():
 def test_l5_health_ready_metrics_route_contract_presence():
     app = create_app()
 
-    paths = {route.path for route in app.routes}
+    paths = _collect_paths(app.routes)
     assert "/health" in paths
     assert "/ready" in paths
     assert "/metrics" in paths

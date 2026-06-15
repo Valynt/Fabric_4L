@@ -76,25 +76,20 @@ def test_inmemory_table_count_returns_int_not_list() -> None:
 
 @pytest.mark.contract_static_no_service
 @_skip_no_service_deps
-def test_async_inmemory_table_count_parity() -> None:
+async def test_async_inmemory_table_count_parity() -> None:
     """AsyncInMemoryTable.count() must match AsyncInMemoryTable.list() length."""
-    import asyncio
     from app.core.database import AsyncInMemoryTable
 
     table: AsyncInMemoryTable[dict] = AsyncInMemoryTable("test", "tenant_id")
     t1 = "11111111-1111-1111-1111-111111111111"
     for i in range(4):
-        asyncio.get_event_loop().run_until_complete(
-            table.insert(f"id-{i}", {"tenant_id": t1, "account_id": "a1" if i < 2 else "a2"})
+        await table.insert(
+            f"id-{i}", {"tenant_id": t1, "account_id": "a1" if i < 2 else "a2"}
         )
 
     filter_a1 = lambda d: d["account_id"] == "a1"  # noqa: E731
-    count_result = asyncio.get_event_loop().run_until_complete(
-        table.count(tenant_id=t1, filter_fn=filter_a1)
-    )
-    list_result = asyncio.get_event_loop().run_until_complete(
-        table.list(tenant_id=t1, filter_fn=filter_a1)
-    )
+    count_result = await table.count(tenant_id=t1, filter_fn=filter_a1)
+    list_result = await table.list(tenant_id=t1, filter_fn=filter_a1)
     assert count_result == len(list_result)
     assert count_result == 2
 

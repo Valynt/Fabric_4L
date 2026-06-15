@@ -1,9 +1,37 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from layer6_benchmarks.api.main import app
+
+
+def _get_route_prefix(route: object) -> str:
+    include_context = getattr(route, "include_context", None)
+    if include_context is not None:
+        return getattr(include_context, "prefix", "") or ""
+    return getattr(route, "path", "") or ""
+
+
+def _collect_routes(routes, prefix: str = "") -> list:
+    result: list = []
+    for route in routes:
+        if isinstance(route, APIRoute):
+            route.path = prefix + route.path
+            result.append(route)
+        elif hasattr(route, "original_router"):
+            result.extend(
+                _collect_routes(
+                    route.original_router.routes,
+                    prefix + _get_route_prefix(route),
+                )
+            )
+        elif hasattr(route, "routes"):
+            result.extend(
+                _collect_routes(route.routes, prefix + _get_route_prefix(route))
+            )
+    return result
 
 
 def test_l6_middleware_registration_and_effective_wrapping_order():
@@ -23,9 +51,10 @@ def test_l6_skip_validation_paths_contract():
 
 
 def test_l6_health_ready_metrics_route_contract_presence_and_shape():
-    health_endpoint = next(route.endpoint for route in app.routes if route.path == "/health")
-    ready_endpoint = next(route.endpoint for route in app.routes if route.path == "/ready")
-    metrics_endpoint = next(route.endpoint for route in app.routes if route.path == "/metrics")
+    routes = _collect_routes(app.routes)
+    health_endpoint = next(route.endpoint for route in routes if route.path == "/health")
+    ready_endpoint = next(route.endpoint for route in routes if route.path == "/ready")
+    metrics_endpoint = next(route.endpoint for route in routes if route.path == "/metrics")
 
     assert callable(health_endpoint)
     assert callable(ready_endpoint)

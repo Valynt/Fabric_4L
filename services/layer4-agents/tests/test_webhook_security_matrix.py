@@ -27,7 +27,7 @@ def _provisioning_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     async def _fake_db():
         yield object()
 
-    monkeypatch.setattr(prov_route, "get_db", _fake_db)
+    monkeypatch.setattr(prov_route, "get_webhook_db", _fake_db)
     monkeypatch.setattr(prov_route, "get_tenant", AsyncMock(return_value=object()))
     monkeypatch.setattr(prov_route, "provision_tenant", AsyncMock(return_value=type("S", (), {"status": type("V", (), {"value": "completed"})()})()))
     return TestClient(app)

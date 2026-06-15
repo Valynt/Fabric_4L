@@ -30,7 +30,8 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_even
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated, require_super_admin
 
-from ....database import get_db, get_db_from_context
+from ....api.common.db import get_webhook_db
+from ....database import get_db_from_context
 from ...provisioning import (
     ProvisioningStatus,
     TenantProvisioningService,
@@ -367,7 +368,7 @@ async def webhook_provisioning(
         )
 
     if db is None:
-        async for session in get_db():
+        async for session in get_webhook_db():
             db = session
             break
     if db is None:
