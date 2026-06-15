@@ -65,6 +65,7 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "id-token": "uses OIDC for evidence signing",
     },
     "repo-hygiene.yml": {
+        "contents": "deletes stale branches selected by the cleanup policy",
         "issues": "comments repository hygiene failures on pull requests",
         "pull-requests": "comments repository hygiene failures on pull requests",
     },
@@ -104,10 +105,6 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "codeql.yml": {
         "security-events": "uploads CodeQL SARIF results",
     },
-    "cleanup-branches.yml": {
-        "contents": "deletes stale branches selected by the cleanup policy",
-        "pull-requests": "closes pull requests for stale deleted branches",
-    },
     "deploy.yml": {
         "contents": "commits release evidence artifacts in the evidence job",
         "id-token": "authenticates deploy and rollback jobs through cloud/OIDC providers",
@@ -117,6 +114,10 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     },
     "pr-checks.yml": {
         "id-token": "authenticates PR checks that fetch Infisical-managed secrets",
+    },
+    "public-docs.yml": {
+        "pages": "deploys documentation to GitHub Pages",
+        "id-token": "authenticates deploy job to GitHub Pages",
     },
     "refresh-testing-kpis.yml": {
         "contents": "pushes KPI snapshot updates to a PR branch",
