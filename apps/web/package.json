@@ -19,6 +19,7 @@
     "test:trust-boundaries": "tsx scripts/security/assert-trust-boundary-parsers.ts",
     "test:coverage": "vitest run --coverage",
     "test:workflow-matrix": "node scripts/quality/assert-frontend-workflow-matrix.mjs",
+    "test:ui-readiness": "node scripts/quality/assert-ui-readiness.mjs",
     "test:api-type-drift": "node scripts/quality/assert-generated-api-types-current.mjs && pnpm run test:generated-response-types",
     "test:bundle-budget": "node scripts/quality/assert-bundle-budget.mjs",
     "verify:frontend": "node scripts/quality/verify-frontend.mjs && pnpm run check:async-boundaries && pnpm run test:prod-unhandled-rejections",

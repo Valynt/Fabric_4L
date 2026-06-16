@@ -75,7 +75,7 @@ async def test_salesforce_opportunity_pagination():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["opportunities"]),
         )
 
     assert len(result.opportunities) == 3
@@ -109,7 +109,7 @@ async def test_salesforce_rate_limit_graceful():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["profile", "opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["profile", "opportunities"]),
         )
 
     # Profile should still be fetched
@@ -150,7 +150,7 @@ async def test_salesforce_max_pages_safety():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["opportunities"]),
         )
 
     # Should stop at max_pages (10) even though more pages exist
@@ -161,13 +161,16 @@ async def test_salesforce_max_pages_safety():
 @pytest.mark.parametrize(
     "prospect_id",
     [
-        "001TEST123456789",
+        "001TEST12345678",
         "001TEST12345678AAA",
     ],
 )
-def test_fetch_interaction_history_has_shared_soql_safe_id_helper(prospect_id: str):
-    tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
-    assert tool._soql_safe_id(prospect_id) == prospect_id
+def test_salesforce_tools_share_strict_soql_safe_id_helper(prospect_id: str):
+    prospect_tool = GetProspectDataTool(config={"crm_type": "salesforce"})
+    interaction_tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
+
+    assert prospect_tool._soql_safe_id(prospect_id) == prospect_id
+    assert interaction_tool._soql_safe_id(prospect_id) == prospect_id
 
 
 @pytest.mark.parametrize(
@@ -175,6 +178,7 @@ def test_fetch_interaction_history_has_shared_soql_safe_id_helper(prospect_id: s
     [
         "",
         None,
+        "001TEST123456789",
         "001TEST12345' OR Name != ''",
         "001TEST12345;DROP",
     ],

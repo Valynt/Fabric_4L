@@ -8,6 +8,7 @@ import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
+import { EmptyState } from "@/components/states/EmptyState";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
@@ -107,6 +108,14 @@ const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
 
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
+
+function AcademyFollowUpState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="p-6">
+      <EmptyState title={title} description={description} />
+    </div>
+  );
+}
 
 function LegacyRootRedirect() {
   const { isAuthenticated, isLoading } = useAuthContext();
@@ -892,7 +901,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/pillars/:pillarId",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Pillar detail coming soon</div>
+            <AcademyFollowUpState
+              title="Pillar detail is not enabled for this release"
+              description="Use the academy overview and quizzes while pillar-level content is being prepared for a later release."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.pillar") },
@@ -910,7 +922,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/resources",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Resources coming soon</div>
+            <AcademyFollowUpState
+              title="Resource library is not enabled for this release"
+              description="Use the academy overview for published guidance. Resource downloads will remain out of the release gate until the library is productized."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.resources") },
@@ -919,7 +934,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/profile",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Profile coming soon</div>
+            <AcademyFollowUpState
+              title="Academy profile is not enabled for this release"
+              description="Quiz progress remains available inside the academy flow. Profile-level reporting is tracked as a follow-up surface."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.profile") },

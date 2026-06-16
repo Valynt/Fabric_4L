@@ -18,6 +18,7 @@ const pnpmCommand = "pnpm";
 const gates = [
   ["Workflow matrix", [pnpmCommand, ["run", "test:workflow-matrix"]]],
   ["Frontend hygiene", [pnpmCommand, ["run", "test:frontend-hygiene"]]],
+  ["UI design readiness", [pnpmCommand, ["run", "test:ui-readiness"]]],
   ["TypeScript", [pnpmCommand, ["run", "check"]]],
   ["Contract tests", [pnpmCommand, ["run", "test:contracts"]]],
   ["Trust-boundary parser guard", [pnpmCommand, ["run", "test:trust-boundaries"]]],

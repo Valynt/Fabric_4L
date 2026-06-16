@@ -15,6 +15,7 @@ describe('LoadingState', () => {
   it('renders with default message', () => {
     render(<LoadingState />);
     expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
   });
 
   it('renders with custom message', () => {
@@ -32,6 +33,7 @@ describe('EmptyState', () => {
   it('renders with title', () => {
     render(<EmptyState title="No data" />);
     expect(screen.getByText('No data')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No data');
   });
 
   it('renders with description', () => {
@@ -55,6 +57,7 @@ describe('ErrorState', () => {
   it('renders with title', () => {
     render(<ErrorState title="Failed to load" />);
     expect(screen.getByText('Failed to load')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load');
   });
 
   it('renders with description', () => {
@@ -79,8 +82,12 @@ describe('ErrorState', () => {
     const error = new Error('Detailed error message');
     render(<ErrorState title="Error" error={error} />);
     
-    fireEvent.click(screen.getByText(/show details/i));
+    const toggle = screen.getByRole('button', { name: /show details/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
     expect(screen.getByText('Detailed error message')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /hide details/i })).toHaveAttribute('aria-expanded', 'true');
     
     fireEvent.click(screen.getByText(/hide details/i));
     expect(screen.queryByText('Detailed error message')).not.toBeInTheDocument();

@@ -11,6 +11,8 @@ Tests verify:
 """
 from __future__ import annotations
 
+import inspect
+import json
 import os
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -254,6 +256,32 @@ class TestProcessScrapingJob:
         assert result["success"] is False
         assert result["job_id"] == job_id
         assert result["error"] == "Tenant suspended"
+
+    @pytest.mark.parametrize(
+        ("task_name", "helper_name", "args"),
+        [
+            ("compliance_check_stage", "_compliance_check_stage_async", (uuid4(), str(uuid4()))),
+            ("browser_crawl_stage", "_browser_crawl_stage_async", ({"job_id": str(uuid4())}, str(uuid4()))),
+            ("ai_extraction_stage", "_ai_extraction_stage_async", ({"job_id": str(uuid4())}, str(uuid4()))),
+        ],
+    )
+    def test_pipeline_stage_entrypoints_return_json_dicts_not_coroutines(
+        self,
+        task_name: str,
+        helper_name: str,
+        args: tuple,
+    ) -> None:
+        """Celery stage entrypoints must serialize cleanly when chained."""
+        import layer1_ingestion.shared.tasks as tasks
+
+        expected = {"success": True, "job_id": str(uuid4())}
+        task = getattr(tasks, task_name)
+        with patch(f"layer1_ingestion.shared.tasks.{helper_name}", new=AsyncMock(return_value=expected)):
+            result = task(*args)
+
+        assert isinstance(result, dict)
+        assert not inspect.iscoroutine(result)
+        assert json.loads(json.dumps(result)) == expected
 
     def test_compliance_check_stage_run_returns_json_dict_not_coroutine(self) -> None:
         """Celery-facing compliance stage must not return an unserializable coroutine."""

@@ -11,8 +11,8 @@ from typing import Any
 
 import httpx
 
-# P0-1 FIX: Salesforce ID format — 15 or 18 alphanumeric characters only
-_SFDC_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]{15,18}$")
+# Salesforce IDs are exactly 15 or 18 alphanumeric characters.
+_SFDC_ID_PATTERN = re.compile(r"^(?:[a-zA-Z0-9]{15}|[a-zA-Z0-9]{18})$")
 
 from ..metrics import get_metrics
 from ..models.tool_schemas import (
@@ -209,45 +209,6 @@ class GetProspectDataTool(_SalesforceIdSafetyMixin, BaseTool):
                 profile={}, interactions=[], opportunities=[], custom_fields={},
                 error=f"CRM data fetch failed: {e}"
             )
-
-    @staticmethod
-    def _validate_sfdc_id(value: str, field_name: str = "prospect_id") -> str:
-        """Validate Salesforce ID format to prevent SOQL injection.
-
-        Args:
-            value: Value to validate
-            field_name: Name of field for error messages
-
-        Returns:
-            Validated ID string
-
-        Raises:
-            ValueError: If ID format is invalid
-        """
-        if not _SFDC_ID_PATTERN.match(value):
-            raise ValueError(
-                f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters"
-            )
-        return value
-
-    @classmethod
-    def _soql_safe_id(cls, value: str, field_name: str = "prospect_id") -> str:
-        """Return a SOQL-safe ID string with defense-in-depth escaping.
-
-        Validates the ID format then escapes any single quotes per SOQL spec.
-        This is defense-in-depth: callers should already have validated via
-        _validate_sfdc_id, but this helper ensures safety even if they don't.
-
-        Args:
-            value: Raw ID value
-            field_name: Name of field for error messages
-
-        Returns:
-            SOQL-safe ID string (single quotes doubled)
-        """
-        validated = cls._validate_sfdc_id(value, field_name)
-        # Escape single quotes per SOQL spec (defense-in-depth)
-        return validated.replace("'", "''")
 
     async def _get_salesforce_data(
         self, client: httpx.AsyncClient, input_data: GetProspectDataInput
@@ -550,22 +511,6 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
                 headers["Authorization"] = f"Bearer {self.api_key}"
             self._client = httpx.AsyncClient(headers=headers, timeout=30.0)
         return self._client
-
-    @staticmethod
-    def _validate_sfdc_id(value: str | None, field_name: str = "prospect_id") -> str:
-        if not value or not isinstance(value, str):
-            raise ValueError(f"Invalid {field_name} format: value is required")
-        if not value.isalnum():
-            raise ValueError(
-                f"Invalid {field_name} format: must be alphanumeric"
-            )
-        return value
-
-    @classmethod
-    def _soql_safe_id(cls, value: str | None, field_name: str = "prospect_id") -> str:
-        """Return a SOQL-safe ID string with defense-in-depth escaping."""
-        validated = cls._validate_sfdc_id(value, field_name)
-        return validated.replace("'", "''")
 
     async def execute(
         self, input_data: FetchInteractionHistoryInput
