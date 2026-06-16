@@ -92,7 +92,7 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
     await engine.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
     """Create test client with database and auth override."""
     async def override_get_db():
@@ -110,13 +110,14 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
     test_app.dependency_overrides[get_db_from_context] = override_get_db
     test_app.dependency_overrides[require_authenticated] = override_auth
 
-    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
-        yield ac
+    try:
+        async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
+            yield ac
+    finally:
+        test_app.dependency_overrides.clear()
 
-    test_app.dependency_overrides.clear()
 
-
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_account(test_db) -> Account:
     """Create a sample account for testing."""
     account = Account(
@@ -167,7 +168,7 @@ async def sample_account(test_db) -> Account:
     return account
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_hubspot_account(test_db) -> Account:
     """Create a sample HubSpot account for testing."""
     account = Account(
@@ -190,7 +191,7 @@ async def sample_hubspot_account(test_db) -> Account:
     return account
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_sync_status(test_db) -> AccountSyncStatus:
     """Create sample sync status for testing."""
     sync_status = AccountSyncStatus(
