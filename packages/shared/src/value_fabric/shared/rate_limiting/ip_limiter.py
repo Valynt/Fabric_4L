@@ -38,22 +38,20 @@ class IPRateLimitDependency:
 def _is_private_ip(ip: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip)
-        if not addr.is_private:
-            return False
-        # Documentation/test networks (TEST-NET-1/2/3) are not private in the
-        # operational sense; treat them as public so tests and documentation
-        # examples resolve correctly.
-        test_nets = [
-            ipaddress.ip_network("192.0.2.0/24"),
-            ipaddress.ip_network("198.51.100.0/24"),
-            ipaddress.ip_network("203.0.113.0/24"),
-        ]
-        for net in test_nets:
-            if addr in net:
-                return False
-        return True
     except ValueError:
         return True
+
+    # Documentation/test networks (TEST-NET-1/2/3) are not globally routable, but
+    # treat them as public so tests and docs examples resolve correctly.
+    test_nets = [
+        ipaddress.ip_network("192.0.2.0/24"),
+        ipaddress.ip_network("198.51.100.0/24"),
+        ipaddress.ip_network("203.0.113.0/24"),
+    ]
+    if any(addr in net for net in test_nets):
+        return False
+
+    return not addr.is_global
 
 
 def get_client_ip(request: Request, trusted_proxy_hops: int | None = None) -> str:
