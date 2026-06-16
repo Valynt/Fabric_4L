@@ -372,7 +372,12 @@ class ConversationService:
 
             # ── Classify ──
             yield {"type": "STEP_STARTED", "timestamp": now(), "runId": run_id, "stepId": "classify", "label": "Classifying intent"}
-            gate_context = self._build_gate_context()
+            gate_context = self._build_gate_context(
+                tenant_id=tenant_id,
+                trace_id=trace_id,
+                workflow_id=workflow_id,
+                audit_event_id=audit_event_id,
+            )
             intent_result = await self._classify_intent(user_message, gate_context)
             intent = intent_result.get("intent", "general_question")
             confidence = intent_result.get("confidence", 0.0)
@@ -507,7 +512,12 @@ class ConversationService:
             })
 
         # Build the GATE execution context
-        gate_context = self._build_gate_context()
+        gate_context = self._build_gate_context(
+            tenant_id=tenant_id,
+            trace_id=trace_id,
+            workflow_id=workflow_id,
+            audit_event_id=audit_event_id,
+        )
 
         # Step 1: Classify intent (GATE-governed)
         intent_result = await self._classify_intent(
@@ -597,17 +607,27 @@ class ConversationService:
         })
 
 
-    def _build_gate_context(self) -> dict[str, Any]:
+    def _build_gate_context(
+        self,
+        tenant_id: str | None = None,
+        trace_id: str | None = None,
+        workflow_id: str | None = None,
+        audit_event_id: str | None = None,
+    ) -> dict[str, Any]:
         """Build the GATE execution context for ConversationAgent."""
         ctx: dict[str, Any] = {}
 
-        # If ConversationAgent is available, its run() method will have
-        # injected tool_gateway and replay_recorder. For direct service
-        # usage, we provide a minimal context.
-        if self.conversation_agent:
-            # The agent's run() method populates ctx with tool_gateway
-            # For service-level calls, we pass through to the agent's execute()
-            pass
+        if self.tool_registry:
+            ctx["tool_registry"] = self.tool_registry
+
+        if tenant_id:
+            ctx["tenant_id"] = tenant_id
+        if trace_id:
+            ctx["trace_id"] = trace_id
+        if workflow_id:
+            ctx["workflow_id"] = workflow_id
+        if audit_event_id:
+            ctx["audit_event_id"] = audit_event_id
 
         return ctx
 
