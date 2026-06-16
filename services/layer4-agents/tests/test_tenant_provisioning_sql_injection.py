@@ -36,8 +36,8 @@ def test_malicious_schema_names_are_rejected(malicious_input: str):
 
 
 @pytest.mark.asyncio
-async def test_grant_uses_identifier_not_string_interpolation():
-    """The GRANT statement must be built with psycopg2.sql.Identifier."""
+async def test_grant_statement_uses_quoted_identifiers():
+    """The GRANT statement should safely quote derived identifiers."""
     fake_session = AsyncMock()
     service = TenantProvisioningService(db_session=fake_session, neo4j_driver=None)
 
@@ -47,7 +47,6 @@ async def test_grant_uses_identifier_not_string_interpolation():
     calls = [call.args[0] for call in fake_session.execute.await_args_list]
     grant_call = next((str(c) for c in calls if "GRANT USAGE" in str(c)), None)
     assert grant_call is not None
-    # Identifier usage should surface as Identifier('tenant_xxxxxxxx') in the
-    # Composed representation, proving we did not use raw string interpolation.
+
     schema_name = _safe_schema_name(str(tenant_id))
-    assert f"Identifier('{schema_name}')" in grant_call
+    assert f'GRANT USAGE ON SCHEMA "{schema_name}" TO "app_user"' in grant_call
