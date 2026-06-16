@@ -173,6 +173,7 @@ class ConversationService:
         context_gatherer: Any | None = None,
         intent_classifier: Any | None = None,
         tool_registry: Any | None = None,
+        retrieval_engine: Any | None = None,
     ) -> None:
         self.conversation_agent = conversation_agent
         self.orchestration_controller = orchestration_controller
@@ -180,6 +181,7 @@ class ConversationService:
         self.context_gatherer = context_gatherer
         self.intent_classifier = intent_classifier
         self.tool_registry = tool_registry
+        self.retrieval_engine = retrieval_engine
 
     def _semantic_contract_mode(self) -> str:
         """Resolve semantic-contract mode for Phase 2 rollout."""
@@ -620,6 +622,9 @@ class ConversationService:
 
         if self.tool_registry:
             ctx["tool_registry"] = self.tool_registry
+
+        if self.retrieval_engine:
+            ctx["retrieval_engine"] = self.retrieval_engine
 
         if tenant_id:
             ctx["tenant_id"] = tenant_id

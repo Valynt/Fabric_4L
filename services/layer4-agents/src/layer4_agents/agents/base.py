@@ -261,6 +261,11 @@ class BaseAgent(ABC):
         mode = os.getenv("AGENT_SEMANTIC_CONTRACT_MODE", "warn").strip().lower()
         return "strict" if mode == "strict" else "warn"
 
+    def _replay_enabled(self) -> bool:
+        """Resolve GATE Phase 3 replay snapshot commit mode."""
+
+        return os.getenv("AGENT_REPLAY_MODE", "enabled").lower() != "disabled"
+
     def _validate_agent_output_contract(
         self,
         result: dict[str, Any],
@@ -376,6 +381,30 @@ class BaseAgent(ABC):
             except ImportError:
                 pass  # GATE not installed — graceful degradation
 
+        # ── GATE Phase 3: MemoryGateway injection ──
+        memory_gateway = None
+        if "memory_gateway" in ctx:
+            memory_gateway = ctx["memory_gateway"]
+        elif "retrieval_engine" in ctx and self.abom is not None:
+            try:
+                from value_fabric.shared.governance.memory_gateway import MemoryGateway
+
+                memory_gateway = MemoryGateway(
+                    retrieval_engine=ctx["retrieval_engine"],
+                    tenant_id=ctx.get("tenant_id"),
+                    agent_id=self.agent_id,
+                    trace_id=ctx.get("trace_id"),
+                    source_blocklist=ctx.get("memory_source_blocklist"),
+                )
+                ctx["memory_gateway"] = memory_gateway
+            except ImportError:
+                pass
+
+        if memory_gateway is not None:
+            # ctx was already snapshotted into state.context, so mirror the
+            # injected gateway back so that persisted state reflects it.
+            self.state.context["memory_gateway"] = memory_gateway
+
         # ── GATE Phase 3: ReplayRecorder injection ──
         replay_recorder = None
         if tool_gateway is not None:
@@ -413,9 +442,12 @@ class BaseAgent(ABC):
             self.state.completed_at = self._clock.now()
 
             # ── GATE Phase 3: Commit replay snapshot ──
-            if replay_recorder is not None and tool_gateway is not None:
+            if self._replay_enabled() and replay_recorder is not None and tool_gateway is not None:
                 replay_recorder.record_tool_invocations(tool_gateway.invocation_log)
+                if memory_gateway is not None:
+                    replay_recorder.record_memory_accesses(memory_gateway.access_log)
                 await replay_recorder.commit()
+                self.state.metadata["replay_committed"] = True
 
             # Send completion event
             if self.message_bus:

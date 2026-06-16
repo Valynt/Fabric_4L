@@ -15,12 +15,12 @@ GATE Framework §3.2 — ReplayRecorder
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome, ReplaySnapshotRecord
 from value_fabric.shared.crypto.canonical import canonical_hash
+from value_fabric.shared.testability import Clock, SystemClock
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class ReplayRecorder:
         abom: Any | None = None,
         tenant_id: str | None = None,
         trace_id: str | None = None,
+        clock: Clock | None = None,
     ) -> None:
         self._agent_id = agent_id
         self._agent_type = agent_type
@@ -55,7 +56,8 @@ class ReplayRecorder:
         self._trace_id = trace_id
         self._tool_invocations: list[dict[str, Any]] = []
         self._memory_accesses: list[dict[str, Any]] = []
-        self._started_at: str = datetime.now(timezone.utc).isoformat()
+        self._clock = clock or SystemClock()
+        self._started_at: str = self._clock.now().isoformat()
         self._committed = False
 
     def record_tool_invocations(self, invocations: list[dict[str, Any]]) -> None:
@@ -91,14 +93,24 @@ class ReplayRecorder:
             "tenant_id": self._tenant_id,
             "trace_id": self._trace_id,
             "started_at": self._started_at,
-            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": self._clock.now().isoformat(),
             "tool_invocations": self._tool_invocations,
             "memory_accesses": self._memory_accesses,
             "tool_invocation_count": len(self._tool_invocations),
             "memory_access_count": len(self._memory_accesses),
         }
 
-        snapshot["snapshot_hash"] = canonical_hash(snapshot)
+        stable_payload = {
+            "agent_id": snapshot["agent_id"],
+            "agent_type": snapshot["agent_type"],
+            "manifest_hash": snapshot["manifest_hash"],
+            "tenant_id": snapshot["tenant_id"],
+            "trace_id": snapshot["trace_id"],
+            "started_at": snapshot["started_at"],
+            "tool_invocations": snapshot["tool_invocations"],
+            "memory_accesses": snapshot["memory_accesses"],
+        }
+        snapshot["snapshot_hash"] = canonical_hash(stable_payload)
         return snapshot
 
     async def commit(self) -> dict[str, Any]:
@@ -118,7 +130,6 @@ class ReplayRecorder:
             raise RuntimeError("ReplayRecorder.commit() already called for this run")
 
         snapshot = self.build_snapshot()
-        self._committed = True
 
         record = ReplaySnapshotRecord(
             agent_id=self._agent_id,
@@ -142,6 +153,8 @@ class ReplayRecorder:
             details=record.model_dump(),
             chain_id=f"{self._tenant_id or 'global'}:replay:{self._agent_type}",
         )
+
+        self._committed = True
 
         logger.info(
             "Replay snapshot committed: agent=%s hash=%s tools=%d memory=%d",
