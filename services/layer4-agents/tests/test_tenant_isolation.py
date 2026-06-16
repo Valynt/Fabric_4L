@@ -138,7 +138,7 @@ class TestRequireTenantContextDependency:
     @pytest.mark.asyncio
     async def test_raises_400_when_tenant_id_missing(self):
         """Should raise HTTPException 400 when tenant_id is missing."""
-        ctx = RequestContext()  # No tenant_id
+        ctx = RequestContext(user_id=uuid.uuid4())  # tenant_id missing
 
         with pytest.raises(HTTPException) as exc_info:
             await require_tenant_context(ctx)
@@ -150,7 +150,7 @@ class TestRequireTenantContextDependency:
     async def test_returns_context_when_tenant_id_present(self):
         """Should return context unchanged when tenant_id is present."""
         tenant_id = uuid.uuid4()
-        ctx = RequestContext(tenant_id=tenant_id)
+        ctx = RequestContext(tenant_id=tenant_id, user_id=uuid.uuid4())
 
         result = await require_tenant_context(ctx)
 
