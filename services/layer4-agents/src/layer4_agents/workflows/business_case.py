@@ -1118,6 +1118,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 workflow_type="business_case",
                 tenant_id=str(state.metadata.get("authenticated_tenant_id")) if state.metadata and state.metadata.get("authenticated_tenant_id") else "",
                 trace_id=state.metadata.get("trace_id") or state.metadata.get("run_id") if state.metadata else None,
+            ).to_dict()
 
         trace_id = state.metadata.get("trace_id") or state.metadata.get("run_id") if state.metadata else None
         account_name = (
