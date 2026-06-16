@@ -18,14 +18,21 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import structlog
+import os
 import time
 from base64 import b64decode, b64encode
 from enum import StrEnum
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request, status
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, BadRequestError, ConflictError, ServiceUnavailableError
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    ServiceUnavailableError,
+)
+from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
 from app.core.clerk_config import get_auth_settings
@@ -33,6 +40,10 @@ from app.core.clerk_config import get_auth_settings
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
+
+_clerk_ip_limiter = IPRateLimitDependency(
+    requests_per_minute=int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", "30"))
+)
 
 
 class ClerkEventType(StrEnum):
@@ -171,7 +182,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
 
 
 @router.post("/clerk", status_code=status.HTTP_204_NO_CONTENT)
-async def clerk_webhook(request: Request) -> None:
+async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limiter)) -> None:
     settings = get_auth_settings()
     if settings.clerk is None or not settings.clerk.webhook_secret:
         # Webhook endpoint is silent until configured.
