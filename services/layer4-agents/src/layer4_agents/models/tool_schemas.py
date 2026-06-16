@@ -56,6 +56,7 @@ class QueryGraphInput(BaseModel):
     cypher_query: str = Field(..., description="Cypher query to execute")
     parameters: dict[str, Any] = Field(default_factory=dict)
     read_only: bool = True
+    tenant_id: str | None = Field(default=None, description="Owning tenant for queries run outside a request context")
 
 
 class QueryGraphOutput(BaseModel):
@@ -279,6 +280,7 @@ class GetProspectDataInput(BaseModel):
     data_types: list[str] = Field(
         default_factory=lambda: ["profile", "interactions", "opportunities"]
     )
+    prospect_data: dict[str, Any] = Field(default_factory=dict)
 
 
 class GetProspectDataOutput(BaseModel):
@@ -403,7 +405,7 @@ class AssembleDocumentInput(BaseModel):
 
     sections: list[dict[str, Any]]
     template: str = "business_case"
-    output_format: Literal["pdf", "docx", "html"] = "pdf"
+    output_format: Literal["pdf", "docx", "html", "json"] = "pdf"
     branding: dict[str, Any] | None = None
 
 

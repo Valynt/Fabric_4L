@@ -41,6 +41,7 @@ from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
 from ..services.governed_llm_client import GovernedLLMClient
+from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 
 
@@ -346,7 +347,7 @@ class NarrativeBuilderService:
                 max_tokens=exec_tmpl.max_tokens,
                 call_id=f"nb_exec_{trace_id or 'unknown'}",
             )
-            exec_data = client._parse_json(exec_result.content)
+            exec_data = parse_llm_json(exec_result.content)
 
             # ── Step 2: value narrative ─────────────────────────────────
             roi_hyps = [
@@ -368,7 +369,7 @@ class NarrativeBuilderService:
                 max_tokens=value_tmpl.max_tokens,
                 call_id=f"nb_value_{trace_id or 'unknown'}",
             )
-            value_data = client._parse_json(value_result.content)
+            value_data = parse_llm_json(value_result.content)
 
             # ── Step 3: risk narrative ──────────────────────────────────
             risk_signals = [
@@ -387,7 +388,7 @@ class NarrativeBuilderService:
                 max_tokens=risk_tmpl.max_tokens,
                 call_id=f"nb_risk_{trace_id or 'unknown'}",
             )
-            risk_data = client._parse_json(risk_result.content)
+            risk_data = parse_llm_json(risk_result.content)
 
             total_prompt = exec_result.prompt_tokens + value_result.prompt_tokens + risk_result.prompt_tokens
             total_completion = exec_result.completion_tokens + value_result.completion_tokens + risk_result.completion_tokens

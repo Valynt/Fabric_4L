@@ -123,7 +123,13 @@ def build_lifespan(
 
         # The tool registry must share the production Redis client so that
         # idempotent tool results survive pod restarts.
-        tool_registry = create_default_registry(redis_client=startup_redis_client)
+        tool_config = {
+            "neo4j_uri": os.getenv("NEO4J_URI", "bolt://neo4j:7687"),
+            "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
+            "neo4j_password": os.getenv("NEO4J_PASSWORD"),
+            "database": os.getenv("NEO4J_DATABASE", "valuefabric"),
+        }
+        tool_registry = create_default_registry(config=tool_config, redis_client=startup_redis_client)
 
         redis_status = await check_redis_ready(getattr(runtime_state.state_manager, "redis_client", None))
         if not redis_status.ok:

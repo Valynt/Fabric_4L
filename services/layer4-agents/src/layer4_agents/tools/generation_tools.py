@@ -364,6 +364,8 @@ class AssembleDocumentTool(BaseTool):
             doc_bytes = await self._generate_docx(sections, branding)
         elif output_format == "html":
             doc_bytes = await self._generate_html(sections, branding)
+        elif output_format == "json":
+            doc_bytes = await self._generate_json(sections, branding)
         else:
             doc_bytes = await self._generate_pdf(sections, branding)
 
@@ -414,6 +416,18 @@ class AssembleDocumentTool(BaseTool):
         """Generate HTML document."""
         html = await self._generate_html_content(sections, branding)
         return html.encode("utf-8")
+
+    async def _generate_json(self, sections: list[dict], branding: dict) -> bytes:
+        """Generate a structured JSON representation of the business case."""
+        import json as _json
+
+        payload = {
+            "title": branding.get("title", "Business Case"),
+            "company_name": branding.get("company_name", "Company Name"),
+            "date": branding.get("date", "2024"),
+            "sections": sections,
+        }
+        return _json.dumps(payload, indent=2, default=str).encode("utf-8")
 
     async def _generate_html_content(self, sections: list[dict], branding: dict) -> str:
         """Generate HTML content."""

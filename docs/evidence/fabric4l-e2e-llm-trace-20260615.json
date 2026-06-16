@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "run_date": "2026-06-16T17:13:37.132604+00:00",
+    "verdict": "REAL_LLM_INVOKED_L4_WORKFLOW_DEGRADED",
+    "reason": "together API key configured; Layer 4 built-in workflows still have internal errors"
+  },
+  "provider_configuration": {
+    "llm_provider": "together",
+    "layer4_llm_provider": "together",
+    "llm_model_env": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "layer4_default_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "layer4_together_base_url": "https://api.together.ai/v1"
+  },
+  "credential_check": {
+    "TOGETHER_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    },
+    "LAYER4_TOGETHER_API_KEY": {
+      "set": true,
+      "value_redacted": null
+    },
+    "OPENAI_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    },
+    "ANTHROPIC_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    }
+  },
+  "intended_invocations": [
+    {
+      "step": "l4_roi_analysis",
+      "endpoint": "POST /v1/analysis/roi",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "purpose": "Generate ROI scenarios from value drivers for Nexus Analytics"
+    },
+    {
+      "step": "l4_create_case",
+      "endpoint": "POST /v1/cases",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "purpose": "Synthesize business-case narrative with evidence trace"
+    }
+  ],
+  "actual_invocations": [
+    {
+      "provider": "together",
+      "model_requested": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "model_resolved": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "endpoint": "https://api.together.ai/v1/chat/completions",
+      "prompt_template": "value-engineering-hypothesis-for-nexus-analytics",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a concise value engineer for a B2B SaaS platform."
+        },
+        {
+          "role": "user",
+          "content": "Nexus Analytics is a 350-person B2B SaaS company with $45M ARR. They struggle with inconsistent discovery, weak business cases, slow SE/AE handoffs, poor value proof, and limited reuse of deal knowledge. Write a 3-sentence value hypothesis for how a GTM value-engineering workflow platform could help them."
+        }
+      ],
+      "response_status": 200,
+      "response_payload": {
+        "id": "ooRYXWE-3pDw3Z-a0cb722b7eb3dba1",
+        "object": "chat.completion",
+        "created": 1781630015,
+        "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "prompt": [],
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "seed": 13589641717964230000,
+            "index": 0,
+            "logprobs": null,
+            "message": {
+              "role": "assistant",
+              "content": "By implementing a GTM value-engineering workflow platform, Nexus Analytics can standardize and streamline their discovery process, enabling consistent and high-quality business case development that accelerates sales cycles and improves win rates. This platform can also facilitate seamless handoffs between Sales Engineers (SEs) and Account Executives (AEs), ensuring that critical deal knowledge and value insights are retained and reused across opportunities. Ultimately, the platform can help Nexus Analytics scale their value-selling capabilities, driving revenue growth and expanding their average deal size by providing actionable value proof and repeatable success stories that resonate with customers and stakeholders.",
+              "tool_calls": []
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 120,
+          "completion_tokens": 120,
+          "total_tokens": 240,
+          "cached_tokens": 0
+        }
+      },
+      "latency_ms": 1923.21,
+      "token_usage": {
+        "prompt_tokens": 120,
+        "completion_tokens": 120,
+        "total_tokens": 240,
+        "cached_tokens": 0
+      }
+    }
+  ],
+  "notes": [
+    "A real together LLM call succeeded using the configured API key.",
+    "Layer 4's /v1/analysis/roi and /v1/cases endpoints still fail internally (LangGraph InvalidUpdateError / tool tenant-context / checkpoints issues), so they did not themselves dispatch an LLM request."
+  ]
+}

@@ -40,17 +40,20 @@ def upgrade() -> None:
 
     # Create tenant isolation policy for each table
     # Uses current_setting('app.tenant_id') set by SET LOCAL
+    # NOTE: at this point in the migration history the tenant column is named
+    # organization_id. Migration 006 replaces these policies with tenant_id
+    # variants after the rename.
     for table in RLS_TABLES:
         # Tenant users can only see their own rows
         op.execute(f"""
-            CREATE POLICY tenant_isolation_policy ON {table}
+            CREATE POLICY organization_isolation_policy ON {table}
                 FOR ALL
                 TO PUBLIC
                 USING (
-                    tenant_id::text = current_setting('app.tenant_id', true)
+                    organization_id::text = current_setting('app.tenant_id', true)
                 )
                 WITH CHECK (
-                    tenant_id::text = current_setting('app.tenant_id', true)
+                    organization_id::text = current_setting('app.tenant_id', true)
                 )
         """)
 
@@ -73,7 +76,7 @@ def downgrade() -> None:
 
     # Drop policies
     for table in RLS_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(f"DROP POLICY IF EXISTS organization_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
     # Disable RLS

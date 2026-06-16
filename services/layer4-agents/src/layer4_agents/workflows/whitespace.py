@@ -23,6 +23,7 @@ from ..models.agent_state import (
 from ..models.workflow_config import WHITESPACE_WORKFLOW_CONFIG
 from ..services.governed_llm_client import GovernedLLMClient
 from ..services.llm_budget_guardrails import LLMBudgetExceededError, get_llm_budget_guardrails
+from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 from ..tools.registry import ToolRegistry, ToolResult
 from .base import BaseWorkflow
@@ -535,7 +536,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                 max_tokens=extraction_tmpl.max_tokens,
                 call_id=f"ws_extract_{trace_id or 'unknown'}",
             )
-            extracted = client._parse_json(extraction_result.content)  # type: ignore[attr-defined]
+            extracted = parse_llm_json(extraction_result.content)
 
             # ── Step 2: gap analysis ────────────────────────────────────
             gaps_prior = state.output_data.get("identify_gaps", {})  # type: ignore[union-attr]
@@ -560,7 +561,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                 max_tokens=gap_tmpl.max_tokens,
                 call_id=f"ws_gap_{trace_id or 'unknown'}",
             )
-            gap_analysis = client._parse_json(gap_result.content)  # type: ignore[attr-defined]
+            gap_analysis = parse_llm_json(gap_result.content)
 
             # ── Step 3: hypothesis generation ──────────────────────────
             score_prior = state.output_data.get("score_opportunity", {})  # type: ignore[union-attr]
@@ -578,7 +579,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                 response_format={"type": "json_object"},
                 call_id=f"ws_hyp_{trace_id or 'unknown'}",
             )
-            hypotheses = client._parse_json(hyp_result.content)  # type: ignore[attr-defined]
+            hypotheses = parse_llm_json(hyp_result.content)
             if not hypotheses or "hypotheses" not in hypotheses:
                 raise ValueError("invalid_structured_output")
 
