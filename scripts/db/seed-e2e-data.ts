@@ -546,23 +546,38 @@ async function upsertAccount(account: typeof MERIDIAN_FIXTURE.account): Promise<
   throw new Error(`Unable to seed account ${account.name}: status ${createResult.status}`);
 }
 
-async function ensureCase(accountId: string, caseData: typeof MERIDIAN_FIXTURE.case) {
-  // Check if case already exists
+async function ensureCase(
+  accountId: string,
+  caseData: typeof MERIDIAN_FIXTURE.case,
+  deterministicCaseId?: string,
+): Promise<string | undefined> {
   const existing = await api('GET', `/v1/cases?account_id=${accountId}`);
   const items = Array.isArray((existing.data as any)?.items)
     ? (existing.data as any).items
     : [];
 
-  if (items.length > 0) {
+  const matched = deterministicCaseId
+    ? items.find((item: any) => (item.case_id || item.id) === deterministicCaseId)
+    : undefined;
+  if (matched) {
+    console.log(`  ✓ Case ${deterministicCaseId} already exists`);
+    return deterministicCaseId;
+  }
+
+  if (items.length > 0 && !deterministicCaseId) {
     console.log(`  ✓ Case already exists for account ${accountId}`);
     return items[0].case_id || items[0].id;
   }
 
-  // Create case
-  const result = await api('POST', '/v1/cases', {
+  const body: Record<string, unknown> = {
     account_id: accountId,
     title: caseData.title,
-  });
+  };
+  if (deterministicCaseId) {
+    body.case_id = deterministicCaseId;
+  }
+
+  const result = await api('POST', '/v1/cases', body);
 
   const caseId = (result.data as any)?.case_id || (result.data as any)?.id;
   if (caseId) {
@@ -646,6 +661,7 @@ async function main() {
   const caseId = await ensureCase(
     backendAccountId,
     MERIDIAN_FIXTURE.case,
+    MERIDIAN_BUSINESS_CASE_ID,
   );
 
   if (!caseId) {
