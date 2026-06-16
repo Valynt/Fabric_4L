@@ -11,9 +11,11 @@
  * home <-> sign-in transition clean and avoids that notice.
  */
 import { SignIn, useAuth } from "@clerk/react";
+import { useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { LoginForm } from "@/components/login-form";
 
 /**
  * Returns a safe, app-internal redirect target from the `redirect_url` query
@@ -59,14 +61,24 @@ function ClerkSignInInner() {
 }
 
 export default function ClerkSignInPage() {
-  // Under legacy auth there is no ClerkProvider mounted and no Clerk session
-  // to consult. Render a legacy-compatible placeholder that redirects to the
-  // legacy login route so the app does not crash on the Clerk <SignIn />
-  // component.
+  const [legacyError, setLegacyError] = useState<string | null>(null);
+
+  // Under legacy auth there is no ClerkProvider mounted and no Clerk session to
+  // consult. Render the existing local login surface instead of redirecting
+  // between /sign-in and /login.
   if (!isClerkAuthEnabled()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <Navigate to="/login" replace />
+        <LoginForm
+          className="w-full max-w-md"
+          error={legacyError}
+          onLogin={async () => {
+            setLegacyError("Legacy email and password sign-in is not available in this environment.");
+          }}
+          onSSOProvider={() => {
+            setLegacyError("Single sign-on is not configured for legacy auth in this environment.");
+          }}
+        />
       </div>
     );
   }

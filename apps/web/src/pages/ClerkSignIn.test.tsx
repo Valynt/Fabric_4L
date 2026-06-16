@@ -13,7 +13,8 @@
  *     afterSignInUrl (no open redirect).
  *   - Signed-out user renders <SignIn />.
  *   - While Clerk is loading, neither <SignIn /> nor a redirect occurs.
- *   - Legacy mode renders <SignIn /> unconditionally (no Clerk session).
+ *   - Legacy mode renders the local login surface and does not bounce between
+ *     `/sign-in` and `/login`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -129,13 +130,14 @@ describe("<ClerkSignInPage />", () => {
     expect(screen.queryByText(HOME_MARKER)).not.toBeInTheDocument();
   });
 
-  it("renders <SignIn /> unconditionally under legacy auth (no Clerk session)", () => {
+  it("renders the local login surface under legacy auth without redirecting", () => {
     mockClerkConfig.clerkEnabled = false;
     mockAuthState.isSignedIn = true; // even if a stale Clerk session reports signed-in
 
     renderAt("/sign-in");
 
-    expect(screen.getByTestId("clerk-signin")).toBeInTheDocument();
+    expect(screen.getByTestId("login-heading")).toBeInTheDocument();
+    expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
     expect(screen.queryByText(HOME_MARKER)).not.toBeInTheDocument();
   });
 });

@@ -23,10 +23,16 @@ const deferredIntelligenceTabs: Record<string, { flag: string; owner: string }> 
   },
 };
 
+const deferredIntelligenceTabFlagValues: Record<string, string | undefined> = {
+  VITE_ENABLE_IW_ONTOLOGY_MATCH_TAB: import.meta.env.VITE_ENABLE_IW_ONTOLOGY_MATCH_TAB,
+  VITE_ENABLE_IW_ALTERNATIVES_TAB: import.meta.env.VITE_ENABLE_IW_ALTERNATIVES_TAB,
+  VITE_ENABLE_IW_SOLUTION_COST_TAB: import.meta.env.VITE_ENABLE_IW_SOLUTION_COST_TAB,
+};
+
 function isDeferredTabEnabled(tabId: string): boolean {
   const config = deferredIntelligenceTabs[tabId];
   if (!config) return true;
-  return import.meta.env[config.flag] === "true";
+  return deferredIntelligenceTabFlagValues[config.flag] === "true";
 }
 
 // ── Lazy-loaded tab components ────────────────────────────────────────────────

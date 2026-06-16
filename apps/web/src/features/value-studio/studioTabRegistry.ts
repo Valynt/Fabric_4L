@@ -15,10 +15,14 @@ const deferredStudioTabs: Record<string, { flag: string; owner: string }> = {
   },
 };
 
+const deferredStudioTabFlagValues: Record<string, string | undefined> = {
+  VITE_ENABLE_VS_SOLUTION_COST_TAB: import.meta.env.VITE_ENABLE_VS_SOLUTION_COST_TAB,
+};
+
 function isDeferredTabEnabled(tabId: string): boolean {
   const config = deferredStudioTabs[tabId];
   if (!config) return true;
-  return import.meta.env[config.flag] === "true";
+  return deferredStudioTabFlagValues[config.flag] === "true";
 }
 
 // ── Lazy-loaded tab components ────────────────────────────────────────────────

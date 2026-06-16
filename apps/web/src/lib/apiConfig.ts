@@ -11,13 +11,30 @@ function isProductionApiConfig(): boolean {
   return import.meta.env.PROD || import.meta.env.VITE_APP_ENV === "production";
 }
 
+const API_CONFIG_ENV_VALUES: Record<string, string | undefined> = {
+  VITE_API_VERSION_PREFIX: import.meta.env.VITE_API_VERSION_PREFIX,
+  VITE_API_BASE: import.meta.env.VITE_API_BASE,
+  VITE_LAYER1_ROUTE_PREFIX: import.meta.env.VITE_LAYER1_ROUTE_PREFIX,
+  VITE_L1_PREFIX: import.meta.env.VITE_L1_PREFIX,
+  VITE_LAYER2_ROUTE_PREFIX: import.meta.env.VITE_LAYER2_ROUTE_PREFIX,
+  VITE_L2_PREFIX: import.meta.env.VITE_L2_PREFIX,
+  VITE_LAYER3_ROUTE_PREFIX: import.meta.env.VITE_LAYER3_ROUTE_PREFIX,
+  VITE_L3_PREFIX: import.meta.env.VITE_L3_PREFIX,
+  VITE_LAYER4_ROUTE_PREFIX: import.meta.env.VITE_LAYER4_ROUTE_PREFIX,
+  VITE_L4_PREFIX: import.meta.env.VITE_L4_PREFIX,
+  VITE_LAYER5_ROUTE_PREFIX: import.meta.env.VITE_LAYER5_ROUTE_PREFIX,
+  VITE_L5_PREFIX: import.meta.env.VITE_L5_PREFIX,
+  VITE_LAYER6_ROUTE_PREFIX: import.meta.env.VITE_LAYER6_ROUTE_PREFIX,
+  VITE_L6_PREFIX: import.meta.env.VITE_L6_PREFIX,
+};
+
 function getApiConfigValue(
   names: readonly string[],
   fallback: string,
   label: string
 ): string {
   for (const name of names) {
-    const value = import.meta.env[name];
+    const value = API_CONFIG_ENV_VALUES[name];
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim();
     }
