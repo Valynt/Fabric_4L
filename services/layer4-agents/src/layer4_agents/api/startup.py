@@ -231,13 +231,16 @@ async def start_optional_integrations(app: FastAPI) -> None:
             await runtime_state.crm_sync_job_runner.start()
 
     if get_settings().enable_oidc_cleanup:
-        from ..database import get_db_from_context
+        from ..database import get_session_factory
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
-            db_session_factory=get_db_from_context,
+            db_session_factory=get_session_factory(),
             interval_seconds=300.0,
         )
 
-    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
+    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001).
+    # Background tasks need a plain async-session factory (async context manager),
+    # not the request-scoped get_db_from_context() dependency which is an async
+    # generator and requires a RequestContext.
     from ..database import get_session_factory
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
     runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_session_factory())

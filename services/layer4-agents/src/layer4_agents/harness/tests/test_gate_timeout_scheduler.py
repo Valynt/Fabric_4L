@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
-from harness.gate_timeout_scheduler import (
+from layer4_agents.harness.gate_timeout_scheduler import (
     DEFAULT_GATE_TIMEOUT_SECONDS,
     GateTimeoutScheduler,
     create_gate_timeout_scheduler,

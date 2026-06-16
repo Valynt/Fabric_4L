@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.services.export_provenance import build_export_provenance_manifest
 from layer4_agents.workflows.business_case import (
@@ -14,7 +15,6 @@ from layer4_agents.workflows.business_case import (
     MissingTenantContextError,
     _to_layer5_claim_type,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class _FakeLayer5Client_list_truthsResult(TypedDictModel):
@@ -214,6 +214,9 @@ def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
         },
         tenant_id="test-tenant",
     )
+    # Simulate a forged runtime context: the raw tenant_id is present but the
+    # authenticated claim has been cleared. Only the authenticated claim is
+    # trusted by _resolve_organization_id.
     state.metadata["tenant_id"] = "forged-metadata-tenant"
     state.metadata.pop("authenticated_tenant_id", None)
     state.tenant_id = ""

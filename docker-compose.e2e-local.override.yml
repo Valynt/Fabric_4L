@@ -17,6 +17,8 @@ services:
       LAYER1_REDIS_URL: redis://redis:6379/0
       REDIS_URL: redis://redis:6379/0
       LAYER1_S3_ENDPOINT: http://minio:9000
+      EXTRACTION_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+      OPENAI_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
@@ -34,6 +36,8 @@ services:
       LAYER1_REDIS_URL: redis://redis:6379/0
       REDIS_URL: redis://redis:6379/0
       LAYER1_S3_ENDPOINT: http://minio:9000
+      EXTRACTION_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+      OPENAI_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
 
   layer2:
     env_file: [".env.generated", ".env.e2e-local"]
@@ -45,6 +49,7 @@ services:
       EXTRACTION_MODEL: e2e-local-extraction-model
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_PASSWORD: SecureLocalDevPass123
+      EXTRACTION_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
     volumes:
       - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
 

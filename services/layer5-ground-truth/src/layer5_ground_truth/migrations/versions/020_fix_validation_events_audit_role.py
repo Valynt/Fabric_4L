@@ -46,7 +46,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(f"""
+    op.execute("""
     CREATE OR REPLACE FUNCTION l5_block_audit_mutation() RETURNS trigger AS $$
     BEGIN
         IF current_user NOT IN ('system_role', 'admin_role') THEN
@@ -57,7 +57,7 @@ def downgrade() -> None:
     $$ LANGUAGE plpgsql;
     """)
 
-    op.execute(f"""
+    op.execute("""
     CREATE OR REPLACE FUNCTION l5_require_privileged_audit_insert() RETURNS trigger AS $$
     BEGIN
         IF current_user NOT IN ('system_role', 'admin_role') THEN
