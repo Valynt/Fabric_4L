@@ -27,8 +27,8 @@ async def test_value_pack_get_pack_enforces_tenant_filter():
     pack = await svc.get_pack("pack-1", tenant_id="tenant-a")
 
     assert pack is None
-    _, kwargs = session.run.call_args
-    assert kwargs["tenant_id"] == "tenant-a"
+    args, _ = session.run.call_args
+    assert args[1]["tenant_id"] == "tenant-a"
 
 
 @pytest.mark.asyncio
@@ -44,8 +44,8 @@ async def test_formula_governance_cross_tenant_formula_not_visible():
     governance = await svc.get_governance("formula-b", tenant_id="tenant-a")
 
     assert governance is None
-    _, kwargs = session.run.call_args
-    assert kwargs["tenant_id"] == "tenant-a"
+    args, _ = session.run.call_args
+    assert args[1]["tenant_id"] == "tenant-a"
 
 
 @pytest.mark.asyncio
@@ -66,8 +66,8 @@ async def test_formula_id_in_tenant_b_not_visible_from_tenant_a_regression():
 
     assert resp.success is False
     assert resp.new_status == FormulaStatus.DRAFT
-    _, kwargs = session.run.call_args
-    assert kwargs["tenant_id"] == "tenant-a"
+    args, _ = session.run.call_args
+    assert args[1]["tenant_id"] == "tenant-a"
 
 
 @pytest.mark.asyncio
@@ -101,4 +101,4 @@ async def test_execute_pack_ignores_crafted_variables_tenant_id():
 
     svc.get_pack.assert_awaited_once_with("pack-shared", "tenant-a")
     for call in session.run.call_args_list:
-        assert call.kwargs["tenant_id"] == "tenant-a"
+        assert call.args[1]["tenant_id"] == "tenant-a"

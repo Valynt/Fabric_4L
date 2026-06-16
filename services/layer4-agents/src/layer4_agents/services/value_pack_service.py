@@ -16,6 +16,8 @@ from neo4j.exceptions import Neo4jError, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
 
+from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
+
 from ..interfaces.value_pack_service import (
     BenchmarkRef,
     FormulaRef,
@@ -57,71 +59,74 @@ class Neo4jValuePackService(IValuePackService):
         """
 
         try:
-            async with self._driver.session() as session:
-                result = await session.run(
-                    query,
-                    industry=industry,
-                    status=status.value if status else None,
-                    tenant_id=tenant_id,
-                )
-                records = await result.data()
+            records = await fetch_tenant_validated_records(
+                driver=self._driver,
+                query=query,
+                params={
+                    "industry": industry,
+                    "status": status.value if status else None,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                operation="value_pack_service.list_packs",
+            )
 
-                packs = []
-                for record in records:
-                    vp = record["vp"]
-                    drivers = [
-                        ValueDriverRef(
-                            driver_id=d["id"],
-                            name=d.get("name", ""),
-                            category=d.get("category", ""),
-                            weight=1.0,
-                        )
-                        for d in record["drivers"]
-                        if d
-                    ]
-                    formulas = [
-                        FormulaRef(
-                            formula_id=f["id"],
-                            name=f.get("name", ""),
-                            version=f.get("version", "1.0.0"),
-                            variables=f.get("variables", []),
-                        )
-                        for f in record["formulas"]
-                        if f
-                    ]
-                    benchmarks = [
-                        BenchmarkRef(
-                            dataset_id=b["id"],
-                            metric=b.get("metric", ""),
-                            industry=b.get("industry", ""),
-                        )
-                        for b in record["benchmarks"]
-                        if b
-                    ]
-
-                    packs.append(
-                        ValuePack(
-                            pack_id=vp["id"],
-                            name=vp.get("name", ""),
-                            description=vp.get("description", ""),
-                            industry=vp.get("industry", ""),
-                            segment=vp.get("segment"),
-                            status=PackStatus(vp.get("status", "draft")),
-                            version=vp.get("version", "1.0.0"),
-                            value_drivers=drivers,
-                            formulas=formulas,
-                            benchmarks=benchmarks,
-                            created_at=datetime.fromisoformat(vp["createdAt"])
-                            if "createdAt" in vp
-                            else datetime.now(UTC),
-                            updated_at=datetime.fromisoformat(vp["updatedAt"])
-                            if "updatedAt" in vp
-                            else None,
-                            created_by=vp.get("createdBy"),
-                        )
+            packs = []
+            for record in records:
+                vp = record["vp"]
+                drivers = [
+                    ValueDriverRef(
+                        driver_id=d["id"],
+                        name=d.get("name", ""),
+                        category=d.get("category", ""),
+                        weight=1.0,
                     )
+                    for d in record["drivers"]
+                    if d
+                ]
+                formulas = [
+                    FormulaRef(
+                        formula_id=f["id"],
+                        name=f.get("name", ""),
+                        version=f.get("version", "1.0.0"),
+                        variables=f.get("variables", []),
+                    )
+                    for f in record["formulas"]
+                    if f
+                ]
+                benchmarks = [
+                    BenchmarkRef(
+                        dataset_id=b["id"],
+                        metric=b.get("metric", ""),
+                        industry=b.get("industry", ""),
+                    )
+                    for b in record["benchmarks"]
+                    if b
+                ]
 
-                return packs
+                packs.append(
+                    ValuePack(
+                        pack_id=vp["id"],
+                        name=vp.get("name", ""),
+                        description=vp.get("description", ""),
+                        industry=vp.get("industry", ""),
+                        segment=vp.get("segment"),
+                        status=PackStatus(vp.get("status", "draft")),
+                        version=vp.get("version", "1.0.0"),
+                        value_drivers=drivers,
+                        formulas=formulas,
+                        benchmarks=benchmarks,
+                        created_at=datetime.fromisoformat(vp["createdAt"])
+                        if "createdAt" in vp
+                        else datetime.now(UTC),
+                        updated_at=datetime.fromisoformat(vp["updatedAt"])
+                        if "updatedAt" in vp
+                        else None,
+                        created_by=vp.get("createdBy"),
+                    )
+                )
+
+            return packs
         except ServiceUnavailable as e:
             logger.error("Neo4j service unavailable", exc_info=True)
             raise RuntimeError("Database service unavailable") from e
@@ -142,45 +147,50 @@ class Neo4jValuePackService(IValuePackService):
                collect(DISTINCT b) as benchmarks
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(query, pack_id=pack_id, tenant_id=tenant_id)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"pack_id": pack_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="value_pack_service.get_pack",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return None
+        if not record:
+            return None
 
-            vp = record["vp"]
-            drivers = [
-                ValueDriverRef(
-                    driver_id=d["id"],
-                    name=d.get("name", ""),
-                    category=d.get("category", ""),
-                    weight=1.0,
-                )
-                for d in record["drivers"]
-                if d
-            ]
-            formulas = [
-                FormulaRef(
-                    formula_id=f["id"],
-                    name=f.get("name", ""),
-                    version=f.get("version", "1.0.0"),
-                    variables=f.get("variables", []),
-                )
-                for f in record["formulas"]
-                if f
-            ]
-            benchmarks = [
-                BenchmarkRef(
-                    dataset_id=b["id"],
-                    metric=b.get("metric", ""),
-                    industry=b.get("industry", ""),
-                )
-                for b in record["benchmarks"]
-                if b
-            ]
+        vp = record["vp"]
+        drivers = [
+            ValueDriverRef(
+                driver_id=d["id"],
+                name=d.get("name", ""),
+                category=d.get("category", ""),
+                weight=1.0,
+            )
+            for d in record["drivers"]
+            if d
+        ]
+        formulas = [
+            FormulaRef(
+                formula_id=f["id"],
+                name=f.get("name", ""),
+                version=f.get("version", "1.0.0"),
+                variables=f.get("variables", []),
+            )
+            for f in record["formulas"]
+            if f
+        ]
+        benchmarks = [
+            BenchmarkRef(
+                dataset_id=b["id"],
+                metric=b.get("metric", ""),
+                industry=b.get("industry", ""),
+            )
+            for b in record["benchmarks"]
+            if b
+        ]
 
-            return ValuePack(
+        return ValuePack(
                 pack_id=vp["id"],
                 name=vp.get("name", ""),
                 description=vp.get("description", ""),
@@ -218,15 +228,19 @@ class Neo4jValuePackService(IValuePackService):
         RETURN vp
         """
 
-        async with self._driver.session() as session:
-            now = datetime.now(UTC).isoformat()
-            await session.run(
-                query,
-                pack_id=pack_id,
-                workspace_id=workspace_id,
-                tenant_id=tenant_id,
-                loaded_at=now,
-            )
+        now = datetime.now(UTC).isoformat()
+        await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "pack_id": pack_id,
+                "workspace_id": workspace_id,
+                "tenant_id": tenant_id,
+                "loaded_at": now,
+            },
+            tenant_id=tenant_id,
+            operation="value_pack_service.load_pack_into_workspace",
+        )
 
         pack.is_loaded = True
         pack.workspace_id = workspace_id
@@ -266,17 +280,21 @@ class Neo4jValuePackService(IValuePackService):
         RETURN pe
         """
 
-        async with self._driver.session() as session:
-            started_at = datetime.now(UTC).isoformat()
-            await session.run(
-                query,
-                pack_id=request.pack_id,
-                execution_id=execution_id,
-                workspace_id=request.workspace_id,
-                variables=request.variables,
-                started_at=started_at,
-                tenant_id=tenant_id,
-            )
+        started_at = datetime.now(UTC).isoformat()
+        await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "pack_id": request.pack_id,
+                "execution_id": execution_id,
+                "workspace_id": request.workspace_id,
+                "variables": request.variables,
+                "started_at": started_at,
+                "tenant_id": tenant_id,
+            },
+            tenant_id=tenant_id,
+            operation="value_pack_service.execute_pack.create_execution",
+        )
 
         # Execute formulas using calculation tool
         formula_tool = EvaluateFormulaTool()
@@ -315,24 +333,28 @@ class Neo4jValuePackService(IValuePackService):
 
         # Update execution status
         complete_query = """
-        MATCH (pe:PackExecution {id: $execution_id})
+        MATCH (pe:PackExecution {id: $execution_id, tenant_id: $tenant_id})
         SET pe.status = $status,
             pe.outputs = $outputs,
             pe.errors = $errors,
             pe.completedAt = $completed_at
         """
 
-        async with self._driver.session() as session:
-            completed_at = datetime.now(UTC).isoformat()
-            await session.run(
-                complete_query,
-                execution_id=execution_id,
-                status=final_status,
-                outputs=outputs,
-                errors=errors,
-                completed_at=completed_at,
-                tenant_id=tenant_id,
-            )
+        completed_at = datetime.now(UTC).isoformat()
+        await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=complete_query,
+            params={
+                "execution_id": execution_id,
+                "status": final_status,
+                "outputs": outputs,
+                "errors": errors,
+                "completed_at": completed_at,
+                "tenant_id": tenant_id,
+            },
+            tenant_id=tenant_id,
+            operation="value_pack_service.complete_execution",
+        )
 
         return PackExecutionResult(
             execution_id=execution_id,
@@ -390,42 +412,46 @@ class Neo4jValuePackService(IValuePackService):
         RETURN new
         """
 
-        async with self._driver.session() as session:
-            created_at = datetime.now(UTC).isoformat()
-            result = await session.run(
-                query,
-                old_pack_id=pack_id,
-                new_pack_id=new_pack_id,
-                name=modifications.get("name", f"{original.name} (Custom)"),
-                description=modifications.get("description", original.description),
-                industry=modifications.get("industry", original.industry),
-                segment=modifications.get("segment", original.segment),
-                version=new_version,
-                workspace_id=workspace_id,
-                created_at=created_at,
-                created_by=modifications.get("user_id"),
-                tenant_id=tenant_id,
-            )
-            record = await result.single()
+        created_at = datetime.now(UTC).isoformat()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "old_pack_id": pack_id,
+                "new_pack_id": new_pack_id,
+                "name": modifications.get("name", f"{original.name} (Custom)"),
+                "description": modifications.get("description", original.description),
+                "industry": modifications.get("industry", original.industry),
+                "segment": modifications.get("segment", original.segment),
+                "version": new_version,
+                "workspace_id": workspace_id,
+                "created_at": created_at,
+                "created_by": modifications.get("user_id"),
+                "tenant_id": tenant_id,
+            },
+            tenant_id=tenant_id,
+            operation="value_pack_service.customize_pack",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                raise ValueError("Failed to create customized pack")
+        if not record:
+            raise ValueError("Failed to create customized pack")
 
-            new_vp = record["new"]
+        new_vp = record["new"]
 
-            return ValuePack(
-                pack_id=new_vp["id"],
-                name=new_vp["name"],
-                description=new_vp["description"],
-                industry=new_vp["industry"],
-                segment=new_vp.get("segment"),
-                status=PackStatus.DRAFT,
-                version=new_vp["version"],
-                created_at=datetime.fromisoformat(new_vp["createdAt"]),
-                workspace_id=workspace_id,
-                is_loaded=True,
-                created_by=new_vp.get("createdBy"),
-            )
+        return ValuePack(
+            pack_id=new_vp["id"],
+            name=new_vp["name"],
+            description=new_vp["description"],
+            industry=new_vp["industry"],
+            segment=new_vp.get("segment"),
+            status=PackStatus.DRAFT,
+            version=new_vp["version"],
+            created_at=datetime.fromisoformat(new_vp["createdAt"]),
+            workspace_id=workspace_id,
+            is_loaded=True,
+            created_by=new_vp.get("createdBy"),
+        )
 
     async def save_pack(self, pack: ValuePack, tenant_id: str) -> ValuePack:
         """Save pack (create new version or update draft)."""
@@ -441,26 +467,30 @@ class Neo4jValuePackService(IValuePackService):
         RETURN vp
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                pack_id=pack.pack_id,
-                name=pack.name,
-                description=pack.description,
-                industry=pack.industry,
-                segment=pack.segment,
-                status=pack.status.value,
-                version=pack.version,
-                updated_at=datetime.now(UTC).isoformat(),
-                tenant_id=tenant_id,
-            )
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "pack_id": pack.pack_id,
+                "name": pack.name,
+                "description": pack.description,
+                "industry": pack.industry,
+                "segment": pack.segment,
+                "status": pack.status.value,
+                "version": pack.version,
+                "updated_at": datetime.now(UTC).isoformat(),
+                "tenant_id": tenant_id,
+            },
+            tenant_id=tenant_id,
+            operation="value_pack_service.update_pack",
+        )
+        record = records[0] if records else None
 
-            if record:
-                vp = record["vp"]
-                pack.updated_at = datetime.fromisoformat(vp["updatedAt"])
+        if record:
+            vp = record["vp"]
+            pack.updated_at = datetime.fromisoformat(vp["updatedAt"])
 
-            return pack
+        return pack
 
     def _increment_version(self, version: str) -> str:
         """Increment patch version number."""

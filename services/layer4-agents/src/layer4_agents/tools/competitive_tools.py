@@ -27,6 +27,8 @@ A competitive fact is only included if it affects:
 import logging
 from typing import Any
 
+from layer4_agents.config.settings import get_settings
+
 from ..contracts.artifacts import (
     CompetitiveBaseline,
     CompetitiveIntelArtifact,
@@ -40,6 +42,10 @@ from ..services.llm_provider import LLMProvider, get_llm_provider
 from .registry import BaseTool
 
 logger = logging.getLogger(__name__)
+
+
+class ConfigurationError(ValueError):
+    """Raised when a tool is misconfigured (e.g., missing a required secret)."""
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +147,7 @@ class AnalyzeCompetitionInput(BaseModel):
     # Knowledge Graph query config
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "password"
+    neo4j_password: str | None = None
     database: str = "valuefabric"
 
 
@@ -237,11 +243,15 @@ Return a JSON array of EconomicDifference objects with these fields:
         Returns a dict of competitor facts extracted from the graph.
         Falls back gracefully if the competitor is not yet in the graph.
         """
+        password = neo4j_password or get_settings().neo4j_password
+        if not password:
+            raise ConfigurationError("Neo4j password is required")
+
         try:
             from neo4j import AsyncGraphDatabase  # type: ignore[import]
 
             driver = AsyncGraphDatabase.driver(
-                neo4j_uri, auth=(neo4j_user, neo4j_password)
+                neo4j_uri, auth=(neo4j_user, password)
             )
             async with driver.session(database=database) as session:
                 result = await session.run(

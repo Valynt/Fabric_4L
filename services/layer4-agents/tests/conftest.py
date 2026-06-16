@@ -4,8 +4,8 @@ from __future__ import annotations
 """
 
 
-import sys
 import os
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -40,6 +40,7 @@ os.environ.setdefault("LAYER4_LAYER2_API_URL", "http://localhost:8002")
 os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+os.environ.setdefault("NEO4J_PASSWORD", "test-neo4j-password")
 # Allow insecure HTTP for test environment (local development only)
 os.environ.setdefault("ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
 
@@ -121,10 +122,10 @@ def fake_crm_provider():
     yield mock_crm
 
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Role
-
 
 # ── Shared Fixtures ───────────────────────────────────────────────────────────
 
@@ -152,8 +153,8 @@ def mock_tenant_context():
 try:
     import neo4j  # noqa: F401
 except ImportError:
-    from importlib.machinery import ModuleSpec
     import types as _types
+    from importlib.machinery import ModuleSpec
     _neo4j = _types.ModuleType("neo4j")
     _neo4j.__spec__ = ModuleSpec("neo4j", loader=None, is_package=True)
     _neo4j.__path__ = []  # type: ignore[attr-defined]
@@ -181,8 +182,8 @@ except ImportError:
 try:
     from canonical.llm_output_parser import parse_llm_json  # noqa: F401
 except (ImportError, ModuleNotFoundError):
-    import types as _types
     import json as _json
+    import types as _types
 
     def _parse_llm_json(text: str):  # type: ignore[return]
         try:
@@ -204,8 +205,8 @@ except (ImportError, ModuleNotFoundError):
 try:
     from services.llm_output_parser import parse_llm_json as _  # noqa: F401
 except (ImportError, ModuleNotFoundError):
-    import types as _types
     import json as _json2
+    import types as _types
 
     def _parse_llm_json2(text: str):  # type: ignore[return]
         try:
@@ -240,8 +241,9 @@ try:
 except ImportError:
     pass
 
-import types
 import importlib.util
+import types
+
 
 def _make_pkg(name):
     m = types.ModuleType(name)
@@ -566,9 +568,10 @@ def completed_workflow_state() -> BaseAgentState:
 # ── SimpleTestWorkflow Fixture ─────────────────────────────────────────────
 # Extracted from test_checkpoint_resume.py to reduce duplication
 
+from value_fabric.shared.models.typed_dict import TypedDictModel
+
 from layer4_agents.models.workflow_config import EdgeConfig, NodeConfig, NodeType
 from layer4_agents.workflows.base import BaseWorkflow, WorkflowConfig
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class SimpleTestWorkflow__execute_toolResult(TypedDictModel):

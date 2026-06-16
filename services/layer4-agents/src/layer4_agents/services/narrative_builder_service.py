@@ -37,6 +37,8 @@ from typing import Any
 import structlog
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
+
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
 from ..services.governed_llm_client import GovernedLLMClient
@@ -637,8 +639,10 @@ class NarrativeBuilderService:
         })
         RETURN n {.*} AS narrative
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "id": narrative["id"],
                 "tenant_id": narrative["tenant_id"],
                 "account_id": narrative["account_id"],
@@ -651,8 +655,11 @@ class NarrativeBuilderService:
                 "status": narrative["status"],
                 "created_at": narrative["created_at"],
                 "updated_at": narrative["updated_at"],
-            })
-            record = await result.single()
+            },
+            tenant_id=narrative["tenant_id"],
+            operation="narrative_builder_service.store_narrative",
+        )
+        record = records[0] if records else None
 
         stored = narrative.copy()
         if record and record["narrative"]:
@@ -667,12 +674,17 @@ class NarrativeBuilderService:
         MATCH (n:Narrative {id: $narrative_id, tenant_id: $tenant_id})
         RETURN n {.*} AS narrative
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "narrative_id": narrative_id,
                 "tenant_id": tenant_id,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="narrative_builder_service.get_narrative",
+        )
+        record = records[0] if records else None
 
         if not record or not record["narrative"]:
             return None
@@ -721,13 +733,23 @@ class NarrativeBuilderService:
         SKIP $skip LIMIT $limit
         """
 
-        async with self._driver.session() as session:
-            count_result = await session.run(count_query, params)
-            count_record = await count_result.single()
-            total = count_record["total"] if count_record else 0
+        count_records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=count_query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="narrative_builder_service.list_narratives.count",
+        )
+        count_record = count_records[0] if count_records else None
+        total = count_record["total"] if count_record else 0
 
-            list_result = await session.run(list_query, params)
-            records = [record async for record in list_result]
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=list_query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="narrative_builder_service.list_narratives.list",
+        )
 
         return NarrativeBuilderService_list_narrativesResult.model_validate({
             "narratives": [r["narrative"] for r in records],
@@ -747,14 +769,19 @@ class NarrativeBuilderService:
         SET n.status = $status, n.updated_at = $now
         RETURN n {.*} AS narrative
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "narrative_id": narrative_id,
                 "tenant_id": tenant_id,
                 "status": new_status,
                 "now": now,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="narrative_builder_service.update_status",
+        )
+        record = records[0] if records else None
 
         if not record or not record["narrative"]:
             return None
@@ -777,11 +804,16 @@ class NarrativeBuilderService:
         DELETE n
         RETURN count(n) AS deleted
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "narrative_id": narrative_id,
                 "tenant_id": tenant_id,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="narrative_builder_service.delete_narrative",
+        )
+        record = records[0] if records else None
 
         return bool(record and record["deleted"] > 0)

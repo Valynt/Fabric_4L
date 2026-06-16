@@ -13,6 +13,8 @@ This service provides idempotent tenant provisioning with:
 
 
 import logging
+import os
+import re
 import secrets
 from dataclasses import dataclass
 from datetime import datetime
@@ -20,6 +22,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
+from psycopg2.sql import SQL, Identifier
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit.emitter import emit_audit_event
@@ -400,15 +403,21 @@ class TenantProvisioningService:
         # For schema-level isolation, create dedicated schema
         if isolation_tier == "schema":
             schema_name = f"tenant_{tenant_id.hex[:8]}"
-            
-            # Create schema
-            await self.db_session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
-            
-            # Grant permissions
-            await self.db_session.execute(text(f"GRANT USAGE ON SCHEMA {schema_name} TO app_user"))
-            
+
+            # Validate the derived schema name is a safe identifier (UUID hex only).
+            if not re.match(r"^[a-z_][a-z0-9_]*$", schema_name):
+                raise ValueError(f"Derived schema name is not a safe identifier: {schema_name}")
+
+            await self.db_session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+
+            grant_role = os.getenv("LAYER4_TENANT_SCHEMA_GRANTEE", "app_user")
+            schema_ident = Identifier(schema_name)
+            role_ident = Identifier(grant_role)
+            safe_sql = SQL("GRANT USAGE ON SCHEMA {} TO {}").format(schema_ident, role_ident)
+            await self.db_session.execute(text(str(safe_sql)))
+
             await self.db_session.commit()
-            logger.info(f"Created schema: {schema_name}")
+            logger.info("Created schema: %s", schema_name)
     
     async def _setup_neo4j_constraints(self, tenant_id: UUID) -> None:
         """Setup Neo4j constraints for tenant.
