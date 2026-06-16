@@ -155,20 +155,42 @@ jobs:
                 repo: context.repo.repo,
                 ref: branch.commit.sha,
               });
-              
               const commitDate = new Date(commit.data.commit.committer.date);
+              const isStale = commitDate < threshold;
               
-              if (commitDate < threshold) {
-                const pulls = await github.rest.pulls.list({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  head: `${context.repo.owner}:${branch.name}`,
-                  state: 'open'
-                });
-                
+              // We also aggressively clean up fully merged branches or abandoned bot branches
+              const isBotBranch = branch.name.startsWith('copilot/') || branch.name.startsWith('codex/');
+              
+              const pulls = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch.name}`,
+                state: 'open'
+              });
+              
+              // If it has no open PRs and it's a bot branch, or if it's stale, or if it's fully merged
+              let isFullyMerged = false;
+              const isAbandonedBotBranch = isBotBranch && pulls.data.length === 0;
+              const shouldCheckIfFullyMerged = !isStale && !isAbandonedBotBranch;
+              
+              if (shouldCheckIfFullyMerged) {
+                try {
+                  const compare = await github.rest.repos.compareCommits({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    base: 'main',
+                    head: branch.name
+                  });
+                  isFullyMerged = compare.data.ahead_by === 0;
+                } catch (e) {
+                  console.error(`Failed to compare ${branch.name} with main: ${e.message}`);
+                }
+              }
+              
+              if (isStale || isFullyMerged || isAbandonedBotBranch) {
                 const failedPRs = [];
                 for (const pr of pulls.data) {
-                  console.log(`Closing stale PR: ${pr.number}`);
+                  console.log(`Closing PR: ${pr.number} (branch: ${branch.name})`);
                   try {
                     await github.rest.pulls.update({
                       owner: context.repo.owner,
@@ -183,7 +205,7 @@ jobs:
                 }
                 
                 if (failedPRs.length === 0) {
-                  console.log(`Deleting stale branch: ${branch.name}`);
+                  console.log(`Deleting branch: ${branch.name}`);
                   try {
                     await github.rest.git.deleteRef({
                       owner: context.repo.owner,
