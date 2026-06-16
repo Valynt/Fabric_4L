@@ -11,7 +11,6 @@ Tests verify:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, patch
@@ -249,12 +248,33 @@ class TestProcessScrapingJob:
             ),
             patch("layer1_ingestion.shared.tasks._fail_job") as mock_fail,
         ):
-            result = asyncio.run(compliance_check_stage.run(job_id, tenant_id))
+            result = compliance_check_stage.run(job_id, tenant_id)
 
         mock_fail.assert_called_once()
         assert result["success"] is False
         assert result["job_id"] == job_id
         assert result["error"] == "Tenant suspended"
+
+    def test_compliance_check_stage_run_returns_json_dict_not_coroutine(self) -> None:
+        """Celery-facing compliance stage must not return an unserializable coroutine."""
+        import inspect
+
+        from layer1_ingestion.shared.tasks import compliance_check_stage
+
+        job_id = str(uuid4())
+        tenant_id = str(uuid4())
+
+        with (
+            patch(
+                "layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync",
+                return_value=True,
+            ),
+            patch("layer1_ingestion.shared.tasks._fail_job"),
+        ):
+            result = compliance_check_stage.run(job_id, tenant_id)
+
+        assert isinstance(result, dict)
+        assert not inspect.iscoroutine(result)
 
 
 # ── Cleanup Task Tests ────────────────────────────────────────────────────────
@@ -353,9 +373,7 @@ class TestComplianceCheckStage:
                 with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # Use .run() to bypass Celery's task dispatch machinery
                     # Pass string job_id to match Celery JSON serialization
-                    result = asyncio.run(
-                        compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
-                    )
+                    result = compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
 
         # Job status must be updated to VALIDATING
         assert mock_job.status == "VALIDATING"
@@ -376,7 +394,7 @@ class TestComplianceCheckStage:
             with pytest.raises(ValueError, match="not found"):
                 # Use .run() to bypass Celery's task dispatch machinery
                 # Pass string job_id to match Celery JSON serialization
-                asyncio.run(compliance_check_stage.run(str(job_id), str(uuid4())))
+                compliance_check_stage.run(str(job_id), str(uuid4()))
 
 
 # ── Crawl URL With Routing Tests ──────────────────────────────────────────────
@@ -408,12 +426,10 @@ class TestCrawlUrlWithRouting:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             try:
-                asyncio.run(
-                    crawl_url_with_routing.run(
-                        job_id=job_id,
-                        url="https://example.com",
-                        tenant_id=tenant_id,
-                    )
+                crawl_url_with_routing.run(
+                    job_id=job_id,
+                    url="https://example.com",
+                    tenant_id=tenant_id,
                 )
             except Exception:
                 pass  # We only care about the session args
@@ -446,7 +462,7 @@ class TestCeleryRetryBehavior:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(Exception, match="Database connection refused"):
-                asyncio.run(compliance_check_stage.run(str(uuid4()), str(uuid4())))
+                compliance_check_stage.run(str(uuid4()), str(uuid4()))
 
     def test_process_scraping_job_handles_chain_failure(self) -> None:
         """process_scraping_job must raise when chain.apply_async fails."""
@@ -499,9 +515,7 @@ class TestCeleryRetryBehavior:
                 # AttributeError because code does config.get() when config is None
                 # Pass string job_id to match Celery JSON serialization
                 with pytest.raises((ValueError, AttributeError)):
-                    asyncio.run(
-                        compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
-                    )
+                    compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
 
     def test_cleanup_old_content_handles_empty_result(self) -> None:
         """cleanup_old_content must return deleted_count=0 when no old content found."""
@@ -663,13 +677,13 @@ class TestCeleryRetrySemantics:
                 with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # First attempt - pass string job_id to match Celery JSON serialization
                     try:
-                        asyncio.run(compliance_check_stage.run(job_id, str(mock_job.tenant_id)))
+                        compliance_check_stage.run(job_id, str(mock_job.tenant_id))
                     except Exception:
                         pass
 
                     # Second attempt (retry) should give same result
                     try:
-                        asyncio.run(compliance_check_stage.run(job_id, str(mock_job.tenant_id)))
+                        compliance_check_stage.run(job_id, str(mock_job.tenant_id))
                     except Exception:
                         pass
 
@@ -685,4 +699,3 @@ class TestCeleryRetrySemantics:
         # DLQ routing is typically configured at the broker level
         # This test verifies the configuration exists
         assert routes is not None, "Task routes should be configured"
-

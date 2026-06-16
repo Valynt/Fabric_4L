@@ -55,6 +55,14 @@ SCENARIO = {
     "headquarters": "Austin, TX",
 }
 
+POLL_INTERVAL_SECONDS = float(os.getenv("E2E_POLL_INTERVAL_SECONDS", "3"))
+L1_TIMEOUT_SECONDS = int(os.getenv("E2E_L1_TIMEOUT_SECONDS", "180"))
+L2_TIMEOUT_SECONDS = int(os.getenv("E2E_L2_TIMEOUT_SECONDS", "240"))
+L1_TERMINAL_SUCCESS = {"COMPLETED", "PARTIAL_SUCCESS"}
+L1_TERMINAL_FAILURE = {"FAILED", "CANCELLED"}
+L2_TERMINAL_SUCCESS = {"completed", "skipped"}
+L2_TERMINAL_FAILURE = {"failed", "quarantined"}
+
 DISCOVERY_MARKDOWN = """# Nexus Analytics — Discovery Intake
 
 ## Company profile
@@ -217,6 +225,150 @@ class ApiCall:
         }
 
 
+def require_success(call: ApiCall, *, expected: set[int] | None = None) -> None:
+    expected = expected or set(range(200, 300))
+    if call.status not in expected:
+        print(
+            f"{call.step} failed: status={call.status}, error={call.error}, body={call.response_body}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def poll_call(
+    *,
+    transcript: list[ApiCall],
+    step: str,
+    layer: str,
+    url: str,
+    headers: dict[str, str],
+    timeout_seconds: int,
+    is_done,
+    is_failed,
+    failure_message,
+) -> dict[str, Any]:
+    deadline = time.time() + timeout_seconds
+    last_call: ApiCall | None = None
+    while time.time() < deadline:
+        call = ApiCall(
+            step=step,
+            layer=layer,
+            method="GET",
+            url=url,
+            headers=headers,
+            body=None,
+            timeout=30,
+        )
+        call.run()
+        last_call = call
+        transcript.append(call)
+        if call.status and 200 <= call.status < 300 and isinstance(call.response_body, dict):
+            if is_failed(call.response_body):
+                print(f"{step} failed: {failure_message(call.response_body)}", file=sys.stderr)
+                sys.exit(1)
+            if is_done(call.response_body):
+                return call.response_body
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+    print(
+        f"{step} timed out after {timeout_seconds}s; last={last_call.response_body if last_call else None}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def wait_for_l1_output(
+    job_id: str,
+    token: str,
+    transcript: list[ApiCall],
+) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    job = poll_call(
+        transcript=transcript,
+        step="l1_poll_job_completion",
+        layer="L1",
+        url=f"{BASE_URLS['L1']}/api/v1/ingestion/jobs/{job_id}",
+        headers=headers,
+        timeout_seconds=L1_TIMEOUT_SECONDS,
+        is_done=lambda body: str(body.get("status")) in L1_TERMINAL_SUCCESS
+        and int(body.get("raw_content_count") or 0) > 0,
+        is_failed=lambda body: str(body.get("status")) in L1_TERMINAL_FAILURE,
+        failure_message=lambda body: f"status={body.get('status')}, errors={body.get('errors')}",
+    )
+
+    content_call = ApiCall(
+        step="l1_list_job_content",
+        layer="L1",
+        method="GET",
+        url=f"{BASE_URLS['L1']}/api/v1/ingestion/content?job_id={job_id}&limit=5",
+        headers=headers,
+        body=None,
+    )
+    content_call.run()
+    transcript.append(content_call)
+    require_success(content_call)
+    items = content_call.response_body.get("items", []) if isinstance(content_call.response_body, dict) else []
+    if not items:
+        print(f"L1 job {job_id} completed without listable raw content", file=sys.stderr)
+        sys.exit(1)
+
+    content_id = str(items[0].get("id"))
+    raw_call = ApiCall(
+        step="l1_get_raw_content_metadata",
+        layer="L1",
+        method="GET",
+        url=f"{BASE_URLS['L1']}/api/v1/ingestion/content/raw/{content_id}?include_html=false",
+        headers=headers,
+        body=None,
+    )
+    raw_call.run()
+    transcript.append(raw_call)
+    require_success(raw_call)
+    if not isinstance(raw_call.response_body, dict):
+        print(f"L1 raw content {content_id} did not return an object", file=sys.stderr)
+        sys.exit(1)
+    return {"job": job, "content": raw_call.response_body}
+
+
+def markdown_from_l1_content(l1_content: dict[str, Any]) -> str:
+    metadata = l1_content.get("metadata") or {}
+    capture = l1_content.get("capture") or {}
+    return f"""# Layer 1 Crawled Source
+
+Source URL: {l1_content.get("source_url")}
+Final URL: {l1_content.get("source_final_url") or l1_content.get("source_url")}
+HTTP status: {l1_content.get("source_http_status")}
+Title: {metadata.get("title") or "unknown"}
+Description: {metadata.get("description") or "not provided"}
+Capture method: {capture.get("method") or "unknown"}
+Content hash: {l1_content.get("content_hash") or "not provided"}
+
+## Scenario Notes
+{DISCOVERY_MARKDOWN}
+"""
+
+
+def wait_for_l2_pipeline(job_id: str, token: str, transcript: list[ApiCall]) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    return poll_call(
+        transcript=transcript,
+        step="l2_poll_extraction_completion",
+        layer="L2",
+        url=f"{BASE_URLS['L2']}/v1/extract/status/{job_id}",
+        headers=headers,
+        timeout_seconds=L2_TIMEOUT_SECONDS,
+        is_done=lambda body: body.get("extraction_status") in L2_TERMINAL_SUCCESS
+        and body.get("ingestion_status") in L2_TERMINAL_SUCCESS,
+        is_failed=lambda body: body.get("extraction_status") in L2_TERMINAL_FAILURE
+        or body.get("ingestion_status") in L2_TERMINAL_FAILURE
+        or body.get("overall_status") in L2_TERMINAL_FAILURE,
+        failure_message=lambda body: (
+            f"overall={body.get('overall_status')}, extraction={body.get('extraction_status')}, "
+            f"ingestion={body.get('ingestion_status')}, last_error={body.get('last_error')}"
+        ),
+    )
+
+
 def create_tenant() -> tuple[str, str, ApiCall]:
     """Create a fresh active tenant using a super-admin JWT.
 
@@ -333,6 +485,7 @@ def main() -> int:
     )
     l1_target.run()
     transcript.append(l1_target)
+    require_success(l1_target, expected={201})
     # Layer 1 may generate its own target UUID; use the returned one for downstream calls.
     if l1_target.status == 201 and isinstance(l1_target.response_body, dict):
         target_id = l1_target.response_body.get("id", target_id)
@@ -352,10 +505,17 @@ def main() -> int:
     )
     l1_job.run()
     transcript.append(l1_job)
+    require_success(l1_job)
+    l1_job_id = str(l1_job.response_body.get("job_id")) if isinstance(l1_job.response_body, dict) else ""
+    if not l1_job_id:
+        print(f"Layer 1 job creation returned no job_id: {l1_job.response_body}", file=sys.stderr)
+        sys.exit(1)
+    l1_output = wait_for_l1_output(l1_job_id, user_token, transcript)
+    l1_content = l1_output["content"]
 
-    # 4. Layer 2 extraction — internal route gated by L1→L2 S2S JWT
+    # 4. Layer 2 extraction + Layer 3 ingestion — internal route gated by L1→L2 S2S JWT
     print("\n=== Step 4: Layer 2 extraction ===")
-    content_id = f"discovery-{uuid.uuid4().hex[:8]}"
+    content_id = str(l1_content.get("id") or f"discovery-{uuid.uuid4().hex[:8]}")
     l2_token = make_service_token(
         tenant_id, sub="layer1-ingestion", aud="layer2-extraction"
     )
@@ -363,43 +523,42 @@ def main() -> int:
         step="l2_extract_discovery",
         layer="L2",
         method="POST",
-        url=f"{BASE_URLS['L2']}/v1/extract",
+        url=f"{BASE_URLS['L2']}/v1/extract-and-ingest",
         headers={"Authorization": f"Bearer {l2_token}", "Content-Type": "application/json"},
         body={
             "content_id": content_id,
-            "source_url": f"internal://{content_id}",
-            "markdown_content": DISCOVERY_MARKDOWN,
-            "extraction_config": {"ontology": "value-fabric-b2b"},
+            "source_url": l1_content.get("source_url") or f"internal://{content_id}",
+            "markdown_content": markdown_from_l1_content(l1_content),
+            "extraction_config": {
+                "ontology": "value-fabric-b2b",
+                "model_version": os.getenv("EXTRACTION_MODEL", "e2e-local-extraction-model"),
+                "schema_version": "value-fabric-extraction-v1",
+                "prompt_version": "entity_extraction_v1+relationship_extraction_v1",
+                "ingestion_id": l1_job_id,
+                "value_pack_id": "value-fabric-b2b",
+            },
         },
     )
     l2_extract.run()
     transcript.append(l2_extract)
+    require_success(l2_extract)
+    l2_job_id = ""
+    if isinstance(l2_extract.response_body, dict):
+        l2_job_id = str(
+            l2_extract.response_body.get("job_id")
+            or l2_extract.response_body.get("extraction_job_id")
+            or ""
+        )
+    if not l2_job_id:
+        print(f"Layer 2 extraction returned no job id: {l2_extract.response_body}", file=sys.stderr)
+        sys.exit(1)
+    l2_status = wait_for_l2_pipeline(l2_job_id, l2_token, transcript)
+    if int(l2_status.get("entities_extracted") or 0) <= 0:
+        print(f"Layer 2 completed without extracted entities: {l2_status}", file=sys.stderr)
+        sys.exit(1)
 
-    # 5. Layer 3 knowledge graph — JWT auth (L3's governance middleware rejects API keys)
+    # 5. Layer 3 knowledge graph — query the graph populated by Layer 2 ingestion
     print("\n=== Step 5: Layer 3 knowledge graph ===")
-    rdf_ttl = f"""@prefix vf: <http://valuefabric.io/ontology/> .
-@prefix ex: <http://valuefabric.io/entities/> .
-ex:{account_id} a vf:Account ;
-    vf:name "{SCENARIO['company_name']}" ;
-    vf:industry "{SCENARIO['industry']}" ;
-    vf:annualRevenue {SCENARIO['annual_revenue_usd']} ;
-    vf:hasPain vf:inconsistentDiscovery, vf:weakBusinessCase, vf:slowReuse, vf:poorValueProof .
-"""
-    l3_ingest = ApiCall(
-        step="l3_ingest_rdf",
-        layer="L3",
-        method="POST",
-        url=f"{BASE_URLS['L3']}/v1/ingest",
-        headers={"Authorization": f"Bearer {user_token}", "Content-Type": "application/json"},
-        body={
-            "rdf_data": rdf_ttl,
-            "source_id": content_id,
-            "extraction_job_id": f"job-{content_id}",
-        },
-    )
-    l3_ingest.run()
-    transcript.append(l3_ingest)
-
     l3_search = ApiCall(
         step="l3_hybrid_search",
         layer="L3",
@@ -414,6 +573,7 @@ ex:{account_id} a vf:Account ;
     )
     l3_search.run()
     transcript.append(l3_search)
+    require_success(l3_search)
 
     l3_formula = ApiCall(
         step="l3_formula_evaluate",
@@ -436,6 +596,7 @@ ex:{account_id} a vf:Account ;
     )
     l3_formula.run()
     transcript.append(l3_formula)
+    require_success(l3_formula)
 
     # 6. Layer 4 agents / reasoning / case
     print("\n=== Step 6: Layer 4 agentic workflow ===")
@@ -464,6 +625,7 @@ ex:{account_id} a vf:Account ;
     )
     l4_roi.run()
     transcript.append(l4_roi)
+    require_success(l4_roi)
 
     l4_case = ApiCall(
         step="l4_create_case",
@@ -480,6 +642,7 @@ ex:{account_id} a vf:Account ;
     )
     l4_case.run()
     transcript.append(l4_case)
+    require_success(l4_case)
 
     # 7. Layer 5 ground truth
     print("\n=== Step 7: Layer 5 ground truth ===")
@@ -510,8 +673,8 @@ ex:{account_id} a vf:Account ;
             "confidence": 0.85,
             "value": {"amount": 4.5, "unit": "hours", "period": "opportunity"},
             "applies_to": {"account_id": account_id, "opportunity_id": f"opp-{uuid.uuid4().hex[:8]}"},
-            "extraction_job_id": f"job-{content_id}",
-            "extraction_model": "manual-e2e",
+            "extraction_job_id": l2_job_id,
+            "extraction_model": os.getenv("EXTRACTION_MODEL", "e2e-local-extraction-model"),
         },
     )
     l5_truth.run()
@@ -531,41 +694,32 @@ ex:{account_id} a vf:Account ;
     # 8. Layer 6 benchmarks
     print("\n=== Step 8: Layer 6 benchmarks ===")
     l6_admin_token = make_token(tenant_id, roles=["super_admin"])
-    l6_upsert = ApiCall(
-        step="l6_upsert_dataset",
+    benchmark_dataset_id = os.getenv("E2E_BENCHMARK_DATASET_ID", "saas-b2b-efficiency-2024")
+    benchmark_metric = os.getenv("E2E_BENCHMARK_METRIC", "se_hours_per_opportunity")
+    l6_dataset = ApiCall(
+        step="l6_get_preloaded_dataset",
         layer="L6",
-        method="POST",
-        url=f"{BASE_URLS['L6']}/v1/benchmarks/datasets",
+        method="GET",
+        url=f"{BASE_URLS['L6']}/v1/benchmarks/datasets/{benchmark_dataset_id}",
         headers={"Authorization": f"Bearer {l6_admin_token}", "Content-Type": "application/json"},
-        body={
-            "dataset_id": "saas-se-efficiency-2025",
-            "name": "SaaS SE Efficiency 2025",
-            "description": "Peer benchmarks for SaaS value-engineering workflows",
-            "industry": "Software",
-            "segment": "mid-market",
-            "version": "1.0.0",
-            "ownership_mode": "tenant",
-            "metrics": {
-                "se_hours_per_opportunity": {
-                    "name": "se_hours_per_opportunity",
-                    "unit": "hours",
-                    "description": "SE hours per opportunity",
-                    "profile": {
-                        "p10": "1.5",
-                        "p25": "2.5",
-                        "p50": "4.0",
-                        "p75": "6.0",
-                        "p90": "8.5",
-                        "mean": "4.2",
-                        "std_dev": "2.1",
-                        "sample_size": 850,
-                    },
-                }
-            },
-        },
+        body=None,
     )
-    l6_upsert.run()
-    transcript.append(l6_upsert)
+    l6_dataset.run()
+    transcript.append(l6_dataset)
+    require_success(l6_dataset)
+    dataset_body = l6_dataset.response_body if isinstance(l6_dataset.response_body, dict) else {}
+    metrics_payload = dataset_body.get("metrics", {})
+    if isinstance(metrics_payload, dict):
+        metric_names = set(metrics_payload)
+    else:
+        metric_names = {m.get("name") for m in metrics_payload if isinstance(m, dict)}
+    if benchmark_metric not in metric_names:
+        print(
+            f"Preloaded dataset {benchmark_dataset_id} is missing metric {benchmark_metric}; "
+            f"available={sorted(metric_names)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     l6_compare = ApiCall(
         step="l6_benchmark_compare",
@@ -574,15 +728,16 @@ ex:{account_id} a vf:Account ;
         url=f"{BASE_URLS['L6']}/v1/benchmarks/compare",
         headers={"Authorization": f"Bearer {l6_admin_token}", "Content-Type": "application/json"},
         body={
-            "dataset_id": "saas-se-efficiency-2025",
-            "metric": "se_hours_per_opportunity",
+            "dataset_id": benchmark_dataset_id,
+            "metric": benchmark_metric,
             "company_value": "4.5",
-            "industry": "Software",
-            "segment": "mid-market",
+            "industry": dataset_body.get("industry") or "technology",
+            "segment": dataset_body.get("segment") or "enterprise",
         },
     )
     l6_compare.run()
     transcript.append(l6_compare)
+    require_success(l6_compare)
 
     # 9. Security / tenant isolation / fail-closed checks
     print("\n=== Step 9: Security / tenant isolation checks ===")
@@ -631,10 +786,30 @@ ex:{account_id} a vf:Account ;
             "scenario": SCENARIO,
             "tenant_id": tenant_id,
             "account_id": account_id,
+            "l1_job_id": l1_job_id,
+            "l1_content_id": content_id,
+            "l2_job_id": l2_job_id,
+            "benchmark_dataset": {
+                "dataset_id": benchmark_dataset_id,
+                "metric": benchmark_metric,
+                "industry": dataset_body.get("industry"),
+                "segment": dataset_body.get("segment"),
+                "version": dataset_body.get("version"),
+                "data_source": dataset_body.get("data_source"),
+                "source_mode": "preloaded_fixture_or_system_seed",
+                "sample_size": (
+                    metrics_payload.get(benchmark_metric, {})
+                    .get("profile", {})
+                    .get("sample_size")
+                    if isinstance(metrics_payload, dict)
+                    else None
+                ),
+            },
         },
         "calls": [c.to_dict() for c in transcript],
     }
-    transcript_path = "docs/evidence/fabric4l-e2e-api-transcript-20260615.json"
+    run_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    transcript_path = f"docs/evidence/fabric4l-e2e-api-transcript-{run_stamp}.json"
     with open(transcript_path, "w") as f:
         json.dump(transcript_dict, f, indent=2, default=str)
     print(f"Wrote {transcript_path}")

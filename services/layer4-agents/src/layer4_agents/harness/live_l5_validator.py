@@ -54,14 +54,14 @@ def _map_status(l5_status: str) -> ValidationState:
 def _infer_claim_type(request: ClaimValidationRequest) -> str:
     """Infer L5 claim_type from harness ClaimValidationRequest.
 
-    Defaults to 'outcome'. Refined by value_pack_id hints.
+    Defaults to Layer 5's customer_outcome enum value. Refined by value_pack_id hints.
     """
     vp = (request.value_pack_id or "").lower()
     if "roi" in vp:
-        return "roi_assumption"
+        return "cost_savings_baseline"
     if "benchmark" in vp:
-        return "benchmark"
-    return "outcome"
+        return "market_benchmark"
+    return "customer_outcome"
 
 
 # ---------------------------------------------------------------------------

@@ -501,6 +501,28 @@ def _build_idempotency_key(
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+def _validated_extraction_config(
+    extraction_config: dict[str, Any],
+    *,
+    tenant_id: str,
+    operation: str,
+) -> dict[str, Any]:
+    """Return extraction config with required runtime metadata populated."""
+    config = dict(extraction_config)
+    config["tenant_id"] = tenant_id
+    model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
+    if not model_version:
+        raise ValidationError(
+            message=f"model_version is required in extraction_config or EXTRACTION_MODEL env var for {operation}"
+        )
+    if not config.get("schema_version"):
+        raise ValidationError(message=f"schema_version is required in extraction_config for {operation}")
+    if not config.get("prompt_version"):
+        raise ValidationError(message=f"prompt_version is required in extraction_config for {operation}")
+    config["model_version"] = str(model_version)
+    return config
+
+
 # Global job store (Redis-backed if configured, otherwise in-memory)
 job_store: JobStore = build_job_store()
 RETRY_POLL_SECONDS = int(os.getenv("INGESTION_RETRY_POLL_SECONDS", "30"))
@@ -1640,9 +1662,11 @@ async def extract(
         )
     )
 
-    # Ensure tenant_id is in config for downstream pipeline
-    config = dict(request.extraction_config)
-    config["tenant_id"] = tenant_id
+    config = _validated_extraction_config(
+        request.extraction_config,
+        tenant_id=tenant_id,
+        operation="extraction job creation",
+    )
 
     # Queue extraction as background task
     background_tasks.add_task(
@@ -1675,9 +1699,11 @@ async def extract_and_ingest(
     )
     existing_job_id = await job_store.get_job_id_for_idempotency_key(idempotency_key)
 
-    # Ensure tenant_id is in config for downstream pipeline
-    config = dict(request.extraction_config)
-    config["tenant_id"] = tenant_id
+    config = _validated_extraction_config(
+        request.extraction_config,
+        tenant_id=tenant_id,
+        operation="extraction+ingestion job creation",
+    )
 
     if existing_job_id:
         existing_job = await job_store.get(existing_job_id, tenant_id=tenant_id)
@@ -1778,8 +1804,11 @@ async def extract_batch(requests: list[ExtractRequest], background_tasks: Backgr
     for req in requests:
         job_id = str(uuid4())
         job_ids.append(job_id)
-        config = dict(req.extraction_config)
-        config["tenant_id"] = tenant_id
+        config = _validated_extraction_config(
+            req.extraction_config,
+            tenant_id=tenant_id,
+            operation="batch extraction job creation",
+        )
         background_tasks.add_task(
             run_extraction,
             job_id=job_id,

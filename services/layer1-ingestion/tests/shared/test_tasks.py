@@ -17,12 +17,12 @@ from layer1_ingestion.shared.tasks import (
 
 # Map each Celery entrypoint to the private async helper it wraps.
 # Names reflect the implementation module; ai_extraction_stage is an
-# exception because its helper is named _ai_extraction_stage.
+# exception because its helper is named _ai_extraction_stage_async.
 _TASK_HELPERS = {
-    compliance_check_stage: "_acompliance_check_stage",
-    browser_crawl_stage: "_abrowser_crawl_stage",
-    ai_extraction_stage: "_ai_extraction_stage",
-    crawl_url_with_routing: "_acrawl_url_with_routing",
+    compliance_check_stage: "_compliance_check_stage_async",
+    browser_crawl_stage: "_browser_crawl_stage_async",
+    ai_extraction_stage: "_ai_extraction_stage_async",
+    crawl_url_with_routing: "_crawl_url_with_routing_async",
 }
 
 

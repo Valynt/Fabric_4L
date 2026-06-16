@@ -17,7 +17,7 @@ import httpx
 import pytest
 
 from layer4_agents.models.tool_schemas import GetProspectDataInput
-from layer4_agents.tools.crm_tools import GetProspectDataTool
+from layer4_agents.tools.crm_tools import FetchInteractionHistoryTool, GetProspectDataTool
 
 
 class MockResponse:
@@ -156,3 +156,30 @@ async def test_salesforce_max_pages_safety():
     # Should stop at max_pages (10) even though more pages exist
     assert len(result.opportunities) == 10
     assert call_count == 10
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "001TEST123456789",
+        "001TEST12345678AAA",
+    ],
+)
+def test_fetch_interaction_history_has_shared_soql_safe_id_helper(prospect_id: str):
+    tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
+    assert tool._soql_safe_id(prospect_id) == prospect_id
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "",
+        None,
+        "001TEST12345' OR Name != ''",
+        "001TEST12345;DROP",
+    ],
+)
+def test_fetch_interaction_history_rejects_invalid_or_malicious_ids(prospect_id):
+    tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
+    with pytest.raises(ValueError, match="Invalid prospect_id format"):
+        tool._soql_safe_id(prospect_id)
