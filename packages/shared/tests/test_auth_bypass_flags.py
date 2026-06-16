@@ -38,15 +38,26 @@ def test_bypass_flag_detected_when_set(flag, value, monkeypatch):
 @pytest.mark.parametrize("value", [
     "false",
     "0",
-    "no",
-    "off",
-    "",
 ])
 def test_falseish_bypass_values_not_detected(flag, value, monkeypatch):
     for other in _BYPASS_FLAGS:
         monkeypatch.delenv(other, raising=False)
     monkeypatch.setenv(flag, value)
     assert _bypass_flags_are_set() == set()
+
+
+@pytest.mark.parametrize("flag", _BYPASS_FLAGS)
+@pytest.mark.parametrize("value", [
+    "no",
+    "off",
+    "maybe",
+    "arbitrary-string",
+])
+def test_non_false_bypass_values_detected_as_active(flag, value, monkeypatch):
+    for other in _BYPASS_FLAGS:
+        monkeypatch.delenv(other, raising=False)
+    monkeypatch.setenv(flag, value)
+    assert _bypass_flags_are_set() == {flag}
 
 
 def test_no_bypass_flags_detected_by_default(monkeypatch):
@@ -60,6 +71,23 @@ def test_nonlocal_env_raises_when_bypass_set(monkeypatch):
     monkeypatch.setenv("DEV_AUTH_BYPASS", "true")
     with pytest.raises(RuntimeError, match="auth bypass flags"):
         _raise_if_bypass_in_nonlocal_env(service_name="test-service")
+
+
+@pytest.mark.parametrize("value", ["no", "maybe"])
+def test_nonlocal_env_raises_for_fail_closed_non_false_values(monkeypatch, value):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("DEV_AUTH_BYPASS", value)
+    with pytest.raises(RuntimeError, match="auth bypass flags"):
+        _raise_if_bypass_in_nonlocal_env(service_name="test-service")
+
+
+def test_nonlocal_env_allows_empty_bypass_value(monkeypatch):
+    for flag in _BYPASS_FLAGS:
+        monkeypatch.delenv(flag, raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("DEV_AUTH_BYPASS", "")
+    # Empty string is treated as unset, so production startup should not raise.
+    _raise_if_bypass_in_nonlocal_env(service_name="test-service")
 
 
 def test_local_env_allows_bypass_with_warning(monkeypatch, caplog):

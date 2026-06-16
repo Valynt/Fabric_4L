@@ -29,19 +29,27 @@ _BYPASS_FLAGS = (
     "AUTH_BYPASS_ENABLED",
 )
 
-_TRUE_VALUES = frozenset({"true", "1", "yes", "on", "i_understand_risk"})
+_FALSE_VALUES = frozenset({"false", "0"})
 _EXPLICIT_LOCAL_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
 
 
 def _flag_value_is_truthy(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
     if value is None:
         return False
-    return str(value).strip().lower() in _TRUE_VALUES
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    if normalized == "":
+        return False
+    return normalized not in _FALSE_VALUES
 
 
 def _bypass_flags_are_set() -> set[str]:
+    """Return the set of active legacy bypass flag names.
+
+    A flag is considered active when its value is set to anything other than
+    unset, ``false``, or ``0``. Empty strings and ``None`` are treated as unset.
+    """
     active: set[str] = set()
     for flag in _BYPASS_FLAGS:
         if _flag_value_is_truthy(os.getenv(flag)):
