@@ -1481,6 +1481,10 @@ class CreateCaseRequest(BaseModel):
     """Create a new case for an account."""
     account_id: str = Field(..., description="Account identifier")
     title: str | None = Field(None, description="Case title")
+    case_id: str | None = Field(
+        None,
+        description="Optional deterministic case id. Generated if omitted.",
+    )
 
 
 class CreateCaseResponse(BaseModel):
@@ -1527,7 +1531,7 @@ async def _create_workspace_case_record(
     if account is None:
         raise NotFoundError(message = str(f"Account not found: {request.account_id}"))
 
-    case_id = str(uuid4())
+    case_id = request.case_id or str(uuid4())
     now = datetime.now(UTC).isoformat()
     record = BusinessCaseRecord(
         case_id=case_id,

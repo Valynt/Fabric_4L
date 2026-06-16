@@ -1,7 +1,7 @@
 {
   "candidate_id": "rc-2026-06-13-116815f3",
   "environment": "local-docker-staging-surrogate",
-  "executed_at_utc": "2026-06-14T21:30:00Z",
+  "executed_at_utc": "2026-06-15T04:00:00Z",
   "rollback_type": "image-level-rollback-drill",
   "current_version": {
     "image": "fabric_4l-layer4:latest",
@@ -40,12 +40,12 @@
     "scripts/ci/verify_release_rollback.py": "PASS (8/8 tests)",
     "migration_rollback_policy": "PASS"
   },
-  "doctrine_update": "docs/runbooks/deployment-rollout-and-rollback.md updated to state that safe rollback must use an immutable image built entirely from the target commit (including all dependencies) or a coordinated rollback of both image and source/config dependencies.",
+  "doctrine_update": "docs/runbooks/deployment-rollout-and-rollback.md updated with an explicit 'Immutable Image / Dependency Rollback Requirement' section stating that safe rollback must use an immutable image built entirely from the target commit (including all dependencies) or a coordinated rollback of both image and source/config dependencies.",
   "image_tags": [
     "fabric_4l-layer4:rc-116815f3",
     "fabric_4l-layer4:rollback-target",
     "fabric_4l-layer4:latest"
   ],
   "classification": "RE_TESTABLE",
-  "recommendation": "Do not claim production rollback readiness until a coordinated image+dependency rollback is rehearsed in a production-like environment with immutable, version-pinned images. The current candidate is re-testable because the viable rollback doctrine is documented and image tags are in place."
+  "recommendation": "Do not claim production rollback readiness until a coordinated image+dependency rollback is rehearsed in a production-like environment with immutable, version-pinned images. The current candidate is re-testable because the viable rollback doctrine is documented and static verification passes."
 }

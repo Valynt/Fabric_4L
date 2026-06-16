@@ -148,6 +148,58 @@ async def test_post_cases_success_path(analysis_app: FastAPI, monkeypatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_post_cases_uses_optional_case_id(analysis_app: FastAPI, monkeypatch) -> None:
+    """POST /cases should accept and persist an optional deterministic case_id."""
+    account_uuid = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    deterministic_case_id = "case-deterministic-001"
+
+    class FakeDb:
+        def __init__(self) -> None:
+            self.added: list[Any] = []
+
+        async def execute(self, stmt: Any) -> Any:
+            return FakeExecuteResult()
+
+        def add(self, record: Any) -> None:
+            self.added.append(record)
+
+        async def commit(self) -> None:
+            pass
+
+    fake_db = FakeDb()
+    monkeypatch.setattr(
+        analysis,
+        "AccountService",
+        lambda db: SimpleNamespace(
+            get_account=lambda account_id, tenant_id=None: _async_return(
+                SimpleNamespace(id=account_id, name="Acme Corp")
+            )
+        ),
+    )
+
+    analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
+    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
+    analysis_app.dependency_overrides[analysis.get_executor] = lambda: None
+
+    async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
+        response = await client.post(
+            "/v1/cases",
+            json={
+                "account_id": str(account_uuid),
+                "title": "Deterministic Case",
+                "case_id": deterministic_case_id,
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["case_id"] == deterministic_case_id
+    assert payload["status"] == "created"
+    assert len(fake_db.added) == 1
+    assert fake_db.added[0].case_id == deterministic_case_id
+
+
+@pytest.mark.asyncio
 async def test_get_case_retrieval(analysis_app: FastAPI) -> None:
     """GET /cases/{case_id} should retrieve persisted output via get_result."""
     fake_executor = FakeExecutor(execute_response=None)

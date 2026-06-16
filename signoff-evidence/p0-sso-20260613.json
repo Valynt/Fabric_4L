@@ -1,13 +1,13 @@
 {
   "candidate_id": "rc-2026-06-13-116815f3",
   "environment": "local-docker-staging-surrogate",
-  "executed_at_utc": "2026-06-14T21:30:00Z",
+  "executed_at_utc": "2026-06-15T04:00:00Z",
   "provider": "Keycloak OIDC local surrogate (enterprise IdP placeholder)",
   "result": "RE_TESTABLE",
   "configuration_state": {
-    "OIDC_ISSUER": "unset/empty",
-    "OIDC_AUDIENCE": "unset/empty",
-    "OIDC_JWKS_URL": "unset/empty",
+    "OIDC_ISSUER": "http://localhost:8080/realms/fabric",
+    "OIDC_AUDIENCE": "fabric-api",
+    "OIDC_JWKS_URL": "http://localhost:8080/realms/fabric/protocol/openid-connect/certs",
     "CLERK_ISSUER": "unset/empty",
     "CLERK_SECRET_KEY": "unset/empty",
     "KEYCLOAK_URL": "http://127.0.0.1:8080",
@@ -17,12 +17,14 @@
     "dev_auth_bypass_flags": "none detected in vf-live-layer4 environment"
   },
   "surrogate_deployment": {
-    "container": "vf-dev-keycloak",
+    "compose_service": "keycloak",
+    "compose_profile": "sso",
+    "container": "vf-live-keycloak",
     "image": "quay.io/keycloak/keycloak:25.0",
     "realm": "fabric",
     "users": [
-      { "username": "admin", "password": "admin", "roles": ["tenant_admin"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } },
-      { "username": "analyst", "password": "analyst", "roles": ["analyst"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } }
+      { "username": "admin", "password": "local-admin-temp-change-me-2026", "roles": ["tenant_admin"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } },
+      { "username": "analyst", "password": "local-analyst-temp-change-me-2026", "roles": ["analyst"], "attributes": { "tenant_id": "demo-tenant", "org_id": "demo-org" } }
     ],
     "clients": [
       { "clientId": "fabric-frontend", "publicClient": true, "directAccessGrantsEnabled": true, "redirectUris": ["http://localhost:3001/*", "http://localhost:3000/*"] },
@@ -30,13 +32,17 @@
     ]
   },
   "checks": {
-    "well_known": "PASS — GET /realms/fabric/.well-known/openid-configuration returns valid OIDC metadata",
-    "token_password_grant": "PASS — admin and analyst users obtain access_token and id_token via Resource Owner Password Credentials grant",
-    "token_claims": "PASS — access tokens contain realm_access.roles, tenant_id, org_id, email, and profile claims",
-    "invalid_credentials_rejected": "PASS — invalid password returns 401 unauthorized_client/invalid_grant",
-    "token_validation": "VERIFIED_FAIL_CLOSED — missing OIDC config in live stack yields 401 on protected routes",
-    "invalid_bearer_token_rejected": "PASS — fabricated Bearer token rejected with 401",
-    "staging_fail_closed": "PASS — no dev auth bypass flags present; unauthenticated requests to /api/v1/workflows return 401"
+    "realm_import_validation": "PASS — KC_REALM_IMPORT_LOCATION=infra/keycloak/fabric-realm.json python infra/keycloak/validate-realm-seed.py returns OK",
+    "compose_yaml_syntax": "PASS — docker-compose.live.yml parses as valid YAML",
+    "manifest_secret_hygiene": "PASS — scripts/ci/check_manifest_secret_hygiene.py reports no findings",
+    "well_known": "NOT_EXERCISED — Docker daemon unavailable in this execution environment; endpoint expected at /realms/fabric/.well-known/openid-configuration after `docker compose --profile sso up keycloak`",
+    "admin_console_reachable": "NOT_EXERCISED — Docker daemon unavailable; expected at http://localhost:8080/admin",
+    "token_password_grant": "PASS (historical) — admin and analyst users obtain access_token and id_token via Resource Owner Password Credentials grant",
+    "token_claims": "PASS (historical) — access tokens contain realm_access.roles, tenant_id, org_id, email, and profile claims",
+    "invalid_credentials_rejected": "PASS (historical) — invalid password returns 401 unauthorized_client/invalid_grant",
+    "token_validation": "VERIFIED_FAIL_CLOSED (historical) — missing OIDC config in live stack yields 401 on protected routes",
+    "invalid_bearer_token_rejected": "PASS (historical) — fabricated Bearer token rejected with 401",
+    "staging_fail_closed": "PASS (historical) — no dev auth bypass flags present; unauthenticated requests to /api/v1/workflows return 401"
   },
   "sample_token_claims": {
     "iss": "http://127.0.0.1:8080/realms/fabric",
@@ -54,9 +60,9 @@
     "token_endpoint": "http://127.0.0.1:8080/realms/fabric/protocol/openid-connect/token",
     "unauthenticated_request_to_layer4_workflows": "HTTP 401",
     "invalid_bearer_token_request": "HTTP 401",
-    "keycloak_container_status": "running",
+    "keycloak_container_status": "service definition committed; live startup requires Docker daemon access",
     "container_env_dev_bypass_scan": "none"
   },
   "classification": "RE_TESTABLE",
-  "recommendation": "SSO/OIDC validation against a real enterprise IdP (or Clerk staging tenant) remains required before Core GA. The local Keycloak surrogate proves the OIDC wiring and claim shape; enterprise integration is environment-dependent."
+  "recommendation": "SSO/OIDC validation against a real enterprise IdP (or Clerk staging tenant) remains required before Core GA. The local Keycloak surrogate is now committed in docker-compose.live.yml under the `sso` profile and the realm import is validated; enterprise integration is environment-dependent. Re-run `docker compose -f docker-compose.live.yml --profile sso up keycloak` in an environment with Docker access to capture live endpoint evidence."
 }

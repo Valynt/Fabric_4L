@@ -130,6 +130,27 @@ This runbook applies to Kubernetes deployments under `k8s/base/`, `k8s/blue-gree
 
 ---
 
+### Immutable Image / Dependency Rollback Requirement
+
+When a candidate introduces new source-level dependencies (Python packages, shared
+modules, generated contracts, or database migrations), rolling back **only** the
+container image to a prior tag will leave the running code mismatched with the
+mounted source tree, database schema, or required packages. This produces startup
+failures such as `ModuleNotFoundError: No module named 'canonical'`.
+
+A safe rollback must therefore use one of the following:
+
+1. **Immutable, commit-pinned images** built entirely from the target commit,
+   including all dependencies, migrations, and generated artifacts. Tag images
+   with the commit SHA or release candidate id
+   (e.g., `fabric_4l-layer4:rc-116815f3`).
+2. **Coordinated rollback** of image, source/config mounts, and database
+   migrations together. Never roll back the runtime image without also rolling
+   back anything it depends on.
+
+Drill this at least once per release candidate in a production-like environment
+and retain passing smoke evidence.
+
 ### Standard Rollback Procedure
 
 If smoke checks fail or production SLOs regress:
