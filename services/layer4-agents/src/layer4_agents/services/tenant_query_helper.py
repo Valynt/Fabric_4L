@@ -33,6 +33,8 @@ async def run_tenant_validated_query(
     supplied_tenant_id = params.get("tenant_id")
     if supplied_tenant_id is not None and supplied_tenant_id != tenant_id:
         raise ValueError("Tenant context mismatch")
+    if driver is None:
+        return []
     return await fetch_tenant_validated_records(
         driver=driver,
         query=query,
