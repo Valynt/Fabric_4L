@@ -14,12 +14,15 @@ if run against SQLite or any other database.
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 from sqlalchemy import text
 from uuid import uuid4
 
 from layer1_ingestion.shared.database import get_db_session
 from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_TASKS_FILE = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
 
 pytestmark = pytest.mark.requires_postgres
 
@@ -236,8 +239,7 @@ class TestRequireTenantFalseAllowlist:
         import re
         
         # Read the tasks file
-        tasks_file = 'src/shared/tasks.py'
-        with open(tasks_file, 'r', encoding='utf-8') as f:
+        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Find all occurrences of require_tenant=False
