@@ -22,7 +22,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
-from psycopg2.sql import SQL, Identifier
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit.emitter import emit_audit_event
