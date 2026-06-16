@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
 import httpx
 from pydantic import BaseModel, ConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionResponse(BaseModel):
@@ -104,7 +107,8 @@ class Layer3KnowledgeClient:
         try:
             response = await self._client.get(f"{self.base_url}/health", timeout=5.0)
             healthy = response.status_code == 200
-        except Exception:
+        except Exception as exc:
+            logger.warning("Layer 3 health check failed: %s", exc)
             healthy = False
 
         self._last_health_check = now
@@ -149,7 +153,8 @@ class Layer3KnowledgeClient:
             data = response.json()
             self._circuit.record_success()
             return IngestionResponse(**data)
-        except Exception:
+        except Exception as exc:
+            logger.exception("Layer 3 single ingest failed for job %s: %s", extraction_job_id, exc)
             self._circuit.record_failure()
             return IngestionResponse(
                 success=False,
@@ -186,7 +191,8 @@ class Layer3KnowledgeClient:
             data = response.json()
             self._circuit.record_success()
             return [IngestionResponse(**r) for r in data.get("results", [])]
-        except Exception:
+        except Exception as exc:
+            logger.exception("Layer 3 batch ingest failed: %s", exc)
             self._circuit.record_failure()
             return [
                 IngestionResponse(
@@ -205,7 +211,8 @@ class Layer3KnowledgeClient:
             )
             data = response.json()
             return IngestionStatus(**data)
-        except Exception:
+        except Exception as exc:
+            logger.warning("Layer 3 status check failed for %s: %s", ingestion_id, exc)
             return IngestionStatus(
                 ingestion_id=ingestion_id,
                 status="error",

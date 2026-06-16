@@ -194,7 +194,11 @@ def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
         },
         tenant_id="test-tenant",
     )
+    # Simulate a forged runtime context: the raw tenant_id is present but the
+    # authenticated claim has been cleared. Only the authenticated claim is
+    # trusted by _resolve_organization_id.
     state.metadata["tenant_id"] = "forged-metadata-tenant"
+    state.metadata["authenticated_tenant_id"] = None
 
     with pytest.raises(MissingTenantContextError):
         workflow._resolve_organization_id(state)

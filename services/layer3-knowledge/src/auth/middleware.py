@@ -169,7 +169,7 @@ async def get_optional_api_key(
     """
     try:
         return await get_current_api_key(credentials, request, api_key_manager)
-    except:
+    except Exception:
         return None
 
 

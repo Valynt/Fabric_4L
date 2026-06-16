@@ -861,15 +861,21 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         # After the business case document is assembled, trigger a bulk sync
         # of all APPROVED TruthObjects for this tenant to the Layer 3
         # Knowledge Graph.  This is best-effort: a Layer 5 outage must not
-        # block document delivery.
-        sync_result = await self._sync_ground_truths_to_kg(state)
-        assemble_result["ground_truth_sync"] = sync_result
+        # block document delivery.  When the truth gate is explicitly skipped
+        # (e.g. local e2e), skip the sync/promotion calls entirely to avoid
+        # repeated 422s against a Layer 5 schema that does not accept the
+        # legacy claim_type values.
         sdes_bundle = state.output_data.get("generate_sdes", {})
-
-        claim_promotion = await self._promote_case_claims_to_truth_objects(
-            state=state,
-            sections_data=sections_data,
-        )
+        if gate_result.get("skipped"):
+            sync_result = {"synced": 0, "failed": 0, "skipped": True}
+            claim_promotion = {"truth_object_ids": [], "claim_traceability": [], "threshold_decisions": []}
+        else:
+            sync_result = await self._sync_ground_truths_to_kg(state)
+            claim_promotion = await self._promote_case_claims_to_truth_objects(
+                state=state,
+                sections_data=sections_data,
+            )
+        assemble_result["ground_truth_sync"] = sync_result
         assemble_result["case_metadata"] = {
             "account_id": str(state.case_input.account_id),
             "truth_gate": {
@@ -1089,6 +1095,19 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         The human gate in ``harness.runtime.yaml`` (``VALIDATE_CLAIMS``) is
         triggered when ``human_review_required=True``.
         """
+        if os.getenv("LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE", "").lower() in ("true", "1", "yes"):
+            return AgentResult(
+                payload={
+                    "validated_claims": [],
+                    "unverified_claims": [],
+                    "claim_count": 0,
+                    "skipped": True,
+                },
+                workflow_type="business_case",
+                tenant_id=self._resolve_organization_id(state) if state.case_input else "",
+                trace_id=state.metadata.get("trace_id") or state.metadata.get("run_id") if state.metadata else None,
+            ).to_dict()
+
         trace_id = state.metadata.get("trace_id") or state.metadata.get("run_id") if state.metadata else None
         account_name = (
             state.case_input.custom_inputs.get("account_name", "")
@@ -1280,13 +1299,13 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         )
 
     def _resolve_organization_id(self, state: BusinessCaseAgentState) -> str:
-        """Resolve tenant/organization ID from authenticated workflow state."""
-        organization_id: str | None = None
-        if state.metadata:
-            organization_id = state.metadata.get("authenticated_tenant_id")
+        """Resolve tenant/organization ID from authenticated workflow state.
 
-        if not organization_id:
-            organization_id = getattr(state, "tenant_id", None)
+        Only the authenticated tenant claim set by the workflow runtime is
+        trusted. The raw ``state.tenant_id`` must not be used as a fallback
+        because request body or metadata values can be forged.
+        """
+        organization_id = state.metadata.get("authenticated_tenant_id") if state.metadata else None
 
         if organization_id:
             return str(organization_id)
