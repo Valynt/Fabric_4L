@@ -2,7 +2,6 @@
 """List every direct Neo4j session.run / execute_query call in Layer 4."""
 
 import ast
-import sys
 from pathlib import Path
 
 ROOT = Path("services/layer4-agents/src/layer4_agents")
