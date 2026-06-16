@@ -55,8 +55,18 @@ async def list_no_accounts(self, **_kwargs):
     return [], 0
 
 
+_original_list_accounts = accounts.AccountService.list_accounts
+
+
+@pytest_asyncio.fixture(autouse=True)
+def _patch_account_service_for_adversarial_tests():
+    """Temporarily replace list_accounts so auth-layer tests remain isolated."""
+    accounts.AccountService.list_accounts = list_no_accounts
+    yield
+    accounts.AccountService.list_accounts = _original_list_accounts
+
+
 test_app.dependency_overrides[accounts.get_db_from_context] = override_db
-accounts.AccountService.list_accounts = list_no_accounts
 
 
 @pytest_asyncio.fixture

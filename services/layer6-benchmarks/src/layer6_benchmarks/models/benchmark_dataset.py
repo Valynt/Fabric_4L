@@ -146,7 +146,7 @@ class ComparisonResult:
     statistical_profile: Optional[StatisticalProfile] = None
 
     # Interpretation
-    assessment: str = ""  # e.g., "above average", "top performer"
+    assessment: str = ""  # e.g., "above_average", "top_performer"
 
 
 @dataclass
