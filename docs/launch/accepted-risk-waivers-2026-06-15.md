@@ -78,15 +78,15 @@ A waiver is active only after all required owner signatures are present. Until s
 |---|---|
 | **Tracked blocker** | `docs/launch/launch-blocker-register.md` P0-003 |
 | **Risk register item** | `production-readiness/risk_register.md` PRR-010 |
-| **Risk level** | **Variable** — High if enterprise SSO/OIDC is a contracted Core GA requirement; otherwise acceptable residual risk for post-GA. |
+| **Risk level** | **Medium** — enterprise SSO/OIDC is scoped out of Core GA; residual risk is limited to delaying IdP-specific validation until paid/enterprise GA. |
 | **Owner** | Identity owner |
 | **Approving owner** | _TBD_ |
-| **Customer impact statement** | If enterprise SSO is in Core GA scope, launch without real enterprise IdP evidence risks IdP-specific mapping/refusal behavior not exercised against a production-like provider. If SSO is not required for Core GA, the local Keycloak surrogate (`fabric` realm, `realm_access.roles` + `tenant_id` + `org_id` claims) validates the OIDC integration path and Clerk-managed auth remains the supported fallback. |
-| **Scope reduction** | Formal scope decision recorded in `docs/launch/sso-core-ga-scope-decision.md`. If SSO is scoped out of Core GA, enterprise IdP validation moves to paid/enterprise GA. |
-| **Required evidence** | If in Core GA scope: provider metadata, redirect URI validation, successful login/logout proof, failed-login behavior, group/role mapping, and a redacted audit event against the target enterprise IdP. If scoped out: documented decision, fallback auth plan, and target date for paid/enterprise GA validation. |
-| **Rollback plan** | If SSO issues occur, disable the enterprise IdP route and fall back to Clerk-managed authentication; auth fail-closed behavior is preserved. |
-| **Monitoring plan** | Auth failure rate, token validation errors, and identity-webhook delivery are monitored; provider integration is validated in staging before the waiver expires. |
-| **Expiry condition** | If in scope: attach enterprise IdP login/logout/role-mapping audit evidence, or renew the waiver with executive approval. If scoped out: validate enterprise IdP before paid/enterprise GA. |
+| **Customer impact statement** | Core GA launches with Clerk-managed authentication. Enterprise SSO/OIDC is deferred to paid/enterprise GA, so IdP-specific mapping/refusal behavior is not exercised before Core GA. The local Keycloak surrogate (`fabric` realm, `realm_access.roles` + `tenant_id` + `org_id` claims) validates the OIDC integration path. |
+| **Scope reduction** | Enterprise SSO/OIDC is formally scoped out of Core GA per `docs/launch/sso-core-ga-scope-decision.md`. |
+| **Required evidence** | Documented scope decision, Clerk fallback plan, and target date for paid/enterprise GA IdP validation. |
+| **Rollback plan** | If SSO issues occur after future enablement, disable the enterprise IdP route and fall back to Clerk-managed authentication; auth fail-closed behavior is preserved. |
+| **Monitoring plan** | Auth failure rate, token validation errors, and identity-webhook delivery are monitored; provider integration is validated in staging before paid/enterprise GA. |
+| **Expiry condition** | Validate enterprise IdP before paid/enterprise GA, or renew the waiver with executive approval. |
 
 **Signatures**
 
