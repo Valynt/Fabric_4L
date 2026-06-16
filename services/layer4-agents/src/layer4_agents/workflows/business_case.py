@@ -35,6 +35,23 @@ from ..tools.registry import ToolRegistry, ToolResult
 from .base import BaseWorkflow
 
 
+LAYER4_TO_LAYER5_CLAIM_TYPE: dict[str, str] = {
+    "metric": "value_driver_metric",
+    "roi_assumption": "cost_savings_baseline",
+    "outcome": "customer_outcome",
+    "benchmark": "market_benchmark",
+    "risk": "risk_reduction",
+}
+
+
+def _to_layer5_claim_type(claim_type: Any) -> str:
+    normalized = str(claim_type or "metric").strip().lower()
+    try:
+        return LAYER4_TO_LAYER5_CLAIM_TYPE[normalized]
+    except KeyError as exc:
+        raise ValueError(f"Unmapped Layer 4 claim_type for Layer 5 promotion: {claim_type!r}") from exc
+
+
 def _unwrap_tool_data(result: Any) -> dict[str, Any]:
     """Extract data dict from ToolResult or return dict fallback."""
     if isinstance(result, ToolResult) and result.status == "success":
@@ -1016,9 +1033,13 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
 
                 truth_id: str | None = None
                 if eligible and claim_text:
+                    layer4_claim_type = str(candidate.get("claim_type", "metric"))
+                    layer5_claim_type = _to_layer5_claim_type(layer4_claim_type)
+                    decision["layer4_claim_type"] = layer4_claim_type
+                    decision["layer5_claim_type"] = layer5_claim_type
                     existing_truths = await client.list_truths(
                         organization_id=organization_id,
-                        claim_type=candidate.get("claim_type"),
+                        claim_type=layer5_claim_type,
                         limit=100,
                         offset=0,
                     )
@@ -1038,7 +1059,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                     else:
                         created = await client.submit_truth(
                             claim=claim_text,
-                            claim_type=str(candidate.get("claim_type", "metric")),
+                            claim_type=layer5_claim_type,
                             confidence=confidence,
                             organization_id=organization_id,
                             applies_to={"opportunity_id": state.case_input.opportunity_id},
@@ -1057,6 +1078,12 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                     {
                         "claim": claim_text,
                         "truth_object_id": truth_id,
+                        "layer4_claim_type": candidate.get("claim_type"),
+                        "layer5_claim_type": (
+                            _to_layer5_claim_type(candidate.get("claim_type"))
+                            if candidate.get("claim_type") is not None
+                            else None
+                        ),
                         "provenance": candidate.get("provenance", {}),
                         "sources": candidate.get("sources", []),
                     }

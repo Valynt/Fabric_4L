@@ -20,14 +20,18 @@ vi.mock("../access", () => ({
 describe("GovernanceAuditTrail", () => {
   it("serializes filter state to API query params", () => {
     const params = buildOperationalAuditParams({ actor: "alice", action: "login", entityType: "session", entityId: "sess-1", startDate: "2026-05-01", endDate: "2026-05-20", page: 2, perPage: 50 });
-    expect(params.get("actor")).toBe("alice");
-    expect(params.get("action")).toBe("login");
+    expect(params.get("agent")).toBe("alice");
+    expect(params.get("event_type")).toBe("login");
     expect(params.get("entity_type")).toBe("session");
     expect(params.get("entity_id")).toBe("sess-1");
-    expect(params.get("start_date")).toBe("2026-05-01");
-    expect(params.get("end_date")).toBe("2026-05-20");
+    expect(params.get("from_date")).toBe("2026-05-01");
+    expect(params.get("to_date")).toBe("2026-05-20");
     expect(params.get("page")).toBe("2");
     expect(params.get("per_page")).toBe("50");
+    expect(params.has("actor")).toBe(false);
+    expect(params.has("action")).toBe(false);
+    expect(params.has("start_date")).toBe(false);
+    expect(params.has("end_date")).toBe(false);
   });
 
   it("hides export controls for unauthorized roles", () => {

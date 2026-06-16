@@ -359,6 +359,24 @@ SAAS_B2B_BENCHMARK_SEED = {
             "upper_bound": "540.0",
             "is_higher_better": False,
         },
+        "se_hours_per_opportunity": {
+            "name": "se_hours_per_opportunity",
+            "unit": "hours",
+            "description": "Sales engineering hours spent per qualified opportunity",
+            "profile": {
+                "p10": "1.5",
+                "p25": "2.5",
+                "p50": "4.0",
+                "p75": "6.0",
+                "p90": "8.5",
+                "mean": "4.2",
+                "std_dev": "2.1",
+                "sample_size": 850,
+            },
+            "lower_bound": "0.5",
+            "upper_bound": "20.0",
+            "is_higher_better": False,
+        },
     },
 }
 

@@ -238,7 +238,7 @@ async def start_optional_integrations(app: FastAPI) -> None:
         )
 
     # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
-    from ..database import get_db_from_context
+    from ..database import get_session_factory
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
-    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_session_factory())
     await runtime_state.gate_timeout_scheduler.start()
