@@ -20,19 +20,18 @@ Date: 2026-05-27
 """
 
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
 from fastapi import FastAPI
-
-from layer4_agents.api.routes import accounts
+from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling.handlers import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.permissions import Role
 
+from layer4_agents.api.routes import accounts
 
 pytestmark = [
     pytest.mark.security,

@@ -19,35 +19,32 @@ pytestmark = [
     pytest.mark.postgres,
 ]
 
-from typing import Any
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 from uuid import uuid4
 
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
-from layer4_agents.api.main import app as production_app
-from layer4_agents.api.routes.accounts import router as accounts_router
-from layer4_agents.api.routes.analysis import get_executor, router as analysis_router
-from layer4_agents.database import Base, get_db_from_context, _mark_session_tenant_context
-from layer4_agents.models.business_case_record import BusinessCaseRecord
-from layer4_agents.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
-from value_fabric.shared.identity.permissions import Permission, Role
-from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
+import pytest_asyncio
 
 # Create test-specific app without full middleware stack
 from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.permissions import Permission, Role
+from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from layer4_agents.api.routes.accounts import router as accounts_router
+from layer4_agents.api.routes.analysis import router as analysis_router
+from layer4_agents.database import Base, _mark_session_tenant_context, get_db_from_context
+from layer4_agents.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
+from layer4_agents.models.business_case_record import BusinessCaseRecord
+
 test_app = FastAPI()
 register_exception_handlers(test_app)
 test_app.include_router(accounts_router, prefix="/v1", tags=["Accounts"])
