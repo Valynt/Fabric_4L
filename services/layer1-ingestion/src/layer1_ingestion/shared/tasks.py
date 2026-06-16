@@ -5,6 +5,7 @@ Manages ScrapingJob lifecycle through 11 PipelineStages.
 """
 
 import hashlib
+import os
 import time
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -833,6 +834,9 @@ async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     raise ValueError("Raw content not found for AI extraction")
 
                 l2_url = settings.layer2_api_url
+                extraction_model = extraction_config.get(
+                    "model", os.getenv("EXTRACTION_MODEL", settings.openai_model)
+                )
                 extraction_payload = {
                     "content": raw_content.meta_title or "",
                     "content_type": "text",
@@ -840,8 +844,11 @@ async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     "source_id": str(raw_content_id),
                     "job_id": str(job_id),
                     "tenant_id": str(job.tenant_id),
+                    "model_version": extraction_config.get("model_version", extraction_model),
+                    "schema_version": extraction_config.get("schema_version", "1.0"),
+                    "prompt_version": extraction_config.get("prompt_version", "entity_extraction_v1"),
                     "options": {
-                        "model": extraction_config.get("model", settings.openai_model),
+                        "model": extraction_model,
                         "temperature": extraction_config.get("temperature", 0.0),
                         "max_tokens": extraction_config.get("max_tokens", 4000),
                     },
