@@ -399,8 +399,7 @@ async def export_document_tool(
         manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
         manifest_filename = f"{filename.rsplit('.', 1)[0]}.provenance.json"
 
-        tenant_prefix = str(context.tenant_id) if context else "unknown"
-        base_prefix = f"exports/{tenant_prefix}/{request.business_case_id}/{export_id}"
+        base_prefix = f"{request.business_case_id}/{export_id}"
         pdf_key = f"{base_prefix}/{filename}"
         manifest_key = f"{base_prefix}/{manifest_filename}"
         object_metadata = {
@@ -411,20 +410,22 @@ async def export_document_tool(
         }
 
         await upload_bytes(
+            tenant_id=str(context.tenant_id) if context else "unknown",
             object_key=pdf_key,
             content=pdf_bytes,
             content_type="application/pdf",
             metadata=object_metadata,
         )
         await upload_bytes(
+            tenant_id=str(context.tenant_id) if context else "unknown",
             object_key=manifest_key,
             content=manifest_bytes,
             content_type="application/json",
             metadata=object_metadata,
         )
 
-        download_url = await generate_download_url(object_key=pdf_key)
-        manifest_url = await generate_download_url(object_key=manifest_key)
+        download_url = await generate_download_url(tenant_id=str(context.tenant_id) if context else "unknown", object_key=pdf_key)
+        manifest_url = await generate_download_url(tenant_id=str(context.tenant_id) if context else "unknown", object_key=manifest_key)
         expires_at = datetime.now(UTC).timestamp() + get_settings().export_signed_url_ttl_seconds
         expires_at_iso = datetime.fromtimestamp(expires_at, tz=UTC).isoformat()
 

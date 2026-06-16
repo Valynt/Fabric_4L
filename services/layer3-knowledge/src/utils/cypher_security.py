@@ -45,61 +45,68 @@ need immediate updates. The shim will be removed once all callers are migrated.
 
 import re
 
+
+class TenantCypherValidationError(ValueError):
+    """Raised when a Cypher query fails tenant-scope validation."""
+
+
 # ---------------------------------------------------------------------------
 # Canonical tenant-owned label registry
 # ---------------------------------------------------------------------------
 
-TENANT_OWNED_LABELS: frozenset[str] = frozenset({
-    "Account",
-    "Battlecard",
-    "Benchmark",
-    "BenchmarkDataset",
-    "BusinessCase",
-    "Capability",
-    "CaseStudy",
-    "Chunk",
-    "Community",
-    "Company",
-    "Contact",
-    "Competitor",
-    "Customer",
-    "DecisionStep",
-    "DecisionTrace",
-    "Document",
-    "Entity",
-    "Evidence",
-    "EconomicModel",
-    "Feature",
-    "Formula",
-    "FormulaVersion",
-    "Industry",
-    "Insight",
-    "Model",
-    "Opportunity",
-    "Outcome",
-    "PackExecution",
-    "PROVEntity",
-    "PainSignal",
-    "Persona",
-    "Product",
-    "Prospect",
-    "ROICalculation",
-    "ROITemplate",
-    "Segment",
-    "Signal",
-    "Source",
-    "Stakeholder",
-    "SyncMetadata",
-    "UseCase",
-    "ValueDriver",
-    "ValueLever",
-    "ValueModel",
-    "ValuePack",
-    "ValueSignal",
-    "ValueTree",
-    "Variable",
-    "Workflow",
-})
+TENANT_OWNED_LABELS: frozenset[str] = frozenset(
+    {
+        "Account",
+        "Battlecard",
+        "Benchmark",
+        "BenchmarkDataset",
+        "BusinessCase",
+        "Capability",
+        "CaseStudy",
+        "Chunk",
+        "Community",
+        "Company",
+        "Contact",
+        "Competitor",
+        "Customer",
+        "DecisionStep",
+        "DecisionTrace",
+        "Document",
+        "Entity",
+        "Evidence",
+        "EconomicModel",
+        "Feature",
+        "Formula",
+        "FormulaVersion",
+        "Industry",
+        "Insight",
+        "Model",
+        "Opportunity",
+        "Outcome",
+        "PackExecution",
+        "PROVEntity",
+        "PainSignal",
+        "Persona",
+        "Product",
+        "Prospect",
+        "ROICalculation",
+        "ROITemplate",
+        "Segment",
+        "Signal",
+        "Source",
+        "Stakeholder",
+        "SyncMetadata",
+        "UseCase",
+        "ValueDriver",
+        "ValueLever",
+        "ValueModel",
+        "ValuePack",
+        "ValueSignal",
+        "ValueTree",
+        "Variable",
+        "Workflow",
+    }
+)
 
 # ---------------------------------------------------------------------------
 # Dynamic identifier allowlists (SEC-L3-CYPHER-003 / GOV-L3-006)
@@ -114,62 +121,66 @@ TENANT_OWNED_LABELS: frozenset[str] = frozenset({
 # comment in .semgrep/cypher-dynamic-guard.yml if its scope changes.
 # ---------------------------------------------------------------------------
 
-ALLOWED_REL_TYPES: frozenset[str] = frozenset({
-    "addresses",
-    "belongsTo",
-    "belongsToPack",
-    "benefitsFrom",
-    "contains",
-    "delivers",
-    "dependsOn",
-    "drivenBy",
-    "enables",
-    "exhibits",
-    "extractedFrom",
-    "generatedBy",
-    "HAS_DRIVER",
-    "HAS_EXECUTION",
-    "hasFeature",
-    "hasDriver",
-    "hasFormula",
-    "hasBenchmark",
-    "hasWorkflow",
-    "HAS_FEATURE",
-    "HAS_MODEL_TYPE",
-    "HAS_USE_CASE",
-    "implementedBy",
-    "implements",
-    "impacts",
-    "involves",
-    "mapsTo",
-    "mapsToAPQC",
-    "mapsToBIAN",
-    "mapsToFIBO",
-    "measuredBy",
-    "measures",
-    "operatesIn",
-    "owns",
-    "partOf",
-    "performs",
-    "provides",
-    "quantifiedBy",
-    "requires",
-    "requiresFeature",
-    "semanticallyEquivalent",
-    "subTypeOf",
-    "supportedBy",
-    "SUPERSEDES",
-    "supersedes",
-    "usedIn",
-    "validatedBy",
-})
+ALLOWED_REL_TYPES: frozenset[str] = frozenset(
+    {
+        "addresses",
+        "belongsTo",
+        "belongsToPack",
+        "benefitsFrom",
+        "contains",
+        "delivers",
+        "dependsOn",
+        "drivenBy",
+        "enables",
+        "exhibits",
+        "extractedFrom",
+        "generatedBy",
+        "HAS_DRIVER",
+        "HAS_EXECUTION",
+        "hasFeature",
+        "hasDriver",
+        "hasFormula",
+        "hasBenchmark",
+        "hasWorkflow",
+        "HAS_FEATURE",
+        "HAS_MODEL_TYPE",
+        "HAS_USE_CASE",
+        "implementedBy",
+        "implements",
+        "impacts",
+        "involves",
+        "mapsTo",
+        "mapsToAPQC",
+        "mapsToBIAN",
+        "mapsToFIBO",
+        "measuredBy",
+        "measures",
+        "operatesIn",
+        "owns",
+        "partOf",
+        "performs",
+        "provides",
+        "quantifiedBy",
+        "requires",
+        "requiresFeature",
+        "semanticallyEquivalent",
+        "subTypeOf",
+        "supportedBy",
+        "SUPERSEDES",
+        "supersedes",
+        "usedIn",
+        "validatedBy",
+    }
+)
 
-ALLOWED_TARGET_LABELS: frozenset[str] = frozenset({
-    "ValueDriver",
-    "Formula",
-    "BenchmarkDataset",
-    "Workflow",
-})
+ALLOWED_TARGET_LABELS: frozenset[str] = frozenset(
+    {
+        "ValueDriver",
+        "Formula",
+        "BenchmarkDataset",
+        "Workflow",
+    }
+)
 
 
 def validate_cypher_identifier(
@@ -235,7 +246,9 @@ def validate_tenant_scoped_cypher(
     Raises:
         ValueError: If any tenant-owned label is matched without a tenant_id filter.
     """
-    labels = tenant_owned_labels if tenant_owned_labels is not None else TENANT_OWNED_LABELS
+    labels = (
+        tenant_owned_labels if tenant_owned_labels is not None else TENANT_OWNED_LABELS
+    )
     scoped_aliases = _tenant_scoped_aliases(query)
     violations: list[str] = []
 
@@ -253,7 +266,7 @@ def validate_tenant_scoped_cypher(
                 violations.append(f"{label}({alias_name or '?'})")
 
     if violations:
-        raise ValueError(
+        raise TenantCypherValidationError(
             f"Tenant scope guard violation in {query_name}: missing tenant_id filter for "
             + ", ".join(violations)
         )

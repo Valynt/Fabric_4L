@@ -3,24 +3,22 @@ from __future__ import annotations
 """Security and audit tests for case routes."""
 
 
-from typing import Any
 from types import SimpleNamespace
+from typing import Any
 from uuid import UUID, uuid4
 
-import pytest
-
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
-from httpx import ASGITransport, AsyncClient
+import pytest
 from fastapi import FastAPI
-
-from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.audit.models import AuditAction
+from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.audit import emit_audit_event
+from value_fabric.shared.audit.models import AuditAction
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
-from layer4_agents.api.routes import analysis
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from layer4_agents.api.routes import analysis
 
 app = FastAPI()
 register_exception_handlers(app)
@@ -113,14 +111,17 @@ async def test_cross_tenant_case_access_denied(client: AsyncClient):
     caller_tenant = uuid4()
 
     app.dependency_overrides[analysis.get_executor] = lambda: _FakeExecutor(str(owner_tenant))
-    override_auth = lambda: RequestContext(
-        tenant_id=caller_tenant,
-        user_id="user-1",
-        roles=[],
-        permissions=frozenset({"read:agents"}),
-    )
-    app.dependency_overrides[analysis.require_authenticated] = override_auth
-    app.dependency_overrides[require_authenticated] = override_auth
+
+    def _override_auth() -> RequestContext:
+        return RequestContext(
+            tenant_id=caller_tenant,
+            user_id="user-1",
+            roles=[],
+            permissions=frozenset({"read:agents"}),
+        )
+
+    app.dependency_overrides[analysis.require_authenticated] = _override_auth
+    app.dependency_overrides[require_authenticated] = _override_auth
 
     response = await client.get("/v1/cases/case-123")
 
@@ -150,8 +151,8 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     async def _upload_bytes(**kwargs):
         return None
 
-    async def _download_url(object_key: str):
-        return f"https://example.local/{object_key}"
+    async def _download_url(object_key: str, tenant_id: str | None = None):
+        return f"https://example.local/{tenant_id or 'global'}/{object_key}"
 
     monkeypatch.setattr(analysis, "emit_and_persist_audit", _capture)
     monkeypatch.setattr(analysis, "upload_bytes", _upload_bytes)
@@ -176,14 +177,17 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
 
     app.dependency_overrides[analysis.get_route_db] = lambda: _DbWithCase()
     app.dependency_overrides[analysis.get_executor] = lambda: executor
-    override_auth = lambda: RequestContext(
-        tenant_id=tenant,
-        user_id="auditor-user",
-        roles=[],
-        permissions=frozenset({"read:agents", "write:agents"}),
-    )
-    app.dependency_overrides[analysis.require_authenticated] = override_auth
-    app.dependency_overrides[require_authenticated] = override_auth
+
+    def _override_auth() -> RequestContext:
+        return RequestContext(
+            tenant_id=tenant,
+            user_id="auditor-user",
+            roles=[],
+            permissions=frozenset({"read:agents", "write:agents"}),
+        )
+
+    app.dependency_overrides[analysis.require_authenticated] = _override_auth
+    app.dependency_overrides[require_authenticated] = _override_auth
     monkeypatch.setattr(analysis, "AccountService", _AccountService)
 
     export_response = await client.get("/v1/cases/case-123/export")

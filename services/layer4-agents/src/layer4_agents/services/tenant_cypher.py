@@ -20,7 +20,7 @@ class TenantCypherValidationError(ValueError):
 _TENANT_PARAM_KEYS = ("tenant_id", "_tenant_id")
 _TENANT_PARAM_PATTERN = re.compile(r"\$(?:tenant_id|_tenant_id)\b")
 _TENANT_PREDICATE_PATTERN = re.compile(
-    r"(?i)(?:\{[^}]*\btenant_id\s*:\s*\$(?:tenant_id|_tenant_id)\b[^}]*\}|"
+    r"(?i)(?:\{\s*[^}]*\btenant_id\s*:\s*\$(?:tenant_id|_tenant_id)\b[^}]*\}|"
     r"\b[A-Za-z_][A-Za-z0-9_]*\.tenant_id\s*(?:=|IN)\s*\$(?:tenant_id|_tenant_id)\b)"
 )
 

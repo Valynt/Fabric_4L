@@ -19,11 +19,13 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_even
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 
+from layer4_agents.config.settings import get_settings
+
 logger = logging.getLogger(__name__)
 
 _NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 _NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-_NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+_NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD") or get_settings().neo4j_password
 _NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "valuefabric")
 _DRIVER = None
 

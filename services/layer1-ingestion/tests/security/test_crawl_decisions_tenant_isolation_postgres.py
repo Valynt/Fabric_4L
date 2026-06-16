@@ -11,15 +11,15 @@ These tests MUST run against PostgreSQL.
 
 from __future__ import annotations
 
+from uuid import UUID, uuid4
+
 import pytest
-from uuid import uuid4, UUID
 
 from layer1_ingestion.crawler.decision_store import (
     CrawlDecisionRecord,
     CrawlDecisionRepository,
 )
 from layer1_ingestion.shared.models import CrawlDecision
-
 
 pytestmark = pytest.mark.requires_postgres
 
@@ -31,8 +31,6 @@ class TestCrawlDecisionTenantIsolation:
         self, db, org_id, other_org_id
     ):
         """Saving a crawl decision with tenant_id should scope it to that tenant."""
-        repo = CrawlDecisionRepository()
-
         # Create decision for tenant A
         record_a = CrawlDecisionRecord(
             decision_id=str(uuid4()),
@@ -57,8 +55,9 @@ class TestCrawlDecisionTenantIsolation:
         )
 
         # Save with tenant A context
-        from layer1_ingestion.shared.database import get_db_session
         import asyncio
+
+        from layer1_ingestion.shared.database import get_db_session
 
         async def save_with_tenant():
             tenant_uuid = UUID(str(org_id))
@@ -82,8 +81,6 @@ class TestCrawlDecisionTenantIsolation:
         self, db, org_id, other_org_id
     ):
         """Queries with tenant_id=A should not see tenant B's decisions."""
-        repo = CrawlDecisionRepository()
-
         # Create decision for tenant A
         record_a = CrawlDecisionRecord(
             decision_id=str(uuid4()),
@@ -130,8 +127,9 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from layer1_ingestion.shared.database import get_db_session
         import asyncio
+
+        from layer1_ingestion.shared.database import get_db_session
 
         async def save_both():
             # Save tenant A decision
@@ -153,7 +151,9 @@ class TestCrawlDecisionTenantIsolation:
             tenant_a_uuid = UUID(str(org_id))
             with get_db_session(tenant_id=tenant_a_uuid, require_tenant=True) as session:
                 repo_query = CrawlDecisionRepository(db_session=session)
-                decisions = await repo_query.get_by_domain("example-a.com")
+                decisions = await repo_query.get_by_domain(
+                    "example-a.com", tenant_id=str(org_id)
+                )
                 return decisions
 
         decisions_a = asyncio.run(query_tenant_a())
@@ -166,7 +166,9 @@ class TestCrawlDecisionTenantIsolation:
             tenant_a_uuid = UUID(str(org_id))
             with get_db_session(tenant_id=tenant_a_uuid, require_tenant=True) as session:
                 repo_query = CrawlDecisionRepository(db_session=session)
-                decisions = await repo_query.get_by_domain("example-b.com")
+                decisions = await repo_query.get_by_domain(
+                    "example-b.com", tenant_id=str(org_id)
+                )
                 return decisions
 
         decisions_b_from_a = asyncio.run(query_tenant_b_from_a())
@@ -198,7 +200,6 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         # This should fail if _get_session() is called without tenant context
@@ -241,8 +242,9 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from layer1_ingestion.shared.database import get_db_session
         import asyncio
+
+        from layer1_ingestion.shared.database import get_db_session
 
         # Try to save with tenant A context but record has tenant_id=B
         async def save_cross_tenant():
@@ -286,8 +288,9 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from layer1_ingestion.shared.database import get_db_session
         import asyncio
+
+        from layer1_ingestion.shared.database import get_db_session
 
         # Save with tenant B context
         async def save_tenant_b():

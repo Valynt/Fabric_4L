@@ -33,6 +33,8 @@ from typing import Any
 import structlog
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
+
 
 class ValueHypothesis_to_node_propertiesResult(TypedDictModel):
     account_id: Any
@@ -234,14 +236,18 @@ class ValueHypothesisEngine:
         LIMIT $max_hypotheses
         """
         hypotheses = []
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "account_id": account_id,
                 "min_confidence": min_confidence,
                 "max_hypotheses": max_hypotheses,
-            })
-            records = [record async for record in result]
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.generate_for_account",
+        )
 
         for record in records:
             signal = record["signal"]
@@ -315,14 +321,18 @@ class ValueHypothesisEngine:
         LIMIT 5
         """
         evidence_ids = []
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "industry": industry,
                 "product_name": product.get("name", ""),
-            })
-            records = [record async for record in result]
-            evidence_ids = [r["evidence_id"] for r in records]
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.find_supporting_evidence",
+        )
+        evidence_ids = [r["evidence_id"] for r in records]
 
         return evidence_ids
 
@@ -352,19 +362,24 @@ class ValueHypothesisEngine:
         )
         RETURN vh {.*} AS hypothesis
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "id": props["id"],
                 "props": props,
                 "account_id": props["account_id"],
                 "tenant_id": props["tenant_id"],
                 "signal_id": props["signal_id"],
                 "product_id": props["product_id"],
-            })
-            record = await result.single()
-            if record:
-                return record["hypothesis"]
-            return props
+            },
+            tenant_id=props["tenant_id"],
+            operation="value_hypothesis_engine.store_hypothesis",
+        )
+        record = records[0] if records else None
+        if record:
+            return record["hypothesis"]
+        return props
 
     async def promote_signal(
         self,
@@ -403,17 +418,22 @@ class ValueHypothesisEngine:
         MATCH (ps:PainSignal {id: $signal_id, tenant_id: $tenant_id, account_id: $account_id})
         RETURN ps {.id, .name, .category, .confidence_score, .impact_value, .description} AS signal
         """
-        async with self._driver.session() as session:
-            result = await session.run(signal_query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=signal_query,
+            params={
                 "signal_id": signal_id,
                 "tenant_id": tenant_id,
                 "account_id": account_id,
-            })
-            record = await result.single()
-            if not record or not record["signal"]:
-                raise ValueError(f"Signal {signal_id} not found for account {account_id}")
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.promote_signal",
+        )
+        record = records[0] if records else None
+        if not record or not record["signal"]:
+            raise ValueError(f"Signal {signal_id} not found for account {account_id}")
 
-            signal = record["signal"]
+        signal = record["signal"]
 
         # Use signal category as fallback capability if none provided
         cap_id = capability_id or signal["id"]
@@ -526,20 +546,25 @@ class ValueHypothesisEngine:
                p {.id, .name} AS product,
                collect(DISTINCT e {.id, .title, .industry}) AS evidence
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "hypothesis_id": hypothesis_id,
                 "tenant_id": tenant_id,
-            })
-            record = await result.single()
-            if not record or not record["hypothesis"]:
-                return None
-            return ValueHypothesisEngine_get_hypothesisResult.model_validate({
-                **record["hypothesis"],
-                "signal_detail": record["signal"],
-                "product_detail": record["product"],
-                "evidence_detail": record["evidence"],
-            })
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.get_hypothesis",
+        )
+        record = records[0] if records else None
+        if not record or not record["hypothesis"]:
+            return None
+        return ValueHypothesisEngine_get_hypothesisResult.model_validate({
+            **record["hypothesis"],
+            "signal_detail": record["signal"],
+            "product_detail": record["product"],
+            "evidence_detail": record["evidence"],
+        })
 
 
     async def get_account_hypotheses(
@@ -580,13 +605,23 @@ class ValueHypothesisEngine:
         SKIP $skip LIMIT $limit
         """
 
-        async with self._driver.session() as session:
-            count_result = await session.run(count_query, params)
-            count_record = await count_result.single()
-            total = count_record["total"] if count_record else 0
+        count_records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=count_query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.get_account_hypotheses.count",
+        )
+        count_record = count_records[0] if count_records else None
+        total = count_record["total"] if count_record else 0
 
-            list_result = await session.run(list_query, params)
-            records = [record async for record in list_result]
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=list_query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.get_account_hypotheses.list",
+        )
 
         return ValueHypothesisEngine_get_account_hypothesesResult.model_validate({
             "hypotheses": [r["hypothesis"] for r in records],
@@ -651,19 +686,24 @@ class ValueHypothesisEngine:
         RETURN vh {{.*}} AS hypothesis
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(query, params)
-            record = await result.single()
-            if not record:
-                return None
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.validate_hypothesis",
+        )
+        record = records[0] if records else None
+        if not record:
+            return None
 
-            logger.info(
-                "hypothesis_validated",
-                hypothesis_id=hypothesis_id,
-                new_status=new_status,
-                confidence_adjustment=confidence_adjustment,
-            )
-            return record["hypothesis"]
+        logger.info(
+            "hypothesis_validated",
+            hypothesis_id=hypothesis_id,
+            new_status=new_status,
+            confidence_adjustment=confidence_adjustment,
+        )
+        return record["hypothesis"]
 
     async def promote_validated_hypothesis(
         self,
@@ -718,16 +758,21 @@ class ValueHypothesisEngine:
         RETURN d {.*} AS driver, l {.*} AS lever, $linkage_id AS linkage_id
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "hypothesis_id": hypothesis_id,
                 "driver_id": driver_id,
                 "lever_id": lever_id,
                 "linkage_id": linkage_id,
                 "now": now,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.promote_validated_hypothesis",
+        )
+        record = records[0] if records else None
 
         if not record:
             return {"drivers": [], "levers": [], "created": False}
@@ -790,13 +835,18 @@ class ValueHypothesisEngine:
         DETACH DELETE vh
         RETURN count(vh) AS deleted
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "hypothesis_id": hypothesis_id,
                 "tenant_id": tenant_id,
-            })
-            record = await result.single()
-            return record["deleted"] > 0 if record else False
+            },
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.delete_hypothesis",
+        )
+        record = records[0] if records else None
+        return record["deleted"] > 0 if record else False
 
     # ------------------------------------------------------------------
     # Analytics
@@ -828,23 +878,28 @@ class ValueHypothesisEngine:
                count(DISTINCT vh.product_id) AS unique_products,
                count(DISTINCT vh.account_id) AS unique_accounts
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, params)
-            record = await result.single()
-            if not record:
-                return ValueHypothesisEngine_get_hypothesis_summaryResult.model_validate({"total": 0})
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params=params,
+            tenant_id=tenant_id,
+            operation="value_hypothesis_engine.get_hypothesis_summary",
+        )
+        record = records[0] if records else None
+        if not record:
+            return ValueHypothesisEngine_get_hypothesis_summaryResult.model_validate({"total": 0})
 
-            return ValueHypothesisEngine_get_hypothesis_summaryResult.model_validate({
-                "total": record["total"],
-                "by_status": {
-                    "draft": record["draft_count"],
-                    "validated": record["validated_count"],
-                    "rejected": record["rejected_count"],
-                    "converted": record["converted_count"],
-                },
-                "avg_confidence": round(record["avg_confidence"] or 0, 3),
-                "total_estimated_impact": round(record["total_estimated_impact"] or 0, 2),
-                "avg_estimated_impact": round(record["avg_estimated_impact"] or 0, 2),
-                "unique_products": record["unique_products"],
-                "unique_accounts": record["unique_accounts"],
-            })
+        return ValueHypothesisEngine_get_hypothesis_summaryResult.model_validate({
+            "total": record["total"],
+            "by_status": {
+                "draft": record["draft_count"],
+                "validated": record["validated_count"],
+                "rejected": record["rejected_count"],
+                "converted": record["converted_count"],
+            },
+            "avg_confidence": round(record["avg_confidence"] or 0, 3),
+            "total_estimated_impact": round(record["total_estimated_impact"] or 0, 2),
+            "avg_estimated_impact": round(record["avg_estimated_impact"] or 0, 2),
+            "unique_products": record["unique_products"],
+            "unique_accounts": record["unique_accounts"],
+        })

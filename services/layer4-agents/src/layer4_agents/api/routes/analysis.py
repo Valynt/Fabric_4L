@@ -55,6 +55,7 @@ from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
 from ...services.export_provenance import build_export_provenance_manifest
 from ...services.export_storage import generate_download_url, upload_bytes
+from ...services.tenant_cypher import fetch_tenant_validated_records
 from ...tenants.models.api_key import APIKey
 from ...tenants.models.tenant import IsolationTier, Tenant, TenantStatus
 from ...tenants.models.user import User
@@ -1358,7 +1359,7 @@ async def export_business_case(
     )
     manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
 
-    base_prefix = f"exports/tenant_{context.tenant_id}/{case_id}/{export_id}"
+    base_prefix = f"{case_id}/{export_id}"
     object_key = f"{base_prefix}/{filename}"
     manifest_key = f"{base_prefix}/{manifest_filename}"
     metadata = {
@@ -1375,20 +1376,22 @@ async def export_business_case(
     content_type = "application/pdf" if format == "pdf" else "application/octet-stream"
 
     await upload_bytes(
+        tenant_id=str(context.tenant_id),
         object_key=object_key,
         content=document_bytes,
         content_type=content_type,
         metadata=metadata,
     )
     await upload_bytes(
+        tenant_id=str(context.tenant_id),
         object_key=manifest_key,
         content=manifest_bytes,
         content_type="application/json",
         metadata=metadata,
     )
 
-    document_url = await generate_download_url(object_key=object_key)
-    manifest_url = await generate_download_url(object_key=manifest_key)
+    document_url = await generate_download_url(tenant_id=str(context.tenant_id), object_key=object_key)
+    manifest_url = await generate_download_url(tenant_id=str(context.tenant_id), object_key=manifest_key)
     expires_at = datetime.fromtimestamp(
         datetime.now(UTC).timestamp() + get_settings().export_signed_url_ttl_seconds,
         tz=UTC,
@@ -1884,19 +1887,24 @@ async def generate_workspace_intelligence(
     LIMIT 50
     """
     signals = []
-    async with driver.session() as session:
-        result = await session.run(signal_query, {"account_id": account_id, "tenant_id": tenant_id})
-        async for record_row in result:
-            s = record_row["signal"]
-            if s:
-                signals.append({
-                    "id": s.get("id", ""),
-                    "name": s.get("name", ""),
-                    "category": s.get("category", "Unknown"),
-                    "confidence": int((s.get("confidence_score") or 0.5) * 100),
-                    "impact": s.get("impact_value", "medium"),
-                    "trend": s.get("trend", "stable"),
-                })
+    signal_records = await fetch_tenant_validated_records(
+        driver=driver,
+        query=signal_query,
+        params={"account_id": account_id, "tenant_id": tenant_id},
+        tenant_id=tenant_id,
+        operation="analysis.get_account_intelligence.signals",
+    )
+    for record_row in signal_records:
+        s = record_row["signal"]
+        if s:
+            signals.append({
+                "id": s.get("id", ""),
+                "name": s.get("name", ""),
+                "category": s.get("category", "Unknown"),
+                "confidence": int((s.get("confidence_score") or 0.5) * 100),
+                "impact": s.get("impact_value", "medium"),
+                "trend": s.get("trend", "stable"),
+            })
 
     # Query existing hypotheses for the account
     hypothesis_query = """
@@ -1905,19 +1913,24 @@ async def generate_workspace_intelligence(
     LIMIT 50
     """
     hypotheses = []
-    async with driver.session() as session:
-        result = await session.run(hypothesis_query, {"account_id": account_id, "tenant_id": tenant_id})
-        async for record_row in result:
-            h = record_row["hypothesis"]
-            if h:
-                hypotheses.append({
-                    "id": h.get("id", ""),
-                    "hypothesis_text": h.get("hypothesis_text", ""),
-                    "confidence": h.get("confidence_score", 0.5),
-                    "value_path_category": h.get("value_path_category"),
-                    "status": h.get("status", "draft"),
-                    "capability_name": h.get("capability_name", ""),
-                })
+    hypothesis_records = await fetch_tenant_validated_records(
+        driver=driver,
+        query=hypothesis_query,
+        params={"account_id": account_id, "tenant_id": tenant_id},
+        tenant_id=tenant_id,
+        operation="analysis.get_account_intelligence.hypotheses",
+    )
+    for record_row in hypothesis_records:
+        h = record_row["hypothesis"]
+        if h:
+            hypotheses.append({
+                "id": h.get("id", ""),
+                "hypothesis_text": h.get("hypothesis_text", ""),
+                "confidence": h.get("confidence_score", 0.5),
+                "value_path_category": h.get("value_path_category"),
+                "status": h.get("status", "draft"),
+                "capability_name": h.get("capability_name", ""),
+            })
 
     # Store in workspace tab persistence
     tab_data = {
