@@ -1509,8 +1509,15 @@ class OrchestrationController:
                 raise
             except asyncio.CancelledError:
                 raise
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "tenant_kill_switch_check_failed",
+                    extra={"tenant_id": tenant_id, "error": str(exc)},
+                )
+                raise WorkflowExecutionError(
+                    f"Tenant kill-switch check failed for {tenant_id}; "
+                    "blocking workflow execution as a fail-closed safety measure."
+                ) from exc
 
         await mark_workflow_running(
             state_manager=self.state_manager,

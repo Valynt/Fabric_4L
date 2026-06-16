@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: Download build metadata artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: build-metadata-*
           path: artifacts/build-metadata
@@ -160,10 +160,10 @@ jobs:
       url: https://dev.fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup kustomize
-        uses: imranismail/setup-kustomize@v2
+        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
         with:
           kustomize-version: "5.4.3"
 
@@ -251,7 +251,7 @@ jobs:
     needs: [validate-build, deploy-dev]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
 
@@ -289,7 +289,7 @@ jobs:
           echo "branch_name=promote/staging-${{ needs.validate-build.outputs.image_ref }}" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const body = [
@@ -386,7 +386,7 @@ jobs:
           # This validates the full stack before production promotion
 
       - name: Create Production Promotion PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             // Only create prod PR if staging tests pass
@@ -408,7 +408,7 @@ jobs:
       url: https://fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Block placeholder image digests (prod)
         run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
@@ -422,24 +422,22 @@ jobs:
           echo ""
           echo "Proceeding with production deployment..."
 
-      - name: Wait for ArgoCD sync with canary analysis
+      - name: Install Argo Rollouts kubectl plugin
         run: |
-          echo "Waiting for ArgoCD Rollouts canary analysis..."
-          # Argo Rollouts will handle canary progression:
-          # 10% -> analysis -> 50% -> analysis -> 100%
+          curl -sSL https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 -o /tmp/kubectl-argo-rollouts
+          chmod +x /tmp/kubectl-argo-rollouts
+          sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
+          kubectl-argo-rollouts version
 
-          # Poll Rollout status
-          timeout=1800  # 30 minutes for canary
-          elapsed=0
-
-          while [ $elapsed -lt $timeout ]; do
-            # Check Argo Rollouts status
-            # kubectl argo rollouts get rollout <rollout-name> -n prod
-
-            echo "Canary analysis in progress... (${elapsed}s/${timeout}s)"
-            sleep 30
-            elapsed=$((elapsed + 30))
-          done
+      - name: Run canary analysis
+        env:
+          PROMETHEUS_URL: ${{ env.PROMETHEUS_URL }}
+        run: |
+          python scripts/ci/canary_analysis.py \
+            --namespace prod \
+            --rollouts layer1-ingestion,layer2-extraction,layer3-knowledge,layer4-agents,layer5-ground-truth,layer6-benchmarks,frontend \
+            --timeout-seconds 1800 \
+            --poll-interval-seconds 30
 
       - name: Verify production health
         run: |
@@ -462,7 +460,7 @@ jobs:
           secret-path: /monitoring
 
       - name: Notify on deployment success
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3 # v1
         if: success()
         with:
           payload: |
@@ -513,7 +511,7 @@ jobs:
           # 4. Alert on-call engineer
 
       - name: Create rollback PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             // Create emergency rollback PR
