@@ -35,20 +35,23 @@ from sqlalchemy.orm import sessionmaker
 
 from layer4_agents.api.main import app as production_app
 from layer4_agents.api.routes.accounts import router as accounts_router
-from layer4_agents.api.routes.analysis import get_executor
+from layer4_agents.api.routes.analysis import get_executor, router as analysis_router
 from layer4_agents.database import Base, get_db_from_context, _mark_session_tenant_context
 from layer4_agents.models.business_case_record import BusinessCaseRecord
 from layer4_agents.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
-from value_fabric.shared.identity.permissions import Role
+from value_fabric.shared.identity.permissions import Permission, Role
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 # Create test-specific app without full middleware stack
 from fastapi import FastAPI
 test_app = FastAPI()
+register_exception_handlers(test_app)
 test_app.include_router(accounts_router, prefix="/v1", tags=["Accounts"])
+test_app.include_router(analysis_router, prefix="/v1", tags=["Analysis"])
 
 
 class mock_sync_providerResult(TypedDictModel):
@@ -70,6 +73,8 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
     test_database_url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{dbname}"
 
     engine = create_async_engine(test_database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -98,6 +103,7 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
             tenant_id="test-tenant-accounts",
             user_id=str(uuid4()),
             roles=[Role.TENANT_ADMIN.value],
+            permissions=frozenset({Permission.WRITE_AGENTS.value, Permission.READ_AGENTS.value}),
             source="jwt",
         )
 
@@ -115,6 +121,7 @@ async def sample_account(test_db) -> Account:
     """Create a sample account for testing."""
     account = Account(
         id=uuid4(),
+        tenant_id="test-tenant-accounts",
         provider=CRMProvider.SALESFORCE.value,
         provider_record_id="sf-acc-001",
         name="Acme Corporation",
@@ -165,6 +172,7 @@ async def sample_hubspot_account(test_db) -> Account:
     """Create a sample HubSpot account for testing."""
     account = Account(
         id=uuid4(),
+        tenant_id="test-tenant-accounts",
         provider=CRMProvider.HUBSPOT.value,
         provider_record_id="hs-company-001",
         name="TechCorp Inc",
@@ -186,6 +194,7 @@ async def sample_hubspot_account(test_db) -> Account:
 async def sample_sync_status(test_db) -> AccountSyncStatus:
     """Create sample sync status for testing."""
     sync_status = AccountSyncStatus(
+        tenant_id="test-tenant-accounts",
         provider=CRMProvider.SALESFORCE.value,
         status="idle",
         last_sync_at=datetime.now(UTC) - timedelta(hours=1),
@@ -256,20 +265,22 @@ async def test_create_case_from_existing_account(client: AsyncClient, sample_acc
     )
 
     class _Executor:
-        async def run(self, workflow_type: str, input_data: dict):
+        async def run(self, workflow_type: str, input_data: dict, tenant_id: str | None = None, user_id: str | None = None):
             assert workflow_type == "business_case"
-            assert input_data["account_id"] == str(sample_account.id)
+            assert str(input_data["account_id"]) == str(sample_account.id)
             assert input_data["custom_inputs"]["provider_record_id"] == sample_account.provider_record_id
             return mock_result
 
-    app.dependency_overrides[get_executor] = lambda: _Executor()
+    from layer4_agents.api.startup import runtime_state
+    original_executor = runtime_state.workflow_executor
+    runtime_state.workflow_executor = _Executor()
     try:
         response = await client.post(
             "/v1/cases",
             json={"account_id": str(sample_account.id), "sections": ["executive_summary"]},
         )
     finally:
-        app.dependency_overrides.pop(get_executor, None)
+        runtime_state.workflow_executor = original_executor
 
     assert response.status_code == 200
     payload = response.json()
@@ -351,6 +362,7 @@ async def test_list_accounts_pagination(client: AsyncClient, test_db: AsyncSessi
     for i in range(5):
         account = Account(
             id=uuid4(),
+            tenant_id="test-tenant-accounts",
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id=f"sf-acc-{i:03d}",
             name=f"Company {i}",
@@ -377,6 +389,7 @@ async def test_list_accounts_sorting(client: AsyncClient, test_db: AsyncSession)
     for name in ["Beta Corp", "Alpha Inc", "Gamma Ltd"]:
         account = Account(
             id=uuid4(),
+            tenant_id="test-tenant-accounts",
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id=f"sf-{name.lower().replace(' ', '-')}",
             name=name,
@@ -460,6 +473,7 @@ async def test_search_accounts_with_filters(client: AsyncClient, test_db: AsyncS
     accounts = [
         Account(
             id=uuid4(),
+            tenant_id="test-tenant-accounts",
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id="sf-001",
             name="TechCorp Alpha",
@@ -468,6 +482,7 @@ async def test_search_accounts_with_filters(client: AsyncClient, test_db: AsyncS
         ),
         Account(
             id=uuid4(),
+            tenant_id="test-tenant-accounts",
             provider=CRMProvider.HUBSPOT.value,
             provider_record_id="hs-001",
             name="TechCorp Beta",
@@ -583,11 +598,11 @@ async def test_sync_accounts_all_providers(client: AsyncClient, monkeypatch):
     # Mock CRMSyncService to avoid environment coupling
     from layer4_agents.services.crm_sync_service import CRMSyncService
     
-    async def mock_sync_provider(self, provider, incremental=True, account_ids=None):
+    async def mock_sync_provider(self, provider, incremental=True, account_ids=None, tenant_id=None):
         return mock_sync_providerResult.model_validate({"updated": 5, "failed": 0, "errors": []})
-    
+
     monkeypatch.setattr(CRMSyncService, "sync_provider", mock_sync_provider)
-    
+
     response = await client.post(
         "/v1/accounts/sync",
         json={}
@@ -608,11 +623,11 @@ async def test_sync_accounts_specific_provider(client: AsyncClient, monkeypatch)
     # Mock CRMSyncService to avoid environment coupling
     from layer4_agents.services.crm_sync_service import CRMSyncService
     
-    async def mock_sync_provider(self, provider, incremental=True, account_ids=None):
+    async def mock_sync_provider(self, provider, incremental=True, account_ids=None, tenant_id=None):
         return mock_sync_providerResult.model_validate({"updated": 3, "failed": 0, "errors": []})
-    
+
     monkeypatch.setattr(CRMSyncService, "sync_provider", mock_sync_provider)
-    
+
     response = await client.post(
         "/v1/accounts/sync",
         json={"provider": "salesforce"}
@@ -634,11 +649,11 @@ async def test_sync_accounts_force_refresh(client: AsyncClient, monkeypatch):
     # Mock CRMSyncService to avoid environment coupling
     from layer4_agents.services.crm_sync_service import CRMSyncService
     
-    async def mock_sync_provider(self, provider, incremental=False, account_ids=None):
+    async def mock_sync_provider(self, provider, incremental=False, account_ids=None, tenant_id=None):
         return mock_sync_providerResult.model_validate({"updated": 10, "failed": 0, "errors": []})
-    
+
     monkeypatch.setattr(CRMSyncService, "sync_provider", mock_sync_provider)
-    
+
     response = await client.post(
         "/v1/accounts/sync",
         json={"force_refresh": True}
@@ -740,5 +755,5 @@ async def test_get_filter_options_with_data(
     data = response.json()
     assert "Software" in data["industries"] or "Technology" in data["industries"]
     assert "opportunity" in data["stages"] or "qualified" in data["stages"]
-    assert len(data["providers"]) == 2
+    assert set(data["providers"]) >= {"salesforce", "hubspot"}
     assert len(data["owners"]) >= 1

@@ -32,6 +32,8 @@ from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
 
 from fastapi import FastAPI
+from value_fabric.shared.error_handling import register_exception_handlers
+
 from layer4_agents.api.routes import company_knowledge as company_knowledge_route
 from layer4_agents.database import get_db_from_context, _mark_session_tenant_context
 from layer4_agents.models.company_knowledge import (
@@ -154,6 +156,7 @@ def mock_auth_other(other_tenant_id: str):
 def test_app() -> FastAPI:
     """Create a minimal FastAPI app with just the company knowledge router."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
     return app
 
@@ -332,10 +335,13 @@ async def test_update_profile(client: AsyncClient, sample_profile):
 async def test_approve_profile(client: AsyncClient, sample_profile):
     """POST /v1/company-knowledge/profiles/{id}/approve approves profile."""
     reviewer_id = str(uuid4())
-    response = await client.post(
-        f"/v1/company-knowledge/profiles/{sample_profile.id}/approve",
-        json={"approved_by": reviewer_id},
-    )
+    with patch.object(
+        CompanyKnowledgeService, "sync_profile_to_layer3", new_callable=AsyncMock
+    ):
+        response = await client.post(
+            f"/v1/company-knowledge/profiles/{sample_profile.id}/approve",
+            json={"approved_by": reviewer_id},
+        )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "approved"
@@ -548,6 +554,7 @@ async def test_tenant_isolation_profiles(
 ):
     """Profiles from one tenant are not visible to another tenant."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
 
     async def override_db():
@@ -603,6 +610,7 @@ async def test_tenant_isolation_sources(
     await test_db.commit()
 
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
 
     async def override_db():
