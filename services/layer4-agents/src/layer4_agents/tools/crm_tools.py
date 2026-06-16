@@ -576,7 +576,7 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
             LIMIT {input_data.limit}
         """
 
-        url = f"{self.instance_url}/services/data/v58.0/query?q={query}"
+        url = f"{self.instance_url}/services/data/v58.0/query?q={urllib.parse.quote(query)}"
         response = await client.get(url)
 
         interactions = []
