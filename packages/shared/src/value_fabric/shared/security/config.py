@@ -22,27 +22,57 @@ logger = logging.getLogger(__name__)
 _MIN_JWT_SECRET_LENGTH = 32
 
 # Known weak/placeholder secrets that must never be used in production
-_WEAK_SECRET_DENYLIST = frozenset({
-    "", "changeme", "change_me", "change-me", "change me",
-    "password", "secret", "secretkey", "secret_key", "secret-key",
-    "your-secret", "your_secret", "yoursecret",
-    "test-secret", "test_secret", "testsecret",
-    "default", "defaultsecret", "default_secret",
-    "admin", "root", "123456", "12345678", "qwerty",
-})
+_WEAK_SECRET_DENYLIST = frozenset(
+    {
+        "",
+        "changeme",
+        "change_me",
+        "change-me",
+        "change me",
+        "password",
+        "secret",
+        "secretkey",
+        "secret_key",
+        "secret-key",
+        "your-secret",
+        "your_secret",
+        "yoursecret",
+        "test-secret",
+        "test_secret",
+        "testsecret",
+        "default",
+        "defaultsecret",
+        "default_secret",
+        "admin",
+        "root",
+        "123456",
+        "12345678",
+        "qwerty",
+    }
+)
 
 # JWT algorithms approved for use (NIST/RFC 7518 safe subset)
-_APPROVED_JWT_ALGORITHMS = frozenset({
-    "HS256", "HS384", "HS512",
-    "RS256", "RS384", "RS512",
-    "ES256", "ES384", "ES512",
-})
+_APPROVED_JWT_ALGORITHMS = frozenset(
+    {
+        "HS256",
+        "HS384",
+        "HS512",
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+        "ES512",
+    }
+)
 
 # Dev-only environment names — anything else is treated as production-like
 _TEST_ENVIRONMENTS = frozenset({"local", "dev", "development", "test", "testing", "ci"})
 
 # Known PostgreSQL superuser names that bypass RLS
-_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
+_SUPERUSER_NAMES = frozenset(
+    {"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"}
+)
 
 # Default database credentials that must not be used in production
 _DEFAULT_DATABASE_USERS = frozenset({"postgres", "admin", "root", "user", "dbuser"})
@@ -60,34 +90,56 @@ class SecurityConfig(BaseModel):
     # CORS — fail-closed defaults. Wildcards are never permitted in production-like
     # environments and are only used as a dev convenience when explicitly enabled.
     _DEFAULT_CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    _DEFAULT_CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID", "X-Tenant-ID"]
+    _DEFAULT_CORS_HEADERS = [
+        "Authorization",
+        "Content-Type",
+        "X-Request-ID",
+        "X-Tenant-ID",
+    ]
 
     cors_origins: list[str] = Field(default=[], description="Allowed CORS origins")
-    cors_methods: list[str] = Field(default=_DEFAULT_CORS_METHODS, description="Allowed CORS methods")
-    cors_headers: list[str] = Field(default=_DEFAULT_CORS_HEADERS, description="Allowed CORS headers")
-    
+    cors_methods: list[str] = Field(
+        default=_DEFAULT_CORS_METHODS, description="Allowed CORS methods"
+    )
+    cors_headers: list[str] = Field(
+        default=_DEFAULT_CORS_HEADERS, description="Allowed CORS headers"
+    )
+
     # Security headers
     enable_hsts: bool = Field(default=True, description="Enable HSTS header")
     enable_xframe: bool = Field(default=True, description="Enable X-Frame-Options")
-    enable_xss_protection: bool = Field(default=True, description="Enable XSS protection")
-    enable_content_type_options: bool = Field(default=True, description="Enable X-Content-Type-Options")
-    enable_referrer_policy: bool = Field(default=True, description="Enable Referrer-Policy")
-    
+    enable_xss_protection: bool = Field(
+        default=True, description="Enable XSS protection"
+    )
+    enable_content_type_options: bool = Field(
+        default=True, description="Enable X-Content-Type-Options"
+    )
+    enable_referrer_policy: bool = Field(
+        default=True, description="Enable Referrer-Policy"
+    )
+
     # CSP
     content_security_policy: str | None = Field(
-        default="default-src 'self'",
-        description="Content-Security-Policy header"
+        default="default-src 'self'", description="Content-Security-Policy header"
     )
-    
+
     # Request limits
-    max_body_size: int = Field(default=10 * 1024 * 1024, description="Max request body size (bytes)")
-    max_body_size_bytes: int = Field(default=1_048_576, description="Max body size for validation (bytes)")
-    
+    max_body_size: int = Field(
+        default=10 * 1024 * 1024, description="Max request body size (bytes)"
+    )
+    max_body_size_bytes: int = Field(
+        default=1_048_576, description="Max body size for validation (bytes)"
+    )
+
     # Validation settings
-    skip_validation_paths: frozenset[str] = Field(default=frozenset(), description="Paths to skip validation")
+    skip_validation_paths: frozenset[str] = Field(
+        default=frozenset(), description="Paths to skip validation"
+    )
     strict_mode: bool = Field(default=True, description="Strict validation mode")
-    validate_json_bodies: bool = Field(default=True, description="Validate JSON request bodies")
-    
+    validate_json_bodies: bool = Field(
+        default=True, description="Validate JSON request bodies"
+    )
+
     model_config = ConfigDict(extra="allow")
 
 
@@ -201,7 +253,7 @@ class ProductionSafetyValidator:
         if normalized in _WEAK_SECRET_DENYLIST:
             self.errors.append(
                 "JWT_SECRET appears to be a known placeholder or weak value. "
-                "Generate a strong secret: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                'Generate a strong secret: python3 -c "import secrets; print(secrets.token_urlsafe(48))"'
             )
 
         # Auth bypass flags must never be enabled in production-like envs.
@@ -219,7 +271,10 @@ class ProductionSafetyValidator:
                     )
             else:
                 try:
-                    _raise_if_bypass_in_nonlocal_env(service_name="ProductionSafetyValidator")
+                    _raise_if_bypass_in_nonlocal_env(
+                        service_name="ProductionSafetyValidator",
+                        environment=self.environment,
+                    )
                 except RuntimeError as exc:
                     self.errors.append(str(exc))
 
@@ -306,7 +361,11 @@ class ProductionSafetyValidator:
                 "Set a strong 256-bit base64-encoded Fernet key."
             )
 
-        allow_ephemeral = os.getenv("ALLOW_EPHEMERAL_ENCRYPTION", "").lower() in ("true", "1", "yes")
+        allow_ephemeral = os.getenv("ALLOW_EPHEMERAL_ENCRYPTION", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         if allow_ephemeral:
             self.errors.append(
                 "ALLOW_EPHEMERAL_ENCRYPTION must be false or unset in production-like environments."
@@ -518,12 +577,12 @@ def validate_production_safety(environment: str | None = None) -> None:
 
 def validate_cors_config() -> None:
     """Validate CORS configuration for production safety.
-    
+
     Raises:
         ValueError: If CORS is misconfigured in production
     """
     cors_origins = os.getenv("CORS_ORIGINS", "*")
-    
+
     if is_production():
         # Wildcard CORS is not allowed in production
         if cors_origins == "*":
@@ -531,12 +590,11 @@ def validate_cors_config() -> None:
                 "CORS wildcard (*) is not allowed in production. "
                 "Specify explicit HTTPS origins."
             )
-        
+
         # HTTP origins are not allowed in production
         if "http://" in cors_origins.lower():
             raise ValueError(
-                "HTTP CORS origins are not allowed in production. "
-                "Use HTTPS only."
+                "HTTP CORS origins are not allowed in production. Use HTTPS only."
             )
     elif is_development() and cors_origins == "*":
         logger.warning(
@@ -547,15 +605,15 @@ def validate_cors_config() -> None:
 
 def validate_database_config() -> None:
     """Validate database configuration for production safety.
-    
+
     Raises:
         ValueError: If database is misconfigured in production
     """
     database_url = os.getenv("DATABASE_URL", "")
-    
+
     if not database_url:
         raise ValueError("DATABASE_URL is required")
-    
+
     if is_production():
         # SQLite is not allowed in production
         if database_url.startswith("sqlite"):
@@ -567,12 +625,17 @@ def validate_database_config() -> None:
 
         sync_database_url = os.getenv("DATABASE_URL_SYNC", "")
         if sync_database_url:
-            _validate_database_tls_mode(sync_database_url, source_variable="DATABASE_URL_SYNC")
+            _validate_database_tls_mode(
+                sync_database_url, source_variable="DATABASE_URL_SYNC"
+            )
 
 
 def _validate_database_tls_mode(database_url: str, *, source_variable: str) -> None:
     parsed = urlparse(database_url)
-    query_params = {key.lower(): value for key, value in parse_qsl(parsed.query, keep_blank_values=True)}
+    query_params = {
+        key.lower(): value
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+    }
     sslmode = (query_params.get("sslmode", "") or "").strip().lower()
 
     if sslmode not in _APPROVED_DATABASE_SSL_MODES:
@@ -605,7 +668,7 @@ def validate_jwt_secret_strength() -> None:
             return
         raise ValueError(
             "JWT_SECRET is required in all non-test runtimes. "
-            "Generate one with: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            'Generate one with: python3 -c "import secrets; print(secrets.token_urlsafe(48))"'
         )
 
     # Enforce minimum length in strict environments for consistency
@@ -615,7 +678,7 @@ def validate_jwt_secret_strength() -> None:
             f"JWT_SECRET is too short ({len(jwt_secret)} chars). "
             f"Production-like environments require at least {_MIN_JWT_SECRET_LENGTH} characters "
             f"(256 bits) to resist brute-force attacks. "
-            f"Generate a strong secret: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            f'Generate a strong secret: python3 -c "import secrets; print(secrets.token_urlsafe(48))"'
         )
     elif not is_development() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
         logger.warning(
@@ -672,7 +735,7 @@ def validate_jwt_config() -> None:
                 "The audience claim is required for token validation."
             )
 
-    # Check secret strength
+        # Check secret strength
         validate_jwt_secret_strength()
 
     # Check algorithm safety
@@ -745,7 +808,7 @@ def validate_rls_prerequisites() -> None:
 
 def validate_environment_config() -> None:
     """Validate environment configuration for conflicts.
-    
+
     Raises:
         ValueError: If environment variables conflict
     """
@@ -758,18 +821,18 @@ def validate_environment_config() -> None:
 
 def validate_all_controls() -> None:
     """Validate that not all security controls are disabled.
-    
+
     Raises:
         ValueError: If all controls are disabled in production
     """
     if not is_production():
         return
-    
+
     redis_url = os.getenv("REDIS_URL", "")
     audit_sink = os.getenv("AUDIT_SINK_URL", "")
     jwt_secret = os.getenv("JWT_SECRET", "")
     cors_origins = os.getenv("CORS_ORIGINS", "*")
-    
+
     if not redis_url and not audit_sink and not jwt_secret and cors_origins == "*":
         raise ValueError(
             "All security controls are disabled in production. "
@@ -779,7 +842,7 @@ def validate_all_controls() -> None:
 
 def get_startup_summary() -> dict[str, Any]:
     """Get startup summary with active control modes.
-    
+
     Returns:
         Dictionary with environment info and control status
     """
@@ -788,7 +851,7 @@ def get_startup_summary() -> dict[str, Any]:
     audit_sink = os.getenv("AUDIT_SINK_URL", "")
     cors_origins = os.getenv("CORS_ORIGINS", "*")
     database_url = os.getenv("DATABASE_URL", "")
-    
+
     summary: dict[str, Any] = {
         "environment": environment,
         "redis_enabled": bool(redis_url),
@@ -800,18 +863,22 @@ def get_startup_summary() -> dict[str, Any]:
         "warnings": [],
         "degraded_controls": [],
     }
-    
+
     # Check for degraded controls
     if not redis_url:
         summary["degraded_controls"].extend(["redis", "rate_limiting"])
         if not is_development():
-            summary["warnings"].append("Redis is not configured - rate limiting disabled")
-    
+            summary["warnings"].append(
+                "Redis is not configured - rate limiting disabled"
+            )
+
     if not audit_sink:
         summary["degraded_controls"].append("audit")
         if not is_development():
-            summary["warnings"].append("Audit sink is not configured - audit events will be lost")
-    
+            summary["warnings"].append(
+                "Audit sink is not configured - audit events will be lost"
+            )
+
     if cors_origins == "*":
         summary["degraded_controls"].append("cors")
         if not is_development():
@@ -831,7 +898,7 @@ def get_startup_summary() -> dict[str, Any]:
             "Database connection uses a superuser role. "
             "RLS policies exist but are bypassed for superusers."
         )
-    
+
     if summary["warnings"]:
         summary["warnings"].insert(0, "WARNING: Some security controls are degraded")
         summary["warnings"].insert(0, "WARNING")
@@ -840,7 +907,7 @@ def get_startup_summary() -> dict[str, Any]:
         "is_degraded": bool(summary["degraded_controls"]),
         "controls": list(summary["degraded_controls"]),
     }
-    
+
     return summary
 
 
@@ -885,7 +952,11 @@ def _get_rls_enforcement(database_url: str) -> dict[str, Any]:
             "status": "malformed_database_url",
         }
 
-    supported_backend = parsed.scheme in {"postgresql", "postgresql+asyncpg", "postgres"}
+    supported_backend = parsed.scheme in {
+        "postgresql",
+        "postgresql+asyncpg",
+        "postgres",
+    }
     username = (parsed.username or "").lower()
     superuser_connection = username in _SUPERUSER_NAMES
     enforced = supported_backend and not superuser_connection

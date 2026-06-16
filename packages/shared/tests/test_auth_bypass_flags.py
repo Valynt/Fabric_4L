@@ -20,13 +20,16 @@ _BYPASS_FLAGS = [
 
 
 @pytest.mark.parametrize("flag", _BYPASS_FLAGS)
-@pytest.mark.parametrize("value", [
-    "true",
-    "1",
-    "yes",
-    "on",
-    "i_understand_risk",
-])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "true",
+        "1",
+        "yes",
+        "on",
+        "i_understand_risk",
+    ],
+)
 def test_bypass_flag_detected_when_set(flag, value, monkeypatch):
     for other in _BYPASS_FLAGS:
         monkeypatch.delenv(other, raising=False)
@@ -35,10 +38,13 @@ def test_bypass_flag_detected_when_set(flag, value, monkeypatch):
 
 
 @pytest.mark.parametrize("flag", _BYPASS_FLAGS)
-@pytest.mark.parametrize("value", [
-    "false",
-    "0",
-])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "false",
+        "0",
+    ],
+)
 def test_falseish_bypass_values_not_detected(flag, value, monkeypatch):
     for other in _BYPASS_FLAGS:
         monkeypatch.delenv(other, raising=False)
@@ -47,12 +53,15 @@ def test_falseish_bypass_values_not_detected(flag, value, monkeypatch):
 
 
 @pytest.mark.parametrize("flag", _BYPASS_FLAGS)
-@pytest.mark.parametrize("value", [
-    "no",
-    "off",
-    "maybe",
-    "arbitrary-string",
-])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "no",
+        "off",
+        "maybe",
+        "arbitrary-string",
+    ],
+)
 def test_non_false_bypass_values_detected_as_active(flag, value, monkeypatch):
     for other in _BYPASS_FLAGS:
         monkeypatch.delenv(other, raising=False)
@@ -104,12 +113,15 @@ def test_local_env_allows_bypass_with_warning(monkeypatch, caplog):
     )
 
 
-@pytest.mark.parametrize("func", [
-    is_dev_bypass_enabled,
-    is_dev_bypass_acknowledged,
-    validate_dev_bypass_configuration,
-    assert_safe_jwt_and_bypass_configuration,
-])
+@pytest.mark.parametrize(
+    "func",
+    [
+        is_dev_bypass_enabled,
+        is_dev_bypass_acknowledged,
+        validate_dev_bypass_configuration,
+        assert_safe_jwt_and_bypass_configuration,
+    ],
+)
 def test_public_functions_return_safe_noop_and_warn_when_flag_set(
     func, monkeypatch, caplog
 ):
@@ -120,8 +132,7 @@ def test_public_functions_return_safe_noop_and_warn_when_flag_set(
         result = func()
     assert result in (None, False)
     assert any(
-        record.levelno == logging.WARNING
-        and "DEV_AUTH_BYPASS" in record.message
+        record.levelno == logging.WARNING and "DEV_AUTH_BYPASS" in record.message
         for record in caplog.records
     )
 
@@ -134,6 +145,4 @@ def test_public_functions_return_safe_noop_without_flag(monkeypatch, caplog):
         assert is_dev_bypass_acknowledged() is False
         assert validate_dev_bypass_configuration() is None
         assert assert_safe_jwt_and_bypass_configuration() is None
-    assert not any(
-        "auth bypass" in record.message.lower() for record in caplog.records
-    )
+    assert not any("auth bypass" in record.message.lower() for record in caplog.records)

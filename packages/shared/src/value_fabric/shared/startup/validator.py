@@ -8,7 +8,9 @@ from value_fabric.shared.identity.auth_mode import _raise_if_bypass_in_nonlocal_
 from value_fabric.shared.security import detect_environment
 
 _TRUE_VALUES = {"true", "1", "yes", "on", "i_understand_risk"}
-_EXPLICIT_LOCAL_TEST_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
+_EXPLICIT_LOCAL_TEST_ENVIRONMENTS = frozenset(
+    {"local", "development", "dev", "test", "testing", "ci"}
+)
 
 
 def _is_explicit_local_or_test_environment() -> bool:
@@ -32,7 +34,9 @@ def _flag_is_truthy(value: Any) -> bool:
     return str(value).strip().lower() in _TRUE_VALUES
 
 
-def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | None = None) -> None:
+def reject_insecure_bypass_in_production(
+    *, service_name: str, settings: Any | None = None
+) -> None:
     """Fail closed when production-like runtimes enable auth bypass toggles."""
     if settings is not None and hasattr(settings, "is_production_like"):
         if not bool(getattr(settings, "is_production_like")):
@@ -59,7 +63,9 @@ def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | N
     active_settings: list[str] = []
     if settings is not None:
         for field_name in _BYPASS_SETTINGS_FIELDS:
-            if hasattr(settings, field_name) and _flag_is_truthy(getattr(settings, field_name)):
+            if hasattr(settings, field_name) and _flag_is_truthy(
+                getattr(settings, field_name)
+            ):
                 active_settings.append(field_name.upper())
 
     if active_settings:

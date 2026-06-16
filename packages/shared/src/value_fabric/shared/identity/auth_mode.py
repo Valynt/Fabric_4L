@@ -30,7 +30,9 @@ _BYPASS_FLAGS = (
 )
 
 _FALSE_VALUES = frozenset({"false", "0"})
-_EXPLICIT_LOCAL_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
+_EXPLICIT_LOCAL_ENVIRONMENTS = frozenset(
+    {"local", "development", "dev", "test", "testing", "ci"}
+)
 
 
 def _flag_value_is_truthy(value: Any) -> bool:
@@ -57,13 +59,22 @@ def _bypass_flags_are_set() -> set[str]:
     return active
 
 
-def _raise_if_bypass_in_nonlocal_env(service_name: str) -> None:
-    env = (
-        os.getenv("ENVIRONMENT")
-        or os.getenv("ENV")
-        or os.getenv("APP_ENV")
-        or "development"
-    ).strip().lower()
+def _raise_if_bypass_in_nonlocal_env(
+    service_name: str, environment: str | None = None
+) -> None:
+    if environment is not None:
+        env = environment.strip().lower()
+    else:
+        env = (
+            (
+                os.getenv("ENVIRONMENT")
+                or os.getenv("ENV")
+                or os.getenv("APP_ENV")
+                or "unknown"
+            )
+            .strip()
+            .lower()
+        )
 
     active_flags = _bypass_flags_are_set()
     if env in _EXPLICIT_LOCAL_ENVIRONMENTS:

@@ -19,12 +19,22 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
+
 def _is_truthy(value: str | None) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _allow_identity_fallback() -> bool:
-    env = (os.getenv("VALUE_FABRIC_ENV") or os.getenv("ENV") or os.getenv("ENVIRONMENT") or "").strip().lower()
+    env = (
+        (
+            os.getenv("VALUE_FABRIC_ENV")
+            or os.getenv("ENV")
+            or os.getenv("ENVIRONMENT")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
     app_env = (os.getenv("APP_ENV") or "").strip().lower()
     if env in {"local", "dev", "development", "test", "testing"}:
         return True
@@ -32,7 +42,9 @@ def _allow_identity_fallback() -> bool:
         return True
     if _is_truthy(os.getenv("PYTEST_CURRENT_TEST")) or os.getenv("PYTEST_CURRENT_TEST"):
         return True
-    if _is_truthy(os.getenv("CI")) and _is_truthy(os.getenv("ALLOW_IDENTITY_DEPENDENCY_FALLBACK_IN_CI")):
+    if _is_truthy(os.getenv("CI")) and _is_truthy(
+        os.getenv("ALLOW_IDENTITY_DEPENDENCY_FALLBACK_IN_CI")
+    ):
         return True
     return _is_truthy(os.getenv("ALLOW_IDENTITY_DEPENDENCY_FALLBACK"))
 
@@ -54,14 +66,22 @@ def _emit_fallback_observability(reason: str) -> None:
             "executable": sys.executable,
         },
     }
-    logger.warning("identity.dependencies fallback activated", extra={"event": "identity_dependency_fallback", **metadata})
+    logger.warning(
+        "identity.dependencies fallback activated",
+        extra={"event": "identity_dependency_fallback", **metadata},
+    )
     try:
         from value_fabric.shared.audit import emit_audit_event as _emit_audit_event
-        from value_fabric.shared.audit.models import AuditAction as _AuditAction, AuditOutcome as _AuditOutcome
+        from value_fabric.shared.audit.models import (
+            AuditAction as _AuditAction,
+            AuditOutcome as _AuditOutcome,
+        )
 
         result = _emit_audit_event(
             action=getattr(_AuditAction, "UNKNOWN", "unknown"),
-            outcome=getattr(_AuditOutcome, "ERROR", getattr(_AuditOutcome, "FAILURE", "failure")),
+            outcome=getattr(
+                _AuditOutcome, "ERROR", getattr(_AuditOutcome, "FAILURE", "failure")
+            ),
             resource_type="identity.dependencies",
             resource_id="fastapi-import-fallback",
             details=metadata,
@@ -72,15 +92,30 @@ def _emit_fallback_observability(reason: str) -> None:
                 extra={"event": "identity_dependency_fallback_audit_async", **metadata},
             )
     except Exception as exc:  # pragma: no cover
-        logger.warning("identity.dependencies fallback audit emission failed: %s", exc, extra={"event": "identity_dependency_fallback_audit_error", **metadata})
+        logger.warning(
+            "identity.dependencies fallback audit emission failed: %s",
+            exc,
+            extra={"event": "identity_dependency_fallback_audit_error", **metadata},
+        )
 
 
 def _resolve_fastapi_dependencies() -> tuple[Any, Any, Any, Any, Any]:
     try:  # pragma: no cover - FastAPI is available in CI, but keep import safe.
-        from fastapi import Depends as fastapi_depends, HTTPException as fastapi_http_exception, Request as fastapi_request, status as fastapi_status
+        from fastapi import (
+            Depends as fastapi_depends,
+            HTTPException as fastapi_http_exception,
+            Request as fastapi_request,
+            status as fastapi_status,
+        )
         from fastapi.params import Depends as fastapi_depends_param
 
-        return fastapi_depends, fastapi_http_exception, fastapi_request, fastapi_status, fastapi_depends_param
+        return (
+            fastapi_depends,
+            fastapi_http_exception,
+            fastapi_request,
+            fastapi_status,
+            fastapi_depends_param,
+        )
     except (ImportError, ModuleNotFoundError) as exc:  # pragma: no cover
         if not _allow_identity_fallback():
             raise RuntimeError(
@@ -92,7 +127,12 @@ def _resolve_fastapi_dependencies() -> tuple[Any, Any, Any, Any, Any]:
             pass
 
         class _FallbackHTTPException(Exception):
-            def __init__(self, status_code: int, detail: object | None = None, headers: dict[str, str] | None = None) -> None:
+            def __init__(
+                self,
+                status_code: int,
+                detail: object | None = None,
+                headers: dict[str, str] | None = None,
+            ) -> None:
                 super().__init__(detail)
                 self.status_code = status_code
                 self.detail = detail
@@ -106,7 +146,13 @@ def _resolve_fastapi_dependencies() -> tuple[Any, Any, Any, Any, Any]:
             HTTP_401_UNAUTHORIZED = 401
             HTTP_403_FORBIDDEN = 403
 
-        return (lambda dependency=None: dependency), _FallbackHTTPException, _FallbackRequest, _FallbackStatus, _FallbackDependsParam
+        return (
+            (lambda dependency=None: dependency),
+            _FallbackHTTPException,
+            _FallbackRequest,
+            _FallbackStatus,
+            _FallbackDependsParam,
+        )
 
 
 Depends, HTTPException, Request, status, DependsParam = _resolve_fastapi_dependencies()
@@ -129,7 +175,9 @@ from value_fabric.shared.identity.policy_registry import authorize_action  # noq
 # ``shared.identity.dependencies`` while this source tree is imported through the
 # ``value_fabric.shared`` package.
 _shared_compat_module = sys.modules.setdefault("shared", types.ModuleType("shared"))
-_identity_compat_module = sys.modules.setdefault("shared.identity", types.ModuleType("shared.identity"))
+_identity_compat_module = sys.modules.setdefault(
+    "shared.identity", types.ModuleType("shared.identity")
+)
 setattr(_shared_compat_module, "identity", _identity_compat_module)
 setattr(_identity_compat_module, "dependencies", sys.modules[__name__])
 sys.modules["shared.identity.dependencies"] = sys.modules[__name__]
@@ -179,7 +227,9 @@ async def get_current_context(request: Request) -> Optional[RequestContext]:
             return context
         auth = getattr(state, "auth", None)
         if auth is not None:
-            from value_fabric.shared.identity.fabric_auth import request_context_from_auth
+            from value_fabric.shared.identity.fabric_auth import (
+                request_context_from_auth,
+            )
 
             return request_context_from_auth(auth)
     return get_request_context()
@@ -217,15 +267,31 @@ async def require_authenticated(
     # Only check auth_source validity here, not full validation
     # Full validation (including tenant_id) is checked by require_tenant_context
     if ctx.auth_source == AUTH_SOURCE_UNKNOWN or not ctx.is_auth_source_valid():
-        raise _unauthorized({"message": "Authentication context is invalid", "errors": ["auth_source must be one of the approved authentication mechanisms"]})
+        raise _unauthorized(
+            {
+                "message": "Authentication context is invalid",
+                "errors": [
+                    "auth_source must be one of the approved authentication mechanisms"
+                ],
+            }
+        )
     # Require at least one principal identifier so tokens without a subject cannot
     # be treated as authenticated.
     if not ctx.user_id and not ctx.api_key_id and not ctx.service_account_id:
-        raise _unauthorized({"message": "Authentication context is missing a principal identifier", "errors": ["sub, user_id, api_key_id, or service_account_id is required"]})
+        raise _unauthorized(
+            {
+                "message": "Authentication context is missing a principal identifier",
+                "errors": [
+                    "sub, user_id, api_key_id, or service_account_id is required"
+                ],
+            }
+        )
     return ctx
 
 
-async def require_tenant(tenant_id: str | None = None, context: RequestContext | None = None) -> RequestContext:
+async def require_tenant(
+    tenant_id: str | None = None, context: RequestContext | None = None
+) -> RequestContext:
     """Require an authenticated tenant context, optionally matching a tenant ID."""
 
     ctx = await require_authenticated(context)
@@ -234,12 +300,16 @@ async def require_tenant(tenant_id: str | None = None, context: RequestContext |
     return ctx
 
 
-async def require_tenant_context(context: RequestContext | None = None) -> RequestContext:
+async def require_tenant_context(
+    context: RequestContext | None = None,
+) -> RequestContext:
     """Require that a validated request context contains a tenant identifier."""
 
     ctx = await require_authenticated(context)
     if not ctx.tenant_id:
-        raise _bad_request("Tenant context required. Ensure request has passed through GovernanceMiddleware.")
+        raise _bad_request(
+            "Tenant context required. Ensure request has passed through GovernanceMiddleware."
+        )
     return ctx
 
 
@@ -257,7 +327,9 @@ def require_role(*roles: Role | str) -> Callable[[RequestContext | None], object
     return dependency
 
 
-def require_permission(permission: Permission | str) -> Callable[[RequestContext | None], object]:
+def require_permission(
+    permission: Permission | str,
+) -> Callable[[RequestContext | None], object]:
     needed = _permission_value(permission)
 
     async def dependency(context: RequestContext | None = None) -> RequestContext:
@@ -269,7 +341,9 @@ def require_permission(permission: Permission | str) -> Callable[[RequestContext
     return dependency
 
 
-def require_any_permission(*permissions: Permission | str) -> Callable[[RequestContext | None], object]:
+def require_any_permission(
+    *permissions: Permission | str,
+) -> Callable[[RequestContext | None], object]:
     needed = {_permission_value(permission) for permission in permissions}
 
     async def dependency(context: RequestContext | None = None) -> RequestContext:
@@ -281,12 +355,16 @@ def require_any_permission(*permissions: Permission | str) -> Callable[[RequestC
     return dependency
 
 
-def require_all_permissions(*permissions: Permission | str) -> Callable[[RequestContext | None], object]:
+def require_all_permissions(
+    *permissions: Permission | str,
+) -> Callable[[RequestContext | None], object]:
     needed = {_permission_value(permission) for permission in permissions}
 
     async def dependency(context: RequestContext | None = None) -> RequestContext:
         ctx = await require_authenticated(context)
-        missing = sorted(permission for permission in needed if not ctx.has_permission(permission))
+        missing = sorted(
+            permission for permission in needed if not ctx.has_permission(permission)
+        )
         if missing:
             raise _forbidden(f"Missing required permissions: {missing}")
         return ctx
@@ -305,13 +383,15 @@ def require_action(action: str) -> Callable[[RequestContext | None], object]:
 # Explicit allowlist of administrative permissions. Wildcard patterns (e.g.
 # ``startswith("admin:")``) are intentionally rejected to prevent privilege
 # escalation if a compromised JWT includes a synthetic permission claim.
-_ADMIN_PERMISSION_ALLOWLIST: frozenset[str] = frozenset({
-    Permission.ADMIN_MODELS.value,
-    Permission.ADMIN_API_KEYS.value,
-    Permission.ADMIN_USERS.value,
-    Permission.ADMIN_TENANTS.value,
-    Permission.ADMIN_SYSTEM.value,
-})
+_ADMIN_PERMISSION_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        Permission.ADMIN_MODELS.value,
+        Permission.ADMIN_API_KEYS.value,
+        Permission.ADMIN_USERS.value,
+        Permission.ADMIN_TENANTS.value,
+        Permission.ADMIN_SYSTEM.value,
+    }
+)
 
 
 async def require_super_admin(context: RequestContext | None = None) -> RequestContext:
@@ -333,14 +413,19 @@ async def require_admin(context: RequestContext | None = None) -> RequestContext
     """Require an administrative role or explicit administrative permission."""
 
     ctx = await require_authenticated(context)
-    permission_values = {_permission_value(permission) for permission in (ctx.permissions or [])}
+    permission_values = {
+        _permission_value(permission) for permission in (ctx.permissions or [])
+    }
     # Reject wildcard "all" and any permission not in the explicit allowlist.
     if "all" in permission_values:
         raise _forbidden(
             "Wildcard permission 'all' is not permitted. Use explicit administrative permissions."
         )
     has_admin_permission = permission_values.intersection(_ADMIN_PERMISSION_ALLOWLIST)
-    if not (ctx.has_any_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN) or has_admin_permission):
+    if not (
+        ctx.has_any_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN)
+        or has_admin_permission
+    ):
         raise _forbidden("Administrative role or permission is required")
     return ctx
 
@@ -417,8 +502,12 @@ def require_privileged_access(
                 request_url = getattr(request, "url", None)
                 request_path = getattr(request_url, "path", None) or "unknown"
                 request_client = getattr(request, "client", None)
-                ip_address = getattr(request_client, "host", None) if request_client else None
-                accessed_tenant_ids = sorted(str(tenant_id) for tenant_id in context.accessed_tenant_ids)
+                ip_address = (
+                    getattr(request_client, "host", None) if request_client else None
+                )
+                accessed_tenant_ids = sorted(
+                    str(tenant_id) for tenant_id in context.accessed_tenant_ids
+                )
                 session_duration = (
                     int(time.time() - context.privileged_session_start)
                     if context.privileged_session_start
@@ -481,8 +570,12 @@ def require_privileged_access(
 # Convenience aliases matching canonical shared dependencies.
 require_super_admin = require_role(Role.SUPER_ADMIN)  # noqa: F811
 require_tenant_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
-require_content_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN)
-require_analyst = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN, Role.ANALYST)
+require_content_admin = require_role(
+    Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN
+)
+require_analyst = require_role(
+    Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN, Role.ANALYST
+)
 
 __all__ = [
     "get_current_context",
