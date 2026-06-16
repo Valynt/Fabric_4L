@@ -473,17 +473,24 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
 
     profile = metric.profile
     if company_value <= profile.p10:
-        percentile = 5
+        distribution_percentile = 5
     elif company_value <= profile.p25:
-        percentile = 17
+        distribution_percentile = 17
     elif company_value <= profile.p50:
-        percentile = 37
+        distribution_percentile = 37
     elif company_value <= profile.p75:
-        percentile = 62
+        distribution_percentile = 62
     elif company_value <= profile.p90:
-        percentile = 82
+        distribution_percentile = 82
     else:
-        percentile = 95
+        distribution_percentile = 95
+
+    # For lower-is-better metrics, invert the distribution percentile so the
+    # percentile and bucket reflect performance rather than raw position.
+    if metric.is_higher_better:
+        percentile = distribution_percentile
+    else:
+        percentile = 100 - distribution_percentile
 
     if percentile >= 80:
         assessment = "top_performer"

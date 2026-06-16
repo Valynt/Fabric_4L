@@ -55,10 +55,12 @@ async def client():
 @pytest.mark.parametrize(
     ("company_value", "expected_percentile", "expected_bucket"),
     [
-        ("1.0", 5, "needs_improvement"),
-        ("2.5", 37, "below_average"),
-        ("4.5", 62, "above_average"),
-        ("7.0", 82, "top_performer"),
+        # se_hours_per_opportunity is lower-is-better, so the percentile and
+        # bucket reflect performance (100 - distribution percentile).
+        ("1.0", 95, "top_performer"),
+        ("2.5", 63, "above_average"),
+        ("4.5", 38, "below_average"),
+        ("7.0", 18, "needs_improvement"),
     ],
 )
 async def test_compare_returns_snake_case_percentile_bucket(
@@ -86,7 +88,7 @@ async def test_compare_returns_snake_case_percentile_bucket(
 
 
 @pytest.mark.asyncio
-async def test_compare_returns_above_average_for_nexus_scenario(client: AsyncClient) -> None:
+async def test_compare_returns_below_average_for_nexus_scenario(client: AsyncClient) -> None:
     """The Nexus Analytics scenario uses 4.5 SE hours per opportunity."""
     response = await client.post(
         "/v1/benchmarks/compare",
@@ -100,5 +102,5 @@ async def test_compare_returns_above_average_for_nexus_scenario(client: AsyncCli
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["assessment"] == "above_average"
-    assert body["percentile"] == 62
+    assert body["assessment"] == "below_average"
+    assert body["percentile"] == 38
