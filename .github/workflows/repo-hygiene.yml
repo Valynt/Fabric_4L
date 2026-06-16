@@ -170,7 +170,10 @@ jobs:
               
               // If it has no open PRs and it's a bot branch, or if it's stale, or if it's fully merged
               let isFullyMerged = false;
-              if (!isStale && !(isBotBranch && pulls.data.length === 0)) {
+              const isAbandonedBotBranch = isBotBranch && pulls.data.length === 0;
+              const shouldCheckIfFullyMerged = !isStale && !isAbandonedBotBranch;
+              
+              if (shouldCheckIfFullyMerged) {
                 try {
                   const compare = await github.rest.repos.compareCommits({
                     owner: context.repo.owner,
@@ -184,7 +187,7 @@ jobs:
                 }
               }
               
-              if (isStale || isFullyMerged || (isBotBranch && pulls.data.length === 0)) {
+              if (isStale || isFullyMerged || isAbandonedBotBranch) {
                 const failedPRs = [];
                 for (const pr of pulls.data) {
                   console.log(`Closing PR: ${pr.number} (branch: ${branch.name})`);
