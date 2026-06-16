@@ -7,13 +7,13 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.services.export_provenance import build_export_provenance_manifest
 from layer4_agents.workflows.business_case import (
     BusinessCaseGeneratorWorkflow,
     MissingTenantContextError,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class _FakeLayer5Client_list_truthsResult(TypedDictModel):
