@@ -9,7 +9,10 @@ from limits.storage import MemoryStorage
 from limits.strategies import MovingWindowRateLimiter
 
 
-_DEFAULT_TRUSTED_PROXY_HOPS = int(os.getenv("RATE_LIMIT_TRUSTED_PROXY_HOPS", "0"))
+try:
+    _DEFAULT_TRUSTED_PROXY_HOPS = int(os.getenv("RATE_LIMIT_TRUSTED_PROXY_HOPS", "0"))
+except ValueError:
+    _DEFAULT_TRUSTED_PROXY_HOPS = 0
 
 
 class IPRateLimitDependency:
