@@ -111,16 +111,19 @@ def _resolve_fastapi_dependencies() -> tuple[Any, Any, Any, Any, Any]:
 
 Depends, HTTPException, Request, status, DependsParam = _resolve_fastapi_dependencies()
 
-from value_fabric.shared.audit import emit_audit_event
-from value_fabric.shared.audit.models import AuditAction, AuditOutcome, PrivilegedAccessDetails
-from value_fabric.shared.identity.context import (
+from value_fabric.shared.audit import emit_audit_event  # noqa: E402
+from value_fabric.shared.audit.models import (  # noqa: E402
+    AuditAction,
+    AuditOutcome,
+    PrivilegedAccessDetails,
+)
+from value_fabric.shared.identity.context import (  # noqa: E402
     AUTH_SOURCE_UNKNOWN,
     RequestContext,
     get_request_context,
 )
-from value_fabric.shared.identity.permissions import Permission, Role
-from value_fabric.shared.identity.policy_registry import authorize_action
-from value_fabric.shared.security.config import validate_jwt_config
+from value_fabric.shared.identity.permissions import Permission, Role  # noqa: E402
+from value_fabric.shared.identity.policy_registry import authorize_action  # noqa: E402
 
 # Compatibility alias required by legacy tests and routes that patch/import
 # ``shared.identity.dependencies`` while this source tree is imported through the
@@ -476,7 +479,7 @@ def require_privileged_access(
 
 
 # Convenience aliases matching canonical shared dependencies.
-require_super_admin = require_role(Role.SUPER_ADMIN)
+require_super_admin = require_role(Role.SUPER_ADMIN)  # noqa: F811
 require_tenant_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
 require_content_admin = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN)
 require_analyst = require_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN, Role.ANALYST)
@@ -498,5 +501,17 @@ __all__ = [
     "require_tenant_admin",
     "require_content_admin",
     "require_analyst",
-    "validate_jwt_config",
+    "validate_jwt_config",  # noqa: F822  # provided by module-level __getattr__
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-load ``validate_jwt_config`` to avoid a circular import with ``security.config``."""
+    if name == "validate_jwt_config":
+        from value_fabric.shared.security.config import (
+            validate_jwt_config as _validate_jwt_config,
+        )
+
+        globals()[name] = _validate_jwt_config
+        return _validate_jwt_config
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

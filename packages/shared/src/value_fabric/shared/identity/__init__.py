@@ -9,6 +9,8 @@ This package is imported by all layers (L1–L4) and provides:
 - FastAPI dependency helpers
 """
 
+from typing import Any
+
 from .context import RequestContext, get_request_context, set_request_context, require_context
 from .hashing import generate_api_key, hash_api_key, verify_api_key, extract_key_prefix
 from .feature_flags import is_enabled, init_feature_flags, get_feature_flags_redis, register_feature_flag_lookup
@@ -52,9 +54,7 @@ from .policy_registry import (
 from .dependencies import (
     require_tenant_admin,
     require_super_admin,
-    validate_jwt_config,
 )
-from .vault_check import check_vault_health, resolve_vault_secret
 from .auth_mode import (
     assert_safe_jwt_and_bypass_configuration,
     is_dev_bypass_enabled,
@@ -150,3 +150,24 @@ __all__ = [
     "log_auth_mode_report",
     "validate_dev_bypass_configuration",
 ]
+
+
+_LAZY_VAULT_NAMES = frozenset({"check_vault_health", "resolve_vault_secret"})
+_LAZY_DEPENDENCY_NAMES = frozenset({"validate_jwt_config"})
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-load helpers to avoid a circular import with ``security.config``."""
+    if name in _LAZY_VAULT_NAMES:
+        from . import vault_check
+
+        value = getattr(vault_check, name)
+        globals()[name] = value
+        return value
+    if name in _LAZY_DEPENDENCY_NAMES:
+        from . import dependencies
+
+        value = getattr(dependencies, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

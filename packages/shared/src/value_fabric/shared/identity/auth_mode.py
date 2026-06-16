@@ -78,8 +78,8 @@ def _raise_if_bypass_in_nonlocal_env(service_name: str) -> None:
 
 def _warn_if_legacy_flags() -> None:
     for flag in _BYPASS_FLAGS:
-        val = os.getenv(flag, "").strip()
-        if val and val.lower() not in ("", "false", "0", "no", "off"):
+        val = os.getenv(flag)
+        if _flag_value_is_truthy(val):
             logger.warning(
                 "Legacy auth bypass flag %s is set (%r) but dev auth bypass has been "
                 "permanently removed from the platform. Remove this flag from your environment.",

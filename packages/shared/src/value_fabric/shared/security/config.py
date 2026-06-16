@@ -11,6 +11,11 @@ from urllib.parse import parse_qsl, urlparse
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from value_fabric.shared.identity.auth_mode import (
+    _bypass_flags_are_set,
+    _raise_if_bypass_in_nonlocal_env,
+)
+
 logger = logging.getLogger(__name__)
 
 # Minimum JWT secret length for production (NIST SP 800-117 recommends >= 256 bits)
@@ -200,11 +205,6 @@ class ProductionSafetyValidator:
             )
 
         # Auth bypass flags must never be enabled in production-like envs.
-        from value_fabric.shared.identity.auth_mode import (
-            _bypass_flags_are_set,
-            _raise_if_bypass_in_nonlocal_env,
-        )
-
         active_bypass_flags = _bypass_flags_are_set()
         if active_bypass_flags:
             if self.environment == "development":
@@ -789,7 +789,7 @@ def get_startup_summary() -> dict[str, Any]:
     cors_origins = os.getenv("CORS_ORIGINS", "*")
     database_url = os.getenv("DATABASE_URL", "")
     
-    summary = {
+    summary: dict[str, Any] = {
         "environment": environment,
         "redis_enabled": bool(redis_url),
         "audit_enabled": bool(audit_sink),
