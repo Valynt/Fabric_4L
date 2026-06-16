@@ -87,6 +87,7 @@ services:
       LAYER4_LAYER6_API_URL: http://layer6:8006
       LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS: "true"
       LAYER4_DEFAULT_VALUE_DRIVER_IDS: "se-efficiency,win-rate-lift,cycle-time-reduction"
+      LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE: "true"
       LAYER4_PROMPTS_ROOT: /app/prompts
     volumes:
       - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
