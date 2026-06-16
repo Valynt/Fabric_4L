@@ -410,11 +410,14 @@ class TenantProvisioningService:
 
             await self.db_session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
 
-grant_role = os.getenv("LAYER4_TENANT_SCHEMA_GRANTEE", "app_user")
-if not re.match(r"^[a-z_][a-z0-9_]*$", grant_role):
-    raise ValueError(f"Schema grantee role is not a safe identifier: {grant_role}")
-await self.db_session.execute(text(f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{grant_role}"'))
-
+            grant_role = os.getenv("LAYER4_TENANT_SCHEMA_GRANTEE", "app_user")
+            if not re.match(r"^[a-z_][a-z0-9_]*$", grant_role):
+                raise ValueError(
+                    f"Schema grantee role is not a safe identifier: {grant_role}"
+                )
+            await self.db_session.execute(
+                text(f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{grant_role}"')
+            )
             await self.db_session.commit()
             logger.info("Created schema: %s", schema_name)
     
