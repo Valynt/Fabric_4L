@@ -7,12 +7,6 @@ from typing import Any
 from value_fabric.shared.security import detect_environment
 
 _TRUE_VALUES = {"true", "1", "yes", "on", "i_understand_risk"}
-_BYPASS_ENV_FLAGS = (
-    "ALLOW_INSECURE_DEV_AUTH_BYPASS",
-    "DEV_AUTH_BYPASS",
-    "AUTH_BYPASS_ENABLED",
-    "ALLOW_DEV_AUTH_BYPASS",
-)
 _EXPLICIT_LOCAL_TEST_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
 
 

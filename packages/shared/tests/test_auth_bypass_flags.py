@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from value_fabric.shared.identity.auth_mode import (
@@ -12,10 +14,17 @@ from value_fabric.shared.identity.auth_mode import (
     "ALLOW_DEV_AUTH_BYPASS",
     "AUTH_BYPASS_ENABLED",
 ])
-def test_bypass_flag_detected_when_set(flag, monkeypatch):
+@pytest.mark.parametrize("value", [
+    "true",
+    "1",
+    "yes",
+    "on",
+    "i_understand_risk",
+])
+def test_bypass_flag_detected_when_set(flag, value, monkeypatch):
     for other in ["DEV_AUTH_BYPASS", "ALLOW_INSECURE_DEV_AUTH_BYPASS", "ALLOW_DEV_AUTH_BYPASS", "AUTH_BYPASS_ENABLED"]:
         monkeypatch.delenv(other, raising=False)
-    monkeypatch.setenv(flag, "true")
+    monkeypatch.setenv(flag, value)
     assert _bypass_flags_are_set() == {flag}
 
 
@@ -32,8 +41,15 @@ def test_nonlocal_env_raises_when_bypass_set(monkeypatch):
         _raise_if_bypass_in_nonlocal_env(service_name="test-service")
 
 
-def test_local_env_allows_bypass_with_warning(monkeypatch):
+def test_local_env_allows_bypass_with_warning(monkeypatch, caplog):
     monkeypatch.setenv("ENVIRONMENT", "local")
     monkeypatch.setenv("DEV_AUTH_BYPASS", "true")
-    # Should not raise
-    _raise_if_bypass_in_nonlocal_env(service_name="test-service")
+    with caplog.at_level(logging.WARNING):
+        # Should not raise
+        _raise_if_bypass_in_nonlocal_env(service_name="test-service")
+    assert any(
+        record.levelno == logging.WARNING
+        and "DEV_AUTH_BYPASS" in record.message
+        and "local" in record.message
+        for record in caplog.records
+    )

@@ -1,9 +1,17 @@
-"""Authentication mode inspection — dev auth bypass permanently removed.
+"""Authentication mode inspection — dev auth bypass detection helpers.
 
-All dev auth bypass functionality (F-23) has been removed from the platform.
-This module is retained as a compatibility stub so that existing import
-statements in main.py files do not break immediately, but all bypass
-functions are no-ops that warn if legacy flags are still present.
+Dev auth bypass has been permanently removed from the platform. This module
+retains canonical helper functions that detect legacy bypass environment
+variables and act on them safely:
+
+* ``_bypass_flags_are_set`` returns the set of active legacy flag names.
+* ``_raise_if_bypass_in_nonlocal_env`` raises ``RuntimeError`` when any
+  bypass flag is set outside an explicit local/test environment.
+* Public functions remain no-ops for backward compatibility, but warn when
+  legacy flags are present.
+
+Bypass flags are permitted only in local, development, dev, test, testing,
+and ci environments. In any non-local environment they are fatal at startup.
 """
 
 from __future__ import annotations
@@ -81,29 +89,49 @@ def _warn_if_legacy_flags() -> None:
 
 
 def is_dev_bypass_enabled() -> bool:
-    """Always returns False — dev auth bypass has been permanently removed."""
+    """Return False; legacy flags are detected by ``_bypass_flags_are_set``.
+
+    Outside explicit local/test environments, ``_raise_if_bypass_in_nonlocal_env``
+    treats those flags as fatal at startup.
+    """
     _warn_if_legacy_flags()
     return False
 
 
 def is_dev_bypass_acknowledged() -> bool:
-    """Always returns False — dev auth bypass has been permanently removed."""
+    """Return False; legacy flags are detected by ``_bypass_flags_are_set``.
+
+    Outside explicit local/test environments, ``_raise_if_bypass_in_nonlocal_env``
+    treats those flags as fatal at startup.
+    """
     _warn_if_legacy_flags()
     return False
 
 
 def validate_dev_bypass_configuration() -> None:
-    """No-op — dev auth bypass has been permanently removed."""
+    """No-op for backward compatibility; warns if legacy bypass flags are set.
+
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
     _warn_if_legacy_flags()
 
 
 def assert_safe_jwt_and_bypass_configuration() -> None:
-    """No-op — dev auth bypass has been permanently removed."""
+    """No-op for backward compatibility; warns if legacy bypass flags are set.
+
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
     _warn_if_legacy_flags()
 
 
 def log_auth_mode_report() -> None:
-    """Log active auth sources. Dev bypass is always reported as removed."""
+    """Log active auth sources. Dev bypass is always reported as removed.
+
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
     _warn_if_legacy_flags()
     logger.info(
         "Auth mode report: dev_auth_bypass=removed active_sources=jwt_middleware,governance_middleware"
