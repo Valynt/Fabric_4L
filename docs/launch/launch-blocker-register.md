@@ -58,7 +58,9 @@ A dedicated sweep cleared the repository-owned failures in `.github/workflows/se
 | Frontend `pnpm audit` high-severity findings | ✅ Fixed | `apps/web/package.json`, `packages/config/package.json`, `pnpm-lock.yaml` |
 | `require_authenticated` principal check | ✅ Hardened | `packages/shared/src/value_fabric/shared/identity/dependencies.py` |
 | Mandatory security regression gate local path/Python | ✅ Fixed | `scripts/ci/mandatory_security_regression_gate.sh` |
+| Layer 4 tenant-isolation tests | ✅ Fixed | `services/layer4-agents/tests/test_tenant_isolation.py` |
 | Container / SBOM / DAST / dependency-review jobs | ⚠️ Requires Docker/GitHub runtime | `reports/security/security-gates-remediation-2026-06-15.md` |
+| Full `make verify` gate | ✅ PASS | Command log / CI evidence |
 
 ### Local gate evidence
 

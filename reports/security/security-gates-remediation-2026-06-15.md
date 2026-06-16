@@ -17,6 +17,7 @@ Clear `.github/workflows/security-gates.yml` so every job can run green in GitHu
 | Dockerfile non-root USER directive | ✅ Passing locally |
 | Route auth dependency gate | ✅ Passing locally |
 | Mandatory security regression gate | ✅ Passing locally |
+| Full repository verify gate | ✅ `make verify` passed |
 | Container/image scanning (Trivy) | ⚠️ Requires Docker runtime |
 | SBOM generation/policy (Anchore/Trivy) | ⚠️ Requires Docker runtime |
 | DAST (OWASP ZAP) | ⚠️ Requires Docker runtime + live stack |
@@ -195,6 +196,21 @@ permission denied while trying to connect to the Docker daemon socket
 2. Address any Trivy/SBOM findings that surface in the real image builds.
 3. Capture the SARIF/artifact outputs as evidence.
 
+### 8. Layer 4 tenant-isolation tests (`test compatibility`)
+
+**Root cause:** Hardening `require_authenticated` to reject contexts without a principal identifier caused two `services/layer4-agents/tests/test_tenant_isolation.py` tests to fail because their `RequestContext` fixtures had no `user_id`.
+
+**Files changed:** `services/layer4-agents/tests/test_tenant_isolation.py`
+
+**Fix:** Updated the two affected fixtures to include `user_id=uuid.uuid4()` while preserving the tests' original intent (tenant presence validation).
+
+**Validation:**
+
+```bash
+pytest services/layer4-agents/tests/test_tenant_isolation.py -q
+# 16 passed, 8 skipped
+```
+
 ## Validation Commands Run
 
 ```bash
@@ -223,6 +239,9 @@ make contract-tests
 # Frontend hygiene/typecheck
 pnpm --dir apps/web run lint
 pnpm --dir apps/web run typecheck
+
+# Full repository verification gate
+make verify
 ```
 
 ## Risk Statement
