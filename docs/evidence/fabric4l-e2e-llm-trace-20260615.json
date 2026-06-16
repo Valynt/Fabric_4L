@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "run_date": "2026-06-16T17:13:37.132604+00:00",
+    "run_date": "2026-06-16T17:58:27.090465+00:00",
     "verdict": "REAL_LLM_INVOKED_L4_WORKFLOW_DEGRADED",
     "reason": "together API key configured; Layer 4 built-in workflows still have internal errors"
   },
@@ -62,36 +62,36 @@
       ],
       "response_status": 200,
       "response_payload": {
-        "id": "ooRYXWE-3pDw3Z-a0cb722b7eb3dba1",
+        "id": "ooRnK5v-3pDw3Z-a0cbb3d57861db07",
         "object": "chat.completion",
-        "created": 1781630015,
+        "created": 1781632705,
         "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "prompt": [],
         "choices": [
           {
             "finish_reason": "stop",
-            "seed": 13589641717964230000,
+            "seed": 8753116193089879000,
             "index": 0,
             "logprobs": null,
             "message": {
               "role": "assistant",
-              "content": "By implementing a GTM value-engineering workflow platform, Nexus Analytics can standardize and streamline their discovery process, enabling consistent and high-quality business case development that accelerates sales cycles and improves win rates. This platform can also facilitate seamless handoffs between Sales Engineers (SEs) and Account Executives (AEs), ensuring that critical deal knowledge and value insights are retained and reused across opportunities. Ultimately, the platform can help Nexus Analytics scale their value-selling capabilities, driving revenue growth and expanding their average deal size by providing actionable value proof and repeatable success stories that resonate with customers and stakeholders.",
+              "content": "By implementing a GTM value-engineering workflow platform, Nexus Analytics can standardize and streamline their discovery process, enabling consistent and high-quality business case development that accelerates sales cycles and improves win rates. This platform can also facilitate seamless handoffs between Sales Engineers (SEs) and Account Executives (AEs), while providing data-driven value proof and ROI analysis to build trust with customers and stakeholders. Ultimately, the platform can help Nexus Analytics capture, refine, and reuse deal knowledge across their organization, driving continuous improvement and scaling their $45M ARR business through more efficient and effective go-to-market operations.",
               "tool_calls": []
             }
           }
         ],
         "usage": {
           "prompt_tokens": 120,
-          "completion_tokens": 120,
-          "total_tokens": 240,
+          "completion_tokens": 123,
+          "total_tokens": 243,
           "cached_tokens": 0
         }
       },
-      "latency_ms": 1923.21,
+      "latency_ms": 2269.35,
       "token_usage": {
         "prompt_tokens": 120,
-        "completion_tokens": 120,
-        "total_tokens": 240,
+        "completion_tokens": 123,
+        "total_tokens": 243,
         "cached_tokens": 0
       }
     }
