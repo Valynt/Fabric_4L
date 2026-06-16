@@ -14,8 +14,22 @@ if str(SHARED_SRC) not in sys.path:
 
 
 def _load_config(monkeypatch, **env):
-    for key in ("ENVIRONMENT", "ENV", "APP_ENV", "CORS_ORIGINS", "JWT_SECRET", "DATABASE_URL"):
+    for key in (
+        "ENVIRONMENT",
+        "ENV",
+        "APP_ENV",
+        "CORS_ORIGINS",
+        "JWT_SECRET",
+        "DATABASE_URL",
+        "LAYER1_S3_ACCESS_KEY",
+        "LAYER1_S3_SECRET_KEY",
+    ):
         monkeypatch.delenv(key, raising=False)
+    # S3/MinIO credentials are required (no hardcoded defaults). Provide safe test
+    # defaults so the module-level settings instance can be imported; individual
+    # tests override these values as needed.
+    monkeypatch.setenv("LAYER1_S3_ACCESS_KEY", "test-access-key")
+    monkeypatch.setenv("LAYER1_S3_SECRET_KEY", "test-secret-key")
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     module = importlib.import_module("layer1_ingestion.shared.config")
@@ -26,10 +40,15 @@ def test_layer1_unknown_environment_is_not_production_like(monkeypatch):
     """Unknown environments are no longer treated as production-like (explicit allowlist)."""
     config = _load_config(monkeypatch, ENVIRONMENT="development")
 
-    # 'qa' is NOT production-like, so dev defaults are accepted without error
-    settings = config.Settings(environment="qa")
+    # 'qa' is NOT production-like, so dev defaults are accepted without error.
+    # S3/MinIO credentials are required in every environment (no hardcoded defaults).
+    settings = config.Settings(
+        environment="qa",
+        s3_access_key="qa-access-key",
+        s3_secret_key="qa-secret-key",
+    )
     assert settings.redis_url == "redis://localhost:6379/0"
-    assert settings.s3_access_key == "minioadmin"
+    assert settings.s3_access_key == "qa-access-key"
 
 
 def test_layer1_rejects_wildcard_and_placeholder_cors_in_production_like_env(monkeypatch):
@@ -90,6 +109,8 @@ def test_layer1_rejects_insecure_dependency_defaults_in_production_like_env(monk
             jwt_secret="x" * 48,
             database_url="postgresql://fabric:strong-pass@db.internal:5432/layer1",
             cors_origins=["https://app.example.com"],
+            s3_access_key="minioadmin",
+            s3_secret_key="minioadmin",
         )
 
     message = str(exc_info.value)
@@ -120,10 +141,18 @@ def test_layer1_rejects_missing_or_invalid_dependency_settings_in_production_lik
 
 def test_layer1_allows_dev_test_defaults(monkeypatch):
     config = _load_config(monkeypatch, ENVIRONMENT="development")
-    dev_settings = config.Settings(environment="development")
-    test_settings = config.Settings(environment="test")
+    dev_settings = config.Settings(
+        environment="development",
+        s3_access_key="dev-access-key",
+        s3_secret_key="dev-secret-key",
+    )
+    test_settings = config.Settings(
+        environment="test",
+        s3_access_key="test-access-key",
+        s3_secret_key="test-secret-key",
+    )
     assert dev_settings.redis_url == "redis://localhost:6379/0"
-    assert test_settings.s3_access_key == "minioadmin"
+    assert test_settings.s3_access_key == "test-access-key"
 
 
 def test_layer1_unknown_environment_allows_dev_defaults(monkeypatch):
@@ -134,9 +163,11 @@ def test_layer1_unknown_environment_allows_dev_defaults(monkeypatch):
         jwt_secret="x" * 48,
         database_url="postgresql://fabric:strong-pass@db.internal:5432/layer1",
         cors_origins=["https://app.example.com"],
+        s3_access_key="qa-access-key",
+        s3_secret_key="qa-secret-key",
     )
     assert settings.redis_url == "redis://localhost:6379/0"
-    assert settings.s3_access_key == "minioadmin"
+    assert settings.s3_access_key == "qa-access-key"
 
 
 def test_layer1_rejects_non_tls_storage_endpoint_unless_private_host_is_allowlisted(monkeypatch):

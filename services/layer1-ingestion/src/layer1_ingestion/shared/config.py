@@ -257,8 +257,8 @@ class Settings(BaseSettings):
 
     # Storage (MinIO/S3)
     s3_endpoint: str = Field(default="http://localhost:9000", description="S3/MinIO endpoint")
-    s3_access_key: str = Field(default="minioadmin", description="S3 access key")
-    s3_secret_key: str = Field(default="minioadmin", description="S3 secret key")
+    s3_access_key: str = Field(description="S3 access key (required)", alias="LAYER1_S3_ACCESS_KEY")
+    s3_secret_key: str = Field(description="S3 secret key (required)", alias="LAYER1_S3_SECRET_KEY")
     s3_bucket: str = Field(default="layer1-raw-html", description="S3 bucket for raw HTML")
     s3_region: str = Field(default="us-east-1", description="S3 region")
     private_storage_endpoint_allowlist: list[str] = Field(
@@ -343,4 +343,4 @@ class Settings(BaseSettings):
 
 
 # Global settings instance
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
