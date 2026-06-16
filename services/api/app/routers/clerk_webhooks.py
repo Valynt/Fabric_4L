@@ -42,9 +42,11 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
 
-_clerk_ip_limiter = IPRateLimitDependency(
-    requests_per_minute=int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", "30"))
-)
+try:
+    _clerk_rate_limit = int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", "30"))
+except ValueError:
+    _clerk_rate_limit = 30
+_clerk_ip_limiter = IPRateLimitDependency(requests_per_minute=_clerk_rate_limit)
 
 
 class ClerkEventType(StrEnum):
