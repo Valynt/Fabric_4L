@@ -552,15 +552,17 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
         return self._client
 
     @staticmethod
-    def _validate_sfdc_id(value: str, field_name: str = "prospect_id") -> str:
-        if len(value) not in (15, 18) or not value.isascii() or not value.isalnum():
+    def _validate_sfdc_id(value: str | None, field_name: str = "prospect_id") -> str:
+        if not value or not isinstance(value, str):
+            raise ValueError(f"Invalid {field_name} format: value is required")
+        if not value.isalnum():
             raise ValueError(
-                f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters"
+                f"Invalid {field_name} format: must be alphanumeric"
             )
         return value
 
     @classmethod
-    def _soql_safe_id(cls, value: str, field_name: str = "prospect_id") -> str:
+    def _soql_safe_id(cls, value: str | None, field_name: str = "prospect_id") -> str:
         """Return a SOQL-safe ID string with defense-in-depth escaping."""
         validated = cls._validate_sfdc_id(value, field_name)
         return validated.replace("'", "''")
