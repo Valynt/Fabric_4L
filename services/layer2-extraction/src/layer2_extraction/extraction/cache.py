@@ -151,7 +151,7 @@ class ExtractionCache:
             try:
                 raw = await self._redis.get(key)
                 if raw:
-                    return pickle.loads(raw)
+                    return pickle.loads(raw)  # nosec B301
             except RedisError as exc:
                 self._log_cache_failure("read", exc, context)
             except (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError) as exc:

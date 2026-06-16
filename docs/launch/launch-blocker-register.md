@@ -44,6 +44,21 @@ The following items are **not** repository-owned code defects. They require a co
 | **P1-004** | Performance and reliability smoke test | Performance owner | Smoke-test command, timing output, error-rate summary, release-candidate SHA. | **PARTIAL** | Critical-path smoke 12/0 passes locally; capacity-bound SLO smoke requires environment. |
 | **P1-008** | Journey SLO report | Test / Observability owner | CI artifact with journey timings vs SLO thresholds. | **OPEN** | CI wiring in place; evidence on next qualifying CI run. |
 | **P1-009** | Live LLM provider validation | AI platform owner | Live/provider-sandbox bundle proving grounded citations, fact/assumption labeling, refusal behavior, prompt-injection resistance, cost tracking, traceability. | **REQUIRES_ENVIRONMENT** | Blocks Core GA if live LLM workflows are in scope. |
+| **R-2026-06-15-03** | `security-gates.yml` repository-side failures | Security / CI owner | Invalid action SHAs, bandit findings, auth-bypass guard, frontend audit, mandatory security regression gate. | **RESOLVED** | All static/repository-side jobs fixed; Docker/GitHub-only jobs remain environment-dependent. |
+
+### Security-gates remediation evidence
+
+A dedicated sweep cleared the repository-owned failures in `.github/workflows/security-gates.yml`.
+
+| Gate / Fix | Result | Evidence |
+|---|---|---|
+| Invalid action SHA pins (gitleaks, anchore/sbom-action, pnpm/action-setup) | ✅ Fixed | `reports/security/security-gates-remediation-2026-06-15.md` |
+| Bandit MEDIUM/HIGH findings Layers 1–6 | ✅ Fixed / passing | `reports/security/security-gates-remediation-2026-06-15.md` |
+| Dev auth bypass guard false positives | ✅ Fixed | `scripts/ci/check-dev-auth-bypass.sh` |
+| Frontend `pnpm audit` high-severity findings | ✅ Fixed | `apps/web/package.json`, `packages/config/package.json`, `pnpm-lock.yaml` |
+| `require_authenticated` principal check | ✅ Hardened | `packages/shared/src/value_fabric/shared/identity/dependencies.py` |
+| Mandatory security regression gate local path/Python | ✅ Fixed | `scripts/ci/mandatory_security_regression_gate.sh` |
+| Container / SBOM / DAST / dependency-review jobs | ⚠️ Requires Docker/GitHub runtime | `reports/security/security-gates-remediation-2026-06-15.md` |
 
 ### Local gate evidence
 

@@ -579,7 +579,7 @@ class BackupManager:
             Backup response
         """
         start_time = datetime.utcnow()
-        backup_id = f"backup_{int(start_time.timestamp())}_{hashlib.md5(str(start_time).encode()).hexdigest()[:8]}"
+        backup_id = f"backup_{int(start_time.timestamp())}_{hashlib.md5(str(start_time).encode(), usedforsecurity=False).hexdigest()[:8]}"
 
         # Create backup metadata
         metadata = BackupMetadata(

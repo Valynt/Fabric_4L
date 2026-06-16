@@ -51,8 +51,10 @@ def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | N
         env = str(getattr(settings, "environment")).strip().lower()
         if env in _EXPLICIT_LOCAL_TEST_ENVIRONMENTS:
             return
-
-    if settings is None and _is_explicit_local_or_test_environment():
+    elif _is_explicit_local_or_test_environment():
+        # No explicit production-like signal from settings, but the runtime
+        # environment is local/test. Skip the bypass check without weakening
+        # the production fail-closed behavior.
         return
 
     active_flags: list[str] = []

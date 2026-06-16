@@ -215,6 +215,10 @@ async def require_authenticated(
     # Full validation (including tenant_id) is checked by require_tenant_context
     if ctx.auth_source == AUTH_SOURCE_UNKNOWN or not ctx.is_auth_source_valid():
         raise _unauthorized({"message": "Authentication context is invalid", "errors": ["auth_source must be one of the approved authentication mechanisms"]})
+    # Require at least one principal identifier so tokens without a subject cannot
+    # be treated as authenticated.
+    if not ctx.user_id and not ctx.api_key_id and not ctx.service_account_id:
+        raise _unauthorized({"message": "Authentication context is missing a principal identifier", "errors": ["sub, user_id, api_key_id, or service_account_id is required"]})
     return ctx
 
 

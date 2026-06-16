@@ -19,7 +19,7 @@ def main() -> int:
             method="GET",
             headers={"Accept": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:  # nosec B310
             if response.status == 200:
                 return 0
     except urllib.error.HTTPError as e:

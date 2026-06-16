@@ -998,7 +998,7 @@ class PerformanceOptimizer:
         param_string = "&".join(f"{k}={v}" for k, v in sorted_params)
 
         if param_string:
-            return f"{prefix}:{hashlib.md5(param_string.encode()).hexdigest()}"
+            return f"{prefix}:{hashlib.md5(param_string.encode(), usedforsecurity=False).hexdigest()}"
         else:
             return prefix
 

@@ -808,7 +808,7 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
         raise ValueError("callback_url must have a valid hostname")
     hostname_lower = hostname.lower()
     # Reject well-known localhost variants and cloud metadata hostnames.
-    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104
         raise ValueError("callback_url must not point to localhost")
     if hostname_lower in _SSRF_BLOCKED_HOSTNAMES:
         raise ValueError("callback_url must not point to cloud metadata endpoints")

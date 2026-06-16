@@ -115,6 +115,21 @@ try:
 except Exception:
     pass
 
+# SECURITY: Auth boundary tests verify role/access control, not the shared
+# tenant-scoped rate limiter. When Redis is unavailable the shared middleware
+# raises a 500; patch it out so the auth tests can run without live Redis.
+try:
+    from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
+
+    _orig_tenant_rl_dispatch = TenantRateLimitMiddleware.dispatch
+
+    async def _patched_tenant_rl_dispatch(self, request, call_next):
+        return await call_next(request)
+
+    TenantRateLimitMiddleware.dispatch = _patched_tenant_rl_dispatch
+except Exception:
+    pass
+
 
 @pytest.fixture
 def jwt_encoder() -> Callable[[dict], str]:
