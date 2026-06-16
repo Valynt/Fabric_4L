@@ -122,8 +122,7 @@ def fake_crm_provider():
     yield mock_crm
 
 
-from unittest.mock import MagicMock
-
+# MagicMock imported above
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Role
 
