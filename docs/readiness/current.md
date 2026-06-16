@@ -20,9 +20,9 @@
 |---|---|---|---|
 | `make verify` | Repository-owned canonical gate | ✅ PASS | `artifacts/readiness/make-verify-2026-06-15.log` |
 | `make production-readiness-gate` | Production-readiness gate | ✅ PASS | `artifacts/readiness/make-production-readiness-gate-2026-06-15.log` |
-| P0-001 | Playwright live backend-integrated journeys | ⚠️ ACCEPTED RISK — pending sign-off | Repository-owned route drift fixed in `j1`/`j20` specs; `apps/web` typecheck passes; staging execution still required for full evidence |
-| P0-002 | Rollback / restore drill | ⚠️ ACCEPTED RISK — pending sign-off | `signoff-evidence/p0-rollback-20260613.json`; static verifier 8/8; runtime rehearsal requires environment |
-| P0-003 | Enterprise SSO/OIDC | ⚠️ ACCEPTED RISK — pending sign-off | `signoff-evidence/p0-sso-20260613.json`; local Keycloak surrogate validated; real IdP integration required |
+| P0-001 | Playwright live backend-integrated journeys | ⚠️ ACCEPTED RISK — pending sign-off | Legacy-auth Clerk hook boundary fixed; `case-meridian-e2e-001` seed made deterministic; new behavior tests pass; staging execution still required for full evidence |
+| P0-002 | Rollback / restore drill | ⚠️ ACCEPTED RISK — pending sign-off | `signoff-evidence/p0-rollback-20260613.json` refreshed; immutable-image rollback doctrine added to runbook; static verifier 8/8; runtime rehearsal requires environment |
+| P0-003 | Enterprise SSO/OIDC | ⚠️ ACCEPTED RISK — pending sign-off | `signoff-evidence/p0-sso-20260613.json` refreshed; local Keycloak surrogate committed to `docker-compose.live.yml` under the `sso` profile; realm import validated; real IdP integration required |
 | P1 matrix | Operational evidence | ⏳ DEFERRED / ACCEPTED RISK | `signoff-evidence/p1-operational-20260613.json`; local checks pass; provider-dependent items deferred |
 | R-2026-06-13-01 | Contract tests / `make contract-tests` | ✅ Closed | Fixed in 2026-06-15 sweep; `make verify` passes |
 | R-2026-06-13-02 | Unit tests / `make test` | ✅ Closed | Fixed in 2026-06-15 sweep; `make verify` passes |
