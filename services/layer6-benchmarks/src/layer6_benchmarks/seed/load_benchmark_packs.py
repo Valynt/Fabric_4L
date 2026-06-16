@@ -65,6 +65,8 @@ def _validate_pack(data: dict[str, Any], source: Path) -> None:
     for metric_name, metric in data["metrics"].items():
         if not isinstance(metric, dict):
             raise ValueError(f"{source}: metric {metric_name} must be an object")
+        if "unit" not in metric or "description" not in metric:
+            raise ValueError(f"{source}: metric {metric_name} missing required fields ['unit', 'description']")
         profile = metric.get("profile")
         if not isinstance(profile, dict):
             raise ValueError(f"{source}: metric {metric_name} missing profile")
