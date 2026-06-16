@@ -18,8 +18,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
-from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.governance.abom import AgentBillOfMaterials
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 _PLATFORM_CONTRACT_PYTHON = next(
     (parent / "packages" / "platform-contract" / "src" / "python" for parent in Path(__file__).resolve().parents if (parent / "packages" / "platform-contract" / "src" / "python").exists()),

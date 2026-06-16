@@ -309,6 +309,7 @@ class ConversationService:
         tenant_id = self._require_tenant_id(tenant_id)
         trace_id = trace_id or str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
+        audit_event_id = f"audit_{uuid.uuid4().hex[:12]}"
         run_id = f"run-{trace_id[:8]}"
         def now() -> str:
             return datetime.now(UTC).isoformat()
