@@ -126,20 +126,20 @@ def _get_request_context():
     """Import lazily to avoid circular imports."""
     try:
         from value_fabric.shared.identity.context import get_request_context
+
         return get_request_context()
     except ImportError:
         return None
 
 
-async def get_db_from_context(
-) -> AsyncGenerator[AsyncSession, None]:
+async def get_db_from_context() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency: async DB session with tenant RLS from RequestContext.
 
     Fail-safe: rejects requests without tenant context.
     """
     ctx = _get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise ValidationError(message = "Tenant context required.")
+        raise ValidationError(message="Tenant context required.")
 
     tenant_id = str(ctx.tenant_id)
     factory = get_session_factory()
@@ -162,14 +162,23 @@ async def get_db_from_context(
 
 
 @asynccontextmanager
-async def db_session(tenant_id: str | None = None) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """Yield a database session with tenant RLS applied.
+
+    tenant_id is required. Passing an empty or None tenant is a programming
+    error and fails closed to prevent cross-tenant data leakage.
+    """
+    if not tenant_id:
+        raise ValueError(
+            "tenant_id is required for db_session; None or empty values are not allowed."
+        )
+
     factory = get_session_factory()
     async with factory() as session:
-        if tenant_id:
-            await session.execute(
-                text("SET LOCAL app.tenant_id = :tenant_id"),
-                {"tenant_id": tenant_id},
-            )
+        await session.execute(
+            text("SET LOCAL app.tenant_id = :tenant_id"),
+            {"tenant_id": tenant_id},
+        )
         try:
             yield session
             await session.commit()
