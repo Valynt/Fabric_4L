@@ -48,7 +48,8 @@ FORBIDDEN_PATTERNS: tuple[re.Pattern[str], ...] = (
 EXEMPT_FILE_NAMES: frozenset[str] = frozenset(
     {
         # DEBT: packages/shared/src/value_fabric/shared/identity/jwt.py
-        # reads CLERK_JWT_AUDIENCE / CLERK_JWT_ISSUER / CLERK_JWKS_URL as
+        # reads CLERK_JWT_AUDIENCE / CLERK_ISSUER / CLERK_JWT_ISSUER /
+        # CLERK_JWKS_URL as
         # OIDC fallbacks. This should be refactored so callers pass OIDC
         # config explicitly instead of the shared module reading Clerk env.
         "jwt.py",

@@ -11,7 +11,7 @@
  */
 
 import { createContext, useContext, useMemo } from 'react';
-import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization } from '@clerk/react';
+import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization, useClerk } from '@clerk/react';
 import { createFeatureLogger } from '@/lib/telemetry';
 import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 import { type UserInfo, UserInfoSchema } from '../schemas/auth';
@@ -105,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();
   const { isLoaded: userLoaded, user: clerkUser } = useClerkUser();
   const { organization } = useOrganization();
+  const { signOut } = useClerk();
 
   // Determine loading state and user info based on mode
   const isLoading = !authLoaded || !userLoaded;
@@ -158,9 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const { useClerk } = await import('@clerk/react');
-      const clerk = useClerk();
-      await clerk.signOut({ redirectUrl: '/' });
+      await signOut({ redirectUrl: '/' });
     } catch (error) {
       log.error('Sign out failed', { error: String(error) });
       safeNavigate('/');

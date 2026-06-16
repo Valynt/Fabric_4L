@@ -322,8 +322,14 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    # Support both generic OIDC and Clerk-specific issuer configuration
-    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip() or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    # Support both generic OIDC and Clerk-specific issuer configuration.
+    # CLERK_ISSUER is the canonical gateway env; CLERK_JWT_ISSUER remains
+    # accepted as a compatibility alias for older deployment notes.
+    oidc_issuer = (
+        os.getenv("OIDC_ISSUER", "").strip()
+        or os.getenv("CLERK_ISSUER", "").strip()
+        or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    )
     oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip() or os.getenv("CLERK_JWT_AUDIENCE", "").strip()
     # Clerk-specific JWKS URL override
     clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()

@@ -80,3 +80,53 @@ async def test_search_limit_alias_overrides_top_k() -> None:
     assert requested_limits == [4, 4, 4]
     assert result == ["r1", "r2"]
 
+
+@pytest.mark.asyncio
+async def test_graph_search_marks_internal_fulltext_query_with_narrow_allowlist() -> None:
+    """Hybrid graph search should keep tenant scope and reviewed query metadata."""
+    settings = Settings(neo4j_password="test_password")
+    engine = HybridSearch(settings=settings)
+    captured = []
+
+    class _Result:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            raise StopAsyncIteration
+
+    class _Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class _Driver:
+        def session(self, **_kwargs):
+            return _Session()
+
+    async def fake_get_driver():
+        return _Driver()
+
+    async def fake_run_scoped(_session, scoped):
+        captured.append(scoped)
+        return _Result()
+
+    engine._get_driver = fake_get_driver
+    engine._run_scoped = fake_run_scoped
+
+    await engine._graph_search(
+        query="se hours",
+        entity_types=["ValueDriver"],
+        top_k=3,
+        tenant_id="tenant-a",
+    )
+
+    assert len(captured) == 1
+    scoped = captured[0]
+    assert scoped.operation == "hybrid_search.graph"
+    assert scoped.allowlist_key == "hybrid_search.graph_fulltext_tenant_scoped"
+    assert scoped.tenant_id == "tenant-a"
+    assert "node.tenant_id = $_tenant_id" in scoped.cypher
+

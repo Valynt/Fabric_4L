@@ -388,6 +388,7 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
                         action="ALLOWED",
                     )
                     config["url"] = safety_result.normalized_url
+                    url = safety_result.normalized_url
                 except URLSafetyError as exc:
                     log_url_compliance_event(
                         session,
@@ -430,9 +431,10 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
                         tenant_id=str(job.tenant_id),
                         strict_mode=compliance_config.get("strict_robots_compliance", False),
                     )
-                    domain = url.split("/")[2] if "/" in url else url
+                    parsed_url = urlparse(url)
+                    domain = parsed_url.netloc
 
-                    allowed, reason, rules = await checker.check_url(domain, url)
+                    allowed, reason, rules = await checker.check_url(url, job_id=str(job_id))
                     crawl_delay = rules.get("crawl_delay") if rules else None
 
                     # Log compliance check

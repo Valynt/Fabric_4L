@@ -312,6 +312,7 @@ class HybridSearch:
                     params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
                     operation="hybrid_search.graph",
                     labels=(etype,),
+                    allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
                 )
                 try:
                     result = await self._run_scoped(session, scoped)
