@@ -108,7 +108,9 @@ class CheckpointConfig:
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
         url = cls._clean_url(cls.get_database_url())
-        conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
+        conn = await psycopg.AsyncConnection.connect(
+            url, row_factory=psycopg.rows.dict_row, autocommit=True, prepare_threshold=0
+        )
         saver = AsyncPostgresSaver(conn)
         # Store connection reference for cleanup only if the saver does not
         # already expose it via a public attribute.
@@ -156,7 +158,9 @@ class CheckpointConfig:
         conn = None
         try:
             url = cls._clean_url(cls.get_database_url())
-            conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
+            conn = await psycopg.AsyncConnection.connect(
+                url, row_factory=psycopg.rows.dict_row, autocommit=True, prepare_threshold=0
+            )
             saver = AsyncPostgresSaver(conn)
             yield saver
         except psycopg.Error as e:

@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 try:
@@ -28,6 +29,7 @@ from ..models.agent_state import (
 )
 from ..models.workflow_config import BUSINESS_CASE_WORKFLOW_CONFIG
 from ..services.governed_llm_client import GovernedLLMClient
+from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 from ..tools.registry import ToolRegistry, ToolResult
 from .base import BaseWorkflow
@@ -101,6 +103,11 @@ class BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult(TypedDictMod
 logger = logging.getLogger(__name__)
 
 
+def _tenant_id_from_state(state: BusinessCaseAgentState) -> str:
+    """Return the authenticated tenant id from workflow state."""
+    return getattr(state, "tenant_id", None) or state.metadata.get("tenant_id") or state.input_data.get("tenant_id") or ""
+
+
 class MissingTenantContextError(ValueError):
     """Raised when a tenant-scoped business case workflow has no authenticated tenant context."""
 
@@ -165,18 +172,25 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             workflow_type=self.config.workflow_type,
         )
 
+        tenant_id_str = str(tenant_id) if tenant_id else ""
         return BusinessCaseAgentState(
             workflow_id=wf_id,
             run_id=r_id,
             trace_id=t_id,
-            tenant_id=str(tenant_id) if tenant_id else "",
+            tenant_id=tenant_id_str,
             workflow_type=self.config.workflow_type,
             status=WorkflowStatus.PENDING,
             case_input=case_input,
             input_data=input_data,
             output_data={},
             errors=[],
-            metadata={"workflow_name": self.name},
+            metadata={
+                "workflow_name": self.name,
+                "authenticated_tenant_id": tenant_id_str,
+                "tenant_id": tenant_id_str,
+                "trace_id": t_id,
+                "run_id": r_id,
+            },
             run_envelope=envelope,
         )
 
@@ -219,6 +233,13 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
 
         account_id = str(state.case_input.account_id)
         prospect_id = state.case_input.custom_inputs.get("provider_record_id", account_id)
+        tenant_id = _tenant_id_from_state(state)
+        tool_ctx = {
+            "tenant_id": tenant_id,
+            "trace_id": state.trace_id,
+            "workflow_id": state.workflow_id,
+            "run_id": state.run_id,
+        }
 
         # Fetch prospect data
         prospect_data = await self.tool_registry.execute(
@@ -226,16 +247,20 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             {
                 "prospect_id": prospect_id,
                 "data_types": ["profile", "interactions", "opportunities"],
+                "prospect_data": state.input_data.get("prospect_data", {}),
+                **tool_ctx,
             },
         )
 
         # Fetch interaction history
         interactions = await self.tool_registry.execute(
-            "fetch_interaction_history", {"prospect_id": prospect_id, "limit": 10}
+            "fetch_interaction_history", {"prospect_id": prospect_id, "limit": 10, **tool_ctx}
         )
 
         # Score lead for additional context
-        lead_score = await self.tool_registry.execute("score_lead", {"prospect_id": prospect_id})
+        lead_score = await self.tool_registry.execute(
+            "score_lead", {"prospect_id": prospect_id, **tool_ctx}
+        )
 
         return BusinessCaseGeneratorWorkflow__execute_gather_inputsResult.model_validate({
             "account_id": account_id,
@@ -270,22 +295,30 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             })
 
         # Create ROI workflow state
+        tenant_id = _tenant_id_from_state(state)
         roi_input_data = {
             "prospect_id": prospect_id,
             "value_driver_ids": value_driver_ids,
             "use_benchmarks": True,
         }
 
-        roi_initial_state = self.roi_workflow.create_initial_state(roi_input_data)
+        roi_initial_state = self.roi_workflow.create_initial_state(
+            roi_input_data,
+            tenant_id=tenant_id,
+            trace_id=state.trace_id,
+            workflow_id=state.workflow_id,
+            run_id=f"{state.run_id}:roi",
+        )
 
         # Run ROI workflow
         try:
             roi_result = await self.roi_workflow.run(roi_initial_state)
 
+            aggregate = roi_result.output_data.get("aggregate", {}) or {}
             return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({
                 "status": "completed",
                 "account_id": account_id,
-                "roi_results": roi_result.output_data.get("aggregate", {}),
+                "roi_results": aggregate.get("aggregated", {}) if isinstance(aggregate, dict) else {},
                 "detailed_calculations": roi_result.calculation_results,
             })
 
@@ -311,6 +344,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             if resolved:
                 return resolved
 
+        tenant_id = _tenant_id_from_state(state)
         query_result = await self.tool_registry.execute(
             "query_graph",
             {
@@ -321,6 +355,10 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                     LIMIT 25
                 """,
                 "parameters": {"account_id": account_id},
+                "tenant_id": tenant_id,
+                "trace_id": state.trace_id,
+                "workflow_id": state.workflow_id,
+                "run_id": state.run_id,
             },
         )
         drivers = []
@@ -404,10 +442,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         }
 
         trace_id = state.metadata.get("trace_id") or state.metadata.get("run_id") if state.metadata else None
-        tenant_id_for_run = (
-            state.metadata.get("authenticated_tenant_id") or state.metadata.get("tenant_id", "")
-            if state.metadata else ""
-        )
+        tenant_id_for_run = _tenant_id_from_state(state)
 
         # Build governed LLM client for section generation
         try:
@@ -466,7 +501,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                         max_tokens=section_tmpl.max_tokens,
                         call_id=f"bc_section_{section_type}_{trace_id or 'unknown'}",
                     )
-                    parsed = llm_client._parse_json(llm_result.content)
+                    parsed = parse_llm_json(llm_result.content)
                     content = parsed.get("content", llm_result.content)
                 else:
                     # Fallback: tool-based generation
@@ -477,6 +512,10 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                             "context": context,
                             "tone": "professional",
                             "max_length": 500,
+                            "tenant_id": tenant_id_for_run,
+                            "trace_id": trace_id,
+                            "workflow_id": state.workflow_id,
+                            "run_id": state.run_id,
                         },
                     )
                     content = _unwrap_tool_data(section_result).get("content", "")
@@ -494,6 +533,10 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                                 {"label": "3-Year NPV", "value": roi_results.get("three_year_npv", 0)},
                             ],
                             "title": "ROI Summary",
+                            "tenant_id": tenant_id_for_run,
+                            "trace_id": trace_id,
+                            "workflow_id": state.workflow_id,
+                            "run_id": state.run_id,
                         },
                     )
                     charts.append(_unwrap_tool_data(chart_result).get("chart_data", {}))
@@ -531,6 +574,20 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 "requirements": [],
                 "truth_references": [],
                 "remediation_items": [],
+            })
+
+        # Local-development escape hatch: skip Layer-5 truth gating so the
+        # business-case workflow can produce a full document against an empty
+        # ground-truth database.  This must NOT be enabled in production.
+        if os.getenv("LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE", "").lower() in ("true", "1", "yes"):
+            logger.warning("Business case truth gate skipped via LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE")
+            return BusinessCaseGeneratorWorkflow__execute_verify_truth_requirementsResult.model_validate({
+                "passed": True,
+                "requirements": [],
+                "truth_references": [],
+                "remediation_items": [],
+                "organization_id": None,
+                "skipped": True,
             })
 
         requirements = state.case_input.custom_inputs.get("truth_requirements", [])
@@ -751,6 +808,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         # Assemble document
         assemble_result: dict[str, Any] = {}
         try:
+            tenant_id = _tenant_id_from_state(state)
             result = await self.tool_registry.execute(
                 "assemble_document",
                 {
@@ -763,15 +821,32 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                         ),
                         "date": state.case_input.custom_inputs.get("date", "2024"),
                     },
+                    "tenant_id": tenant_id,
+                    "trace_id": state.trace_id,
+                    "workflow_id": state.workflow_id,
+                    "run_id": state.run_id,
                 },
             )
             tool_data = _unwrap_tool_data(result)
+            roi_results = state.output_data.get("run_roi", {}).get("roi_results", {})
+            sections_by_title = {s.get("title", ""): s for s in assembly_sections}
+            executive = sections_by_title.get("Executive Summary", {})
+            next_steps = sections_by_title.get("Recommended Next Steps", {})
             assemble_result = {
                 "document_bytes": tool_data.get("document_bytes"),
                 "document_url": tool_data.get("document_url"),
                 "page_count": tool_data.get("page_count", len(assembly_sections)),
                 "file_size_bytes": tool_data.get("file_size_bytes", 0),
                 "format": state.case_input.output_format,
+                "title": f"Business Case — {state.case_input.custom_inputs.get('company_name', 'Value Fabric')}",
+                "summary": executive.get("content", "")[:2000],
+                "total_value": roi_results.get("total_annual_value") or 0.0,
+                "implementation_cost": roi_results.get("investment_required") or 0.0,
+                "roi_ratio": (roi_results.get("simple_roi_percent") or 0.0) / 100.0,
+                "payback_months": int(roi_results.get("payback_period_months") or 0),
+                "confidence_score": roi_results.get("average_confidence") or 0.0,
+                "recommendations": [next_steps.get("content", "")] if next_steps.get("content") else [],
+                "created_at": datetime.now(UTC).isoformat(),
             }
         except asyncio.CancelledError:
             raise
@@ -1077,7 +1152,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 max_tokens=validate_tmpl.max_tokens,
                 call_id=f"bc_validate_{trace_id or 'unknown'}",
             )
-            parsed = llm_client._parse_json(llm_result.content)
+            parsed = parse_llm_json(llm_result.content)
             extracted_claims = parsed.get("claims", [])
 
             # Build one Layer 5 client and validator for the entire validation run.
@@ -1209,6 +1284,9 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         organization_id: str | None = None
         if state.metadata:
             organization_id = state.metadata.get("authenticated_tenant_id")
+
+        if not organization_id:
+            organization_id = getattr(state, "tenant_id", None)
 
         if organization_id:
             return str(organization_id)

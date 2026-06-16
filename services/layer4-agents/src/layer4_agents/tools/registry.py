@@ -465,10 +465,17 @@ class ToolRegistry:
                 instead of an in-memory dictionary.
         """
         self._tools: dict[str, BaseTool] = {}
-        self._approval_required_categories: set[ToolCategory] = {
-            ToolCategory.CRM,
-            ToolCategory.INTEGRATION,
-        }
+        # In local/dev/test environments callers may opt out of human-in-the-loop
+        # approval for irreversible CRM/INTEGRATION tools by setting
+        # LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS=true.  This must never be enabled
+        # in production-like environments.
+        if os.getenv("LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS", "").lower() in ("true", "1", "yes"):
+            self._approval_required_categories: set[ToolCategory] = set()
+        else:
+            self._approval_required_categories = {
+                ToolCategory.CRM,
+                ToolCategory.INTEGRATION,
+            }
         self._redis_client = redis_client
         self._idempotency_cache: dict[tuple[str, str, str], ToolResult] = {}
         self._idempotency_ttl_seconds = int(

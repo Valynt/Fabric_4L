@@ -1,0 +1,1449 @@
+{
+  "metadata": {
+    "run_date": "2026-06-16T17:13:35.206799+00:00",
+    "environment": "local Docker compose backend-integrated + e2e-local override",
+    "scenario": {
+      "company_name": "Nexus Analytics",
+      "domain": "nexusanalytics.example.com",
+      "industry": "Software as a Service",
+      "region": "North America",
+      "company_size": 350,
+      "annual_revenue_usd": 45000000,
+      "headquarters": "Austin, TX"
+    },
+    "tenant_id": "02a4c583-fbd1-40aa-bcf1-1028603e9f6a",
+    "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd"
+  },
+  "calls": [
+    {
+      "step": "health_L1",
+      "layer": "L1",
+      "timestamp": "2026-06-16T17:12:47.028406+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8001/health",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.005311489105224609,
+        "body": {
+          "dependencies": [
+            {
+              "name": "database",
+              "status": "healthy",
+              "error": null
+            },
+            {
+              "name": "redis",
+              "status": "healthy",
+              "error": null
+            }
+          ],
+          "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
+          "status": "healthy"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "health_L2",
+      "layer": "L2",
+      "timestamp": "2026-06-16T17:12:47.033913+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8002/health",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.0034236907958984375,
+        "body": {
+          "status": "ok",
+          "service": "layer2-extraction",
+          "timestamp": "2026-06-16T17:12:47.036085+00:00"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "health_L3",
+      "layer": "L3",
+      "timestamp": "2026-06-16T17:12:47.037471+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8003/health",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.03580307960510254,
+        "body": {
+          "status": "healthy",
+          "service": "layer3-knowledge",
+          "readiness": {
+            "is_ready": true,
+            "reason": "dependencies_available"
+          },
+          "version": "1.0.0",
+          "timestamp": "2026-06-16T17:12:47.069714Z",
+          "uptime_seconds": 5992.544335126877,
+          "dependencies": [
+            {
+              "name": "neo4j",
+              "status": "healthy",
+              "response_time_ms": 2.191305160522461,
+              "error": null,
+              "details": {
+                "uri": "bolt://neo4j:7687",
+                "database": "neo4j"
+              }
+            }
+          ],
+          "metrics": {
+            "uptime_seconds": 5992.544335126877,
+            "memory_usage_mb": 4973.33,
+            "cpu_percent": 26.9,
+            "active_connections": 0,
+            "total_requests": 0,
+            "error_rate_percent": 0.0
+          },
+          "neo4j": {
+            "database": "neo4j",
+            "error": null,
+            "status": "healthy",
+            "uri": "bolt://neo4j:7687"
+          },
+          "schema_status": {
+            "constraints": {
+              "expected": 60,
+              "found": 60,
+              "missing": []
+            },
+            "indexes": {
+              "expected": 146,
+              "found": 146,
+              "missing": []
+            },
+            "edition": "community",
+            "enterprise_features": false,
+            "valid": true
+          }
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "health_L4",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:12:47.073417+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8004/health",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.004445552825927734,
+        "body": {
+          "status": "ok",
+          "service": "layer4-agents",
+          "timestamp": "2026-06-16T17:12:47.075433+00:00"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "health_L5",
+      "layer": "L5",
+      "timestamp": "2026-06-16T17:12:47.077977+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8005/health",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.003620624542236328,
+        "body": {
+          "status": "ok",
+          "service": "layer5-ground-truth",
+          "version": "0.1.0",
+          "timestamp": "2026-06-16T17:12:47.080275Z",
+          "database": "ok",
+          "layer3_connected": null,
+          "layer3_url": null
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "health_L6",
+      "layer": "L6",
+      "timestamp": "2026-06-16T17:12:47.081758+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8006/ready",
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.6567277908325195,
+        "body": {
+          "checks": {
+            "config": {
+              "status": "ok"
+            },
+            "neo4j": {
+              "status": "ok",
+              "detail": null
+            },
+            "benchmark_store": {
+              "status": "ok",
+              "detail": null,
+              "datasets_loaded": 4
+            },
+            "startup": {
+              "status": "ok",
+              "detail": null
+            }
+          },
+          "service": "layer6-benchmarks",
+          "status": "ready",
+          "timestamp": "2026-06-16T17:12:47.736909+00:00",
+          "version": "1.0.0"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "create_tenant",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:12:47.738888+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8004/v1/tenants",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Nexus Analytics Eval Tenant",
+          "slug": "nexus-7293b47f"
+        }
+      },
+      "response": {
+        "status": 201,
+        "latency_seconds": 0.021895170211791992,
+        "body": {
+          "id": "02a4c583-fbd1-40aa-bcf1-1028603e9f6a",
+          "name": "Nexus Analytics Eval Tenant",
+          "slug": "nexus-7293b47f",
+          "status": "active",
+          "settings": {},
+          "created_at": "2026-06-16T17:12:47.755274Z",
+          "updated_at": "2026-06-16T17:12:47.755280Z"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "create_account",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:12:47.761185+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8004/v1/accounts",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "provider": "manual",
+          "name": "Nexus Analytics",
+          "domain": "nexusanalytics.example.com",
+          "industry": "Software as a Service",
+          "region": "North America",
+          "company_size": 350,
+          "annual_revenue": 45000000,
+          "headquarters": "Austin, TX"
+        }
+      },
+      "response": {
+        "status": 201,
+        "latency_seconds": 0.0767521858215332,
+        "body": {
+          "id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "provider": "manual",
+          "provider_record_id": "manual-a799d916-c0c7-47d9-a92a-08d70a370998",
+          "name": "Nexus Analytics",
+          "domain": "nexusanalytics.example.com",
+          "industry": "Software as a Service",
+          "region": "North America",
+          "company_size": 350,
+          "annual_revenue": 45000000.0,
+          "headquarters": "Austin, TX",
+          "website": null,
+          "owner_id": null,
+          "owner_name": null,
+          "owner_email": null,
+          "stage": null,
+          "segment": null,
+          "created_at": "2026-06-16T17:12:47.821877Z",
+          "updated_at": "2026-06-16T17:12:47.821885Z",
+          "last_synced_at": null,
+          "sync_status": "pending",
+          "source_attribution": "Pending sync from manual",
+          "provider_badge": "Manual",
+          "opportunities": [],
+          "contacts": []
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l1_create_target",
+      "layer": "L1",
+      "timestamp": "2026-06-16T17:12:47.838257+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8001/api/v1/ingestion/targets",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "id": "d023e721-4c9e-4e3c-9e1a-3bdcdf60b9ed",
+          "name": "Nexus Analytics website",
+          "url": "https://example.com",
+          "target_type": "SINGLE_PAGE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "latency_seconds": 0.020781517028808594,
+        "body": {
+          "id": "bda16f7b-cfbf-42b2-9067-7af4dfa4dd25",
+          "name": "Nexus Analytics website",
+          "url": "https://example.com:443/",
+          "target_type": "SINGLE_PAGE",
+          "status": "ACTIVE",
+          "created_at": "2026-06-16T17:12:47.851500Z",
+          "updated_at": "2026-06-16T17:12:47.851506Z",
+          "last_success_at": null,
+          "success_count": 0,
+          "error_count": 0,
+          "average_execution_time_ms": 0,
+          "tags": [],
+          "tenant_id": "02a4c583-fbd1-40aa-bcf1-1028603e9f6a",
+          "description": null,
+          "url_pattern": null,
+          "crawl_path": "browser",
+          "extraction_config": {
+            "method": "DETERMINISTIC",
+            "max_depth": null,
+            "crawl_path": "browser",
+            "follow_links": true,
+            "llm_provider": null,
+            "visual_hints": false,
+            "link_selectors": null,
+            "extraction_schema": null
+          },
+          "browser_config": {
+            "engine": "chromium",
+            "headless": true,
+            "viewport": {
+              "width": 1920,
+              "height": 1080
+            },
+            "user_agent": null,
+            "stealth_mode": true,
+            "wait_timeout": 30000,
+            "wait_for_selector": null,
+            "javascript_enabled": true
+          },
+          "schedule": null,
+          "rate_limit": {
+            "burst_limit": 5,
+            "retry_backoff": "exponential",
+            "retry_attempts": 3,
+            "retry_delay_ms": 1000,
+            "requests_per_hour": 500,
+            "requests_per_minute": 30,
+            "requests_per_second": 1.0
+          },
+          "compliance": {
+            "domain_allowlist": [],
+            "domain_blocklist": [],
+            "user_agent_string": null,
+            "respect_robots_txt": true,
+            "crawl_delay_seconds": 1.0,
+            "pii_redaction_enabled": true,
+            "sensitive_field_patterns": [],
+            "strict_robots_compliance": false
+          },
+          "proxy_config": {
+            "enabled": false,
+            "proxy_pool_id": null,
+            "sticky_sessions": false,
+            "rotation_strategy": "ROUND_ROBIN",
+            "session_duration_minutes": null
+          },
+          "authentication": null,
+          "created_by": "00000000-0000-0000-0000-000000000001",
+          "last_error_at": null
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l1_prospect_research_job",
+      "layer": "L1",
+      "timestamp": "2026-06-16T17:12:47.859204+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8001/api/v1/ingestion/jobs/prospect-research",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "target_id": "bda16f7b-cfbf-42b2-9067-7af4dfa4dd25",
+          "account_name": "Nexus Analytics",
+          "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "priority": 5
+        }
+      },
+      "response": {
+        "status": 202,
+        "latency_seconds": 0.022797346115112305,
+        "body": {
+          "job_id": "28a6197e-caa4-4dc6-92f9-94c95b093d7d",
+          "status": "QUEUED",
+          "job_type": "prospect_research",
+          "skill_name": "prospect_research",
+          "queue_position": 0,
+          "queue_position_metadata": {
+            "calculation": "count_queued_jobs_created_before_or_at_current_job",
+            "scope": "organization"
+          },
+          "estimated_start_time": null
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l2_extract_discovery",
+      "layer": "L2",
+      "timestamp": "2026-06-16T17:12:47.882278+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8002/v1/extract",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "content_id": "discovery-b1b51b4d",
+          "source_url": "internal://discovery-b1b51b4d",
+          "markdown_content": "# Nexus Analytics \u2014 Discovery Intake\n\n## Company profile\nNexus Analytics is a 350-person B2B SaaS company headquartered in Austin, TX. Their revenue is approximately $45M ARR, selling predictive analytics to revenue operations teams.\n\n## Buyer pain\n- Inconsistent discovery quality across AE/SE handoffs\n- Weak business-case creation in late-stage deals\n- Slow reuse of prior deal knowledge\n- Poor value proof for CFO / procurement\n\n## Current workflow\nAEs capture notes in Salesforce; SEs rewrite them in multiple formats. Value cases are built ad-hoc in slides, with no standard model. Benchmark data is manually copied from old spreadsheets.\n\n## Stakeholders\n- Primary champion: VP Revenue Operations (Alex Chen)\n- Economic buyer: CFO (Morgan Reed)\n- Technical buyer: VP Engineering (Sam Patel)\n- End user: Director Sales Enablement (Jordan Lee)\n\n## KPIs\n- Average deal size (ACV): $48,000\n- Annual new-logo pipeline: $14.4M\n- Win rate (late stage): 22%\n- Average sales cycle: 92 days\n- SE hours per opportunity: 4.5\n\n## Target outcomes\n1. Standardize discovery intake linked to account context.\n2. Auto-generate evidence-backed ROI business case for every late-stage opportunity.\n3. Reuse win stories and value proof from similar accounts.\n4. Reduce SE hours per opportunity by 30%.\n\n## Risks\n- Limited internal benchmark data\n- Finance may challenge ROI assumptions\n- CRM data quality is inconsistent\n- Adoption depends on front-line AE behavior change\n",
+          "extraction_config": {
+            "ontology": "value-fabric-b2b"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.007786750793457031,
+        "body": {
+          "extraction_job_id": "9c959389-e050-4dd1-824f-4fd667e50456",
+          "status": "queued",
+          "message": "Extraction job started"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l3_ingest_rdf",
+      "layer": "L3",
+      "timestamp": "2026-06-16T17:12:47.890250+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8003/v1/ingest",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "rdf_data": "@prefix vf: <http://valuefabric.io/ontology/> .\n@prefix ex: <http://valuefabric.io/entities/> .\nex:11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd a vf:Account ;\n    vf:name \"Nexus Analytics\" ;\n    vf:industry \"Software as a Service\" ;\n    vf:annualRevenue 45000000 ;\n    vf:hasPain vf:inconsistentDiscovery, vf:weakBusinessCase, vf:slowReuse, vf:poorValueProof .\n",
+          "source_id": "discovery-b1b51b4d",
+          "extraction_job_id": "job-discovery-b1b51b4d"
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.04397296905517578,
+        "body": {
+          "status": "success",
+          "source_id": "discovery-b1b51b4d",
+          "entities_loaded": 0,
+          "relationships_loaded": 0,
+          "triples_processed": 8,
+          "duration_seconds": 0.036256,
+          "error": null,
+          "warnings": []
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l3_hybrid_search",
+      "layer": "L3",
+      "timestamp": "2026-06-16T17:12:47.934349+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8003/v1/search",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "query": "What capabilities help reduce SE hours per opportunity and improve late-stage win rate?",
+          "search_type": "hybrid",
+          "max_results": 5
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.0609586238861084,
+        "body": {
+          "query": "What capabilities help reduce SE hours per opportunity and improve late-stage win rate?",
+          "results": [],
+          "total_results": 0,
+          "search_type": "hybrid",
+          "processing_time_ms": 54.631710052490234
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l3_formula_evaluate",
+      "layer": "L3",
+      "timestamp": "2026-06-16T17:12:47.995433+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8003/v1/formulas/evaluate",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "expression": "(pipeline_value * win_rate_lift) + (se_hours_per_opp * opps_per_year * hourly_se_cost * se_time_reduction)",
+          "inputs": [
+            {
+              "name": "pipeline_value",
+              "value": 14400000,
+              "unit": "USD"
+            },
+            {
+              "name": "win_rate_lift",
+              "value": 0.04,
+              "unit": "fraction"
+            },
+            {
+              "name": "se_hours_per_opp",
+              "value": 4.5,
+              "unit": "hours"
+            },
+            {
+              "name": "opps_per_year",
+              "value": 300,
+              "unit": "opportunities"
+            },
+            {
+              "name": "hourly_se_cost",
+              "value": 95,
+              "unit": "USD/hour"
+            },
+            {
+              "name": "se_time_reduction",
+              "value": 0.3,
+              "unit": "fraction"
+            }
+          ],
+          "output_unit": "USD/year"
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.005269527435302734,
+        "body": {
+          "result": 614475.0,
+          "unit": "USD/year",
+          "confidence": 0.92,
+          "calculation_steps": [
+            {
+              "step": 1,
+              "operation": "Substitute variables",
+              "result": "(14400000.0 * 0.04) + (4.5 * 300.0 * 95.0 * 0.3)"
+            },
+            {
+              "step": 2,
+              "operation": "Evaluate expression",
+              "result": "614475.0"
+            }
+          ],
+          "formula_used": "(pipeline_value * win_rate_lift) + (se_hours_per_opp * opps_per_year * hourly_se_cost * se_time_reduction)"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l4_roi_analysis",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:12:48.001021+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8004/v1/analysis/roi",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "prospect_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "value_driver_ids": [
+            "se-efficiency",
+            "win-rate-lift",
+            "cycle-time-reduction"
+          ],
+          "prospect_data": {
+            "acv": 48000,
+            "annual_pipeline": 14400000,
+            "late_stage_win_rate": 0.22,
+            "sales_cycle_days": 92,
+            "se_hours_per_opp": 4.5,
+            "ae_count": 12,
+            "se_count": 5
+          },
+          "industry_vertical": "software",
+          "company_size": "350"
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 14.813351154327393,
+        "body": {
+          "prospect_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "aggregated_roi": {
+            "total_annual_value": 55752000.0,
+            "investment_required": 250000,
+            "simple_roi_percent": 22200.8,
+            "three_year_npv": 138396972.2,
+            "payback_period_months": 0.1,
+            "value_driver_count": 3,
+            "average_confidence": 0.85,
+            "benchmarks_available": true,
+            "benchmarks": {
+              "roi_percent": {
+                "percentile": 50.0,
+                "industry_average": null,
+                "comparison_text": "No benchmark data available for roi_percent in software",
+                "confidence": 0.3
+              },
+              "cost_reduction": {
+                "percentile": 50.0,
+                "industry_average": null,
+                "comparison_text": "No benchmark data available for cost_reduction in software",
+                "confidence": 0.3
+              },
+              "time_to_value_months": {
+                "percentile": 50.0,
+                "industry_average": null,
+                "comparison_text": "No benchmark data available for time_to_value_months in software",
+                "confidence": 0.3
+              }
+            }
+          },
+          "detailed_results": [
+            {
+              "value_driver_id": "se-efficiency",
+              "value_driver_name": "Sales Engineering Efficiency",
+              "formula": "employee_count * hours_saved_weekly * 52 * hourly_rate",
+              "substituted_formula": "employee_count * hours_saved_weekly * 52 * hourly_rate",
+              "result": 54600000.0,
+              "unit": "USD/year",
+              "confidence": 0.85,
+              "variables_used": {
+                "annual_revenue": 14400000.0,
+                "employee_count": 350.0,
+                "hours_saved_weekly": 40.0,
+                "hourly_rate": 75.0,
+                "implementation_cost": 250000.0,
+                "annual_license_cost": 50000.0,
+                "acv": 48000.0,
+                "annual_pipeline": 14400000.0,
+                "late_stage_win_rate": 0.22,
+                "sales_cycle_days": 92.0,
+                "se_hours_per_opp": 4.5,
+                "ae_count": 12.0,
+                "se_count": 5.0
+              },
+              "missing_variables": [],
+              "benchmark_comparison": null
+            },
+            {
+              "value_driver_id": "win-rate-lift",
+              "value_driver_name": "Win Rate Lift",
+              "formula": "annual_revenue * 0.05",
+              "substituted_formula": "annual_revenue * 0.05",
+              "result": 720000.0,
+              "unit": "USD/year",
+              "confidence": 0.85,
+              "variables_used": {
+                "annual_revenue": 14400000.0,
+                "employee_count": 350.0,
+                "hours_saved_weekly": 40.0,
+                "hourly_rate": 75.0,
+                "implementation_cost": 250000.0,
+                "annual_license_cost": 50000.0,
+                "acv": 48000.0,
+                "annual_pipeline": 14400000.0,
+                "late_stage_win_rate": 0.22,
+                "sales_cycle_days": 92.0,
+                "se_hours_per_opp": 4.5,
+                "ae_count": 12.0,
+                "se_count": 5.0
+              },
+              "missing_variables": [],
+              "benchmark_comparison": null
+            },
+            {
+              "value_driver_id": "cycle-time-reduction",
+              "value_driver_name": "Sales Cycle Time Reduction",
+              "formula": "annual_revenue * 0.03",
+              "substituted_formula": "annual_revenue * 0.03",
+              "result": 432000.0,
+              "unit": "USD/year",
+              "confidence": 0.85,
+              "variables_used": {
+                "annual_revenue": 14400000.0,
+                "employee_count": 350.0,
+                "hours_saved_weekly": 40.0,
+                "hourly_rate": 75.0,
+                "implementation_cost": 250000.0,
+                "annual_license_cost": 50000.0,
+                "acv": 48000.0,
+                "annual_pipeline": 14400000.0,
+                "late_stage_win_rate": 0.22,
+                "sales_cycle_days": 92.0,
+                "se_hours_per_opp": 4.5,
+                "ae_count": 12.0,
+                "se_count": 5.0
+              },
+              "missing_variables": [],
+              "benchmark_comparison": null
+            }
+          ],
+          "benchmark_comparison": {
+            "roi_percent": {
+              "percentile": 50.0,
+              "industry_average": null,
+              "comparison_text": "No benchmark data available for roi_percent in software",
+              "confidence": 0.3
+            },
+            "cost_reduction": {
+              "percentile": 50.0,
+              "industry_average": null,
+              "comparison_text": "No benchmark data available for cost_reduction in software",
+              "confidence": 0.3
+            },
+            "time_to_value_months": {
+              "percentile": 50.0,
+              "industry_average": null,
+              "comparison_text": "No benchmark data available for time_to_value_months in software",
+              "confidence": 0.3
+            }
+          }
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l4_create_case",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:13:02.814567+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8004/v1/cases",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+          "sections": [
+            "executive_summary",
+            "roi_analysis",
+            "value_drivers"
+          ],
+          "output_format": "json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 32.299633264541626,
+        "body": {
+          "case_id": "1711c59a-1bb3-4434-91ee-131cd786b396",
+          "title": "Business Case \u2014 Value Fabric",
+          "summary": "The proposed enterprise software solution is expected to have a significant impact on the prospect's business. With a potential ROI of 31420.0%, the solution is likely to generate substantial returns. The payback period is estimated to be 0 months, indicating a rapid return on investment. Over a three-year period, the solution is projected to yield an NPV of $195,713,936.89. However, it is essential to note that these estimates are based on limited information, and further analysis is required to validate these projections.",
+          "total_value": 78800000.0,
+          "implementation_cost": 250000.0,
+          "roi_ratio": 314.2,
+          "payback_months": 0,
+          "confidence_score": 0.85,
+          "recommendations": [],
+          "status": "completed",
+          "created_at": "2026-06-16T17:13:34.420326+00:00",
+          "document_url": null,
+          "page_count": 5,
+          "file_size_bytes": 2725,
+          "truth_references": [],
+          "remediation_items": [],
+          "sdes": {},
+          "case_metadata": {
+            "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+            "truth_gate": {
+              "passed": true,
+              "requirements": [],
+              "remediation_items": []
+            },
+            "truth_references": [],
+            "sdes_references": {
+              "canonical_case_id": null,
+              "account_id": null,
+              "signal_count": 0,
+              "driver_count": 0,
+              "evidence_count": 0,
+              "stakeholder_count": 0
+            },
+            "truth_object_ids": [],
+            "claim_traceability": [
+              {
+                "claim": "With a potential ROI of 31420.0%, the solution is likely to generate substantial returns.",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "Executive Summary",
+                  "section_index": 0,
+                  "content_span": {
+                    "start": 111,
+                    "end": 200
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "The payback period is estimated to be 0 months, indicating a rapid return on investment.",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "Executive Summary",
+                  "section_index": 0,
+                  "content_span": {
+                    "start": 201,
+                    "end": 289
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "Over a three-year period, the solution is projected to yield an NPV of $195,713,936.89.",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "Executive Summary",
+                  "section_index": 0,
+                  "content_span": {
+                    "start": 290,
+                    "end": 377
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "The ROI analysis for the prospect reveals a significant return on investment, with a calculated ROI percentage of 31420.0% [1].",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "ROI Analysis",
+                  "section_index": 1,
+                  "content_span": {
+                    "start": 0,
+                    "end": 127
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "The payback period is estimated to be 0 months [1], suggesting an almost immediate return on investment.",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "ROI Analysis",
+                  "section_index": 1,
+                  "content_span": {
+                    "start": 247,
+                    "end": 351
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "Furthermore, the three-year Net Present Value (NPV) is projected to be $195,713,936.89 [1], underscoring the long-term financial benefits of this investment.",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "ROI Analysis",
+                  "section_index": 1,
+                  "content_span": {
+                    "start": 352,
+                    "end": 509
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "With a substantial ROI of 31420.0% [1], the investment is anticipated to pay for itself in approximately 0 months [2], leading to a three-year NPV of $195,713,936.89 [3].",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "Value Drivers",
+                  "section_index": 2,
+                  "content_span": {
+                    "start": 147,
+                    "end": 317
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "These value drivers are critical in addressing the company's current pain points, which are currently undefined [4].",
+                "truth_object_id": null,
+                "provenance": {
+                  "section_title": "Value Drivers",
+                  "section_index": 2,
+                  "content_span": {
+                    "start": 318,
+                    "end": 434
+                  },
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "Projected simple ROI is 31420.00%.",
+                "truth_object_id": null,
+                "provenance": {
+                  "roi_metric_key": "simple_roi_percent",
+                  "roi_metric_value": 31420.0,
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "Projected payback period is 0.00 months.",
+                "truth_object_id": null,
+                "provenance": {
+                  "roi_metric_key": "payback_period_months",
+                  "roi_metric_value": 0.0,
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              },
+              {
+                "claim": "Projected 3-year NPV is $195,713,936.89.",
+                "truth_object_id": null,
+                "provenance": {
+                  "roi_metric_key": "three_year_npv",
+                  "roi_metric_value": 195713936.89,
+                  "source_ids": [],
+                  "source_uris": []
+                },
+                "sources": []
+              }
+            ],
+            "threshold_decisions": [
+              {
+                "claim": "With a potential ROI of 31420.0%, the solution is likely to generate substantial returns.",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "The payback period is estimated to be 0 months, indicating a rapid return on investment.",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "Over a three-year period, the solution is projected to yield an NPV of $195,713,936.89.",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "The ROI analysis for the prospect reveals a significant return on investment, with a calculated ROI percentage of 31420.0% [1].",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "The payback period is estimated to be 0 months [1], suggesting an almost immediate return on investment.",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "Furthermore, the three-year Net Present Value (NPV) is projected to be $195,713,936.89 [1], underscoring the long-term financial benefits of this investment.",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "With a substantial ROI of 31420.0% [1], the investment is anticipated to pay for itself in approximately 0 months [2], leading to a three-year NPV of $195,713,936.89 [3].",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "These value drivers are critical in addressing the company's current pain points, which are currently undefined [4].",
+                "confidence": 0.62,
+                "evidence_count": 0,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "skipped",
+                "reason": "failed confidence/evidence threshold"
+              },
+              {
+                "claim": "Projected simple ROI is 31420.00%.",
+                "confidence": 0.8,
+                "evidence_count": 1,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "promoted",
+                "reason": "meets confidence and evidence thresholds"
+              },
+              {
+                "claim": "Projected payback period is 0.00 months.",
+                "confidence": 0.8,
+                "evidence_count": 1,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "promoted",
+                "reason": "meets confidence and evidence thresholds"
+              },
+              {
+                "claim": "Projected 3-year NPV is $195,713,936.89.",
+                "confidence": 0.8,
+                "evidence_count": 1,
+                "min_confidence": 0.75,
+                "min_evidence_sources": 1,
+                "decision": "promoted",
+                "reason": "meets confidence and evidence thresholds"
+              }
+            ]
+          },
+          "revision_history": [],
+          "diff_summary": {}
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l5_create_assumption",
+      "layer": "L5",
+      "timestamp": "2026-06-16T17:13:35.114450+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8005/api/v1/assumptions",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "SE hours per opportunity will decrease 30% within 12 months",
+          "description": "Based on benchmark data for mid-market SaaS value-engineering programs.",
+          "impact_value": 384750
+        }
+      },
+      "response": {
+        "status": 201,
+        "latency_seconds": 0.01187896728515625,
+        "body": {
+          "name": "SE hours per opportunity will decrease 30% within 12 months",
+          "description": "Based on benchmark data for mid-market SaaS value-engineering programs.",
+          "impact_value": 384750.0,
+          "id": "7a805b04-8f34-4584-9051-4401f5865134",
+          "lifecycle_state": "draft",
+          "is_approved_for_use": false
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l5_create_truth",
+      "layer": "L5",
+      "timestamp": "2026-06-16T17:13:35.126766+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8005/api/v1/truths",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "claim": "Nexus Analytics SEs spend 4.5 hours on each opportunity preparing business cases manually.",
+          "claim_type": "efficiency_gain",
+          "confidence": 0.85,
+          "value": {
+            "amount": 4.5,
+            "unit": "hours",
+            "period": "opportunity"
+          },
+          "applies_to": {
+            "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+            "opportunity_id": "opp-6d147d18"
+          },
+          "extraction_job_id": "job-discovery-b1b51b4d",
+          "extraction_model": "manual-e2e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "latency_seconds": 0.022137165069580078,
+        "body": {
+          "id": "3a289aa4-280c-4d03-8726-6b0cf0beb061",
+          "tenant_id": "02a4c583-fbd1-40aa-bcf1-1028603e9f6a",
+          "claim": "Nexus Analytics SEs spend 4.5 hours on each opportunity preparing business cases manually.",
+          "claim_type": "efficiency_gain",
+          "value": {
+            "amount": 4.5,
+            "unit": "hours",
+            "currency": null,
+            "period": "opportunity"
+          },
+          "confidence": 0.85,
+          "status": "proposed",
+          "maturity_level": 1,
+          "validated_by": null,
+          "validated_at": null,
+          "validation_notes": null,
+          "rejected_by": null,
+          "rejected_at": null,
+          "rejection_reason": null,
+          "superseded_by_id": null,
+          "superseded_at": null,
+          "freshness": "2026-06-16T17:13:35.134197Z",
+          "expires_at": "2026-09-14T17:13:35.134175Z",
+          "is_stale": false,
+          "applies_to": {
+            "opportunity_id": "opp-6d147d18",
+            "account_id": "11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+            "industry": null,
+            "product_line": null,
+            "geography": null
+          },
+          "dispute_reason": null,
+          "dispute_notes": null,
+          "disputed_by": null,
+          "disputed_at": null,
+          "kg_node_id": null,
+          "kg_synced_at": null,
+          "extraction_job_id": "job-discovery-b1b51b4d",
+          "extraction_model": "manual-e2e",
+          "created_at": "2026-06-16T17:13:35.134642Z",
+          "updated_at": "2026-06-16T17:13:35.134644Z",
+          "sources": [],
+          "validation_events": [
+            {
+              "id": "3e59d026-afcc-45c8-89a0-65c09263d731",
+              "from_status": null,
+              "to_status": "proposed",
+              "from_maturity": null,
+              "to_maturity": 1,
+              "actor": "system",
+              "actor_type": "system",
+              "confidence_at_transition": 0.85,
+              "source_count_at_transition": 0,
+              "notes": "Initial extraction",
+              "created_at": "2026-06-16T17:13:35.135663Z"
+            }
+          ],
+          "maturity_history": []
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l5_maturity_ladder",
+      "layer": "L5",
+      "timestamp": "2026-06-16T17:13:35.150167+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8005/api/v1/maturity-ladder",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.007189273834228516,
+        "body": {
+          "levels": [
+            {
+              "level": 0,
+              "name": "Raw",
+              "description": "Claim captured but not yet processed by any extraction model.",
+              "required_status": "proposed",
+              "advancement_trigger": "Extraction model processes the raw content"
+            },
+            {
+              "level": 1,
+              "name": "Extracted",
+              "description": "AI model has identified and structured the claim from source content.",
+              "required_status": "proposed",
+              "advancement_trigger": "At least 1 source attached AND confidence \u2265 threshold"
+            },
+            {
+              "level": 2,
+              "name": "Supported",
+              "description": "Claim has at least one linked evidence source and meets confidence threshold.",
+              "required_status": "proposed",
+              "advancement_trigger": "\u2265 2 distinct independent sources corroborate the claim"
+            },
+            {
+              "level": 3,
+              "name": "Corroborated",
+              "description": "Multiple independent sources confirm the claim from different angles.",
+              "required_status": "proposed",
+              "advancement_trigger": "Human reviewer explicitly validates the claim"
+            },
+            {
+              "level": 4,
+              "name": "Validated",
+              "description": "A qualified human reviewer has validated and approved the claim.",
+              "required_status": "validated",
+              "advancement_trigger": "Claim is referenced in an ROI model, board deck, or business case"
+            },
+            {
+              "level": 5,
+              "name": "Operationalized",
+              "description": "Claim has been used in board-level or CFO-facing decisions. This is the highest trust level \u2014 suitable for executive narratives.",
+              "required_status": "validated",
+              "advancement_trigger": "Referenced in downstream business artefact (ROI model, deck, contract)"
+            }
+          ]
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l6_upsert_dataset",
+      "layer": "L6",
+      "timestamp": "2026-06-16T17:13:35.157838+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8006/v1/benchmarks/datasets",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataset_id": "saas-se-efficiency-2025",
+          "name": "SaaS SE Efficiency 2025",
+          "description": "Peer benchmarks for SaaS value-engineering workflows",
+          "industry": "Software",
+          "segment": "mid-market",
+          "version": "1.0.0",
+          "ownership_mode": "tenant",
+          "metrics": {
+            "se_hours_per_opportunity": {
+              "name": "se_hours_per_opportunity",
+              "unit": "hours",
+              "description": "SE hours per opportunity",
+              "profile": {
+                "p10": "1.5",
+                "p25": "2.5",
+                "p50": "4.0",
+                "p75": "6.0",
+                "p90": "8.5",
+                "mean": "4.2",
+                "std_dev": "2.1",
+                "sample_size": 850
+              }
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.018156766891479492,
+        "body": {
+          "dataset_id": "saas-se-efficiency-2025",
+          "ownership_mode": "tenant"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "l6_benchmark_compare",
+      "layer": "L6",
+      "timestamp": "2026-06-16T17:13:35.176312+00:00",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8006/v1/benchmarks/compare",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "dataset_id": "saas-se-efficiency-2025",
+          "metric": "se_hours_per_opportunity",
+          "company_value": "4.5",
+          "industry": "Software",
+          "segment": "mid-market"
+        }
+      },
+      "response": {
+        "status": 200,
+        "latency_seconds": 0.011282205581665039,
+        "body": {
+          "percentile": 62,
+          "peer_median": "4.0",
+          "peer_range": [
+            "1.5",
+            "8.5"
+          ],
+          "sample_size": 850,
+          "confidence": "medium",
+          "assessment": "above average"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "tenant_isolation_cross_tenant_account_read",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:13:35.188116+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8004/v1/accounts/11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+        "headers": {
+          "Authorization": "Bearer <redacted>",
+          "Content-Type": "application/json"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 404,
+        "latency_seconds": 0.013100385665893555,
+        "body": {
+          "error": {
+            "code": "NOT_FOUND",
+            "message": "Account not found: 11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+            "request_id": "req_1a822e67f9aa41a9",
+            "details": {
+              "resource_type": "Resource"
+            }
+          }
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "auth_fail_closed_no_token",
+      "layer": "L4",
+      "timestamp": "2026-06-16T17:13:35.201438+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8004/v1/accounts/11074b19-3dfe-4a4b-b2e3-a498ef4f7cbd",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 401,
+        "latency_seconds": 0.0025177001953125,
+        "body": {
+          "detail": "Authentication credentials were not provided.",
+          "error": "authentication_required"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": "auth_fail_closed_l1_no_token",
+      "layer": "L1",
+      "timestamp": "2026-06-16T17:13:35.204063+00:00",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8001/api/v1/ingestion/targets",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 401,
+        "latency_seconds": 0.002477884292602539,
+        "body": {
+          "detail": "Authentication credentials were not provided.",
+          "error": "authentication_required"
+        },
+        "error": null
+      }
+    }
+  ]
+}

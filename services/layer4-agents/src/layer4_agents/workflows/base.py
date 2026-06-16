@@ -320,6 +320,21 @@ class BaseWorkflow(ABC):
         if hasattr(state, "prospect_id"):
             tool_input["prospect_id"] = state.prospect_id
 
+        # Propagate authenticated tenant context and correlation IDs so the
+        # tool registry can authorize and attribute every tool call.
+        tenant_id = getattr(state, "tenant_id", None)
+        if tenant_id:
+            tool_input.setdefault("tenant_id", tenant_id)
+        trace_id = getattr(state, "trace_id", None)
+        if trace_id:
+            tool_input.setdefault("trace_id", trace_id)
+        workflow_id = getattr(state, "workflow_id", None)
+        if workflow_id:
+            tool_input.setdefault("workflow_id", workflow_id)
+        run_id = getattr(state, "run_id", None)
+        if run_id:
+            tool_input.setdefault("run_id", run_id)
+
         return tool_input
 
     async def _execute_llm(self, node_config: NodeConfig, state: AgentState) -> dict[str, Any]:
@@ -443,25 +458,29 @@ class BaseWorkflow(ABC):
             input_val: Any = Command(resume=resume_data)
             logger.info(
                 "Resuming workflow execution",
-                workflow_id=workflow_id,
-                run_id=run_id,
-                trace_id=trace_id,
-                tenant_id=tenant_id,
-                thread_id=thread_id,
-                checkpoint_id=config["configurable"].get("checkpoint_id"),
+                extra={
+                    "workflow_id": workflow_id,
+                    "run_id": run_id,
+                    "trace_id": trace_id,
+                    "tenant_id": tenant_id,
+                    "thread_id": thread_id,
+                    "checkpoint_id": config["configurable"].get("checkpoint_id"),
+                },
             )
         else:
             input_val = initial_state.model_dump()
             logger.info(
                 "Starting workflow execution",
-                workflow_id=workflow_id,
-                run_id=run_id,
-                trace_id=trace_id,
-                tenant_id=tenant_id,
-                workflow_type=getattr(initial_state, "workflow_type", "unknown"),
-                thread_id=thread_id,
-                checkpoint_id=config["configurable"].get("checkpoint_id"),
-                recursion_limit=recursion_limit,
+                extra={
+                    "workflow_id": workflow_id,
+                    "run_id": run_id,
+                    "trace_id": trace_id,
+                    "tenant_id": tenant_id,
+                    "workflow_type": getattr(initial_state, "workflow_type", "unknown"),
+                    "thread_id": thread_id,
+                    "checkpoint_id": config["configurable"].get("checkpoint_id"),
+                    "recursion_limit": recursion_limit,
+                },
             )
             if approval_decision is not None:
                 initial_state.metadata["approval_decision"] = approval_decision

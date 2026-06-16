@@ -141,7 +141,33 @@ class GetProspectDataTool(BaseTool):
         return all_records, was_truncated
 
     async def execute(self, input_data: GetProspectDataInput) -> GetProspectDataOutput:
-        """Get prospect data from CRM."""
+        """Get prospect data from CRM, falling back to inline prospect_data when unconfigured."""
+        # Local / demo environments often have no live CRM.  Use the prospect_data
+        # payload passed by the workflow as a synthetic profile so ROI calculations
+        # can still run end-to-end without a Salesforce connection.
+        if not self.instance_url:
+            pd = input_data.prospect_data or {}
+            return GetProspectDataOutput(
+                profile={
+                    "id": input_data.prospect_id,
+                    "name": pd.get("name", " Prospect"),
+                    "industry": pd.get("industry", ""),
+                    "region": pd.get("region", ""),
+                    "company_size": pd.get("company_size", pd.get("employees", 0)),
+                    "annual_revenue": pd.get("annual_revenue", 0),
+                    "website": pd.get("website", ""),
+                    "headquarters": pd.get("headquarters", ""),
+                    "employees": pd.get("employees", 0),
+                    "segment": pd.get("segment", ""),
+                },
+                interactions=[],
+                opportunities=[],
+                custom_fields={k: v for k, v in pd.items() if k not in {
+                    "name", "industry", "region", "company_size", "annual_revenue",
+                    "website", "headquarters", "employees", "segment",
+                }},
+            )
+
         client = self._get_client()
 
         try:
