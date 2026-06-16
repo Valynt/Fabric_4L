@@ -10,6 +10,7 @@ Tests prove no tenant-owned reads before tenant context in maintenance flows:
 
 from __future__ import annotations
 
+import inspect
 import pytest
 from uuid import uuid4, UUID
 from datetime import datetime, timedelta, UTC
@@ -24,19 +25,36 @@ from layer1_ingestion.shared.tasks import cleanup_old_content
 pytestmark = pytest.mark.requires_postgres
 
 
+@pytest.fixture
+def bypass_maintenance_auth(monkeypatch):
+    """Patch maintenance authorization so cleanup tests focus on isolation."""
+    # tasks.py imports the function, so patch the tasks module binding too.
+    monkeypatch.setattr(
+        "layer1_ingestion.shared.maintenance.authorize_maintenance_operation",
+        lambda operation, tenant_id=None: None,
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.shared.tasks.authorize_maintenance_operation",
+        lambda operation, tenant_id=None: None,
+    )
+
+
 class TestTenantSpecificCleanupMode:
     """Test tenant-specific cleanup mode."""
 
     def test_tenant_specific_cleanup_only_affects_specified_tenant(
-        self, db, org_id, other_org_id
+        self, postgres_db, org_id, other_org_id, bypass_maintenance_auth, make_job
     ):
         """cleanup_old_content(tenant_id=A) should only delete tenant A's content."""
+        job_a = make_job(tenant_id=org_id)
+        job_b = make_job(tenant_id=other_org_id)
+
         # Create content for tenant A
         content_a = RawContent(
             id=uuid4(),
             tenant_id=org_id,
-            job_id=uuid4(),
-            target_id=uuid4(),
+            job_id=job_a.id,
+            target_id=job_a.target_id,
             source_url="https://example-a.com",
             source_final_url="https://example-a.com",
             source_domain="example-a.com",
@@ -51,14 +69,14 @@ class TestTenantSpecificCleanupMode:
             processing_status="COMPLETED",
             created_at=datetime.now(UTC) - timedelta(days=60),  # Old content
         )
-        db.add(content_a)
+        postgres_db.add(content_a)
 
         # Create content for tenant B
         content_b = RawContent(
             id=uuid4(),
             tenant_id=other_org_id,
-            job_id=uuid4(),
-            target_id=uuid4(),
+            job_id=job_b.id,
+            target_id=job_b.target_id,
             source_url="https://example-b.com",
             source_final_url="https://example-b.com",
             source_domain="example-b.com",
@@ -73,19 +91,21 @@ class TestTenantSpecificCleanupMode:
             processing_status="COMPLETED",
             created_at=datetime.now(UTC) - timedelta(days=60),  # Old content
         )
-        db.add(content_b)
-        db.commit()
+        postgres_db.add(content_b)
+        postgres_db.commit()
 
         # Run cleanup for tenant A only
         result = cleanup_old_content(days=30, tenant_id=str(org_id))
 
-        # Verify tenant A's content was deleted
-        content_a_after = db.query(RawContent).filter(RawContent.id == content_a.id).first()
-        assert content_a_after is None
+        # Verify tenant A's content was marked DELETED
+        content_a_after = postgres_db.query(RawContent).filter(RawContent.id == content_a.id).first()
+        assert content_a_after is not None
+        assert content_a_after.processing_status == "DELETED"
 
         # Verify tenant B's content was NOT deleted
-        content_b_after = db.query(RawContent).filter(RawContent.id == content_b.id).first()
+        content_b_after = postgres_db.query(RawContent).filter(RawContent.id == content_b.id).first()
         assert content_b_after is not None
+        assert content_b_after.processing_status == "COMPLETED"
 
     def test_tenant_specific_cleanup_uses_require_tenant_true(self, db, org_id):
         """Tenant-specific cleanup should use require_tenant=True."""
@@ -105,42 +125,37 @@ class TestSystemScopedCleanupMode:
     """Test system-scoped cleanup mode."""
 
     def test_system_scoped_cleanup_iterates_tenant_registry(
-        self, db, org_id, other_org_id
+        self, postgres_db, org_id, other_org_id, bypass_maintenance_auth, make_job
     ):
         """System-scoped cleanup should iterate TenantRegistry."""
         # Ensure both tenants are in TenantRegistry
         tenant_a = (
-            db.query(TenantRegistry).filter(TenantRegistry.id == org_id).first()
+            postgres_db.query(TenantRegistry).filter(TenantRegistry.tenant_id == org_id).first()
         )
         if not tenant_a:
             tenant_a = TenantRegistry(
-                id=org_id,
-                name="Tenant A",
-                slug="tenant-a",
-                created_at=datetime.now(UTC),
+                tenant_id=org_id,
             )
-            db.add(tenant_a)
+            postgres_db.add(tenant_a)
 
         tenant_b = (
-            db.query(TenantRegistry).filter(TenantRegistry.id == other_org_id).first()
+            postgres_db.query(TenantRegistry).filter(TenantRegistry.tenant_id == other_org_id).first()
         )
         if not tenant_b:
             tenant_b = TenantRegistry(
-                id=other_org_id,
-                name="Tenant B",
-                slug="tenant-b",
-                created_at=datetime.now(UTC),
+                tenant_id=other_org_id,
             )
-            db.add(tenant_b)
-        db.commit()
+            postgres_db.add(tenant_b)
+        postgres_db.commit()
 
         # Create old content for both tenants
         for tenant_id in [org_id, other_org_id]:
+            job = make_job(tenant_id=tenant_id)
             content = RawContent(
                 id=uuid4(),
                 tenant_id=tenant_id,
-                job_id=uuid4(),
-                target_id=uuid4(),
+                job_id=job.id,
+                target_id=job.target_id,
                 source_url=f"https://example-{tenant_id}.com",
                 source_final_url=f"https://example-{tenant_id}.com",
                 source_domain=f"example-{tenant_id}.com",
@@ -155,23 +170,23 @@ class TestSystemScopedCleanupMode:
                 processing_status="COMPLETED",
                 created_at=datetime.now(UTC) - timedelta(days=60),
             )
-            db.add(content)
-        db.commit()
+            postgres_db.add(content)
+        postgres_db.commit()
 
         # Run system-scoped cleanup
         result = cleanup_old_content(days=30, tenant_id=None)
 
-        # Verify both tenants' content was deleted
+        # Verify both tenants' content was marked DELETED
         for tenant_id in [org_id, other_org_id]:
             content_count = (
-                db.query(RawContent)
+                postgres_db.query(RawContent)
                 .filter(
                     RawContent.tenant_id == tenant_id,
-                    RawContent.created_at < datetime.now(UTC) - timedelta(days=30),
+                    RawContent.processing_status == "DELETED",
                 )
                 .count()
             )
-            assert content_count == 0
+            assert content_count == 1
 
     def test_system_scoped_cleanup_uses_rls_per_tenant(self, db, org_id, other_org_id):
         """System-scoped cleanup should use RLS per tenant iteration."""
