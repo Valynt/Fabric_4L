@@ -18,8 +18,7 @@ Design Principles:
 - Caching layer for dashboard performance
 - Time-windowed queries (default 30 days)
 """
-
-
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -201,6 +200,8 @@ class UsageTrackingService:
                 )
                 for row in rows
             ]
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning(
                 "Failed to query daily usage — audit_events table may not exist",
@@ -279,6 +280,8 @@ class UsageTrackingService:
                 }
                 for row in rows
             ]
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to query top endpoints", exc_info=True)
             return []
@@ -305,6 +308,8 @@ class UsageTrackingService:
                 {"tenant_id": str(tenant_id), "action": action, "since": since},
             )
             return result.scalar_one_or_none() or 0
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to count events for %s", action, exc_info=True)
             return 0
@@ -344,6 +349,8 @@ class UsageTrackingService:
                 {"tenant_id": str(tenant_id), "action": action, "since": since},
             )
             return UsageTrackingService__count_events_by_fieldResult.model_validate({row[0]: row[1] for row in result.fetchall()})
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to count events by %s", group_field, exc_info=True)
             return UsageTrackingService__count_events_by_fieldResult.model_validate({})
@@ -377,6 +384,8 @@ class UsageTrackingService:
                 },
             )
             return result.scalar_one_or_none() or 0
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning(
                 "Failed to sum detail field %s", detail_key, exc_info=True,
@@ -413,6 +422,8 @@ class UsageTrackingService:
                 })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to query LLM usage", exc_info=True)
 
@@ -437,6 +448,8 @@ class UsageTrackingService:
                 {"tenant_id": str(tenant_id), "since": since},
             )
             return result.scalar_one_or_none() or 0
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to count active users", exc_info=True)
             return 0

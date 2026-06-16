@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError, ValidationError
 
 """Signal API routes for operational pain signal management.
@@ -265,6 +267,8 @@ async def setup_prospect(
             message=f"Detected {processing_metadata.get('signals_found', 0)} operational signals",
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(
             f"Prospect setup failed: {e}",
@@ -318,6 +322,8 @@ async def get_account_signals(
             category_filter=category,
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(
             f"Failed to retrieve account signals: {e}",
@@ -461,6 +467,8 @@ async def signal_stream_websocket(
             await websocket.close(code=1008, reason='{"code":"AUTH_TENANT_CLAIM_INVALID"}')
             return
         tenant_id = str(tenant_id)
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.warning("Signals WebSocket JWT decode failed", extra=_log)
         await websocket.close(code=1008, reason='{"code":"AUTH_TOKEN_DECODE_FAILED"}')
@@ -480,6 +488,8 @@ async def signal_stream_websocket(
             logger.warning("Signals WebSocket: prospect not found for tenant", extra=_log)
             await websocket.close(code=1008, reason="Authorization failed")
             return
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception(
             "Signals WebSocket: prospect ownership check failed — denying connection",
@@ -525,6 +535,8 @@ async def signal_stream_websocket(
                 active = False
                 logger.info("Signals WebSocket client disconnected", extra=_log)
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error("Signals WebSocket session error", extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(e)})
         await websocket.close(code=1011, reason="Server error")
@@ -557,6 +569,8 @@ async def stream_signals_to_websocket(
         try:
             event_data.setdefault("correlation_id", trace_id)
             await websocket.send_json(event_data)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to send WebSocket event: {e}")
 

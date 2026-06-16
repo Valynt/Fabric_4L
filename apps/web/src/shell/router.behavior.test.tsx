@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
-import { RootRedirect } from "./router";
+import { MemoryRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import {
+  RootRedirect,
+  LegacyFlatRedirect,
+  LegacyIntelligenceRedirect,
+} from "./router";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
 const mockAuthContext = {
@@ -100,6 +105,129 @@ describe("RootRedirect auth-provider boundary", () => {
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = true;
     renderRedirect();
+    expect(screen.getByTestId("home-page")).toBeInTheDocument();
+  });
+});
+
+describe("Legacy flat-route redirects", () => {
+  afterEach(() => cleanup());
+
+  function renderWithPath(path: string, tenantSlug: string | null = "acme") {
+    const ctx = { ...mockAuthContext, currentTenantSlug: tenantSlug };
+    vi.mocked(useAuthContext).mockReturnValue(ctx);
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/login" element={<div data-testid="login-page">login</div>} />
+          <Route path="/sign-in" element={<div data-testid="signin-page">signin</div>} />
+          <Route path="/home" element={<div data-testid="home-page">home</div>} />
+          <Route path="/discover/*" element={<LegacyFlatRedirect />} />
+          <Route path="/library/*" element={<LegacyFlatRedirect />} />
+          <Route path="/model/*" element={<LegacyFlatRedirect />} />
+          <Route path="/governance/*" element={<LegacyFlatRedirect />} />
+          <Route path="/settings/governance/*" element={<LegacyFlatRedirect />} />
+          <Route
+            path="/t/:tenantSlug/accounts/:accountId/intelligence/:tabId"
+            element={<div data-testid="intelligence-page">intelligence</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/context/ingestion/jobs"
+            element={<div data-testid="jobs-page">jobs</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/context/models"
+            element={<div data-testid="models-page">models</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/governance/traces"
+            element={<div data-testid="governance-traces-page">traces</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/settings/governance/health"
+            element={<div data-testid="settings-health-page">health</div>}
+          />
+        </Routes>
+        <LocationProbe />
+      </MemoryRouter>
+    );
+  }
+
+  it("/login redirects to /sign-in", () => {
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <Routes>
+          <Route path="/login" element={<Navigate to="/sign-in" replace />} />
+          <Route path="/sign-in" element={<div data-testid="signin-page">signin</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId("signin-page")).toBeInTheDocument();
+  });
+
+  it("/discover/jobs redirects to canonical tenant-scoped ingestion jobs", () => {
+    renderWithPath("/discover/jobs");
+    expect(screen.getByTestId("jobs-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/ingestion/jobs");
+  });
+
+  it("/library/models redirects to canonical tenant-scoped models", () => {
+    renderWithPath("/library/models");
+    expect(screen.getByTestId("models-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/models");
+  });
+
+  it("/governance/traces redirects to canonical tenant-scoped governance traces", () => {
+    renderWithPath("/governance/traces");
+    expect(screen.getByTestId("governance-traces-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/governance/traces");
+  });
+
+  it("/settings/governance/health redirects to canonical tenant-scoped settings health", () => {
+    renderWithPath("/settings/governance/health");
+    expect(screen.getByTestId("settings-health-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/settings/governance/health");
+  });
+
+  it("falls back to /home when tenant slug is unavailable", () => {
+    renderWithPath("/discover/jobs", null);
+    expect(screen.getByTestId("home-page")).toBeInTheDocument();
+  });
+});
+
+describe("Legacy intelligence redirect", () => {
+  afterEach(() => cleanup());
+
+  function renderIntelligence(path: string, tenantSlug: string | null = "acme") {
+    const ctx = { ...mockAuthContext, currentTenantSlug: tenantSlug };
+    vi.mocked(useAuthContext).mockReturnValue(ctx);
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/home" element={<div data-testid="home-page">home</div>} />
+          <Route
+            path="/intelligence/:accountId/:tabId"
+            element={<LegacyIntelligenceRedirect />}
+          />
+          <Route
+            path="/t/:tenantSlug/accounts/:accountId/intelligence/:tabId"
+            element={<div data-testid="intelligence-page">intelligence</div>}
+          />
+        </Routes>
+        <LocationProbe />
+      </MemoryRouter>
+    );
+  }
+
+  it("/intelligence/:accountId/:tabId redirects to canonical account-scoped intelligence", () => {
+    renderIntelligence("/intelligence/acc-123/signals");
+    expect(screen.getByTestId("intelligence-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe(
+      "/t/acme/accounts/acc-123/intelligence/signals"
+    );
+  });
+
+  it("falls back to /home when tenant slug is unavailable", () => {
+    renderIntelligence("/intelligence/acc-123/signals", null);
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
   });
 });

@@ -268,6 +268,8 @@ class InMemoryMessageBus(MessageBus):
             # If handler returns a coroutine, await it
             if asyncio.iscoroutine(result):
                 await result
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Error delivering message {message.message_id}: {e}")
 
@@ -420,9 +422,13 @@ class RedisMessageBus(MessageBus):
                         data = message["data"]
                         agent_message = AgentMessage.from_dict(data)
                         await self._deliver_locally(agent_message)
+                    except asyncio.CancelledError:
+                        raise
                     except Exception as e:
                         logger.error(f"Error processing Redis message: {e}")
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             if not self._closed:
                 logger.error(f"Redis listener error: {e}")
@@ -449,6 +455,8 @@ class RedisMessageBus(MessageBus):
                     result = handler(message)
                     if asyncio.iscoroutine(result):
                         await result
+                except asyncio.CancelledError:
+                    raise
                 except Exception as e:
                     logger.error(f"Error delivering message to {subscriber_id}: {e}")
 

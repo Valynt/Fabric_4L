@@ -186,6 +186,8 @@ Maximum {max_length} words.""",
                 key_points=[],
                 error=f"Section generation blocked by tenant budget guardrail: {e}"
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"LLM generation failed: {e}")
             # CONTRACT_EXCEPTION AP-7: Return structured error, don't raise

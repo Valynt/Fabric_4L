@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Document export tool for generating PDFs from business cases."""
-
-
+import asyncio
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -308,6 +307,8 @@ class DocumentExportTool(BaseTool):
                     filename="error.pdf",
                 )
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.error("PDF generation failed: PDF_GENERATION_ERROR")
             return ExportDocumentOutput(

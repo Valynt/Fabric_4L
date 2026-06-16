@@ -7,8 +7,7 @@ benchmarks.  Each step validates the output of the previous step so that
 errors surface early rather than propagating as missing keys or division-by-
 zero downstream.
 """
-
-
+import asyncio
 import json
 import logging
 from typing import Any
@@ -339,6 +338,8 @@ class ROICalculatorWorkflow(BaseWorkflow):
                     benchmarks[metric] = None
                 else:
                     benchmarks[metric] = _unwrap_tool_data(raw)
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.exception("Unexpected error fetching benchmark %s", metric)
                 errors.append(f"{metric}: {exc}")
@@ -510,6 +511,8 @@ class ROICalculatorWorkflow(BaseWorkflow):
                         )
                     )
 
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.exception("Formula evaluation failed for %s", vd.get("id"))
                 results.append(
@@ -723,6 +726,8 @@ class ROICalculatorWorkflow(BaseWorkflow):
                 llm_result.cost_usd,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("ROI LLM hypothesis generation failed", extra={"code": "llm_failed"})
             agent_result.payload = {

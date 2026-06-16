@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Knowledge tools for querying the graph database and semantic search."""
-
-
+import asyncio
 import logging
 import os
 import re
@@ -252,6 +251,8 @@ class QueryGraphTool(BaseTool):
                     execution_time_ms=execution_time,
                 )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Neo4j query failed for tenant={tenant_ctx.tenant_id}: {e}")
             return QueryGraphOutput(
@@ -401,6 +402,8 @@ class SemanticSearchTool(BaseTool):
                 query_embedding_time_ms=embedding_time,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
             return SemanticSearchOutput(results=[], total_matches=0, query_embedding_time_ms=0)
@@ -510,6 +513,8 @@ class GetEntityTool(BaseTool):
 
                 return GetEntityOutput(entity=entity, relationships=relationships, found=True)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Failed to get entity {entity_id}: {e}")
             return GetEntityOutput(found=False)
@@ -610,6 +615,8 @@ class GetRelationshipsTool(BaseTool):
 
                 return GetRelationshipsOutput(relationships=limited, total_count=total)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Failed to get relationships for {input_data.entity_id}: {e}")
             return GetRelationshipsOutput(relationships=[], total_count=0)
@@ -702,6 +709,8 @@ class TraverseTreeTool(BaseTool):
 
                 return TraverseTreeOutput(paths=paths, nodes_discovered=len(nodes_discovered))
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Tree traversal failed: {e}")
             return TraverseTreeOutput(paths=[], nodes_discovered=0)
@@ -804,6 +813,8 @@ class FindPathsTool(BaseTool):
 
                 return FindPathsOutput(paths=paths, shortest_path_length=shortest_length)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Path finding failed: {e}")
             return FindPathsOutput(paths=[], shortest_path_length=None)

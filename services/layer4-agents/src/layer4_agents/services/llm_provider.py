@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Minimal LLM provider abstraction for Layer 4 runtime calls."""
-
-
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -119,6 +118,8 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
                 max_tokens=request.max_tokens,
             )
             return CompletionResult(content=result.content)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
 
@@ -147,6 +148,8 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
                 for call in (message.tool_calls or [])
             )
             return CompletionResult(content=(message.content or "").strip(), tool_calls=tool_calls)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
 
@@ -217,6 +220,8 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
             content = response.choices[0].message.content or "{}"
             model_cls = self._build_model_from_schema(schema)
             return model_cls.model_validate_json(content).model_dump()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
 
@@ -248,6 +253,8 @@ def get_provider_adapters(config: dict[str, Any] | None = None) -> dict[str, Any
     try:
         from .anthropic_provider import get_anthropic_provider
         adapters["anthropic"] = get_anthropic_provider(config)
+    except asyncio.CancelledError:
+        raise
     except Exception:
         pass  # anthropic optional
     return adapters

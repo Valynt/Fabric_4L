@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import ValidationError
 
 """Agent Stream route for RightRail conversational assistant (ValuePilot).
@@ -141,6 +143,8 @@ def _get_conversation_service(context_gatherer=None, tool_registry=None):
         conversation_agent = ConversationAgent(
             config={"manifest_path": "services/layer4-agents/manifests/conversation_agent.abom.json"},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.info("ConversationAgent not available — using heuristic mode")
 
@@ -150,6 +154,8 @@ def _get_conversation_service(context_gatherer=None, tool_registry=None):
         orchestration_controller = OrchestrationController(
             config={"manifest_path": "services/layer4-agents/manifests/orchestration_controller.abom.json"},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.info("OrchestrationController not available — no workflow delegation")
 
@@ -391,6 +397,8 @@ async def agent_stream_chat_sse(
                 trace_id=trace_id,
             ):
                 yield f"data: {json.dumps(event)}\n\n"
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception("SSE stream error")
             yield f"data: {json.dumps({'type': 'RUN_ERROR', 'message': 'Streaming error', 'retryable': True})}\n\n"

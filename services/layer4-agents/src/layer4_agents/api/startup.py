@@ -51,6 +51,8 @@ async def check_database_ready() -> StartupCheckResult:
     try:
         await init_db()
         return StartupCheckResult(name="database", ok=True)
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("database_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "DB_CONN_FAILED"})
         return StartupCheckResult(name="database", ok=False, detail="Database connection failed")
@@ -62,6 +64,8 @@ async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
     try:
         await redis_client.ping()
         return StartupCheckResult(name="redis", ok=True)
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("redis_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "REDIS_CONN_FAILED"})
         return StartupCheckResult(name="redis", ok=False, detail="Redis connection failed")
@@ -113,10 +117,13 @@ def build_lifespan(
         if not vault_status.ok:
             raise RuntimeError("Vault unreachable - cannot start in production without secrets backend")
 
-        tool_registry = create_default_registry()
         redis_url = os.getenv("REDIS_URL")
         startup_redis_client = redis.from_url(redis_url, decode_responses=True) if redis_url else None
         runtime_state.state_manager = StateManager(startup_redis_client)
+
+        # The tool registry must share the production Redis client so that
+        # idempotent tool results survive pod restarts.
+        tool_registry = create_default_registry(redis_client=startup_redis_client)
 
         redis_status = await check_redis_ready(getattr(runtime_state.state_manager, "redis_client", None))
         if not redis_status.ok:
@@ -140,6 +147,8 @@ def build_lifespan(
 
         try:
             runtime_state.checkpoint_saver = await get_checkpoint_saver()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             raise RuntimeError(f"Checkpoint saver failed - cannot start without workflow resumption: {exc}") from exc
 

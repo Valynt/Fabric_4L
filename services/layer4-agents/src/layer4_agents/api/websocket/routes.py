@@ -17,8 +17,7 @@ Authentication transport (SEC-L3-012 — Sprint 3 cutover):
 Reconnection:
     Pass ``last_event_id`` query parameter to replay missed events.
 """
-
-
+import asyncio
 import logging
 import uuid
 
@@ -75,6 +74,8 @@ async def _resolve_workflow_authorization(
         if workflow_user_id and user_id and str(workflow_user_id) != str(user_id):
             return False, "AUTHZ_WORKFLOW_USER_MISMATCH"
         return True, "AUTHZ_OK"
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception("Workflow ownership check raised unexpectedly")
         return False, "AUTHZ_WORKFLOW_LOOKUP_ERROR"
@@ -195,6 +196,8 @@ async def workflow_websocket(
             except WebSocketDisconnect:
                 logger.info("WebSocket client disconnected", extra=_log)
                 break
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.warning(
                     "WebSocket client message error",
@@ -202,6 +205,8 @@ async def workflow_websocket(
                 )
                 # Continue rather than break to keep connection alive
 
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("WebSocket session error", extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(exc)})
     finally:

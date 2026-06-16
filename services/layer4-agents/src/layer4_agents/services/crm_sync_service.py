@@ -185,6 +185,8 @@ class CRMSyncService:
                         prospect_id, provider.value, sanitize_log_error("SYNC_TRUNCATED_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     stats["failed"] += 1
                     stats["errors"].append(f"{prospect_id}: SYNC_ERROR")
@@ -244,6 +246,8 @@ class CRMSyncService:
                 })
             return stats
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             # Update sync status to failed
             await self._update_sync_status(tenant_id, provider, "failed", "SYNC_ERROR"[:1000])
@@ -296,6 +300,8 @@ class CRMSyncService:
                         data_types=["profile", "opportunities", "interactions"],
                     )
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 last_exception = e
                 if attempt < max_retries - 1:
@@ -546,6 +552,8 @@ class CRMSyncService:
         if provider == CRMProvider.SALESFORCE and integration.refresh_token_encrypted:
             try:
                 await integration_service.refresh_salesforce_token(integration)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning(
                     "Token refresh failed for tenant=%s provider=%s: %s",

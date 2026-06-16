@@ -5,8 +5,7 @@ from __future__ import annotations
 Provides the foundation for all workflow implementations with checkpointing,
 state management, and node execution.
 """
-
-
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -261,6 +260,8 @@ class BaseWorkflow(ABC):
                 # Native LangGraph HITL interrupts must bubble up so the
                 # checkpointer can persist state and the caller can handle it.
                 raise
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # Handle error
                 error_msg = f"Node {node_config.id} failed: NODE_EXECUTION_ERROR"
@@ -489,6 +490,8 @@ class BaseWorkflow(ABC):
             interrupted_state = initial_state.model_copy()
             interrupted_state.status = WorkflowStatus.INTERRUPTED
             return interrupted_state
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Workflow execution failed: {workflow_id}: {e}", exc_info=True)
             raise

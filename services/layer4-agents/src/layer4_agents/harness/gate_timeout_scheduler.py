@@ -57,6 +57,8 @@ class GateTimeoutScheduler:
         while not self._shutdown:
             try:
                 await self._expire_overdue_gates()
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.error("Gate expiration error: %s", exc)
             await asyncio.sleep(10)

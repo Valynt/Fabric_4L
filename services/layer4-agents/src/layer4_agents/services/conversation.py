@@ -17,8 +17,7 @@ Architecture:
                    b. All intents → C1 proxy for LLM generation (with enriched context)
                 4. Emit audit event + return response
 """
-
-
+import asyncio
 import json
 import logging
 import os
@@ -70,6 +69,8 @@ if _PLATFORM_CONTRACT_PYTHON and str(_PLATFORM_CONTRACT_PYTHON) not in sys.path:
 
 try:  # pragma: no cover - exercised by contract tests with PYTHONPATH configured
     from agent_contracts import build_agent_output_envelope, validate_agent_output
+except asyncio.CancelledError:
+    raise
 except Exception:  # pragma: no cover - service remains available if package import is unavailable
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
@@ -437,6 +438,8 @@ class ConversationService:
                 },
             }
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Streaming pipeline error: %s", e, exc_info=True)
             yield {"type": "RUN_ERROR", "timestamp": now(), "runId": run_id, "message": "STREAMING_ERROR", "retryable": True}
@@ -621,6 +624,8 @@ class ConversationService:
                     {"capability": "classify_intent", "parameters": {"message": message}},
                     gate_context,
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("ConversationAgent intent classification failed, trying LLM")
 
@@ -628,6 +633,8 @@ class ConversationService:
         if self.intent_classifier:
             try:
                 return await self.intent_classifier.classify(message)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("LLM intent classification failed, using heuristic")
 
@@ -665,6 +672,8 @@ class ConversationService:
                 if isinstance(context_data, dict):
                     context_data.setdefault("entity_context", entity_context)
                 return context_data
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("ConversationAgent context gathering failed")
 
@@ -680,6 +689,8 @@ class ConversationService:
                 context_data["entities"] = entities
                 context_data.setdefault("entity_context", entity_context)
                 return context_data
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("ContextGatheringService failed, falling back to minimal")
 
@@ -728,6 +739,8 @@ class ConversationService:
                 workflow_type, result.get("schedule_id"),
             )
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Workflow delegation failed for intent=%s", intent)
             return None
@@ -774,6 +787,8 @@ class ConversationService:
                     new_status=str(new_status),
                     feedback=entities.get("feedback", ""),
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Mutation tool %s failed: %s", tool_name, e)
             return {"success": False, "error": "MUTATION_TOOL_ERROR"}
@@ -842,6 +857,8 @@ class ConversationService:
                 content = result.get("response", "")
                 if content:
                     return self._append_workflow_notice(content, workflow_result)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("Full agent pipeline failed, falling back")
 
@@ -857,6 +874,8 @@ class ConversationService:
                 )
                 if content:
                     return self._append_workflow_notice(content, workflow_result)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.warning("C1 generation failed, falling back to heuristic")
 
@@ -1183,6 +1202,8 @@ class ConversationService:
                 },
                 chain_id=f"conversation:{tenant_id}",
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to emit conversation audit event", exc_info=True)
 
@@ -1215,5 +1236,7 @@ class ConversationService:
                 },
                 chain_id=f"conversation-security:{tenant_id}",
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to emit conversation security audit event", exc_info=True)

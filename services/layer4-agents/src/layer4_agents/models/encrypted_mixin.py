@@ -32,6 +32,7 @@ Querying by blind index::
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from typing import Any, ClassVar, cast
@@ -295,6 +296,8 @@ def _pii_auto_populate_hash(mapper: Mapper, connection: Any, target: PIIMixin) -
                     if fernet is not None:
                         plaintext = fernet.decrypt(encrypted_value.encode("ascii")).decode("utf-8")
                         setattr(target, hash_col_name, blind_index(plaintext))
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     logger.debug(
                         "Could not auto-populate blind index for %s on %s",

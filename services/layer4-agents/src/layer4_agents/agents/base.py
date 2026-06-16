@@ -29,6 +29,8 @@ if _PLATFORM_CONTRACT_PYTHON and str(_PLATFORM_CONTRACT_PYTHON) not in sys.path:
 
 try:  # pragma: no cover - contract tests configure this path explicitly
     from agent_contracts import build_agent_output_envelope, validate_agent_output
+except asyncio.CancelledError:
+    raise
 except Exception:  # pragma: no cover - runtime remains warning-only if package import fails
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
@@ -403,6 +405,8 @@ class BaseAgent(ABC):
 
             return result
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self.state.status = AgentStatus.FAILED
             self.state.errors.append(f"{type(e).__name__}: agent_execution_failed")

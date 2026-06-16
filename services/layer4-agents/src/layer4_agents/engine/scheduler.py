@@ -399,6 +399,8 @@ class TaskScheduler:
             try:
                 await self._process_queue()
                 await asyncio.sleep(0.1)  # Small delay to prevent CPU spinning
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Scheduler loop error: {e}")
                 await asyncio.sleep(1)
@@ -471,6 +473,8 @@ class TaskScheduler:
                 # Schedule retry if needed
                 await self._handle_retry(task)
 
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 task.status = TaskStatus.FAILED
                 task.error = f"{type(e).__name__}: task_failed"
@@ -603,6 +607,8 @@ class TaskScheduler:
 
             if asyncio.iscoroutine(result):
                 await result
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Callback error: {e}")
 

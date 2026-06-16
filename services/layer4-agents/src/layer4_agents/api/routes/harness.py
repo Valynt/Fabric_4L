@@ -11,8 +11,7 @@ All routes:
     validation failures (invalid transitions, terminal-state violations).
   - Follow the same error shape as /v1/workflows/*.
 """
-
-
+import asyncio
 import logging
 import os
 from typing import Annotated, Any
@@ -77,6 +76,8 @@ async def get_harness_registry(
                 session=db,
                 tenant_id=_ctx.tenant_id,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "L5 registry initialization failed, falling back to SQL registry",
@@ -219,6 +220,8 @@ async def transition_run(
         _raise_registry_access_denied(exc)
     except ValueError as exc:
         raise ValidationError(message=str(exc))
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception("Unexpected error transitioning run %s", run_id)
         raise ValidationError(message="Run transition failed")
@@ -254,6 +257,8 @@ async def cancel_run(
         )
     except HarnessRegistryError as exc:
         _raise_registry_access_denied(exc)
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception("Error cancelling run %s", run_id)
         raise ValidationError(message="Run cancellation failed")
@@ -477,6 +482,8 @@ async def get_run_validation(
     if hasattr(registry, "get_validation_results"):
         try:
             results = await registry.get_validation_results(run_id, ctx.tenant_id)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("get_run_validation: failed to load results for run %s: %s", run_id, exc)
 
@@ -513,6 +520,8 @@ async def harness_health(
     if validation_available:
         try:
             l5_healthy = await registry._validation.is_available()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             l5_healthy = False
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 """API key management routes (tenant_admin only).
@@ -96,6 +98,8 @@ async def api_create_key(
                     "tier_id": tier_id,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to emit API key create audit event", exc_info=True)
 
@@ -135,5 +139,7 @@ async def api_revoke_key(
                 resource_id=key_id,
                 details={"revoked_by": ctx.user_id},
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Failed to emit API key revoke audit event", exc_info=True)

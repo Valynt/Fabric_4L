@@ -151,8 +151,12 @@ class CRMSyncJobRunner:
                         outcome=AuditOutcome.SUCCESS,
                         details={"provider": provider.value, "status": job.status.value},
                     )
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     logger.exception("Failed to emit sync job success audit event")
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.exception("CRM sync job failed: tenant=%s provider=%s job_id=%s", tenant_id, provider.value, job_id)
                 job.status = CRMSyncJobStatus.FAILED
@@ -172,6 +176,8 @@ class CRMSyncJobRunner:
                         outcome=AuditOutcome.FAILURE,
                         details={"provider": provider.value, "error_type": type(exc).__name__},
                     )
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     logger.exception("Failed to emit sync job failure audit event")
 

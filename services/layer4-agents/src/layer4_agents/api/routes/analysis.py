@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ConflictError,
@@ -878,6 +880,8 @@ async def quick_roi_analysis(
             benchmark_comparison=result.output_data.get("fetch_benchmarks", {}).get("benchmarks"),
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         raise normalize_exception(e, status_code=500, message="ROI analysis failed", error_code="L4_ROI_ANALYSIS_FAILED", request_id=getattr(http_request.state, "request_id", None))
 
@@ -926,6 +930,8 @@ async def quick_whitespace_analysis(
             recommendations=score_data.get("recommendations", []),
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         raise normalize_exception(e, status_code=500, message="Whitespace analysis failed", error_code="L4_WHITESPACE_ANALYSIS_FAILED")
 
@@ -954,6 +960,8 @@ async def generate_business_case(
     try:
         try:
             raw_body = await http_request.json()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             raw_body = {}
         if _is_workspace_case_create_body(raw_body):
@@ -1030,6 +1038,8 @@ async def generate_business_case(
             case_metadata=case_metadata,
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         raise normalize_exception(e, status_code=500, message="Business case generation failed", error_code="L4_BUSINESS_CASE_GENERATION_FAILED", request_id=getattr(http_request.state, "request_id", None))
 
@@ -1230,6 +1240,8 @@ async def seed_business_case_lifecycle(
                     },
                 )
                 audit_events_requested += 1
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # Audit persistence must be visible in logs but must not create
                 # a fail-open auth path or leave partial lifecycle state hidden.

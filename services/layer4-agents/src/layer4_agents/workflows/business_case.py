@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Business Case Generator workflow implementation."""
-
-
+import asyncio
 import json
 import logging
 import os
@@ -291,6 +290,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({"status": "failed", "error": "ROI_SUBWORKFLOW_ERROR", "roi_results": {}})
 
@@ -426,6 +427,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             )
             system_msg = {"role": "system", "content": system_tmpl.body}
             use_llm = True
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Could not initialise LLM client for section generation: %s", exc)
             llm_client = None
@@ -498,6 +501,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 section = BusinessCaseSection(title=title, content=content, charts=charts, tables=[])
                 sections_generated.append(section)
 
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 section = BusinessCaseSection(
                     title=title, content="Error generating section: SECTION_GENERATION_ERROR", charts=[], tables=[]
@@ -768,6 +773,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 "file_size_bytes": tool_data.get("file_size_bytes", 0),
                 "format": state.case_input.output_format,
             }
+        except asyncio.CancelledError:
+            raise
         except Exception:
             assemble_result = {
                 "error": "DOCUMENT_ASSEMBLE_ERROR",
@@ -1124,6 +1131,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                                 validated.append({**claim, "l5_status": "validated", "evidence": result.evidence_refs})
                             else:
                                 unverified.append({**claim, "l5_status": result.validation_state.value, "reason": result.reason})
+                        except asyncio.CancelledError:
+                            raise
                         except Exception as val_exc:
                             logger.debug("L5 validation unavailable for claim: %s", val_exc)
                             unverified.append({**claim, "l5_status": "unavailable"})
@@ -1173,6 +1182,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             agent_result.human_review_required = True
             agent_result.customer_facing_allowed = False
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Business case claim validation failed", extra={"code": "llm_failed"})
             agent_result.payload = {
@@ -1240,6 +1251,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 "failed": sync_result.get("failed", 0) if isinstance(sync_result, dict) else 0,
                 "error": sync_result.get("error", "") if isinstance(sync_result, dict) else "",
             })
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "Ground-truth sync failed (non-blocking) for org=%s: %s",

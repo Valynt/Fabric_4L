@@ -8,7 +8,7 @@ Invariants:
   - Expired gates cannot be decided.
   - All decisions are traceable (who, when, why).
 """
-
+import asyncio
 
 from .models import (
     ActionClass,
@@ -34,6 +34,8 @@ def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:
                 action_class=(gate.action_class.value if gate.action_class else "unknown"),
                 tenant_id=tenant_id,
             )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         # Metrics are best-effort; do not fail gate decisions.
         pass
