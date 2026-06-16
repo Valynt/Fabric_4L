@@ -25,8 +25,8 @@ import pytest
 # ---------------------------------------------------------------------------
 # Ensure shared/ is importable
 # ---------------------------------------------------------------------------
-_repo = "/home/ubuntu/Fabric_4L"
-for p in [_repo, f"{_repo}/shared", f"{_repo}/services/layer4-agents/src"]:
+_repo = str(Path(__file__).resolve().parents[2])
+for p in [_repo, f"{_repo}/packages/shared/src", f"{_repo}/services/layer4-agents/src"]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
