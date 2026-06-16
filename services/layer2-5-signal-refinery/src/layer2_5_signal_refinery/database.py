@@ -162,12 +162,8 @@ async def get_db_from_context() -> AsyncGenerator[AsyncSession, None]:
 
 
 @asynccontextmanager
-async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
-    """Yield a database session with tenant RLS applied.
-
-    tenant_id is required. Passing an empty or None tenant is a programming
-    error and fails closed to prevent cross-tenant data leakage.
-    """
+async def _tenant_db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """Internal implementation: yield a database session with tenant RLS applied."""
     if not tenant_id:
         raise ValueError(
             "tenant_id is required for db_session; None or empty values are not allowed."
@@ -185,3 +181,29 @@ async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+@asynccontextmanager
+async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """Yield a database session with tenant RLS applied.
+
+    tenant_id is required. Passing an empty or None tenant is a programming
+    error and fails closed to prevent cross-tenant data leakage.
+    """
+    async with _tenant_db_session(tenant_id=tenant_id) as session:
+        yield session
+
+
+@asynccontextmanager
+async def db_session_for_context() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a tenant-scoped session using the ambient RequestContext.
+
+    This is the canonical context-manager entry point for tests and services
+    that already have a request context installed.
+    """
+    ctx = _get_request_context()
+    if ctx is None or not getattr(ctx, "tenant_id", None):
+        raise ValidationError(message="Tenant context required.")
+
+    async with _tenant_db_session(tenant_id=str(ctx.tenant_id)) as session:
+        yield session
