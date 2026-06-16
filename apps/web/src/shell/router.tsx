@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -152,6 +152,79 @@ export function RootRedirect() {
   return isClerkAuthEnabled() ? <ClerkRootRedirect /> : <LegacyRootRedirect />;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Legacy flat-route redirects (Phase 1 launch-blocker remediation)
+// ═══════════════════════════════════════════════════════════════
+
+/** Map of legacy flat paths to canonical tenant-scoped paths. */
+const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
+  "/discover/accounts": "/t/{tenantSlug}/accounts",
+  "/discover/jobs": "/t/{tenantSlug}/context/ingestion/jobs",
+  "/discover/extraction": "/t/{tenantSlug}/context/extraction",
+  "/discover/knowledge": "/t/{tenantSlug}/context/ontology",
+  "/discover/integrations": "/t/{tenantSlug}/context/integrations",
+  "/discover/sources": "/t/{tenantSlug}/context/sources",
+  "/library": "/t/{tenantSlug}/context",
+  "/library/models": "/t/{tenantSlug}/context/models",
+  "/library/packs": "/t/{tenantSlug}/context/packs",
+  "/library/authoring": "/t/{tenantSlug}/context/formulas",
+  "/model": "/t/{tenantSlug}/context/models",
+  "/model/value-studio": "/t/{tenantSlug}/context/models",
+  "/governance/traces": "/t/{tenantSlug}/governance/traces",
+  "/governance/audit/log": "/t/{tenantSlug}/governance/audit-log",
+  "/governance/audit-log": "/t/{tenantSlug}/governance/audit-log",
+  "/governance/evidence": "/t/{tenantSlug}/governance/evidence",
+  "/governance/provenance": "/t/{tenantSlug}/governance/provenance",
+  "/governance/compliance": "/t/{tenantSlug}/governance/compliance",
+  "/settings/governance/health": "/t/{tenantSlug}/settings/governance/health",
+  "/settings/governance/benchmarks": "/t/{tenantSlug}/settings/governance/benchmarks",
+};
+
+export function LegacyFlatRedirect() {
+  const { currentTenantSlug, isLoading } = useAuthContext();
+  const { pathname } = useLocation();
+  const normalized = pathname.replace(/\/$/, "") || "/";
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[200px] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    );
+  }
+
+  if (!currentTenantSlug) {
+    return <Navigate to="/home" replace />;
+  }
+
+  const targetTemplate = LEGACY_FLAT_ROUTE_MAP[normalized];
+  if (!targetTemplate) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Navigate to={targetTemplate.replace("{tenantSlug}", currentTenantSlug)} replace />;
+}
+
+export function LegacyIntelligenceRedirect() {
+  const { currentTenantSlug, isLoading } = useAuthContext();
+  const { accountId, tabId } = useParams<{ accountId: string; tabId: string }>();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[200px] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    );
+  }
+
+  if (!currentTenantSlug || !accountId) {
+    return <Navigate to="/home" replace />;
+  }
+
+  const target = `/t/${currentTenantSlug}/accounts/${accountId}/intelligence/${tabId ?? "signals"}`;
+  return <Navigate to={target} replace />;
+}
+
 function AccountOverviewRedirect() {
   const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
   return <Navigate to={`/t/${tenantSlug}/accounts/${accountId}/overview`} replace />;
@@ -178,6 +251,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/signin",
+    element: <Navigate to="/sign-in" replace />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/login",
     element: <Navigate to="/sign-in" replace />,
     handle: { accessPolicy: authPolicy },
   },
@@ -214,6 +292,31 @@ export const router = createBrowserRouter([
       {
         path: "/",
         element: <RootRedirect />,
+      },
+      // Legacy flat-route redirects (see Phase 1 launch-blocker remediation)
+      {
+        path: "/intelligence/:accountId/:tabId",
+        element: <LegacyIntelligenceRedirect />,
+      },
+      {
+        path: "/discover/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/library/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/model/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/governance/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/settings/governance/*",
+        element: <LegacyFlatRedirect />,
       },
       {
         path: "/home",

@@ -34,6 +34,9 @@ from layer4_agents.metrics.prometheus_metrics import _derive_tenant_tier, _norma
 CORE_ROUTES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "core_routes.py"
 HEALTH_BADGES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "health_badges.py"
 TOOLS_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "tools.py"
+NARRATIVE_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "narrative_builder_service.py"
+VALUE_HYPOTHESIS_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "value_hypothesis_engine.py"
+TENANT_PROVISIONING_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "tenant_provisioning.py"
 
 
 class PathNormalizationSecurityTests(unittest.TestCase):
@@ -302,6 +305,34 @@ class FailClosedToolGatewayRegressionTests(unittest.TestCase):
         self.assertIn("raise ServiceUnavailableError(", source)
         self.assertIn("Tool governance gateway unavailable", source)
         self.assertNotIn("lambda: None", source)
+
+
+class InjectionSafeQueryConstructionTests(unittest.TestCase):
+    """Regression guards for SQL/Cypher injection-safe query construction."""
+
+    def test_narrative_builder_avoids_fstring_cypher(self) -> None:
+        source = NARRATIVE_SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn('f"MATCH (n:Narrative)', source)
+        self.assertNotIn("f'MATCH (n:Narrative)", source)
+        # The WHERE clause must be assembled from controlled fragments and
+        # passed as parameters, not interpolated.
+        self.assertIn("$tenant_id", source)
+        self.assertIn("$account_id", source)
+        self.assertIn("$status", source)
+
+    def test_value_hypothesis_engine_avoids_fstring_cypher(self) -> None:
+        source = VALUE_HYPOTHESIS_SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn('f"MATCH (vh:ValueHypothesis)', source)
+        self.assertNotIn("f'MATCH (vh:ValueHypothesis)", source)
+        self.assertIn("$tenant_id", source)
+        self.assertIn("$account_id", source)
+        self.assertIn("$status", source)
+
+    def test_tenant_provisioning_uses_quoted_identifier_and_validation(self) -> None:
+        source = TENANT_PROVISIONING_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("re.match(r\"^[a-z_][a-z0-9_]*$\", schema_name)", source)
+        self.assertIn('CREATE SCHEMA IF NOT EXISTS "' + "' + schema_name + '" + '"', source)
+        self.assertIn('GRANT USAGE ON SCHEMA "' + "' + schema_name + '" + '" TO "' + "' + grant_role + '" + '"', source)
 
 
 if __name__ == "__main__":

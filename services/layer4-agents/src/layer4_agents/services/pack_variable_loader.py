@@ -16,8 +16,7 @@ Usage:
     result = await loader.load_pack(pack_id="financial-services-v1")
     # All variables now in Neo4j Variable Registry with full provenance
 """
-
-
+import asyncio
 import json
 import logging
 import re
@@ -134,6 +133,8 @@ class PackVariableLoader:
                 result = await self.load_pack(pack_id)
                 results.append(result)
                 logger.info(result.summary())
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.exception(f"Failed to load pack '{pack_id}'")
                 results.append(
@@ -196,6 +197,8 @@ class PackVariableLoader:
                 await self._registry.register_variable(variable)
                 loaded += 1
 
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 var_id = raw_var.get("variable_id", "unknown")
                 msg = f"Failed to register variable '{var_id}': {exc}"

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,
@@ -277,6 +279,8 @@ async def get_checkpoint_state(
 
     except (HTTPException, AuthorizationError, NotFoundError):
         raise
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving checkpoint {checkpoint_id}: {e}")
         raise ServiceUnavailableError(message="Failed to retrieve checkpoint state")
@@ -363,6 +367,8 @@ async def compare_checkpoints(
 
     except (HTTPException, AuthorizationError, NotFoundError):
         raise
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Error comparing checkpoints: {e}")
         raise ServiceUnavailableError(message="Failed to compare checkpoints")
@@ -433,6 +439,8 @@ async def resume_from_checkpoint(
                     "result_status": result.get("status", "resumed"),
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception(f"Audit logging failed for checkpoint resume {workflow_id}")
 
@@ -445,6 +453,8 @@ async def resume_from_checkpoint(
         )
 
     except (HTTPException, AuthorizationError, NotFoundError):
+        raise
+    except asyncio.CancelledError:
         raise
     except Exception as e:
         logger.error(f"Error resuming from checkpoint: {e}")
@@ -527,6 +537,8 @@ async def _query_checkpoints(
 
     except CheckpointQueryError:
         raise
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.exception(
             "Unexpected checkpoint query failure",
@@ -587,6 +599,8 @@ async def _get_checkpoint_data(
                 })
 
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving checkpoint data: {e}")
 

@@ -240,6 +240,8 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
         except LLMBudgetExceededError as e:
             logger.error("LLM need extraction blocked by budget guardrail: %s", e)
             extracted_needs = self._extract_needs_basic(needs_text)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("LLM need extraction failed: %s", e)
             # Fallback to basic extraction
@@ -339,6 +341,8 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                 if matches:
                     best_match = matches[0]
                     best_score = best_match.get("similarity_score", 0)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Semantic search failed: {e}")
                 # Fallback to simple text matching
@@ -611,6 +615,8 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                 total_prompt + total_completion,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Whitespace LLM hypothesis generation failed", extra={"code": "llm_failed"})
             agent_result.payload = {

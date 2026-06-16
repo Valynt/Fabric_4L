@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 """User management API routes (tenant_admin only).
@@ -58,6 +60,8 @@ def _get_invitation_service() -> InvitationService:
             import redis
 
             redis_client = redis.from_url(redis_url, decode_responses=True)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Failed to connect to Redis for invitations: %s", exc)
     return InvitationService(redis_client=redis_client)

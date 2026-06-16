@@ -109,6 +109,8 @@ to avoid impacting user-facing workflows.
         for task_id in self._scheduled_task_ids:
             try:
                 await self._scheduler.cancel_task(task_id)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning("Failed to cancel sync task %s: %s", task_id, e)
 
@@ -169,6 +171,8 @@ to avoid impacting user-facing workflows.
                     .limit(self._max_tenants_per_batch)
                 )
                 tenant_providers = result.all()
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error("Failed to enumerate tenant integrations: %s", e)
                 stats["errors"].append(f"enumeration_failed: {e}")
@@ -190,6 +194,8 @@ to avoid impacting user-facing workflows.
             try:
                 await self._execute_sync_for_tenant(tenant_id, provider)
                 stats["syncs_triggered"] += 1
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error("Sync failed for tenant=%s provider=%s: %s", tenant_id, provider_str, e)
                 stats["errors"].append(f"sync_failed:{tenant_id}:{provider_str}:{type(e).__name__}")
@@ -257,6 +263,8 @@ to avoid impacting user-facing workflows.
                 await db.commit()
                 return stats
 
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.exception(
                     "Background CRM sync failed: tenant=%s provider=%s",

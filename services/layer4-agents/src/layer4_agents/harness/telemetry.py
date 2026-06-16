@@ -8,8 +8,7 @@ Invariants:
   - No free-text-only events — all events are structured Pydantic models.
   - Events support audit and replay.
 """
-
-
+import asyncio
 from collections.abc import Callable
 from typing import Any
 
@@ -182,6 +181,8 @@ class TelemetryEmitter:
         for handler in self._handlers:
             try:
                 handler(event)
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 # Telemetry handlers must not break workflow.
                 # Log but don't raise.

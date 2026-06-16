@@ -25,8 +25,7 @@ Neo4j Node Schema:
     sections (JSON), metadata (JSON),
     version, status, created_at, updated_at
 """
-
-
+import asyncio
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -413,6 +412,8 @@ class NarrativeBuilderService:
                 tokens=total_prompt + total_completion,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "narrative_llm_failed",
@@ -431,6 +432,8 @@ class NarrativeBuilderService:
                 )
                 agent_result.payload = fallback
                 agent_result.degraded_reason = f"llm_failed_template_fallback: {exc}"
+            except asyncio.CancelledError:
+                raise
             except Exception as fallback_exc:
                 agent_result.payload = {}
                 agent_result.degraded_reason = f"llm_failed: {exc}; fallback_failed: {fallback_exc}"
@@ -725,13 +728,18 @@ class NarrativeBuilderService:
 
         where = " AND ".join(where_clauses)
 
-        count_query = f"MATCH (n:Narrative) WHERE {where} RETURN count(n) AS total"
-        list_query = f"""
-        MATCH (n:Narrative) WHERE {where}
-        RETURN n {{.id, .title, .audience, .tone, .status, .version, .account_id, .created_at, .updated_at}} AS narrative
-        ORDER BY n.updated_at DESC
-        SKIP $skip LIMIT $limit
-        """
+        # Build queries by concatenating controlled clause strings.  The WHERE
+        # clauses above are hard-coded templates that use Neo4j parameters
+        # (e.g. $tenant_id); user input is never interpolated into the query.
+        count_query = (
+            "MATCH (n:Narrative) WHERE " + where + " RETURN count(n) AS total"
+        )
+        list_query = (
+            "MATCH (n:Narrative) WHERE " + where + "\n"
+            "RETURN n {.id, .title, .audience, .tone, .status, .version, .account_id, .created_at, .updated_at} AS narrative\n"
+            "ORDER BY n.updated_at DESC\n"
+            "SKIP $skip LIMIT $limit"
+        )
 
         count_records = await fetch_tenant_validated_records(
             driver=self._driver,

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Email verification service for tenant registration."""
-
-
+import asyncio
 import json
 import logging
 import os
@@ -113,6 +112,8 @@ class EmailVerificationService:
                     int(timedelta(hours=self.token_expiry_hours).total_seconds()),
                     json.dumps(data),
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning(f"Failed to store verification token in Redis: {e}")
 
@@ -126,6 +127,8 @@ class EmailVerificationService:
         key = f"email_verification:{token}"
         try:
             data = self.redis.get(key)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to retrieve verification token from Redis: {e}")
             return None
@@ -169,6 +172,8 @@ class EmailVerificationService:
                 data = json.loads(data_str)
                 data["used"] = True
                 self.redis.setex(key, 3600, json.dumps(data))  # Keep for 1 hour
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to mark verification token as used: {e}")
 
@@ -229,6 +234,8 @@ If you didn't request this, please ignore this email.
                     },
                 )
                 return response.status_code == 202
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Failed to send email via SendGrid: {e}")
                 return False
@@ -258,6 +265,8 @@ If you didn't request this, please ignore this email.
         except ImportError:
             logger.error("aiosmtplib not installed. Cannot send SMTP email.")
             return False
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Failed to send email via SMTP: {e}")
             return False

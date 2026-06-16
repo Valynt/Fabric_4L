@@ -4,8 +4,7 @@ from __future__ import annotations
 
 Includes support for Stripe MeterEvents (usage-based billing).
 """
-
-
+import asyncio
 import logging
 import os
 from datetime import UTC, datetime
@@ -199,6 +198,8 @@ def report_meter_event(
         })
 
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Failed to report meter event: {e}")
         raise StripeMeterEventError(f"Stripe MeterEvent failed: {e}") from e
@@ -246,6 +247,8 @@ def get_billing_meter(
                 for m in meters.data
             ]
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Failed to get billing meter: {e}")
         return None

@@ -129,6 +129,9 @@ jobs:
             --json | tee artifacts/legacy-tenant-access-shim-lifecycle.json
           exit ${PIPESTATUS[0]}
 
+      - name: Enforce shell test bracket spacing in workflow run blocks
+        run: python scripts/ci/check_shell_test_spacing.py
+
       - name: Run structural preflight
         run: |
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json

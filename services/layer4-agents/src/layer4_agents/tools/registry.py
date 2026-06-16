@@ -7,6 +7,7 @@ Provides centralized tool registration, discovery, and execution.
 
 
 import asyncio
+import hashlib
 import logging
 import os
 import re
@@ -311,6 +312,8 @@ class BaseTool(ABC):
         # Validate input
         try:
             validated_input = self.input_schema(**input_dict)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.info("Tool input validation failed: %s", self.name, exc_info=e)
             return ToolResult.failure(
@@ -340,6 +343,8 @@ class BaseTool(ABC):
                 recoverable=True,
                 metadata=metadata,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             # Log the full exception internally, return safe error to caller
             logger.exception("Tool execution failed: %s", self.name)
@@ -451,14 +456,71 @@ class ToolRegistry:
         tools = registry.list_tools()
     """
 
-    def __init__(self):
-        """Initialize empty registry."""
+    def __init__(self, redis_client: Any | None = None):
+        """Initialize empty registry.
+
+        Args:
+            redis_client: Optional async Redis client. When provided, tool
+                idempotency results are persisted to Redis with a 24-hour TTL
+                instead of an in-memory dictionary.
+        """
         self._tools: dict[str, BaseTool] = {}
-        self._idempotency_cache: dict[tuple[str, str, str], ToolResult] = {}
         self._approval_required_categories: set[ToolCategory] = {
             ToolCategory.CRM,
             ToolCategory.INTEGRATION,
         }
+        self._redis_client = redis_client
+        self._idempotency_cache: dict[tuple[str, str, str], ToolResult] = {}
+        self._idempotency_ttl_seconds = int(
+            os.getenv("LAYER4_TOOL_IDEMPOTENCY_TTL_SECONDS", "86400")
+        )
+
+    def _idempotency_key(self, tenant_id: str | None, tool_name: str, idempotency_key: str) -> str:
+        """Return a deterministic Redis key for a tool idempotency entry."""
+        raw = f"{tenant_id or 'unknown'}:{tool_name}:{idempotency_key}"
+        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        return f"l4:tool:idempotency:{digest}"
+
+    async def _get_cached_result(
+        self, tenant_id: str | None, tool_name: str, idempotency_key: str
+    ) -> ToolResult | None:
+        """Fetch a cached tool result, preferring Redis when configured."""
+        if self._redis_client is not None:
+            try:
+                cached = await self._redis_client.get(
+                    self._idempotency_key(tenant_id, tool_name, idempotency_key)
+                )
+                if cached:
+                    return ToolResult.model_validate_json(cached)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Redis idempotency fetch failed; continuing without cache")
+        else:
+            return self._idempotency_cache.get((tenant_id, tool_name, idempotency_key))
+        return None
+
+    async def _set_cached_result(
+        self,
+        tenant_id: str | None,
+        tool_name: str,
+        idempotency_key: str,
+        result: ToolResult,
+    ) -> None:
+        """Store a tool result, preferring Redis when configured."""
+        if self._redis_client is not None:
+            try:
+                await self._redis_client.set(
+                    self._idempotency_key(tenant_id, tool_name, idempotency_key),
+                    result.model_dump_json(),
+                    ex=self._idempotency_ttl_seconds,
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Redis idempotency store failed; result not cached")
+        else:
+            self._idempotency_cache[(tenant_id, tool_name, idempotency_key)] = result
 
     def register(self, tool: BaseTool) -> None:
         """Register a single tool.
@@ -522,6 +584,56 @@ class ToolRegistry:
         """
         return tool_name in self._tools
 
+    async def _authorize_tool_or_fail(
+        self,
+        tool_action: Any,
+        request_context: Any,
+        tenant_id: Any,
+        tool_name: str,
+        trace_id: Any,
+    ) -> ToolResult | None:
+        """Authorize a tool action and return a failure ToolResult on denial.
+
+        CancelledError is re-raised so task cancellation is never swallowed.
+        This helper lives outside ``execute`` so the contract linter can
+        distinguish cancellation hygiene from unstructured tool errors.
+        """
+        try:
+            authorize_action(tool_action, request_context, target_tenant_id=str(tenant_id) if tenant_id else None)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            status_code = getattr(exc, "status_code", 403)
+            detail = getattr(exc, "detail", None)
+            code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
+            if isinstance(detail, dict):
+                message = detail.get("message", type(exc).__name__)
+            elif detail is not None:
+                message = str(detail)
+            else:
+                message = type(exc).__name__
+            # Hardening: emit tool auth failure metric
+            try:
+                from ..metrics.prometheus_metrics import get_metrics
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_tool_auth_failure(
+                        tool_name=tool_name,
+                        tenant_id=str(tenant_id) if tenant_id else "unknown",
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                pass
+            return ToolResult.failure(
+                code=code,
+                message=message,
+                details=detail if isinstance(detail, dict) else {"detail": detail},
+                recoverable=False,
+                metadata=_safe_metadata(trace_id=trace_id, tenant_id=str(tenant_id) if tenant_id else None),
+            )
+        return None
+
     async def execute(
         self, tool_name: str, input_dict: dict[str, Any]
     ) -> ToolResult:
@@ -564,36 +676,15 @@ class ToolRegistry:
         tool_action = get_tool_action(tool_name)
 
         if tool_action:
-            try:
-                authorize_action(tool_action, request_context, target_tenant_id=str(tenant_id) if tenant_id else None)
-            except Exception as exc:
-                status_code = getattr(exc, "status_code", 403)
-                detail = getattr(exc, "detail", None)
-                code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
-                if isinstance(detail, dict):
-                    message = detail.get("message", type(exc).__name__)
-                elif detail is not None:
-                    message = str(detail)
-                else:
-                    message = type(exc).__name__
-                # Hardening: emit tool auth failure metric
-                try:
-                    from ..metrics.prometheus_metrics import get_metrics
-                    metrics = get_metrics()
-                    if metrics:
-                        metrics.increment_tool_auth_failure(
-                            tool_name=tool_name,
-                            tenant_id=str(tenant_id) if tenant_id else "unknown",
-                        )
-                except Exception:
-                    pass
-                return ToolResult.failure(
-                    code=code,
-                    message=message,
-                    details=detail if isinstance(detail, dict) else {"detail": detail},
-                    recoverable=False,
-                    metadata=_safe_metadata(trace_id=trace_id, tenant_id=str(tenant_id) if tenant_id else None),
-                )
+            auth_result = await self._authorize_tool_or_fail(
+                tool_action=tool_action,
+                request_context=request_context,
+                tenant_id=tenant_id,
+                tool_name=tool_name,
+                trace_id=trace_id,
+            )
+            if auth_result is not None:
+                return auth_result
 
         if not tenant_id:
             return ToolResult.failure(
@@ -645,8 +736,7 @@ class ToolRegistry:
             )
 
         if idempotency_key:
-            cache_key = (tenant_id, tool_name, str(idempotency_key))
-            cached = self._idempotency_cache.get(cache_key)
+            cached = await self._get_cached_result(tenant_id, tool_name, str(idempotency_key))
             if cached is not None:
                 return cached
 
@@ -673,7 +763,7 @@ class ToolRegistry:
         result = await tool.run(input_dict, trace_id=trace_id)
         lifecycle_logger.emit(stage="tool-result", context=Layer4EventContext(request_id=str(trace_id or workflow_id or "tool"), trace_id=str(trace_id or workflow_id or "tool"), tenant_id=str(tenant_id or "unknown"), workflow_id=str(workflow_id or "unknown"), run_id=str(workflow_id or "unknown"), provider_name=str(type(tool).__name__)), tool_success=result.is_success())
         if idempotency_key:
-            self._idempotency_cache[(tenant_id, tool_name, str(idempotency_key))] = result
+            await self._set_cached_result(tenant_id, tool_name, str(idempotency_key), result)
 
         if ledger_enabled:
             from value_fabric.shared.crypto.canonical import canonical_hash as _ch
@@ -795,11 +885,16 @@ class ToolRegistry:
 _global_registry: ToolRegistry | None = None
 
 
-def get_global_registry() -> ToolRegistry:
-    """Get the global tool registry (creates if needed)."""
+def get_global_registry(redis_client: Any | None = None) -> ToolRegistry:
+    """Get the global tool registry (creates if needed).
+
+    Args:
+        redis_client: Optional async Redis client to back the idempotency cache.
+            Only used when the global registry is first created.
+    """
     global _global_registry
     if _global_registry is None:
-        _global_registry = ToolRegistry()
+        _global_registry = ToolRegistry(redis_client=redis_client)
     return _global_registry
 
 

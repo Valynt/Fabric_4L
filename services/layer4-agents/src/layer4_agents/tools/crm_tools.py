@@ -158,6 +158,8 @@ class GetProspectDataTool(BaseTool):
                     custom_fields={},
                     error=f"Unsupported CRM type: {self.crm_type}"
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM data fetch failed: %s", e)
             return GetProspectDataOutput(
@@ -467,6 +469,8 @@ class UpdateOpportunityTool(BaseTool):
                 error=None if success else response.text,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM update failed: %s", e)
             return UpdateOpportunityOutput(
@@ -523,6 +527,8 @@ class FetchInteractionHistoryTool(BaseTool):
                     summary=f"Unsupported CRM type: {self.crm_type}",
                     error=f"Unsupported CRM type: {self.crm_type}"
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM fetch failed: %s", e)
             return FetchInteractionHistoryOutput(

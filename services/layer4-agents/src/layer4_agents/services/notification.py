@@ -434,6 +434,8 @@ class NotificationService:
                 )
             
             return dropped
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Error during priority drop: {e}")
             return False
@@ -482,6 +484,8 @@ class NotificationService:
 
                 event.delivered[channel] = True
 
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Failed to send {channel} notification: {e}")
                 event.delivered[channel] = False
@@ -494,6 +498,8 @@ class NotificationService:
                     await callback(event)
                 else:
                     callback(event)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"In-app callback failed: {e}")
 
@@ -547,6 +553,8 @@ class NotificationService:
             ) as response:
                 if response.status >= 400:
                     logger.warning(f"Webhook returned {response.status}")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Webhook delivery failed: {e}")
             raise
@@ -590,6 +598,8 @@ class NotificationService:
                 ) as response:
                     if response.status != 200:
                         logger.warning(f"Slack webhook returned {response.status}")
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Slack delivery failed: {e}")
 

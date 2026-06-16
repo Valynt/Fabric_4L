@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Layer 4 FastAPI application factory."""
-
-
+import asyncio
 import logging
 
 from fastapi import FastAPI
@@ -50,6 +49,8 @@ async def _postgres_probe() -> ProbeResult:
             await saver.conn.execute("SELECT 1")
             return ProbeResult(name="postgres", healthy=True)
         return ProbeResult(name="postgres", healthy=False, detail="checkpointing_not_configured")
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         import logging
 
@@ -65,6 +66,8 @@ async def _redis_probe() -> ProbeResult:
             await redis_client.ping()
             return ProbeResult(name="redis", healthy=True)
         return ProbeResult(name="redis", healthy=False, detail="redis_not_configured")
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         import logging
 
@@ -77,6 +80,8 @@ async def _executor_probe() -> ProbeResult:
         if runtime_state.workflow_executor is not None:
             return ProbeResult(name="executor", healthy=True)
         return ProbeResult(name="executor", healthy=False, detail="executor_not_initialized")
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         import logging
 

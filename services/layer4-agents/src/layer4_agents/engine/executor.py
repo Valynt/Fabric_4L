@@ -377,6 +377,8 @@ class OrchestrationController:
                 exc,
             )
             return FALLBACK_LLM_MODEL
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.exception(
                 "Unexpected error resolving LLM model for tenant %s (type: %s), using fallback",
@@ -1132,6 +1134,8 @@ class OrchestrationController:
             )
         except WorkflowExecutionError:
             raise
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             raise WorkflowExecutionError(
                 f"Failed to resume workflow {workflow_id}: {e}"
@@ -1241,6 +1245,8 @@ class OrchestrationController:
                 resume_data=resume_data,
             )
         except WorkflowExecutionError:
+            raise
+        except asyncio.CancelledError:
             raise
         except Exception as e:
             raise WorkflowExecutionError(
@@ -1501,6 +1507,8 @@ class OrchestrationController:
                     )
             except WorkflowExecutionError:
                 raise
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 pass
 
@@ -1710,6 +1718,8 @@ class OrchestrationController:
                 if tenant_timeout is not None:
                     selected = tenant_timeout
                     source = "tenant_settings"
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.debug("Tenant timeout override resolution failed for tenant_id=%s", tenant_id, exc_info=True)
 
@@ -1800,6 +1810,8 @@ class OrchestrationController:
                     failure_class=failure_class,
                     tenant_id=tenant_id or "unknown",
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             pass
 
@@ -1814,6 +1826,8 @@ class OrchestrationController:
             metrics = get_metrics()
             if not metrics:
                 return
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return
 

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Core Layer 4 API endpoints registered by the app factory."""
-
-
+import asyncio
 import logging
 import time
 from datetime import UTC, datetime
@@ -114,6 +113,8 @@ def register_core_routes(app: FastAPI) -> None:
                 content=metrics.get_metrics(),
                 media_type="text/plain; version=0.0.4; charset=utf-8",
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception("metrics_generation_failed")
             return Response(content="Error generating metrics", status_code=500, media_type="text/plain")

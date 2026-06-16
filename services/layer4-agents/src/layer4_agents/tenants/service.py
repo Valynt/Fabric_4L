@@ -9,8 +9,7 @@ This service is the single source of truth for:
 
 All methods are async to integrate with SQLAlchemy's async session.
 """
-
-
+import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -331,6 +330,8 @@ async def update_tenant_status(
             await kill_switch.suspend(str(tenant_id))
         elif status == "active" and old_status in ("suspended", "deleted"):
             await kill_switch.unsuspend(str(tenant_id))
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.warning("Kill-switch update failed for tenant %s: %s", tenant_id, exc)
 

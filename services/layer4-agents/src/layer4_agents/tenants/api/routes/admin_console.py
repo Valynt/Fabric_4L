@@ -10,8 +10,7 @@ All endpoints require ``require_privileged_access`` which enforces:
 - X-Privileged-Reason header for audit trail
 - automatic CROSS_TENANT_ACCESS audit event emission
 """
-
-
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, Query
@@ -112,6 +111,8 @@ async def get_tenant_overview(
     try:
         result = await db.execute(query, {"limit": limit, "offset": offset})
         rows = result.fetchall()
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.warning(
             "Failed to query tenant overview — tables may not exist",
