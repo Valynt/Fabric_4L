@@ -28,20 +28,17 @@ def test_knowledge_driver_fails_closed_when_password_missing(monkeypatch):
     monkeypatch.delenv("NEO4J_PASSWORD", raising=False)
     monkeypatch.setenv("LAYER4_NEO4J_PASSWORD", "")
     get_settings.cache_clear()
+
     # Reset the lazy driver singleton so the test does not see a cached instance.
     import layer4_agents.tools.knowledge as knowledge_module
 
     knowledge_module._DRIVER = None
-    with pytest.raises(ConfigurationError):
+    with pytest.raises(ConfigurationError) as excinfo:
         _get_driver()
+
     # Also assert the error message is actionable.
-    try:
-        _get_driver()
-    except ConfigurationError as exc:
-        assert "NEO4J_PASSWORD" in str(exc)
+    assert "NEO4J_PASSWORD" in str(excinfo.value)
+
     # Avoid leaking the unset state to subsequent tests.
     knowledge_module._DRIVER = None
     get_settings.cache_clear()
-    # Restore a sane value if the environment originally provided one.
-    if original_password := os.environ.get("NEO4J_PASSWORD"):
-        monkeypatch.setenv("NEO4J_PASSWORD", original_password)
