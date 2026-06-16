@@ -6,6 +6,7 @@ Manages ScrapingJob lifecycle through 11 PipelineStages.
 
 import asyncio
 import hashlib
+import os
 import time
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -151,13 +152,8 @@ class notification_stageResult(TypedDictModel):
 logger = structlog.get_logger()
 
 
-def _run_async_stage(coro):
-    """Run an async stage from a synchronous Celery task entrypoint."""
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-    raise RuntimeError("Celery pipeline stages must be invoked from a synchronous worker context")
+def _run_async(coro):
+    return asyncio.get_event_loop().run_until_complete(coro)
 
 # Initialize Celery app
 celery_app = Celery(
@@ -311,10 +307,10 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=3)
 def compliance_check_stage(self, job_id: UUID, tenant_id: str):
-    return _run_async_stage(_compliance_check_stage_async(self, job_id, tenant_id))
+    return _run_async(_acompliance_check_stage(self, job_id, tenant_id))
 
 
-async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
+async def _acompliance_check_stage(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
     
     Args:
@@ -523,10 +519,10 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=3)
 def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
-    return _run_async_stage(_browser_crawl_stage_async(self, prev_result, tenant_id))
+    return _run_async(_abrowser_crawl_stage(self, prev_result, tenant_id))
 
 
-async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
+async def _abrowser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
@@ -797,10 +793,10 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=5)
 def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
-    return _run_async_stage(_ai_extraction_stage_async(self, prev_result, tenant_id))
+    return _run_async(_ai_extraction_stage(self, prev_result, tenant_id))
 
 
-async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
+async def _ai_extraction_stage(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
     
     Args:
@@ -855,6 +851,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                     raise ValueError("Raw content not found for AI extraction")
 
                 l2_url = settings.layer2_api_url
+                extraction_model = extraction_config.get(
+                    "model", os.getenv("EXTRACTION_MODEL", settings.openai_model)
+                )
                 extraction_payload = {
                     "content": raw_content.meta_title or "",
                     "content_type": "text",
@@ -862,8 +861,11 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                     "source_id": str(raw_content_id),
                     "job_id": str(job_id),
                     "tenant_id": str(job.tenant_id),
+                    "model_version": extraction_config.get("model_version", extraction_model),
+                    "schema_version": extraction_config.get("schema_version", "1.0"),
+                    "prompt_version": extraction_config.get("prompt_version", "entity_extraction_v1"),
                     "options": {
-                        "model": extraction_config.get("model", settings.openai_model),
+                        "model": extraction_model,
                         "temperature": extraction_config.get("temperature", 0.0),
                         "max_tokens": extraction_config.get("max_tokens", 4000),
                     },
@@ -1785,12 +1787,12 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=3)
 def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
-    return _run_async_stage(
-        _crawl_url_with_routing_async(self, job_id, url, tenant_id, target_mode)
+    return _run_async(
+        _acrawl_url_with_routing(self, job_id, url, tenant_id, target_mode)
     )
 
 
-async def _crawl_url_with_routing_async(
+async def _acrawl_url_with_routing(
     self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"
 ):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
