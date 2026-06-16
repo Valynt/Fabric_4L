@@ -15,9 +15,9 @@ _DEFAULT_TRUSTED_PROXY_HOPS = int(os.getenv("RATE_LIMIT_TRUSTED_PROXY_HOPS", "0"
 class IPRateLimitDependency:
     """FastAPI dependency that rate-limits by client IP.
 
-    Uses the first non-private IP in X-Forwarded-For, falling back to
-    request.client.host. The number of trusted proxy hops is configurable
-    via RATE_LIMIT_TRUSTED_PROXY_HOPS.
+    Uses the right-most untrusted non-private IP in X-Forwarded-For, falling
+    back to request.client.host. The number of trusted proxy hops is
+    configurable via RATE_LIMIT_TRUSTED_PROXY_HOPS.
     """
 
     def __init__(self, requests_per_minute: int = 30):
@@ -53,7 +53,7 @@ def _is_private_ip(ip: str) -> bool:
                 return False
         return True
     except ValueError:
-        return False
+        return True
 
 
 def get_client_ip(request: Request, trusted_proxy_hops: int | None = None) -> str:
@@ -61,17 +61,23 @@ def get_client_ip(request: Request, trusted_proxy_hops: int | None = None) -> st
 
     1. Parse X-Forwarded-For (right-most = nearest proxy).
     2. Skip `trusted_proxy_hops` entries from the right.
-    3. Return the first remaining non-private IP from the left, or fall back
-       to the immediate peer address.
+    3. Scan the remaining entries from the right, skipping private/reserved
+       and malformed IPs.
+    4. Return the first non-private IP, or fall back to the immediate peer
+       address.
     """
-    hops = _DEFAULT_TRUSTED_PROXY_HOPS if trusted_proxy_hops is None else trusted_proxy_hops
+    hops = (
+        _DEFAULT_TRUSTED_PROXY_HOPS
+        if trusted_proxy_hops is None
+        else trusted_proxy_hops
+    )
     forwarded = request.headers.get("x-forwarded-for", "")
     candidates = [part.strip() for part in forwarded.split(",") if part.strip()]
 
     if candidates and hops > 0:
         candidates = candidates[:-hops]
 
-    for candidate in candidates:
+    for candidate in reversed(candidates):
         if not _is_private_ip(candidate):
             return candidate
 

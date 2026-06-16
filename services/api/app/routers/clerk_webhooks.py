@@ -13,6 +13,7 @@ Idempotency:
     directory's ``has_processed_event`` / ``mark_event_processed`` make
     replays a no-op.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -91,7 +92,11 @@ def _verify_svix_signature(
         try:
             key = b64decode(secret[len("whsec_") :])
         except Exception as exc:
-            logger.error("CLERK_WEBHOOK_SECRET base64 decode failed", operation="webhook_signature_verify", error=str(exc))
+            logger.exception(
+                "CLERK_WEBHOOK_SECRET base64 decode failed",
+                operation="webhook_signature_verify",
+                error=str(exc),
+            )
             raise ServiceUnavailableError(message="Misconfigured.") from exc
     else:
         key = secret.encode()
@@ -134,9 +139,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         directory.upsert_user(
             clerk_user_id=data["id"],
             email=primary_email,
-            display_name=" ".join(
-                filter(None, [data.get("first_name"), data.get("last_name")])
-            )
+            display_name=" ".join(filter(None, [data.get("first_name"), data.get("last_name")]))
             or None,
             status="active",
         )
@@ -156,7 +159,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         ClerkEventType.ORGANIZATION_MEMBERSHIP_UPDATED,
     }:
         org = data.get("organization") or {}
-        user = (data.get("public_user_data") or {})
+        user = data.get("public_user_data") or {}
         clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
         clerk_org_id = data.get("organization_id") or org.get("id")
         if not (clerk_user_id and clerk_org_id):
@@ -170,15 +173,17 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         )
     elif event_type == ClerkEventType.ORGANIZATION_MEMBERSHIP_DELETED:
         org = data.get("organization") or {}
-        user = (data.get("public_user_data") or {})
+        user = data.get("public_user_data") or {}
         clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
         clerk_org_id = data.get("organization_id") or org.get("id")
         if clerk_user_id and clerk_org_id:
-            directory.revoke_membership(
-                clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id
-            )
+            directory.revoke_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
     else:
-        logger.info("ignoring unhandled clerk event type", event_type=event_type, operation="webhook_event_apply")
+        logger.info(
+            "ignoring unhandled clerk event type",
+            event_type=event_type,
+            operation="webhook_event_apply",
+        )
 
 
 @router.post("/clerk", status_code=status.HTTP_204_NO_CONTENT)
@@ -199,7 +204,9 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
     try:
         payload = json.loads(body.decode("utf-8") or "{}")
     except json.JSONDecodeError as exc:
-        logger.warning("clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc))
+        logger.warning(
+            "clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc)
+        )
         raise BadRequestError(message="Bad request.") from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
@@ -210,7 +217,12 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
-        logger.info("clerk webhook replay ignored", event_id=event_id, event_type=event_type, operation="webhook_idempotency_check")
+        logger.info(
+            "clerk webhook replay ignored",
+            event_id=event_id,
+            event_type=event_type,
+            operation="webhook_idempotency_check",
+        )
         return None
 
     try:
@@ -218,14 +230,20 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
     except KeyError as exc:
         # Apply ordering: a membership may arrive before its user/org event.
         # Surface a 409 so Clerk retries with backoff.
-        logger.warning("clerk webhook ordering error", event_id=event_id, event_type=event_type, operation="webhook_event_apply", error=str(exc))
+        logger.warning(
+            "clerk webhook ordering error",
+            event_id=event_id,
+            event_type=event_type,
+            operation="webhook_event_apply",
+            error=str(exc),
+        )
         raise ConflictError(message="Retry later.") from exc
     except HTTPException:
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.
         # Alerting/monitoring should flag these as they indicate a bug.
-        logger.error(
+        logger.exception(
             "clerk webhook handler failed",
             event_id=event_id,
             event_type=event_type,
