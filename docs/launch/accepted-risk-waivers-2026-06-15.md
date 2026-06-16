@@ -24,10 +24,12 @@ A waiver is active only after all required owner signatures are present. Until s
 |---|---|
 | **Tracked blocker** | `docs/launch/launch-blocker-register.md` P0-001 |
 | **Risk register item** | `production-readiness/risk_register.md` PRR-003, PRR-010 |
+| **Risk level** | **Medium** |
 | **Owner** | Test owner |
 | **Approving owner** | _TBD_ |
 | **Customer impact statement** | Launch may proceed without retained staging evidence for all 7 P0 Playwright journeys. The repository-owned route drift in `j1` and `j20` specs has been fixed (`/settings/*` → `/t/:tenantSlug/settings/*`) and `apps/web` typecheck passes. The local critical-path smoke (`12/0` passed) and backend contract tests cover the same functional paths; residual risk is limited to UI-level selector drift and auth-provider configuration not exercised locally. |
 | **Scope reduction** | None. Core GA still requires at least the canonical J1 backend-integrated path to be validated in staging before the waiver expires. |
+| **Required evidence** | Browser-executed Playwright run against the release candidate in a configured staging environment, retaining JUnit XML, trace files, screenshots/video for all 7 P0 journeys, plus service logs and release SHA. |
 | **Rollback plan** | If journey-level defects are detected post-launch, revert the tenant-scoped route change or patch the affected frontend route contract; rollback follows `docs/runbooks/deployment-rollout-and-rollback.md`. |
 | **Monitoring plan** | Frontend error-tracking and journey SLO alerts must be operational in staging/production; any P0 journey failure in the first 7 days triggers a launch review. |
 | **Expiry condition** | Attach retained staging JUnit/trace evidence for all 7 P0 journeys, or renew the waiver with executive approval. |
@@ -49,10 +51,12 @@ A waiver is active only after all required owner signatures are present. Until s
 |---|---|
 | **Tracked blocker** | `docs/launch/launch-blocker-register.md` P0-002 |
 | **Risk register item** | `production-readiness/risk_register.md` PRR-004, PRR-010 |
+| **Risk level** | **Medium** |
 | **Owner** | SRE owner |
 | **Approving owner** | _TBD_ |
 | **Customer impact statement** | Launch may proceed without a production-like rollback rehearsal. Static rollback verification (`8/8` passed), backup cronjobs, restore dry-run, and documented immutable-image doctrine provide a defensible recovery baseline. Residual risk is a longer-than-target recovery time if a coordinated source+dependency rollback is required. |
 | **Scope reduction** | None. Rollback capability is still required; this waiver only defers the live rehearsal. |
+| **Required evidence** | Redacted rollback/restore transcript from a production-like environment showing the release-candidate image tag, command sequence, data-integrity check result, recovery time versus the approved recovery target, and SRE owner approval. |
 | **Rollback plan** | Use immutable, commit-pinned images or coordinated source+dependency rollback per `docs/runbooks/deployment-rollout-and-rollback.md`; maintain `rollback-target` image tag. |
 | **Monitoring plan** | Post-deploy smoke checks and SLO burn-rate alerts trigger automatic traffic switch-back; incident response follows the deployment runbook. |
 | **Expiry condition** | Complete and attach a production-like rollback rehearsal transcript, or renew the waiver with executive approval. |
@@ -74,13 +78,15 @@ A waiver is active only after all required owner signatures are present. Until s
 |---|---|
 | **Tracked blocker** | `docs/launch/launch-blocker-register.md` P0-003 |
 | **Risk register item** | `production-readiness/risk_register.md` PRR-010 |
+| **Risk level** | **Variable** — High if enterprise SSO/OIDC is a contracted Core GA requirement; otherwise acceptable residual risk for post-GA. |
 | **Owner** | Identity owner |
 | **Approving owner** | _TBD_ |
-| **Customer impact statement** | Launch may proceed without real enterprise IdP evidence. The local Keycloak surrogate (`fabric` realm, direct-access grants, `realm_access.roles` + `tenant_id` + `org_id` claims) validates the OIDC integration path. Residual risk is IdP-specific mapping/refusal behavior not exercised against a production-like provider. |
-| **Scope reduction** | None. Enterprise SSO remains required for paid/enterprise launch; this waiver defers provider-specific validation. |
+| **Customer impact statement** | If enterprise SSO is in Core GA scope, launch without real enterprise IdP evidence risks IdP-specific mapping/refusal behavior not exercised against a production-like provider. If SSO is not required for Core GA, the local Keycloak surrogate (`fabric` realm, `realm_access.roles` + `tenant_id` + `org_id` claims) validates the OIDC integration path and Clerk-managed auth remains the supported fallback. |
+| **Scope reduction** | Formal scope decision recorded in `docs/launch/sso-core-ga-scope-decision.md`. If SSO is scoped out of Core GA, enterprise IdP validation moves to paid/enterprise GA. |
+| **Required evidence** | If in Core GA scope: provider metadata, redirect URI validation, successful login/logout proof, failed-login behavior, group/role mapping, and a redacted audit event against the target enterprise IdP. If scoped out: documented decision, fallback auth plan, and target date for paid/enterprise GA validation. |
 | **Rollback plan** | If SSO issues occur, disable the enterprise IdP route and fall back to Clerk-managed authentication; auth fail-closed behavior is preserved. |
 | **Monitoring plan** | Auth failure rate, token validation errors, and identity-webhook delivery are monitored; provider integration is validated in staging before the waiver expires. |
-| **Expiry condition** | Attach enterprise IdP login/logout/role-mapping audit evidence, or renew the waiver with executive approval. |
+| **Expiry condition** | If in scope: attach enterprise IdP login/logout/role-mapping audit evidence, or renew the waiver with executive approval. If scoped out: validate enterprise IdP before paid/enterprise GA. |
 
 **Signatures**
 
