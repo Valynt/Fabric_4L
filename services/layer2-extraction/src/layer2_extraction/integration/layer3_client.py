@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Any
 
 import httpx
 from pydantic import BaseModel, ConfigDict
+from value_fabric.shared.identity.jwt import encode_service_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +84,12 @@ class Layer3KnowledgeClient:
         api_key: str | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
-        self.base_url = base_url or "http://localhost:8003"
+        self.base_url = (
+            base_url
+            or os.getenv("LAYER3_API_URL", "").strip()
+            or os.getenv("LAYER2_LAYER3_API_URL", "").strip()
+            or "http://localhost:8003"
+        )
         self._api_key = api_key
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
@@ -93,6 +100,20 @@ class Layer3KnowledgeClient:
         self._last_health_check: float = 0.0
         self._last_health_result = False
         self._circuit = _CircuitBreaker()
+
+    def _auth_headers(self, tenant_id: str | None) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if tenant_id:
+            token = encode_service_jwt(
+                tenant_id=tenant_id,
+                sub="layer2-extraction",
+                aud=os.getenv("LAYER3_SERVICE_AUDIENCE", "layer3-knowledge"),
+            )
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+        elif self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        return headers
 
     async def health_check(self, force: bool = False) -> bool:
         now = time.monotonic()
@@ -126,6 +147,8 @@ class Layer3KnowledgeClient:
         rdf_data: str,
         source_url: str,
         extraction_job_id: str,
+        tenant_id: str | None = None,
+        content_hash: str | None = None,
         prompt_template_version: str | None = None,
         prompt_template_hash: str | None = None,
     ) -> IngestionResponse:
@@ -138,8 +161,9 @@ class Layer3KnowledgeClient:
         try:
             payload = {
                 "rdf_data": rdf_data,
-                "source_url": source_url,
+                "source_id": source_url,
                 "extraction_job_id": extraction_job_id,
+                "content_hash": content_hash,
             }
             if prompt_template_version is not None:
                 payload["prompt_template_version"] = prompt_template_version
@@ -148,11 +172,21 @@ class Layer3KnowledgeClient:
             response = await self._client.post(
                 f"{self.base_url}/v1/ingest",
                 json=payload,
+                headers=self._auth_headers(tenant_id),
                 timeout=30.0,
             )
             data = response.json()
+            response.raise_for_status()
             self._circuit.record_success()
-            return IngestionResponse(**data)
+            status = str(data.get("status") or "").lower()
+            return IngestionResponse(
+                success=status in {"success", "synced"},
+                ingestion_id=str(data.get("source_id") or extraction_job_id),
+                entities_loaded=int(data.get("entities_loaded") or 0),
+                relationships_loaded=int(data.get("relationships_loaded") or 0),
+                message=status or "unknown",
+                error=data.get("error"),
+            )
         except Exception as exc:
             logger.exception("Layer 3 single ingest failed for job %s: %s", extraction_job_id, exc)
             self._circuit.record_failure()

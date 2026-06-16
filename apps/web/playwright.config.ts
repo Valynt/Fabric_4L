@@ -33,7 +33,9 @@ const LIVE_MODE = process.env.PLAYWRIGHT_LIVE_MODE === 'true';
 const HTML_REPORT_DIR = process.env.PLAYWRIGHT_HTML_REPORT || 'playwright-report';
 const JUNIT_OUTPUT_FILE = process.env.PLAYWRIGHT_JUNIT_FILE || 'e2e-results/junit.xml';
 const TEST_OUTPUT_DIR = process.env.PLAYWRIGHT_OUTPUT_DIR || 'e2e-results/';
-const WEBSERVER_COMMAND = process.env.PLAYWRIGHT_WEBSERVER_COMMAND || `corepack pnpm --dir apps/web dev -- --port ${BASE_PORT}`;
+const WEBSERVER_COMMAND =
+  process.env.PLAYWRIGHT_WEBSERVER_COMMAND ||
+  `corepack pnpm --dir apps/web exec vite --host 127.0.0.1 --port ${BASE_PORT}`;
 const SKIP_WEBSERVER = process.env.PLAYWRIGHT_SKIP_WEBSERVER === 'true';
 const WEB_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(WEB_ROOT, '../..');
@@ -161,7 +163,7 @@ export default defineConfig({
     url: BASE_URL,
     env: {
       ...process.env,
-      ...(LIVE_MODE ? {} : { VITE_ENABLE_MOCK_AUTH: 'true' }),
+      ...(LIVE_MODE ? {} : { VITE_AUTH_PROVIDER: 'legacy', VITE_ENABLE_MOCK_AUTH: 'true' }),
     },
     reuseExistingServer: LIVE_MODE || !CI,
     timeout: 120000,

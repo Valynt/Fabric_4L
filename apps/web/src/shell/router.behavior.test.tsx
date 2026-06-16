@@ -123,6 +123,7 @@ describe("Legacy flat-route redirects", () => {
           <Route path="/home" element={<div data-testid="home-page">home</div>} />
           <Route path="/discover/*" element={<LegacyFlatRedirect />} />
           <Route path="/library/*" element={<LegacyFlatRedirect />} />
+          <Route path="/context/*" element={<LegacyFlatRedirect />} />
           <Route path="/model/*" element={<LegacyFlatRedirect />} />
           <Route path="/governance/*" element={<LegacyFlatRedirect />} />
           <Route path="/settings/governance/*" element={<LegacyFlatRedirect />} />
@@ -135,12 +136,32 @@ describe("Legacy flat-route redirects", () => {
             element={<div data-testid="jobs-page">jobs</div>}
           />
           <Route
+            path="/t/:tenantSlug/context/extraction"
+            element={<div data-testid="extraction-page">extraction</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/context/ontology/graph"
+            element={<div data-testid="graph-page">graph</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/context/value-trees/explorer"
+            element={<div data-testid="value-trees-page">value trees</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/context/agents"
+            element={<div data-testid="agents-page">agents</div>}
+          />
+          <Route
             path="/t/:tenantSlug/context/models"
             element={<div data-testid="models-page">models</div>}
           />
           <Route
             path="/t/:tenantSlug/governance/traces"
             element={<div data-testid="governance-traces-page">traces</div>}
+          />
+          <Route
+            path="/t/:tenantSlug/governance/benchmarks"
+            element={<div data-testid="benchmarks-page">benchmarks</div>}
           />
           <Route
             path="/t/:tenantSlug/settings/governance/health"
@@ -176,10 +197,40 @@ describe("Legacy flat-route redirects", () => {
     expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/models");
   });
 
+  it("/context/extraction redirects to canonical tenant-scoped extraction", () => {
+    renderWithPath("/context/extraction");
+    expect(screen.getByTestId("extraction-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/extraction");
+  });
+
+  it("/context/ontology/graph redirects to canonical tenant-scoped graph", () => {
+    renderWithPath("/context/ontology/graph");
+    expect(screen.getByTestId("graph-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/ontology/graph");
+  });
+
+  it("/context/value-trees/explorer redirects to canonical tenant-scoped value trees", () => {
+    renderWithPath("/context/value-trees/explorer");
+    expect(screen.getByTestId("value-trees-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/value-trees/explorer");
+  });
+
+  it("/context/agents redirects to canonical tenant-scoped agent workflows", () => {
+    renderWithPath("/context/agents");
+    expect(screen.getByTestId("agents-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/agents");
+  });
+
   it("/governance/traces redirects to canonical tenant-scoped governance traces", () => {
     renderWithPath("/governance/traces");
     expect(screen.getByTestId("governance-traces-page")).toBeInTheDocument();
     expect(screen.getByTestId("location").textContent).toBe("/t/acme/governance/traces");
+  });
+
+  it("/governance/benchmarks redirects to canonical tenant-scoped benchmarks", () => {
+    renderWithPath("/governance/benchmarks");
+    expect(screen.getByTestId("benchmarks-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/governance/benchmarks");
   });
 
   it("/settings/governance/health redirects to canonical tenant-scoped settings health", () => {

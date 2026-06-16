@@ -149,6 +149,7 @@ def _build_dataset_from_seed(seed: dict[str, Any]) -> BenchmarkDataset:
         version=seed["version"],
         data_source=seed["data_source"],
         is_public=seed["is_public"],
+        ownership_mode="global_system" if seed.get("is_public") else "tenant",
     )
 
     for metric_data in seed["metrics"].values():
