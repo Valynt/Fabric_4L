@@ -409,7 +409,10 @@ class ROICalculatorWorkflow(BaseWorkflow):
             ).model_dump()
 
         prospect_data = prior.get("enriched") or {}
-        industry = prospect_data.get("industry") or state.roi_input.industry_vertical or "technology"
+        roi_input_industry_vertical = getattr(state.roi_input, "industry_vertical", None) if state.roi_input else None
+        roi_input_company_size = getattr(state.roi_input, "company_size", None) if state.roi_input else None
+        roi_input_prospect_data = getattr(state.roi_input, "prospect_data", None) if state.roi_input else None
+        industry = prospect_data.get("industry") or roi_input_industry_vertical or "technology"
         tenant_id = _tenant_id_from_state(state)
 
         query = get_benchmark_variables_query(industry, tenant_id=tenant_id)
@@ -434,13 +437,13 @@ class ROICalculatorWorkflow(BaseWorkflow):
 
         # Derive core variables from prospect data / request, falling back to
         # benchmarks and finally to calibrated defaults.
-        raw_company_size = state.roi_input.company_size or prospect_data.get("company_size")
+        raw_company_size = roi_input_company_size or prospect_data.get("company_size")
         try:
             company_size_num = int(raw_company_size)
         except (TypeError, ValueError):
             company_size_num = None
 
-        prospect_provided = state.roi_input.prospect_data or {}
+        prospect_provided = roi_input_prospect_data or {}
         annual_revenue = prospect_provided.get("annual_revenue") or prospect_provided.get("annual_pipeline")
         if not annual_revenue and prospect_data.get("annual_revenue"):
             annual_revenue = prospect_data.get("annual_revenue")
