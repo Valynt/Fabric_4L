@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: Download build metadata artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: build-metadata-*
           path: artifacts/build-metadata
@@ -160,10 +160,10 @@ jobs:
       url: https://dev.fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup kustomize
-        uses: imranismail/setup-kustomize@v2
+        uses: imranismail/setup-kustomize@v3
         with:
           kustomize-version: "5.4.3"
 
@@ -251,7 +251,7 @@ jobs:
     needs: [validate-build, deploy-dev]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -289,7 +289,7 @@ jobs:
           echo "branch_name=promote/staging-${{ needs.validate-build.outputs.image_ref }}" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const body = [
@@ -386,7 +386,7 @@ jobs:
           # This validates the full stack before production promotion
 
       - name: Create Production Promotion PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // Only create prod PR if staging tests pass
@@ -408,7 +408,7 @@ jobs:
       url: https://fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Block placeholder image digests (prod)
         run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
@@ -462,7 +462,7 @@ jobs:
           secret-path: /monitoring
 
       - name: Notify on deployment success
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@v3
         if: success()
         with:
           payload: |
@@ -513,7 +513,7 @@ jobs:
           # 4. Alert on-call engineer
 
       - name: Create rollback PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // Create emergency rollback PR

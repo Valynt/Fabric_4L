@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Import Secrets from Vault
         id: vault-login
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt

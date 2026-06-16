@@ -35,12 +35,12 @@ jobs:
       frontend_failed: ${{ steps.parse-frontend.outputs.frontend_failed }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Need full history for coverage comparison
 
       - name: Download test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: test-results-*
           merge-multiple: true
@@ -48,7 +48,7 @@ jobs:
         # CONTRACT ENFORCEMENT: Test artifacts required for reporting
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -271,7 +271,7 @@ jobs:
       # Post PR Comment
       # ==========================================================================
       - name: Post PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const pythonResults = ${{ toJson(steps.parse-python.outputs.python_results) }};
@@ -361,7 +361,7 @@ jobs:
       # Update Check Run Status
       # ==========================================================================
       - name: Update check run
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const totalFailed = ${{ steps.parse-python.outputs.python_failed || 0 }} +
@@ -392,7 +392,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create coverage summary
         run: |

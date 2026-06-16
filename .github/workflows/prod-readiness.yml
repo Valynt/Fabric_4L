@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Enforce release P0 skip policy
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         run: |
@@ -50,7 +50,7 @@ jobs:
         run: make gate-policy POLICY_FILE=${POLICY_FILE}
       - name: Validate policy enforcement matrix coverage
         run: python scripts/ci/validate_policy_enforcement_matrix.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: setup-artifacts
           path: artifacts/
@@ -59,10 +59,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run architecture conformance gate
         run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: arch-artifacts
           path: artifacts/arch/
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run security & isolation gate
         run: make gate-security PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Enforce tenant boundary release tests
@@ -153,7 +153,7 @@ jobs:
 
           print(f"Tenant-isolation bundle freshness check passed: age={age_hours:.2f}h")
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-artifacts
           path: artifacts/security/
@@ -163,10 +163,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run dependency chaos gate
         run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chaos-artifacts
           path: artifacts/chaos/
@@ -176,10 +176,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run cross-domain smoke gate
         run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: smoke-artifacts
           path: artifacts/smoke/
@@ -188,10 +188,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run agent provenance gate
         run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: agent-artifacts
           path: artifacts/agent/
@@ -200,10 +200,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run state consistency gate
         run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: state-artifacts
           path: artifacts/state/
@@ -212,13 +212,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run DB production readiness gate
         run: |
           make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
           test -s artifacts/database/migration-status.json
           test -s artifacts/database/migration-status.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: db-readiness-artifacts
           path: |
@@ -230,10 +230,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run observability readiness gate
         run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: obs-artifacts
           path: artifacts/obs/
@@ -242,7 +242,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Generate repo maturity scorecard
         id: scorecard
         shell: bash
@@ -254,7 +254,7 @@ jobs:
           exit 0
       - name: Upload repo maturity scorecard
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: repo-maturity-scorecard
           path: |
@@ -273,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run readiness 10 gate
         shell: bash
         run: |
@@ -283,7 +283,7 @@ jobs:
           test -s artifacts/readiness-10/readiness-10-summary.md
       - name: Upload readiness 10 artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: readiness-10-artifacts
           path: artifacts/readiness-10/**
@@ -304,9 +304,9 @@ jobs:
       - readiness-10
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
       - name: Build launch-readiness evidence bundle
         shell: bash
         run: |
@@ -360,7 +360,7 @@ jobs:
           test -s artifacts/release/gate-result.json
           test -s artifacts/release/summary.md
           python scripts/ops/validate-release-manifest.py artifacts/release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
@@ -374,8 +374,8 @@ jobs:
     if: always()
     needs: [release-policy, repo-maturity-scorecard, readiness-10]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+      - uses: actions/download-artifact@v8
       - name: Build PR summary
         run: make gate-summary
       - name: Assert machine-readable gate result exists

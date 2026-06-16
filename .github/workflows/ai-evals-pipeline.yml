@@ -57,7 +57,7 @@ jobs:
       should_run_evals: ${{ steps.discover.outputs.should_run }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Need full history for diff
 
@@ -112,10 +112,10 @@ jobs:
     if: needs.discover-skills.outputs.should_run_evals == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -179,10 +179,10 @@ jobs:
         skill: ${{ fromJson(needs.discover-skills.outputs.changed_skills) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -269,7 +269,7 @@ jobs:
           fi
 
       - name: Upload evaluation results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eval-results-${{ matrix.skill }}
           path: eval-*.json
@@ -289,10 +289,10 @@ jobs:
         agent: ${{ fromJson(needs.discover-skills.outputs.changed_agents) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -335,10 +335,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -432,7 +432,7 @@ jobs:
     if: github.event.inputs.baseline_comparison == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -472,7 +472,7 @@ jobs:
       total_tests: ${{ steps.aggregate.outputs.total_tests }}
     steps:
       - name: Download all evaluation results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: eval-results-*
           merge-multiple: true
@@ -590,7 +590,7 @@ jobs:
           EOF
 
       - name: Post PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -664,14 +664,14 @@ jobs:
             }
 
       - name: Upload summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eval-summary
           path: eval-summary.json
           retention-days: 90
 
       - name: Update check run
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const passed = '${{ steps.aggregate.outputs.passed }}' === 'true';
@@ -722,10 +722,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && needs.aggregate-results.outputs.passed == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download evaluation results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: eval-*
           merge-multiple: true
