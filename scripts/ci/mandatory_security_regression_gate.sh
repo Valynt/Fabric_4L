@@ -11,6 +11,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
+# Prefer the repository virtual environment when it exists and no venv is active.
+# This lets local contributors run the gate without installing deps into the system
+# Python. CI runners use setup-python and keep the system Python on PATH.
+if [ -z "${VIRTUAL_ENV:-}" ] && [ -x "${ROOT_DIR}/.venv/bin/python" ]; then
+  export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
+
 export TESTING="${TESTING:-true}"
 export ENVIRONMENT="${ENVIRONMENT:-testing}"
 export DEBUG="false"

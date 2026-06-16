@@ -151,10 +151,12 @@ class CrawlDecisionRepository:
         await repo.save(record)
 
         # Query by job
-        decisions = await repo.get_by_job("job-123")
+        decisions = await repo.get_by_job("job-123", tenant_id="tenant-uuid")
 
         # Get fallback stats
-        stats = await repo.get_fallback_stats("example.com", since=datetime.now() - timedelta(days=7))
+        stats = await repo.get_fallback_stats(
+            "example.com", tenant_id="tenant-uuid", since=datetime.now() - timedelta(days=7)
+        )
     """
 
     def __init__(self, db_session: Session | None = None) -> None:
@@ -244,28 +246,30 @@ class CrawlDecisionRepository:
             )
             raise
 
-    def _get_by_id_sync(self, decision_id: str) -> CrawlDecisionRecord | None:
+    def _get_by_id_sync(self, decision_id: str, tenant_id: str) -> CrawlDecisionRecord | None:
         """Synchronous get by ID implementation."""
         with self._get_session() as session:
             db_record = session.get(CrawlDecisionModel, UUID(decision_id))
-            if not db_record:
+            if not db_record or str(db_record.tenant_id) != tenant_id:
                 return None
             return self._to_record(db_record)
 
-    async def get_by_id(self, decision_id: str) -> CrawlDecisionRecord | None:
+    async def get_by_id(self, decision_id: str, tenant_id: str) -> CrawlDecisionRecord | None:
         """Get a decision record by ID.
 
         Args:
             decision_id: The decision UUID
+            tenant_id: The tenant UUID that owns the record
 
         Returns:
             Decision record or None if not found
         """
-        return await asyncio.to_thread(self._get_by_id_sync, decision_id)
+        return await asyncio.to_thread(self._get_by_id_sync, decision_id, tenant_id)
 
     def _get_by_job_sync(
         self,
         job_id: str,
+        tenant_id: str,
         limit: int = 100,
         offset: int = 0,
     ) -> list[CrawlDecisionRecord]:
@@ -274,6 +278,7 @@ class CrawlDecisionRepository:
             stmt = (
                 select(CrawlDecisionModel)
                 .where(CrawlDecisionModel.job_id == UUID(job_id))
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
                 .order_by(CrawlDecisionModel.created_at.desc())
                 .limit(limit)
                 .offset(offset)
@@ -284,6 +289,7 @@ class CrawlDecisionRepository:
     async def get_by_job(
         self,
         job_id: str,
+        tenant_id: str,
         limit: int = 100,
         offset: int = 0,
     ) -> list[CrawlDecisionRecord]:
@@ -291,20 +297,24 @@ class CrawlDecisionRepository:
 
         Args:
             job_id: The job UUID
+            tenant_id: The tenant UUID that owns the records
             limit: Maximum records to return
             offset: Offset for pagination
 
         Returns:
             List of decision records
         """
-        return await asyncio.to_thread(self._get_by_job_sync, job_id, limit, offset)
+        return await asyncio.to_thread(self._get_by_job_sync, job_id, tenant_id, limit, offset)
 
-    def _get_by_url_sync(self, url: str, limit: int = 100) -> list[CrawlDecisionRecord]:
+    def _get_by_url_sync(
+        self, url: str, tenant_id: str, limit: int = 100
+    ) -> list[CrawlDecisionRecord]:
         """Synchronous get by URL implementation."""
         with self._get_session() as session:
             stmt = (
                 select(CrawlDecisionModel)
                 .where(CrawlDecisionModel.url == url)
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
                 .order_by(CrawlDecisionModel.created_at.desc())
                 .limit(limit)
             )
@@ -314,28 +324,35 @@ class CrawlDecisionRepository:
     async def get_by_url(
         self,
         url: str,
+        tenant_id: str,
         limit: int = 100,
     ) -> list[CrawlDecisionRecord]:
         """Get decision history for a specific URL.
 
         Args:
             url: The URL to query
+            tenant_id: The tenant UUID that owns the records
             limit: Maximum records to return
 
         Returns:
             List of decision records for this URL
         """
-        return await asyncio.to_thread(self._get_by_url_sync, url, limit)
+        return await asyncio.to_thread(self._get_by_url_sync, url, tenant_id, limit)
 
     def _get_by_domain_sync(
         self,
         domain: str,
+        tenant_id: str,
         since: datetime | None = None,
         limit: int = 1000,
     ) -> list[CrawlDecisionRecord]:
         """Synchronous get by domain implementation."""
         with self._get_session() as session:
-            stmt = select(CrawlDecisionModel).where(CrawlDecisionModel.domain == domain)
+            stmt = (
+                select(CrawlDecisionModel)
+                .where(CrawlDecisionModel.domain == domain)
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
+            )
             if since:
                 stmt = stmt.where(CrawlDecisionModel.created_at >= since)
             stmt = stmt.order_by(CrawlDecisionModel.created_at.desc()).limit(limit)
@@ -345,6 +362,7 @@ class CrawlDecisionRepository:
     async def get_by_domain(
         self,
         domain: str,
+        tenant_id: str,
         since: datetime | None = None,
         limit: int = 1000,
     ) -> list[CrawlDecisionRecord]:
@@ -352,22 +370,28 @@ class CrawlDecisionRepository:
 
         Args:
             domain: The domain to query
+            tenant_id: The tenant UUID that owns the records
             since: Optional time filter
             limit: Maximum records to return
 
         Returns:
             List of decision records
         """
-        return await asyncio.to_thread(self._get_by_domain_sync, domain, since, limit)
+        return await asyncio.to_thread(self._get_by_domain_sync, domain, tenant_id, since, limit)
 
     def _get_fallback_stats_sync(
         self,
         domain: str,
+        tenant_id: str,
         since: datetime | None = None,
     ) -> FallbackStats:
         """Synchronous get fallback stats implementation."""
         with self._get_session() as session:
-            base_stmt = select(CrawlDecisionModel).where(CrawlDecisionModel.domain == domain)
+            base_stmt = (
+                select(CrawlDecisionModel)
+                .where(CrawlDecisionModel.domain == domain)
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
+            )
             if since:
                 base_stmt = base_stmt.where(CrawlDecisionModel.created_at >= since)
             all_decisions = session.execute(base_stmt).scalars().all()
@@ -410,25 +434,30 @@ class CrawlDecisionRepository:
     async def get_fallback_stats(
         self,
         domain: str,
+        tenant_id: str,
         since: datetime | None = None,
     ) -> FallbackStats:
         """Get fallback statistics for a domain.
 
         Args:
             domain: The domain to analyze
+            tenant_id: The tenant UUID that owns the records
             since: Optional time filter
 
         Returns:
             Fallback statistics
         """
-        return await asyncio.to_thread(self._get_fallback_stats_sync, domain, since)
+        return await asyncio.to_thread(self._get_fallback_stats_sync, domain, tenant_id, since)
 
-    def _get_router_quality_report_sync(self, job_id: str) -> RouterQualityReport:
+    def _get_router_quality_report_sync(
+        self, job_id: str, tenant_id: str
+    ) -> RouterQualityReport:
         """Synchronous get router quality report implementation."""
         with self._get_session() as session:
             stmt = (
                 select(CrawlDecisionModel)
                 .where(CrawlDecisionModel.job_id == UUID(job_id))
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
                 .order_by(CrawlDecisionModel.created_at.desc())
             )
             decisions = session.execute(stmt).scalars().all()
@@ -479,26 +508,36 @@ class CrawlDecisionRepository:
                 fastest_url=fastest,
             )
 
-    async def get_router_quality_report(self, job_id: str) -> RouterQualityReport:
+    async def get_router_quality_report(
+        self, job_id: str, tenant_id: str
+    ) -> RouterQualityReport:
         """Generate a quality report for a job's routing decisions.
 
         Args:
             job_id: The job to analyze
+            tenant_id: The tenant UUID that owns the records
 
         Returns:
             Router quality report
         """
-        return await asyncio.to_thread(self._get_router_quality_report_sync, job_id)
+        return await asyncio.to_thread(
+            self._get_router_quality_report_sync, job_id, tenant_id
+        )
 
     def _get_decisions_by_rule_sync(
         self,
         router_rule: str,
+        tenant_id: str,
         since: datetime | None = None,
         limit: int = 100,
     ) -> list[CrawlDecisionRecord]:
         """Synchronous get decisions by rule implementation."""
         with self._get_session() as session:
-            stmt = select(CrawlDecisionModel).where(CrawlDecisionModel.router_rule == router_rule)
+            stmt = (
+                select(CrawlDecisionModel)
+                .where(CrawlDecisionModel.router_rule == router_rule)
+                .where(CrawlDecisionModel.tenant_id == UUID(tenant_id))
+            )
             if since:
                 stmt = stmt.where(CrawlDecisionModel.created_at >= since)
             stmt = stmt.order_by(CrawlDecisionModel.created_at.desc()).limit(limit)
@@ -508,6 +547,7 @@ class CrawlDecisionRepository:
     async def get_decisions_by_rule(
         self,
         router_rule: str,
+        tenant_id: str,
         since: datetime | None = None,
         limit: int = 100,
     ) -> list[CrawlDecisionRecord]:
@@ -515,13 +555,16 @@ class CrawlDecisionRepository:
 
         Args:
             router_rule: The rule to filter by (e.g., "known_dynamic_page:PRICING")
+            tenant_id: The tenant UUID that owns the records
             since: Optional time filter
             limit: Maximum records
 
         Returns:
             List of matching decisions
         """
-        return await asyncio.to_thread(self._get_decisions_by_rule_sync, router_rule, since, limit)
+        return await asyncio.to_thread(
+            self._get_decisions_by_rule_sync, router_rule, tenant_id, since, limit
+        )
 
     def _to_record(self, db_record: CrawlDecisionModel) -> CrawlDecisionRecord:
         """Convert database model to domain record."""
@@ -576,30 +619,41 @@ class InMemoryCrawlDecisionRepository(CrawlDecisionRepository):
         self._url_index.setdefault(record.url, []).append(record.decision_id)
         self._domain_index.setdefault(record.domain, []).append(record.decision_id)
 
-    async def get_by_id(self, decision_id: str) -> CrawlDecisionRecord | None:
+    async def get_by_id(
+        self, decision_id: str, tenant_id: str
+    ) -> CrawlDecisionRecord | None:
         """Get from in-memory store."""
-        return self._store.get(decision_id)
+        record = self._store.get(decision_id)
+        if record and record.tenant_id == tenant_id:
+            return record
+        return None
 
     async def get_by_job(
         self,
         job_id: str,
+        tenant_id: str,
         limit: int = 100,
         offset: int = 0,
     ) -> list[CrawlDecisionRecord]:
         """Get by job from in-memory store."""
         ids = self._job_index.get(job_id, [])
         sorted_ids = sorted(ids, reverse=True)[offset:offset + limit]
-        return [self._store[i] for i in sorted_ids if i in self._store]
+        records = [self._store[i] for i in sorted_ids if i in self._store]
+        return [r for r in records if r.tenant_id == tenant_id][:limit]
 
-    async def get_by_url(self, url: str, limit: int = 100) -> list[CrawlDecisionRecord]:
+    async def get_by_url(
+        self, url: str, tenant_id: str, limit: int = 100
+    ) -> list[CrawlDecisionRecord]:
         """Get by URL from in-memory store."""
         ids = self._url_index.get(url, [])
         sorted_ids = sorted(ids, reverse=True)[:limit]
-        return [self._store[i] for i in sorted_ids if i in self._store]
+        records = [self._store[i] for i in sorted_ids if i in self._store]
+        return [r for r in records if r.tenant_id == tenant_id][:limit]
 
     async def get_by_domain(
         self,
         domain: str,
+        tenant_id: str,
         since: datetime | None = None,
         limit: int = 1000,
     ) -> list[CrawlDecisionRecord]:
@@ -610,6 +664,7 @@ class InMemoryCrawlDecisionRepository(CrawlDecisionRepository):
         if since:
             records = [r for r in records if r.created_at >= since]
 
+        records = [r for r in records if r.tenant_id == tenant_id]
         return sorted(records, key=lambda r: r.created_at, reverse=True)[:limit]
 
     def clear(self) -> None:

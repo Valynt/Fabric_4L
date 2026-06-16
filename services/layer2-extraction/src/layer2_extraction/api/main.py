@@ -339,7 +339,7 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.75
 RELATIONSHIP_CONFIDENCE_OFFSET = 0.05  # Slightly lower threshold for relationships
 DEFAULT_SIMILARITY_THRESHOLD = 0.85
 PROGRESS_REPORT_INTERVAL = 10  # Report progress every N chunks
-DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"
+DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"  # nosec B108
 
 # Lazy initialization of extractors to avoid import-time side effects
 _entity_extractor = None
@@ -2058,4 +2058,4 @@ class extract_batchResult(TypedDictModel):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosec B104

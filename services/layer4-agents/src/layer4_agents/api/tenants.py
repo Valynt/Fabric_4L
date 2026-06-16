@@ -19,6 +19,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
@@ -109,6 +110,12 @@ _TENANT_ENTITY_TABLES: frozenset[str] = frozenset({
     "accounts",
 })
 
+# Pre-build safe count statements for each allowed table.
+_TENANT_COUNT_STATEMENTS = {
+    table: text(f'SELECT COUNT(*) FROM "{table}" WHERE tenant_id = :tenant_id')
+    for table in _TENANT_ENTITY_TABLES
+}
+
 
 async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> int:
     """Count persisted tenant entities from available production tables.
@@ -120,13 +127,8 @@ async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> i
     database check. Missing optional tables are handled as absence of data, not
     as fabricated counts.
     """
-    from sqlalchemy import text
-
     total = 0
     for table_name in _TENANT_ENTITY_TABLES:
-        # Defense in depth: the identifier is interpolated into raw SQL, so
-        # reject anything that is not a known table name even though the loop
-        # currently iterates a hardcoded set.
         if table_name not in _TENANT_ENTITY_TABLES:
             raise ValueError(f"Refusing to query unknown table: {table_name!r}")
 
@@ -137,10 +139,8 @@ async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> i
         if not bool(exists_result.scalar()):
             continue
 
-        count_result = await db_session.execute(
-            text(f'SELECT COUNT(*) FROM "{table_name}" WHERE tenant_id = :tenant_id'),
-            {"tenant_id": tenant_id},
-        )
+        stmt = _TENANT_COUNT_STATEMENTS[table_name]
+        count_result = await db_session.execute(stmt, {"tenant_id": tenant_id})
         total += int(count_result.scalar() or 0)
     return total
 

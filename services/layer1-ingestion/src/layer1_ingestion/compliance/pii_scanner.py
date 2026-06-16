@@ -310,7 +310,7 @@ class PIIScanner:
 
     def _hash_text(self, text: str) -> str:
         """Create a simple hash of text for identification."""
-        return hashlib.md5(text.encode()).hexdigest()[:16]
+        return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:16]
 
     def get_summary_stats(self, scan_results: list[PIIScanResult]) -> dict[str, Any]:
         """Get summary statistics from multiple scan results.

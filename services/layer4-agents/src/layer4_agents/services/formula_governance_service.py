@@ -14,6 +14,8 @@ from typing import Any
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
+
 from ..interfaces.formula_governance import (
     ActivationRequest,
     DeprecationRequest,
@@ -48,10 +50,15 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         collisions from returning a foreign tenant's ID.
         """
         query = "MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id}) RETURN f.tenant_id as tenant_id"
-        async with self._driver.session() as session:
-            result = await session.run(query, formula_id=formula_id, tenant_id=tenant_id)
-            record = await result.single()
-            return record["tenant_id"] if record and record.get("tenant_id") else tenant_id
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"formula_id": formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.tenant_id_for_formula",
+        )
+        record = records[0] if records else None
+        return record["tenant_id"] if record and record.get("tenant_id") else tenant_id
 
     async def get_governance(self, formula_id: str, tenant_id: str) -> FormulaGovernance | None:
         """Retrieve governance metadata for formula from Neo4j."""
@@ -66,18 +73,23 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                collect(DISTINCT {id: other.id, type: 'incoming'}) as incoming_deps
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(query, formula_id=formula_id, tenant_id=tenant_id)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"formula_id": formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.get_governance",
+        )
+        record = records[0] if records else None
 
-            if not record or not record["f"]:
-                return None
+        if not record or not record["f"]:
+            return None
 
-            f = record["f"]
-            versions_data = record["versions"]
+        f = record["f"]
+        versions_data = record["versions"]
 
-            versions = []
-            for v in versions_data:
+        versions = []
+        for v in versions_data:
                 if v:
                     versions.append(
                         FormulaVersion(
@@ -93,12 +105,12 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                         )
                     )
 
-            # Sort versions by semver
-            versions.sort(key=lambda v: self._semver_key(v.version), reverse=True)
+        # Sort versions by semver
+        versions.sort(key=lambda v: self._semver_key(v.version), reverse=True)
 
-            # Build dependencies
-            all_deps = []
-            for d in record["outgoing_deps"]:
+        # Build dependencies
+        all_deps = []
+        for d in record["outgoing_deps"]:
                 if d["id"]:
                     all_deps.append(
                         FormulaDependency(
@@ -107,7 +119,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                             dependency_type="uses",
                         )
                     )
-            for d in record["incoming_deps"]:
+        for d in record["incoming_deps"]:
                 if d["id"]:
                     all_deps.append(
                         FormulaDependency(
@@ -117,10 +129,10 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                         )
                     )
 
-            current_version = f.get("version", "1.0.0")
-            status = FormulaStatus(f.get("status", "draft"))
+        current_version = f.get("version", "1.0.0")
+        status = FormulaStatus(f.get("status", "draft"))
 
-            return FormulaGovernance(
+        return FormulaGovernance(
                 formula_id=formula_id,
                 current_version=current_version,
                 status=status,
@@ -136,7 +148,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                 next_review_at=datetime.fromisoformat(f["nextReviewAt"])
                 if "nextReviewAt" in f
                 else None,
-            )
+        )
 
     async def create_version(
         self,
@@ -159,10 +171,15 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.version as current_version
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(get_current_query, formula_id=formula_id, tenant_id=tenant_id)
-            record = await result.single()
-            previous_version = record["current_version"] if record else None
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=get_current_query,
+            params={"formula_id": formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.create_version.get_current",
+        )
+        record = records[0] if records else None
+        previous_version = record["current_version"] if record else None
 
         # Create version node
         query = """
@@ -184,25 +201,29 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN fv
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                formula_id=formula_id,
-                version_id=str(uuid.uuid4()),
-                version=new_version,
-                created_at=now,
-                created_by=created_by,
-                change_summary=change_summary,
-                previous_version=previous_version,
-            )
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": formula_id,
+                "version_id": str(uuid.uuid4()),
+                "version": new_version,
+                "created_at": now,
+                "created_by": created_by,
+                "change_summary": change_summary,
+                "previous_version": previous_version,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.create_version",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                raise ValueError("Failed to create formula version")
+        if not record:
+            raise ValueError("Failed to create formula version")
 
-            fv = record["fv"]
+        fv = record["fv"]
 
-            return FormulaVersion(
+        return FormulaVersion(
                 version=fv["version"],
                 formula_id=formula_id,
                 status=FormulaStatus.DRAFT,
@@ -226,33 +247,36 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         ORDER BY fv.createdAt DESC
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                formula_id=formula_id,
-                tenant_id=tenant_id,
-                include_retired=include_retired,
-            )
-            records = await result.data()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": formula_id,
+                "tenant_id": tenant_id,
+                "include_retired": include_retired,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.list_versions",
+        )
 
-            versions = []
-            for r in records:
-                fv = r["fv"]
-                versions.append(
-                    FormulaVersion(
-                        version=fv["version"],
-                        formula_id=formula_id,
-                        status=FormulaStatus(fv.get("status", "draft")),
-                        created_at=datetime.fromisoformat(fv["createdAt"])
-                        if "createdAt" in fv
-                        else datetime.now(UTC),
-                        created_by=fv.get("createdBy", "system"),
-                        change_summary=fv.get("changeSummary", ""),
-                        previous_version=fv.get("previousVersion"),
-                    )
+        versions = []
+        for r in records:
+            fv = r["fv"]
+            versions.append(
+                FormulaVersion(
+                    version=fv["version"],
+                    formula_id=formula_id,
+                    status=FormulaStatus(fv.get("status", "draft")),
+                    created_at=datetime.fromisoformat(fv["createdAt"])
+                    if "createdAt" in fv
+                    else datetime.now(UTC),
+                    created_by=fv.get("createdBy", "system"),
+                    change_summary=fv.get("changeSummary", ""),
+                    previous_version=fv.get("previousVersion"),
                 )
+            )
 
-            return versions
+        return versions
 
     async def activate(
         self,
@@ -268,41 +292,46 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.status as status, f.version as current_version
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(check_query, formula_id=request.formula_id, tenant_id=tenant_id)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=check_query,
+            params={"formula_id": request.formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.activate.check",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=request.formula_id,
-                    old_status=FormulaStatus.DRAFT,
-                    new_status=FormulaStatus.DRAFT,
-                    error_message="Formula not found",
-                )
+        if not record:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=request.formula_id,
+                old_status=FormulaStatus.DRAFT,
+                new_status=FormulaStatus.DRAFT,
+                error_message="Formula not found",
+            )
 
-            old_status = FormulaStatus(record["status"] or "draft")
-            record["current_version"]
+        old_status = FormulaStatus(record["status"] or "draft")
+        record["current_version"]
 
-            # Validate transition
-            if old_status == FormulaStatus.ACTIVE:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=request.formula_id,
-                    old_status=old_status,
-                    new_status=old_status,
-                    error_message="Formula is already active",
-                )
+        # Validate transition
+        if old_status == FormulaStatus.ACTIVE:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=request.formula_id,
+                old_status=old_status,
+                new_status=old_status,
+                error_message="Formula is already active",
+            )
 
-            if old_status not in [FormulaStatus.APPROVED, FormulaStatus.DRAFT]:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=request.formula_id,
-                    old_status=old_status,
-                    new_status=old_status,
-                    error_message=f"Cannot activate formula in {old_status.value} status",
-                    requires_approval=old_status == FormulaStatus.UNDER_REVIEW,
-                )
+        if old_status not in [FormulaStatus.APPROVED, FormulaStatus.DRAFT]:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=request.formula_id,
+                old_status=old_status,
+                new_status=old_status,
+                error_message=f"Cannot activate formula in {old_status.value} status",
+                requires_approval=old_status == FormulaStatus.UNDER_REVIEW,
+            )
 
         # Perform activation
         query = """
@@ -319,33 +348,37 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
 
         effective_date = (request.effective_date or datetime.now(UTC)).isoformat()
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                formula_id=request.formula_id,
-                tenant_id=tenant_id,
-                version=request.version,
-                activated_at=now,
-                activated_by=request.requested_by,
-                effective_date=effective_date,
-            )
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": request.formula_id,
+                "tenant_id": tenant_id,
+                "version": request.version,
+                "activated_at": now,
+                "activated_by": request.requested_by,
+                "effective_date": effective_date,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.activate",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=request.formula_id,
-                    old_status=old_status,
-                    new_status=old_status,
-                    error_message="Failed to activate formula",
-                )
-
+        if not record:
             return GovernanceTransitionResult(
-                success=True,
+                success=False,
                 formula_id=request.formula_id,
                 old_status=old_status,
-                new_status=FormulaStatus.ACTIVE,
+                new_status=old_status,
+                error_message="Failed to activate formula",
             )
+
+        return GovernanceTransitionResult(
+            success=True,
+            formula_id=request.formula_id,
+            old_status=old_status,
+            new_status=FormulaStatus.ACTIVE,
+        )
 
     async def deprecate(
         self,
@@ -361,23 +394,28 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.status as status
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(check_query, formula_id=request.formula_id, tenant_id=tenant_id)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=check_query,
+            params={"formula_id": request.formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.deprecate.check",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=request.formula_id,
-                    old_status=FormulaStatus.DRAFT,
-                    new_status=FormulaStatus.DRAFT,
-                    error_message="Formula not found",
-                )
+        if not record:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=request.formula_id,
+                old_status=FormulaStatus.DRAFT,
+                new_status=FormulaStatus.DRAFT,
+                error_message="Formula not found",
+            )
 
-            old_status = FormulaStatus(record["status"] or "draft")
+        old_status = FormulaStatus(record["status"] or "draft")
 
-            if old_status in [FormulaStatus.DEPRECATED, FormulaStatus.RETIRED]:
-                return GovernanceTransitionResult(
+        if old_status in [FormulaStatus.DEPRECATED, FormulaStatus.RETIRED]:
+            return GovernanceTransitionResult(
                     success=False,
                     formula_id=request.formula_id,
                     old_status=old_status,
@@ -396,22 +434,27 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f
         """
 
-        async with self._driver.session() as session:
-            await session.run(
-                query,
-                formula_id=request.formula_id,
-                deprecated_at=request.deprecation_date.isoformat(),
-                deprecated_by=request.requested_by,
-                reason=request.reason,
-                replacement_id=request.replacement_formula_id,
-            )
+        await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": request.formula_id,
+                "tenant_id": tenant_id,
+                "deprecated_at": request.deprecation_date.isoformat(),
+                "deprecated_by": request.requested_by,
+                "reason": request.reason,
+                "replacement_id": request.replacement_formula_id,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.deprecate",
+        )
 
-            return GovernanceTransitionResult(
-                success=True,
-                formula_id=request.formula_id,
-                old_status=old_status,
-                new_status=FormulaStatus.DEPRECATED,
-            )
+        return GovernanceTransitionResult(
+            success=True,
+            formula_id=request.formula_id,
+            old_status=old_status,
+            new_status=FormulaStatus.DEPRECATED,
+        )
 
     async def get_dependencies(
         self,
@@ -427,34 +470,42 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
             MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})-[:DEPENDS_ON]->(dep:Formula)
             RETURN dep.id as dep_id
             """
-            async with self._driver.session() as session:
-                result = await session.run(outgoing_query, formula_id=formula_id, tenant_id=tenant_id)
-                records = await result.data()
-                for r in records:
-                    deps.append(
-                        FormulaDependency(
-                            source_formula_id=formula_id,
-                            target_formula_id=r["dep_id"],
-                            dependency_type="uses",
-                        )
+            records = await fetch_tenant_validated_records(
+                driver=self._driver,
+                query=outgoing_query,
+                params={"formula_id": formula_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                operation="formula_governance_service.get_dependencies.outgoing",
+            )
+            for r in records:
+                deps.append(
+                    FormulaDependency(
+                        source_formula_id=formula_id,
+                        target_formula_id=r["dep_id"],
+                        dependency_type="uses",
                     )
+                )
 
         if direction in ["incoming", "both"]:
             incoming_query = """
             MATCH (other:Formula {tenant_id: $tenant_id})-[:DEPENDS_ON]->(f:Formula {id: $formula_id, tenant_id: $tenant_id})
             RETURN other.id as other_id
             """
-            async with self._driver.session() as session:
-                result = await session.run(incoming_query, formula_id=formula_id, tenant_id=tenant_id)
-                records = await result.data()
-                for r in records:
-                    deps.append(
-                        FormulaDependency(
-                            source_formula_id=r["other_id"],
-                            target_formula_id=formula_id,
-                            dependency_type="uses",
-                        )
+            records = await fetch_tenant_validated_records(
+                driver=self._driver,
+                query=incoming_query,
+                params={"formula_id": formula_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                operation="formula_governance_service.get_dependencies.incoming",
+            )
+            for r in records:
+                deps.append(
+                    FormulaDependency(
+                        source_formula_id=r["other_id"],
+                        target_formula_id=formula_id,
+                        dependency_type="uses",
                     )
+                )
 
         return deps
 
@@ -475,35 +526,40 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                count(dep) as inactive_deps
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(query, formula_id=formula_id, tenant_id=tenant_id, version=version)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"formula_id": formula_id, "tenant_id": tenant_id, "version": version},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.validate_activation",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return Neo4jFormulaGovernanceService_validate_activationResult.model_validate({
-                    "can_activate": False,
-                    "errors": ["Formula not found"],
-                    "warnings": [],
-                })
-
-
-            errors = []
-            warnings = []
-
-            if not record["version_exists"]:
-                errors.append(f"Version {version} does not exist")
-
-            current_status = record["status"] or "draft"
-            if current_status == "active":
-                warnings.append("Formula is already active")
-            elif current_status == "retired":
-                errors.append("Cannot activate retired formula")
-
-            inactive_deps = record["inactive_deps"]
-            if inactive_deps > 0:
-                warnings.append(f"Formula has {inactive_deps} inactive dependencies")
-
+        if not record:
             return Neo4jFormulaGovernanceService_validate_activationResult.model_validate({
+                "can_activate": False,
+                "errors": ["Formula not found"],
+                "warnings": [],
+            })
+
+
+        errors = []
+        warnings = []
+
+        if not record["version_exists"]:
+            errors.append(f"Version {version} does not exist")
+
+        current_status = record["status"] or "draft"
+        if current_status == "active":
+            warnings.append("Formula is already active")
+        elif current_status == "retired":
+            errors.append("Cannot activate retired formula")
+
+        inactive_deps = record["inactive_deps"]
+        if inactive_deps > 0:
+            warnings.append(f"Formula has {inactive_deps} inactive dependencies")
+
+        return Neo4jFormulaGovernanceService_validate_activationResult.model_validate({
                 "can_activate": len(errors) == 0,
                 "errors": errors,
                 "warnings": warnings,
@@ -525,17 +581,19 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         if metrics:
             metrics.inc_formula_approval_pending(resolved_tenant_id)
         return await self._transition_status(
-            formula_id, version, FormulaStatus.DRAFT, FormulaStatus.UNDER_REVIEW, submitted_by
+            formula_id, version, FormulaStatus.DRAFT, FormulaStatus.UNDER_REVIEW, submitted_by, tenant_id
         )
 
     async def approve(
         self,
         formula_id: str,
+        tenant_id: str,
         version: str,
         approved_by: str,
         comments: str | None = None,
     ) -> GovernanceTransitionResult:
         """Approve formula (admin only)."""
+        resolved_tenant_id = await self._tenant_id_for_formula(formula_id, tenant_id)
         now = datetime.now(UTC).isoformat()
 
         query = """
@@ -549,46 +607,52 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.tenant_id as tenant_id
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                formula_id=formula_id,
-                version=version,
-                approved_at=now,
-                approved_by=approved_by,
-                comments=comments,
-            )
-            record = await result.single()
-            tenant_id = (record.get("tenant_id") or "unknown") if record else "unknown"
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": formula_id,
+                "tenant_id": tenant_id,
+                "version": version,
+                "approved_at": now,
+                "approved_by": approved_by,
+                "comments": comments,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.approve",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=formula_id,
-                    old_status=FormulaStatus.UNDER_REVIEW,
-                    new_status=FormulaStatus.UNDER_REVIEW,
-                    error_message="Failed to approve formula",
-                )
-
-            metrics = get_metrics()
-            if metrics:
-                metrics.dec_formula_approval_pending(tenant_id)
-
+        if not record:
             return GovernanceTransitionResult(
-                success=True,
+                success=False,
                 formula_id=formula_id,
                 old_status=FormulaStatus.UNDER_REVIEW,
-                new_status=FormulaStatus.APPROVED,
+                new_status=FormulaStatus.UNDER_REVIEW,
+                error_message="Failed to approve formula",
             )
+
+        metrics = get_metrics()
+        if metrics:
+            metrics.dec_formula_approval_pending(resolved_tenant_id)
+
+        return GovernanceTransitionResult(
+            success=True,
+            formula_id=formula_id,
+            old_status=FormulaStatus.UNDER_REVIEW,
+            new_status=FormulaStatus.APPROVED,
+        )
 
     async def reject(
         self,
         formula_id: str,
+        tenant_id: str,
         version: str,
         rejected_by: str,
         reason: str,
     ) -> GovernanceTransitionResult:
         """Reject formula (admin only)."""
+        resolved_tenant_id = await self._tenant_id_for_formula(formula_id, tenant_id)
         now = datetime.now(UTC).isoformat()
 
         query = """
@@ -602,37 +666,41 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.tenant_id as tenant_id
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(
-                query,
-                formula_id=formula_id,
-                version=version,
-                rejected_at=now,
-                rejected_by=rejected_by,
-                reason=reason,
-            )
-            record = await result.single()
-            tenant_id = (record.get("tenant_id") or "unknown") if record else "unknown"
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": formula_id,
+                "tenant_id": tenant_id,
+                "version": version,
+                "rejected_at": now,
+                "rejected_by": rejected_by,
+                "reason": reason,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.reject",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=formula_id,
-                    old_status=FormulaStatus.UNDER_REVIEW,
-                    new_status=FormulaStatus.UNDER_REVIEW,
-                    error_message="Failed to reject formula",
-                )
-
-            metrics = get_metrics()
-            if metrics:
-                metrics.dec_formula_approval_pending(tenant_id)
-
+        if not record:
             return GovernanceTransitionResult(
-                success=True,
+                success=False,
                 formula_id=formula_id,
                 old_status=FormulaStatus.UNDER_REVIEW,
-                new_status=FormulaStatus.DRAFT,
+                new_status=FormulaStatus.UNDER_REVIEW,
+                error_message="Failed to reject formula",
             )
+
+        metrics = get_metrics()
+        if metrics:
+            metrics.dec_formula_approval_pending(resolved_tenant_id)
+
+        return GovernanceTransitionResult(
+            success=True,
+            formula_id=formula_id,
+            old_status=FormulaStatus.UNDER_REVIEW,
+            new_status=FormulaStatus.DRAFT,
+        )
 
     async def _transition_status(
         self,
@@ -641,6 +709,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         from_status: FormulaStatus,
         to_status: FormulaStatus,
         requested_by: str,
+        tenant_id: str,
     ) -> GovernanceTransitionResult:
         """Helper for status transitions."""
         now = datetime.now(UTC).isoformat()
@@ -650,29 +719,34 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f.status as status
         """
 
-        async with self._driver.session() as session:
-            result = await session.run(check_query, formula_id=formula_id)
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=check_query,
+            params={"formula_id": formula_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="formula_governance_service.transition_status.check",
+        )
+        record = records[0] if records else None
 
-            if not record:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=formula_id,
-                    old_status=from_status,
-                    new_status=from_status,
-                    error_message="Formula not found",
-                )
+        if not record:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=formula_id,
+                old_status=from_status,
+                new_status=from_status,
+                error_message="Formula not found",
+            )
 
-            current_status = FormulaStatus(record["status"] or "draft")
+        current_status = FormulaStatus(record["status"] or "draft")
 
-            if current_status != from_status:
-                return GovernanceTransitionResult(
-                    success=False,
-                    formula_id=formula_id,
-                    old_status=current_status,
-                    new_status=current_status,
-                    error_message=f"Formula is in {current_status.value} status, expected {from_status.value}",
-                )
+        if current_status != from_status:
+            return GovernanceTransitionResult(
+                success=False,
+                formula_id=formula_id,
+                old_status=current_status,
+                new_status=current_status,
+                error_message=f"Formula is in {current_status.value} status, expected {from_status.value}",
+            )
 
         # Perform transition
         query = """
@@ -684,21 +758,26 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         RETURN f
         """
 
-        async with self._driver.session() as session:
-            await session.run(
-                query,
-                formula_id=formula_id,
-                version=version,
-                new_status=to_status.value,
-                updated_at=now,
-            )
+        await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
+                "formula_id": formula_id,
+                "tenant_id": tenant_id,
+                "version": version,
+                "new_status": to_status.value,
+                "updated_at": now,
+            },
+            tenant_id=tenant_id,
+            operation="formula_governance_service.transition_status",
+        )
 
-            return GovernanceTransitionResult(
-                success=True,
-                formula_id=formula_id,
-                old_status=from_status,
-                new_status=to_status,
-            )
+        return GovernanceTransitionResult(
+            success=True,
+            formula_id=formula_id,
+            old_status=from_status,
+            new_status=to_status,
+        )
 
     def _is_valid_semver(self, version: str) -> bool:
         """Validate semver format (X.Y.Z)."""

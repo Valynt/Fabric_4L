@@ -12,6 +12,7 @@ from uuid import UUID
 
 from neo4j import AsyncGraphDatabase
 
+from ..config.settings import get_settings
 from ..models.tool_schemas import (
     FindPathsInput,
     FindPathsOutput,
@@ -35,6 +36,10 @@ from .registry import BaseTool
 logger = logging.getLogger(__name__)
 
 
+class ConfigurationError(ValueError):
+    """Raised when a tool is misconfigured (e.g., missing a required secret)."""
+
+
 class QueryGraphTool(BaseTool):
     """Execute Cypher queries against the Neo4j knowledge graph."""
 
@@ -51,7 +56,11 @@ class QueryGraphTool(BaseTool):
             config.get("neo4j_uri", "bolt://localhost:7687") if config else "bolt://localhost:7687"
         )
         self.neo4j_user = config.get("neo4j_user", "neo4j") if config else "neo4j"
-        self.neo4j_password = config.get("neo4j_password", "password") if config else "password"
+        self.neo4j_password = config.get("neo4j_password") if config else None
+        if not self.neo4j_password:
+            self.neo4j_password = get_settings().neo4j_password
+        if not self.neo4j_password:
+            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -413,7 +422,11 @@ class GetEntityTool(BaseTool):
             config.get("neo4j_uri", "bolt://localhost:7687") if config else "bolt://localhost:7687"
         )
         self.neo4j_user = config.get("neo4j_user", "neo4j") if config else "neo4j"
-        self.neo4j_password = config.get("neo4j_password", "password") if config else "password"
+        self.neo4j_password = config.get("neo4j_password") if config else None
+        if not self.neo4j_password:
+            self.neo4j_password = get_settings().neo4j_password
+        if not self.neo4j_password:
+            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -518,7 +531,11 @@ class GetRelationshipsTool(BaseTool):
             config.get("neo4j_uri", "bolt://localhost:7687") if config else "bolt://localhost:7687"
         )
         self.neo4j_user = config.get("neo4j_user", "neo4j") if config else "neo4j"
-        self.neo4j_password = config.get("neo4j_password", "password") if config else "password"
+        self.neo4j_password = config.get("neo4j_password") if config else None
+        if not self.neo4j_password:
+            self.neo4j_password = get_settings().neo4j_password
+        if not self.neo4j_password:
+            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -614,7 +631,11 @@ class TraverseTreeTool(BaseTool):
             config.get("neo4j_uri", "bolt://localhost:7687") if config else "bolt://localhost:7687"
         )
         self.neo4j_user = config.get("neo4j_user", "neo4j") if config else "neo4j"
-        self.neo4j_password = config.get("neo4j_password", "password") if config else "password"
+        self.neo4j_password = config.get("neo4j_password") if config else None
+        if not self.neo4j_password:
+            self.neo4j_password = get_settings().neo4j_password
+        if not self.neo4j_password:
+            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -702,7 +723,11 @@ class FindPathsTool(BaseTool):
             config.get("neo4j_uri", "bolt://localhost:7687") if config else "bolt://localhost:7687"
         )
         self.neo4j_user = config.get("neo4j_user", "neo4j") if config else "neo4j"
-        self.neo4j_password = config.get("neo4j_password", "password") if config else "password"
+        self.neo4j_password = config.get("neo4j_password") if config else None
+        if not self.neo4j_password:
+            self.neo4j_password = get_settings().neo4j_password
+        if not self.neo4j_password:
+            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 

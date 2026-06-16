@@ -35,7 +35,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -439,17 +439,25 @@ async def update_tenant_settings(
     if not updates:
         raise ValidationError(message = "No fields to update")
 
-    # Build SET clause dynamically
+    _allowed_tenant_update_fields = {"name", "settings"}
+
+    # Build SET clause from allow-listed fields with bound parameters.
     set_parts = []
-    params: dict[str, Any] = {"id": str(tenant_id)}
+    params: dict[str, Any] = {}
+    for key, value in updates.items():
+        if key not in _allowed_tenant_update_fields:
+            raise HTTPException(status_code=400, detail=f"Cannot update field: {key}")
+        if key == "settings":
+            set_parts.append("settings = :settings::jsonb")
+            params["settings"] = json.dumps(value)
+        else:
+            set_parts.append(f"{key} = :{key}")
+            params[key] = value
 
-    if "name" in updates:
-        set_parts.append("name = :name")
-        params["name"] = updates["name"]
-    if "settings" in updates:
-        set_parts.append("settings = :settings::jsonb")
-        params["settings"] = json.dumps(updates["settings"])
+    if not set_parts:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
 
+    params["id"] = str(tenant_id)
     set_parts.append("updated_at = NOW()")
     set_clause = ", ".join(set_parts)
 

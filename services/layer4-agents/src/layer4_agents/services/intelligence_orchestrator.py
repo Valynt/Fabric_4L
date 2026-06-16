@@ -29,6 +29,8 @@ from typing import Any
 import structlog
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
+
 
 class IntelligenceOrchestrator_get_deal_readinessResult(TypedDictModel):
     account_id: Any
@@ -450,9 +452,13 @@ class IntelligenceOrchestrator:
                statuses
         ORDER BY total_impact DESC
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {"tenant_id": tenant_id})
-            records = [record async for record in result]
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_pipeline_summary",
+        )
 
         accounts = []
         total_pipeline_value = 0.0
@@ -528,13 +534,17 @@ class IntelligenceOrchestrator:
         ORDER BY s.confidence_score DESC
         LIMIT $limit
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "account_id": account_id,
                 "limit": MAX_SIGNALS_QUERY_LIMIT,
-            })
-            records = [record async for record in result]
+            },
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_account_signals",
+        )
         return [r["signal"] for r in records]
 
     async def _get_account_hypotheses(
@@ -548,13 +558,17 @@ class IntelligenceOrchestrator:
         ORDER BY vh.confidence_score DESC
         LIMIT $limit
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "account_id": account_id,
                 "limit": limit,
-            })
-            records = [record async for record in result]
+            },
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_account_hypotheses",
+        )
         return [r["hypothesis"] for r in records]
 
     async def _get_competitive_landscape(
@@ -570,9 +584,14 @@ class IntelligenceOrchestrator:
                count(DISTINCT won) AS total_wins,
                count(DISTINCT lost) AS total_losses
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {"tenant_id": tenant_id})
-            record = await result.single()
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_competitive_landscape",
+        )
+        record = records[0] if records else None
 
         if not record:
             return IntelligenceOrchestrator__get_competitive_landscapeResult.model_validate({"total_competitors": 0, "total_wins": 0, "total_losses": 0})
@@ -600,12 +619,17 @@ class IntelligenceOrchestrator:
         ORDER BY rc.created_at DESC
         LIMIT 1
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "account_id": account_id,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_roi_summary",
+        )
+        record = records[0] if records else None
 
         if not record or not record["calculation"]:
             return IntelligenceOrchestrator__get_roi_summaryResult.model_validate({})
@@ -631,9 +655,13 @@ class IntelligenceOrchestrator:
         ORDER BY e.created_at DESC
         LIMIT 10
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {"tenant_id": tenant_id})
-            records = [record async for record in result]
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={"tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_recent_evidence",
+        )
         return [r["evidence"] for r in records]
 
     async def _get_latest_narrative(
@@ -647,12 +675,17 @@ class IntelligenceOrchestrator:
         ORDER BY n.updated_at DESC
         LIMIT 1
         """
-        async with self._driver.session() as session:
-            result = await session.run(query, {
+        records = await fetch_tenant_validated_records(
+            driver=self._driver,
+            query=query,
+            params={
                 "tenant_id": tenant_id,
                 "account_id": account_id,
-            })
-            record = await result.single()
+            },
+            tenant_id=tenant_id,
+            operation="intelligence_orchestrator.get_latest_narrative",
+        )
+        record = records[0] if records else None
 
         if not record or not record["narrative"]:
             return None

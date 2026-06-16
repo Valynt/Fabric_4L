@@ -1,9 +1,20 @@
 from __future__ import annotations
 
-"""Shared Neo4j query helpers with tenant-context validation for Layer 4."""
+"""Shared Neo4j query helpers with tenant-context validation for Layer 4.
+
+DEPRECATED: This module is kept for backward compatibility. New code should
+use ``layer4_agents.services.tenant_cypher`` directly.
+"""
 
 
 from typing import Any
+
+from layer4_agents.services.tenant_cypher import (
+    TenantCypherValidationError,
+    fetch_tenant_validated_records,
+)
+
+__all__ = ["run_tenant_validated_query", "TenantCypherValidationError"]
 
 
 async def run_tenant_validated_query(
@@ -13,21 +24,21 @@ async def run_tenant_validated_query(
     tenant_id: str,
     params: dict[str, Any] | None = None,
 ) -> list[Any]:
-    """Execute a Neo4j query while enforcing tenant parameter consistency.
+    """Deprecated: use tenant_cypher.fetch_tenant_validated_records directly.
 
-    - Fails closed when no driver is provided.
-    - Rejects mismatched tenant IDs from call-site parameters.
-    - Always sends authenticated tenant_id value to Neo4j.
+    Preserves the legacy behavior of rejecting an explicit tenant_id parameter
+    that does not match the authenticated tenant context.
     """
-    if not driver:
+    params = params or {}
+    supplied_tenant_id = params.get("tenant_id")
+    if supplied_tenant_id is not None and supplied_tenant_id != tenant_id:
+        raise ValueError("Tenant context mismatch")
+    if driver is None:
         return []
-
-    scoped_params = dict(params or {})
-    provided_tenant = scoped_params.get("tenant_id")
-    if provided_tenant is not None and provided_tenant != tenant_id:
-        raise ValueError("Tenant context mismatch for Neo4j query")
-    scoped_params["tenant_id"] = tenant_id
-
-    async with driver.session() as session:
-        result = await session.run(query, scoped_params)
-        return [record async for record in result]
+    return await fetch_tenant_validated_records(
+        driver=driver,
+        query=query,
+        params=params,
+        tenant_id=tenant_id,
+        operation="run_tenant_validated_query",
+    )

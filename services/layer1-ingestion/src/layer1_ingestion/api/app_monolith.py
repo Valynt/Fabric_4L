@@ -808,7 +808,7 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
         raise ValueError("callback_url must have a valid hostname")
     hostname_lower = hostname.lower()
     # Reject well-known localhost variants and cloud metadata hostnames.
-    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104
         raise ValueError("callback_url must not point to localhost")
     if hostname_lower in _SSRF_BLOCKED_HOSTNAMES:
         raise ValueError("callback_url must not point to cloud metadata endpoints")
@@ -1798,7 +1798,7 @@ async def get_target_decisions(
     all_decisions = []
 
     for job_id in job_ids[:5]:  # Limit to recent 5 jobs
-        decisions = await repo.get_by_job(job_id, limit=20)
+        decisions = await repo.get_by_job(job_id, tenant_id=str(org_id), limit=20)
         all_decisions.extend(decisions)
 
     # Sort by created_at desc and limit
@@ -1843,7 +1843,7 @@ async def get_job_router_report(
         raise NotFoundError(message = "Job not found")
 
     repo = CrawlDecisionRepository(db)
-    report = await repo.get_router_quality_report(str(job_id))
+    report = await repo.get_router_quality_report(str(job_id), tenant_id=str(org_id))
 
     return RouterQualityReportResponse(
         job_id=UUID(report.job_id),
@@ -1894,7 +1894,7 @@ async def get_domain_fallback_stats(
 
     since = datetime.now(UTC) - timedelta(days=days)
     repo = CrawlDecisionRepository(db)
-    stats = await repo.get_fallback_stats(domain, since=since)
+    stats = await repo.get_fallback_stats(domain, tenant_id=str(org_id), since=since)
 
     return DomainFallbackStatsResponse(
         domain=stats.domain,

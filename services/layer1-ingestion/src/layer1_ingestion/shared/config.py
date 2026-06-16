@@ -159,8 +159,8 @@ class Settings(BaseSettings):
         if production_like:
             redis_url = self.redis_url.strip()
             s3_endpoint = self.s3_endpoint.strip()
-            s3_access_key = self.s3_access_key.strip()
-            s3_secret_key = self.s3_secret_key.strip()
+            s3_access_key = (self.s3_access_key or "").strip()
+            s3_secret_key = (self.s3_secret_key or "").strip()
 
             if self.debug:
                 errors.append("Debug mode must be disabled in production-like environments")
@@ -257,8 +257,8 @@ class Settings(BaseSettings):
 
     # Storage (MinIO/S3)
     s3_endpoint: str = Field(default="http://localhost:9000", description="S3/MinIO endpoint")
-    s3_access_key: str = Field(default="minioadmin", description="S3 access key")
-    s3_secret_key: str = Field(default="minioadmin", description="S3 secret key")
+    s3_access_key: str | None = Field(default=None, description="S3 access key (required in production-like environments)", alias="LAYER1_S3_ACCESS_KEY")
+    s3_secret_key: str | None = Field(default=None, description="S3 secret key (required in production-like environments)", alias="LAYER1_S3_SECRET_KEY")
     s3_bucket: str = Field(default="layer1-raw-html", description="S3 bucket for raw HTML")
     s3_region: str = Field(default="us-east-1", description="S3 region")
     private_storage_endpoint_allowlist: list[str] = Field(
@@ -314,7 +314,7 @@ class Settings(BaseSettings):
     )
 
     # API settings
-    api_host: str = Field(default="0.0.0.0", description="API server host")
+    api_host: str = Field(default="0.0.0.0", description="API server host")  # nosec B104
     api_port: int = Field(default=8000, description="API server port")
 
     # Layer 2 integration
