@@ -551,22 +551,6 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
             self._client = httpx.AsyncClient(headers=headers, timeout=30.0)
         return self._client
 
-    @staticmethod
-    def _validate_sfdc_id(value: str | None, field_name: str = "prospect_id") -> str:
-        if not value or not isinstance(value, str):
-            raise ValueError(f"Invalid {field_name} format: value is required")
-        if not value.isalnum():
-            raise ValueError(
-                f"Invalid {field_name} format: must be alphanumeric"
-            )
-        return value
-
-    @classmethod
-    def _soql_safe_id(cls, value: str | None, field_name: str = "prospect_id") -> str:
-        """Return a SOQL-safe ID string with defense-in-depth escaping."""
-        validated = cls._validate_sfdc_id(value, field_name)
-        return validated.replace("'", "''")
-
     async def execute(
         self, input_data: FetchInteractionHistoryInput
     ) -> FetchInteractionHistoryOutput:
@@ -631,7 +615,7 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
             LIMIT {input_data.limit}
         """
 
-        url = f"{self.instance_url}/services/data/v58.0/query?q={query}"
+        url = f"{self.instance_url}/services/data/v58.0/query?q={urllib.parse.quote(query)}"
         response = await client.get(url)
 
         interactions = []
