@@ -4,6 +4,7 @@ Spec-compliant pipeline stage tasks with multi-tenancy support.
 Manages ScrapingJob lifecycle through 11 PipelineStages.
 """
 
+import asyncio
 import hashlib
 import os
 import time
@@ -72,6 +73,16 @@ from ..skills import get_extraction_schema, get_skill
 
 # Maximum delivery attempts before an outbox event is dead-lettered.
 MAX_DISPATCH_ATTEMPTS = 5
+
+
+def _run_async(coro):
+    """Run an async coroutine from synchronous Celery task code.
+
+    Celery workers do not run an async task runner by default.  Wrapping the
+    async stage implementation with this helper guarantees the task entrypoint
+    returns a JSON-serializable dict instead of a coroutine object.
+    """
+    return asyncio.get_event_loop().run_until_complete(coro)
 
 
 def _domain_class(url: str) -> str:
@@ -301,7 +312,16 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+    """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
+
+    Celery worker processes are synchronous; run the async implementation in
+    a fresh event loop so the task return value is JSON-serializable.
+    """
+    return _run_async(_acompliance_check_stage(self, job_id, tenant_id))
+
+
+async def _acompliance_check_stage(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
     
     Args:
@@ -509,7 +529,16 @@ async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
+def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
+    """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
+
+    Synchronous Celery entrypoint that runs the async implementation in a
+    fresh event loop.
+    """
+    return _run_async(_abrowser_crawl_stage(self, prev_result, tenant_id))
+
+
+async def _abrowser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
@@ -779,7 +808,16 @@ async def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=5)
-async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+    """Stage 5: AI/LLM Extraction (conditional based on config).
+
+    Synchronous Celery entrypoint that runs the async implementation in a
+    fresh event loop.
+    """
+    return _run_async(_ai_extraction_stage(self, prev_result, tenant_id))
+
+
+async def _ai_extraction_stage(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
     
     Args:
@@ -1769,7 +1807,16 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
+def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
+    """Crawl a single URL with smart routing and return a structured result.
+
+    Synchronous Celery entrypoint that runs the async implementation in a
+    fresh event loop.
+    """
+    return _run_async(_acrawl_url_with_routing(self, job_id, url, tenant_id, target_mode))
+
+
+async def _acrawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
 
     Implements the hardening-pass routing logic with:
