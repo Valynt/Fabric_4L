@@ -23,41 +23,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  cleanup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Close Open PRs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Fetching all open PRs..."
-          PR_NUMBERS=$(gh pr list --state open --limit 500 --json number --jq '.[].number')
-          for PR in $PR_NUMBERS; do
-            if [[ "$PR" != "${{ github.event.pull_request.number }}" ]]; then
-              echo "Closing PR #$PR"
-              gh pr close "$PR" || echo "Failed to close PR #$PR"
-            fi
-          done
-
-      - name: Delete Branches
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Fetching all branches..."
-          git fetch --all
-          BRANCHES=$(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||')
-          for BRANCH in $BRANCHES; do
-            if [[ "$BRANCH" != "main" ]] && [[ "$BRANCH" != "${{ github.head_ref }}" ]]; then
-              echo "Deleting branch $BRANCH"
-              git push origin --delete "$BRANCH" || echo "Failed to delete branch $BRANCH"
-            fi
-          done
-  # Phase 6-7: Structural and contract verification (must pass before layer-specific checks)
   structural-preflight:
     name: Structural Preflight
     runs-on: ubuntu-latest

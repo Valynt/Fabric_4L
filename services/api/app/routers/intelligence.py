@@ -1,15 +1,47 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.database.tenant_validation import SYSTEM_TENANT_ID
 
-from app.core.database import db
 from app.core.account_scope import require_account_scope
+from app.core.database import db
 from app.core.security import TokenPayload, require_authenticated
-from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import EnrichmentResponse, FirmographicsResponse, OntologyMatchResponse, PaginatedResponse, Signal, Stakeholder
+from app.core.tenant_enforcement import enforce_authenticated_tenant
+from app.models.schemas import (
+    EnrichmentResponse,
+    FirmographicsResponse,
+    OntologyMatchResponse,
+    PaginatedResponse,
+    Signal,
+    Stakeholder,
+)
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Intelligence"])
-legacy_router = APIRouter(prefix="/intelligence/account/{account_id}", tags=["Intelligence"])
+legacy_router = APIRouter(
+    prefix="/intelligence/account/{account_id}", tags=["Intelligence"]
+)
+
+
+def _require_account_tenant(*, account_id: str, tenant_id: str, route: str) -> None:
+    """Fail closed when the requested account exists but belongs to a different tenant."""
+    acc = db.accounts.get(account_id, tenant_id=tenant_id)
+    if acc is not None:
+        return
+    # The account is not visible to the authenticated tenant. If it exists under
+    # any other tenant, reject with 403 to enforce cross-tenant isolation.
+    existing = db.accounts.list(
+        tenant_id=SYSTEM_TENANT_ID,
+        allow_system_scope=True,
+        filter_fn=lambda a: a.id == account_id,
+        limit=1,
+    )
+    if existing:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "TENANT_ISOLATION_ERROR",
+                "message": "Account access denied",
+            },
+        )
 
 
 @router.get("/signals", response_model=PaginatedResponse[Signal])
@@ -20,17 +52,43 @@ async def list_signals(
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals")
-    items = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = db.signals.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+    require_account_scope(
+        auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals"
+    )
+    _require_account_tenant(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        route="/v1/accounts/{account_id}/signals",
+    )
+    items = db.signals.list(
+        tenant_id=tenant_id,
+        filter_fn=lambda s: s.account_id == account_id,
+        limit=limit,
+        offset=offset,
+    )
+    total = db.signals.count(
+        tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id
+    )
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("/signals/extract", response_model=Signal, status_code=201)
 async def extract_signal(
-    account_id: str, signal: Signal, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)
+    account_id: str,
+    signal: Signal,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
 ):
-    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals/extract")
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/accounts/{account_id}/signals/extract",
+    )
+    _require_account_tenant(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        route="/v1/accounts/{account_id}/signals/extract",
+    )
     enforce_authenticated_tenant(
         body_tenant_id=signal.tenant_id,
         authenticated_tenant_id=tenant_id,
@@ -51,9 +109,23 @@ async def list_stakeholders(
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/stakeholders")
-    items = db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = db.stakeholders.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+    require_account_scope(
+        auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/stakeholders"
+    )
+    _require_account_tenant(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        route="/v1/accounts/{account_id}/stakeholders",
+    )
+    items = db.stakeholders.list(
+        tenant_id=tenant_id,
+        filter_fn=lambda s: s.account_id == account_id,
+        limit=limit,
+        offset=offset,
+    )
+    total = db.stakeholders.count(
+        tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id
+    )
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -63,10 +135,17 @@ async def get_ontology_match(
     tenant_id: str = Depends(tenant_required),
     auth: TokenPayload = Depends(require_authenticated),
 ):
-    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/ontology-match")
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/accounts/{account_id}/ontology-match",
+    )
+    _require_account_tenant(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        route="/v1/accounts/{account_id}/ontology-match",
+    )
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
-    if not acc:
-        raise NotFoundError(message="Account not found")
     pack = db.value_packs.get(acc.value_pack_id) if acc.value_pack_id else None
     return OntologyMatchResponse(
         account_id=account_id,
@@ -82,10 +161,15 @@ async def get_enrichment(
     tenant_id: str = Depends(tenant_required),
     auth: TokenPayload = Depends(require_authenticated),
 ):
-    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/enrichment")
+    require_account_scope(
+        auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/enrichment"
+    )
+    _require_account_tenant(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        route="/v1/accounts/{account_id}/enrichment",
+    )
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
-    if not acc:
-        raise NotFoundError(message="Account not found")
     return EnrichmentResponse(
         account_id=account_id,
         firmographics=FirmographicsResponse(
@@ -103,34 +187,88 @@ async def get_enrichment(
 async def list_signals_legacy(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    return await list_signals(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/intelligence/account/{account_id}/signals",
+    )
+    return await list_signals(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        auth=auth,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @legacy_router.post("/signals/extract", response_model=Signal, status_code=201)
 async def extract_signal_legacy(
-    account_id: str, signal: Signal, tenant_id: str = Depends(tenant_required)
+    account_id: str,
+    signal: Signal,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
 ):
-    return await extract_signal(account_id=account_id, signal=signal, tenant_id=tenant_id)
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/intelligence/account/{account_id}/signals/extract",
+    )
+    return await extract_signal(
+        account_id=account_id, signal=signal, tenant_id=tenant_id, auth=auth
+    )
 
 
 @legacy_router.get("/stakeholders", response_model=PaginatedResponse[Stakeholder])
 async def list_stakeholders_legacy(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    return await list_stakeholders(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/intelligence/account/{account_id}/stakeholders",
+    )
+    return await list_stakeholders(
+        account_id=account_id,
+        tenant_id=tenant_id,
+        auth=auth,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @legacy_router.get("/ontology-match", response_model=OntologyMatchResponse)
-async def get_ontology_match_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await get_ontology_match(account_id=account_id, tenant_id=tenant_id)
+async def get_ontology_match_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/intelligence/account/{account_id}/ontology-match",
+    )
+    return await get_ontology_match(
+        account_id=account_id, tenant_id=tenant_id, auth=auth
+    )
 
 
 @legacy_router.get("/enrichment", response_model=EnrichmentResponse)
-async def get_enrichment_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await get_enrichment(account_id=account_id, tenant_id=tenant_id)
+async def get_enrichment_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    require_account_scope(
+        auth=auth,
+        account_id=account_id,
+        route="/v1/intelligence/account/{account_id}/enrichment",
+    )
+    return await get_enrichment(account_id=account_id, tenant_id=tenant_id, auth=auth)

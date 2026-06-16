@@ -212,7 +212,14 @@ def upgrade() -> None:
         """
         ALTER TABLE model_versions ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_versions_isolation_policy ON model_versions
-        USING (tenant_id = current_setting('app.current_tenant')::UUID);
+            FOR ALL
+            TO PUBLIC
+            USING (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            );
         """
     )
 
@@ -221,7 +228,14 @@ def upgrade() -> None:
         """
         ALTER TABLE model_deployments ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_deployments_isolation_policy ON model_deployments
-        USING (tenant_id = current_setting('app.current_tenant')::UUID);
+            FOR ALL
+            TO PUBLIC
+            USING (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            );
         """
     )
 
@@ -230,7 +244,14 @@ def upgrade() -> None:
         """
         ALTER TABLE model_evaluations ENABLE ROW LEVEL SECURITY;
         CREATE POLICY model_evaluations_isolation_policy ON model_evaluations
-        USING (tenant_id = current_setting('app.current_tenant')::UUID);
+            FOR ALL
+            TO PUBLIC
+            USING (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                tenant_id::text = current_setting('app.tenant_id', true)
+            );
         """
     )
 
