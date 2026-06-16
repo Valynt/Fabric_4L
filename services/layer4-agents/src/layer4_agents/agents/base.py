@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.governance.abom import AgentBillOfMaterials
 
 _PLATFORM_CONTRACT_PYTHON = next(
     (parent / "packages" / "platform-contract" / "src" / "python" for parent in Path(__file__).resolve().parents if (parent / "packages" / "platform-contract" / "src" / "python").exists()),
@@ -189,6 +190,7 @@ class BaseAgent(ABC):
         self.agent_id = agent_id or f"{self.agent_type.lower()}-{self._id_gen.generate()[:8]}"
         self.config = config or {}
         self.message_bus = message_bus
+        self.abom: AgentBillOfMaterials | None = None
         self.state = AgentState(
             agent_id=self.agent_id,
             agent_type=self.agent_type,
@@ -197,12 +199,32 @@ class BaseAgent(ABC):
         self._initialized = False
         self._execution_lock = asyncio.Lock()
 
+    @staticmethod
+    def _default_manifest_dir() -> Path:
+        # base.py: agents -> layer4_agents -> src -> layer4-agents -> manifests
+        return Path(__file__).resolve().parents[3] / "manifests"
+
     async def initialize(self) -> None:
-        """Initialize agent resources."""
+        """Initialize agent resources and load the GATE ABOM manifest."""
         if self._initialized:
             return
 
         self.state.status = AgentStatus.INITIALIZING
+
+        # GATE Phase 2: load agent bill of materials
+        manifest_path = self.config.get("manifest_path")
+        if manifest_path:
+            from value_fabric.shared.governance.abom import load_abom
+
+            self.abom = load_abom(manifest_path)
+        else:
+            self.abom = AgentBillOfMaterials.from_manifest_dir(
+                self._default_manifest_dir(),
+                self.agent_type,
+                override_agent_id=self.agent_id,
+            )
+        self.state.metadata["abom_hash"] = self.abom.manifest_hash()
+
         await self._initialize_resources()
         self._initialized = True
         self.state.status = AgentStatus.IDLE
@@ -340,13 +362,13 @@ class BaseAgent(ABC):
 
         # ── GATE Phase 2: ToolGateway injection ──
         tool_gateway = None
-        if "tool_registry" in ctx and "abom" in ctx:
+        if "tool_registry" in ctx and self.abom is not None:
             try:
                 from value_fabric.shared.governance.tool_gateway import ToolGateway
 
                 tool_gateway = ToolGateway(
                     registry=ctx["tool_registry"],
-                    abom=ctx["abom"],
+                    abom=self.abom,
                     tenant_id=ctx.get("tenant_id"),
                     trace_id=ctx.get("trace_id"),
                 )
@@ -363,7 +385,7 @@ class BaseAgent(ABC):
                 replay_recorder = ReplayRecorder(
                     agent_id=self.agent_id,
                     agent_type=self.agent_type,
-                    abom=ctx.get("abom"),
+                    abom=self.abom,
                     tenant_id=ctx.get("tenant_id"),
                     trace_id=ctx.get("trace_id"),
                 )
