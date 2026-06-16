@@ -1408,7 +1408,9 @@ def notification_stage(self, prev_result: dict, tenant_id: str):
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 job = session.query(ScrapingJob).get(job_id)
                 if not job:
-                    return
+                    return notification_stageResult.model_validate(
+                        {"success": False, "job_id": str(job_id), "error": "Job not found"}
+                    ).model_dump()
 
                 _update_stage(session, job_id, PipelineStage.NOTIFICATION, "RUNNING")
                 job.progress_stage = PipelineStage.NOTIFICATION.value
