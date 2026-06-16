@@ -27,6 +27,7 @@
 | R-2026-06-13-01 | Contract tests / `make contract-tests` | ✅ Closed | Fixed in 2026-06-15 sweep; `make verify` passes |
 | R-2026-06-13-02 | Unit tests / `make test` | ✅ Closed | Fixed in 2026-06-15 sweep; `make verify` passes |
 | Local live-stack smoke | L1–L6 critical path | ✅ Verified (2026-06-14) | `signoff-evidence/e2e/e2e-critical-path-20260614.json` — `overall=pass`, `passed=12`, `failed=0` |
+| End-to-end value workflow (mock scenario) | Full intake → analysis → value hypothesis → evidence → output | **BLOCKED** | `docs/evidence/fabric4l-e2e-mock-workflow-20260616.md` — services not running and no LLM credentials in this environment; reproducible probe script and blocker evidence attached |
 | Security smoke | Fast PR gating | ✅ Pass | `make security-smoke` → 13 passed, 1 xfailed |
 | Rollback readiness | Release rollback procedure (static) | ✅ Pass | `python scripts/ci/verify_release_rollback.py` → 8/8 passed |
 | DR backup/restore | Backup verify + restore dry-run | ✅ Pass | `pnpm ops:backup:verify` → 13 passed; `pnpm ops:restore:dry-run` ✅ |

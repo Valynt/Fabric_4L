@@ -1,0 +1,82 @@
+{
+  "scenario": "Mid-market B2B SaaS evaluating Fabric_4L for GTM/value-engineering workflow",
+  "date_utc": "2026-06-16T08:45:30.241812+00:00",
+  "probe_script": "fabric4l-e2e-mock-workflow-probe-20260616.py",
+  "layer_health_checks": [
+    {
+      "layer": "L1",
+      "url": "http://localhost:8001/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.04,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "L2",
+      "url": "http://localhost:8002/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "L3",
+      "url": "http://localhost:8003/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "L4",
+      "url": "http://localhost:8004/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "L5",
+      "url": "http://localhost:8005/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "L6",
+      "url": "http://localhost:8006/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    },
+    {
+      "layer": "web",
+      "url": "http://localhost:3001/health",
+      "method": "GET",
+      "status": null,
+      "latency_seconds": 0.0,
+      "response_body_preview": null,
+      "error": "[Errno 111] Connection refused",
+      "result": "UNREACHABLE"
+    }
+  ],
+  "tenant_isolation_check": {
+    "description": "Attempt L4 /health without auth to verify fail-closed behavior (services must be running)",
+    "result": "NOT_EXECUTED",
+    "reason": "Services are unreachable; auth/fail-closed checks require running stack."
+  }
+}
