@@ -871,10 +871,22 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             claim_promotion = {"truth_object_ids": [], "claim_traceability": [], "threshold_decisions": []}
         else:
             sync_result = await self._sync_ground_truths_to_kg(state)
-            claim_promotion = await self._promote_case_claims_to_truth_objects(
-                state=state,
-                sections_data=sections_data,
-            )
+            try:
+                claim_promotion = await self._promote_case_claims_to_truth_objects(
+                    state=state,
+                    sections_data=sections_data,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Claim promotion failed (non-blocking) for org=%s: %s",
+                    gate_result.get("organization_id"),
+                    exc,
+                )
+                claim_promotion = {
+                    "truth_object_ids": [],
+                    "claim_traceability": [],
+                    "threshold_decisions": [],
+                }
         assemble_result["ground_truth_sync"] = sync_result
         assemble_result["case_metadata"] = {
             "account_id": str(state.case_input.account_id),
