@@ -367,3 +367,46 @@ class TestToolGateway:
         gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client)
         with pytest.raises(ToolGatewayDenied, match="deny-all"):
             await gw.execute("tool_a", {})
+
+
+import re  # noqa: E402
+
+
+def _camel_to_snake(name: str) -> str:
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+class TestABOMFromManifestDir:
+    """Manifest-dir loader must map every canonical agent type to its file."""
+
+    MANIFEST_DIR = Path(__file__).resolve().parents[3] / "services" / "layer4-agents" / "manifests"
+
+    @pytest.mark.parametrize(
+        "agent_type",
+        [
+            "ContextExtractionAgent",
+            "ValueModelAgent",
+            "IntegrityAgent",
+            "NarrativeAgent",
+            "CompetitiveIntelAgent",
+            "SignalDetectionAgent",
+            "CRMSyncAgent",
+            "ConversationAgent",
+            "OrchestrationController",
+        ],
+    )
+    def test_loads_canonical_agent_manifest(self, agent_type: str) -> None:
+        abom = AgentBillOfMaterials.from_manifest_dir(self.MANIFEST_DIR, agent_type)
+        assert abom.agent_type == agent_type
+        assert abom.is_tool_allowed(abom.allowed_tools[0]) is True
+
+    def test_missing_manifest_raises_file_not_found(self) -> None:
+        with pytest.raises(FileNotFoundError):
+            AgentBillOfMaterials.from_manifest_dir(self.MANIFEST_DIR, "NonExistentAgent")
+
+    def test_all_manifests_conform_to_schema(self) -> None:
+        schema = json.loads((SCHEMA_DIR / "abom.schema.json").read_text())
+        for path in self.MANIFEST_DIR.glob("*.abom.json"):
+            raw = json.loads(path.read_text())
+            jsonschema.Draft202012Validator(schema).validate(raw)
