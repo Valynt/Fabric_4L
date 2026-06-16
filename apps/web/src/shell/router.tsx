@@ -108,18 +108,8 @@ const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 
-function RootRedirect() {
-  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
-  const clerkEnabled = isClerkAuthEnabled();
-
-  let isLoading = legacyIsLoading;
-  let isAuthenticated = legacyIsAuthenticated;
-
-  if (clerkEnabled) {
-    const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-    isLoading = !clerkLoaded;
-    isAuthenticated = clerkLoaded && !!isSignedIn;
-  }
+function LegacyRootRedirect() {
+  const { isAuthenticated, isLoading } = useAuthContext();
 
   if (isLoading) {
     return (
@@ -132,8 +122,34 @@ function RootRedirect() {
   return isAuthenticated ? (
     <Navigate to="/home" replace />
   ) : (
-    <Navigate to={clerkEnabled ? "/sign-in" : "/login"} replace />
+    <Navigate to="/login" replace />
   );
+}
+
+function ClerkRootRedirect() {
+  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
+
+  const isLoading = !clerkLoaded || legacyIsLoading;
+  const isAuthenticated = clerkLoaded && !!isSignedIn;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[200px] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    );
+  }
+
+  return isAuthenticated ? (
+    <Navigate to="/home" replace />
+  ) : (
+    <Navigate to="/sign-in" replace />
+  );
+}
+
+export function RootRedirect() {
+  return isClerkAuthEnabled() ? <ClerkRootRedirect /> : <LegacyRootRedirect />;
 }
 
 function AccountOverviewRedirect() {
