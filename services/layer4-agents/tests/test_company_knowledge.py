@@ -19,29 +19,21 @@ _repo_root = _layer4_dir.parent.parent.resolve()
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from testcontainers.postgres import PostgresContainer
-
-from fastapi import FastAPI
 from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
 
 from layer4_agents.api.routes import company_knowledge as company_knowledge_route
-from layer4_agents.database import get_db_from_context, _mark_session_tenant_context
-from layer4_agents.models.company_knowledge import (
-    CompanyKnowledgeProfile,
-    ICPProfile,
-    KnowledgeSource,
-    ValueExtractionRecord,
-)
+from layer4_agents.database import _mark_session_tenant_context, get_db_from_context
 from layer4_agents.models.company_knowledge import (
     CompanyKnowledgeProfile,
     CrawlStatus,
@@ -53,8 +45,6 @@ from layer4_agents.models.company_knowledge import (
     ValueExtractionRecord,
 )
 from layer4_agents.services.company_knowledge_service import CompanyKnowledgeService
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
 
 pytestmark = [
     pytest.mark.integration,

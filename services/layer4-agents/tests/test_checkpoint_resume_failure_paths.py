@@ -12,12 +12,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.engine.executor import OrchestrationController, WorkflowExecutionError
 from layer4_agents.engine.state_manager import StateManager
 from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
 from layer4_agents.tools.registry import ToolRegistry
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class CorruptedCheckpointSaver_aget_tupleResult(TypedDictModel):
