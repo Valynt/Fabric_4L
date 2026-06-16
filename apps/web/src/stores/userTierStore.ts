@@ -362,15 +362,20 @@ const ROUTE_TIER_MAP: Record<string, UserTier> = {
 
 // Pre-sorted routes for efficient lookup (longest first for proper prefix matching)
 const SORTED_ROUTES = Object.entries(ROUTE_TIER_MAP).sort((a, b) => b[0].length - a[0].length);
+const mockAuthDefaultsToAdmin =
+  import.meta.env.DEV &&
+  import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' &&
+  import.meta.env.VITE_AUTH_PROVIDER !== 'clerk';
+const INITIAL_TIER: UserTier = mockAuthDefaultsToAdmin ? 'admin' : 'standard';
 
 export const useUserTierStore = create<UserTierState>()(
   persist(
     (set, get) => ({
       // Initial state
-      currentTier: 'standard',
-      isAdvancedModeEnabled: false,
+      currentTier: INITIAL_TIER,
+      isAdvancedModeEnabled: INITIAL_TIER !== 'standard',
       userRole: null,
-      permissions: getDefaultPermissions('standard'),
+      permissions: getDefaultPermissions(INITIAL_TIER),
 
       // Actions
       setTier: (tier) => {

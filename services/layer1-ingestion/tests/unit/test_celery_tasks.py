@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -379,6 +379,52 @@ class TestComplianceCheckStage:
         assert mock_job.status == "VALIDATING"
         assert result["success"] is True
         assert str(result["job_id"]) == str(job_id)
+
+    def test_compliance_check_stage_passes_full_url_to_robots_checker(self) -> None:
+        """RobotsChecker.check_url must receive the normalized URL, not a bare domain."""
+        from types import SimpleNamespace
+
+        from layer1_ingestion.shared.tasks import compliance_check_stage
+
+        job_id = uuid4()
+        tenant_id = uuid4()
+        target_id = uuid4()
+        normalized_url = "https://example.com:443/"
+
+        mock_job = Mock()
+        mock_job.id = job_id
+        mock_job.status = "PENDING"
+        mock_job.created_at = datetime.now(UTC)
+        mock_job.configuration = {
+            "url": "https://example.com",
+            "compliance": {"respect_robots_txt": True, "strict_robots_compliance": False},
+        }
+        mock_job.tenant_id = tenant_id
+        mock_job.target_id = target_id
+
+        mock_target = Mock()
+        mock_target.compliance = {"domain_allowlist": []}
+
+        mock_session = MagicMock()
+        mock_session.__enter__ = Mock(return_value=mock_session)
+        mock_session.__exit__ = Mock(return_value=False)
+        mock_session.query.return_value.get.return_value = mock_job
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_target
+
+        checker = AsyncMock()
+        checker.check_url.return_value = (True, None, {"crawl_delay": None})
+
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+            with patch("layer1_ingestion.shared.tasks._update_stage"):
+                with patch(
+                    "layer1_ingestion.shared.tasks.validate_url_safety",
+                    return_value=SimpleNamespace(normalized_url=normalized_url),
+                ):
+                    with patch("layer1_ingestion.shared.tasks.RobotsChecker", return_value=checker):
+                        result = compliance_check_stage.run(str(job_id), str(tenant_id))
+
+        assert result["success"] is True
+        checker.check_url.assert_awaited_once_with(normalized_url, job_id=str(job_id))
 
     def test_compliance_check_stage_missing_job_retries(self) -> None:
         """compliance_check_stage must raise when job is not found."""

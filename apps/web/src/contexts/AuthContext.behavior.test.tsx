@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
@@ -9,6 +10,7 @@ const mockClerkState = {
   userLoaded: true,
   user: null as { id: string; primaryEmailAddress?: { emailAddress?: string } | null; organizationMemberships?: Array<{ organization: { id: string }; role: string }> } | null,
   organization: null as { id: string; slug: string } | null,
+  signOut: vi.fn(async (_options?: { redirectUrl?: string }) => undefined),
 };
 
 vi.mock("@clerk/react", () => ({
@@ -24,14 +26,20 @@ vi.mock("@clerk/react", () => ({
   useOrganization: () => ({
     organization: mockClerkState.organization,
   }),
+  useClerk: () => ({
+    signOut: mockClerkState.signOut,
+  }),
 }));
 
 function Probe() {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, isLoading, logout } = useAuthContext();
   return (
     <div>
       <div data-testid="auth">{isAuthenticated ? "yes" : "no"}</div>
       <div data-testid="loading">{isLoading ? "yes" : "no"}</div>
+      <button type="button" onClick={() => void logout()}>
+        logout
+      </button>
     </div>
   );
 }
@@ -59,6 +67,7 @@ describe("Auth behavior invariants", () => {
     mockClerkState.isSignedIn = false;
     mockClerkState.user = null;
     mockClerkState.organization = null;
+    mockClerkState.signOut.mockClear();
   });
 
   afterEach(() => {
@@ -91,5 +100,26 @@ describe("Auth behavior invariants", () => {
 
     expect(screen.getByTestId("loading").textContent).toBe("no");
     expect(screen.getByTestId("auth").textContent).toBe("yes");
+  });
+
+  it("uses Clerk's signOut hook from render context in Clerk mode", async () => {
+    setAuthProvider("clerk");
+    mockClerkState.authLoaded = true;
+    mockClerkState.userLoaded = true;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_1", slug: "acme" };
+    mockClerkState.user = {
+      id: "user_1",
+      primaryEmailAddress: { emailAddress: "alice@example.com" },
+      organizationMemberships: [
+        { organization: { id: "org_1" }, role: "admin" },
+      ],
+    };
+
+    renderProbe();
+
+    await userEvent.click(screen.getByRole("button", { name: "logout" }));
+
+    expect(mockClerkState.signOut).toHaveBeenCalledWith({ redirectUrl: "/" });
   });
 });

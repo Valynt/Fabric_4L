@@ -21,7 +21,7 @@ from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCyph
 
 from ..config import Settings, get_settings
 from ..db.driver import get_driver
-from ..db.query_execution import run_scoped_query, run_validated_query
+from ..db.query_execution import run_scoped_query
 from ..retrieval.graph_rag import GraphRAGEngine
 from ..retrieval.vector_store import VectorStore
 
@@ -294,37 +294,30 @@ class HybridSearch:
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
-            tenant = self._resolve_tenant_id(tenant_id)
             for etype in search_types:
-                cypher = """
-                CALL () {
-                    CALL db.index.fulltext.queryNodes($index_name, $query)
-                    YIELD node, score
-                    WHERE node.tenant_id = $_tenant_id
-                    RETURN node, score
-                }
-                WITH node, score AS text_score
-                OPTIONAL MATCH (node)-[r]-(neighbor)
-                WHERE neighbor.tenant_id = $_tenant_id
-                WITH node, text_score, count(r) AS degree
-                RETURN node.id AS id, labels(node)[0] AS entity_type, node.name AS name,
-                       text_score * log(degree + 1) AS score
-                ORDER BY score DESC
-                LIMIT $limit
-                """
-                params = {
-                    "index_name": f"{etype.lower()}_fulltext",
-                    "query": escaped_query,
-                    "limit": top_k,
-                }
+                builder = self._tenant_builder(tenant_id)
+                scoped = builder.custom_tenant_query(
+                    """
+                    CALL () {
+                        CALL db.index.fulltext.queryNodes($index_name, $query)
+                        YIELD node, score
+                        WHERE node.tenant_id = $_tenant_id
+                        OPTIONAL MATCH (node)-[r]-(neighbor)
+                        WHERE neighbor.tenant_id = $_tenant_id
+                        WITH node, score as text_score, count(r) as degree
+                        RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
+                               text_score * log(degree + 1) as score
+                        ORDER BY score DESC
+                        LIMIT $limit
+                    }
+                    """,
+                    params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
+                    operation="hybrid_search.graph",
+                    labels=(etype,),
+                    allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
+                )
                 try:
-                    result = await run_validated_query(
-                        session.run,
-                        cypher,
-                        params,
-                        tenant_id=tenant,
-                        query_name="hybrid_search.graph",
-                    )
+                    result = await self._run_scoped(session, scoped)
                     records = [dict(record) async for record in result]
                     for row in records:
                         if row.get("entity_type") == etype:

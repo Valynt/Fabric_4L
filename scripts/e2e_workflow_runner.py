@@ -283,6 +283,15 @@ def wait_for_l1_output(
     transcript: list[ApiCall],
 ) -> dict[str, Any]:
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    def _raw_content_count(body: dict[str, Any]) -> int:
+        if body.get("raw_content_count") is not None:
+            return int(body.get("raw_content_count") or 0)
+        results = body.get("results") or {}
+        if isinstance(results, dict):
+            return int(results.get("raw_content_count") or 0)
+        return 0
+
     job = poll_call(
         transcript=transcript,
         step="l1_poll_job_completion",
@@ -291,7 +300,7 @@ def wait_for_l1_output(
         headers=headers,
         timeout_seconds=L1_TIMEOUT_SECONDS,
         is_done=lambda body: str(body.get("status")) in L1_TERMINAL_SUCCESS
-        and int(body.get("raw_content_count") or 0) > 0,
+        and _raw_content_count(body) > 0,
         is_failed=lambda body: str(body.get("status")) in L1_TERMINAL_FAILURE,
         failure_message=lambda body: f"status={body.get('status')}, errors={body.get('errors')}",
     )
@@ -944,7 +953,7 @@ def main() -> int:
         "actual_invocations": actual_invocations,
         "notes": llm_notes,
     }
-    llm_path = "docs/evidence/fabric4l-e2e-llm-trace-20260615.json"
+    llm_path = f"docs/evidence/fabric4l-e2e-llm-trace-{run_stamp}.json"
     with open(llm_path, "w") as f:
         json.dump(llm_trace, f, indent=2, default=str)
     print(f"Wrote {llm_path}")
