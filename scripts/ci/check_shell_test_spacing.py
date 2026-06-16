@@ -15,8 +15,8 @@ from pathlib import Path
 WORKFLOW_DIR = Path(".github/workflows")
 # Patterns that indicate a malformed test construct in a shell run block.
 BAD_PATTERNS = [
-    re.compile(r"if\s*\[\[(?![ \t])"),   # [[ not followed by whitespace
-    re.compile(r"if\s*\[(?!\[)(?![ \t])"),  # [ not followed by [ or whitespace
+    re.compile(r"(?:if|elif)\s*\[\[(?![ \t])"),   # [[ not followed by whitespace
+    re.compile(r"(?:if|elif)\s*\[(?!\[)(?![ \t])"),  # [ not followed by [ or whitespace
 ]
 
 
