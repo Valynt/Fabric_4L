@@ -37,6 +37,8 @@ on:
       - 'scripts/ci/check_deprecated_namespace_imports.py'
       - 'scripts/ci/check_stale_namespace_dirs.py'
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0" # Weekly on Sunday
 
 concurrency:
   group: repo-hygiene-${{ github.ref }}
@@ -122,3 +124,99 @@ jobs:
           name: repo-hygiene-report
           path: artifacts/repo-hygiene.json
           retention-days: 14
+
+  branch-cleanup:
+    name: Cleanup Stale Branches
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Delete stale branches and close PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const daysToStale = 30;
+            const threshold = new Date();
+            threshold.setDate(threshold.getDate() - daysToStale);
+            
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            for (const branch of branches) {
+              if (branch.name === 'main' || branch.name.startsWith('release/')) continue;
+              
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: branch.commit.sha,
+              });
+              const commitDate = new Date(commit.data.commit.committer.date);
+              const isStale = commitDate < threshold;
+              
+              // We also aggressively clean up fully merged branches or abandoned bot branches
+              const isBotBranch = branch.name.startsWith('copilot/') || branch.name.startsWith('codex/');
+              
+              const pulls = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch.name}`,
+                state: 'open'
+              });
+              
+              // If it has no open PRs and it's a bot branch, or if it's stale, or if it's fully merged
+              let isFullyMerged = false;
+              const isAbandonedBotBranch = isBotBranch && pulls.data.length === 0;
+              const shouldCheckIfFullyMerged = !isStale && !isAbandonedBotBranch;
+              
+              if (shouldCheckIfFullyMerged) {
+                try {
+                  const compare = await github.rest.repos.compareCommits({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    base: 'main',
+                    head: branch.name
+                  });
+                  isFullyMerged = compare.data.ahead_by === 0;
+                } catch (e) {
+                  console.error(`Failed to compare ${branch.name} with main: ${e.message}`);
+                }
+              }
+              
+              if (isStale || isFullyMerged || isAbandonedBotBranch) {
+                const failedPRs = [];
+                for (const pr of pulls.data) {
+                  console.log(`Closing PR: ${pr.number} (branch: ${branch.name})`);
+                  try {
+                    await github.rest.pulls.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pr.number,
+                      state: 'closed'
+                    });
+                  } catch (e) {
+                    console.error(`Failed to close PR ${pr.number}: ${e.message}`);
+                    failedPRs.push(pr.number);
+                  }
+                }
+                
+                if (failedPRs.length === 0) {
+                  console.log(`Deleting branch: ${branch.name}`);
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `heads/${branch.name}`
+                    });
+                  } catch (e) {
+                    console.error(`Failed to delete ${branch.name}: ${e.message}`);
+                  }
+                } else {
+                  console.error(`Skipping deletion of branch ${branch.name}. Failed to close PRs: ${failedPRs.join(', ')}`);
+                }
+              }
+            }
