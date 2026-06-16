@@ -59,6 +59,7 @@ from ..models.benchmark_dataset import (
     StatisticalProfile,
 )
 from ..repositories.benchmark_repository import BenchmarkRepository
+from ..seed.load_benchmark_packs import load_default_benchmark_packs
 from ..settings import Layer6Settings, validate_layer6_startup_settings
 from ..shared_bootstrap import (
     SecurityConfig,
@@ -213,6 +214,7 @@ async def lifespan(app: FastAPI):
         driver = await get_driver()
         _benchmark_repo = BenchmarkRepository(driver)
         await _init_seed_data()
+        await load_default_benchmark_packs(_benchmark_repo)
         dataset_count = len(await _benchmark_repo.list_datasets(tenant_id="system"))
         _neo4j_startup_error = None
         logger.info("Layer 6 Benchmark Service started with %d datasets", dataset_count)
@@ -484,15 +486,15 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
         percentile = 95
 
     if percentile >= 80:
-        assessment = "top performer"
+        assessment = "top_performer"
     elif percentile >= 60:
-        assessment = "above average"
+        assessment = "above_average"
     elif percentile >= 40:
         assessment = "average"
     elif percentile >= 20:
-        assessment = "below average"
+        assessment = "below_average"
     else:
-        assessment = "needs improvement"
+        assessment = "needs_improvement"
 
     if profile.sample_size >= 1000:
         confidence = "high"

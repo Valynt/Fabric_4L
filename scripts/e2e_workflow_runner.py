@@ -694,7 +694,7 @@ def main() -> int:
     # 8. Layer 6 benchmarks
     print("\n=== Step 8: Layer 6 benchmarks ===")
     l6_admin_token = make_token(tenant_id, roles=["super_admin"])
-    benchmark_dataset_id = os.getenv("E2E_BENCHMARK_DATASET_ID", "saas-b2b-efficiency-2024")
+    benchmark_dataset_id = os.getenv("E2E_BENCHMARK_DATASET_ID", "saas-se-efficiency-2025")
     benchmark_metric = os.getenv("E2E_BENCHMARK_METRIC", "se_hours_per_opportunity")
     l6_dataset = ApiCall(
         step="l6_get_preloaded_dataset",
@@ -738,6 +738,26 @@ def main() -> int:
     l6_compare.run()
     transcript.append(l6_compare)
     require_success(l6_compare)
+
+    compare_body = l6_compare.response_body if isinstance(l6_compare.response_body, dict) else {}
+    assessment = compare_body.get("assessment")
+    valid_buckets = {
+        "top_performer",
+        "above_average",
+        "average",
+        "below_average",
+        "needs_improvement",
+    }
+    if assessment not in valid_buckets:
+        print(
+            f"L6 benchmark compare returned unexpected assessment bucket: {assessment}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(
+        f"L6 benchmark compare: dataset={benchmark_dataset_id}, "
+        f"percentile={compare_body.get('percentile')}, assessment={assessment}"
+    )
 
     # 9. Security / tenant isolation / fail-closed checks
     print("\n=== Step 9: Security / tenant isolation checks ===")
@@ -796,7 +816,7 @@ def main() -> int:
                 "segment": dataset_body.get("segment"),
                 "version": dataset_body.get("version"),
                 "data_source": dataset_body.get("data_source"),
-                "source_mode": "preloaded_fixture_or_system_seed",
+                "source_mode": "global_system_pack_seed",
                 "sample_size": (
                     metrics_payload.get(benchmark_metric, {})
                     .get("profile", {})

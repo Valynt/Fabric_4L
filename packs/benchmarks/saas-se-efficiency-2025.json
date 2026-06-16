@@ -1,0 +1,86 @@
+{
+  "dataset_id": "saas-se-efficiency-2025",
+  "name": "SaaS SE Efficiency 2025",
+  "description": "Peer benchmarks for SaaS sales engineering and value-engineering workflow efficiency. Curated from mid-market B2B SaaS participants in North America.",
+  "industry": "software",
+  "segment": "mid-market",
+  "geography": "north-america",
+  "version": "1.0.0",
+  "data_source": "Value Fabric SE Benchmark Study 2025 / OpenView Partners",
+  "is_public": true,
+  "ownership_mode": "global_system",
+  "metrics": {
+    "se_hours_per_opportunity": {
+      "name": "se_hours_per_opportunity",
+      "unit": "hours",
+      "description": "Sales engineering hours spent per qualified opportunity across the full sales cycle (discovery through close).",
+      "profile": {
+        "p10": "1.2",
+        "p25": "2.2",
+        "p50": "3.5",
+        "p75": "5.5",
+        "p90": "8.0",
+        "mean": "4.0",
+        "std_dev": "1.9",
+        "sample_size": 920
+      },
+      "lower_bound": "0.5",
+      "upper_bound": "24.0",
+      "is_higher_better": false
+    },
+    "sales_cycle_days": {
+      "name": "sales_cycle_days",
+      "unit": "days",
+      "description": "Average length of a qualified opportunity sales cycle for mid-market SaaS deals.",
+      "profile": {
+        "p10": "35",
+        "p25": "55",
+        "p50": "80",
+        "p75": "115",
+        "p90": "160",
+        "mean": "88",
+        "std_dev": "32",
+        "sample_size": 780
+      },
+      "lower_bound": "7",
+      "upper_bound": "365",
+      "is_higher_better": false
+    },
+    "late_stage_win_rate_percent": {
+      "name": "late_stage_win_rate_percent",
+      "unit": "percent",
+      "description": "Win rate for opportunities that reach late-stage evaluation (proposal/negotiation).",
+      "profile": {
+        "p10": "12",
+        "p25": "18",
+        "p50": "26",
+        "p75": "35",
+        "p90": "45",
+        "mean": "27",
+        "std_dev": "9",
+        "sample_size": 850
+      },
+      "lower_bound": "5",
+      "upper_bound": "80",
+      "is_higher_better": true
+    },
+    "ae_se_ratio": {
+      "name": "ae_se_ratio",
+      "unit": "ratio",
+      "description": "Ratio of account executives to sales engineers in the GTM organization.",
+      "profile": {
+        "p10": "2.0",
+        "p25": "2.5",
+        "p50": "3.5",
+        "p75": "5.0",
+        "p90": "7.0",
+        "mean": "4.0",
+        "std_dev": "1.4",
+        "sample_size": 640
+      },
+      "lower_bound": "1.0",
+      "upper_bound": "15.0",
+      "is_higher_better": false
+    }
+  }
+}
