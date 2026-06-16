@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from value_fabric.shared.security import detect_environment
@@ -57,20 +56,21 @@ def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | N
         # the production fail-closed behavior.
         return
 
-    active_flags: list[str] = []
-    for env_name in _BYPASS_ENV_FLAGS:
-        if _flag_is_truthy(os.getenv(env_name, "")):
-            active_flags.append(env_name)
+    # Canonical env-var check.
+    from value_fabric.shared.identity.auth_mode import _raise_if_bypass_in_nonlocal_env
 
+    _raise_if_bypass_in_nonlocal_env(service_name=service_name)
+
+    # Backwards-compatible settings-field check (kept for callers that pass
+    # pydantic-style settings objects with bypass fields).
+    active_settings: list[str] = []
     if settings is not None:
         for field_name in _BYPASS_SETTINGS_FIELDS:
             if hasattr(settings, field_name) and _flag_is_truthy(getattr(settings, field_name)):
-                canonical = field_name.upper()
-                if canonical not in active_flags:
-                    active_flags.append(canonical)
+                active_settings.append(field_name.upper())
 
-    if active_flags:
-        joined = ", ".join(sorted(set(active_flags)))
+    if active_settings:
+        joined = ", ".join(sorted(set(active_settings)))
         raise RuntimeError(
             f"{service_name} startup rejected: production-like environment cannot enable auth bypass flags: {joined}."
         )

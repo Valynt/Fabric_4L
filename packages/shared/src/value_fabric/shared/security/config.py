@@ -200,44 +200,33 @@ class ProductionSafetyValidator:
             )
 
         # Auth bypass flags must never be enabled in production-like envs.
-        allow_insecure_bypass = os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").lower() in (
-            "true",
-            "1",
-            "yes",
+        from value_fabric.shared.identity.auth_mode import (
+            _bypass_flags_are_set,
+            _raise_if_bypass_in_nonlocal_env,
         )
-        if self.environment == "development" and allow_insecure_bypass:
-            warnings.warn(
-                "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            self.errors.append(
-                "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active."
-            )
-        elif allow_insecure_bypass:
-            self.errors.append(
-                "ALLOW_INSECURE_DEV_AUTH_BYPASS must be false or unset in production-like environments. "
-                "Development authentication bypass is a critical security risk."
-            )
+
+        active_bypass_flags = _bypass_flags_are_set()
+        if active_bypass_flags:
+            if self.environment == "development":
+                for flag in sorted(active_bypass_flags):
+                    warnings.warn(
+                        f"{flag} is enabled in development; authentication bypass may be active.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+                    self.errors.append(
+                        f"{flag} is enabled in development; authentication bypass may be active."
+                    )
+            else:
+                try:
+                    _raise_if_bypass_in_nonlocal_env(service_name="ProductionSafetyValidator")
+                except RuntimeError as exc:
+                    self.errors.append(str(exc))
+
         if os.getenv("JWT_FALLBACK_TO_QUERY_PARAM", "").lower() in ("true", "1", "yes"):
             self.errors.append(
                 "JWT_FALLBACK_TO_QUERY_PARAM must be false or unset in production-like environments. "
                 "Passing tokens in query strings leaks credentials to logs and proxies."
-            )
-        if os.getenv("DEV_AUTH_BYPASS", "").lower() in ("true", "1", "yes"):
-            self.errors.append(
-                "DEV_AUTH_BYPASS must be false or unset in production-like environments. "
-                "Development authentication bypass is a critical security risk."
-            )
-        if os.getenv("ALLOW_DEV_AUTH_BYPASS", "").lower() in ("true", "1", "yes"):
-            self.errors.append(
-                "ALLOW_DEV_AUTH_BYPASS must be false or unset in production-like environments. "
-                "Development authentication bypass is a critical security risk."
-            )
-        if os.getenv("AUTH_BYPASS_ENABLED", "").lower() in ("true", "1", "yes"):
-            self.errors.append(
-                "AUTH_BYPASS_ENABLED must be false or unset in production-like environments. "
-                "Development authentication bypass is a critical security risk."
             )
 
     # ------------------------------------------------------------------

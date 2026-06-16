@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,52 @@ _BYPASS_FLAGS = (
     "ALLOW_DEV_AUTH_BYPASS",
     "AUTH_BYPASS_ENABLED",
 )
+
+_TRUE_VALUES = frozenset({"true", "1", "yes", "on", "i_understand_risk"})
+_EXPLICIT_LOCAL_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
+
+
+def _flag_value_is_truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in _TRUE_VALUES
+
+
+def _bypass_flags_are_set() -> set[str]:
+    active: set[str] = set()
+    for flag in _BYPASS_FLAGS:
+        if _flag_value_is_truthy(os.getenv(flag)):
+            active.add(flag)
+    return active
+
+
+def _raise_if_bypass_in_nonlocal_env(service_name: str) -> None:
+    env = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("ENV")
+        or os.getenv("APP_ENV")
+        or "development"
+    ).strip().lower()
+
+    active_flags = _bypass_flags_are_set()
+    if env in _EXPLICIT_LOCAL_ENVIRONMENTS:
+        if active_flags:
+            logger.warning(
+                "%s: auth bypass flag(s) %s are set in %s environment. "
+                "These flags are permitted only in local/test environments.",
+                service_name,
+                ", ".join(sorted(active_flags)),
+                env,
+            )
+        return
+
+    if active_flags:
+        joined = ", ".join(sorted(active_flags))
+        raise RuntimeError(
+            f"{service_name} startup rejected: production-like environment cannot enable auth bypass flags: {joined}."
+        )
 
 
 def _warn_if_legacy_flags() -> None:
