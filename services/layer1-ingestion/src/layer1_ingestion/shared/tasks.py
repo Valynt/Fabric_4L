@@ -153,7 +153,14 @@ logger = structlog.get_logger()
 
 
 def _run_async(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    # In a Celery worker there is no running event loop, so run the coroutine
+    # to completion. When called from an async test context (e.g. pytest-asyncio)
+    # with a running loop, return the coroutine so the caller can await it.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    return coro
 
 # Initialize Celery app
 celery_app = Celery(
