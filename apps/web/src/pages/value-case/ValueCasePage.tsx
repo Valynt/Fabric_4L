@@ -17,7 +17,7 @@ import type { StudioTabProps } from "@/features/value-studio/types";
 export default function ValueCasePage({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
 
-  const { versions, selectedVersion, setSelectedVersionId, generateArtifact } = useValueCaseArtifacts(accountId ?? null);
+  const { versions, versionsError, selectedVersion, setSelectedVersionId, generateArtifact, publishArtifact } = useValueCaseArtifacts(accountId ?? null);
 
   const previousVersion = useMemo(() => {
     if (!selectedVersion) return null;
@@ -36,6 +36,15 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
 
   if (!account) {
     return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
+  }
+
+  if (versionsError) {
+    return (
+      <ErrorState
+        title="Failed to load value cases"
+        description={versionsError instanceof Error ? versionsError.message : "Could not load value case versions."}
+      />
+    );
   }
 
   const handleGenerate = () => {
@@ -70,6 +79,16 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
             {generateArtifact.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             {versions.length ? "Regenerate" : "Generate"}
           </Button>
+          {selectedVersion && selectedVersion.status !== "published" && (
+            <Button
+              variant="secondary"
+              onClick={() => publishArtifact.mutate(selectedVersion.id)}
+              disabled={publishArtifact.isPending}
+            >
+              {publishArtifact.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Publish
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4">
