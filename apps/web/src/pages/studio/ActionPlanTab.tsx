@@ -7,9 +7,6 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ChevronDown, ChevronUp, Lightbulb, Package, Sparkles, ArrowRight } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { useNavigation } from "@/hooks";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
@@ -149,7 +146,6 @@ export default function ActionPlanTab() {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { navigateTo } = useNavigation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
   // DIL data
@@ -178,12 +174,6 @@ export default function ActionPlanTab() {
     [recommendations]
   );
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "action-plan",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
-
   if (!accountId) {
     return <AccountRequiredGuard accountId={accountId} />;
   }
@@ -197,26 +187,7 @@ export default function ActionPlanTab() {
   }
 
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="action-plan"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-          steps={steps}
-          isStreaming={isStreaming}
-          runMetadata={metadata}
-        />
-      }
-    >
+    <>
       {/* Metrics row */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard label="Recommendations" value={String(recommendations.length)} />
@@ -349,6 +320,6 @@ export default function ActionPlanTab() {
           </div>
         </SectionCard>
       )}
-    </ValueStudioShellComponent>
+    </>
   );
 }

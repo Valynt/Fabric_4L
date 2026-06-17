@@ -3,12 +3,9 @@
  *
  * Route: /value-case/:accountId
  */
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { AlertCircle, FileText, GitCompare, Loader2, RefreshCw } from "lucide-react";
-import ValueCaseShell from "@/components/workspace/ValueCaseShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -21,13 +18,6 @@ export default function ValueCasePage() {
   const params = useParams<{ accountId: string }>();
   const accountId = params.accountId ?? null;
   const { data: account, isLoading: accountLoading } = useAccount(accountId);
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
-
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "value-case",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
 
   const { versions, selectedVersion, setSelectedVersionId, generateArtifact } = useValueCaseArtifacts(accountId);
 
@@ -67,27 +57,7 @@ export default function ValueCasePage() {
   };
 
   return (
-    <ValueCaseShell
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="value-case"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-          steps={steps}
-          isStreaming={isStreaming}
-          runMetadata={metadata}
-        />
-      }
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -157,7 +127,6 @@ export default function ValueCasePage() {
             </div>
           )}
         </SectionCard>
-      </div>
-    </ValueCaseShell>
+    </div>
   );
 }

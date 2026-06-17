@@ -4,7 +4,8 @@
  * Primary data: workspace case narratives (existing)
  * DIL enrichment: DIL Narrative Builder for tone/audience-specific generation
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import {
   Users,
@@ -15,10 +16,8 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
 import { cn } from "@/lib/utils";
-import { useAgentEvents } from "@/agui";
+import { useStudioDetailRail } from "@/features/value-studio/StudioRightRailContext";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
@@ -145,7 +144,6 @@ export default function NarrativeTab() {
   const [selectedNarrative, setSelectedNarrative] =
     useState<NarrativeVersion | null>(null);
   const [selectedDIL, setSelectedDIL] = useState<Narrative | null>(null);
-  const [railMode, setRailMode] = useState<RightRailMode>("detail");
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [genTone, setGenTone] = useState<string>("executive");
   const [genAudience, setGenAudience] = useState<string>("c_suite");
@@ -167,12 +165,44 @@ export default function NarrativeTab() {
       setSelectedNarrative(narratives[0]);
   }, [narratives, selectedNarrative, selectedDIL]);
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "narrative",
-    accountName: account?.name ?? "Account",
-  });
-
   const generateMutation = useGenerateWorkspaceIntelligence();
+
+  const detailNode = useMemo<ReactNode>(() => {
+    if (selectedNarrative) {
+      const status = STATUS_CONFIG[selectedNarrative.status];
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedNarrative.stakeholder}</h3>
+          <p className="text-xs text-muted-foreground">{selectedNarrative.role}</p>
+          {status && (
+            <span className={cn("vf-text-micro font-semibold", status.color)}>
+              {status.label}
+            </span>
+          )}
+        </div>
+      );
+    }
+    if (selectedDIL) {
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {selectedDIL.tone} · {selectedDIL.audience}
+          </p>
+          <span
+            className={cn(
+              "vf-text-micro font-semibold",
+              DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
+            )}
+          >
+            {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }, [selectedNarrative, selectedDIL]);
+  useStudioDetailRail(detailNode);
 
   useEffect(() => {
     if (
@@ -243,70 +273,9 @@ export default function NarrativeTab() {
   }
 
   const readyCount = narratives.filter((n) => n.status === "ready").length;
-  const selectedStatus = selectedNarrative
-    ? STATUS_CONFIG[selectedNarrative.status]
-    : null;
 
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue
-          ? `$${account.annual_revenue.toLocaleString()}`
-          : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          detailContent={
-            selectedNarrative ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">
-                  {selectedNarrative.stakeholder}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedNarrative.role}
-                </p>
-                {selectedStatus && (
-                  <span
-                    className={cn(
-                      "vf-text-micro font-semibold",
-                      selectedStatus.color
-                    )}
-                  >
-                    {selectedStatus.label}
-                  </span>
-                )}
-              </div>
-            ) : selectedDIL ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedDIL.tone} · {selectedDIL.audience}
-                </p>
-                <span
-                  className={cn(
-                    "vf-text-micro font-semibold",
-                    DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
-                  )}
-                >
-                  {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
-                </span>
-              </div>
-            ) : null
-          }
-          activeTab="narrative"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-            steps={steps}
-            isStreaming={isStreaming}
-            runMetadata={metadata}
-        />
-      }
-    >
+    <>
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard
@@ -534,6 +503,6 @@ export default function NarrativeTab() {
           </div>
         </SectionCard>
       ) : null}
-    </ValueStudioShellComponent>
+    </>
   );
 }
