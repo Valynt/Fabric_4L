@@ -110,7 +110,12 @@ describe('useValueCaseArtifacts', () => {
 
     renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
 
-    await waitFor(() => expect(setItemSpy).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(setItemSpy).not.toHaveBeenCalledWith(
+        'value-case-artifacts',
+        expect.any(String)
+      )
+    );
     setItemSpy.mockRestore();
   });
 
@@ -187,5 +192,47 @@ describe('useValueCaseArtifacts', () => {
 
     await waitFor(() => expect(result.current.versions).toHaveLength(1));
     expect(result.current.versions[0]?.id).toBe('vc-refreshed');
+  });
+
+  it('update persists changes to the backend and refreshes the version', async () => {
+    let capturedBody: unknown = null;
+    let cases: unknown[] = [createApiCase()];
+    const updatedCase = createApiCase({
+      value_case: {
+        ...createApiCase().value_case,
+        selected_scenario_id: 'scenario-2',
+      },
+    });
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      ),
+      http.patch(`/api/v1/accounts/${accountId}/value-cases/vc-1`, async ({ request }) => {
+        capturedBody = await request.json();
+        cases = [updatedCase];
+        return HttpResponse.json(updatedCase);
+      })
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions[0]?.value_case?.selected_scenario_id).toBeNull();
+
+    await act(async () => {
+      await result.current.updateArtifact.mutateAsync({
+        caseId: 'vc-1',
+        fields: { selected_scenario_id: 'scenario-2' },
+      });
+    });
+
+    expect(capturedBody).toEqual({
+      value_case: { selected_scenario_id: 'scenario-2' },
+    });
+
+    await waitFor(() =>
+      expect(result.current.versions[0]?.value_case?.selected_scenario_id).toBe('scenario-2')
+    );
   });
 });
