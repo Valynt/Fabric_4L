@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
-import { QK } from './queryKeys';
-import { useGenerateNarrative } from './useNarratives';
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiGet, apiPatch, apiPost } from "@/api/typedClient";
+import { QK } from "./queryKeys";
+import { useGenerateNarrative } from "./useNarratives";
 
 export interface ValueCaseArtifactsInput {
   account_id: string;
@@ -62,7 +62,7 @@ export interface ValueCaseArtifactVersion {
   };
   business_case: {
     summary: string;
-    metrics: ValueCaseArtifactsInput['roi_metrics'];
+    metrics: ValueCaseArtifactsInput["roi_metrics"];
     risks: string[];
   };
   value_case?: ValueCaseContent;
@@ -84,15 +84,17 @@ interface ApiBusinessCase {
   risks?: string[];
 }
 
-function apiCaseToArtifactVersion(apiCase: ApiBusinessCase): ValueCaseArtifactVersion {
+function apiCaseToArtifactVersion(
+  apiCase: ApiBusinessCase
+): ValueCaseArtifactVersion {
   const vc = apiCase.value_case;
   const inputs = vc?.inputs ?? {
     account_id: apiCase.account_id,
-    account_name: '',
+    account_name: "",
     stakeholders: [],
     accepted_evidence: [],
     scenario_assumptions: [],
-    roi_metrics: { three_year_value: '', roi: '', payback: '' },
+    roi_metrics: { three_year_value: "", roi: "", payback: "" },
     risk_notes: apiCase.risks ?? [],
   };
   return {
@@ -114,7 +116,7 @@ function apiCaseToArtifactVersion(apiCase: ApiBusinessCase): ValueCaseArtifactVe
       updated_at: apiCase.audit.updated_at,
     },
     business_case: {
-      summary: apiCase.executive_summary ?? '',
+      summary: apiCase.executive_summary ?? "",
       metrics: inputs.roi_metrics,
       risks: apiCase.risks ?? [],
     },
@@ -124,15 +126,17 @@ function apiCaseToArtifactVersion(apiCase: ApiBusinessCase): ValueCaseArtifactVe
 
 export function useValueCaseArtifacts(accountId: string | null) {
   const queryClient = useQueryClient();
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null
+  );
   const generateNarrative = useGenerateNarrative();
 
-  const versionsQuery = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: accountId ? QK.valueCases.account(accountId) : QK.valueCases.all,
     queryFn: async () => {
       if (!accountId) return [];
       const response = await apiGet<ApiBusinessCase[]>(
-        'api',
+        "api",
         `/accounts/${encodeURIComponent(accountId)}/value-cases`
       );
       const items = Array.isArray(response.data) ? response.data : [];
@@ -142,20 +146,25 @@ export function useValueCaseArtifacts(accountId: string | null) {
   });
 
   const selectedVersion = useMemo(() => {
-    const versions = versionsQuery.data ?? [];
+    const versions = data ?? [];
     if (!versions.length) return null;
     if (!selectedVersionId) return versions[versions.length - 1] ?? null;
-    return versions.find((item) => item.id === selectedVersionId) ?? null;
-  }, [versionsQuery.data, selectedVersionId]);
+    return versions.find(item => item.id === selectedVersionId) ?? null;
+  }, [data, selectedVersionId]);
 
   const generateArtifact = useMutation({
     mutationFn: async (input: ValueCaseArtifactsInput) => {
       const narrative = await generateNarrative.mutateAsync({
         account_id: input.account_id,
         title: `Value case narrative — ${input.account_name}`,
-        audience: 'evaluation_committee',
-        tone: 'financial',
-        sections: ['executive_summary', 'stakeholder_mapping', 'roi_overview', 'risk_and_mitigation'],
+        audience: "evaluation_committee",
+        tone: "financial",
+        sections: [
+          "executive_summary",
+          "stakeholder_mapping",
+          "roi_overview",
+          "risk_and_mitigation",
+        ],
       });
 
       const content: ValueCaseContent = {
@@ -170,13 +179,13 @@ export function useValueCaseArtifacts(accountId: string | null) {
         })),
         assumption_ids: [],
         evidence_ids: [],
-        stakeholder_framing: input.stakeholders.map((persona) => ({ persona })),
+        stakeholder_framing: input.stakeholders.map(persona => ({ persona })),
         claim_ids: [],
         roi_snapshot: null,
       };
 
       const response = await apiPost<ApiBusinessCase>(
-        'api',
+        "api",
         `/accounts/${encodeURIComponent(input.account_id)}/value-case`,
         {
           title: `Value Case — ${input.account_name}`,
@@ -185,50 +194,65 @@ export function useValueCaseArtifacts(accountId: string | null) {
       );
       return apiCaseToArtifactVersion(response.data);
     },
-    onSuccess: (artifact) => {
+    onSuccess: artifact => {
       setSelectedVersionId(artifact.id);
-      queryClient.invalidateQueries({ queryKey: QK.valueCases.account(artifact.account_id) });
+      queryClient.invalidateQueries({
+        queryKey: QK.valueCases.account(artifact.account_id),
+      });
     },
   });
 
   const updateArtifact = useMutation({
-    mutationFn: async ({ caseId, fields }: { caseId: string; fields: Partial<ValueCaseContent> }) => {
-      if (!accountId) throw new Error('Account ID is required to update a value case');
+    mutationFn: async ({
+      caseId,
+      fields,
+    }: {
+      caseId: string;
+      fields: Partial<ValueCaseContent>;
+    }) => {
+      if (!accountId)
+        throw new Error("Account ID is required to update a value case");
       const response = await apiPatch<ApiBusinessCase>(
-        'api',
+        "api",
         `/accounts/${encodeURIComponent(accountId)}/value-cases/${encodeURIComponent(caseId)}`,
         { value_case: fields }
       );
       return apiCaseToArtifactVersion(response.data);
     },
-    onSuccess: (_artifact) => {
+    onSuccess: _artifact => {
       if (accountId) {
-        queryClient.invalidateQueries({ queryKey: QK.valueCases.account(accountId) });
+        queryClient.invalidateQueries({
+          queryKey: QK.valueCases.account(accountId),
+        });
       }
     },
   });
 
   const publishArtifact = useMutation({
     mutationFn: async (caseId: string) => {
-      if (!accountId) throw new Error('Account ID is required to publish a value case');
+      if (!accountId)
+        throw new Error("Account ID is required to publish a value case");
       const response = await apiPost<ApiBusinessCase>(
-        'api',
+        "api",
         `/accounts/${encodeURIComponent(accountId)}/value-cases/${encodeURIComponent(caseId)}/publish`,
         {}
       );
       return apiCaseToArtifactVersion(response.data);
     },
-    onSuccess: (_artifact) => {
+    onSuccess: _artifact => {
       if (accountId) {
-        queryClient.invalidateQueries({ queryKey: QK.valueCases.account(accountId) });
+        queryClient.invalidateQueries({
+          queryKey: QK.valueCases.account(accountId),
+        });
       }
     },
   });
 
   return {
-    versions: versionsQuery.data ?? [],
-    isLoadingVersions: versionsQuery.isLoading,
-    versionsError: versionsQuery.error,
+    versions: data ?? [],
+    isLoadingVersions: isLoading,
+    versionsError: error,
+    refetch,
     selectedVersion,
     setSelectedVersionId,
     generateArtifact,
