@@ -778,6 +778,14 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Academy router not available")
 
+    # Mount the Value Evidence Graph / ValueClaim router
+    try:
+        from .value_claim_routes import router as value_claim_router
+
+        app.include_router(value_claim_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("ValueClaim router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):

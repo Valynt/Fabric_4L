@@ -8,6 +8,8 @@ Revises: 020
 Create Date: 2026-06-17
 """
 
+from typing import Any
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
@@ -18,7 +20,7 @@ branch_labels = None
 depends_on = None
 
 
-def _base_columns():
+def _base_columns() -> list[sa.Column[Any]]:
     return [
         sa.Column(
             "id",

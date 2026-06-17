@@ -41,13 +41,13 @@ from .truth_object import (
     ValidationEvent,
 )
 from .value_evidence_graph import (
-    Assumption,
     BusinessProblem,
     EvidenceLink,
     Objection,
     RealizationEvent,
     Scenario,
     Stakeholder,
+    ValueAssumption,
     ValueCase,
     ValueClaim,
 )
@@ -55,11 +55,13 @@ from .value_evidence_graph_enums import (
     ApprovalStatus,
     AssumptionType,
     ClaimStatus,
-    ClaimType as ValueClaimType,
     Confidence,
     EvidenceType,
     ImpactLevel,
     ScenarioType,
+)
+from .value_evidence_graph_enums import (
+    ClaimType as ValueClaimType,
 )
 
 __all__ = [
@@ -71,7 +73,6 @@ __all__ = [
     "AcademyQuizResult",
     "AcademyResource",
     "ApprovalStatus",
-    "Assumption",
     "AssumptionApprovalDecision",
     "AssumptionApprovalRequest",
     "AssumptionRecord",
@@ -109,6 +110,7 @@ __all__ = [
     "TruthSource",
     "TruthStatus",
     "ValueCase",
+    "ValueAssumption",
     "ValueClaim",
     "ValueClaimType",
     "ValidationEvent",
