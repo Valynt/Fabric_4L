@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-from .conftest import TENANT_BETA, auth_headers
+_REQUIRED_CASE_KEYS = {"id", "account_id", "tenant_id", "title", "status", "value_case", "audit"}
 
 
 def test_create_and_get_value_case(alpha_headers):
@@ -32,6 +32,7 @@ def test_create_and_get_value_case(alpha_headers):
         )
         assert create_response.status_code == 201
         created = create_response.json()
+        assert _REQUIRED_CASE_KEYS.issubset(created.keys())
         case_id = created["id"]
 
         get_response = client.get(
@@ -39,6 +40,7 @@ def test_create_and_get_value_case(alpha_headers):
         )
         assert get_response.status_code == 200
         fetched = get_response.json()
+        assert _REQUIRED_CASE_KEYS.issubset(fetched.keys())
         assert fetched["value_case"]["assumption_ids"] == ["a1"]
 
 
@@ -64,6 +66,39 @@ def test_tenant_isolation(alpha_headers, beta_headers):
         assert patch_response.status_code == 404
 
 
+def test_cross_account_isolation_within_same_tenant(alpha_headers):
+    payload = {"title": "Alpha One", "value_case": {"inputs": {}, "sections": []}}
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/v1/accounts/acc-alpha-1/value-case", json=payload, headers=alpha_headers
+        )
+        assert create_response.status_code == 201
+        case_id = create_response.json()["id"]
+
+        get_response = client.get(
+            f"/v1/accounts/acc-alpha-2/value-cases/{case_id}", headers=alpha_headers
+        )
+        assert get_response.status_code == 404
+
+
+def test_patch_value_case_happy_path(alpha_headers):
+    payload = {"title": "Original Title", "value_case": {"inputs": {}, "sections": []}}
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/v1/accounts/acc-patch/value-case", json=payload, headers=alpha_headers
+        )
+        assert create_response.status_code == 201
+        case_id = create_response.json()["id"]
+
+        patch_response = client.patch(
+            f"/v1/accounts/acc-patch/value-cases/{case_id}",
+            json={"title": "Updated Title"},
+            headers=alpha_headers,
+        )
+        assert patch_response.status_code == 200
+        assert patch_response.json()["title"] == "Updated Title"
+
+
 def test_publish_transition(alpha_headers):
     payload = {
         "title": "Draft to Publish",
@@ -74,7 +109,9 @@ def test_publish_transition(alpha_headers):
             "/v1/accounts/acc-3/value-case", json=payload, headers=alpha_headers
         )
         assert create_response.status_code == 201
-        case_id = create_response.json()["id"]
+        created = create_response.json()
+        assert created["status"] == "draft"
+        case_id = created["id"]
 
         publish_response = client.post(
             f"/v1/accounts/acc-3/value-cases/{case_id}/publish",
@@ -104,5 +141,14 @@ def test_list_value_cases_for_account(alpha_headers):
         assert list_response.status_code == 200
         cases = list_response.json()
         assert len(cases) == 2
+        for case in cases:
+            assert _REQUIRED_CASE_KEYS.issubset(case.keys())
         updated_ats = [c["audit"]["updated_at"] for c in cases]
         assert updated_ats == sorted(updated_ats, reverse=True)
+
+
+def test_create_value_case_unauthenticated():
+    payload = {"title": "No Auth", "value_case": {"inputs": {}, "sections": []}}
+    with TestClient(app) as client:
+        response = client.post("/v1/accounts/acc-unauth/value-case", json=payload)
+        assert response.status_code in {401, 403}
