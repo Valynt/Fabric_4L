@@ -23,7 +23,7 @@ export default function ValueNarrativeHome() {
   const prospectSetup = useProspectSetupAccountCreate();
 
   const handleNavigateToWorkspace = (_path: string, accountId: string) => {
-    navigateTo('intelligence-signals', { accountId });
+    navigateTo('intelligence-overview', { accountId });
   };
 
   return (

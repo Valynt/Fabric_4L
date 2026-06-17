@@ -57,7 +57,7 @@ describe('ValueNarrativeHome account setup', () => {
     createSetup.mockResolvedValue({ accountId: 'acc-home-created-001' });
   });
 
-  it('uses canonical account creation and routes to created-account signals', async () => {
+  it('uses canonical account creation and routes to created-account overview', async () => {
     const user = userEvent.setup();
     render(<ValueNarrativeHome />);
 
@@ -67,7 +67,7 @@ describe('ValueNarrativeHome account setup', () => {
       companyName: 'Home Created Account',
       companyDomain: 'home-created.example',
     }));
-    expect(navigateTo).toHaveBeenCalledWith('intelligence-signals', {
+    expect(navigateTo).toHaveBeenCalledWith('intelligence-overview', {
       accountId: 'acc-home-created-001',
     });
   });

@@ -51,6 +51,7 @@ export type RouteState =
   | "account-overview"
   // Intelligence Workspace (account-scoped)
   | "intelligence"
+  | "intelligence-overview"
   | "intelligence-signals"
   | "intelligence-stakeholders"
   | "intelligence-enrichment"
@@ -189,6 +190,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
 
   // Intelligence Workspace
   intelligence: { path: "/t/:tenantSlug/accounts/:accountId/intelligence", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.workspace" },
+  "intelligence-overview": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/overview", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.overview" },
   "intelligence-signals": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.signals" },
   "intelligence-stakeholders": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.stakeholders" },
   "intelligence-enrichment": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/enrichment", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.enrichment" },
