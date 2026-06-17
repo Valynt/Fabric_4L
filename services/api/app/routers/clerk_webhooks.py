@@ -32,7 +32,9 @@ from value_fabric.shared.error_handling.exceptions import (
     BadRequestError,
     ConflictError,
     ServiceUnavailableError,
+    ValueFabricException,
 )
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
@@ -209,7 +211,10 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         logger.warning(
             "clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc)
         )
-        raise BadRequestError(message="Bad request.") from exc
+        raise BadRequestError(
+            message="Bad request.",
+            error_code=ErrorCode.AUTH_WEBHOOK_INVALID_BODY,
+        ) from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
     event_type = payload.get("type")
@@ -241,6 +246,10 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         )
         raise ConflictError(message="Retry later.") from exc
     except HTTPException:
+        raise
+    except ValueFabricException:
+        # Let structured domain errors (400/401/403/409/422) propagate to the
+        # global exception handler unchanged.
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.

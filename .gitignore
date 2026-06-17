@@ -196,7 +196,8 @@ cUsers*
 /collect_output.txt
 /pytest_collect*.txt
 /layer1_test_results*.txt
-core
+# Core dumps (root only; do not ignore legitimate source directories named core)
+/core
 
 # Accidental local installer artifacts (do not commit)
 /Codex Installer.exe

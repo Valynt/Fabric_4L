@@ -2,10 +2,20 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
+from value_fabric.shared.fastapi_framework import add_governance_middleware
+from value_fabric.shared.fastapi_framework.health import (
+    CallableProbe,
+    ProbeResult,
+)
+from value_fabric.shared.observability.metrics_access import verify_metrics_access
+from value_fabric.shared.observability.sentry_init import init_sentry
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from app.core.audit import AuditMiddleware
 from app.core.config import get_settings
 from app.core.metrics import metrics_middleware, render_metrics
+from app.logging_config import configure_structured_logging
 from app.routers import (
     accounts,
     agents,
@@ -23,9 +33,12 @@ from app.routers import (
     value_cases,
     versioning,
 )
-from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
+from app.services.distributed_store import (
+    StorePayloadError,
+    StoreUnavailableError,
+    get_distributed_store,
+)
 from app.services.seed_data import seed_all
-from app.logging_config import configure_structured_logging
 
 from .shared_bootstrap import (
     EnforcementControlConfig,
@@ -37,11 +50,6 @@ from .shared_bootstrap import (
     register_health_endpoint,
     validate_production_safety,
 )
-from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-from value_fabric.shared.observability.metrics_access import verify_metrics_access
-from value_fabric.shared.observability.sentry_init import init_sentry
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 # Configure structured logging
 configure_structured_logging()
@@ -69,7 +77,8 @@ def _assert_distributed_store_ready() -> None:
     try:
         get_distributed_store().validate_backend()
     except (StoreUnavailableError, StorePayloadError) as exc:
-        raise RuntimeError("FATAL: Distributed store initialization failed.") from exc
+        _distributed_store_error = "FATAL: Distributed store initialization failed."
+        raise RuntimeError(_distributed_store_error) from exc
 
 
 @asynccontextmanager
@@ -85,6 +94,16 @@ async def lifespan(app: FastAPI):
     finally:
         from app.core.database import close_engine
         await close_engine()
+
+
+def _post_core_middleware_hook(app: FastAPI) -> None:
+    """Install central governance middleware after framework core middleware.
+
+    GovernanceMiddleware establishes the authenticated tenant context that the
+    shared tenant-enforcement and rate-limiting middleware expects.  Without it,
+    protected routes fail with 403 before reaching route-level dependencies.
+    """
+    add_governance_middleware(app)
 
 
 async def _api_db_probe() -> ProbeResult:
@@ -146,6 +165,7 @@ app = create_fabric_app(
         idempotency=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
     ),
     enforce_tenant_context=True,
+    post_core_middleware_hook=_post_core_middleware_hook,
     instrument_telemetry=True,
     rate_limit=FrameworkRateLimitConfig(
         mode=EnforcementMode.ENFORCE,

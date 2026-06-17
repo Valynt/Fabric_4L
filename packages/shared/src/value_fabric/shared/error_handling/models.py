@@ -19,6 +19,7 @@ class ErrorCode(str, Enum):
     TENANT_SCOPE_MISMATCH = "TENANT_SCOPE_MISMATCH"
     TOKEN_EXPIRED = "TOKEN_EXPIRED"
     TOKEN_INVALID = "TOKEN_INVALID"
+    AUTH_WEBHOOK_INVALID_BODY = "auth.webhook_invalid_body"
 
     # Validation errors (4xx)
     VALIDATION_ERROR = "VALIDATION_ERROR"
