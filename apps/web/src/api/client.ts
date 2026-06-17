@@ -36,6 +36,33 @@ function sanitizeBearerToken(raw: string | null | undefined): string | null {
 }
 
 const log = createFeatureLogger("api-client");
+const SKIP_AUTH_REDIRECT_HEADER = "X-Fabric-Skip-Auth-Redirect";
+
+function shouldSkipAuthRedirect(headers: unknown): boolean {
+  if (!headers || typeof headers !== "object") {
+    return false;
+  }
+
+  const maybeAxiosHeaders = headers as {
+    get?: (name: string) => unknown;
+  };
+
+  if (typeof maybeAxiosHeaders.get === "function") {
+    const value =
+      maybeAxiosHeaders.get(SKIP_AUTH_REDIRECT_HEADER) ??
+      maybeAxiosHeaders.get(SKIP_AUTH_REDIRECT_HEADER.toLowerCase());
+    return value === "1" || value === 1 || value === true || value === "true";
+  }
+
+  const plainHeaders = headers as Record<string, unknown>;
+  for (const [key, value] of Object.entries(plainHeaders)) {
+    if (key.toLowerCase() === SKIP_AUTH_REDIRECT_HEADER.toLowerCase()) {
+      return value === "1" || value === 1 || value === true || value === "true";
+    }
+  }
+
+  return false;
+}
 
 // ============================================================================
 // MANDATE 4: INPUT VALIDATION - Runtime validation schemas
@@ -468,7 +495,9 @@ class ApiClient {
             errorData.error?.request_id ??
             null;
 
-          if (error.response?.status === 401) {
+          const skipAuthRedirect = shouldSkipAuthRedirect(error.config?.headers);
+
+          if (error.response?.status === 401 && !skipAuthRedirect) {
             sessionService.handleUnauthorized({
               route:
                 typeof window !== "undefined"

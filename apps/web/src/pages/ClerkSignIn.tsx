@@ -27,10 +27,26 @@ function safeRedirectTarget(search: string): string | null {
   if (!param) {
     return null;
   }
-  if (param.startsWith("/") && !param.startsWith("//")) {
-    return param;
+  if (!param.startsWith("/") || param.startsWith("//")) {
+    return null;
   }
-  return null;
+
+  const url = new URL(param, "http://fabric.local");
+  const keysToDelete: string[] = [];
+  url.searchParams.forEach((_value, key) => {
+    if (key.toLowerCase().startsWith("__clerk_")) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach((key) => url.searchParams.delete(key));
+
+  if (url.pathname.startsWith("/sign-in")) {
+    return null;
+  }
+
+  const normalizedSearch = url.searchParams.toString();
+  const normalized = normalizedSearch ? `${url.pathname}?${normalizedSearch}` : url.pathname;
+  return normalized;
 }
 
 function ClerkSignInInner() {

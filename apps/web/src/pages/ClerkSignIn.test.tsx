@@ -111,6 +111,24 @@ describe("<ClerkSignInPage />", () => {
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
+  it("strips Clerk transient params from redirect_url for signed-in users", () => {
+    mockAuthState.isSignedIn = true;
+
+    renderAt("/sign-in?redirect_url=%2Ft%2Facme%2Faccounts%3F__clerk_handshake%3Dabc%26view%3Dmine");
+
+    expect(screen.getByText(ACCOUNTS_MARKER)).toBeInTheDocument();
+    expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
+  });
+
+  it("ignores redirect_url values that point back to /sign-in", () => {
+    mockAuthState.isSignedIn = true;
+
+    renderAt("/sign-in?redirect_url=%2Fsign-in%3F__clerk_handshake%3Dabc");
+
+    expect(screen.getByText(HOME_MARKER)).toBeInTheDocument();
+    expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
+  });
+
   it("renders <SignIn /> for a signed-out user", () => {
     mockAuthState.isSignedIn = false;
 
@@ -140,4 +158,5 @@ describe("<ClerkSignInPage />", () => {
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
     expect(screen.queryByText(HOME_MARKER)).not.toBeInTheDocument();
   });
+
 });

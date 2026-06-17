@@ -246,7 +246,7 @@ const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tr
 
 export const router = createBrowserRouter([
   {
-    path: "/sign-in",
+    path: "/sign-in/*",
     element: <ClerkSignInPage />,
     handle: { accessPolicy: authPolicy },
   },
@@ -261,7 +261,7 @@ export const router = createBrowserRouter([
     handle: { accessPolicy: authPolicy },
   },
   {
-    path: "/sign-up",
+    path: "/sign-up/*",
     element: <ClerkSignUpPage />,
     handle: { accessPolicy: authPolicy },
   },

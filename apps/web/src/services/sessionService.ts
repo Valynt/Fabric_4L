@@ -7,6 +7,7 @@
  */
 
 import { logWarn } from "@/lib/telemetry";
+import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export class SessionService {
   redirectTo(url: string): void {
@@ -17,7 +18,21 @@ export class SessionService {
 
   redirectToLogin(): void {
     const loc = typeof window !== 'undefined' ? window.location : null;
-    if (!loc || loc.pathname === '/sign-in') return;
+    if (!loc) return;
+
+    if (isClerkAuthEnabled()) {
+      const urls = getClerkUrls();
+      if (loc.pathname !== urls.selectOrgUrl) {
+        try {
+          loc.replace(urls.selectOrgUrl);
+        } catch {
+          /* noop */
+        }
+      }
+      return;
+    }
+
+    if (loc.pathname.startsWith('/sign-in')) return;
     try {
       loc.replace('/sign-in');
     } catch {

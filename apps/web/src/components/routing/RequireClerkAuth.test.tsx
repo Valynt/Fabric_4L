@@ -189,6 +189,33 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
+  it("clerk mode signed out: strips Clerk transient params from redirect_url", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = false;
+
+    render(
+      <MemoryRouter initialEntries={["/protected?__clerk_handshake=abc&tab=mine&__clerk_status=ready"]}>
+        <Routes>
+          <Route path="/sign-in" element={<div>{SIGN_IN_LANDING}</div>} />
+          <Route
+            path="/protected"
+            element={
+              <RequireClerkAuth>
+                <div>{PROTECTED_CONTENT}</div>
+              </RequireClerkAuth>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/sign-in?redirect_url=%2Fprotected%3Ftab%3Dmine",
+      { replace: true },
+    );
+  });
+
   // ─────────────────────────────────────────────────────────────────────
   // Clerk mode — signed in, no org
   // ─────────────────────────────────────────────────────────────────────

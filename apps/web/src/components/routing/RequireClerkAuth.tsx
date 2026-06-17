@@ -35,6 +35,24 @@ interface RequireClerkAuthProps {
   requireOrganization?: boolean;
 }
 
+function buildSafeRedirectPath(pathname: string, search: string): string {
+  if (!search) {
+    return pathname;
+  }
+
+  const params = new URLSearchParams(search);
+  const keysToDelete: string[] = [];
+  params.forEach((_value, key) => {
+    if (key.toLowerCase().startsWith("__clerk_")) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach((key) => params.delete(key));
+
+  const normalized = params.toString();
+  return normalized ? `${pathname}?${normalized}` : pathname;
+}
+
 function RequireClerkAuthOrgCheck({
   children,
   requireOrganization,
@@ -92,8 +110,9 @@ function RequireClerkAuthInner({
   useLayoutEffect(() => {
     if (authLoaded && !isSignedIn && !hasNavigated.current) {
       hasNavigated.current = true;
+      const safeCurrentPath = buildSafeRedirectPath(location.pathname, location.search);
       const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-        location.pathname + location.search,
+        safeCurrentPath,
       )}`;
       navigateTo(redirectTo, { replace: true });
     }
