@@ -197,6 +197,11 @@ export const QK = {
       ["versions", "compare", versionId, compareToVersionId] as const,
   },
 
+  valueCases: {
+    all: ["value-cases"] as const,
+    account: (accountId: string) => ["value-cases", "account", accountId] as const,
+    detail: (caseId: string) => ["value-cases", "detail", caseId] as const,
+  },
 
   workspace: {
     all: ["workspace"] as const,
@@ -232,6 +237,7 @@ export const QK = {
     all: ["platform"] as const,
     settings: ["platform", "settings"] as const,
     health: ["platform", "health"] as const,
+    currentUser: ["platform", "currentUser"] as const,
   },
 
   // Ontology Schema Management

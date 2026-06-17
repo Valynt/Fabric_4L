@@ -50,10 +50,10 @@ export function buildOperationalAuditParams(filters: OperationalAuditFilters): U
   if (filters.eventType) params.set("event_type", filters.eventType);
   if (filters.entityType) params.set("entity_type", filters.entityType);
   if (filters.entityId) params.set("entity_id", filters.entityId);
-  if (filters.action) params.set("action", filters.action);
-  if (filters.actor) params.set("actor", filters.actor);
-  if (filters.startDate) params.set("start_date", filters.startDate);
-  if (filters.endDate) params.set("end_date", filters.endDate);
+  if (filters.action) params.set("event_type", filters.action);
+  if (filters.actor) params.set("agent", filters.actor);
+  if (filters.startDate) params.set("from_date", filters.startDate);
+  if (filters.endDate) params.set("to_date", filters.endDate);
 
   return params;
 }

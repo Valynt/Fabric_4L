@@ -58,6 +58,45 @@ async def test_hybrid_search_forwards_authenticated_tenant_to_vector_store() -> 
     ]
 
 
+@pytest.mark.asyncio
+async def test_hybrid_search_uses_resolved_tenant_for_vector_leg(monkeypatch) -> None:
+    class _VectorStore:
+        def __init__(self) -> None:
+            self.calls: list[dict[str, object]] = []
+
+        async def search(self, **kwargs):
+            self.calls.append(kwargs)
+            return []
+
+    vector_store = _VectorStore()
+    search = HybridSearch(
+        driver=None,
+        vector_store=vector_store,
+        graph_engine=None,
+        settings=SimpleNamespace(
+            hybrid_bm25_weight=0.4,
+            hybrid_vector_weight=0.4,
+            hybrid_graph_weight=0.2,
+        ),
+    )
+    async def _empty_search(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(search, "_bm25_search", _empty_search)
+    monkeypatch.setattr(search, "_graph_search", _empty_search)
+
+    await search.search(query="revenue leakage", entity_types=["Capability"], top_k=5, tenant_id="tenant-a")
+
+    assert vector_store.calls == [
+        {
+            "query_text": "revenue leakage",
+            "entity_type": "Capability",
+            "top_k": 10,
+            "tenant_id": "tenant-a",
+        }
+    ]
+
+
 def test_graph_service_entrypoints_require_explicit_tenant_id() -> None:
     from src.services.competitive_intel_service import CompetitiveIntelService
     from src.services.evidence_search import EvidenceSearchService

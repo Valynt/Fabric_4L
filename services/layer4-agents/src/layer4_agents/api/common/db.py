@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """Shared DB dependency helpers for API routes."""
-
+import asyncio
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,8 @@ async def get_webhook_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise

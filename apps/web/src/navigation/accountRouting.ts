@@ -71,6 +71,7 @@ export function resolveWorkspaceRoutePath(
 }
 
 const INTELLIGENCE_TAB_STATE_MAP: Record<string, RouteState> = {
+  overview: "intelligence-overview",
   signals: "intelligence-signals",
   enrichment: "intelligence-enrichment",
   stakeholders: "intelligence-stakeholders",
@@ -98,7 +99,7 @@ const STUDIO_TAB_STATE_MAP: Record<string, RouteState> = {
 
 export function getWorkspaceTabState(workspace: AccountWorkspace, tab: string): RouteState {
   if (workspace === "intelligence") {
-    return INTELLIGENCE_TAB_STATE_MAP[tab] ?? "intelligence-signals";
+    return INTELLIGENCE_TAB_STATE_MAP[tab] ?? "intelligence-overview";
   }
   return STUDIO_TAB_STATE_MAP[tab] ?? "studio-action-plan";
 }

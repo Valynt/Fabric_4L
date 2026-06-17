@@ -8,7 +8,7 @@ Layer 4 billing services (BillingService, InvoiceService, UsageService,
 OverageService) with Stripe SDK integration, tenant isolation, and
 audit-grade record keeping.
 """
-
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -96,6 +96,8 @@ async def _emit_billing_audit(
             outcome=outcome,
             details=details or {},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.warning("Billing audit emission failed (non-critical): %s", exc)
 
@@ -802,6 +804,8 @@ async def stripe_webhook(
     except ValueError as exc:
         raise BadRequestError(message="Invalid webhook payload") from exc
     except ValueFabricException:
+        raise
+    except asyncio.CancelledError:
         raise
     except Exception as exc:
         logger.error("Webhook processing failed", extra={"error": str(exc)})

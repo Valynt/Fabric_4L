@@ -5,8 +5,7 @@ from __future__ import annotations
 Business logic and data access for company knowledge profiles, sources,
 extraction records, and ICP profiles.
 """
-
-
+import asyncio
 import logging
 import os
 from datetime import UTC, datetime
@@ -827,6 +826,8 @@ class CompanyKnowledgeService:
                 result.get("target_id"),
             )
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             await self.update_crawl_status(
                 source_id=source_id,
@@ -903,6 +904,8 @@ class CompanyKnowledgeService:
                 record.id,
             )
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Layer 2 extraction failed for source %s: %s", source_id, e)
             raise

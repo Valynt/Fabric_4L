@@ -5,8 +5,7 @@ from __future__ import annotations
 P0-29: Pydantic-settings with validation for required secrets.
 Fails fast on startup if required configuration is missing or invalid.
 """
-
-
+import asyncio
 import importlib
 import importlib.util
 import logging
@@ -36,6 +35,8 @@ def _load_infisical_secrets_safe() -> None:
     if load_fn is not None:
         try:
             load_fn()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             # Non-fatal: Infisical is optional; pydantic-settings validators
             # will catch genuinely missing production secrets at instantiation.

@@ -32,13 +32,13 @@ export function FabricDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className={cn("sm:max-w-lg", className)}>
+      <DialogContent className={cn("max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg", className)}>
         <DialogHeader>
           <DialogTitle className="vf-heading-l font-semibold">{title}</DialogTitle>
           {description && <DialogDescription className="vf-text-body-m">{description}</DialogDescription>}
         </DialogHeader>
         <div className="py-2">{children}</div>
-        {footer && <div className="flex justify-end gap-3 pt-4">{footer}</div>}
+        {footer && <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end sm:gap-3">{footer}</div>}
       </DialogContent>
     </Dialog>
   );

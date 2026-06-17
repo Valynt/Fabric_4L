@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 """Tier enforcement for tenant resource limits.
@@ -393,6 +395,8 @@ class TierEnforcement:
                     "tier": config.id,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning(
                 "Failed to emit tier limit exceeded audit event",

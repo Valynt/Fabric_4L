@@ -20,7 +20,7 @@ Design notes:
 import logging
 from typing import Any
 
-from neo4j import AsyncDriver
+from neo4j import AsyncDriver, Record
 from neo4j.exceptions import ClientError, ServiceUnavailable
 from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.identity.isolation import (
@@ -141,11 +141,19 @@ class Neo4jVectorStore:
             return str(ctx.tenant_id)
         raise ValueError("tenant_id is required for tenant-scoped vector store operations")
 
-    async def _run_scoped(self, scoped: ScopedQuery):
-        """Execute a strict scoped query object through the Neo4j driver."""
+    async def _run_scoped_single(self, scoped: ScopedQuery) -> Record | None:
+        """Execute a scoped query and consume the first record inside the session."""
         driver = await self._get_driver()
         async with driver.session(database=self.settings.neo4j_database) as session:
-            return await run_scoped_query(session.run, scoped)
+            result = await run_scoped_query(session.run, scoped)
+            return await result.single()
+
+    async def _run_scoped_list(self, scoped: ScopedQuery) -> list[Record]:
+        """Execute a scoped query and consume all records inside the session."""
+        driver = await self._get_driver()
+        async with driver.session(database=self.settings.neo4j_database) as session:
+            result = await run_scoped_query(session.run, scoped)
+            return [record async for record in result]
 
     # ------------------------------------------------------------------
     # Write operations
@@ -197,8 +205,7 @@ class Neo4jVectorStore:
         )
 
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return Neo4jVectorStore_upsert_entityResult.model_validate({
                 "entity_id": record["entity_id"] if record else entity_id,
                 "entity_type": entity_type,
@@ -261,8 +268,7 @@ class Neo4jVectorStore:
         )
 
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": record["upserted"] if record else 0, "failed": []})
         except (ClientError, ServiceUnavailable) as exc:
             logger.error("Batch upsert failed for %s: %s", entity_type, exc)
@@ -313,20 +319,20 @@ class Neo4jVectorStore:
                 labels=(etype,),
             )
             try:
-                result = await self._run_scoped(scoped)
-                async for record in result:
-                        all_results.append(
-                            (
-                                record["entity_id"],
-                                record["score"],
-                                {
-                                    "entity_type": record["entity_type"],
-                                    "name": record["name"],
-                                    "description": record["description"],
-                                    "confidence": record["confidence"],
-                                },
-                            )
+                records = await self._run_scoped_list(scoped)
+                for record in records:
+                    all_results.append(
+                        (
+                            record["entity_id"],
+                            record["score"],
+                            {
+                                "entity_type": record["entity_type"],
+                                "name": record["name"],
+                                "description": record["description"],
+                                "confidence": record["confidence"],
+                            },
                         )
+                    )
             except ClientError as exc:
                 if (
                     "index does not exist" in str(exc).lower()
@@ -372,8 +378,7 @@ class Neo4jVectorStore:
             labels=("*",),
         )
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return bool(record and record["updated"] > 0)
         except (ClientError, ServiceUnavailable) as exc:
             logger.error("Failed to delete embedding for %s: %s", entity_id, exc)

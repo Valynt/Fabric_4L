@@ -25,8 +25,7 @@ Neo4j Node Schema:
     sections (JSON), metadata (JSON),
     version, status, created_at, updated_at
 """
-
-
+import asyncio
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -42,6 +41,7 @@ from layer4_agents.services.tenant_cypher import fetch_tenant_validated_records
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
 from ..services.governed_llm_client import GovernedLLMClient
+from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 
 
@@ -347,7 +347,7 @@ class NarrativeBuilderService:
                 max_tokens=exec_tmpl.max_tokens,
                 call_id=f"nb_exec_{trace_id or 'unknown'}",
             )
-            exec_data = client._parse_json(exec_result.content)
+            exec_data = parse_llm_json(exec_result.content)
 
             # ── Step 2: value narrative ─────────────────────────────────
             roi_hyps = [
@@ -369,7 +369,7 @@ class NarrativeBuilderService:
                 max_tokens=value_tmpl.max_tokens,
                 call_id=f"nb_value_{trace_id or 'unknown'}",
             )
-            value_data = client._parse_json(value_result.content)
+            value_data = parse_llm_json(value_result.content)
 
             # ── Step 3: risk narrative ──────────────────────────────────
             risk_signals = [
@@ -388,7 +388,7 @@ class NarrativeBuilderService:
                 max_tokens=risk_tmpl.max_tokens,
                 call_id=f"nb_risk_{trace_id or 'unknown'}",
             )
-            risk_data = client._parse_json(risk_result.content)
+            risk_data = parse_llm_json(risk_result.content)
 
             total_prompt = exec_result.prompt_tokens + value_result.prompt_tokens + risk_result.prompt_tokens
             total_completion = exec_result.completion_tokens + value_result.completion_tokens + risk_result.completion_tokens
@@ -413,6 +413,8 @@ class NarrativeBuilderService:
                 tokens=total_prompt + total_completion,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "narrative_llm_failed",
@@ -431,6 +433,8 @@ class NarrativeBuilderService:
                 )
                 agent_result.payload = fallback
                 agent_result.degraded_reason = f"llm_failed_template_fallback: {exc}"
+            except asyncio.CancelledError:
+                raise
             except Exception as fallback_exc:
                 agent_result.payload = {}
                 agent_result.degraded_reason = f"llm_failed: {exc}; fallback_failed: {fallback_exc}"
@@ -725,13 +729,18 @@ class NarrativeBuilderService:
 
         where = " AND ".join(where_clauses)
 
-        count_query = f"MATCH (n:Narrative) WHERE {where} RETURN count(n) AS total"
-        list_query = f"""
-        MATCH (n:Narrative) WHERE {where}
-        RETURN n {{.id, .title, .audience, .tone, .status, .version, .account_id, .created_at, .updated_at}} AS narrative
-        ORDER BY n.updated_at DESC
-        SKIP $skip LIMIT $limit
-        """
+        # Build queries by concatenating controlled clause strings.  The WHERE
+        # clauses above are hard-coded templates that use Neo4j parameters
+        # (e.g. $tenant_id); user input is never interpolated into the query.
+        count_query = (
+            "MATCH (n:Narrative) WHERE " + where + " RETURN count(n) AS total"
+        )
+        list_query = (
+            "MATCH (n:Narrative) WHERE " + where + "\n"
+            "RETURN n {.id, .title, .audience, .tone, .status, .version, .account_id, .created_at, .updated_at} AS narrative\n"
+            "ORDER BY n.updated_at DESC\n"
+            "SKIP $skip LIMIT $limit"
+        )
 
         count_records = await fetch_tenant_validated_records(
             driver=self._driver,

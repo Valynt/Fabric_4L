@@ -107,6 +107,8 @@ class WorkflowConnection:
             await self.websocket.send_json(event)
             self.last_event_id = event.get("event_id")
             return True
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to send event to workflow {self.workflow_id}: {e}")
             self.is_alive = False
@@ -189,6 +191,8 @@ class WorkflowWebSocketManager:
         if self._metrics is not None:
             try:
                 self._metrics.increment_ws_tenant_mismatch(actor_tenant_id)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 pass  # Never let metric emission break the security path
 
@@ -223,6 +227,8 @@ class WorkflowWebSocketManager:
                 for conn in connections:
                     try:
                         await conn.websocket.close(code=1001, reason="Server shutting down")
+                    except asyncio.CancelledError:
+                        raise
                     except Exception:
                         pass
             self._workflow_connections.clear()
@@ -283,6 +289,8 @@ class WorkflowWebSocketManager:
                         extra={"event": "websocket.connect.rejected.suspended", "tenant_id": tenant_id, "workflow_id": workflow_id},
                     )
                     return
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 pass  # Kill-switch failure is not fatal; continue with connection
 
@@ -397,6 +405,8 @@ class WorkflowWebSocketManager:
                 conn.is_alive = False
                 await conn.websocket.close(code=4403, reason="Tenant suspended")
                 closed += 1
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.debug("Error closing WebSocket for tenant %s: %s", tenant_id, exc)
 
@@ -660,6 +670,8 @@ class WorkflowWebSocketManager:
                                 "correlation_id": conn.correlation_id,
                             }
                         )
+                    except asyncio.CancelledError:
+                        raise
                     except Exception:
                         conn.is_alive = False
                         dead_connections.append((workflow_id, conn))

@@ -61,6 +61,45 @@ _REQUIRED_REGISTERED_CLAIMS = ("exp", "iss", "aud")
 _ALLOWED_EXTERNAL_ALGORITHMS = {"RS256", "ES256"}
 
 
+def _normalize_origin(value: str) -> str:
+    return value.strip().rstrip("/")
+
+
+def _configured_clerk_issuers() -> set[str]:
+    return {
+        issuer
+        for issuer in (
+            os.getenv("CLERK_ISSUER", "").strip(),
+            os.getenv("CLERK_JWT_ISSUER", "").strip(),
+        )
+        if issuer
+    }
+
+
+def _is_clerk_issuer(issuer: Any) -> bool:
+    if not isinstance(issuer, str) or not issuer.strip():
+        return False
+    return issuer.strip().rstrip("/") in {_normalize_origin(value) for value in _configured_clerk_issuers()}
+
+
+def _configured_clerk_authorized_parties() -> set[str]:
+    return {
+        _normalize_origin(value)
+        for value in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",")
+        if value.strip()
+    }
+
+
+def _clerk_authorized_party_allowed(payload: Dict[str, Any]) -> bool:
+    allowed_parties = _configured_clerk_authorized_parties()
+    if not allowed_parties:
+        return True
+    azp = payload.get("azp")
+    if not isinstance(azp, str) or not azp.strip():
+        return False
+    return _normalize_origin(azp) in allowed_parties
+
+
 def _detect_environment() -> str:
     for key in _ENV_KEYS:
         value = os.getenv(key)
@@ -322,8 +361,14 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    # Support both generic OIDC and Clerk-specific issuer configuration
-    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip() or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    # Support both generic OIDC and Clerk-specific issuer configuration.
+    # CLERK_ISSUER is the canonical gateway env; CLERK_JWT_ISSUER remains
+    # accepted as a compatibility alias for older deployment notes.
+    oidc_issuer = (
+        os.getenv("OIDC_ISSUER", "").strip()
+        or os.getenv("CLERK_ISSUER", "").strip()
+        or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    )
     oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip() or os.getenv("CLERK_JWT_AUDIENCE", "").strip()
     # Clerk-specific JWKS URL override
     clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()
@@ -383,6 +428,9 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                     "verify_nbf": True,
                 },
             )
+            if _is_clerk_issuer(expected_issuer) and not _clerk_authorized_party_allowed(payload):
+                logger.debug("Clerk JWT authorized party rejected")
+                return None
         else:
             keyset = _build_keyset()
             algorithm = keyset["algorithm"]

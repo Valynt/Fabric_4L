@@ -6,7 +6,18 @@ Covers:
 - content_extractor metadata extraction logging
 """
 
+import importlib
+import sys
+
 import pytest
+import redis as redis_lib
+
+
+def _reload_database_module():
+    """Force re-evaluation of the Redis availability block in database.py."""
+    import layer1_ingestion.shared.database as database_module
+
+    return importlib.reload(database_module)
 
 
 class TestNoOpExecutionLoggerProductionGuard:
@@ -36,15 +47,25 @@ class TestNoOpExecutionLoggerProductionGuard:
 class TestDatabaseRedisAvailability:
     """database.py must expose REDIS_AVAILABLE and log on import failure."""
 
-    def test_redis_available_flag_exists(self):
-        from layer1_ingestion.shared.database import REDIS_AVAILABLE
-        # In test environments without a real Redis, this should be False
-        assert isinstance(REDIS_AVAILABLE, bool)
+    def test_redis_available_flag_exists(self, monkeypatch):
+        # Simulate Redis being unreachable so the availability block is deterministic.
+        class _FailingRedis(redis_lib.Redis):
+            def ping(self):
+                raise redis_lib.ConnectionError("test: redis unavailable")
 
-    def test_redis_client_none_when_unavailable(self):
-        from layer1_ingestion.shared.database import redis_client
-        # In test environments without a real Redis, client should be None
-        assert redis_client is None
+        monkeypatch.setattr(redis_lib, "Redis", _FailingRedis)
+        database_module = _reload_database_module()
+        assert isinstance(database_module.REDIS_AVAILABLE, bool)
+
+    def test_redis_client_none_when_unavailable(self, monkeypatch):
+        class _FailingRedis(redis_lib.Redis):
+            def ping(self):
+                raise redis_lib.ConnectionError("test: redis unavailable")
+
+        monkeypatch.setattr(redis_lib, "Redis", _FailingRedis)
+        database_module = _reload_database_module()
+        assert database_module.redis_client is None
+        assert database_module.REDIS_AVAILABLE is False
 
 
 class TestContentExtractorMetadataLogging:

@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUNNYSHELL_PATH = REPO_ROOT / "bunnyshell.yaml"
+BUNNYSHELL_PATHS = (
+    REPO_ROOT / "bunnyshell.yaml",
+    REPO_ROOT / "bunnyshell-pr.yaml",
+)
 
 
-def _load_bunnyshell() -> dict:
-    with BUNNYSHELL_PATH.open("r", encoding="utf-8") as handle:
+def _load_bunnyshell(path: Path) -> dict:
+    with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle)
 
 
@@ -21,15 +26,26 @@ def _component(config: dict, name: str) -> dict:
     raise AssertionError(f"missing Bunnyshell component: {name}")
 
 
-def test_bunnyshell_yaml_parses():
-    config = _load_bunnyshell()
+def _shell_script(component: dict) -> str:
+    compose = component["dockerCompose"]
+    command = compose.get("entrypoint") or compose.get("command")
+    script = command[2].replace("\r\n", "\n").replace("\r", "").replace("$$", "$")
+    return script if script.endswith("\n") else f"{script}\n"
+
+
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_yaml_parses(bunnyshell_path: Path):
+    config = _load_bunnyshell(bunnyshell_path)
 
     assert config["kind"] == "Environment"
     assert isinstance(config["components"], list)
 
 
-def test_bunnyshell_has_no_deployable_secret_fallbacks_or_placeholders():
-    text = BUNNYSHELL_PATH.read_text(encoding="utf-8")
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_has_no_deployable_secret_fallbacks_or_placeholders(
+    bunnyshell_path: Path,
+):
+    text = bunnyshell_path.read_text(encoding="utf-8")
 
     forbidden_fragments = [
         ":-postgres",
@@ -48,8 +64,11 @@ def test_bunnyshell_has_no_deployable_secret_fallbacks_or_placeholders():
         assert fragment not in text
 
 
-def test_bunnyshell_datastore_credentials_use_required_environment_variables():
-    config = _load_bunnyshell()
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_datastore_credentials_use_required_environment_variables(
+    bunnyshell_path: Path,
+):
+    config = _load_bunnyshell(bunnyshell_path)
     postgres_env = _component(config, "postgres")["dockerCompose"]["environment"]
     redis_compose = _component(config, "redis")["dockerCompose"]
     minio_env = _component(config, "minio")["dockerCompose"]["environment"]
@@ -72,8 +91,11 @@ def test_bunnyshell_datastore_credentials_use_required_environment_variables():
     assert neo4j_env["NEO4J_AUTH"] == "neo4j/${NEO4J_PASSWORD}"
 
 
-def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disabled():
-    config = _load_bunnyshell()
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disabled(
+    bunnyshell_path: Path,
+):
+    config = _load_bunnyshell(bunnyshell_path)
 
     for name in ("layer1", "layer1-worker"):
         env = _component(config, name)["dockerCompose"]["environment"]
@@ -121,9 +143,10 @@ def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disa
     ]
 
 
-def test_postgres_init_depends_on_postgres_healthy():
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_postgres_init_depends_on_postgres_healthy(bunnyshell_path: Path):
     """postgres-init must wait for postgres to pass its healthcheck (Finding 2)."""
-    config = _load_bunnyshell()
+    config = _load_bunnyshell(bunnyshell_path)
     init = _component(config, "postgres-init")
     depends_on = init["dockerCompose"].get("depends_on", {})
     assert "postgres" in depends_on, "postgres-init must declare depends_on: postgres"
@@ -132,9 +155,10 @@ def test_postgres_init_depends_on_postgres_healthy():
     )
 
 
-def test_postgres_init_env_vars_declared_in_environment_block():
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_postgres_init_env_vars_declared_in_environment_block(bunnyshell_path: Path):
     """Credentials must be in the environment: block so the container receives them (Finding 1)."""
-    config = _load_bunnyshell()
+    config = _load_bunnyshell(bunnyshell_path)
     init = _component(config, "postgres-init")
     env = init["dockerCompose"].get("environment", {})
     assert env.get("POSTGRES_USER") == "${POSTGRES_USER}", (
@@ -145,9 +169,12 @@ def test_postgres_init_env_vars_declared_in_environment_block():
     )
 
 
-def test_postgres_init_script_does_not_unconditionally_exit_zero():
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_postgres_init_script_does_not_unconditionally_exit_zero(
+    bunnyshell_path: Path,
+):
     """The init script must propagate real errors rather than always exiting 0 (Finding 3)."""
-    config = _load_bunnyshell()
+    config = _load_bunnyshell(bunnyshell_path)
     init = _component(config, "postgres-init")
     entrypoint = init["dockerCompose"]["entrypoint"]
     # The shell script is the third element of the entrypoint list
@@ -162,9 +189,29 @@ def test_postgres_init_script_does_not_unconditionally_exit_zero():
     assert "create_db layer7_billing" in script
 
 
-def test_postgres_multiple_databases_includes_all_required_dbs():
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+@pytest.mark.parametrize("component_name", ("layer5-migrate", "postgres-init"))
+def test_bunnyshell_multiline_shell_snippets_parse(
+    bunnyshell_path: Path,
+    component_name: str,
+):
+    config = _load_bunnyshell(bunnyshell_path)
+    component = _component(config, component_name)
+    script = _shell_script(component)
+
+    result = subprocess.run(
+        ["bash", "-n", "-s"],
+        input=script.encode("utf-8"),
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr.decode("utf-8")
+
+
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_postgres_multiple_databases_includes_all_required_dbs(bunnyshell_path: Path):
     """POSTGRES_MULTIPLE_DATABASES must list every database the stack needs (Finding 4)."""
-    config = _load_bunnyshell()
+    config = _load_bunnyshell(bunnyshell_path)
     postgres_env = _component(config, "postgres")["dockerCompose"]["environment"]
     multi_db = postgres_env.get("POSTGRES_MULTIPLE_DATABASES", "")
     required = {
@@ -182,8 +229,28 @@ def test_postgres_multiple_databases_includes_all_required_dbs():
     )
 
 
-def test_bunnyshell_layer4_ingress_targets_container_service_port():
-    config = _load_bunnyshell()
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_frontend_ingress_targets_container_service_port(
+    bunnyshell_path: Path,
+):
+    config = _load_bunnyshell(bunnyshell_path)
+    frontend = _component(config, "frontend")
+
+    assert frontend["dockerCompose"]["ports"] == ["3000:3000"]
+    assert frontend["hosts"] == [
+        {
+            "hostname": "frontend-{{ env.base_domain }}",
+            "path": "/",
+            "servicePort": 3000,
+        }
+    ]
+
+
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_layer4_ingress_targets_container_service_port(
+    bunnyshell_path: Path,
+):
+    config = _load_bunnyshell(bunnyshell_path)
     layer4 = _component(config, "layer4")
 
     assert layer4["dockerCompose"]["ports"] == ["8004:8000"]

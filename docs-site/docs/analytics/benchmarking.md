@@ -57,7 +57,7 @@ The system returns:
 | **Peer Range** | p10 to p90 |
 | **Sample Size** | Number of peers in the dataset |
 | **Confidence** | high (1000+), medium (500+), or low (<500) |
-| **Assessment** | top performer, above average, average, below average, needs improvement |
+| **Assessment** | `top_performer`, `above_average`, `average`, `below_average`, `needs_improvement` |
 
 ### 5. Validate a value
 

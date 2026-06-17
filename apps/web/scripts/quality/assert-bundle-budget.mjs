@@ -7,9 +7,10 @@
  * without blocking the first stabilization sprint. Tighten these values as code
  * splitting lands.
  */
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { walkFiles } from '../lib/fs-scanner.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const webRoot = resolve(__dirname, '..', '..');
@@ -24,14 +25,7 @@ if (!existsSync(assetsRoot)) {
   process.exit(1);
 }
 
-function walk(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    return entry.isDirectory() ? walk(path) : [path];
-  });
-}
-
-const assets = walk(assetsRoot).map((path) => ({
+const assets = walkFiles(assetsRoot, { skipDotDirectories: false }).map((path) => ({
   path,
   relativePath: relative(webRoot, path),
   ext: extname(path),

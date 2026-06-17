@@ -115,7 +115,7 @@ class HybridSearch:
         # After: Parallel (max(BM25 time, vector time, graph time))
         effective_tenant_id = self._resolve_tenant_id(tenant_id)
         bm25_task = self._bm25_search(query, entity_types, result_limit * 2, effective_tenant_id)
-        vector_task = self._vector_search(query, entity_types, result_limit * 2)
+        vector_task = self._vector_search(query, entity_types, result_limit * 2, effective_tenant_id)
         graph_task = self._graph_search(query, entity_types, result_limit * 2, effective_tenant_id)
 
         bm25_results, vector_results, graph_results = await asyncio.gather(
@@ -198,61 +198,33 @@ class HybridSearch:
         """Execute BM25 full-text search via Neo4j fulltext index."""
         driver = await self._get_driver()
         results = []
-
-        if entity_types:
-            unions = []
-            for etype in entity_types:
-                idx = f"{etype.lower()}_fulltext"
-                unions.append(
-                    f"CALL db.index.fulltext.queryNodes('{idx}', $query) "
-                    "YIELD node, score RETURN node, score"
-                )
-            fulltext_call = "\nUNION\n".join(unions)
-        else:
-            fulltext_call = """
-                CALL db.index.fulltext.queryNodes('capability_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('usecase_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('persona_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('valuedriver_fulltext', $query)
-                YIELD node, score RETURN node, score
-            """
+        search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
-            cypher = f"""
-            CALL {{
-                {fulltext_call}
-            }}
-            WITH node as n, score
-            WHERE n.tenant_id = $_tenant_id
-            RETURN n.id as id, labels(n)[0] as entity_type, n.name as name,
-                   n.description as description, score
-            ORDER BY score DESC
-            LIMIT $limit
-            """
-            try:
-                builder = self._tenant_builder(tenant_id)
-                scoped = builder.custom_tenant_query(
-                    cypher,
-                    params={"query": escaped_query, "limit": top_k},
-                    operation="hybrid_search.bm25",
-                    labels=tuple(entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]),
+            builder = self._tenant_builder(tenant_id)
+            for etype in search_types:
+                scoped = builder.fulltext_query_nodes_query(
+                    f"{etype.lower()}_fulltext",
+                    "query",
+                    params={"query": escaped_query},
+                    return_clause=(
+                        "node.id as id, labels(node)[0] as entity_type, node.name as name, "
+                        "node.description as description, score"
+                    ),
+                    limit=top_k,
                 )
-                result = await self._run_scoped(session, scoped)
-                async for record in result:
-                    row = dict(record)
-                    if entity_types and row.get("entity_type") not in entity_types:
-                        continue
-                    results.append(row)
-            except Exception as exc:
-                logger.warning("BM25 search failed: %s", exc)
+                try:
+                    result = await self._run_scoped(session, scoped)
+                    records = [dict(record) async for record in result]
+                    for row in records:
+                        if row.get("entity_type") == etype:
+                            results.append(row)
+                except Exception as exc:
+                    logger.warning("BM25 search failed for %s: %s", etype, exc)
 
+        results.sort(key=lambda row: row.get("score", 0), reverse=True)
+        results = results[:top_k]
         return results
 
     async def _vector_search(
@@ -318,61 +290,43 @@ class HybridSearch:
         """Execute graph-based search (centrality-aware)."""
         driver = await self._get_driver()
         results = []
-
-        if entity_types:
-            unions = []
-            for etype in entity_types:
-                idx = f"{etype.lower()}_fulltext"
-                unions.append(
-                    f"CALL db.index.fulltext.queryNodes('{idx}', $query) "
-                    "YIELD node, score RETURN node, score"
-                )
-            fulltext_call = "\nUNION\n".join(unions)
-        else:
-            fulltext_call = """
-                CALL db.index.fulltext.queryNodes('capability_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('usecase_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('persona_fulltext', $query)
-                YIELD node, score RETURN node, score
-                UNION
-                CALL db.index.fulltext.queryNodes('valuedriver_fulltext', $query)
-                YIELD node, score RETURN node, score
-            """
+        search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
-            cypher = f"""
-            CALL {{
-                {fulltext_call}
-            }}
-            WITH node as n, score as text_score
-            WHERE n.tenant_id = $_tenant_id
-            OPTIONAL MATCH (n)-[r]-(neighbor)
-            WHERE neighbor.tenant_id = $_tenant_id
-            WITH n, text_score, count(r) as degree
-            RETURN n.id as id, labels(n)[0] as entity_type, n.name as name,
-                   text_score * log(degree + 1) as score
-            ORDER BY score DESC
-            LIMIT $limit
-            """
-            try:
+            for etype in search_types:
                 builder = self._tenant_builder(tenant_id)
                 scoped = builder.custom_tenant_query(
-                    cypher,
-                    params={"query": escaped_query, "limit": top_k},
+                    """
+                    CALL () {
+                        CALL db.index.fulltext.queryNodes($index_name, $query)
+                        YIELD node, score
+                        WHERE node.tenant_id = $_tenant_id
+                        OPTIONAL MATCH (node)-[r]-(neighbor)
+                        WHERE neighbor.tenant_id = $_tenant_id
+                        WITH node, score as text_score, count(r) as degree
+                        RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
+                               text_score * log(degree + 1) as score
+                        ORDER BY score DESC
+                        LIMIT $limit
+                    }
+                    """,
+                    params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
                     operation="hybrid_search.graph",
-                    labels=tuple(entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]),
+                    labels=(etype,),
+                    allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
                 )
-                result = await self._run_scoped(session, scoped)
-                async for record in result:
-                    results.append(dict(record))
-            except Exception as exc:
-                logger.warning("Graph search failed: %s", exc)
+                try:
+                    result = await self._run_scoped(session, scoped)
+                    records = [dict(record) async for record in result]
+                    for row in records:
+                        if row.get("entity_type") == etype:
+                            results.append(row)
+                except Exception as exc:
+                    logger.warning("Graph search failed for %s: %s", etype, exc)
 
+        results.sort(key=lambda row: row.get("score", 0), reverse=True)
+        results = results[:top_k]
         return results
 
     def _merge_results(

@@ -68,6 +68,8 @@ class LLMBudgetGuardrails:
             from redis.asyncio import Redis
 
             return Redis.from_url(redis_url, decode_responses=True)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             if is_production_like_environment(self.environment):
                 raise RuntimeError("Failed to initialize Redis LLM budget backend") from exc
@@ -135,6 +137,8 @@ class LLMBudgetGuardrails:
         try:
             hourly_raw, daily_raw = await self._redis.mget(hourly_key, daily_key)
             return float(hourly_raw or 0), float(daily_raw or 0)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             if is_production_like_environment(self.environment):
                 self._record_event(tenant_id, "blocked", "redis_unavailable")
@@ -152,6 +156,8 @@ class LLMBudgetGuardrails:
             pipe.incrbyfloat(daily_key, cost_usd)
             pipe.expire(daily_key, 90000)
             await pipe.execute()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             if is_production_like_environment(self.environment):
                 self._record_event(tenant_id, "blocked", "redis_unavailable")

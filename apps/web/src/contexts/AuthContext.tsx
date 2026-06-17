@@ -11,9 +11,10 @@
  */
 
 import { createContext, useContext, useMemo } from 'react';
-import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization } from '@clerk/react';
+import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization, useClerk } from '@clerk/react';
 import { createFeatureLogger } from '@/lib/telemetry';
 import { isClerkAuthEnabled } from '@/auth/clerkConfig';
+import { getClerkTenantRouteSlug } from '@/auth/clerkTenant';
 import { type UserInfo, UserInfoSchema } from '../schemas/auth';
 
 export type { UserInfo } from '../schemas/auth';
@@ -101,21 +102,103 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
   }
 
-  // Clerk hooks (only used when Clerk is enabled)
+  return <ClerkAuthProvider>{children}</ClerkAuthProvider>;
+}
+
+function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();
   const { isLoaded: userLoaded, user: clerkUser } = useClerkUser();
-  const { organization } = useOrganization();
+  const { signOut } = useClerk();
 
-  // Determine loading state and user info based on mode
-  const isLoading = !authLoaded || !userLoaded;
+  const initiateLogin = async () => {
+    safeNavigate('/sign-in');
+  };
+
+  const handleCallback = async () => {
+    // Clerk handles OAuth callbacks internally; no-op here
+    return true;
+  };
+
+  const logout = async () => {
+    try {
+      await signOut({ redirectUrl: '/' });
+    } catch (error) {
+      log.error('Sign out failed', { error: String(error) });
+      safeNavigate('/');
+    }
+  };
+
+  const refreshToken = async () => {
+    // Clerk handles token refresh automatically
+    return true;
+  };
+
+  let devBypass: AuthContextType['devBypass'];
+
+  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+    devBypass = () => {
+      log.warn('devBypass called in Clerk mode - not supported');
+    };
+  }
+
+  if (!authLoaded || !userLoaded || !isSignedIn) {
+    const value: AuthContextType = {
+      isAuthenticated: authLoaded && !!isSignedIn,
+      isLoading: !authLoaded || !userLoaded,
+      user: null,
+      currentTenantSlug: null,
+      accessToken: null,
+      initiateLogin,
+      handleCallback,
+      logout,
+      refreshToken,
+      ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
+
+  return (
+    <SignedInClerkAuthProvider
+      clerkUser={clerkUser}
+      initiateLogin={initiateLogin}
+      handleCallback={handleCallback}
+      logout={logout}
+      refreshToken={refreshToken}
+      devBypass={devBypass}
+    >
+      {children}
+    </SignedInClerkAuthProvider>
+  );
+}
+
+function SignedInClerkAuthProvider({
+  children,
+  clerkUser,
+  initiateLogin,
+  handleCallback,
+  logout,
+  refreshToken,
+  devBypass,
+}: {
+  children: React.ReactNode;
+  clerkUser: ReturnType<typeof useClerkUser>['user'];
+  initiateLogin: AuthContextType['initiateLogin'];
+  handleCallback: AuthContextType['handleCallback'];
+  logout: AuthContextType['logout'];
+  refreshToken: AuthContextType['refreshToken'];
+  devBypass: AuthContextType['devBypass'];
+}) {
+  const { organization, isLoaded: organizationLoaded } = useOrganization();
 
   const user: UserInfo | null = useMemo(() => {
     // Clerk mode: map Clerk user to UserInfo
     if (!clerkUser) return null;
 
-    // Users without organization membership are not fully authenticated for our multi-tenant app
-    // They need to join or create an organization before accessing tenant-scoped features
-    if (!organization || !organization.id || !organization.slug) {
+    // Users without organization membership are not fully authenticated for our multi-tenant app.
+    // Clerk org slug can be absent for newly-created orgs, so tenant routes fall back to org id.
+    const tenantRouteSlug = getClerkTenantRouteSlug(organization);
+    if (!organization || !organization.id || !tenantRouteSlug) {
       return null;
     }
 
@@ -139,55 +222,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: primaryEmail,
       role,
       tenantId: organization.id,
-      tenantSlug: organization.slug,
+      tenantSlug: tenantRouteSlug,
     };
     const parsed = UserInfoSchema.safeParse(mapped);
     return parsed.success ? parsed.data : null;
   }, [clerkUser, organization]);
 
-  const currentTenantSlug = organization?.slug ?? null;
-
-  const initiateLogin = async () => {
-    safeNavigate('/sign-in');
-  };
-
-  const handleCallback = async () => {
-    // Clerk handles OAuth callbacks internally; no-op here
-    return true;
-  };
-
-  const logout = async () => {
-    try {
-      const { useClerk } = await import('@clerk/react');
-      const clerk = useClerk();
-      await clerk.signOut({ redirectUrl: '/' });
-    } catch (error) {
-      log.error('Sign out failed', { error: String(error) });
-      safeNavigate('/');
-    }
-  };
-
-  const refreshToken = async () => {
-    // Clerk handles token refresh automatically
-    return true;
-  };
-
-  /**
-   * Local auth shortcut is compiled only into development and test bundles.
-   * Production builds do not receive the implementation, mock identity, flag path,
-   * or context field; this makes bypass leakage detectable by bundle scanning.
-   */
-  let devBypass: AuthContextType['devBypass'];
-
-  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-    devBypass = () => {
-      log.warn('devBypass called in Clerk mode - not supported');
-    };
-  }
+  const currentTenantSlug = getClerkTenantRouteSlug(organization);
 
   const value: AuthContextType = {
-    isAuthenticated: authLoaded && !!isSignedIn,
-    isLoading,
+    isAuthenticated: true,
+    isLoading: !organizationLoaded,
     user,
     currentTenantSlug,
     accessToken: null,

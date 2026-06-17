@@ -6,8 +6,7 @@ Integration Service for managing CRM provider configurations.
 Handles CRUD operations for integrations with credential encryption,
 validation, and audit logging. Supports Salesforce and HubSpot.
 """
-
-
+import asyncio
 import json
 import logging
 import os
@@ -205,6 +204,8 @@ class IntegrationService:
         if provider == CRMProvider.SALESFORCE and is_update and not merged_credentials.get("api_key"):
             try:
                 existing_credentials = await self.decrypt_credentials(existing)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 existing_credentials = {}
             if existing_credentials.get("api_key"):
@@ -222,6 +223,8 @@ class IntegrationService:
             try:
                 old_creds = await self.decrypt_credentials(existing)
                 existing_webhook_token = old_creds.get("webhook_token")
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 existing_webhook_token = None
             if existing_webhook_token:
@@ -350,6 +353,8 @@ class IntegrationService:
             )
             return test_result
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Connection test failed for %s: %s", provider, e)
             return IntegrationService_test_connectionResult.model_validate({
@@ -602,6 +607,8 @@ class IntegrationService:
                 tenant_id=tenant_id,
                 provider=provider.value,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             job.status = CRMSyncJobStatus.FAILED
             job.finished_at = datetime.now(UTC)
@@ -745,6 +752,8 @@ class IntegrationService:
             refresh_token = await EncryptionService.decrypt(
                 integration.refresh_token_encrypted, integration.encryption_key_id
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             raise IntegrationValidationError(f"Failed to decrypt refresh token: {e}") from e
 
@@ -910,6 +919,8 @@ class IntegrationService:
         if existing:
             try:
                 old_credentials = await self.decrypt_credentials(existing)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 old_credentials = {}
             webhook_token = old_credentials.get("webhook_token")

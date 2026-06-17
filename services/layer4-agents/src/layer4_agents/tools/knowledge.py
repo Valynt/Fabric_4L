@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
 """
@@ -23,6 +25,11 @@ from layer4_agents.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+
+class ConfigurationError(ValueError):
+    """Raised when a tool is misconfigured (e.g. missing a required secret)."""
+
+
 _NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 _NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 _NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD") or get_settings().neo4j_password
@@ -30,11 +37,22 @@ _NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "valuefabric")
 _DRIVER = None
 
 
+def _resolve_password() -> str:
+    """Resolve Neo4j password from environment or settings; fail closed if missing."""
+    password = os.environ.get("NEO4J_PASSWORD") or get_settings().neo4j_password
+    if not password:
+        raise ConfigurationError(
+            "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+        )
+    return password
+
+
 def _get_driver():
     """Lazy initialize Neo4j driver."""
     global _DRIVER
     if _DRIVER is None:
-        _DRIVER = AsyncGraphDatabase.driver(_NEO4J_URI, auth=(_NEO4J_USER, _NEO4J_PASSWORD))
+        password = _resolve_password()
+        _DRIVER = AsyncGraphDatabase.driver(_NEO4J_URI, auth=(_NEO4J_USER, password))
     return _DRIVER
 
 
@@ -93,6 +111,8 @@ async def get_entity(
             outcome = AuditOutcome.SUCCESS
             reason = "ok"
             return _build_entity_dict(record["n"], record["labels"])
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("get_entity failed for tenant=%s, entity=%s: %s", tenant_id, entity_id, exc)
         reason = "error"
@@ -140,6 +160,8 @@ async def update_entity(
             outcome = AuditOutcome.SUCCESS
             reason = "ok"
             return _build_entity_dict(record["n"], record["labels"])
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("update_entity failed for tenant=%s, entity=%s: %s", tenant_id, entity_id, exc)
         reason = "error"
@@ -184,6 +206,8 @@ async def delete_entity(
                 outcome = AuditOutcome.SUCCESS
                 reason = "ok"
             return deleted
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("delete_entity failed for tenant=%s, entity=%s: %s", tenant_id, entity_id, exc)
         reason = "error"
@@ -231,6 +255,8 @@ async def search_entities(
             async for record in result:
                 entities.append(_build_entity_dict(record["n"], record["labels"]))
             return entities
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("search_entities failed for tenant=%s query=%s: %s", tenant_id, query, exc)
         return []
@@ -259,6 +285,8 @@ async def list_entities(
             async for record in result:
                 entities.append(_build_entity_dict(record["n"], record["labels"]))
             return entities
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("list_entities failed for tenant=%s: %s", tenant_id, exc)
         return []

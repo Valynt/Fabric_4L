@@ -1,4 +1,6 @@
 import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
+import { useAuth as useClerkAuth } from "@clerk/react";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTenantMembership } from "@/hooks/useTenantMembership";
 import { useAccountAccess } from "@/hooks/useAccountAccess";
@@ -16,7 +18,15 @@ interface UnifiedRouteGuardProps {
   children: React.ReactNode;
 }
 
-export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
+interface RouteGuardAuthState {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+function UnifiedRouteGuardInner({
+  children,
+  authStateOverride,
+}: UnifiedRouteGuardProps & { authStateOverride?: RouteGuardAuthState }) {
   const location = useLocation();
   const params = useParams();
   const matches = useMatches();
@@ -25,7 +35,8 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   // truth for both Clerk and mock/dev mode (VITE_ENABLE_MOCK_AUTH). Calling Clerk's
   // useAuth() directly here would hang on "Verifying access..." in mock mode because
   // Clerk never finishes loading without a real publishable key/session.
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const authContext = useAuthContext();
+  const { isAuthenticated, isLoading } = authStateOverride ?? authContext;
   const loginPath = "/sign-in";
 
   // Walk up the match tree to find the most specific access policy
@@ -146,6 +157,28 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   return <ErrorBoundary>{children}</ErrorBoundary>;
+}
+
+function ClerkUnifiedRouteGuard(props: UnifiedRouteGuardProps) {
+  const { isLoaded, isSignedIn } = useClerkAuth();
+
+  return (
+    <UnifiedRouteGuardInner
+      {...props}
+      authStateOverride={{
+        isLoading: !isLoaded,
+        isAuthenticated: isLoaded && !!isSignedIn,
+      }}
+    />
+  );
+}
+
+export function UnifiedRouteGuard(props: UnifiedRouteGuardProps) {
+  if (isClerkAuthEnabled()) {
+    return <ClerkUnifiedRouteGuard {...props} />;
+  }
+
+  return <UnifiedRouteGuardInner {...props} />;
 }
 
 function RouteGuardSkeleton() {

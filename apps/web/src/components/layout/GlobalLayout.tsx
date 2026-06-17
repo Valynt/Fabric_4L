@@ -16,6 +16,7 @@ import { useUserTierStore } from "@/stores/userTierStore";
 import type { AgentChatMode } from "@/types/layout";
 import type { UserTier } from "@/navigation/navigationService";
 import { RouteTelemetry } from "@/lib/route-telemetry";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface WorkflowIndicatorState {
   activeStepId: string;
@@ -129,6 +130,7 @@ export function GlobalLayout() {
   // Mobile navigation uses persistent icon rail (MobilePersistentSidebar).
   // Hamburger menu drawer is not implemented; no open/close state needed.
   const rawTier = useUserTierStore(state => state.currentTier);
+  const { currentTenantSlug } = useAuthContext();
   const currentTier: UserTier = rawTier === "unknown" ? "standard" : rawTier;
   const setCurrentTier = useUserTierStore(state => state.setTier);
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState(false);
@@ -174,6 +176,7 @@ export function GlobalLayout() {
         collapsed={leftNavCollapsed}
         onToggle={toggleLeftNav}
         currentTier={currentTier}
+        currentTenantSlug={currentTenantSlug}
       />
 
       <MobileNavigation

@@ -56,6 +56,7 @@ try:
     from value_fabric.shared.identity.vault_check import is_vault_healthy
     from value_fabric.shared.models.typed_dict import TypedDictModel
     from value_fabric.shared.observability.metrics_access import verify_metrics_access
+    from value_fabric.shared.probes import normalize_probe_payload
     from value_fabric.shared.security import SecurityConfig, add_security_middleware
     from value_fabric.shared.startup import reject_insecure_bypass_in_production
 except ImportError as e:
@@ -3496,13 +3497,15 @@ async def legacy_health_check():
         )
         overall_status = "degraded"
 
-    return legacy_health_checkResult.model_validate(
-        {
-            "status": overall_status,
+    payload = normalize_probe_payload(
+        status=overall_status,
+        service="layer1-ingestion",
+        dependencies=dependencies,
+        extra={
             "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
-            "dependencies": dependencies,
-        }
+        },
     )
+    return legacy_health_checkResult.model_validate(payload)
 
 
 if __name__ == "__main__":

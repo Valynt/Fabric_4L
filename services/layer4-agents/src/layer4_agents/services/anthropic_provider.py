@@ -6,6 +6,7 @@ protocols by wrapping the Anthropic Messages API.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -144,6 +145,8 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
             return CompletionResult(
                 content=content.strip(),
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
 
@@ -253,6 +256,8 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                 content = " ".join(text_parts).strip()
                 tool_calls = tuple(anthropic_tool_calls)
             return CompletionResult(content=content, tool_calls=tool_calls)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
 
@@ -306,6 +311,8 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                 )
             # Basic validation using schema
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             return self._normalize_error(exc)
 

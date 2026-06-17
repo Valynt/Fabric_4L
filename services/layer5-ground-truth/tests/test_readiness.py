@@ -120,7 +120,11 @@ async def test_ready_when_db_reachable_and_schema_aligned(client, monkeypatch) -
     )
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "database": "ok"}
+    payload = response.json()
+    assert payload["status"] == "ready"
+    assert payload["database"] == "ok"
+    assert payload["service"] == "layer5-ground-truth"
+    assert payload["readiness"] == {"is_ready": True, "reason": "dependencies_available"}
 
 
 @pytest.mark.anyio
@@ -138,16 +142,17 @@ async def test_not_ready_when_db_reachable_but_schema_drift(client, monkeypatch)
     )
 
     assert response.status_code == 503
-    assert response.json() == {
-        "status": "not_ready",
-        "database": "ok",
-        "schema": "behind",
-        "not_ready": {
-            "component": "schema",
-            "reason": "schema_revision_behind",
-            "current_revisions": ["007_add_missing_truth_object_indexes"],
-            "expected_heads": ["008_ensure_truth_objects_tenant_id"],
-        },
+    payload = response.json()
+    assert payload["status"] == "not_ready"
+    assert payload["database"] == "ok"
+    assert payload["schema"] == "behind"
+    assert payload["service"] == "layer5-ground-truth"
+    assert payload["readiness"] == {"is_ready": False, "reason": "dependency_unhealthy"}
+    assert payload["not_ready"] == {
+        "component": "schema",
+        "reason": "schema_revision_behind",
+        "current_revisions": ["007_add_missing_truth_object_indexes"],
+        "expected_heads": ["008_ensure_truth_objects_tenant_id"],
     }
 
 
@@ -160,4 +165,8 @@ async def test_not_ready_when_db_unreachable(client, monkeypatch) -> None:
     )
 
     assert response.status_code == 503
-    assert response.json() == {"status": "not_ready", "database": "unavailable"}
+    payload = response.json()
+    assert payload["status"] == "not_ready"
+    assert payload["database"] == "unavailable"
+    assert payload["service"] == "layer5-ground-truth"
+    assert payload["readiness"] == {"is_ready": False, "reason": "dependency_unhealthy"}

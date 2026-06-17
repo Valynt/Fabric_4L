@@ -10,7 +10,7 @@ This service is the single source of truth for:
 All methods are async to integrate with SQLAlchemy's async session.
 """
 
-
+import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -22,6 +22,7 @@ try:
         AuthorizationError,
         ConflictError,
         NotFoundError,
+        TenantIsolationError,
         ValidationError,
     )
     from value_fabric.shared.identity.hashing import (
@@ -45,6 +46,7 @@ try:
     )
     from value_fabric.shared.identity.permissions import (
         ROLE_PERMISSIONS,
+        Role,
         can_grant_role,
         get_role_rank,
     )
@@ -58,6 +60,16 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+try:
+    from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
+
+    AUDIT_AVAILABLE = True
+except ImportError:
+    AUDIT_AVAILABLE = False
+    emit_audit_event = None  # type: ignore
+    AuditAction = None  # type: ignore
+    AuditOutcome = None  # type: ignore
 
 from .invitations import InvitationService
 from .models.api_key import APIKey
@@ -76,16 +88,19 @@ class lookup_api_key_by_hashResult(TypedDictModel):
     tenant_id: Any
     user_id: Any
 
+
 logger = logging.getLogger(__name__)
 
 # Task 4.1: Valid change sources for tier change audit logging
-VALID_CHANGE_SOURCES = frozenset({
-    "system",
-    "migration",
-    "admin",
-    "policy_engine",
-    "api",
-})
+VALID_CHANGE_SOURCES = frozenset(
+    {
+        "system",
+        "migration",
+        "admin",
+        "policy_engine",
+        "api",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -124,9 +139,7 @@ async def get_tenant_status(db: AsyncSession, tenant_id: UUID) -> str | None:
     Returns:
         Tenant status string (active, suspended, pending, deleted) or None if not found
     """
-    result = await db.execute(
-        select(Tenant.status).where(Tenant.id == tenant_id)
-    )
+    result = await db.execute(select(Tenant.status).where(Tenant.id == tenant_id))
     return result.scalar_one_or_none()
 
 
@@ -192,9 +205,7 @@ async def count_users(db: AsyncSession, tenant_id: UUID) -> int:
         Number of active users
     """
     result = await db.execute(
-        select(func.count())
-        .where(User.tenant_id == tenant_id)
-        .where(User.status != "deleted")
+        select(func.count()).where(User.tenant_id == tenant_id).where(User.status != "deleted")
     )
     return result.scalar() or 0
 
@@ -210,9 +221,7 @@ async def count_api_keys(db: AsyncSession, tenant_id: UUID) -> int:
         Number of enabled API keys
     """
     result = await db.execute(
-        select(func.count())
-        .where(APIKey.tenant_id == tenant_id)
-        .where(APIKey.enabled.is_(True))
+        select(func.count()).where(APIKey.tenant_id == tenant_id).where(APIKey.enabled.is_(True))
     )
     return result.scalar() or 0
 
@@ -249,9 +258,7 @@ async def get_tenant_settings(db: AsyncSession, tenant_id: UUID) -> dict | None:
     Returns:
         Tenant settings dict or None if tenant not found
     """
-    result = await db.execute(
-        select(Tenant.settings).where(Tenant.id == tenant_id)
-    )
+    result = await db.execute(select(Tenant.settings).where(Tenant.id == tenant_id))
     settings = result.scalar_one_or_none()
     return settings if settings else {}
 
@@ -326,11 +333,14 @@ async def update_tenant_status(
     # Real-time kill-switch update
     try:
         from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+
         kill_switch = TenantKillSwitch()
         if status in ("suspended", "deleted"):
             await kill_switch.suspend(str(tenant_id))
         elif status == "active" and old_status in ("suspended", "deleted"):
             await kill_switch.unsuspend(str(tenant_id))
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.warning("Kill-switch update failed for tenant %s: %s", tenant_id, exc)
 
@@ -546,9 +556,7 @@ async def invite_user(
 
     # Cross-tenant email uniqueness check
     email_hash = blind_index(request.email)
-    result = await db.execute(
-        select(User).where(User.email_hash == email_hash)
-    )
+    result = await db.execute(select(User).where(User.email_hash == email_hash))
     existing = result.scalar_one_or_none()
     if existing:
         raise ConflictError(message="User with this email already exists")
@@ -613,6 +621,7 @@ async def accept_invitation(
     # Validate and hash password
     try:
         from .passwords import PasswordTooLongError
+
         hashed = hash_password(request.password)
     except (ValueError, PasswordTooLongError) as exc:
         raise ValidationError(message=f"Password does not meet requirements: {exc}") from exc
@@ -690,13 +699,37 @@ async def create_api_key(
     db: AsyncSession,
     tenant_id: UUID,
     request: APIKeyCreateRequest,
+    *,
     user_id: UUID | None = None,
+    creator_role: Role | str | None = None,
 ) -> APIKeyCreateResponse:
     """Issue a new API key.  Caller must hold ADMIN_API_KEYS permission.
 
     The raw key is returned **once** and never stored.  The HMAC-SHA256
     digest is stored in the database.
+
+    Role constraint: the creator's effective role must outrank the requested
+    key role (``can_grant_role``).  Low-privilege users cannot mint
+    higher-privilege keys.
     """
+    if creator_role is not None and not can_grant_role(creator_role, request.role):
+        raise AuthorizationError(
+            message=f"Cannot create API key with role {request.role.value}; "
+            f"your role does not authorize granting that role."
+        )
+
+    # Tenant-scoped guard: the issuing user must exist in the target tenant.
+    # This prevents service callers from minting a key for an arbitrary tenant
+    # while attributing it to a user from another tenant.
+    if user_id is not None:
+        user_belongs = await db.execute(
+            select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+        )
+        if user_belongs.scalar_one_or_none() is None:
+            raise TenantIsolationError(
+                message="API key creator does not belong to the requested tenant"
+            )
+
     raw_key = generate_api_key()
     key_hash = hash_api_key(raw_key)
     prefix = extract_key_prefix(raw_key)
@@ -710,6 +743,7 @@ async def create_api_key(
         key_id=key_id,
         tenant_id=tenant_id,
         user_id=user_id,
+        creator_user_id=user_id,
         name=request.name,
         key_hash=key_hash,
         prefix=prefix,
@@ -739,24 +773,39 @@ async def create_api_key(
 
 
 async def list_api_keys(
-    db: AsyncSession, tenant_id: UUID, *, enabled_only: bool = True
+    db: AsyncSession, tenant_id: UUID, *, active_only: bool = True
 ) -> list[APIKeyModel]:
+    """List API keys for a tenant.
+
+    By default returns only active (non-revoked, non-expired) keys. Set
+    ``active_only=False`` to include revoked/expired keys for audit/history.
+    """
     q = select(APIKey).where(APIKey.tenant_id == tenant_id)
-    if enabled_only:
-        q = q.where(APIKey.enabled.is_(True))
+    if active_only:
+        q = q.where(
+            APIKey.enabled.is_(True),
+            APIKey.revoked_at.is_(None),
+            (APIKey.expires_at.is_(None) | (APIKey.expires_at > datetime.now(UTC))),
+        )
     result = await db.execute(q.order_by(APIKey.created_at.desc()))
     return [_api_key_to_model(k) for k in result.scalars().all()]
 
 
 async def revoke_api_key(db: AsyncSession, tenant_id: UUID, key_id: str) -> bool:
-    """Disable (soft-delete) an API key."""
+    """Disable (soft-delete) an API key.
+
+    Idempotent: revoking an already-revoked key returns True.
+    """
     result = await db.execute(
         select(APIKey).where(APIKey.key_id == key_id, APIKey.tenant_id == tenant_id)
     )
     key = result.scalar_one_or_none()
     if not key:
         return False
+    if key.is_revoked():
+        return True
     key.enabled = False
+    key.revoked_at = datetime.now(UTC)
     await db.flush()
     logger.info("Revoked API key %s for tenant %s", key_id, tenant_id)
     return True
@@ -766,26 +815,45 @@ async def lookup_api_key_by_hash(db: AsyncSession, raw_key: str) -> dict | None:
     """Look up an API key record by its raw value (for GovernanceMiddleware).
 
     Returns a dict suitable for ``GovernanceMiddleware``'s ``api_key_resolver``
-    or ``None`` if the key is not found / disabled / expired.
+    or ``None`` if the key is not found / revoked / expired.  On a successful
+    lookup updates ``last_used_at`` and emits an ``api_key.used`` audit event.
     """
     key_hash = hash_api_key(raw_key)
     result = await db.execute(select(APIKey).where(APIKey.key_hash == key_hash))
     key = result.scalar_one_or_none()
-    if not key:
+    if not key or not key.is_active():
         return None
-    if not key.enabled or key.is_expired():
-        return None
-    # Update last_used_at asynchronously (fire-and-forget inside same session)
-    key.last_used_at = datetime.now(UTC)
-    return lookup_api_key_by_hashResult.model_validate({
-        "key_id": key.key_id,
-        "tenant_id": str(key.tenant_id),
-        "user_id": str(key.user_id) if key.user_id else None,
-        "role": key.role,
-        "permissions": key.permissions,
-        "enabled": key.enabled,
-        "rate_limit_per_minute": key.rate_limit_per_minute,
-    })
+
+    now = datetime.now(UTC)
+    key.last_used_at = now
+
+    if AUDIT_AVAILABLE and emit_audit_event:
+        try:
+            await emit_audit_event(
+                action=AuditAction.API_KEY_USED,
+                outcome=AuditOutcome.SUCCESS,
+                actor_id=str(key.user_id) if key.user_id else None,
+                tenant_id=str(key.tenant_id),
+                resource_type="api_key",
+                resource_id=key.key_id,
+                details={"last_used_at": now.isoformat()},
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("Failed to emit api_key.used audit event", exc_info=True)
+
+    return lookup_api_key_by_hashResult.model_validate(
+        {
+            "key_id": key.key_id,
+            "tenant_id": str(key.tenant_id),
+            "user_id": str(key.user_id) if key.user_id else None,
+            "role": key.role,
+            "permissions": key.permissions,
+            "enabled": key.enabled and not key.is_revoked(),
+            "rate_limit_per_minute": key.rate_limit_per_minute,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -837,7 +905,8 @@ def _api_key_to_model(k: APIKey) -> APIKeyModel:
         prefix=k.prefix,
         role=k.role,
         permissions=perms,
-        enabled=k.enabled,
+        enabled=k.enabled and not k.is_revoked(),
+        revoked_at=k.revoked_at,
         created_at=k.created_at,
         expires_at=k.expires_at,
         last_used_at=k.last_used_at,

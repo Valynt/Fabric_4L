@@ -289,7 +289,7 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
     global _security_config_l3
     _security_config_l3 = add_security_validation_middleware(
         app,
-        skip_validation_paths={"/health", "/metrics", "/ready", "/live"},
+        skip_validation_paths={"/health", "/metrics", "/ready", "/live", "/v1/ingest"},
         strict_mode=True,
     )
     add_governance_middleware(app)

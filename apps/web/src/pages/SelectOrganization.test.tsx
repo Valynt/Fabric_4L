@@ -26,6 +26,7 @@ const mockUrls = {
 
 vi.mock("@/auth/clerkConfig", () => ({
   getClerkUrls: () => mockUrls,
+  isClerkAuthEnabled: () => true,
 }));
 
 import SelectOrganizationPage from "./SelectOrganization";

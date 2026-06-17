@@ -14,7 +14,7 @@
 | Layer 3 AuthenticationMiddleware | shared.identity.GovernanceMiddleware | 2026-05-15 | Remove duplicate middleware | waived-with-exception | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE |
 | Raw dict agent returns | AgentResultEnvelope | 2026-06-30 | Gradual migration | in-progress | Pending migration/validation |
 | ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-07-15 | Agents must use ctx['tool_gateway'] | in-progress | Pending migration/validation |
-| GraphRAGEngine.query() direct call | MemoryGateway.query() | 2026-07-15 | Agents must use ctx['memory_gateway'] | in-progress | Pending migration/validation |
+| GraphRAGEngine.query() direct call | MemoryGateway.query() | 2026-07-15 | Agents must use ctx['memory_gateway'] | complete | MemoryGateway wired into BaseAgent.run() and ConversationService gate context; tests in services/layer4-agents/tests/test_base_agent_memory_gateway.py |
 | datetime.utcnow() | datetime.now(timezone.utc) | 2026-06-01 | Deprecated in Python 3.12 | waived-with-exception | DEP-EXC-2026-06-04-UTCNOW |
 | asyncio.get_event_loop().time() | asyncio.get_running_loop().time() | 2026-06-01 | Deprecated in Python 3.10 | waived-with-exception | DEP-EXC-2026-06-04-LOOP-TIME |
 | useWorkflowStore + usePilotStore | useValuePilotStore (merged) | 2026-05-30 | Consolidate to one 7-step store | waived-with-exception | DEP-EXC-2026-06-04-VALUE-PILOT-STORE |

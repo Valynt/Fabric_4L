@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 """Calculation tools for formulas, ROI, benchmarks, and sensitivity analysis."""
-
-
 import ast
+import asyncio
 import operator
 import re
 
@@ -164,6 +163,8 @@ class EvaluateFormulaTool(BaseTool):
                 error=None if not missing else f"Missing variables: {missing}",
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return EvaluateFormulaOutput(
                 result=None, substituted_formula=input_data.formula, success=False, error="FORMULA_EVALUATION_ERROR"

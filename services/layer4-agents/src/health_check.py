@@ -4,8 +4,7 @@ from __future__ import annotations
 
 Uses urllib from the standard library to avoid external dependencies.
 """
-
-
+import asyncio
 import sys
 import urllib.error
 import urllib.request
@@ -26,6 +25,8 @@ def main() -> int:
         print(f"Health check HTTP error: {e.code}", file=sys.stderr)
     except urllib.error.URLError as e:
         print(f"Health check connection error: {e.reason}", file=sys.stderr)
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         print(f"Health check failed: {e}", file=sys.stderr)
     return 1

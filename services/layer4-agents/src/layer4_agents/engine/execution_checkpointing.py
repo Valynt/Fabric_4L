@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -38,5 +39,7 @@ def record_checkpoint_corruption(
                 workflow_type=workflow_type,
                 tenant_id=tenant_id,
             )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         pass

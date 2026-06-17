@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -254,6 +256,8 @@ async def oidc_login(
     oidc_client = OIDCClient()
     try:
         metadata = await oidc_client.discover(oidc_config.issuer_url)
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.warning("OIDC provider discovery failed: %s", exc)
         raise ServiceUnavailableError(message="Failed to discover OIDC provider") from exc
@@ -394,6 +398,8 @@ async def oidc_callback(
             client_id=oidc_config.client_id,
         )
     except HTTPException:
+        raise
+    except asyncio.CancelledError:
         raise
     except Exception as exc:
         emit_audit_event(

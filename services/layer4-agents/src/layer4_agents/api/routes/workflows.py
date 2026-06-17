@@ -379,6 +379,8 @@ async def create_workflow(
                 resource_id=result.workflow_id,
                 details={"workflow_type": request.workflow_type, "priority": request.priority},
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception(f"Audit logging failed for workflow start {result.workflow_id}")
 
@@ -388,6 +390,8 @@ async def create_workflow(
             estimated_duration_seconds=estimated_duration,
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         if isinstance(exc, WorkflowExecutionError):
             raise_normalized_with_log(
@@ -630,6 +634,8 @@ async def cancel_workflow(
             resource_id=workflow_id,
             details={"outcome": "success"},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception(f"Audit logging failed for workflow cancel {workflow_id}")
 
@@ -706,6 +712,8 @@ async def resume_workflow(
                     "result_status": result_status,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception(f"Audit logging failed for workflow resume {workflow_id}")
 
@@ -719,6 +727,8 @@ async def resume_workflow(
             ),
             estimated_completion_seconds=0 if is_complete else 60,
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_resume_value_error", extra={"error_type": type(exc).__name__})
@@ -814,6 +824,8 @@ async def pause_workflow(
                 resource_id=workflow_id,
                 details={"reason": request.reason, "outcome": "success"},
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception(f"Audit logging failed for workflow pause {workflow_id}")
 
@@ -824,6 +836,8 @@ async def pause_workflow(
             current_node=status.get("current_node"),
             message=f"Workflow paused at node: {status.get('current_node', 'unknown')}",
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_pause_value_error", extra={"error_type": type(exc).__name__})
@@ -979,6 +993,8 @@ async def archive_workflow(
             resource_id=workflow_id,
             details={"archived_at": archived_at, "outcome": "success"},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception(f"Audit logging failed for archive of workflow {workflow_id}")
 

@@ -151,7 +151,7 @@ class BaseAgentState(BaseModel):
     input_data: Annotated[dict[str, Any], _merge_dicts] = Field(default_factory=dict)
     output_data: Annotated[dict[str, Any] | None, _merge_dicts] = Field(default_factory=dict)
     errors: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: Annotated[dict[str, Any], _merge_dicts] = Field(default_factory=dict)
     reasoning_trace: ReasoningTrace | None = Field(
         default=None, description="Structured reasoning trace validated at output"
     )
@@ -388,7 +388,7 @@ class BusinessCaseInputData(BaseModel):
     @field_validator("output_format")
     @classmethod
     def validate_format(cls, v: str) -> str:
-        valid = {"pdf", "docx", "html"}
+        valid = {"pdf", "docx", "html", "json"}
         if v not in valid:
             raise ValueError(f"output_format must be one of {valid}")
         return v

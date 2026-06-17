@@ -14,6 +14,7 @@ Design principles:
 """
 
 
+import asyncio
 import logging
 from collections.abc import Hashable
 from typing import Any
@@ -162,6 +163,8 @@ class ContextGatheringService:
                 "segment": account.segment,
                 "owner_name": account.owner_name,
             }
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to load account summary: %s", e)
             return None
@@ -205,6 +208,8 @@ class ContextGatheringService:
                 for r in records
                 if (s := r.get("signal"))
             ]
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to load account signals: %s", e)
             return []
@@ -249,6 +254,8 @@ class ContextGatheringService:
                 for record in records
                 if (h := record.get("hypothesis"))
             ]
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to load account hypotheses: %s", e)
             return []
@@ -295,6 +302,8 @@ class ContextGatheringService:
                 "avg_deal_size": round(record["avg_deal_size"] or 0, 2),
                 "avg_time_to_value_days": round(record["avg_ttv"] or 180, 0),
             }
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to load evidence summary: %s", e)
             return None

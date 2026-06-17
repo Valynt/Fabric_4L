@@ -20,21 +20,89 @@ This registry tracks **runtime** compatibility wrappers/shims that exist to pres
 
 ## Review Cadence
 
-- **Last reviewed:** 2026-05-12 (updated for Layer 3 shim-only inventory, shim conflict cleanup, and exception audit)
-- **Next review due:** 2026-06-12
+- **Last reviewed:** 2026-06-16 (updated for unified compatibility gate inventory and shim/deprecation runner rollout)
+- **Next review due:** 2026-07-16
 - **Review owner:** Platform Architecture
+
+## Compatibility Gate Inventory
+
+The unified compatibility gate runner uses the inventory below as its source of truth for
+Phase 1 subcommands. Existing standalone checks remain supported and are invoked as-is.
+
+<!-- COMPAT_GATE_INVENTORY_START -->
+```json
+[
+	{
+		"check_id": "GATE-COMPAT-001",
+		"subcommand": "deprecated-namespace-imports",
+		"owner": "platform-architecture",
+		"command": "python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json",
+		"required": true,
+		"scope": "repo",
+		"notes": "Baseline-aware deprecated namespace import gate."
+	},
+	{
+		"check_id": "GATE-COMPAT-002",
+		"subcommand": "layer-shim-drift",
+		"owner": "platform-architecture",
+		"command": "python scripts/ci/check_layer1_api_main_shim_drift.py && python scripts/ci/check_layer3_settings_shim_drift.py",
+		"required": true,
+		"scope": "repo",
+		"notes": "Layer 1 and Layer 3 shim drift checks."
+	},
+	{
+		"check_id": "GATE-COMPAT-003",
+		"subcommand": "duplicate-source-trees",
+		"owner": "platform-architecture",
+		"command": "python scripts/ci/check_duplicate_source_trees.py --layers layer1 layer2 layer3 layer4 layer5 layer6",
+		"required": true,
+		"scope": "repo",
+		"notes": "Duplicate source-tree detection for shim/canonical drift."
+	},
+	{
+		"check_id": "GATE-COMPAT-004",
+		"subcommand": "frontend-shim-registration",
+		"owner": "web-platform",
+		"command": "pnpm --dir apps/web run check:compatibility-shims-registered",
+		"required": true,
+		"scope": "frontend",
+		"notes": "Ensures frontend compatibility shims are registered in this document."
+	},
+	{
+		"check_id": "GATE-COMPAT-005",
+		"subcommand": "deprecated-tracer-imports",
+		"owner": "platform-architecture",
+		"command": "python scripts/ci/check_deprecated_tracer_imports.py",
+		"required": true,
+		"scope": "repo",
+		"notes": "Blocks deprecated custom tracer imports."
+	},
+	{
+		"check_id": "GATE-COMPAT-006",
+		"subcommand": "shim-change-ack",
+		"owner": "platform-architecture",
+		"command": "python scripts/ci/check_shim_change_ack.py",
+		"required": true,
+		"scope": "ci",
+		"notes": "Checks required labels when shim paths are changed on pull requests."
+	}
+]
+```
+<!-- COMPAT_GATE_INVENTORY_END -->
 
 ## Registry
 
 | ID | Runtime path | Type | Owner | Reason | Target removal date | Review metadata | Post-launch removal ticket |
 |---|---|---|---|---|---|---|---|
-| COMPAT-L1-001 | `services/layer1-ingestion/src/api/routes/compatibility.py` | Route wrapper | layer1-ingestion | Maintains legacy ingestion route aliases while clients move to canonical route modules. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L1-001 |
-| COMPAT-L3-001 | `value_fabric/layer3/api/routes/compat_aliases.py` | Route wrapper | layer3-knowledge | Keeps compatibility aliases for route naming transitions in Layer 3 APIs. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L3-001 |
-| COMPAT-L3-002 | `value_fabric/layer3/api/routes/entity_compat.py` | Route shim | layer3-knowledge | Supports older entity endpoint patterns while frontend and SDK consumers migrate. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L3-002 |
+| COMPAT-L1-001 | `services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py` | Route wrapper | layer1-ingestion | Maintains legacy ingestion route aliases while clients move to canonical route modules. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-16. | PLATARCH-REMOVE-L1-001 |
+| COMPAT-L1-002 | `services/layer1-ingestion/src/api/routes/compatibility.py` | Legacy package mirror shim | layer1-ingestion | Maintains compatibility for callers importing via the legacy `src.api` package surface during migration to canonical package paths. | 2026-08-31 | Platform Architecture approved 2026-06-16; reviewed 2026-06-16. | PLATARCH-REMOVE-L1-002 |
+| COMPAT-L3-001 | `services/layer3-knowledge/src/api/routes/compat_aliases.py` | Route wrapper | layer3-knowledge | Keeps compatibility aliases for route naming transitions in Layer 3 APIs. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-16. | PLATARCH-REMOVE-L3-001 |
+| COMPAT-L3-002 | `services/layer3-knowledge/src/api/routes/entity_compat.py` | Route shim | layer3-knowledge | Supports older entity endpoint patterns while frontend and SDK consumers migrate. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-16. | PLATARCH-REMOVE-L3-002 |
 | COMPAT-L3-003 | `value_fabric/layer3/` | Namespace placeholder | layer3-knowledge | Retains the historical Layer 3 import namespace during shim removal. Canonical implementation now lives in `services/layer3-knowledge/src/`; `scripts/ci/check_layer3_wrapper_drift.py` prevents runtime Python files from returning to the compatibility namespace. | 2026-10-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-04. | PLATARCH-REMOVE-L3-003 |
 | COMPAT-L3-004 | `value_fabric/layer3/api/compat_wiring.py` | Version compatibility wiring | layer3-knowledge | Preserves request and response transformation wiring while legacy v1 clients complete removal. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L3-004 |
-| COMPAT-L3-005 | `value_fabric/layer3/services/compat_metrics.py` | Compatibility metrics surface | layer3-knowledge | Tracks deprecated Layer 3 route and field usage until the remaining compatibility paths are removed. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L3-005 |
+| COMPAT-L3-005 | `services/layer3-knowledge/src/services/compat_metrics.py` | Compatibility metrics surface | layer3-knowledge | Tracks deprecated Layer 3 route and field usage until the remaining compatibility paths are removed. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-16. | PLATARCH-REMOVE-L3-005 |
 | COMPAT-L5-001 | `value_fabric/layer5/` | Package shim tree | layer5-ground-truth | Compatibility re-export tree that delegates to canonical `services/layer5-ground-truth/src/layer5_ground_truth`. | 2026-09-30 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L5-001 |
+| COMPAT-L5-002 | `services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/018_drop_legacy_model_registry_rls_policies.py` | Migration compatibility cleanup | layer5-ground-truth | Transitional migration artifact that references legacy model-registry naming while policy cleanup finishes. | 2026-09-30 | Platform Architecture approved 2026-06-16; reviewed 2026-06-16. | PLATARCH-REMOVE-L5-002 |
 | ~~COMPAT-WEB-001~~ | ~~`apps/web/src/api/legacy.ts`~~ | ~~Frontend API shim~~ | ~~web-platform~~ | Removed 2026-05-14 — zero active imports confirmed; file deleted. | ~~2026-07-31~~ | Removed ahead of schedule. | PLATARCH-REMOVE-WEB-001 ✅ |
 | COMPAT-WEB-002 | `apps/web/src/contexts/AuthContext.tsx` | Auth token compatibility surface | web-platform | Keeps token-shaped auth context fields while httpOnly cookie auth migration finishes. | 2026-07-31 | Platform Architecture approved 2026-05-19; reviewed 2026-05-19. | PLATARCH-REMOVE-WEB-002 |
 | COMPAT-WEB-003 | `apps/web/src/config/auth.ts` | Provider option compatibility shim | web-platform | Legacy Microsoft provider key retained for existing tenant configs. | 2026-09-30 | Platform Architecture approved 2026-05-19; reviewed 2026-05-19. | PLATARCH-REMOVE-WEB-003 |
@@ -54,7 +122,9 @@ This registry tracks **runtime** compatibility wrappers/shims that exist to pres
 | COMPAT-WEB-017 | `apps/web/src/hooks/useVariables.ts` | Type export shim | web-platform | Backward-compatible type re-export for variable consumers; canonical types are in `apps/web/src/schemas/variable.ts`. | 2026-06-30 | Platform Architecture approved 2026-05-19; reviewed 2026-05-19. | PLATARCH-REMOVE-WEB-017 |
 | COMPAT-WEB-018 | `apps/web/src/components/workspace/RightRail.tsx` | AG-UI prop compatibility shim | web-platform | Backward-compatible RightRail prop contract maintained during `useAgentEvents` rollout. | 2026-08-31 | Platform Architecture approved 2026-05-19; reviewed 2026-05-19. | PLATARCH-REMOVE-WEB-018 |
 | COMPAT-WEB-019 | `apps/web/src/api/__tests__/contract/openapi-drift.contract.test.ts` | Contract test compatibility allowance | web-platform | Allows the temporary deprecated Layer 6 readiness alias while API consumers migrate to canonical readiness checks; guarded by the OpenAPI drift contract test. | 2026-08-31 | Platform Architecture approved 2026-06-05; reviewed 2026-06-05. | PLATARCH-REMOVE-WEB-019 |
-| COMPAT-L4-001 | `services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py` | Route shim | layer4-agents | Preserves historical frontend contract during workflow API consolidation. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-L4-001 |
+| COMPAT-WEB-020 | `apps/web/src/components/ui/fabric/LegacyTabs.tsx` | UI component compatibility shim | web-platform | Retains legacy tab API surface while callers migrate to canonical tab primitives. | 2026-08-31 | Platform Architecture approved 2026-06-16; reviewed 2026-06-16. | PLATARCH-REMOVE-WEB-020 |
+| COMPAT-L4-001 | `services/layer4-agents/src/api/routes/frontend_compat.py` | Route shim | layer4-agents | Preserves historical frontend contract during workflow API consolidation. | 2026-08-31 | Platform Architecture approved 2026-05-12; reviewed 2026-06-16. | PLATARCH-REMOVE-L4-001 |
+| COMPAT-L4-004 | `services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py` | Package mirror route shim | layer4-agents | Mirrors frontend compatibility route for callers using the `layer4_agents` package path while consolidation remains in progress. | 2026-08-31 | Platform Architecture approved 2026-06-16; reviewed 2026-06-16. | PLATARCH-REMOVE-L4-004 |
 | COMPAT-L4-002 | `value_fabric/layer4/billing/` | Canonical runtime shim | layer4-agents | Re-exports billing domain from the Layer 4 monolith during extraction. Canonical deployable billing behavior is `services/layer7-billing/`; legacy `services/billing/` is non-deployable compatibility code only. | 2026-09-30 | Platform Architecture approved 2026-05-22; reviewed 2026-06-05 for S3-4 billing consolidation. | PLATARCH-REMOVE-L4-002 |
 | COMPAT-L4-003 | `services/layer4-agents/src/layer4_agents/api/routes/billing.py` | Service proxy shim | layer4-agents | Existing L4 billing routes are thin forwarding shims to Layer 7 billing during caller migration. Removal target when all callers migrate directly to `services/layer7-billing/`. | 2026-10-31 | Platform Architecture approved 2026-05-22; reviewed 2026-06-05 for S3-4 billing consolidation. | PLATARCH-REMOVE-L4-003 |
 | COMPAT-SDK-001 | `sdk/python/src/valuefabric/cli/workflows.py` | CLI compatibility surface | sdk | Backward-compatible CLI workflow commands pending full canonical command migration. | 2026-09-30 | Platform Architecture approved 2026-05-12; reviewed 2026-05-12. | PLATARCH-REMOVE-SDK-001 |

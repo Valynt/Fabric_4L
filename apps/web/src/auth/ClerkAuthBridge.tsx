@@ -20,7 +20,13 @@
  * This component renders nothing. Mount it once near the root, inside
  * the ClerkProvider and AuthProvider.
  */
-import { useEffect, useRef, type ReactElement } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
@@ -47,10 +53,16 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   return null;
 }
 
-export function ClerkAuthBridge(): ReactElement | null {
+interface ClerkAuthBridgeProps {
+  children?: ReactNode;
+}
+
+export function ClerkAuthBridge({
+  children = null,
+}: ClerkAuthBridgeProps = {}): ReactElement | null {
   // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not mounted.
   if (!isClerkAuthEnabled()) {
-    return null;
+    return <>{children}</>;
   }
 
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
@@ -67,7 +79,9 @@ export function ClerkAuthBridge(): ReactElement | null {
   //    sign-out and on unmount. We intentionally depend only on the
   //    boolean transitions, not on `getToken` identity.
   useEffect(() => {
-    if (!authLoaded) return;
+    if (!authLoaded) {
+      return;
+    }
     if (!isSignedIn) {
       setClerkTokenGetter(null);
       return;
@@ -98,9 +112,14 @@ export function ClerkAuthBridge(): ReactElement | null {
   //    swaps do not leak a stale org id into the module-scope bridge state.
   //    Also call syncTenant so the accountContextStore purges any persisted
   //    account selection that belongs to a different tenant (P1-010).
-  if (!isSignedIn) {
-    return null;
+  if (!authLoaded || !isSignedIn) {
+    return <>{children}</>;
   }
 
-  return <OrgSync syncTenant={syncTenant} />;
+  return (
+    <Fragment>
+      <OrgSync syncTenant={syncTenant} />
+      {children}
+    </Fragment>
+  );
 }

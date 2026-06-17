@@ -11,8 +11,8 @@ from typing import Any
 
 import httpx
 
-# P0-1 FIX: Salesforce ID format — 15 or 18 alphanumeric characters only
-_SFDC_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]{15,18}$")
+# Salesforce IDs are exactly 15 or 18 alphanumeric characters.
+_SFDC_ID_PATTERN = re.compile(r"^(?:[a-zA-Z0-9]{15}|[a-zA-Z0-9]{18})$")
 
 from ..metrics import get_metrics
 from ..models.tool_schemas import (
@@ -31,7 +31,24 @@ from .registry import BaseTool
 logger = logging.getLogger(__name__)
 
 
-class GetProspectDataTool(BaseTool):
+class _SalesforceIdSafetyMixin:
+    @staticmethod
+    def _validate_sfdc_id(value: str, field_name: str = "prospect_id") -> str:
+        """Validate Salesforce ID format to prevent SOQL injection."""
+        if not value or not _SFDC_ID_PATTERN.match(value):
+            raise ValueError(
+                f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters"
+            )
+        return value
+
+    @classmethod
+    def _soql_safe_id(cls, value: str, field_name: str = "prospect_id") -> str:
+        """Return a SOQL-safe ID string with defense-in-depth escaping."""
+        validated = cls._validate_sfdc_id(value, field_name)
+        return validated.replace("'", "''")
+
+
+class GetProspectDataTool(_SalesforceIdSafetyMixin, BaseTool):
     """Retrieve prospect data from CRM (Salesforce/HubSpot)."""
 
     name = "get_prospect_data"
@@ -141,7 +158,33 @@ class GetProspectDataTool(BaseTool):
         return all_records, was_truncated
 
     async def execute(self, input_data: GetProspectDataInput) -> GetProspectDataOutput:
-        """Get prospect data from CRM."""
+        """Get prospect data from CRM, falling back to inline prospect_data when unconfigured."""
+        # Local / demo environments often have no live CRM.  Use the prospect_data
+        # payload passed by the workflow as a synthetic profile so ROI calculations
+        # can still run end-to-end without a Salesforce connection.
+        if not self.instance_url:
+            pd = input_data.prospect_data or {}
+            return GetProspectDataOutput(
+                profile={
+                    "id": input_data.prospect_id,
+                    "name": pd.get("name", " Prospect"),
+                    "industry": pd.get("industry", ""),
+                    "region": pd.get("region", ""),
+                    "company_size": pd.get("company_size", pd.get("employees", 0)),
+                    "annual_revenue": pd.get("annual_revenue", 0),
+                    "website": pd.get("website", ""),
+                    "headquarters": pd.get("headquarters", ""),
+                    "employees": pd.get("employees", 0),
+                    "segment": pd.get("segment", ""),
+                },
+                interactions=[],
+                opportunities=[],
+                custom_fields={k: v for k, v in pd.items() if k not in {
+                    "name", "industry", "region", "company_size", "annual_revenue",
+                    "website", "headquarters", "employees", "segment",
+                }},
+            )
+
         client = self._get_client()
 
         try:
@@ -158,51 +201,14 @@ class GetProspectDataTool(BaseTool):
                     custom_fields={},
                     error=f"Unsupported CRM type: {self.crm_type}"
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM data fetch failed: %s", e)
             return GetProspectDataOutput(
                 profile={}, interactions=[], opportunities=[], custom_fields={},
                 error=f"CRM data fetch failed: {e}"
             )
-
-    @staticmethod
-    def _validate_sfdc_id(value: str, field_name: str = "prospect_id") -> str:
-        """Validate Salesforce ID format to prevent SOQL injection.
-
-        Args:
-            value: Value to validate
-            field_name: Name of field for error messages
-
-        Returns:
-            Validated ID string
-
-        Raises:
-            ValueError: If ID format is invalid
-        """
-        if not _SFDC_ID_PATTERN.match(value):
-            raise ValueError(
-                f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters"
-            )
-        return value
-
-    @classmethod
-    def _soql_safe_id(cls, value: str, field_name: str = "prospect_id") -> str:
-        """Return a SOQL-safe ID string with defense-in-depth escaping.
-
-        Validates the ID format then escapes any single quotes per SOQL spec.
-        This is defense-in-depth: callers should already have validated via
-        _validate_sfdc_id, but this helper ensures safety even if they don't.
-
-        Args:
-            value: Raw ID value
-            field_name: Name of field for error messages
-
-        Returns:
-            SOQL-safe ID string (single quotes doubled)
-        """
-        validated = cls._validate_sfdc_id(value, field_name)
-        # Escape single quotes per SOQL spec (defense-in-depth)
-        return validated.replace("'", "''")
 
     async def _get_salesforce_data(
         self, client: httpx.AsyncClient, input_data: GetProspectDataInput
@@ -467,6 +473,8 @@ class UpdateOpportunityTool(BaseTool):
                 error=None if success else response.text,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM update failed: %s", e)
             return UpdateOpportunityOutput(
@@ -477,7 +485,7 @@ class UpdateOpportunityTool(BaseTool):
             )
 
 
-class FetchInteractionHistoryTool(BaseTool):
+class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
     """Fetch interaction history for a prospect from CRM."""
 
     name = "fetch_interaction_history"
@@ -523,6 +531,8 @@ class FetchInteractionHistoryTool(BaseTool):
                     summary=f"Unsupported CRM type: {self.crm_type}",
                     error=f"Unsupported CRM type: {self.crm_type}"
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("CRM fetch failed: %s", e)
             return FetchInteractionHistoryOutput(
@@ -566,7 +576,7 @@ class FetchInteractionHistoryTool(BaseTool):
             LIMIT {input_data.limit}
         """
 
-        url = f"{self.instance_url}/services/data/v58.0/query?q={query}"
+        url = f"{self.instance_url}/services/data/v58.0/query?q={urllib.parse.quote(query)}"
         response = await client.get(url)
 
         interactions = []

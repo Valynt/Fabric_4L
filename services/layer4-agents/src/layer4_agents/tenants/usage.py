@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Tenant usage tracking for metrics and billing preparation."""
-
-
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -103,6 +102,8 @@ class UsageTrackingService:
                     "duration_ms": duration_ms,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to record API call usage: {e}")
 
@@ -133,6 +134,8 @@ class UsageTrackingService:
                     "duration_ms": duration_ms,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to record LLM usage: {e}")
 
@@ -161,6 +164,8 @@ class UsageTrackingService:
                     "success": success,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to record agent execution: {e}")
 
@@ -233,6 +238,8 @@ class UsageTrackingService:
                 counts.get(AuditAction.LLM_USAGE, 0),
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Failed to query usage from audit log: {e}")
             return 0, 0, 0

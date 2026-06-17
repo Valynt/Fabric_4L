@@ -198,6 +198,8 @@ class TenantProvisioningService:
 
             logger.info("Tenant %s provisioned successfully", tenant_id)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Provisioning failed for tenant %s: %s", tenant_id, e)
             state.status = ProvisioningStatus.FAILED
@@ -371,6 +373,8 @@ class TenantProvisioningService:
         for step in reversed(state.completed_steps):
             try:
                 await self._rollback_step(step, state, tenant_model)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error("Rollback failed for step %s: %s", step.name, e)
                 rollback_errors.append(f"{step.name}: ROLLBACK_ERROR")
