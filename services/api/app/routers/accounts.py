@@ -64,25 +64,6 @@ async def list_accounts(
 
 @router.post("", response_model=Account, status_code=201)
 async def create_account(account: Account, request: Request, tenant_id: str = Depends(tenant_required)):
-    key = _idempotency_header_value(request)
-    replay_request: IdempotencyRequest | None = None
-    if key:
-        replay_request = IdempotencyRequest(
-            tenant_id=tenant_id,
-            endpoint_key="POST:/v1/accounts",
-            idempotency_key=key,
-            request_fingerprint=build_request_fingerprint("POST", "/v1/accounts", account.model_dump()),
-        )
-        try:
-            replay = _idempotency_service.check_replay(replay_request)
-        except IdempotencyConflictError as exc:
-            logger.warning("idempotency_conflict", exc_info=True, extra={"endpoint": "POST:/v1/accounts", "tenant_id": tenant_id})
-            raise ConflictError(message="Idempotency conflict detected")
-        if replay:
-            headers = dict(replay.headers)
-            headers["X-Idempotent-Replay"] = "true"
-            return JSONResponse(status_code=replay.status_code, content=replay.body, headers=headers)
-
     enforce_authenticated_tenant(
         body_tenant_id=account.tenant_id,
         authenticated_tenant_id=tenant_id,
@@ -91,11 +72,19 @@ async def create_account(account: Account, request: Request, tenant_id: str = De
     )
     account.tenant_id = tenant_id
     db.accounts.insert(account.id, account)
-    if replay_request:
-        _idempotency_service.store_response(
-            replay_request,
-            IdempotencyRecord(status_code=201, body=account.model_dump(), headers={"X-Idempotent-Replay": "false"}),
+
+    idem_service = getattr(request.state, "idempotency_service", None)
+    idem_request = getattr(request.state, "idempotency_request", None)
+    if idem_service is not None and idem_request is not None:
+        idem_service.store_response(
+            idem_request,
+            IdempotencyRecord(
+                status_code=201,
+                body=account.model_dump(),
+                headers={"Idempotent-Replay": "false"},
+            ),
         )
+
     return account
 
 

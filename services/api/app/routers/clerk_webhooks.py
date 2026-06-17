@@ -212,15 +212,16 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             "clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc)
         )
         raise BadRequestError(
-            message="Bad request.",
-            error_code=ErrorCode.AUTH_WEBHOOK_INVALID_BODY,
+            message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
         ) from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
     event_type = payload.get("type")
     data = payload.get("data") or {}
     if not event_type or not isinstance(data, dict):
-        raise BadRequestError(message="Bad request.")
+        raise BadRequestError(
+            message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
+        )
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
@@ -245,7 +246,7 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             error=str(exc),
         )
         raise ConflictError(message="Retry later.") from exc
-    except HTTPException:
+    except (BadRequestError, ConflictError, AuthenticationError):
         raise
     except ValueFabricException:
         # Let structured domain errors (400/401/403/409/422) propagate to the

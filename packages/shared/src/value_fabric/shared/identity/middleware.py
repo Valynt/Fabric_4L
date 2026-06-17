@@ -159,6 +159,9 @@ PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
         "/redoc",
         "/v1/billing/webhook",
         "/internal/webhooks/clerk",
+        "/v1/auth/login",
+        "/v1/auth/signup",
+        "/v1/auth/accept-invite",
         "/",
     }
 )
