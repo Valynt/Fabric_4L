@@ -10,8 +10,8 @@
  * development notice and perform an internal redirect. Guarding here keeps the
  * home <-> sign-in transition clean and avoids that notice.
  */
-import { SignIn, useAuth } from "@clerk/react";
-import { useState } from "react";
+import { SignIn, useAuth, useClerk } from "@clerk/react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
@@ -52,7 +52,45 @@ function safeRedirectTarget(search: string): string | null {
 function ClerkSignInInner() {
   const urls = getClerkUrls();
   const location = useLocation();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { signOut } = useClerk();
+  const [sessionCheck, setSessionCheck] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isLoaded || !isSignedIn) {
+      setSessionCheck("idle");
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setSessionCheck("checking");
+    void getToken({ skipCache: true })
+      .then((token) => {
+        if (!cancelled) {
+          setSessionCheck(token ? "valid" : "invalid");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessionCheck("invalid");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (sessionCheck !== "invalid") {
+      return;
+    }
+
+    void signOut({ redirectUrl: urls.signInUrl }).catch(() => undefined);
+  }, [sessionCheck, signOut, urls.signInUrl]);
 
   // Avoid flashing <SignIn /> (and its notice) before Clerk resolves session.
   if (!isLoaded) {
@@ -60,6 +98,10 @@ function ClerkSignInInner() {
   }
 
   if (isSignedIn) {
+    if (sessionCheck !== "valid") {
+      return null;
+    }
+
     const target = safeRedirectTarget(location.search) ?? urls.afterSignInUrl;
     return <Navigate to={target} replace />;
   }

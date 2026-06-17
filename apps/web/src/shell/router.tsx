@@ -145,6 +145,7 @@ export function RootRedirect() {
 /** Map of legacy flat paths to canonical tenant-scoped paths. */
 export const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
   "/discover/accounts": "/t/{tenantSlug}/accounts",
+  "/accounts": "/t/{tenantSlug}/accounts",
   "/discover/jobs": "/t/{tenantSlug}/context/ingestion/jobs",
   "/discover/extraction": "/t/{tenantSlug}/context/extraction",
   "/discover/knowledge": "/t/{tenantSlug}/context/ontology",
@@ -299,6 +300,16 @@ export const router = createBrowserRouter([
         path: "/",
         element: <RootRedirect />,
       },
+      {
+        path: "/dashboard",
+        element: <Navigate to="/home" replace />,
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/blog",
+        element: <Navigate to="/home" replace />,
+        handle: { accessPolicy: homePolicy },
+      },
       // Legacy flat-route redirects (see Phase 1 launch-blocker remediation)
       {
         path: "/intelligence/:accountId/:tabId",
@@ -306,6 +317,10 @@ export const router = createBrowserRouter([
       },
       {
         path: "/discover/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/accounts",
         element: <LegacyFlatRedirect />,
       },
       {

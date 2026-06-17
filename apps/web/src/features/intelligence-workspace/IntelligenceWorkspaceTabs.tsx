@@ -10,14 +10,14 @@ import { useWorkspaceContext } from "./hooks/useWorkspaceContext";
 import { workspacePath } from "./workspaceRoutes";
 
 export default function IntelligenceWorkspaceTabs() {
-  const { accountId, tabId } = useWorkspaceContext();
+  const { tenantSlug, accountId, tabId } = useWorkspaceContext();
   const activeTab = getTabOrDefault(tabId);
   const tabs = getActiveTabDefs();
 
   return (
     <div className="flex border-b border-border px-6 overflow-x-auto" role="tablist">
       {tabs.map((tab) => (
-        <Link key={tab.id} to={workspacePath(accountId ?? "", tab.id)}>
+        <Link key={tab.id} to={workspacePath(tenantSlug ?? "", accountId ?? "", tab.id)}>
           <button
             role="tab"
             aria-selected={activeTab === tab.id}

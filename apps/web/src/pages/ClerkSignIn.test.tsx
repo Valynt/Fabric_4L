@@ -17,13 +17,16 @@
  *     `/sign-in` and `/login`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 const mockAuthState = {
   isLoaded: true as boolean,
   isSignedIn: false as boolean,
+  getToken: vi.fn(async () => "fresh-token") as ReturnType<typeof vi.fn>,
 };
+
+const mockSignOut = vi.fn(async () => undefined);
 
 const mockClerkConfig = {
   clerkEnabled: true as boolean,
@@ -42,6 +45,10 @@ vi.mock("@clerk/react", () => ({
   useAuth: () => ({
     isLoaded: mockAuthState.isLoaded,
     isSignedIn: mockAuthState.isSignedIn,
+    getToken: mockAuthState.getToken,
+  }),
+  useClerk: () => ({
+    signOut: mockSignOut,
   }),
 }));
 
@@ -72,60 +79,91 @@ describe("<ClerkSignInPage />", () => {
     cleanup();
     mockAuthState.isLoaded = true;
     mockAuthState.isSignedIn = false;
+    mockAuthState.getToken = vi.fn(async () => "fresh-token") as ReturnType<typeof vi.fn>;
+    mockSignOut.mockClear();
     mockClerkConfig.clerkEnabled = true;
   });
 
-  it("redirects an already signed-in user to afterSignInUrl without mounting <SignIn />", () => {
+  it("redirects an already signed-in user to afterSignInUrl after confirming a fresh token", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in");
 
-    expect(screen.getByText(HOME_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(HOME_MARKER)).toBeInTheDocument();
+    expect(mockAuthState.getToken).toHaveBeenCalledWith({ skipCache: true });
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
-  it("honors a safe internal redirect_url for a signed-in user", () => {
+  it("honors a safe internal redirect_url for a signed-in user with a fresh token", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in?redirect_url=%2Ft%2Facme%2Faccounts");
 
-    expect(screen.getByText(ACCOUNTS_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(ACCOUNTS_MARKER)).toBeInTheDocument();
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
-  it("ignores an external redirect_url and falls back to afterSignInUrl", () => {
+  it("ignores an external redirect_url and falls back to afterSignInUrl", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in?redirect_url=https%3A%2F%2Fevil.example.com");
 
-    expect(screen.getByText(HOME_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(HOME_MARKER)).toBeInTheDocument();
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
-  it("ignores a protocol-relative redirect_url and falls back to afterSignInUrl", () => {
+  it("ignores a protocol-relative redirect_url and falls back to afterSignInUrl", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in?redirect_url=%2F%2Fevil.example.com");
 
-    expect(screen.getByText(HOME_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(HOME_MARKER)).toBeInTheDocument();
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
-  it("strips Clerk transient params from redirect_url for signed-in users", () => {
+  it("strips Clerk transient params from redirect_url for signed-in users", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in?redirect_url=%2Ft%2Facme%2Faccounts%3F__clerk_handshake%3Dabc%26view%3Dmine");
 
-    expect(screen.getByText(ACCOUNTS_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(ACCOUNTS_MARKER)).toBeInTheDocument();
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 
-  it("ignores redirect_url values that point back to /sign-in", () => {
+  it("ignores redirect_url values that point back to /sign-in", async () => {
     mockAuthState.isSignedIn = true;
 
     renderAt("/sign-in?redirect_url=%2Fsign-in%3F__clerk_handshake%3Dabc");
 
-    expect(screen.getByText(HOME_MARKER)).toBeInTheDocument();
+    expect(await screen.findByText(HOME_MARKER)).toBeInTheDocument();
+    expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
+  });
+
+  it("does not redirect a stale signed-in state when Clerk cannot mint a fresh token", async () => {
+    mockAuthState.isSignedIn = true;
+    mockAuthState.getToken = vi.fn(async () => null) as ReturnType<typeof vi.fn>;
+
+    renderAt("/sign-in?redirect_url=%2Fhome");
+
+    await waitFor(() => {
+      expect(mockSignOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" });
+    });
+    expect(screen.queryByText(HOME_MARKER)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
+  });
+
+  it("does not redirect a stale signed-in state when Clerk token refresh rejects", async () => {
+    mockAuthState.isSignedIn = true;
+    mockAuthState.getToken = vi.fn(async () => {
+      throw new Error("session missing");
+    }) as ReturnType<typeof vi.fn>;
+
+    renderAt("/sign-in?redirect_url=%2Fhome");
+
+    await waitFor(() => {
+      expect(mockSignOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" });
+    });
+    expect(screen.queryByText(HOME_MARKER)).not.toBeInTheDocument();
     expect(screen.queryByTestId("clerk-signin")).not.toBeInTheDocument();
   });
 

@@ -144,11 +144,16 @@ describe("Legacy flat-route redirects", () => {
           <Route path="/sign-in" element={<div data-testid="signin-page">signin</div>} />
           <Route path="/home" element={<div data-testid="home-page">home</div>} />
           <Route path="/discover/*" element={<LegacyFlatRedirect />} />
+          <Route path="/accounts" element={<LegacyFlatRedirect />} />
           <Route path="/library/*" element={<LegacyFlatRedirect />} />
           <Route path="/context/*" element={<LegacyFlatRedirect />} />
           <Route path="/model/*" element={<LegacyFlatRedirect />} />
           <Route path="/governance/*" element={<LegacyFlatRedirect />} />
           <Route path="/settings/governance/*" element={<LegacyFlatRedirect />} />
+          <Route
+            path="/t/:tenantSlug/accounts"
+            element={<div data-testid="accounts-page">accounts</div>}
+          />
           <Route
             path="/t/:tenantSlug/accounts/:accountId/intelligence/:tabId"
             element={<div data-testid="intelligence-page">intelligence</div>}
@@ -207,10 +212,32 @@ describe("Legacy flat-route redirects", () => {
     expect(screen.getByTestId("signin-page")).toBeInTheDocument();
   });
 
+  it.each(["/dashboard", "/blog"])("%s redirects to /home", (path) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+          <Route path="/blog" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={<div data-testid="home-page">home</div>} />
+        </Routes>
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("home-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/home");
+  });
+
   it("/discover/jobs redirects to canonical tenant-scoped ingestion jobs", () => {
     renderWithPath("/discover/jobs");
     expect(screen.getByTestId("jobs-page")).toBeInTheDocument();
     expect(screen.getByTestId("location").textContent).toBe("/t/acme/context/ingestion/jobs");
+  });
+
+  it("/accounts redirects to canonical tenant-scoped accounts", () => {
+    renderWithPath("/accounts");
+    expect(screen.getByTestId("accounts-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/t/acme/accounts");
   });
 
   it("/library/models redirects to canonical tenant-scoped models", () => {
