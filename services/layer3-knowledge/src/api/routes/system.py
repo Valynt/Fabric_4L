@@ -33,6 +33,7 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
     psutil = _PsutilFallback()
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
@@ -291,33 +292,25 @@ async def health_check(
         },
     )
 
-    dependency_payload = [
-        {
-            **(dep.model_dump() if hasattr(dep, "model_dump") else dict(dep)),
-            "failure_reason": getattr(dep, "error", None)
-            if hasattr(dep, "error")
-            else (dep.get("error") if isinstance(dep, dict) else None),
-        }
-        for dep in dependencies
-    ]
-
-    return {
-        "status": overall_status,
-        "service": "layer3-knowledge",
-        "readiness": _derive_readiness(
+    return normalize_probe_payload(
+        status=overall_status,
+        service="layer3-knowledge",
+        readiness=_derive_readiness(
             dependencies=dependencies,
             schema_initializer=schema_initializer,
             schema_status=schema_status,
         ),
-        "version": "1.0.0",
-        "timestamp": datetime.now(UTC),
-        "uptime_seconds": metrics.uptime_seconds,
-        "response_time_ms": response_time_ms,
-        "dependencies": dependency_payload,
-        "metrics": metrics,
-        "neo4j": neo4j_health,
-        "schema_status": schema_status,
-    }
+        dependencies=dependencies,
+        extra={
+            "version": "1.0.0",
+            "timestamp": datetime.now(UTC),
+            "uptime_seconds": metrics.uptime_seconds,
+            "response_time_ms": response_time_ms,
+            "metrics": metrics,
+            "neo4j": neo4j_health,
+            "schema_status": schema_status,
+        },
+    )
 
 
 @router.get(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
@@ -230,6 +232,8 @@ async def invoke_tool(
     except ValueFabricException:
         raise
 
+    except asyncio.CancelledError:
+        raise
     except Exception:
         # Log full exception server-side for debugging
         logger.exception(
@@ -479,6 +483,8 @@ async def export_document_tool(
             format=request.format,
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception("Document export failed")
         return DocumentExportResponse(success=False, error="Document export failed")

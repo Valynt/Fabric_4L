@@ -5,8 +5,7 @@ from __future__ import annotations
 Handles high-throughput usage event ingestion with idempotency,
 tenant validation, and Stripe MeterEvents integration for usage-based billing.
 """
-
-
+import asyncio
 import logging
 import os
 import uuid
@@ -472,6 +471,8 @@ class UsageService:
                 await self.db.flush()
 
             return updated
+        except asyncio.CancelledError:
+            raise
         except Exception:
             # Rollback on any database error to prevent partial state
             await self.db.rollback()
@@ -621,6 +622,8 @@ class UsageService:
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             # Rollback on any database error to prevent partial state
             await self.db.rollback()

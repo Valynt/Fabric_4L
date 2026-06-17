@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """State manager for workflow state persistence using Redis."""
-
-
+import asyncio
 import json
 import logging
 import re
@@ -127,6 +126,8 @@ class StateManager:
                     output_data=state_dict.get("output_data"),
                     pause_point=state_dict.get("pause_point"),
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning(f"Failed to broadcast state update: {e}")
 
@@ -367,6 +368,8 @@ class StateManager:
                         state = await self.load_state(workflow_id)
                         if state and state.status.value in active_statuses:
                             active_ids.append(workflow_id)
+                    except asyncio.CancelledError:
+                        raise
                     except Exception as e:
                         logger.warning(f"Failed to check state for {workflow_id}: {e}")
                 
@@ -381,6 +384,8 @@ class StateManager:
                         state = await self.load_state(workflow_id)
                         if state and state.status.value in active_statuses:
                             active_ids.append(workflow_id)
+                    except asyncio.CancelledError:
+                        raise
                     except Exception as e:
                         logger.warning(f"Failed to check state for {workflow_id}: {e}")
         

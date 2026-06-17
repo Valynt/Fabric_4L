@@ -282,7 +282,11 @@ test.describe('Security Contract', () => {
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text();
-        if (text.includes('clerk') && !text.includes('accounts.dev') && !text.includes('clerk-telemetry')) {
+        if (
+          text.includes('clerk') &&
+          !text.includes('clerk.accounts') &&
+          !text.includes('clerk-telemetry')
+        ) {
           thirdPartyErrors.push(text);
         }
       }

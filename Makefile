@@ -1,7 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
+		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
@@ -26,6 +26,7 @@
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
+	check-compatibility-shims \
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
@@ -69,7 +70,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
-	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -426,6 +427,9 @@ test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache i
 test-layer1-benchmarks: ## Run Layer 1 benchmark and performance tests
 	cd services/layer1-ingestion && $(PYTEST) -m benchmark tests/benchmarks/ -v
 
+test-layer1-router-benchmarks: ## Run quarantined Layer 1 router benchmarks (explicit opt-in)
+	cd services/layer1-ingestion && RUN_ROUTER_BENCHMARKS=1 $(PYTEST) tests/benchmarks/test_router_performance.py -v
+
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."
 	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) -m "postgres or requires_postgres" tests/security/ tests/pipeline/ -v
@@ -635,6 +639,11 @@ check-deprecated-tracer-imports: ## CI gate — block imports from deprecated cu
 	@echo "→ Checking for deprecated custom tracer imports..."
 	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
 	@echo "✅ Deprecated tracer import check passed"
+
+check-compatibility-shims: ## CI gate — run registry-driven compatibility shim inventory checks
+	@echo "→ Running registry-driven compatibility shim checks..."
+	$(PYTHON) scripts/ci/check_compatibility_shims.py run-all --strict
+	@echo "✅ Compatibility shim gate passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 

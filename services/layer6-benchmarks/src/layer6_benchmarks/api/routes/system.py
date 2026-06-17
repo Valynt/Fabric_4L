@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from value_fabric.shared.probes import normalize_probe_payload
+from value_fabric.shared.probes import normalize_probe_response
 
 router = APIRouter(tags=["system"])
 
@@ -11,19 +11,10 @@ async def health_check(request: Request):
     """Service-local health adapter using the shared probe contract."""
     from .. import main as handlers
 
-    legacy_payload = dict(await handlers.health_check(request))
-    status = str(legacy_payload.get("status", "unknown"))
-    normalized = normalize_probe_payload(
-        status=status,
-        service=str(legacy_payload.get("service", "layer6-benchmarks")),
-        readiness={
-            "is_ready": status == "healthy",
-            "reason": "dependencies_available" if status == "healthy" else "dependency_unhealthy",
-        },
-        dependencies=[],
+    return normalize_probe_response(
+        dict(await handlers.health_check(request)),
+        default_service="layer6-benchmarks",
     )
-    normalized.update(legacy_payload)
-    return normalized
 
 
 @router.get("/ready", response_model=None)
@@ -31,8 +22,11 @@ async def readiness_check():
     """Dependency readiness contract for orchestration and probes."""
     from .. import main as handlers
 
-    payload = dict(await handlers.readiness_check())
-    if payload.get("status") == "ready":
+    payload = normalize_probe_response(
+        dict(await handlers.readiness_check()),
+        default_service="layer6-benchmarks",
+    )
+    if payload["readiness"]["is_ready"]:
         return payload
     return JSONResponse(status_code=503, content=payload)
 

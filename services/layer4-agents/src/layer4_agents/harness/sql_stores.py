@@ -89,6 +89,8 @@ class SqlHumanGateManager:
                 async with self._session.begin():
                     yield
                 return
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 if attempt >= max_attempts or not self._is_retryable_lock_error(exc):
                     raise
@@ -618,6 +620,8 @@ class SqlTelemetryEmitter:
         except RuntimeError:
             # No running event loop — skip DB write (sync test context).
             pass
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("SqlTelemetryEmitter: could not schedule DB write: %s", exc)
 
@@ -625,6 +629,8 @@ class SqlTelemetryEmitter:
         for handler in self._handlers:
             try:
                 handler(event)
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.warning("Telemetry handler failed: %s", exc, exc_info=True)
 
@@ -635,6 +641,8 @@ class SqlTelemetryEmitter:
             if getattr(self._repo._session, "_flushing", False):
                 return
             await self._repo.append(event)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("SqlTelemetryEmitter: DB persist failed (non-blocking): %s", exc)
 
@@ -880,6 +888,8 @@ class SqlHarnessRegistry:
         if run_id is not None and results:
             try:
                 await self._cvr_store.save_results(run_id, results)
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 # Persist failure must not block the caller — log and continue.
                 logger.warning(

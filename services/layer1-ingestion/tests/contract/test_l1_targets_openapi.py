@@ -62,6 +62,33 @@ class TestPathPresence:
             f"PUT method missing from {target_path}"
         )
 
+    def test_put_target_documents_401_response(self):
+        schema = _get_schema()
+        target_path = next(
+            (p for p in schema["paths"] if "targets/{target_id}" in p), None
+        )
+        assert target_path is not None
+        responses = schema["paths"][target_path]["put"].get("responses", {})
+        assert "401" in responses
+
+    def test_put_target_documents_404_response(self):
+        schema = _get_schema()
+        target_path = next(
+            (p for p in schema["paths"] if "targets/{target_id}" in p), None
+        )
+        assert target_path is not None
+        responses = schema["paths"][target_path]["put"].get("responses", {})
+        assert "404" in responses
+
+    def test_put_target_documents_409_response(self):
+        schema = _get_schema()
+        target_path = next(
+            (p for p in schema["paths"] if "targets/{target_id}" in p), None
+        )
+        assert target_path is not None
+        responses = schema["paths"][target_path]["put"].get("responses", {})
+        assert "409" in responses
+
     def test_post_jobs_batch_has_post_method(self):
         schema = _get_schema()
         batch_path = next(

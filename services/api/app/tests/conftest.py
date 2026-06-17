@@ -9,11 +9,13 @@ Provides:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+import os as _os
 import secrets
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 
-import pytest
 import jwt
+import pytest
 
 import app.services.agent_orchestrator as _orch_mod
 from app.core import database as _db_mod
@@ -33,11 +35,16 @@ TENANT_BETA = "22222222-2222-4222-8222-222222222222"
 # Default to in-memory persistence with demo seed data and Layer 4 delegated LLM for all
 # unit/integration tests. Tests that need production-like behaviour must
 # override these env vars explicitly.
-import os as _os
 _os.environ.setdefault("MOCK_PERSISTENCE", "true")
-_os.environ.setdefault("SEED_DEMO_DATA", "false")  # Disable seeding to avoid tenant context issues
+_os.environ.setdefault(
+    "SEED_DEMO_DATA", "false"
+)  # Disable seeding to avoid tenant context issues
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
 _os.environ.setdefault("SECRET_KEY", TEST_SECRET)
+_os.environ.setdefault("JWT_SECRET", TEST_SECRET)
+_os.environ.setdefault("JWT_ALGORITHM", TEST_ALGORITHM)
+_os.environ.setdefault("JWT_ISSUER", TEST_ISSUER)
+_os.environ.setdefault("JWT_AUDIENCE", TEST_AUDIENCE)
 # Disable bcrypt in tests to avoid 72-byte password limit issues in passlib
 _os.environ.setdefault("USE_BCRYPT", "false")
 
@@ -51,7 +58,7 @@ def _clear_singletons() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_lazy_db() -> None:
+def _reset_lazy_db() -> Iterator[None]:
     """Reset singletons and settings cache before and after each test.
 
     Clears _LazyDB, _LazyOrchestrator, the module-level _orchestrator global,

@@ -387,50 +387,51 @@ async def execute(self, task, context):
 
 ### 3.10 GATE Memory Gateway
 
-**Canonical:** shared.governance.memory_gateway.MemoryGateway
+**Canonical:** `shared.governance.memory_gateway.MemoryGateway`
 
-All knowledge retrieval operations from agents MUST route through the MemoryGateway. The gateway wraps graph and vector retrieval with provenance tracking: every retrieved chunk is hashed, its source lineage is recorded, and a `MEMORY_ACCESS` audit event is emitted.
+All knowledge retrieval operations from agents MUST route through `MemoryGateway`. The gateway wraps a Layer 3 retrieval engine (`GraphRAGEngine`, `HybridSearch`, etc.) with provenance tracking: every retrieved result is canonical-hashed, its source lineage is recorded, and a `MEMORY_ACCESS` audit event is emitted.
 
 ```python
-# Inside an agent that needs knowledge retrieval
+# Inside an agent execute() method
 async def execute(self, task, context):
     memory_gw = context.get("memory_gateway")
     if memory_gw:
-        results = await memory_gw.retrieve(
-            query="customer pain points",
-            retrieval_type="semantic",
-            scope={"account_id": "acct-123"},
+        results = await memory_gw.query(
+            query_text="customer pain points",
+            max_results=10,
         )
-        # results include provenance metadata: content_hash, source_id, retrieval_timestamp
+        # results["_provenance"] contains content_hash, source_lineage, tenant_id, agent_id, trace_id
 ```
 
 **Rules:**
-- Direct calls to `GraphRAGRetriever` or vector search from agent code are FORBIDDEN in production. Route through MemoryGateway.
-- Every retrieval result includes `content_hash` (SHA-256 of canonical content) and `source_id` for lineage tracking.
-- Retrieval audit events are emitted with `chain_id="memory:{tenant_id}"` for ledger partitioning.
+- Direct calls to `GraphRAGEngine.query()` / `HybridSearch.search()` from agent code are FORBIDDEN in production. Route through `ctx["memory_gateway"]`.
+- Every retrieval emits a `MEMORY_ACCESS` audit event with `tenant_id`, `agent_id`, `trace_id`, `content_hash`, and `source_lineage`.
+- `chain_id` for memory access events is `{tenant_id}:memory`.
+- A per-run `memory_source_blocklist` may be supplied to drop poisoned or embargoed source IDs before hashing and lineage recording.
 
 ---
 
 ### 3.11 GATE Replay Recorder
 
-**Canonical:** shared.governance.replay.ReplayRecorder
+**Canonical:** `shared.governance.replay.ReplayRecorder`
 
-Every agent run produces a deterministic replay snapshot. The snapshot captures the sequence of tool calls, memory accesses, and decision points, enabling post-hoc audit and debugging.
+Every governed agent run produces a deterministic replay snapshot. The snapshot captures the agent identity, ABOM manifest hash, tool invocations, and memory accesses, enabling post-hoc audit and debugging.
 
 ```python
-# BaseAgent.run() automatically injects the recorder
+# BaseAgent.run() automatically creates and commits the recorder
 async def run(self, task, context):
     recorder = context.get("replay_recorder")
-    # ... agent execution ...
+    # ... agent execution via ctx["tool_gateway"] and ctx["memory_gateway"] ...
     if recorder:
         await recorder.commit()  # Emits REPLAY_SNAPSHOT audit event
 ```
 
 **Rules:**
 - `ReplayRecorder.commit()` MUST be `await`-ed, not fire-and-forget via `asyncio.create_task()`. Silent loss on shutdown is unacceptable for audit trails.
-- Replay snapshots are hashed with `canonical_hash()` for integrity verification.
-- The snapshot includes: `agent_id`, `run_id`, `started_at`, `completed_at`, `steps` (ordered list of tool/memory operations), and `snapshot_hash`.
-- Snapshots are emitted as `REPLAY_SNAPSHOT` audit events with `chain_id="replay:{agent_id}"`.
+- The snapshot hash (`snapshot_hash`) is computed with `canonical_hash()` over a stable payload that excludes mutable runtime fields such as `completed_at`.
+- The emitted `ReplaySnapshotRecord` includes: `agent_id`, `agent_type`, `manifest_hash`, `snapshot_hash`, `tool_invocation_count`, and `memory_access_count`.
+- Snapshots are emitted as `REPLAY_SNAPSHOT` audit events with `chain_id="{tenant_id}:replay:{agent_type}"`.
+- Replay snapshot commit can be disabled by setting `AGENT_REPLAY_MODE=disabled`.
 
 ---
 

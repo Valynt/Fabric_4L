@@ -4,8 +4,7 @@ from __future__ import annotations
 
 Neo4j-backed implementation of the Value Pack domain service.
 """
-
-
+import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -321,6 +320,8 @@ class Neo4jValuePackService(IValuePackService):
                 else:
                     errors.append(f"Formula {formula.name} failed: {result.error}")
                     outputs[formula.name] = None
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 errors.append(f"Formula {formula.name} error: {e}")
                 outputs[formula.name] = None

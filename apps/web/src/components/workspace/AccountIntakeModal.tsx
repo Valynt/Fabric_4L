@@ -209,7 +209,7 @@ export default function AccountIntakeModal({
       if (onSubmit) {
         onSubmit(accountId);
       } else {
-        navigateTo('intelligence-signals', { accountId });
+        navigateTo('intelligence-overview', { accountId });
       }
     } catch (err) {
       setIsSubmitting(false);

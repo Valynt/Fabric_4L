@@ -5,8 +5,7 @@ from __future__ import annotations
 Provides AsyncPostgresSaver configuration for durable workflow state storage,
 enabling pause/resume and human-in-the-loop capabilities.
 """
-
-
+import asyncio
 import logging
 import os
 import re
@@ -109,7 +108,9 @@ class CheckpointConfig:
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
         url = cls._clean_url(cls.get_database_url())
-        conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
+        conn = await psycopg.AsyncConnection.connect(
+            url, row_factory=psycopg.rows.dict_row, autocommit=True, prepare_threshold=0
+        )
         saver = AsyncPostgresSaver(conn)
         # Store connection reference for cleanup only if the saver does not
         # already expose it via a public attribute.
@@ -131,6 +132,8 @@ class CheckpointConfig:
         if connection is not None:
             try:
                 await connection.close()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 pass  # Already closed or never fully connected
 
@@ -155,12 +158,16 @@ class CheckpointConfig:
         conn = None
         try:
             url = cls._clean_url(cls.get_database_url())
-            conn = await psycopg.AsyncConnection.connect(url, row_factory=psycopg.rows.dict_row)
+            conn = await psycopg.AsyncConnection.connect(
+                url, row_factory=psycopg.rows.dict_row, autocommit=True, prepare_threshold=0
+            )
             saver = AsyncPostgresSaver(conn)
             yield saver
         except psycopg.Error as e:
             logger.error(f"Failed to connect to checkpoint database: {e}")
             raise CheckpointConnectionError(f"Database connection failed: {e}") from e
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error creating checkpoint saver: {e}")
             raise CheckpointConnectionError(f"Failed to initialize checkpoint saver: {e}") from e
@@ -168,6 +175,8 @@ class CheckpointConfig:
             if conn:
                 try:
                     await conn.close()
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     pass  # Already closed or never connected
 
@@ -203,6 +212,8 @@ async def get_checkpoint_saver() -> BaseCheckpointSaver | None:
         if is_production_like_environment(environment):
             raise
         return None
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         if is_production_like_environment(environment):
             raise CheckpointConnectionError(

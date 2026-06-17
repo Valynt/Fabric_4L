@@ -10,8 +10,7 @@ Tools:
   - promote_signal: Create a ValueHypothesis from a PainSignal
   - validate_hypothesis: Update hypothesis status based on user feedback
 """
-
-
+import asyncio
 import logging
 from typing import Any
 
@@ -66,6 +65,8 @@ class AgentToolRegistry:
                 "hypothesis_id": result.get("hypothesis_id"),
                 "message": f"Signal {signal_id} promoted to hypothesis.",
             }
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("promote_signal tool failed: %s", e)
             return {"success": False, "error": "Signal promotion failed", "error_code": "SIGNAL_PROMOTION_ERROR"}
@@ -106,6 +107,8 @@ class AgentToolRegistry:
                 "new_status": result.get("status"),
                 "message": f"Hypothesis {hypothesis_id} updated to {new_status}.",
             }
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("validate_hypothesis tool failed: %s", e)
             return {"success": False, "error": "Hypothesis validation failed", "error_code": "HYPOTHESIS_VALIDATION_ERROR"}

@@ -45,6 +45,9 @@ dev = [
     "faker>=33.0.0",
 ]
 
+[project.scripts]
+layer6-load-benchmark-packs = "layer6_benchmarks.seed.load_benchmark_packs:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/layer6_benchmarks"]
 

@@ -556,7 +556,7 @@ function Accounts() {
 
   const handleIntakeSubmit = (accountId: string) => {
     setIntakeOpen(false);
-    navigateTo('intelligence-signals', { accountId });
+    navigateTo('intelligence-overview', { accountId });
   };
 
   const updateFilters = (updates: Partial<AccountFilters>) => {
@@ -743,7 +743,7 @@ function Accounts() {
               <AccountDetailPanel
                 accountId={selectedAccountId}
                 onClose={() => handleSelectAccount(null)}
-                onLaunchIntelligence={(id) => navigateTo('intelligence-signals', { accountId: id })}
+                onLaunchIntelligence={(id) => navigateTo('intelligence-overview', { accountId: id })}
               />
             </div>
           )}

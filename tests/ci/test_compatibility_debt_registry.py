@@ -122,3 +122,31 @@ def test_registry_target_removal_dates_not_exceeded_without_extension_note() -> 
         "Compatibility shim target removal date exceeded without documented extension note:\n"
         + "\n".join(overdue)
     )
+
+
+def test_gate_inventory_entries_are_present_and_unique() -> None:
+    inventory = compatibility_registry.parse_gate_inventory(REGISTRY)
+    assert inventory, "Compatibility gate inventory must contain at least one entry."
+
+    check_ids = [entry.check_id for entry in inventory]
+    subcommands = [entry.subcommand for entry in inventory]
+
+    assert len(check_ids) == len(set(check_ids)), "Compatibility gate check IDs must be unique."
+    assert len(subcommands) == len(set(subcommands)), "Compatibility gate subcommands must be unique."
+
+
+def test_gate_inventory_entries_have_required_fields_and_safe_commands() -> None:
+    inventory = compatibility_registry.parse_gate_inventory(REGISTRY)
+    allowed_prefixes = ("python ", "pnpm ", "make ")
+
+    for entry in inventory:
+        assert entry.check_id.startswith("GATE-COMPAT-"), (
+            f"{entry.check_id} must use the GATE-COMPAT-* naming convention."
+        )
+        assert entry.owner, f"{entry.check_id} must include an owner."
+        assert entry.subcommand, f"{entry.check_id} must include a subcommand."
+        assert entry.scope, f"{entry.check_id} must include a scope."
+        assert entry.command, f"{entry.check_id} must include a command."
+        assert entry.command.startswith(allowed_prefixes), (
+            f"{entry.check_id} command must start with one of {allowed_prefixes}."
+        )

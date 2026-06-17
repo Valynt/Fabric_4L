@@ -14,8 +14,7 @@ ADR-001:
 Tenant isolation invariant: list_truths is always called with
 organization_id=request.tenant_id. Cross-tenant TruthObjects are never reused.
 """
-
-
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -55,14 +54,14 @@ def _map_status(l5_status: str) -> ValidationState:
 def _infer_claim_type(request: ClaimValidationRequest) -> str:
     """Infer L5 claim_type from harness ClaimValidationRequest.
 
-    Defaults to 'outcome'. Refined by value_pack_id hints.
+    Defaults to Layer 5's customer_outcome enum value. Refined by value_pack_id hints.
     """
     vp = (request.value_pack_id or "").lower()
     if "roi" in vp:
-        return "roi_assumption"
+        return "cost_savings_baseline"
     if "benchmark" in vp:
-        return "benchmark"
-    return "outcome"
+        return "market_benchmark"
+    return "customer_outcome"
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +97,8 @@ class LiveL5Validator(ClaimValidator):
         try:
             await self._client.get_freshness_summary(organization_id=None)
             return True
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("LiveL5Validator.health() failed: %s", exc)
             return False
@@ -117,6 +118,8 @@ class LiveL5Validator(ClaimValidator):
         """
         try:
             return await self._validate_inner(request)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "LiveL5Validator.validate() unhandled error for claim '%s': %s",
@@ -156,6 +159,8 @@ class LiveL5Validator(ClaimValidator):
                 if not has_more or not page:
                     break
                 offset += _page_size
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "LiveL5Validator: list_truths failed for tenant '%s': %s",
@@ -216,6 +221,8 @@ class LiveL5Validator(ClaimValidator):
                 applies_to=applies_to or None,
                 sources=sources or None,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning(
                 "LiveL5Validator: submit_truth failed for claim '%s': %s",

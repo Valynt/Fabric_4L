@@ -25,6 +25,8 @@ RUN uv pip install "email-validator>=2.1.0"
 
 # Copy source code (separate layer for better caching)
 COPY src/ ./src/
+# Copy versioned prompt templates used by the workflow engine
+COPY prompts/ ./src/prompts/
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Stage 2: Runtime - minimal image with only runtime libraries
@@ -47,6 +49,8 @@ ENV PYTHONPATH=/app:/app/src
 
 # Copy source code from builder (separate layer for better caching)
 COPY --from=builder /app/src ./src/
+# Copy versioned prompt templates used by the workflow engine
+COPY --from=builder /app/src/prompts ./src/prompts/
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Change ownership

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 """Tools package for Layer 4 Agentic Workflow Engine.
 
 This package contains 25+ tools organized into 8 categories:
@@ -69,16 +71,27 @@ from .signal_tools import (
 from .utility_tools import FormatCurrencyTool, ValidateInputTool
 
 
-def create_default_registry(config: dict | None = None) -> ToolRegistry:
+def create_default_registry(
+    config: dict | None = None,
+    redis_client: Any | None = None,
+) -> ToolRegistry:
     """Create a tool registry with all 25 tools pre-registered.
 
     Args:
-        config: Optional configuration dictionary for tools
+        config: Optional configuration dictionary for tools.
+        redis_client: Optional async Redis client to back the idempotency cache.
 
     Returns:
-        ToolRegistry with all tools registered
+        ToolRegistry with all tools registered. The registry is a singleton:
+        subsequent calls return the same instance so that runtime services and
+        HTTP route handlers share the same Redis-backed idempotency cache.
     """
-    registry = ToolRegistry()
+    from . import registry as _registry_module
+
+    if _registry_module._global_registry is not None:
+        return _registry_module._global_registry
+
+    registry = ToolRegistry(redis_client=redis_client)
     cfg = config or {}
 
     # Knowledge Tools (6)
@@ -124,6 +137,8 @@ def create_default_registry(config: dict | None = None) -> ToolRegistry:
     # Signal tools are async functions, not BaseTool subclasses —
     # they are called directly by workflow nodes, not via the registry.
 
+    # Publish the populated registry as the global singleton.
+    _registry_module._global_registry = registry
     return registry
 
 

@@ -36,6 +36,7 @@ class MemoryGateway:
         tenant_id: Tenant context for multi-tenant retrieval.
         agent_id: Agent identifier for audit attribution.
         trace_id: Trace ID for audit correlation.
+        source_blocklist: Optional set/list of source IDs to filter out.
     """
 
     def __init__(
@@ -44,11 +45,13 @@ class MemoryGateway:
         tenant_id: str,
         agent_id: str | None = None,
         trace_id: str | None = None,
+        source_blocklist: list[str] | set[str] | None = None,
     ) -> None:
         self._engine = retrieval_engine
         self._tenant_id = tenant_id
         self._agent_id = agent_id
         self._trace_id = trace_id
+        self._source_blocklist: set[str] = set(source_blocklist or [])
         self._access_log: list[dict[str, Any]] = []
 
     @property
@@ -63,6 +66,7 @@ class MemoryGateway:
         max_hops: int | None = None,
         min_confidence: float | None = None,
         max_results: int = 10,
+        source_blocklist: list[str] | set[str] | None = None,
     ) -> dict[str, Any]:
         """Execute a provenance-tracked retrieval query.
 
@@ -75,6 +79,7 @@ class MemoryGateway:
             max_hops: Maximum graph traversal hops.
             min_confidence: Minimum confidence threshold.
             max_results: Maximum number of results.
+            source_blocklist: Optional per-call override of blocked source IDs.
 
         Returns:
             Retrieval result with provenance metadata added.
@@ -104,6 +109,9 @@ class MemoryGateway:
             result_dict = result
         else:
             result_dict = {"raw": str(result)}
+
+        # Apply source blocklist before provenance computation
+        result_dict = self._apply_source_blocklist(result_dict, source_blocklist)
 
         # Compute content hash for provenance
         content_hash = canonical_hash(result_dict)
@@ -200,6 +208,42 @@ class MemoryGateway:
         }
 
         return result
+
+    def _apply_source_blocklist(
+        self,
+        result_dict: dict[str, Any],
+        override_blocklist: list[str] | set[str] | None = None,
+    ) -> dict[str, Any]:
+        """Filter out entities and relationships from blocked sources."""
+        if override_blocklist is not None:
+            if isinstance(override_blocklist, str):
+                raise TypeError("source_blocklist must be a list or set, not a string")
+            blocklist = set(override_blocklist)
+        else:
+            blocklist = self._source_blocklist
+        if not blocklist:
+            return result_dict
+
+        allowed_entities = [
+            e for e in result_dict.get("entities", [])
+            if not self._is_blocked(e, blocklist)
+        ]
+        allowed_ids = {e.get("id") for e in allowed_entities if e.get("id")}
+
+        allowed_relationships = [
+            r for r in result_dict.get("relationships", [])
+            if r.get("source") in allowed_ids and r.get("target") in allowed_ids
+        ]
+
+        result_dict["entities"] = allowed_entities
+        result_dict["relationships"] = allowed_relationships
+        return result_dict
+
+    @staticmethod
+    def _is_blocked(entity: dict[str, Any], blocklist: set[str]) -> bool:
+        """Return True if the entity belongs to a blocked source."""
+        source_id = entity.get("source_id") or entity.get("provenance_source")
+        return bool(source_id and source_id in blocklist)
 
     @staticmethod
     def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, Any]]:

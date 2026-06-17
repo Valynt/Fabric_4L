@@ -53,7 +53,7 @@ export const TEST_ACCOUNTS = {
 async function ensureSameOrigin(page: Page): Promise<void> {
   const url = page.url();
   if (url === 'about:blank' || url === '' || url === 'chrome://newtab/') {
-    await page.goto('/login', { waitUntil: 'commit' });
+    await page.goto('/sign-in', { waitUntil: 'commit' });
   }
 }
 

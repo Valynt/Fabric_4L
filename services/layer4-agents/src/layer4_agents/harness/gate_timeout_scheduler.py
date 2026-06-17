@@ -57,6 +57,8 @@ class GateTimeoutScheduler:
         while not self._shutdown:
             try:
                 await self._expire_overdue_gates()
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.error("Gate expiration error: %s", exc)
             await asyncio.sleep(10)
@@ -133,7 +135,7 @@ class GateTimeoutScheduler:
     async def _get_tenant_timeout_override(self, session, tenant_id: str) -> int | None:
         from sqlalchemy import select
 
-        from tenants.models.tenant import Tenant
+        from layer4_agents.tenants.models.tenant import Tenant
 
         result = await session.execute(select(Tenant.settings).where(Tenant.id == tenant_id))
         settings = result.scalar_one_or_none()

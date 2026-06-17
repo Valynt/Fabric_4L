@@ -12,8 +12,7 @@ The client is intentionally resilient: every public method catches all
 exceptions and returns a structured error dict rather than raising, so
 a Layer 5 outage never blocks a business case generation.
 """
-
-
+import asyncio
 import logging
 import os
 from typing import Any
@@ -157,6 +156,8 @@ class Layer5GroundTruthClient:
         try:
             resp = await self._client.get("/api/v1/health")
             return resp.status_code == 200
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.debug("Layer 5 ping failed: %s", exc)
             return False
@@ -241,6 +242,8 @@ class Layer5GroundTruthClient:
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 sync-kg failed (non-blocking): %s", exc)
             return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({"error": "Layer 5 sync failed", "detail": None, "synced": 0, "failed": 0})
@@ -331,6 +334,8 @@ class Layer5GroundTruthClient:
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 submit_truth failed: %s", exc)
             return Layer5GroundTruthClient_submit_truthResult.model_validate({"error": "Layer 5 submit truth failed", "detail": None})
@@ -382,6 +387,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/truths", params=params)
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
             return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
@@ -416,6 +423,8 @@ class Layer5GroundTruthClient:
             )
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 validate_truth failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_validate_truthResult.model_validate({"error": "Layer 5 validate truth failed", "truth_object_id": truth_id})
@@ -446,6 +455,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get(f"/api/v1/truths/{truth_id}", params=params)
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 get_truth failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_get_truthResult.model_validate({"error": "Layer 5 get truth failed"})
@@ -472,6 +483,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get(f"/api/v1/truths/{truth_id}/audit", params=params)
             resp.raise_for_status()
             return {"events": resp.json()}
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 get_truth_audit failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_get_truth_auditResult.model_validate({"error": "Layer 5 get truth audit failed", "events": []})
@@ -496,6 +509,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/truths/freshness-summary", params=params)
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 get_freshness_summary failed: %s", exc)
             return Layer5GroundTruthClient_get_freshness_summaryResult.model_validate({"error": "Layer 5 get freshness summary failed"})
@@ -524,6 +539,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/truths/stale", params=params)
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 get_stale_truths failed: %s", exc)
             return Layer5GroundTruthClient_get_stale_truthsResult.model_validate({"error": "Layer 5 get stale truths failed"})
@@ -548,6 +565,8 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/maturity-ladder", params=params)
             resp.raise_for_status()
             return resp.json()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Layer 5 get_maturity_ladder failed: %s", exc)
             return Layer5GroundTruthClient_get_maturity_ladderResult.model_validate({"error": "Layer 5 get maturity ladder failed"})

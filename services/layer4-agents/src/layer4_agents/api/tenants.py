@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 
 """Tenant management API endpoints.
@@ -237,6 +239,8 @@ async def provision_tenant(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Tenant provisioning failed",
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.error(f"Unexpected error during tenant provisioning: {e}", exc_info=True)
         raise HTTPException(

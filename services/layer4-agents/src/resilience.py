@@ -242,6 +242,8 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             await self._on_success()
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await self._on_failure()
             raise

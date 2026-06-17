@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from value_fabric.shared.probes import normalize_probe_payload
+from value_fabric.shared.probes import normalize_probe_payload, normalize_probe_response
 
 
 def test_shared_probe_contract_shape() -> None:
@@ -23,6 +23,42 @@ def test_shared_probe_contract_shape() -> None:
     assert payload["dependency_status"] == payload["dependencies"]
 
 
+def test_shared_probe_contract_normalizes_legacy_status_and_dependency_aliases() -> None:
+    payload = normalize_probe_payload(
+        status="ok",
+        service="layerX",
+        readiness=None,
+        dependencies=[
+            {
+                "name": "neo4j",
+                "status": "failed",
+                "failure_reason": "neo4j_unreachable",
+            }
+        ],
+    )
+
+    assert payload["status"] == "healthy"
+    assert payload["readiness"] == {"is_ready": True, "reason": "dependencies_available"}
+    assert payload["dependencies"][0]["status"] == "unhealthy"
+    assert payload["dependencies"][0]["reason"] == "neo4j_unreachable"
+    assert payload["dependencies"][0]["error"] == "neo4j_unreachable"
+
+
+def test_normalize_probe_response_preserves_extra_fields() -> None:
+    payload = normalize_probe_response(
+        {
+            "status": "not_ready",
+            "checks": {"database": {"status": "ok"}},
+            "service": "layerY",
+        },
+        default_service="layerY",
+    )
+
+    assert payload["status"] == "not_ready"
+    assert payload["readiness"] == {"is_ready": False, "reason": "dependency_unhealthy"}
+    assert payload["checks"] == {"database": {"status": "ok"}}
+
+
 @pytest.mark.asyncio
 async def test_layer6_readiness_http_status_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
     from api.routes import system as layer6_system
@@ -36,6 +72,7 @@ async def test_layer6_readiness_http_status_behavior(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(layer6_system.handlers, "readiness_check", ready)
     payload = await layer6_system.readiness_check()
     assert payload["status"] == "ready"
+    assert payload["readiness"]["is_ready"] is True
 
     monkeypatch.setattr(layer6_system.handlers, "readiness_check", not_ready)
     response = await layer6_system.readiness_check()

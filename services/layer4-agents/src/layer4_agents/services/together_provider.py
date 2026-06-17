@@ -10,8 +10,7 @@ Together.ai does not support OpenAI's ``response_format: json_schema`` mode.
 ``extract_structured`` falls back to prompt-level JSON instruction + manual
 parse, which is sufficient for all Layer 4 extraction prompts.
 """
-
-
+import asyncio
 import json
 import logging
 from typing import Any
@@ -157,6 +156,8 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
                 max_tokens=request.max_tokens,
             )
             return CompletionResult(content=result.content)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             return self._normalize_error(exc)
 
@@ -205,6 +206,8 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
             response = await self._get_client().chat.completions.create(**kwargs)
             content = (response.choices[0].message.content or "{}").strip()
             return parse_llm_json(content, call_site="together_provider.extract_structured")
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             # If json_object mode caused a 400, retry without it
             if use_json_mode and _is_400_error(exc):
@@ -217,6 +220,8 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
                     response = await self._get_client().chat.completions.create(**kwargs)
                     content = (response.choices[0].message.content or "{}").strip()
                     return parse_llm_json(content, call_site="together_provider.extract_structured_retry")
+                except asyncio.CancelledError:
+                    raise
                 except Exception as retry_exc:
                     return self._normalize_error(retry_exc)
             return self._normalize_error(exc)
@@ -253,6 +258,8 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
                 content=(message.content or "").strip(),
                 tool_calls=tool_calls,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             return self._normalize_error(exc)
 

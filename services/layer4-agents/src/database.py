@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
 
 INTENTIONAL_DB_ADAPTER_BYPASS = True
@@ -152,6 +154,8 @@ async def _emit_tenant_context_set_audit(
             request_id=context.request_id,
             details=details.model_dump(exclude_none=True),
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         # Audit emission must never break request flow — log and continue.
         logger.debug("Tenant context audit emission failed (non-critical): %s", exc)
@@ -198,6 +202,8 @@ def _record_pool_state(engine: AsyncEngine) -> None:
         size = int(pool.size())
         idle = max(size - active, 0)
         metrics.set_db_pool_state(pool_size=size, active=active, idle=idle)
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.debug("DB pool state metric emission failed", exc_info=True)
 
@@ -294,6 +300,8 @@ class TenantEnforcedAsyncSession(AsyncSession):
                 metrics = get_metrics()
                 if metrics is not None:
                     metrics.increment_db_pool_timeout()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.debug("DB pool timeout metric emission failed", exc_info=True)
             raise
@@ -339,6 +347,8 @@ def get_engine() -> AsyncEngine:
                     metrics = get_metrics()
                     if metrics is not None:
                         metrics.observe_db_pool_wait(time.perf_counter() - start)
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
@@ -564,6 +574,8 @@ def _record_privileged_db_session_activation(
                 str(context.tenant_id) if context.tenant_id is not None else None,
                 mode,
             )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:  # pragma: no cover - metrics must not block authz
         logger.debug("Privileged DB activation metric emission failed: %s", exc)
 
@@ -632,6 +644,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -719,6 +733,8 @@ async def get_db_from_context(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -798,6 +814,8 @@ async def get_db_with_optional_tenant(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -862,6 +880,8 @@ async def get_tiered_db_session(
             try:
                 yield session
                 await session.commit()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 await session.rollback()
                 raise
@@ -935,6 +955,8 @@ async def db_session(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -989,6 +1011,8 @@ async def db_session_for_context(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise

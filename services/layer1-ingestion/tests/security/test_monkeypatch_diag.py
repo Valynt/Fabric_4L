@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import text
+from uuid import uuid4
 
 pytestmark = pytest.mark.requires_postgres
 
@@ -12,7 +13,7 @@ def diag(postgres_db):
     with db_module.SessionLocal() as s:
         result = s.execute(text("SELECT current_database()")).fetchone()
         print(f"DB FROM SessionLocal: {result[0]}")
-    with db_module.get_db_session(tenant_id='test', require_tenant=True) as s:
+    with db_module.get_db_session(tenant_id=str(uuid4()), require_tenant=True) as s:
         result = s.execute(text("SELECT current_database()")).fetchone()
         print(f"DB FROM get_db_session: {result[0]}")
     return True

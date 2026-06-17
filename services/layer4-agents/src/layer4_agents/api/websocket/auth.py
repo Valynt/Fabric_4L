@@ -5,8 +5,7 @@ from __future__ import annotations
 Canonical auth transport: Sec-WebSocket-Protocol bearer format.
   Protocol subprotocols: ['base64url.bearer.authorization', '<jwt>']
 """
-
-
+import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
@@ -100,6 +99,8 @@ def decode_ws_token(token: str | None) -> tuple[str, str]:
         return tenant_id, user_id
 
     except WebSocketAuthError:
+        raise
+    except asyncio.CancelledError:
         raise
     except Exception as exc:
         error_code = _TOKEN_EXCEPTION_CODE_MAP.get(

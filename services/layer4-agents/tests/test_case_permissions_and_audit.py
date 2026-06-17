@@ -162,6 +162,11 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
         "build_export_provenance_manifest",
         lambda **_: {"truth_object_ids": [], "source_references": []},
     )
+    # Ensure the route and module use the same settings instance even if another
+    # test cleared the get_settings cache.
+    from layer4_agents.config.settings import get_settings
+    get_settings.cache_clear()
+    analysis.settings = get_settings()
     monkeypatch.setattr(analysis.settings, "export_storage_endpoint", "https://storage.local")
 
     class _DbWithCase(_FakeDb):

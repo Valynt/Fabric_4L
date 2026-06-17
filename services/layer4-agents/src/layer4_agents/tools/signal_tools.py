@@ -9,7 +9,7 @@ invocations.
 Agents MUST NOT invent signals without creating evidence/provenance records.
 Use create_signal() to emit new signals with traceable provenance.
 """
-
+import asyncio
 import logging
 import os
 import uuid
@@ -132,6 +132,8 @@ async def get_account_signals(
             response.status_code, account_id, tenant_id,
         )
         return []
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception(
             "get_account_signals failed for account=%s tenant=%s", account_id, tenant_id
@@ -247,6 +249,8 @@ async def create_signal(
             response.status_code, account_id, tenant_id,
         )
         return None
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.exception(
             "create_signal failed for account=%s tenant=%s", account_id, tenant_id

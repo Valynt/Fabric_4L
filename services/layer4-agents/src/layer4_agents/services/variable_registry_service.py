@@ -4,8 +4,7 @@ from __future__ import annotations
 
 Neo4j-backed implementation of variable definitions and resolution.
 """
-
-
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -379,6 +378,8 @@ class Neo4jVariableRegistry(IVariableRegistry):
         for var_id in variable_ids:
             try:
                 results[var_id] = await self.resolve_variable(var_id, context)
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # Log error but continue with other variables
                 results[var_id] = VariableValue(
