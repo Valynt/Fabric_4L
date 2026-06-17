@@ -5,11 +5,7 @@
  * DIL enrichment: ROI calculator for financial modeling + industry benchmarks
  */
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
 import { Settings2, Calculator, TrendingUp, BarChart3 } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
@@ -21,6 +17,7 @@ import {
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
 import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -128,8 +125,7 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark | null }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function ValueModelTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function ValueModelTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -139,7 +135,6 @@ export default function ValueModelTab() {
   const persistTab = usePersistWorkspaceTab("value-model");
   const [scenario, setScenario] = useState<Scenario>("expected");
   const [showStrategic, setShowStrategic] = useState(true);
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
 
   // DIL data
   const calculateROI = useCalculateROI();
@@ -151,11 +146,6 @@ export default function ValueModelTab() {
   useEffect(() => {
     if (caseId && data) persistTab.mutate({ caseId, payload: data });
   }, [caseId, data]);
-
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "value-model",
-    accountName: account?.name ?? "Account",
-  });
 
   const lines = data?.valueLines ?? [];
   const acceptedEvidence = (evidenceData?.evidence ?? []).filter((item) => item.decision_status === "accepted");
@@ -230,28 +220,7 @@ export default function ValueModelTab() {
   }
 
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue
-          ? `$${account.annual_revenue.toLocaleString()}`
-          : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="value-model"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-            steps={steps}
-            isStreaming={isStreaming}
-            runMetadata={metadata}
-        />
-      }
-    >
+    <div className="space-y-6">
       {lines.length === 0 ? (
         <SectionCard title="Value Breakdown">
           <div className="text-sm text-muted-foreground">
@@ -394,6 +363,6 @@ export default function ValueModelTab() {
           <BenchmarkCard benchmark={benchmark} />
         </>
       )}
-    </ValueStudioShellComponent>
+    </div>
   );
 }

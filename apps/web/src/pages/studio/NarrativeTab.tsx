@@ -5,7 +5,6 @@
  * DIL enrichment: DIL Narrative Builder for tone/audience-specific generation
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import {
   Users,
   Download,
@@ -15,10 +14,7 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
 import { cn } from "@/lib/utils";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
@@ -28,6 +24,8 @@ import {
   useWorkspaceTabQuery,
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
+import { useStudioRail } from "@/features/value-studio/context/StudioRailContext";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -134,8 +132,7 @@ function DILNarrativeCard({
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function NarrativeTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function NarrativeTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -145,7 +142,7 @@ export default function NarrativeTab() {
   const [selectedNarrative, setSelectedNarrative] =
     useState<NarrativeVersion | null>(null);
   const [selectedDIL, setSelectedDIL] = useState<Narrative | null>(null);
-  const [railMode, setRailMode] = useState<RightRailMode>("detail");
+  const { setDetailContent, clearDetailContent } = useStudioRail();
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [genTone, setGenTone] = useState<string>("executive");
   const [genAudience, setGenAudience] = useState<string>("c_suite");
@@ -166,11 +163,6 @@ export default function NarrativeTab() {
     if (!selectedNarrative && !selectedDIL && narratives[0])
       setSelectedNarrative(narratives[0]);
   }, [narratives, selectedNarrative, selectedDIL]);
-
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "narrative",
-    accountName: account?.name ?? "Account",
-  });
 
   const generateMutation = useGenerateWorkspaceIntelligence();
 
@@ -247,66 +239,43 @@ export default function NarrativeTab() {
     ? STATUS_CONFIG[selectedNarrative.status]
     : null;
 
+  useEffect(() => {
+    if (selectedNarrative) {
+      setDetailContent(
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedNarrative.stakeholder}</h3>
+          <p className="text-xs text-muted-foreground">{selectedNarrative.role}</p>
+          {selectedStatus && (
+            <span className={cn("vf-text-micro font-semibold", selectedStatus.color)}>
+              {selectedStatus.label}
+            </span>
+          )}
+        </div>
+      );
+    } else if (selectedDIL) {
+      setDetailContent(
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {selectedDIL.tone} · {selectedDIL.audience}
+          </p>
+          <span
+            className={cn(
+              "vf-text-micro font-semibold",
+              DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
+            )}
+          >
+            {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
+          </span>
+        </div>
+      );
+    } else {
+      clearDetailContent();
+    }
+  }, [selectedNarrative, selectedDIL, selectedStatus, setDetailContent, clearDetailContent]);
+
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue
-          ? `$${account.annual_revenue.toLocaleString()}`
-          : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          detailContent={
-            selectedNarrative ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">
-                  {selectedNarrative.stakeholder}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedNarrative.role}
-                </p>
-                {selectedStatus && (
-                  <span
-                    className={cn(
-                      "vf-text-micro font-semibold",
-                      selectedStatus.color
-                    )}
-                  >
-                    {selectedStatus.label}
-                  </span>
-                )}
-              </div>
-            ) : selectedDIL ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedDIL.tone} · {selectedDIL.audience}
-                </p>
-                <span
-                  className={cn(
-                    "vf-text-micro font-semibold",
-                    DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
-                  )}
-                >
-                  {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
-                </span>
-              </div>
-            ) : null
-          }
-          activeTab="narrative"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-            steps={steps}
-            isStreaming={isStreaming}
-            runMetadata={metadata}
-        />
-      }
-    >
+    <div className="space-y-6">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard
@@ -534,6 +503,6 @@ export default function NarrativeTab() {
           </div>
         </SectionCard>
       ) : null}
-    </ValueStudioShellComponent>
+    </div>
   );
 }

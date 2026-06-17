@@ -148,12 +148,12 @@ export function TeamPermissionsScreen() {
           <thead className="bg-muted border-b border-border"><tr><th className="px-4 py-2 text-left">API Key</th><th className="px-4 py-2 text-left">Last used</th><th className="px-4 py-2 text-right">Mutation</th></tr></thead>
           <tbody>
             {apiKeys.map((key) => (
-              <tr key={key.id} className="border-b border-border last:border-0">
+              <tr key={key.key_id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium">{key.name}</td>
                 <td className="px-4 py-3">{key.last_used_at ? formatDate(key.last_used_at) : "Never"}</td>
                 <td className="px-4 py-3 text-right">
                   {canAssignPolicies ? (
-                    <Btn variant="ghost" size="sm" className={cn(revokeMutation.isPending && "opacity-50")} onClick={() => revokeMutation.mutate(key.id)}>Revoke</Btn>
+                    <Btn variant="ghost" size="sm" className={cn(revokeMutation.isPending && "opacity-50")} onClick={() => revokeMutation.mutate(key.key_id)}>Revoke</Btn>
                   ) : <span className="text-muted-foreground">Read only</span>}
                 </td>
               </tr>

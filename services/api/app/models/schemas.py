@@ -382,6 +382,38 @@ class RealizationPlanActualsPatchRequest(BaseModel):
     assumption_ids: list[str] = Field(default_factory=list)
 
 
+class ValueCaseSection(BaseModel):
+    id: str
+    type: Literal[
+        "executive_summary",
+        "stakeholder_mapping",
+        "roi_overview",
+        "risk_and_mitigation",
+        "custom",
+    ]
+    title: str
+    content: str
+    order: int = 0
+
+
+class ValueCaseStakeholderFraming(BaseModel):
+    persona: str
+    priorities: list[str] = Field(default_factory=list)
+    pains: list[str] = Field(default_factory=list)
+    decision_role: str | None = None
+
+
+class ValueCaseContent(BaseModel):
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    selected_scenario_id: str | None = None
+    sections: list[ValueCaseSection] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    stakeholder_framing: list[ValueCaseStakeholderFraming] = Field(default_factory=list)
+    claim_ids: list[str] = Field(default_factory=list)
+    roi_snapshot: dict[str, Any] | None = None
+
+
 class BusinessCase(BaseModel):
     id: str
     account_id: str
@@ -395,6 +427,7 @@ class BusinessCase(BaseModel):
     risks: list[str] = Field(default_factory=list)
     recommendation: str | None = None
     status: Literal["draft", "review", "approved", "published", "archived"] = "draft"
+    value_case: ValueCaseContent | None = None
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
 
