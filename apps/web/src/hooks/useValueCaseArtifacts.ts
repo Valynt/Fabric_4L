@@ -98,6 +98,8 @@ function apiCaseToArtifactVersion(apiCase: ApiBusinessCase): ValueCaseArtifactVe
   return {
     id: apiCase.id,
     account_id: apiCase.account_id,
+    // The API gateway does not yet version value-case artifacts, so the UI
+    // treats each saved artifact as version 1 until a version field is added.
     version: 1,
     created_at: apiCase.audit.created_at,
     updated_at: apiCase.audit.updated_at,
@@ -226,6 +228,7 @@ export function useValueCaseArtifacts(accountId: string | null) {
   return {
     versions: versionsQuery.data ?? [],
     isLoadingVersions: versionsQuery.isLoading,
+    versionsError: versionsQuery.error,
     selectedVersion,
     setSelectedVersionId,
     generateArtifact,

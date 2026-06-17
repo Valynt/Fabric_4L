@@ -99,7 +99,7 @@ describe('useValueCaseArtifacts', () => {
     expect(result.current.selectedVersion?.id).toBe('vc-loaded');
   });
 
-  it('does not write durable data to localStorage', async () => {
+  it('does not write to the legacy value-case-artifacts localStorage key', async () => {
     const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
     const apiCase = createApiCase({ id: 'vc-local' });
     server.use(
@@ -234,5 +234,45 @@ describe('useValueCaseArtifacts', () => {
     await waitFor(() =>
       expect(result.current.versions[0]?.value_case?.selected_scenario_id).toBe('scenario-2')
     );
+  });
+
+  it('publishes a value case and refreshes the version', async () => {
+    let cases: unknown[] = [createApiCase({ id: 'vc-publish' })];
+    const publishedCase = createApiCase({ id: 'vc-publish', status: 'published' });
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      ),
+      http.post(`/api/v1/accounts/${accountId}/value-cases/vc-publish/publish`, () => {
+        cases = [publishedCase];
+        return HttpResponse.json(publishedCase);
+      })
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions[0]?.status).toBe('draft');
+
+    await act(async () => {
+      await result.current.publishArtifact.mutateAsync('vc-publish');
+    });
+
+    await waitFor(() => expect(result.current.versions[0]?.status).toBe('published'));
+  });
+
+  it('exposes an error when the initial load fails', async () => {
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+      )
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false), { timeout: 3000 });
+    expect(result.current.versionsError).toBeTruthy();
+    expect(result.current.versions).toEqual([]);
   });
 });
