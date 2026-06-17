@@ -2,6 +2,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError
 
 from app.core.database import db
@@ -11,6 +12,11 @@ from app.services.gate_service import check_gates, get_gate_summary
 from app.services.export_service import generate_export
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Value Case"])
+
+
+class CreateValueCaseRequest(BaseModel):
+    title: str
+    value_case: ValueCaseContent
 
 
 @router.get("/value-cases", response_model=list[BusinessCase])
@@ -38,8 +44,7 @@ async def get_account_value_case(account_id: str, tenant_id: str = Depends(tenan
 @router.post("/value-case", response_model=BusinessCase, status_code=201)
 async def create_value_case(
     account_id: str,
-    title: str,
-    value_case: ValueCaseContent,
+    request: CreateValueCaseRequest,
     tenant_id: str = Depends(tenant_required),
 ):
     """Create a new value case for an account."""
@@ -48,8 +53,8 @@ async def create_value_case(
         id=str(uuid4()),
         account_id=account_id,
         tenant_id=tenant_id,
-        title=title,
-        value_case=value_case,
+        title=request.title,
+        value_case=request.value_case,
         audit=AuditMeta.model_validate(now),
     )
     db.business_cases.insert(case.id, case)
