@@ -5,6 +5,13 @@
  */
 import { lazy } from "react";
 import type { StudioTabId, StudioTabDef } from "./types";
+import ActionPlanRail from "./rails/ActionPlanRail";
+import ValueModelRail from "./rails/ValueModelRail";
+import DriverTreeRail from "./rails/DriverTreeRail";
+import CalculatorRail from "./rails/CalculatorRail";
+import NarrativeRail from "./rails/NarrativeRail";
+import ValueCaseRail from "./rails/ValueCaseRail";
+import RealizationRail from "./rails/RealizationRail";
 
 const isProductionBuild = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === "production";
 
@@ -38,6 +45,7 @@ export const studioTabs: StudioTabDef[] = [
     label: "Action Plan",
     description: "Product-anchored intervention plan mapping pain to capabilities.",
     component: ActionPlanTab,
+    rightRail: ActionPlanRail,
     status: "active",
     category: "synthesis",
   },
@@ -47,6 +55,7 @@ export const studioTabs: StudioTabDef[] = [
     description: "Quantified value model behind the business case.",
     component: ValueModelTab,
     queryKey: "value-model",
+    rightRail: ValueModelRail,
     status: "active",
     category: "synthesis",
   },
@@ -55,6 +64,7 @@ export const studioTabs: StudioTabDef[] = [
     label: "Driver Tree",
     description: "Interactive value driver tree editor.",
     component: DriverTreeTab,
+    rightRail: DriverTreeRail,
     status: "active",
     category: "synthesis",
   },
@@ -63,6 +73,7 @@ export const studioTabs: StudioTabDef[] = [
     label: "ROI Calculator",
     description: "Interactive ROI calculator inputs and outputs.",
     component: CalculatorTab,
+    rightRail: CalculatorRail,
     status: "active",
     category: "synthesis",
   },
@@ -72,6 +83,7 @@ export const studioTabs: StudioTabDef[] = [
     description: "Storytelling layer for the value case.",
     component: NarrativeTab,
     queryKey: "narrative",
+    rightRail: NarrativeRail,
     status: "active",
     category: "output",
   },
@@ -81,6 +93,7 @@ export const studioTabs: StudioTabDef[] = [
     description: "Generates the final written narrative and messaging.",
     component: ValueCaseTab,
     queryKey: "value-case",
+    rightRail: ValueCaseRail,
     status: "active",
     category: "output",
   },
@@ -90,6 +103,7 @@ export const studioTabs: StudioTabDef[] = [
     description: "Step-by-step plan turning validated hypotheses into milestones.",
     component: RealizationTab,
     queryKey: "action-plan",
+    rightRail: RealizationRail,
     status: "active",
     category: "output",
   },

@@ -336,7 +336,11 @@ export const router = createBrowserRouter([
             <Navigate to="action-plan" replace />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
@@ -347,7 +351,11 @@ export const router = createBrowserRouter([
             </Suspense>
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
 
       // ═══════════════════════════════════════════════════════════════

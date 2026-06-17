@@ -4,27 +4,23 @@
  * Workspace tab for the Calculator workspace.
  */
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
-import CalculatorShell from "@/components/workspace/CalculatorShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
 import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
-export default function CalcValueModelTab() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
+export default function CalcValueModelTab({ accountId }: StudioTabProps) {
   const location = useLocation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
   const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
   const [activeTreeId, setActiveTreeId] = useState<string | null>(null);
   const [activeValueModelId, setActiveValueModelId] = useState<string | null>(null);
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
 
   useEffect(() => {
     if (!accountId) return;
@@ -42,14 +38,6 @@ export default function CalcValueModelTab() {
     setActiveValueModelId(persisted.valueModelId);
   }, [accountId, location.search, getSelection, setSelection]);
 
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
-
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "value-model",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
-
   if (!accountId) {
     return <AccountRequiredGuard accountId={accountId} />;
   }
@@ -63,27 +51,7 @@ export default function CalcValueModelTab() {
   }
 
   return (
-    <CalculatorShell
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="value-model"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-          steps={steps}
-          isStreaming={isStreaming}
-          runMetadata={metadata}
-        />
-      }
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <BarChart3 className="w-5 h-5 text-primary" />
@@ -116,7 +84,6 @@ export default function CalcValueModelTab() {
             </p>
           </div>
         </SectionCard>
-      </div>
-    </CalculatorShell>
+    </div>
   );
 }

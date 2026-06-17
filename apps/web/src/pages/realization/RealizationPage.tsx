@@ -7,8 +7,7 @@
  * initiative cards with milestone progress. Tracking state is local-only until a
  * dedicated realization backend is built in a future phase.
  */
-import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useMemo } from "react";
 import {
   TrendingUp,
   CheckCircle2,
@@ -20,9 +19,6 @@ import {
   Zap,
   ShieldCheck,
 } from "lucide-react";
-import RealizationShell from "@/components/workspace/RealizationShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -34,6 +30,7 @@ import { useNavigation } from "@/hooks";
 import { createNextAction } from "@/components/workspace/nextAction";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,12 +148,9 @@ const MILESTONE_ICON: Record<MilestoneStatus, React.ReactNode> = {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function RealizationPage() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
+export default function RealizationPage({ accountId }: StudioTabProps) {
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { navigateTo } = useNavigation();
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
 
   const { data: hypothesesData, isLoading: hypothesesLoading } = useAccountHypotheses(
     accountId ?? null,
@@ -188,12 +182,6 @@ export default function RealizationPage() {
       )
     : 0;
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "realization",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
-
   if (!accountId) {
     return <AccountRequiredGuard accountId={accountId} />;
   }
@@ -207,27 +195,7 @@ export default function RealizationPage() {
   }
 
   return (
-    <RealizationShell
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="realization"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-          steps={steps}
-          isStreaming={isStreaming}
-          runMetadata={metadata}
-        />
-      }
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -413,7 +381,6 @@ export default function RealizationPage() {
             </Button>
           </div>
         )}
-      </div>
-    </RealizationShell>
+    </div>
   );
 }

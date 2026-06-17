@@ -4,11 +4,8 @@
  * Workspace tab for the Calculator workspace.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Calculator, Loader2, RefreshCcw, Save } from "lucide-react";
-import CalculatorShell from "@/components/workspace/CalculatorShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -21,6 +18,7 @@ import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Input } from "@/components/ui/input";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 type ScenarioState = {
   deal_size: number;
@@ -56,14 +54,11 @@ function fmtCurrency(value: number): string {
   return `$${Math.round(value).toLocaleString()}`;
 }
 
-export default function CalcROITab() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
+export default function CalcROITab({ accountId }: StudioTabProps) {
   const location = useLocation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
   const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<ScenarioState>(DEFAULT_SCENARIO);
@@ -151,12 +146,6 @@ export default function CalcROITab() {
     }
   }, [versionsQuery.data]);
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "roi",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
-
   if (!accountId) return <AccountRequiredGuard accountId={accountId} />;
   if (accountLoading) return <LoadingState message="Loading account…" fullPage />;
   if (!account) return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
@@ -165,15 +154,7 @@ export default function CalcROITab() {
   const scenarioNames = Object.keys(calc?.scenarios ?? {});
 
   return (
-    <CalculatorShell
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={<RightRail mode={railMode} onModeChange={setRailMode} activeTab="roi" messages={messages} onSendMessage={sendMessage} suggestedActions={suggestedActions} steps={steps} isStreaming={isStreaming} runMetadata={metadata} />}
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <Calculator className="w-5 h-5 text-primary" />
@@ -251,7 +232,6 @@ export default function CalcROITab() {
             {!versionsQuery.data?.length && <p className="text-xs text-muted-foreground">No versions saved for this account/case/model.</p>}
           </div>
         </SectionCard>
-      </div>
-    </CalculatorShell>
+    </div>
   );
 }
