@@ -56,7 +56,7 @@ If a file's value could not be determined within 30 seconds of reading, it was m
 |-----------|------|---------|-----|-------------|--------|--------|
 | `README.md` | Onboarding | 5 | Current | No | No | Keep |
 | `docs/README.md` | Meta | 5 | Current | No | No | Keep |
-| `ARCHITECTURE.md` | Architecture | 3 | Current | Partial | No | Update |
+| `ARCHITECTURE.md` | Architecture | 3 | Current | Partial | No | Resolved |
 | `DESIGN.md` | Architecture | 5 | Current | No | No | Keep |
 | `CONTRIBUTING.md` | Onboarding | 4 | Current | No | No | Keep |
 | `AGENTS.md` | Meta | 5 | Current | No | No | Keep |
@@ -103,15 +103,16 @@ If a file's value could not be determined within 30 seconds of reading, it was m
 
 **Files to Consolidate:**
 - `ARCHITECTURE.md` (root) - Brief overview with links
+- `docs/core-concepts/architecture.md` - Canonical platform architecture (C4 + Mermaid)
 - `docs/architecture/system-overview.md` - Comprehensive 745-line architecture doc
 - `docs/architecture/component-interaction-map.md` - 622-line interaction map
 
-**Recommendation:** 
-- Keep `docs/architecture/system-overview.md` as the canonical architecture reference
-- Update `ARCHITECTURE.md` to be a concise summary pointing to `system-overview.md`
-- Keep `component-interaction-map.md` as a specialized reference for frontend-backend integration
+**Recommendation:**
+- Keep `docs/core-concepts/architecture.md` as the canonical architecture reference
+- Update `ARCHITECTURE.md` to be a concise redirect pointing to `docs/core-concepts/architecture.md`
+- Keep `docs/architecture/system-overview.md` and `component-interaction-map.md` as specialized references
 
-**Action:** Update `ARCHITECTURE.md` to remove redundancy and point to canonical docs.
+**Action:** Resolved — `ARCHITECTURE.md` is now a redirect to `docs/core-concepts/architecture.md`.
 
 ### 2. Security Documentation Consolidation
 
@@ -182,7 +183,7 @@ If a file's value could not be determined within 30 seconds of reading, it was m
 
 | File | Issue | Priority | Update Required |
 |------|-------|----------|-----------------|
-| `ARCHITECTURE.md` | Redundant with `docs/architecture/system-overview.md` | Medium | Rewrite as concise summary with links |
+| `ARCHITECTURE.md` | Redundant with `docs/core-concepts/architecture.md` | Medium | Resolved — redirect stub |
 | `SECURITY.md` | Missing threat model content (currently in redirect file) | Low | Add threat model section |
 | `docs/README.md` | May need updates to reflect new archive location | Low | Update links to archived docs |
 | `docs/archive/archive-registry.md` | Needs entry for Phase 3 archival | Medium | Add Phase 3 registry entry |
