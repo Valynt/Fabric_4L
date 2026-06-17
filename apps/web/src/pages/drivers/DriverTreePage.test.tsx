@@ -17,16 +17,7 @@ import { server } from "@/test/mocks/server";
 import { createWrapperWithRouterPath } from "@/test-utils";
 import DriverTreePage from "./DriverTreePage";
 
-const mockUseParams = vi.fn();
 const mockUseAccount = vi.fn();
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
-  return {
-    ...(actual as object),
-    useParams: () => mockUseParams(),
-  };
-});
 
 vi.mock("@/hooks/useAccounts", () => ({
   useAccount: (accountId: string | null) => mockUseAccount(accountId),
@@ -64,55 +55,36 @@ describe("DriverTreePage account/loading guards", () => {
   });
 
   it("renders AccountRequiredGuard when accountId is missing", () => {
-    mockUseParams.mockReturnValue({ accountId: undefined, tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: false });
 
     const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
-    render(<DriverTreePage />, { wrapper });
+    render(<DriverTreePage accountId="" />, { wrapper });
 
     expect(screen.getByText("No account selected")).toBeInTheDocument();
     expect(
       screen.getByText("Select an account from the sidebar to view this page.")
     ).toBeInTheDocument();
-
-    // Must NOT render the workspace shell header
-    expect(screen.queryByText("Account")).not.toBeInTheDocument();
-    expect(screen.queryByText("Unknown")).not.toBeInTheDocument();
-    expect(screen.queryByText("N/A")).not.toBeInTheDocument();
   });
 
   it("renders CenteredLoader while account is loading", () => {
-    mockUseParams.mockReturnValue({ accountId: "acc-123", tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: true });
 
     const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
-    render(<DriverTreePage />, { wrapper });
+    render(<DriverTreePage accountId="acc-123" />, { wrapper });
 
     expect(screen.getByText("Loading driver tree…")).toBeInTheDocument();
-
-    // Must NOT render the workspace shell header with placeholder values
-    expect(screen.queryByText("Account")).not.toBeInTheDocument();
-    expect(screen.queryByText("Unknown")).not.toBeInTheDocument();
-    expect(screen.queryByText("N/A")).not.toBeInTheDocument();
   });
 
   it('renders "Account not found" when accountId is present but account does not exist', () => {
-    mockUseParams.mockReturnValue({ accountId: "acc-404", tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: false });
 
     const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-404/studio/driver-tree");
-    render(<DriverTreePage />, { wrapper });
+    render(<DriverTreePage accountId="acc-404" />, { wrapper });
 
     expect(screen.getByText("Account not found.")).toBeInTheDocument();
-
-    // Must NOT render the workspace shell header
-    expect(screen.queryByText("Account")).not.toBeInTheDocument();
-    expect(screen.queryByText("Unknown")).not.toBeInTheDocument();
-    expect(screen.queryByText("N/A")).not.toBeInTheDocument();
   });
 
-  it("renders the workspace shell with correct account header when account is valid", () => {
-    mockUseParams.mockReturnValue({ accountId: "acc-123", tab: "evidence" });
+  it("renders page content without its own account header", () => {
     mockUseAccount.mockReturnValue({
       data: {
         id: "acc-123",
@@ -123,15 +95,15 @@ describe("DriverTreePage account/loading guards", () => {
       isLoading: false,
     });
 
-    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
-    render(<DriverTreePage />, { wrapper });
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree?sub=evidence");
+    render(<DriverTreePage accountId="acc-123" />, { wrapper });
 
-    // Shell header should show real account data
-    expect(screen.getByText("Acme Corp")).toBeInTheDocument();
-    expect(screen.getByText("Technology")).toBeInTheDocument();
-    expect(screen.getByText("$1,500,000")).toBeInTheDocument();
-
-    // The active tab content should be present
+    // Page content is present
     expect(screen.getByTestId("evidence-content")).toBeInTheDocument();
+
+    // DriverTreePage no longer renders its own account header
+    expect(screen.queryByText("Acme Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Technology")).not.toBeInTheDocument();
+    expect(screen.queryByText("$1,500,000")).not.toBeInTheDocument();
   });
 });
