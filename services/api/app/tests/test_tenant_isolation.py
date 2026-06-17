@@ -11,6 +11,11 @@ def test_cross_tenant_access_blocked():
     """A resource owned by tenant-alpha must not be visible to tenant-beta."""
     with TestClient(app) as client:
         alpha = auth_headers(TENANT_ALPHA)
+        client.post(
+            "/v1/accounts",
+            json={"id": "acc-allego", "name": "Alpha Account", "industry": "Software", "tenant_id": TENANT_ALPHA},
+            headers=alpha,
+        )
         response = client.get("/v1/accounts/acc-allego", headers=alpha)
         assert response.status_code == 200
 
@@ -44,7 +49,7 @@ def test_tenant_a_cannot_insert_row_for_tenant_b_from_payload():
         }
         response = client.post("/v1/accounts", json=payload, headers=auth_headers(TENANT_ALPHA))
         assert response.status_code == 403
-        assert response.json()["detail"]["code"] == "TENANT_CONTEXT_MISMATCH"
+        assert response.json()["error"]["code"] == "TENANT_CONTEXT_MISMATCH"
 
         beta_read = client.get("/v1/accounts/acc-forged-insert-beta", headers=auth_headers(TENANT_BETA))
         assert beta_read.status_code == 404

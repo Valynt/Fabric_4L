@@ -16,6 +16,7 @@ from app.logging_config import configure_structured_logging
 from app.routers import (
     accounts,
     agents,
+    auth,
     calculator,
     clerk_webhooks,
     context_engine,
@@ -198,9 +199,13 @@ app = create_fabric_app(
     ),
 )
 
+# Primary auth + tenant-context gate. create_fabric_app installs the tenant
+# enforcement rollout control, but the canonical GovernanceMiddleware must be
+# present for route dependencies to establish tenant context.
 add_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
+app.include_router(auth.router, prefix="/v1")
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")
 app.include_router(hypotheses.router, prefix="/v1")

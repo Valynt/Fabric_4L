@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.seed_data import seed_governance
 
 from .conftest import TENANT_ALPHA, auth_headers
 
@@ -18,6 +19,7 @@ def test_review_queue():
 
 
 def test_prod_gates():
+    seed_governance([TENANT_ALPHA])
     with TestClient(app) as client:
         response = client.get("/v1/governance/prod-gates", headers=HEADERS)
         assert response.status_code == 200

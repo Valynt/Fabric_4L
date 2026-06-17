@@ -3,7 +3,6 @@ import importlib
 import pytest
 
 from app.core.config import Settings
-from app.models.schemas import Account
 
 
 def test_production_like_environment_rejects_mock_persistence_and_mock_llm():
@@ -38,6 +37,7 @@ def test_production_like_environment_accepts_postgres_with_rls_facade():
         mock_persistence=False,
         database_url="postgresql://fabric:secret@postgres:5432/fabric",
         llm_provider="layer4",
+        algorithm="RS256",
         seed_demo_data=False,
         secret_key="x" * 48,
         cors_origins=["https://app.example.com"],
@@ -87,7 +87,8 @@ def test_production_like_environment_rejects_placeholder_and_wildcard_cors():
             app_env="production",
             mock_persistence=False,
             database_url="postgresql://fabric:secret@postgres:5432/fabric",
-            llm_provider="openai",
+            llm_provider="layer4",
+            algorithm="RS256",
             seed_demo_data=False,
             secret_key="x" * 48,
             cors_origins=["https://*.example.com", "CHANGE_ME"],

@@ -88,7 +88,7 @@ async def resume_agent_run(run_id: str, tenant_id: str = Depends(tenant_required
     run = db.agent_runs.get(run_id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Agent run not found")
-    return orchestrator.resume_run(run_id)
+    return orchestrator.resume_run(run_id, tenant_id=tenant_id)
 
 
 @router.post("/runs/{run_id}/cancel", response_model=AgentRun)
@@ -96,7 +96,7 @@ async def cancel_agent_run(run_id: str, tenant_id: str = Depends(tenant_required
     run = db.agent_runs.get(run_id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Agent run not found")
-    return orchestrator.cancel_run(run_id)
+    return orchestrator.cancel_run(run_id, tenant_id=tenant_id)
 
 
 @router.post("/workflows", response_model=WorkflowResponse, status_code=201)
@@ -131,7 +131,7 @@ async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Workflow not found")
-    cancelled = orchestrator.cancel_run(id)
+    cancelled = orchestrator.cancel_run(id, tenant_id=tenant_id)
     return _run_to_workflow_payload(cancelled)
 
 
@@ -151,7 +151,7 @@ async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Workflow not found")
-    resumed = orchestrator.resume_run(id)
+    resumed = orchestrator.resume_run(id, tenant_id=tenant_id)
     return _run_to_workflow_payload(resumed)
 
 

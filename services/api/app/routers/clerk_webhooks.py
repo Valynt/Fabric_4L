@@ -33,6 +33,7 @@ from value_fabric.shared.error_handling.exceptions import (
     ConflictError,
     ServiceUnavailableError,
 )
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
@@ -209,13 +210,17 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         logger.warning(
             "clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc)
         )
-        raise BadRequestError(message="Bad request.") from exc
+        raise BadRequestError(
+            message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
+        ) from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
     event_type = payload.get("type")
     data = payload.get("data") or {}
     if not event_type or not isinstance(data, dict):
-        raise BadRequestError(message="Bad request.")
+        raise BadRequestError(
+            message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
+        )
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
@@ -240,7 +245,7 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             error=str(exc),
         )
         raise ConflictError(message="Retry later.") from exc
-    except HTTPException:
+    except (BadRequestError, ConflictError, AuthenticationError):
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.

@@ -3,17 +3,18 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.core.database import db
-from app.services import dsar_service
+from app.main import app
 from app.models.schemas import DSARRequestCreate
+from app.services import dsar_service
+
 from .conftest import TENANT_ALPHA, TENANT_BETA, auth_headers
 
 
 def test_dsar_endpoint_authorization_and_tenant_scope():
     client = TestClient(app)
     payload = {"subject_identity": {"email": "a@example.com"}, "scope": ["accounts"], "legal_basis": "gdpr_art_15", "requester_channel": "portal", "tenant_context": {"region": "us"}}
-    assert client.post('/v1/privacy/dsar', json=payload).status_code == 403
+    assert client.post('/v1/privacy/dsar', json=payload).status_code == 401
     res = client.post('/v1/privacy/dsar', json=payload, headers=auth_headers(TENANT_ALPHA, 'user-a'))
     assert res.status_code == 202
     req_id = res.json()['request']['id']
@@ -42,8 +43,8 @@ async def test_download_url_expiry_and_access_control():
         assert False
     except PermissionError:
         pass
-    asyncio.run(db.dsar_packages.update(pkg.id, tenant_id=TENANT_ALPHA, expires_at=(datetime.now(UTC)-timedelta(seconds=1)).isoformat()))
-    expired = asyncio.run(db.dsar_packages.get(pkg.id, tenant_id=TENANT_ALPHA))
+    await db.dsar_packages.update(pkg.id, tenant_id=TENANT_ALPHA, expires_at=(datetime.now(UTC)-timedelta(seconds=1)).isoformat())
+    expired = await db.dsar_packages.get(pkg.id, tenant_id=TENANT_ALPHA)
     try:
         dsar_service.validate_download_access(expired, requester_user_id='user-a', token=token)
         assert False
@@ -93,7 +94,7 @@ def test_dsar_reconciliation_error_mapping_contract(monkeypatch):
     payload = {"subject_identity": {"email": "x@example.com"}, "scope": ["accounts"]}
     response = client.post("/v1/privacy/dsar", json=payload, headers=auth_headers(TENANT_ALPHA, "user-a"))
     assert response.status_code == 422
-    assert response.json()["detail"] == "Invalid DSAR request"
+    assert response.json()["error"]["message"] == "Invalid DSAR request"
 
 
 def test_blocking_repo_calls_are_offloaded_for_parallelism():

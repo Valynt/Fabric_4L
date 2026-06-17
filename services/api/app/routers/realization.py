@@ -37,7 +37,7 @@ async def create_realization_plan(
         evidence_ids=plan.evidence_ids,
         assumption_ids=plan.assumption_ids,
     )
-    db.roi_calculations.insert(roi_payload.id, roi_payload.model_dump())
+    db.roi_calculations.insert(roi_payload.id, roi_payload)
     return roi_payload
 
 
