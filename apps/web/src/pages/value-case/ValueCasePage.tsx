@@ -20,6 +20,12 @@ import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
 import type { StudioTabProps } from "@/features/value-studio/types";
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unexpected error. Please try again.";
+}
+
 export default function ValueCasePage({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(
     accountId ?? null
@@ -103,6 +109,11 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
     });
   };
 
+  const handlePublishRetry = () => {
+    if (!selectedVersion) return;
+    publishArtifact.mutate(selectedVersion.id);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -162,36 +173,53 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
       </div>
 
       {generateArtifact.isError && (
-        <SectionCard title="Generation failed">
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-            <p className="text-sm text-foreground flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
-              generate value case. Retry with the same inputs.
-            </p>
-            <Button variant="outline" onClick={handleGenerate}>
-              Retry
-            </Button>
-          </div>
-        </SectionCard>
+        <div role="alert">
+          <SectionCard title="Generation failed">
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+              <div className="space-y-1">
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
+                  generate value case. Retry with the same inputs.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {getErrorMessage(generateArtifact.error)}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleGenerate}
+                disabled={generateArtifact.isPending}
+              >
+                Retry
+              </Button>
+            </div>
+          </SectionCard>
+        </div>
       )}
 
       {publishArtifact.isError && (
-        <SectionCard title="Publish failed">
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-            <p className="text-sm text-foreground flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
-              publish value case. Retry to finalize the artifact.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() =>
-                selectedVersion && publishArtifact.mutate(selectedVersion.id)
-              }
-            >
-              Retry
-            </Button>
-          </div>
-        </SectionCard>
+        <div role="alert">
+          <SectionCard title="Publish failed">
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+              <div className="space-y-1">
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
+                  publish value case. Retry to finalize the artifact.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {getErrorMessage(publishArtifact.error)}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handlePublishRetry}
+                disabled={!selectedVersion || publishArtifact.isPending}
+              >
+                Retry
+              </Button>
+            </div>
+          </SectionCard>
+        </div>
       )}
 
       <SectionCard
