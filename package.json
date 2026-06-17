@@ -82,7 +82,7 @@
     "ops:quota:check": "python scripts/ci/check_quota_policy.py"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "packageManager": "pnpm@10.18.1",
   "pnpm": {
