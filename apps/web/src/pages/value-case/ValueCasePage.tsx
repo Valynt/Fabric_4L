@@ -130,31 +130,37 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleGenerate}
-          disabled={generateArtifact.isPending}
-          aria-busy={generateArtifact.isPending}
-        >
-          {generateArtifact.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          {versions.length ? "Regenerate" : "Generate"}
-        </Button>
-        {selectedVersion && selectedVersion.status !== "published" && (
+
+        <div className="flex items-center gap-2">
           <Button
-            variant="secondary"
-            onClick={() => publishArtifact.mutate(selectedVersion.id)}
-            disabled={publishArtifact.isPending}
-            aria-busy={publishArtifact.isPending}
+            onClick={handleGenerate}
+            disabled={generateArtifact.isPending}
+            aria-busy={generateArtifact.isPending}
           >
-            <Loader2
-              className={`mr-2 h-4 w-4 ${publishArtifact.isPending ? "animate-spin" : "hidden"}`}
-            />
-            {publishArtifact.isPending ? "Publishing…" : "Publish"}
+            {generateArtifact.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {versions.length ? "Regenerate" : "Generate"}
           </Button>
-        )}
+
+          {selectedVersion && selectedVersion.status !== "published" && (
+            <Button
+              variant="secondary"
+              onClick={() => publishArtifact.mutate(selectedVersion.id)}
+              disabled={publishArtifact.isPending}
+              aria-busy={publishArtifact.isPending}
+            >
+              <Loader2
+                className={`mr-2 h-4 w-4 ${
+                  publishArtifact.isPending ? "animate-spin" : "hidden"
+                }`}
+              />
+              {publishArtifact.isPending ? "Publishing…" : "Publish"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -178,8 +184,8 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
             <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
               <div className="space-y-1">
                 <p className="text-sm text-foreground flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
-                  generate value case. Retry with the same inputs.
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  Unable to generate value case. Retry with the same inputs.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {getErrorMessage(generateArtifact.error)}
@@ -203,8 +209,8 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
             <div className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
               <div className="space-y-1">
                 <p className="text-sm text-foreground flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-destructive" /> Unable to
-                  publish value case. Retry to finalize the artifact.
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  Unable to publish value case. Retry to finalize the artifact.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {getErrorMessage(publishArtifact.error)}
@@ -253,8 +259,7 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
             {selectedVersion && (
               <div className="rounded-lg border border-border p-4 space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Created{" "}
-                  {new Date(selectedVersion.created_at).toLocaleString()}
+                  Created {new Date(selectedVersion.created_at).toLocaleString()}
                 </p>
                 <p className="text-sm font-medium">
                   {selectedVersion.narrative.title}
@@ -267,8 +272,10 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
 
             <div className="rounded-lg border border-border p-4 space-y-2">
               <p className="text-sm font-medium flex items-center gap-2">
-                <GitCompare className="h-4 w-4" /> Version Diff
+                <GitCompare className="h-4 w-4" />
+                Version Diff
               </p>
+
               {!previousVersion || !selectedVersion ? (
                 <p className="text-sm text-muted-foreground">
                   Select a newer version to see diffs from prior output.
