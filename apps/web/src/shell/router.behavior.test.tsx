@@ -92,6 +92,16 @@ describe("RootRedirect auth-provider boundary", () => {
     expect(() => renderRedirect()).not.toThrow();
   });
 
+  it("legacy mode: remains on root while auth context is loading", () => {
+    setAuthProvider("legacy");
+    mockAuthContext.isLoading = true;
+    renderRedirect();
+
+    expect(screen.getByTestId("location").textContent).toBe("/");
+    expect(screen.queryByTestId("home-page")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
+  });
+
   it("clerk mode: signed-out user is redirected to /sign-in", () => {
     setAuthProvider("clerk");
     mockClerkAuth.isLoaded = true;
@@ -106,6 +116,17 @@ describe("RootRedirect auth-provider boundary", () => {
     mockClerkAuth.isSignedIn = true;
     renderRedirect();
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
+  });
+
+  it("clerk mode: remains on root while Clerk auth is loading", () => {
+    setAuthProvider("clerk");
+    mockClerkAuth.isLoaded = false;
+    mockClerkAuth.isSignedIn = true;
+    renderRedirect();
+
+    expect(screen.getByTestId("location").textContent).toBe("/");
+    expect(screen.queryByTestId("home-page")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("signin-page")).not.toBeInTheDocument();
   });
 });
 

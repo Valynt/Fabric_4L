@@ -366,6 +366,9 @@ jobs:
       - name: Deprecated namespace import gate
         run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
 
+      - name: Unified compatibility shim gate (additive)
+        run: python scripts/ci/check_compatibility_shims.py run-all --strict --json
+
       - name: Deprecation usage baseline gate
         run: python scripts/ci/check_deprecation_baseline.py
 

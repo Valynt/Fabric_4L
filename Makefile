@@ -26,6 +26,7 @@
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
+	check-compatibility-shims \
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
@@ -69,7 +70,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
-	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -635,6 +636,11 @@ check-deprecated-tracer-imports: ## CI gate — block imports from deprecated cu
 	@echo "→ Checking for deprecated custom tracer imports..."
 	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
 	@echo "✅ Deprecated tracer import check passed"
+
+check-compatibility-shims: ## CI gate — run registry-driven compatibility shim inventory checks
+	@echo "→ Running registry-driven compatibility shim checks..."
+	$(PYTHON) scripts/ci/check_compatibility_shims.py run-all --strict
+	@echo "✅ Compatibility shim gate passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 

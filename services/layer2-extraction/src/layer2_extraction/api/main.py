@@ -46,6 +46,7 @@ from value_fabric.shared.environment import (
 )
 from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.security.config import is_strict_environment
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api.deps import RequestContext, require_authenticated
@@ -1819,16 +1820,19 @@ async def health_check():
         system_metrics["memory_usage_mb"] = memory_info.used / (1024 * 1024)
         system_metrics["cpu_percent"] = psutil.cpu_percent()
 
-    return health_checkResult.model_validate({
-        "status": overall_status,
-        "service": "layer2-extraction",
-        "version": "1.0.0",
-        "timestamp": datetime.now(UTC).isoformat(),
-        "uptime_seconds": uptime,
-        "response_time_ms": total_response_ms,
-        "dependencies": dependencies,
-        "metrics": system_metrics,
-    })
+    payload = normalize_probe_payload(
+        status=overall_status,
+        service="layer2-extraction",
+        dependencies=dependencies,
+        extra={
+            "version": "1.0.0",
+            "timestamp": datetime.now(UTC).isoformat(),
+            "uptime_seconds": uptime,
+            "response_time_ms": total_response_ms,
+            "metrics": system_metrics,
+        },
+    )
+    return health_checkResult.model_validate(payload)
 
 
 @app.get("/metrics")

@@ -116,6 +116,11 @@ jobs:
             owner: "@value-fabric/architects"
             escalation: "@value-fabric/maintainers"
             command: "python scripts/ci/check_deprecated_namespace_imports.py --strict"
+          - id: compatibility-shims-unified
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_compatibility_shims.py run-all --strict --json"
           - id: adr027-duplicate-source-trees
             service: shared
             owner: "@value-fabric/architects"

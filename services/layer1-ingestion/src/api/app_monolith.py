@@ -58,6 +58,7 @@ from value_fabric.shared.fastapi_framework import (
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.security import validate_production_safety
 
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
@@ -2998,13 +2999,15 @@ app.include_router(router)
 async def legacy_health_check():
     """Legacy-compatible health check with dependency status."""
     if os.getenv("LAYER1_RELEASE_SMOKE_LIGHT_HEALTH", "").lower() in {"1", "true", "yes"}:
-        return legacy_health_checkResult.model_validate({
-            "status": "healthy",
-            "note": "Release-smoke lightweight readiness endpoint; full live API checks run after stack readiness",
-            "dependencies": [
-                {"name": "api", "status": "healthy", "error": None},
-            ],
-        })
+        payload = normalize_probe_payload(
+            status="healthy",
+            service="layer1-ingestion",
+            dependencies=[{"name": "api", "status": "healthy", "error": None}],
+            extra={
+                "note": "Release-smoke lightweight readiness endpoint; full live API checks run after stack readiness",
+            },
+        )
+        return legacy_health_checkResult.model_validate(payload)
 
     from ..shared.database import SessionLocal, redis_client
 
@@ -3037,11 +3040,15 @@ async def legacy_health_check():
         dependencies.append({"name": "redis", "status": "degraded", "error": "REDIS_CONNECTION_ERROR"})
         overall_status = "degraded"
 
-    return legacy_health_checkResult.model_validate({
-        "status": overall_status,
-        "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
-        "dependencies": dependencies,
-    })
+    payload = normalize_probe_payload(
+        status=overall_status,
+        service="layer1-ingestion",
+        dependencies=dependencies,
+        extra={
+            "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
+        },
+    )
+    return legacy_health_checkResult.model_validate(payload)
 
 
 if __name__ == "__main__":

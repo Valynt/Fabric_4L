@@ -1,18 +1,17 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
+import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import { EmptyState } from "@/components/states/EmptyState";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -117,48 +116,26 @@ function AcademyFollowUpState({ title, description }: { title: string; descripti
   );
 }
 
-function LegacyRootRedirect() {
-  const { isAuthenticated, isLoading } = useAuthContext();
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[200px] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-    );
-  }
-
-  return isAuthenticated ? (
-    <Navigate to="/home" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  );
-}
-
-function ClerkRootRedirect() {
-  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
-  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-
-  const isLoading = !clerkLoaded || legacyIsLoading;
-  const isAuthenticated = clerkLoaded && !!isSignedIn;
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[200px] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-    );
-  }
-
-  return isAuthenticated ? (
-    <Navigate to="/home" replace />
-  ) : (
-    <Navigate to="/sign-in" replace />
-  );
-}
-
 export function RootRedirect() {
-  return isClerkAuthEnabled() ? <ClerkRootRedirect /> : <LegacyRootRedirect />;
+  return (
+    <RootAuthStateAdapter>
+      {({ isLoading, isAuthenticated, unauthenticatedRedirectTo }) => {
+        if (isLoading) {
+          return (
+            <div className="flex h-full min-h-[200px] items-center justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+            </div>
+          );
+        }
+
+        return isAuthenticated ? (
+          <Navigate to="/home" replace />
+        ) : (
+          <Navigate to={unauthenticatedRedirectTo} replace />
+        );
+      }}
+    </RootAuthStateAdapter>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -286,6 +263,11 @@ export const router = createBrowserRouter([
   {
     path: "/sign-up",
     element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/signup",
+    element: <Navigate to="/sign-up" replace />,
     handle: { accessPolicy: authPolicy },
   },
   {
