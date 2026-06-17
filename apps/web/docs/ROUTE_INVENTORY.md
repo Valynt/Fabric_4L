@@ -94,7 +94,10 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 ## 5. Value Studio Workspace (Account-Scoped)
 
 > Rendered by `StudioShell` with internal tab routing (`:tabId`).
-> NAV_SCHEMA lists 7 sub-tabs; router handles them via a single dynamic route.
+> `StudioShell` is the single chrome owner: it renders the account header, canonical tab bar, AI right rail, and active tab content.
+> Individual Studio page components render only page-specific content; they do not render their own headers, tab bars, or right rails.
+> Tab definitions (labels, order, visibility, right-rail mapping) are sourced from `studioTabRegistry.ts`.
+> NAV_SCHEMA lists 7 active sub-tabs; router handles them via a single dynamic route.
 
 | # | Path | Component | Access Policy | Tenant/Account Scoped | Status |
 |---|------|-----------|---------------|----------------------|--------|
@@ -103,15 +106,32 @@ These routes render inside `GlobalLayout` + `RequireClerkAuth`.
 
 ### NAV_SCHEMA Studio Children (handled by `:tabId`)
 
-| Tab ID | Label | Tier | Explicit Router Entry? |
-|--------|-------|------|------------------------|
-| `action-plan` | Action Plan | standard | No (handled by `:tabId`) |
-| `value-model` | Value Model | standard | No (handled by `:tabId`) |
-| `driver-tree` | Driver Tree | standard | No (handled by `:tabId`) |
-| `calculator` | Calculator | standard | No (handled by `:tabId`) |
-| `narrative` | Narrative | standard | No (handled by `:tabId`) |
-| `value-case` | Value Case | standard | No (handled by `:tabId`) |
-| `value-realization` | Realization | standard | No (handled by `:tabId`) |
+| Tab ID | Label | Tier | Explicit Router Entry? | Right Rail |
+|--------|-------|------|------------------------|------------|
+| `action-plan` | Action Plan | standard | No (handled by `:tabId`) | Agent stream |
+| `value-model` | Value Model | standard | No (handled by `:tabId`) | Agent stream |
+| `driver-tree` | Driver Tree | standard | No (handled by `:tabId`) | Agent stream |
+| `calculator` | ROI Calculator | standard | No (handled by `:tabId`) | Agent stream |
+| `narrative` | Narrative | standard | No (handled by `:tabId`) | Detail panel + agent stream |
+| `value-case` | Executive Value Case | standard | No (handled by `:tabId`) | Agent stream |
+| `value-realization` | Realization Plan | standard | No (handled by `:tabId`) | Agent stream |
+
+### Driver Tree sub-tabs
+
+The `driver-tree` tab uses an in-page sub-tab switcher (`DriverTreeShell`) that stays inside the Studio workspace. Sub-tab selection is controlled by the `sub` query parameter:
+
+```
+/t/:tenantSlug/accounts/:accountId/studio/driver-tree?sub=trees
+/t/:tenantSlug/accounts/:accountId/studio/driver-tree?sub=evidence
+/t/:tenantSlug/accounts/:accountId/studio/driver-tree?sub=alternatives
+/t/:tenantSlug/accounts/:accountId/studio/driver-tree?sub=solution-cost
+```
+
+These links do not route to `/intelligence/*`; they remain within the Studio workspace and preserve tenant/account context.
+
+### Route handle metadata
+
+Studio routes declare `handle.title: "Value Studio"` and `handle.category: "Workspace"` for consumers such as telemetry, breadcrumbs, and future header title normalization.
 
 ---
 
