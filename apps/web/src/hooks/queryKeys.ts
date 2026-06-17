@@ -237,6 +237,7 @@ export const QK = {
     all: ["platform"] as const,
     settings: ["platform", "settings"] as const,
     health: ["platform", "health"] as const,
+    currentUser: ["platform", "currentUser"] as const,
   },
 
   // Ontology Schema Management

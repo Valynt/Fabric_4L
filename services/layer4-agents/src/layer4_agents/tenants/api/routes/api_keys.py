@@ -18,7 +18,6 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
@@ -27,9 +26,10 @@ from value_fabric.shared.identity.models import (
     APIKeyCreateResponse,
     APIKeyModel,
 )
+from value_fabric.shared.identity.permissions import Role, get_role_rank
 
 from ....database import get_db_from_context
-from ...service import create_api_key, list_api_keys, revoke_api_key
+from ...service import create_api_key, get_tenant_settings, list_api_keys, revoke_api_key
 from ...tier_enforcement import TierEnforcement
 
 logger = logging.getLogger(__name__)
@@ -49,13 +49,9 @@ router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
 
 async def _get_tenant_tier(db: AsyncSession, tenant_id: str) -> str:
-    """Look up the tenant's tier_id. Defaults to 'free'."""
-    result = await db.execute(
-        text("SELECT tier_id FROM tenants WHERE id = :id"),
-        {"id": tenant_id},
-    )
-    row = result.fetchone()
-    return (row[0] if row and row[0] else "free")
+    """Look up the tenant's tier_id from settings JSONB. Defaults to 'free'."""
+    settings = await get_tenant_settings(db, UUID(tenant_id))
+    return settings.get("tier_id", "free") if settings else "free"
 
 
 @router.post("", response_model=APIKeyCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -80,19 +76,33 @@ async def api_create_key(
         tier_id=tier_id,
     )
 
-    result = await create_api_key(db, ctx.tenant_id, request, user_id=user_id)
+    # Caller may carry multiple roles; use the highest-ranked one for the
+    # grant constraint. SUPER_ADMIN and SYSTEM are not attainable via API key.
+    creator_role = None
+    if ctx.roles:
+        creator_role = max(
+            (Role(r) for r in ctx.roles if r in {role.value for role in Role}),
+            key=get_role_rank,
+            default=None,
+        )
+
+    result = await create_api_key(
+        db, ctx.tenant_id, request, user_id=user_id, creator_role=creator_role
+    )
 
     # Emit audit event
     if AUDIT_AVAILABLE and emit_audit_event:
         try:
             await emit_audit_event(
-                action=AuditAction.API_KEY_CREATE,
+                action=AuditAction.API_KEY_CREATED,
                 outcome=AuditOutcome.SUCCESS,
                 actor_id=ctx.user_id,
                 tenant_id=ctx.tenant_id,
                 resource_type="api_key",
+                resource_id=result.key_id,
                 details={
                     "key_name": request.name if hasattr(request, "name") else None,
+                    "role": request.role.value if hasattr(request, "role") else None,
                     "tier_id": tier_id,
                 },
             )
@@ -104,12 +114,12 @@ async def api_create_key(
 
 @router.get("", response_model=list[APIKeyModel])
 async def api_list_keys(
-    enabled_only: bool = Query(True),
+    active_only: bool = Query(True),
     ctx: RequestContext = Depends(require_tenant_admin),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> list[APIKeyModel]:
     """List API keys for the caller's tenant. Requires ``tenant_admin`` role."""
-    return await list_api_keys(db, ctx.tenant_id, enabled_only=enabled_only)
+    return await list_api_keys(db, ctx.tenant_id, active_only=active_only)
 
 
 @router.delete("/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -127,7 +137,7 @@ async def api_revoke_key(
     if AUDIT_AVAILABLE and emit_audit_event:
         try:
             await emit_audit_event(
-                action=AuditAction.API_KEY_REVOKE,
+                action=AuditAction.API_KEY_REVOKED,
                 outcome=AuditOutcome.SUCCESS,
                 actor_id=ctx.user_id,
                 tenant_id=ctx.tenant_id,
