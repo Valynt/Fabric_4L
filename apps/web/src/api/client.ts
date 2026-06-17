@@ -43,6 +43,7 @@ const log = createFeatureLogger("api-client");
 
 /** Valid layer keys - single source of truth */
 const VALID_LAYER_KEYS = [
+  "api",
   "l1",
   "l2",
   "l2_5",
@@ -159,6 +160,11 @@ const API_VERSION_PREFIX = getApiEnvVar(
 
 // Layer route prefixes (aligned with matrix terminology; legacy VITE_L*_PREFIX still supported)
 const LAYER_PREFIXES = {
+  api: getApiEnvVar(
+    ["VITE_API_ROUTE_PREFIX"],
+    "",
+    "API gateway route prefix"
+  ),
   l1: getApiEnvVar(
     ["VITE_LAYER1_ROUTE_PREFIX", "VITE_L1_PREFIX"],
     "/ingest",

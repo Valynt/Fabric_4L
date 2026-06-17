@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
-import { useGenerateNarrative, type Narrative } from './useNarratives';
+import { useGenerateNarrative } from './useNarratives';
 
 export interface ValueCaseArtifactsInput {
   account_id: string;
@@ -17,35 +18,106 @@ export interface ValueCaseArtifactsInput {
   risk_notes: string[];
 }
 
+export interface ValueCaseSection {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  order?: number;
+}
+
+export interface ValueCaseStakeholderFraming {
+  persona: string;
+  priorities?: string[];
+  pains?: string[];
+  decision_role?: string | null;
+}
+
+export interface ValueCaseContent {
+  inputs: ValueCaseArtifactsInput;
+  selected_scenario_id?: string | null;
+  sections: ValueCaseSection[];
+  assumption_ids: string[];
+  evidence_ids: string[];
+  stakeholder_framing: ValueCaseStakeholderFraming[];
+  claim_ids: string[];
+  roi_snapshot?: Record<string, unknown> | null;
+}
+
 export interface ValueCaseArtifactVersion {
   id: string;
   account_id: string;
   version: number;
   created_at: string;
+  updated_at: string;
+  title: string;
+  status: string;
   inputs: ValueCaseArtifactsInput;
-  narrative: Pick<Narrative, 'id' | 'title' | 'sections' | 'created_at' | 'updated_at'>;
+  narrative: {
+    id: string;
+    title: string;
+    sections: ValueCaseSection[];
+    created_at: string;
+    updated_at: string;
+  };
   business_case: {
     summary: string;
     metrics: ValueCaseArtifactsInput['roi_metrics'];
     risks: string[];
   };
+  value_case?: ValueCaseContent;
 }
 
-const storageKey = (accountId: string) => `value-case-artifacts:${accountId}`;
-
-function loadArtifacts(accountId: string): ValueCaseArtifactVersion[] {
-  try {
-    const raw = window.localStorage.getItem(storageKey(accountId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as ValueCaseArtifactVersion[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+interface ApiBusinessCase {
+  id: string;
+  account_id: string;
+  title: string;
+  status: string;
+  audit: {
+    created_at: string;
+    updated_at: string;
+  };
+  executive_summary?: string;
+  value_narrative?: string;
+  value_case?: ValueCaseContent;
+  assumptions?: string[];
+  risks?: string[];
 }
 
-function saveArtifacts(accountId: string, versions: ValueCaseArtifactVersion[]) {
-  window.localStorage.setItem(storageKey(accountId), JSON.stringify(versions));
+function apiCaseToArtifactVersion(apiCase: ApiBusinessCase): ValueCaseArtifactVersion {
+  const vc = apiCase.value_case;
+  const inputs = vc?.inputs ?? {
+    account_id: apiCase.account_id,
+    account_name: '',
+    stakeholders: [],
+    accepted_evidence: [],
+    scenario_assumptions: [],
+    roi_metrics: { three_year_value: '', roi: '', payback: '' },
+    risk_notes: apiCase.risks ?? [],
+  };
+  return {
+    id: apiCase.id,
+    account_id: apiCase.account_id,
+    version: 1,
+    created_at: apiCase.audit.created_at,
+    updated_at: apiCase.audit.updated_at,
+    title: apiCase.title,
+    status: apiCase.status,
+    inputs,
+    narrative: {
+      id: apiCase.id,
+      title: apiCase.title,
+      sections: vc?.sections ?? [],
+      created_at: apiCase.audit.created_at,
+      updated_at: apiCase.audit.updated_at,
+    },
+    business_case: {
+      summary: apiCase.executive_summary ?? '',
+      metrics: inputs.roi_metrics,
+      risks: apiCase.risks ?? [],
+    },
+    value_case: vc,
+  };
 }
 
 export function useValueCaseArtifacts(accountId: string | null) {
@@ -54,10 +126,15 @@ export function useValueCaseArtifacts(accountId: string | null) {
   const generateNarrative = useGenerateNarrative();
 
   const versionsQuery = useQuery({
-    queryKey: QK.versions.detail(`value-case:${accountId ?? 'none'}`),
+    queryKey: accountId ? QK.valueCases.account(accountId) : QK.valueCases.all,
     queryFn: async () => {
       if (!accountId) return [];
-      return loadArtifacts(accountId);
+      const response = await apiGet<ApiBusinessCase[]>(
+        'api',
+        `/accounts/${encodeURIComponent(accountId)}/value-cases`
+      );
+      const items = Array.isArray(response.data) ? response.data : [];
+      return items.map(apiCaseToArtifactVersion);
     },
     enabled: Boolean(accountId),
   });
@@ -79,36 +156,70 @@ export function useValueCaseArtifacts(accountId: string | null) {
         sections: ['executive_summary', 'stakeholder_mapping', 'roi_overview', 'risk_and_mitigation'],
       });
 
-      const existing = loadArtifacts(input.account_id);
-      const nextVersion = (existing[existing.length - 1]?.version ?? 0) + 1;
-
-      const artifact: ValueCaseArtifactVersion = {
-        id: `${input.account_id}-v${nextVersion}`,
-        account_id: input.account_id,
-        version: nextVersion,
-        created_at: new Date().toISOString(),
+      const content: ValueCaseContent = {
         inputs: input,
-        narrative: {
-          id: narrative.id,
-          title: narrative.title,
-          sections: narrative.sections,
-          created_at: narrative.created_at,
-          updated_at: narrative.updated_at,
-        },
-        business_case: {
-          summary: `Projected ${input.roi_metrics.roi} ROI with ${input.roi_metrics.payback} payback based on accepted evidence and assumptions.`,
-          metrics: input.roi_metrics,
-          risks: input.risk_notes,
-        },
+        selected_scenario_id: null,
+        sections: (narrative.sections ?? []).map((section, index) => ({
+          id: `${narrative.id}-section-${index}`,
+          type: section.section_type,
+          title: section.title,
+          content: section.summary,
+          order: index,
+        })),
+        assumption_ids: [],
+        evidence_ids: [],
+        stakeholder_framing: input.stakeholders.map((persona) => ({ persona })),
+        claim_ids: [],
+        roi_snapshot: null,
       };
 
-      const next = [...existing, artifact];
-      saveArtifacts(input.account_id, next);
-      return artifact;
+      const response = await apiPost<ApiBusinessCase>(
+        'api',
+        `/accounts/${encodeURIComponent(input.account_id)}/value-case`,
+        {
+          title: `Value Case — ${input.account_name}`,
+          value_case: content,
+        }
+      );
+      return apiCaseToArtifactVersion(response.data);
     },
     onSuccess: (artifact) => {
       setSelectedVersionId(artifact.id);
-      queryClient.invalidateQueries({ queryKey: QK.versions.detail(`value-case:${artifact.account_id}`) });
+      queryClient.invalidateQueries({ queryKey: QK.valueCases.account(artifact.account_id) });
+    },
+  });
+
+  const updateArtifact = useMutation({
+    mutationFn: async ({ caseId, fields }: { caseId: string; fields: Partial<ValueCaseContent> }) => {
+      if (!accountId) throw new Error('Account ID is required to update a value case');
+      const response = await apiPatch<ApiBusinessCase>(
+        'api',
+        `/accounts/${encodeURIComponent(accountId)}/value-cases/${encodeURIComponent(caseId)}`,
+        { value_case: fields }
+      );
+      return apiCaseToArtifactVersion(response.data);
+    },
+    onSuccess: (_artifact) => {
+      if (accountId) {
+        queryClient.invalidateQueries({ queryKey: QK.valueCases.account(accountId) });
+      }
+    },
+  });
+
+  const publishArtifact = useMutation({
+    mutationFn: async (caseId: string) => {
+      if (!accountId) throw new Error('Account ID is required to publish a value case');
+      const response = await apiPost<ApiBusinessCase>(
+        'api',
+        `/accounts/${encodeURIComponent(accountId)}/value-cases/${encodeURIComponent(caseId)}/publish`,
+        {}
+      );
+      return apiCaseToArtifactVersion(response.data);
+    },
+    onSuccess: (_artifact) => {
+      if (accountId) {
+        queryClient.invalidateQueries({ queryKey: QK.valueCases.account(accountId) });
+      }
     },
   });
 
@@ -118,5 +229,7 @@ export function useValueCaseArtifacts(accountId: string | null) {
     selectedVersion,
     setSelectedVersionId,
     generateArtifact,
+    updateArtifact,
+    publishArtifact,
   };
 }
