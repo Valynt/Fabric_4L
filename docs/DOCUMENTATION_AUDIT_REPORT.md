@@ -103,6 +103,8 @@ If a file's value could not be determined within 30 seconds of reading, it was m
 
 **Files to Consolidate:**
 - `ARCHITECTURE.md` (root) - Brief overview with links
+- `docs/architecture.md` - Redirect stub
+- `docs/architecture_overview.md` - Redirect stub
 - `docs/core-concepts/architecture.md` - Canonical platform architecture (C4 + Mermaid)
 - `docs/architecture/system-overview.md` - Comprehensive 745-line architecture doc
 - `docs/architecture/component-interaction-map.md` - 622-line interaction map
@@ -110,9 +112,10 @@ If a file's value could not be determined within 30 seconds of reading, it was m
 **Recommendation:**
 - Keep `docs/core-concepts/architecture.md` as the canonical architecture reference
 - Update `ARCHITECTURE.md` to be a concise redirect pointing to `docs/core-concepts/architecture.md`
+- Delete `docs/architecture.md` and `docs/architecture_overview.md` redirect stubs
 - Keep `docs/architecture/system-overview.md` and `component-interaction-map.md` as specialized references
 
-**Action:** Resolved — `ARCHITECTURE.md` is now a redirect to `docs/core-concepts/architecture.md`.
+**Action:** Resolved — `ARCHITECTURE.md` is now a redirect; `docs/architecture.md` and `docs/architecture_overview.md` deleted.
 
 ### 2. Security Documentation Consolidation
 
