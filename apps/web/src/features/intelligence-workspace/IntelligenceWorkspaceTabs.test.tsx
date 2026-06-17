@@ -27,7 +27,7 @@ describe('IntelligenceWorkspaceTabs', () => {
       'href',
       '/t/acme/accounts/acct-123/intelligence/signals',
     );
-    expect(screen.getByRole('link', { name: 'Value Drivers' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Drivers' })).toHaveAttribute(
       'href',
       '/t/acme/accounts/acct-123/intelligence/drivers',
     );

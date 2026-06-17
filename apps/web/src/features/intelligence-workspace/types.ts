@@ -10,6 +10,7 @@ export interface WorkspaceTabProps {
 }
 
 export type IntelligenceTabId =
+  | "overview"
   | "signals"
   | "stakeholders"
   | "ontology-match"
@@ -35,4 +36,10 @@ export interface WorkspaceTabDef {
   queryKey?: string;
   status: WorkspaceTabStatus;
   category: WorkspaceTabCategory;
+  /**
+   * Core views form the primary value-case workspace chain
+   * (Overview → Signals → Drivers → Evidence → Stakeholders).
+   * They lead the tab bar and are always visible; non-core tabs are secondary.
+   */
+  core?: boolean;
 }

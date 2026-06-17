@@ -217,7 +217,7 @@ export default function ValueNarrativeHome() {
     setLaunchError("");
     const result = await prospectSetup.createSetup(buildProspectPayloadFromDraft(draft));
     if (result?.accountId) {
-      navigateTo("intelligence-signals", { accountId: result.accountId });
+      navigateTo("intelligence-overview", { accountId: result.accountId });
     }
   };
 

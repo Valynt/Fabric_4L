@@ -117,7 +117,7 @@ describe("ValueNarrativeHome intake workspace", () => {
         desiredOutputs: ["account_brief", "value_hypotheses"],
       }));
     });
-    expect(navigateTo).toHaveBeenCalledWith("intelligence-signals", {
+    expect(navigateTo).toHaveBeenCalledWith("intelligence-overview", {
       accountId: "acc-home-created-001",
     });
   });
