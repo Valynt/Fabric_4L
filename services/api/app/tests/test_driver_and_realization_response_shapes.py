@@ -8,7 +8,16 @@ client = TestClient(app)
 HEADERS = auth_headers(TENANT_ALPHA)
 
 
+def _ensure_account() -> None:
+    client.post(
+        "/v1/accounts",
+        json={"id": "acc-allego", "name": "Allego", "industry": "Software", "tenant_id": TENANT_ALPHA},
+        headers=HEADERS,
+    )
+
+
 def test_value_tree_has_typed_categories():
+    _ensure_account()
     response = client.get('/v1/accounts/acc-allego/value-tree', headers=HEADERS)
     assert response.status_code == 200
     data = response.json()
@@ -17,6 +26,7 @@ def test_value_tree_has_typed_categories():
 
 
 def test_realization_list_and_variance_shape():
+    _ensure_account()
     list_response = client.get('/v1/accounts/acc-allego/realization-plans', headers=HEADERS)
     assert list_response.status_code == 200
     assert isinstance(list_response.json(), list)
@@ -38,13 +48,16 @@ def test_realization_list_and_variance_shape():
     assert set(variance.keys()) == {"plan_id", "projected", "actual", "variance"}
 
 
+def _validation_errors(response):
+    return response.json()["error"]["details"]["validation_errors"]
+
+
 def test_create_realization_plan_missing_required_fields_returns_422_with_field_locations():
     response = client.post('/v1/accounts/acc-allego/realization-plans', json={}, headers=HEADERS)
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert isinstance(detail, list)
-    assert any(err.get("loc") == ["body", "id"] for err in detail)
-    assert any(err.get("loc") == ["body", "scenario_id"] for err in detail)
+    errors = _validation_errors(response)
+    assert any(err.get("field") == "body.id" for err in errors)
+    assert any(err.get("field") == "body.scenario_id" for err in errors)
 
 
 def test_create_realization_plan_invalid_types_and_constraints_return_422():
@@ -56,13 +69,13 @@ def test_create_realization_plan_invalid_types_and_constraints_return_422():
     }
     response = client.post('/v1/accounts/acc-allego/realization-plans', json=payload, headers=HEADERS)
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert isinstance(detail, list)
-    assert any(err.get("loc") == ["body", "revenue_uplift"] for err in detail)
-    assert any(err.get("loc") == ["body", "solution_cost"] for err in detail)
+    errors = _validation_errors(response)
+    assert any(err.get("field") == "body.revenue_uplift" for err in errors)
+    assert any(err.get("field") == "body.solution_cost" for err in errors)
 
 
 def test_patch_realization_actuals_malformed_payload_returns_422():
+    _ensure_account()
     seed_payload = {
         "id": "roi-invalid-actuals",
         "scenario_id": "scenario-actuals",
@@ -81,7 +94,6 @@ def test_patch_realization_actuals_malformed_payload_returns_422():
         headers=HEADERS,
     )
     assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert isinstance(detail, list)
-    assert any(err.get("loc") == ["body", "calculation_trace"] for err in detail)
-    assert any(err.get("loc") == ["body", "payback_months"] for err in detail)
+    errors = _validation_errors(response)
+    assert any(err.get("field") == "body.calculation_trace" for err in errors)
+    assert any(err.get("field") == "body.payback_months" for err in errors)

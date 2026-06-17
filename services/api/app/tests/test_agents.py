@@ -23,17 +23,30 @@ def test_create_agent_run():
         assert data["status"] in ["pending", "running", "completed"]
 
 
+def _create_run(client: TestClient) -> str:
+    payload = {
+        "workflow_type": "hypothesis_generation",
+        "account_id": "acc-allego",
+        "input": {"prompt": "Generate hypotheses"},
+    }
+    response = client.post("/v1/agents/runs", json=payload, headers=HEADERS)
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
 def test_get_agent_run():
     with TestClient(app) as client:
-        response = client.get("/v1/agents/runs/run-1", headers=HEADERS)
+        run_id = _create_run(client)
+        response = client.get(f"/v1/agents/runs/{run_id}", headers=HEADERS)
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "run-1"
+        assert data["id"] == run_id
 
 
 def test_cancel_agent_run():
     with TestClient(app) as client:
-        response = client.post("/v1/agents/runs/run-1/cancel", headers=HEADERS)
+        run_id = _create_run(client)
+        response = client.post(f"/v1/agents/runs/{run_id}/cancel", headers=HEADERS)
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "cancelled"

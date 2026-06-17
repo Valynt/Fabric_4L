@@ -103,34 +103,47 @@ async def get_enrichment(
 async def list_signals_legacy(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    return await list_signals(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
+    return await list_signals(account_id=account_id, tenant_id=tenant_id, auth=auth, limit=limit, offset=offset)
 
 
 @legacy_router.post("/signals/extract", response_model=Signal, status_code=201)
 async def extract_signal_legacy(
-    account_id: str, signal: Signal, tenant_id: str = Depends(tenant_required)
+    account_id: str,
+    signal: Signal,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
 ):
-    return await extract_signal(account_id=account_id, signal=signal, tenant_id=tenant_id)
+    return await extract_signal(account_id=account_id, signal=signal, tenant_id=tenant_id, auth=auth)
 
 
 @legacy_router.get("/stakeholders", response_model=PaginatedResponse[Stakeholder])
 async def list_stakeholders_legacy(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    return await list_stakeholders(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
+    return await list_stakeholders(account_id=account_id, tenant_id=tenant_id, auth=auth, limit=limit, offset=offset)
 
 
 @legacy_router.get("/ontology-match", response_model=OntologyMatchResponse)
-async def get_ontology_match_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await get_ontology_match(account_id=account_id, tenant_id=tenant_id)
+async def get_ontology_match_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    return await get_ontology_match(account_id=account_id, tenant_id=tenant_id, auth=auth)
 
 
 @legacy_router.get("/enrichment", response_model=EnrichmentResponse)
-async def get_enrichment_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await get_enrichment(account_id=account_id, tenant_id=tenant_id)
+async def get_enrichment_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    return await get_enrichment(account_id=account_id, tenant_id=tenant_id, auth=auth)

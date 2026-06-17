@@ -2,13 +2,24 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
+from value_fabric.shared.fastapi_framework.health import (
+    CallableProbe,
+    ProbeResult,
+)
+from value_fabric.shared.fastapi_framework.middleware import add_governance_middleware
+from value_fabric.shared.observability.metrics_access import verify_metrics_access
+from value_fabric.shared.observability.sentry_init import init_sentry
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from app.core.audit import AuditMiddleware
 from app.core.config import get_settings
 from app.core.metrics import metrics_middleware, render_metrics
+from app.logging_config import configure_structured_logging
 from app.routers import (
     accounts,
     agents,
+    auth,
     calculator,
     clerk_webhooks,
     context_engine,
@@ -23,9 +34,12 @@ from app.routers import (
     value_cases,
     versioning,
 )
-from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
+from app.services.distributed_store import (
+    StorePayloadError,
+    StoreUnavailableError,
+    get_distributed_store,
+)
 from app.services.seed_data import seed_all
-from app.logging_config import configure_structured_logging
 
 from .shared_bootstrap import (
     EnforcementControlConfig,
@@ -37,11 +51,6 @@ from .shared_bootstrap import (
     register_health_endpoint,
     validate_production_safety,
 )
-from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-from value_fabric.shared.observability.metrics_access import verify_metrics_access
-from value_fabric.shared.observability.sentry_init import init_sentry
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 # Configure structured logging
 configure_structured_logging()
@@ -158,7 +167,13 @@ app = create_fabric_app(
     ),
 )
 
+# Primary auth + tenant-context gate. create_fabric_app installs the tenant
+# enforcement rollout control, but the canonical GovernanceMiddleware must be
+# present for route dependencies to establish tenant context.
+add_governance_middleware(app)
+
 app.include_router(accounts.router, prefix="/v1")
+app.include_router(auth.router, prefix="/v1")
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")
 app.include_router(hypotheses.router, prefix="/v1")

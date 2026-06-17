@@ -227,66 +227,60 @@ class TestPublicEndpoints:
 
 
 class TestProductionSecretGuard:
-    def test_default_secret_raises_in_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """App must refuse to start with the default secret in production."""
+    """Production-safety gate exercised via the canonical validator."""
+
+    def _base_production_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Set a minimally valid production environment; individual tests mutate one control."""
         monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("SECRET_KEY", "fabric-4l-dev-secret-key-change-in-production")
+        monkeypatch.setenv("MOCK_PERSISTENCE", "false")
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
+        monkeypatch.setenv("JWT_SECRET", "a-very-long-production-jwt-secret-for-tests-only-xyz")
+        monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "a-very-long-production-master-key-xyz")
+        monkeypatch.setenv("API_KEY_HMAC_SECRET", "a-very-long-api-key-hmac-secret-xyz")
+        monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+        monkeypatch.setenv("DEFAULT_TENANT_ID", "11111111-1111-4111-8111-111111111111")
+        monkeypatch.setenv("SERVICE_AUTH_SECRET", "a-very-long-service-auth-secret-xyz")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fabric:secret@postgres.example.com:5432/fabric?sslmode=require")
 
-        # Clear the lru_cache so the new env vars are picked up
-        from app.core.config import get_settings
+    def test_weak_jwt_secret_raises_in_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """App must refuse to start with a weak JWT secret in production."""
+        self._base_production_env(monkeypatch)
+        monkeypatch.setenv("JWT_SECRET", "short")
 
-        get_settings.cache_clear()
+        from app.shared_bootstrap import validate_production_safety
 
-        with pytest.raises(RuntimeError, match="SECRET_KEY"):
-            get_settings()
+        with pytest.raises(RuntimeError, match="JWT_SECRET"):
+            validate_production_safety()
 
-        # Restore
-        get_settings.cache_clear()
+    def test_unset_jwt_secret_raises_in_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._base_production_env(monkeypatch)
+        monkeypatch.delenv("JWT_SECRET", raising=False)
 
-    def test_unset_secret_raises_in_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.delenv("SECRET_KEY", raising=False)
+        from app.shared_bootstrap import validate_production_safety
 
-        from app.core.config import get_settings
-
-        get_settings.cache_clear()
-
-        with pytest.raises(RuntimeError, match="SECRET_KEY"):
-            get_settings()
-
-        get_settings.cache_clear()
+        with pytest.raises(RuntimeError, match="JWT_SECRET"):
+            validate_production_safety()
 
     def test_custom_secret_still_requires_production_persistence_policy(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("SECRET_KEY", "a-sufficiently-long-production-secret-value-xyz")
-        monkeypatch.setenv("MOCK_PERSISTENCE", "false")
-        monkeypatch.setenv("DATABASE_URL", "postgresql://fabric:secret@postgres:5432/fabric")
-        monkeypatch.setenv("LLM_PROVIDER", "openai")
-        monkeypatch.setenv("SEED_DEMO_DATA", "false")
-        monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+        """A strong auth secret is not enough; the persistence backend must also be production-grade."""
+        self._base_production_env(monkeypatch)
+        # Use a localhost database URL to trigger the production persistence policy failure.
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fabric:secret@localhost:5432/fabric")
 
-        from app.core.config import get_settings
+        from app.shared_bootstrap import validate_production_safety
 
-        get_settings.cache_clear()
-
-        with pytest.raises(RuntimeError, match="services/api requires a PostgreSQL database with Row-Level Security"):
-            get_settings()
-
-        get_settings.cache_clear()
+        with pytest.raises(RuntimeError, match="localhost"):
+            validate_production_safety()
 
     def test_default_secret_allowed_in_development(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("ENVIRONMENT", "development")
 
-        from app.core.config import get_settings
+        from app.shared_bootstrap import validate_production_safety
 
-        get_settings.cache_clear()
-
-        settings = get_settings()  # Must not raise
-        assert settings is not None
-
-        get_settings.cache_clear()
+        # Development warnings are emitted, but no exception is raised.
+        validate_production_safety()
 
 
 class TestTenantClaimRequired:
