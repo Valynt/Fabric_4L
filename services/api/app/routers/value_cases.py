@@ -1,15 +1,15 @@
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
 from app.models.schemas import AuditMeta, BusinessCase, ValueCaseContent, ValueCaseExportResponse
-from app.services.gate_service import check_gates, get_gate_summary
 from app.services.export_service import generate_export
+from app.services.gate_service import check_gates, get_gate_summary
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Value Case"])
 
