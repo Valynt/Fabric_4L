@@ -331,6 +331,8 @@ class HealthTracker:
                     await callback(badge)
                 else:
                     callback(badge)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error(f"Badge callback error: {e}")
 
@@ -474,6 +476,8 @@ class HealthTracker:
                         await callback(name, old_status, status)
                     else:
                         callback(name, old_status, status)
+                except asyncio.CancelledError:
+                    raise
                 except Exception as e:
                     logger.error(f"Status callback error: {e}")
 

@@ -35,7 +35,7 @@ components:
         context: ./apps/web
         dockerfile: ./Dockerfile
       environment:
-        PLAYWRIGHT_LIVE_FRONTEND_URL: 'http://frontend-{{env.base_domain}}'
+        PLAYWRIGHT_LIVE_FRONTEND_URL: 'http://frontend-{{ env.base_domain }}'
         PLAYWRIGHT_LIVE_MODE: 'true'
         VITE_API_BASE: /api/v1
         VITE_ENABLE_MOCK_FALLBACK: 'false'
@@ -58,7 +58,7 @@ components:
         retries: 10
         start_period: 20s
       ports:
-        - '3001:3001'
+        - '3000:3000'
       deploy:
         resources:
           limits:
@@ -66,9 +66,9 @@ components:
             memory: '512MiB'
     hosts:
       -
-        hostname: 'frontend-{{env.base_domain}}'
+        hostname: 'frontend-{{ env.base_domain }}'
         path: /
-        servicePort: 3001
+        servicePort: 3000
   -
     kind: Application
     name: layer1
@@ -248,7 +248,7 @@ components:
         NEO4J_URI: 'bolt://neo4j:7687'
         NEO4J_USER: neo4j
         OPENAI_API_KEY: ${OPENAI_API_KEY}
-        PLAYWRIGHT_BACKEND_URL: 'http://layer4-{{env.base_domain}}'
+        PLAYWRIGHT_BACKEND_URL: 'http://layer4-{{ env.base_domain }}'
         PYTHONPATH: /app
         REDIS_URL: 'redis://:${REDIS_PASSWORD}@redis:6379/0'
         SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
@@ -271,7 +271,7 @@ components:
             memory: '512MiB'
     hosts:
       -
-        hostname: 'layer4-{{env.base_domain}}'
+        hostname: 'layer4-{{ env.base_domain }}'
         path: /
         servicePort: 8004
   -
@@ -330,7 +330,7 @@ components:
           attempts=0
           until alembic upgrade head; do
            attempts=$$((attempts + 1))
-           if ["$$attempts" -ge 24]; then
+           if [ "$$attempts" -ge 24 ]; then
             echo "layer5 migration failed after $${attempts} attempts"
             exit 1
            fi

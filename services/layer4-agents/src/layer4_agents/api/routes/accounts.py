@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     ConflictError,
     NotFoundError,
@@ -124,6 +126,8 @@ def to_detail_schema(account) -> AccountDetailSchema:
     for opp in (account.opportunities or []):
         try:
             opportunities.append(OpportunitySchema(**opp))
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Skipping malformed opportunity for account %s: %s", account.id, exc)
 
@@ -132,6 +136,8 @@ def to_detail_schema(account) -> AccountDetailSchema:
     for contact in (account.contacts or []):
         try:
             contacts.append(ContactSchema(**contact))
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Skipping malformed contact for account %s: %s", account.id, exc)
 

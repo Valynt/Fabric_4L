@@ -242,6 +242,8 @@ class GovernedLLMClient:
             except _CostCapExceeded:
                 # Telemetry already emitted at the raise site. Never retry.
                 raise
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 latency_ms = (time.monotonic() - t0) * 1000
                 last_exc = exc
@@ -448,6 +450,8 @@ class GovernedLLMClient:
                 metadata=metadata,
             )
             self._telemetry.emit(event)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Failed to emit LLM trace event %s: %s", event_type, exc)
 
@@ -459,6 +463,8 @@ class GovernedLLMClient:
     def _load_runtime_config(path: Path) -> dict[str, Any]:
         try:
             return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Could not load harness.runtime.yaml from %s: %s", path, exc)
             return {}
@@ -468,6 +474,8 @@ class GovernedLLMClient:
         try:
             from ..metrics.llm_cost_calculator import LLMCostCalculator
             return LLMCostCalculator()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return None
 

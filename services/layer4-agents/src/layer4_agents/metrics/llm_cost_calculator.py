@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """LLM cost calculator with configurable pricing table."""
-
-
+import asyncio
 import json
 import logging
 import os
@@ -54,6 +53,8 @@ class LLMCostCalculator:
                         "completion": float(rates["completion"]),
                     }
             logger.info("Loaded LLM cost table override from %s", path)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Failed to load LLM cost table override from %s: %s", path, exc)
 

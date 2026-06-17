@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 """Integration tools for notifications, tasks, meetings, and CRM exports."""
-
-
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -101,6 +100,8 @@ class SendNotificationTool(BaseTool):
                 message_id=response.headers.get("X-Message-Id") if success else None,
                 error=response.text if not success else None,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Email send failed: {e}")
             return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
@@ -128,6 +129,8 @@ class SendNotificationTool(BaseTool):
                 message_id=data.get("ts") if success else None,
                 error=data.get("error") if not success else None,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Slack send failed: {e}")
             return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
@@ -150,6 +153,8 @@ class SendNotificationTool(BaseTool):
             return SendNotificationOutput(
                 success=success, message_id=None, error=response.text if not success else None
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Teams send failed: {e}")
             return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
@@ -194,6 +199,8 @@ class CreateTaskTool(BaseTool):
                 return await self._create_clickup_task(client, input_data)
             else:
                 raise ValueError(f"Unsupported PM provider: {self.pm_provider}")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Task creation failed: {e}")
             return CreateTaskOutput(task_id="", success=False, url="", error="TASK_CREATE_ERROR")
@@ -327,6 +334,8 @@ class ScheduleMeetingTool(BaseTool):
                 return await self._schedule_outlook_meeting(client, input_data)
             else:
                 raise ValueError(f"Unsupported calendar provider: {self.calendar_provider}")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Meeting scheduling failed: {e}")
             return ScheduleMeetingOutput(
@@ -460,6 +469,8 @@ class ExportToCRMTool(BaseTool):
                 return await self._export_to_hubspot(client, input_data)
             else:
                 raise ValueError(f"Unsupported CRM type: {self.crm_type}")
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"CRM export failed: {e}")
             return ExportToCRMOutput(crm_record_id="", success=False, url="", error="CRM_EXPORT_ERROR")

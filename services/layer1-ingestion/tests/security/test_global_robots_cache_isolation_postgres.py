@@ -239,7 +239,8 @@ class TestGlobalRobotsCacheIsolation:
 class TestRobotsCheckerGlobalCacheAccess:
     """Test RobotsChecker access to global cache."""
 
-    def test_robots_checker_accesses_global_cache(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_accesses_global_cache(self, postgres_db):
         """Test that RobotsChecker can access global cache without tenant context."""
         # Setup cache entry
         cache_entry = RobotsTxtCache(
@@ -262,13 +263,13 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=tenant_id)
         
         # Should access global cache successfully
-        import asyncio
-        cached = asyncio.run(checker._get_cached_robots_txt("checker.com"))
+        cached = await checker._get_cached_robots_txt("checker.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] == 5.0
 
-    def test_robots_checker_without_tenant_context(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_without_tenant_context(self, postgres_db):
         """Test that RobotsChecker works without tenant context."""
         # Setup cache entry
         cache_entry = RobotsTxtCache(
@@ -290,23 +291,23 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=None)
         
         # Should access global cache successfully
-        import asyncio
-        cached = asyncio.run(checker._get_cached_robots_txt("notenant.com"))
+        cached = await checker._get_cached_robots_txt("notenant.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] is None
 
-    def test_robots_checker_invalid_tenant_id_fails(self):
+    @pytest.mark.asyncio
+    async def test_robots_checker_invalid_tenant_id_fails(self):
         """Test that RobotsChecker fails with invalid tenant_id."""
         checker = RobotsChecker(tenant_id="invalid-uuid")
         
-        import asyncio
         with pytest.raises(InvalidTenantContextError) as exc_info:
-            asyncio.run(checker._get_cached_robots_txt("example.com"))
+            await checker._get_cached_robots_txt("example.com")
         
         assert "Invalid tenant_id format" in str(exc_info.value)
 
-    def test_robots_checker_cache_error_handling(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_cache_error_handling(self, postgres_db):
         """Test that RobotsChecker properly handles cache errors."""
         # Mock a database error
         from layer1_ingestion.shared.database import get_db_session
@@ -317,9 +318,8 @@ class TestRobotsCheckerGlobalCacheAccess:
             
             checker = RobotsChecker(tenant_id=str(uuid4()))
             
-            import asyncio
             with pytest.raises(RobotsCacheError) as exc_info:
-                asyncio.run(checker._get_cached_robots_txt("error.com"))
+                await checker._get_cached_robots_txt("error.com")
             
             assert "Failed to retrieve cached robots.txt" in str(exc_info.value)
             assert exc_info.value.domain == "error.com"

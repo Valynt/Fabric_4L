@@ -3,10 +3,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
-from value_fabric.shared.fastapi_framework.health import (
-    CallableProbe,
-    ProbeResult,
-)
+from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult
 from value_fabric.shared.fastapi_framework.middleware import add_governance_middleware
 from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.observability.sentry_init import init_sentry
@@ -78,14 +75,19 @@ def _assert_distributed_store_ready() -> None:
     try:
         get_distributed_store().validate_backend()
     except (StoreUnavailableError, StorePayloadError) as exc:
-        raise RuntimeError("FATAL: Distributed store initialization failed.") from exc
+        distributed_store_error_message = (
+            "FATAL: Distributed store initialization failed."
+        )
+        raise RuntimeError(distributed_store_error_message) from exc
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _assert_database_ready()
     _assert_distributed_store_ready()
-    reject_insecure_bypass_in_production(service_name="fabric-4l-api", settings=settings)
+    reject_insecure_bypass_in_production(
+        service_name="fabric-4l-api", settings=settings
+    )
     validate_production_safety()
     if settings.seed_demo_data:
         seed_all()
@@ -93,6 +95,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         from app.core.database import close_engine
+
         await close_engine()
 
 
@@ -100,10 +103,18 @@ async def _api_db_probe() -> ProbeResult:
     """Readiness probe for API gateway database."""
     try:
         from app.core.database import create_database
+
         create_database()
     except Exception as exc:
-        logger.warning("API gateway database readiness probe failed", dependency="database", status="unhealthy", error=str(exc))
-        return ProbeResult(name="database", healthy=False, detail="database:unavailable")
+        logger.warning(
+            "API gateway database readiness probe failed",
+            dependency="database",
+            status="unhealthy",
+            error=str(exc),
+        )
+        return ProbeResult(
+            name="database", healthy=False, detail="database:unavailable"
+        )
     return ProbeResult(name="database", healthy=True)
 
 
@@ -111,13 +122,21 @@ async def _api_redis_probe() -> ProbeResult:
     """Readiness probe for API gateway distributed store (Redis)."""
     try:
         from app.services.distributed_store import get_distributed_store
+
         store = get_distributed_store()
         client = getattr(store, "client", None)
         if client is None:
-            return ProbeResult(name="redis", healthy=False, detail="store_has_no_client")
+            return ProbeResult(
+                name="redis", healthy=False, detail="store_has_no_client"
+            )
         await __import__("asyncio").to_thread(client.ping)
     except Exception as exc:
-        logger.warning("API gateway redis readiness probe failed", dependency="redis", status="unhealthy", error=str(exc))
+        logger.warning(
+            "API gateway redis readiness probe failed",
+            dependency="redis",
+            status="unhealthy",
+            error=str(exc),
+        )
         return ProbeResult(name="redis", healthy=False, detail="redis:unavailable")
     return ProbeResult(name="redis", healthy=True)
 
@@ -125,14 +144,22 @@ async def _api_redis_probe() -> ProbeResult:
 async def _api_layer4_probe() -> ProbeResult:
     """Readiness probe for downstream Layer 4 agent orchestration service."""
     import httpx
+
     try:
         url = f"{settings.layer4_api_base_url.rstrip('/')}/ready"
         response = httpx.get(url, timeout=2.0)
         if response.status_code == 200:
             return ProbeResult(name="layer4", healthy=True)
-        return ProbeResult(name="layer4", healthy=False, detail=f"layer4:status_{response.status_code}")
+        return ProbeResult(
+            name="layer4", healthy=False, detail=f"layer4:status_{response.status_code}"
+        )
     except Exception as exc:
-        logger.warning("API gateway Layer 4 readiness probe failed", dependency="layer4", status="unhealthy", error=str(exc))
+        logger.warning(
+            "API gateway Layer 4 readiness probe failed",
+            dependency="layer4",
+            status="unhealthy",
+            error=str(exc),
+        )
         return ProbeResult(name="layer4", healthy=False, detail="layer4:unavailable")
 
 
@@ -158,11 +185,16 @@ app = create_fabric_app(
     instrument_telemetry=True,
     rate_limit=FrameworkRateLimitConfig(
         mode=EnforcementMode.ENFORCE,
-        rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
+        rate_limiter_factory=lambda: __import__(
+            "value_fabric.shared.rate_limiting.tenant_rate_limiter",
+            fromlist=["TenantRateLimiter"],
+        ).TenantRateLimiter.create_from_env(),
     ),
     idempotency=FrameworkIdempotencyConfig(
         mode=EnforcementMode.ENFORCE,
-        service_factory=lambda: __import__("value_fabric.shared.idempotency.core", fromlist=["IdempotencyService"]).IdempotencyService.create_from_env(),
+        service_factory=lambda: __import__(
+            "value_fabric.shared.idempotency.core", fromlist=["IdempotencyService"]
+        ).IdempotencyService.create_from_env(),
         methods=frozenset({"POST", "PUT", "PATCH", "DELETE"}),
     ),
 )
@@ -170,7 +202,7 @@ app = create_fabric_app(
 # Primary auth + tenant-context gate. create_fabric_app installs the tenant
 # enforcement rollout control, but the canonical GovernanceMiddleware must be
 # present for route dependencies to establish tenant context.
-add_governance_middleware(app)
+add_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")

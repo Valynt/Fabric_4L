@@ -108,7 +108,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -123,7 +123,7 @@ jobs:
 
       - name: Run contract freshness and compatibility gate
         run: |
-          if ["${{github.event_name}}" = "pull_request"]; then
+          if [ "${{github.event_name}}" = "pull_request" ]; then
             python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{github.base_ref}}
           else
             python scripts/ci/contract_compliance_gate.py --mode full
@@ -131,7 +131,7 @@ jobs:
 
       - name: Run OpenAPI breaking-change gate
         run: |
-          if ["${{github.event_name}}" = "pull_request"]; then
+          if [ "${{github.event_name}}" = "pull_request" ]; then
             pnpm contract:breaking --base-ref origin/${{github.base_ref}}
           else
             pnpm contract:breaking --base-ref origin/main
@@ -163,7 +163,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -224,7 +224,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -273,7 +273,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -317,7 +317,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
@@ -365,6 +365,9 @@ jobs:
 
       - name: Deprecated namespace import gate
         run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
+
+      - name: Unified compatibility shim gate (additive)
+        run: python scripts/ci/check_compatibility_shims.py run-all --strict --json
 
       - name: Deprecation usage baseline gate
         run: python scripts/ci/check_deprecation_baseline.py
@@ -471,9 +474,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install fastapi uvicorn pydantic
-          if ["${{matrix.layer}}" = "layer3-knowledge"]; then
+          if [ "${{matrix.layer}}" = "layer3-knowledge" ]; then
             pip install neo4j python-dotenv httpx psutil
-          elif ["${{matrix.layer}}" = "layer5-ground-truth"]; then
+          elif [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
             pip install sqlalchemy asyncpg
           fi
 
@@ -540,7 +543,7 @@ jobs:
       - name: Compare OpenAPI specs
         id: compare
         run: |
-          if ["${{matrix.layer}}" = "layer5-ground-truth"]; then
+          if [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \
               > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
           else
@@ -657,7 +660,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
 
       - name: Validate deprecations.json schema
         run: |
@@ -706,7 +709,7 @@ jobs:
             const expired = data.items.filter(i => new Date(i.targetRemoval) < now);
             console.log(expired.map(i => i.id).join(' ') || 'NONE');
           ")
-          if ["$EXPIRED" != "NONE"]; then
+          if [ "$EXPIRED" != "NONE" ]; then
             echo "::error::Expired deprecations found: $EXPIRED"
             exit 1
           fi
@@ -722,7 +725,7 @@ jobs:
           python3 scripts/ci/validate_generated_contract_deprecations.py
 
       - name: Enforce agreed deprecation thresholds
-        if: ${{vars.ENFORCE_DEPRECATION_DEBT == 'true'}}
+        if: ${{ vars[format('{0}', 'ENFORCE_DEPRECATION_DEBT')] == 'true' }}
         run: |
           python3 scripts/report_deprecation_debt.py             --mode enforce             --thresholds docs/governance/deprecation-debt-registry.json             --output deprecation-debt-report-enforced.json
 

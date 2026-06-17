@@ -60,7 +60,7 @@ class TestComparisonResponse:
             peer_range=("80.0", "120.0"),
             sample_size=500,
             confidence="high",
-            assessment="above average",
+            assessment="above_average",
         )
         d = resp.model_dump()
         assert d["percentile"] == 75

@@ -36,7 +36,7 @@ async def ingest_rdf(
     sync_manager=Depends(get_sync_manager),
 ) -> IngestResponse:
     """Ingest RDF data from the Layer 2 extraction pipeline."""
-    ctx = getattr(fastapi_request.state, "context", None)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
         raise AuthenticationError(message = "Authenticated tenant context required for ingestion")
@@ -84,7 +84,7 @@ async def get_sync_status(
     sync_manager=Depends(get_sync_manager),
 ) -> SyncStatusResponse:
     """Get synchronisation status for a source."""
-    ctx = getattr(fastapi_request.state, "context", None)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
         raise AuthenticationError(
@@ -112,7 +112,7 @@ async def delete_source(
     sync_manager=Depends(get_sync_manager),
 ) -> dict[str, Any]:
     """Delete all data for a source."""
-    ctx = getattr(fastapi_request.state, "context", None)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
         raise AuthenticationError(

@@ -140,19 +140,20 @@ class SystemMaintenanceIdentity:
     def __init__(self, identity_token: str | None = None):
         """
         Initialize system maintenance identity.
-        
+
         Args:
-            identity_token: System maintenance token from environment or secure store
+            identity_token: System maintenance token from environment or secure store.
+                If omitted, the token is read lazily from FABRIC4L_MAINTENANCE_TOKEN
+                so tests and runtime configuration can update it.
         """
-        self.identity_token = identity_token or os.getenv("FABRIC4L_MAINTENANCE_TOKEN")
+        self._explicit_token = identity_token
         self.identity_name = "fabric4l-system-maintenance"
-        
-        if not self.identity_token:
-            logger.warning(
-                "System maintenance token not configured. "
-                "System operations will require explicit authorization."
-            )
-    
+
+    @property
+    def identity_token(self) -> str | None:
+        """Return the configured token, falling back to the environment variable."""
+        return self._explicit_token or os.getenv("FABRIC4L_MAINTENANCE_TOKEN")
+
     def is_valid(self) -> bool:
         """Validate the system maintenance identity."""
         if not self.identity_token:

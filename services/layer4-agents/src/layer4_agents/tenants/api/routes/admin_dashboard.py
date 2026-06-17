@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,
@@ -340,6 +342,8 @@ async def get_tenant_audit_log(
             }
             for row in rows
         ]
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.warning(
             "Failed to query audit log — table may not exist",

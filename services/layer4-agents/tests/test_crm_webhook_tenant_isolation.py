@@ -21,6 +21,8 @@ with patch.dict(
 ):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+    from value_fabric.shared.error_handling import register_exception_handlers
+
     from layer4_agents.api.routes import crm_webhooks as crm_webhooks_module
     from layer4_agents.models.account import CRMProvider
     from layer4_agents.models.integration import Integration, IntegrationStatus
@@ -69,6 +71,7 @@ def _result_with_scalar(value):
 
 def _make_client(mock_db):
     app = FastAPI()
+    register_exception_handlers(app)
 
     async def _override():
         yield mock_db
@@ -103,8 +106,8 @@ class TestSalesforceWebhookTenantIsolation:
 
         response = client.post("/v1/webhooks/crm/salesforce", json={})
 
-        assert response.status_code == 400
-        assert "tenant_id" in response.json()["detail"]
+        assert response.status_code == 422
+        assert "tenant_id" in response.json()["error"]["message"]
 
     def test_unknown_tenant_integration_is_rejected(self, mock_db):
         client = _make_client(mock_db)
@@ -117,7 +120,7 @@ class TestSalesforceWebhookTenantIsolation:
         )
 
         assert response.status_code == 404
-        assert "No Salesforce integration configured" in response.json()["detail"]
+        assert "No Salesforce integration configured" in response.json()["error"]["message"]
 
     def test_token_mismatch_is_rejected(self, mock_db):
         client = _make_client(mock_db)
@@ -135,7 +138,7 @@ class TestSalesforceWebhookTenantIsolation:
             )
 
         assert response.status_code == 401
-        assert response.json()["detail"] == "Invalid webhook credentials"
+        assert response.json()["error"]["message"] == "Invalid webhook credentials"
 
     def test_valid_tenant_and_auth_are_scoped_to_resolved_tenant(self, mock_db):
         client = _make_client(mock_db)
@@ -181,5 +184,5 @@ class TestHubSpotWebhookTenantIsolation:
 
         response = client.post("/v1/webhooks/crm/hubspot", json=[])
 
-        assert response.status_code == 400
-        assert "tenant_id" in response.json()["detail"]
+        assert response.status_code == 422
+        assert "tenant_id" in response.json()["error"]["message"]

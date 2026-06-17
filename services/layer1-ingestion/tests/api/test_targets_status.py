@@ -1,4 +1,4 @@
-"""API tests for PUT /api/v1/ingestion/targets/{id}.
+"""API tests for PUT /api/v1/ingestion/targets/{target_id}.
 
 Covers:
 - Valid status updates return 200 with updated status
@@ -8,6 +8,7 @@ Covers:
 - Cross-tenant target returns 404 (not 403) to avoid leaking existence
 - Missing auth context returns 401
 - Malformed status value returns 422
+- Active jobs block update with 409
 - Unrelated fields are not mutated by a status update
 - updated_at is refreshed on update
 """

@@ -81,6 +81,8 @@ class EncryptionService:
         try:
             cls._MASTER_KEY = key_b64.encode()
             return cls._MASTER_KEY
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             raise ValueError(f"CREDENTIALS_MASTER_KEY must be a valid Fernet key: {e}") from e
 
@@ -188,6 +190,8 @@ class EncryptionService:
         try:
             fernet = await cls._get_fernet(key_id)
             return fernet.decrypt(ciphertext).decode()
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Decryption failed for key_id=%s: %s", key_id, e)
             raise ValueError(f"Failed to decrypt credentials: {e}") from e
@@ -210,6 +214,8 @@ class EncryptionService:
         try:
             plaintext = await cls.decrypt(ciphertext, old_key_id)
             return await cls.encrypt(plaintext, new_key_id)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Key rotation failed from %s to %s: %s", old_key_id, new_key_id, e)
             raise ValueError(f"Failed to rotate encryption key: {e}") from e

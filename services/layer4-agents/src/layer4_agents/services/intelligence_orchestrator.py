@@ -518,6 +518,8 @@ class IntelligenceOrchestrator:
             )
             if signals:
                 return signals
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning(
                 "L2.5 signal retrieval failed for account=%s — falling back to graph query",

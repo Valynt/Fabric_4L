@@ -10,7 +10,7 @@ export function useWorkspaceContext() {
   const params = useParams<{ tenantSlug: string; accountId: string; tabId: string }>();
   const accountId = params.accountId ?? "";
   const { workflowContext } = useWorkflowSessionContext();
-  const tabId = params.tabId ?? workflowContext.tabId ?? "signals";
+  const tabId = params.tabId ?? workflowContext.tabId ?? "overview";
   const selectedAccountId = useAccountContextStore((s) => s.selectedAccountId);
   const resolvedAccountId = accountId || workflowContext.accountId || selectedAccountId || "";
 

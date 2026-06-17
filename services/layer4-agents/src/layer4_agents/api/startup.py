@@ -51,6 +51,8 @@ async def check_database_ready() -> StartupCheckResult:
     try:
         await init_db()
         return StartupCheckResult(name="database", ok=True)
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("database_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "DB_CONN_FAILED"})
         return StartupCheckResult(name="database", ok=False, detail="Database connection failed")
@@ -62,6 +64,8 @@ async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
     try:
         await redis_client.ping()
         return StartupCheckResult(name="redis", ok=True)
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         logger.error("redis_startup_check_failed", extra={"error_type": type(exc).__name__, "error_code": "REDIS_CONN_FAILED"})
         return StartupCheckResult(name="redis", ok=False, detail="Redis connection failed")
@@ -113,10 +117,19 @@ def build_lifespan(
         if not vault_status.ok:
             raise RuntimeError("Vault unreachable - cannot start in production without secrets backend")
 
-        tool_registry = create_default_registry()
         redis_url = os.getenv("REDIS_URL")
         startup_redis_client = redis.from_url(redis_url, decode_responses=True) if redis_url else None
         runtime_state.state_manager = StateManager(startup_redis_client)
+
+        # The tool registry must share the production Redis client so that
+        # idempotent tool results survive pod restarts.
+        tool_config = {
+            "neo4j_uri": os.getenv("NEO4J_URI", "bolt://neo4j:7687"),
+            "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
+            "neo4j_password": os.getenv("NEO4J_PASSWORD"),
+            "database": os.getenv("NEO4J_DATABASE", "valuefabric"),
+        }
+        tool_registry = create_default_registry(config=tool_config, redis_client=startup_redis_client)
 
         redis_status = await check_redis_ready(getattr(runtime_state.state_manager, "redis_client", None))
         if not redis_status.ok:
@@ -140,6 +153,8 @@ def build_lifespan(
 
         try:
             runtime_state.checkpoint_saver = await get_checkpoint_saver()
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             raise RuntimeError(f"Checkpoint saver failed - cannot start without workflow resumption: {exc}") from exc
 
@@ -216,14 +231,17 @@ async def start_optional_integrations(app: FastAPI) -> None:
             await runtime_state.crm_sync_job_runner.start()
 
     if get_settings().enable_oidc_cleanup:
-        from ..database import get_db_from_context
+        from ..database import get_session_factory
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
-            db_session_factory=get_db_from_context,
+            db_session_factory=get_session_factory(),
             interval_seconds=300.0,
         )
 
-    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
-    from ..database import get_db_from_context
+    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001).
+    # Background tasks need a plain async-session factory (async context manager),
+    # not the request-scoped get_db_from_context() dependency which is an async
+    # generator and requires a RequestContext.
+    from ..database import get_session_factory
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
-    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_session_factory())
     await runtime_state.gate_timeout_scheduler.start()

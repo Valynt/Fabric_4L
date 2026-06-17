@@ -33,7 +33,7 @@ export type BackendRole =
 async function ensureSameOrigin(page: Page): Promise<void> {
   const url = page.url();
   if (url === 'about:blank' || url === '' || url === 'chrome://newtab/') {
-    await page.goto('/login', { waitUntil: 'commit' });
+    await page.goto('/sign-in', { waitUntil: 'commit' });
   }
 }
 
@@ -53,18 +53,38 @@ export async function setUserTier(
   backendRole?: BackendRole
 ): Promise<void> {
   await ensureSameOrigin(page);
+  const role = backendRole || tier;
+  const seededTierState = {
+    state: {
+      currentTier: tier,
+      isAdvancedModeEnabled: tier !== 'standard',
+      userRole: role,
+    },
+    version: 0,
+  };
 
-  await page.evaluate((params: { userTier: UserTier; role: string }) => {
+  await page.addInitScript(
+    ({ storeState, userTier, userRole }) => {
+      localStorage.setItem('user-tier-storage', JSON.stringify(storeState));
+      const userInfoRaw = localStorage.getItem('userInfo');
+      if (userInfoRaw) {
+        try {
+          const userInfo = JSON.parse(userInfoRaw);
+          userInfo.role = userRole;
+          localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      localStorage.setItem('test-user-tier', userTier);
+    },
+    { storeState: seededTierState, userTier: tier, userRole: role },
+  );
+
+  await page.evaluate((params: { userTier: UserTier; role: string; storeState: typeof seededTierState }) => {
     // 1. Set the zustand tier store
     const storeKey = 'user-tier-storage';
-    const storeState = {
-      state: {
-        currentTier: params.userTier,
-        isAdvancedModeEnabled: params.userTier !== 'standard',
-        userRole: params.role,
-      },
-      version: 0,
-    };
+    const storeState = params.storeState;
     localStorage.setItem(storeKey, JSON.stringify(storeState));
 
     // 2. Also sync the auth user's role in userInfo so that
@@ -84,7 +104,12 @@ export async function setUserTier(
 
     // Also set a flag for tests to detect
     localStorage.setItem('test-user-tier', params.userTier);
-  }, { userTier: tier, role: backendRole || tier });
+  }, { userTier: tier, role, storeState: seededTierState });
+
+  // The app may already have initialized the persisted Zustand store on the
+  // bootstrap page. Reload so route guards hydrate the seeded tier before the
+  // next navigation evaluates access.
+  await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
 /**

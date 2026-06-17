@@ -98,6 +98,7 @@ ACTION_POLICIES: dict[str, ActionPolicy] = {
     "layer5.governance.approvals.reject": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Reject governance approval"),
     "layer6.benchmarks.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List benchmark datasets"),
     "layer6.benchmarks.read": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read benchmark dataset"),
+    "layer6.benchmarks.write": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create or update benchmark dataset"),
     "layer6.benchmarks.compare": ActionPolicy((Permission.READ_ANALYTICS.value,), "Run benchmark comparison"),
     "layer6.benchmarks.validate": ActionPolicy((Permission.READ_ANALYTICS.value,), "Validate value against benchmark"),
     "layer6.benchmarks.industries": ActionPolicy((Permission.READ_ANALYTICS.value,), "List benchmark industries"),

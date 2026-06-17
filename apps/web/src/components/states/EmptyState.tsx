@@ -26,17 +26,19 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div 
+      role="status"
+      aria-live="polite"
       className={cn(
         "flex flex-col items-center justify-center gap-3 text-center",
         fullPage ? "min-h-[60vh]" : "py-16",
         className
       )}
     >
-      <Icon size={32} className="text-muted-foreground/40" />
+      <Icon size={32} className="text-muted-foreground/40" aria-hidden="true" />
       <div className="space-y-1">
         <h3 className="text-sm font-medium text-foreground">{title}</h3>
         {description && (
-          <p className="text-xs text-muted-foreground max-w-xs">{description}</p>
+          <p className="max-w-sm text-xs text-muted-foreground">{description}</p>
         )}
       </div>
       {action && <div className="pt-2">{action}</div>}

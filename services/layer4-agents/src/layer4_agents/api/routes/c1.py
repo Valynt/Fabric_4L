@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 
 """C1 streaming proxy route.
@@ -121,6 +123,8 @@ async def stream_c1(
         except httpx.TimeoutException:
             logger.exception("Thesys API request timed out")
             yield f"data: {json.dumps({'type': 'error', 'error': 'Thesys API request timed out'})}\n\n"
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception("Unexpected error while streaming from Thesys API")
             yield f"data: {json.dumps({'type': 'error', 'error': 'Internal streaming error'})}\n\n"

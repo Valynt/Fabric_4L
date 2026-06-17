@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -37,6 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.probes import normalize_probe_payload
 
 # SECURITY: CRM webhook endpoints are server-to-server calls from
 # Salesforce/HubSpot. Authentication is via HMAC signature verification,
@@ -177,6 +180,8 @@ async def _decrypt_integration_credentials(integration: Integration) -> dict[str
         )
         credentials = json.loads(decrypted)
         return credentials if isinstance(credentials, dict) else {}
+    except asyncio.CancelledError:
+        raise
     except Exception:
         return {}
 
@@ -204,6 +209,8 @@ async def _emit_dev_relaxed_mode_audit(
                 "request_id": getattr(request.state, "request_id", None),
             },
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.warning(
             "Failed to emit audit event for relaxed CRM webhook tenant resolution",
@@ -504,6 +511,8 @@ async def salesforce_webhook(
     try:
         payload_str = body.decode()
         data = SalesforceWebhookPayload.model_validate_json(payload_str).model_dump()
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning("Salesforce webhook received invalid payload", extra={"error_code": "WEBHOOK_PARSE_ERROR", "error": sanitize_log_error(e), "body_preview": body[:200].decode(errors='replace')})
         data = {"raw_body": body.decode(errors='replace'), "parse_error": "Webhook payload parse failed"}
@@ -572,6 +581,8 @@ async def salesforce_webhook(
         }).model_dump()
 
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         return _handle_webhook_error(
             logger, e, "salesforce", record_id=record_id, event_type=event_type,
@@ -763,6 +774,8 @@ async def hubspot_webhook(
         events_adapter = TypeAdapter(list[HubSpotWebhookEvent])
         events_data = events_adapter.validate_json(payload_str)
         events = [e.model_dump() for e in events_data]
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning(f"HubSpot webhook received invalid payload: {e}")
         raise ValidationError(message = "Invalid JSON payload") from e
@@ -853,6 +866,8 @@ async def hubspot_webhook(
         }).model_dump()
 
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         return _handle_webhook_error(
             logger,
@@ -872,9 +887,11 @@ async def hubspot_webhook(
 @router.get("/health")
 async def webhook_health() -> dict[str, Any]:
     """Health check endpoint for webhook monitoring."""
-    return webhook_healthResult.model_validate({
-        "status": "healthy",
-        "webhooks": ["salesforce", "hubspot"],
-    }).model_dump()
+    payload = normalize_probe_payload(
+        status="healthy",
+        service="layer4-agents",
+        extra={"webhooks": ["salesforce", "hubspot"]},
+    )
+    return webhook_healthResult.model_validate(payload).model_dump()
 
 

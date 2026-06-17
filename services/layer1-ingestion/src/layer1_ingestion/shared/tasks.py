@@ -4,7 +4,9 @@ Spec-compliant pipeline stage tasks with multi-tenancy support.
 Manages ScrapingJob lifecycle through 11 PipelineStages.
 """
 
+import asyncio
 import hashlib
+import os
 import time
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -148,6 +150,17 @@ class notification_stageResult(TypedDictModel):
     success: bool
 
 logger = structlog.get_logger()
+
+
+def _run_async(coro):
+    # In a Celery worker there is no running event loop, so run the coroutine
+    # to completion. When called from an async test context (e.g. pytest-asyncio)
+    # with a running loop, return the coroutine so the caller can await it.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    return coro
 
 # Initialize Celery app
 celery_app = Celery(
@@ -300,7 +313,11 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+    return _run_async(_acompliance_check_stage(self, job_id, tenant_id))
+
+
+async def _acompliance_check_stage(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
     
     Args:
@@ -374,6 +391,7 @@ async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                         action="ALLOWED",
                     )
                     config["url"] = safety_result.normalized_url
+                    url = safety_result.normalized_url
                 except URLSafetyError as exc:
                     log_url_compliance_event(
                         session,
@@ -416,9 +434,10 @@ async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                         tenant_id=str(job.tenant_id),
                         strict_mode=compliance_config.get("strict_robots_compliance", False),
                     )
-                    domain = url.split("/")[2] if "/" in url else url
+                    parsed_url = urlparse(url)
+                    domain = parsed_url.netloc
 
-                    allowed, reason, rules = await checker.check_url(domain, url)
+                    allowed, reason, rules = await checker.check_url(url, job_id=str(job_id))
                     crawl_delay = rules.get("crawl_delay") if rules else None
 
                     # Log compliance check
@@ -508,7 +527,11 @@ async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
+def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
+    return _run_async(_abrowser_crawl_stage(self, prev_result, tenant_id))
+
+
+async def _abrowser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
@@ -778,7 +801,11 @@ async def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=5)
-async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+    return _run_async(_ai_extraction_stage(self, prev_result, tenant_id))
+
+
+async def _ai_extraction_stage(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
     
     Args:
@@ -833,6 +860,9 @@ async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     raise ValueError("Raw content not found for AI extraction")
 
                 l2_url = settings.layer2_api_url
+                extraction_model = extraction_config.get(
+                    "model", os.getenv("EXTRACTION_MODEL", settings.openai_model)
+                )
                 extraction_payload = {
                     "content": raw_content.meta_title or "",
                     "content_type": "text",
@@ -840,8 +870,11 @@ async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     "source_id": str(raw_content_id),
                     "job_id": str(job_id),
                     "tenant_id": str(job.tenant_id),
+                    "model_version": extraction_config.get("model_version", extraction_model),
+                    "schema_version": extraction_config.get("schema_version", "1.0"),
+                    "prompt_version": extraction_config.get("prompt_version", "entity_extraction_v1"),
                     "options": {
-                        "model": extraction_config.get("model", settings.openai_model),
+                        "model": extraction_model,
                         "temperature": extraction_config.get("temperature", 0.0),
                         "max_tokens": extraction_config.get("max_tokens", 4000),
                     },
@@ -1384,7 +1417,9 @@ def notification_stage(self, prev_result: dict, tenant_id: str):
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 job = session.query(ScrapingJob).get(job_id)
                 if not job:
-                    return
+                    return notification_stageResult.model_validate(
+                        {"success": False, "job_id": str(job_id), "error": "Job not found"}
+                    ).model_dump()
 
                 _update_stage(session, job_id, PipelineStage.NOTIFICATION, "RUNNING")
                 job.progress_stage = PipelineStage.NOTIFICATION.value
@@ -1762,7 +1797,15 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-async def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
+def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
+    return _run_async(
+        _acrawl_url_with_routing(self, job_id, url, tenant_id, target_mode)
+    )
+
+
+async def _acrawl_url_with_routing(
+    self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"
+):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
 
     Implements the hardening-pass routing logic with:

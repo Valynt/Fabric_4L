@@ -9,6 +9,7 @@ import structlog
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.probes import normalize_probe_payload
 
 from ..database import close_db, get_session, init_db
 from ..schemas import (
@@ -97,9 +98,12 @@ TenantDep = Annotated[str, Depends(_require_tenant)]
 
 
 @app.get("/health", tags=["ops"], include_in_schema=False)
-async def health() -> dict[str, str]:
+async def health() -> dict[str, Any]:
     """Liveness probe."""
-    return {"status": "ok"}
+    return normalize_probe_payload(
+        status="ok",
+        service="billing",
+    )
 
 
 # ---------------------------------------------------------------------------

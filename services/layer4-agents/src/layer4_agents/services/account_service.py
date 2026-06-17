@@ -5,8 +5,7 @@ Account service layer for CRM account operations.
 
 Business logic and data access for the accounts surface.
 """
-
-
+import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -349,6 +348,8 @@ class AccountService:
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Failed to fetch activity for account {account_id}: {e}")
             return AccountService_get_account_activityResult.model_validate({

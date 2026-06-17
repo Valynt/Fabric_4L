@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -170,6 +172,8 @@ async def _get_cached_webhook(webhook_id: str) -> dict | None:
         raw = await redis.get(key)
         if raw:
             return json.loads(raw)
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning("Failed to get cached webhook from Redis: %s", e)
     return None
@@ -190,6 +194,8 @@ async def _cache_webhook_result(webhook_id: str, tenant_id: str, status: str) ->
     key = f"{_WEBHOOK_IDEMPOTENCY_PREFIX}{webhook_id}"
     try:
         await redis.setex(key, _WEBHOOK_CACHE_TTL_SECONDS, json.dumps(data))
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning("Failed to cache webhook result in Redis: %s", e)
 
@@ -342,6 +348,8 @@ async def webhook_provisioning(
 
     try:
         payload = WebhookProvisioningRequest(**json.loads(body))
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning("Invalid webhook payload: %s", e)
         raise ValidationError(message="Invalid webhook payload") from e

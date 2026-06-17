@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,27 @@ class AgentBillOfMaterials(BaseModel):
             return False
         return tool_name in self.allowed_tools
 
+    @classmethod
+    def from_manifest_dir(
+        cls,
+        manifest_dir: str | Path,
+        agent_type: str,
+        override_agent_id: str | None = None,
+    ) -> "AgentBillOfMaterials":
+        """Load the ABOM for *agent_type* from a directory of manifests.
+
+        File naming convention: ``<snake_case_agent_type>.abom.json``.
+        Examples:
+            - ``ContextExtractionAgent`` -> ``context_extraction_agent.abom.json``
+            - ``OrchestrationController`` -> ``orchestration_controller.abom.json``
+        """
+        filename = f"{_camel_to_snake(agent_type)}.abom.json"
+        path = Path(manifest_dir) / filename
+        abom = load_abom(path)
+        if override_agent_id:
+            abom.agent_id = override_agent_id
+        return abom
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ABOM Loader
@@ -119,3 +141,9 @@ def load_abom(manifest_path: str | Path) -> AgentBillOfMaterials:
 def clear_abom_cache() -> None:
     """Clear the ABOM manifest cache (for testing)."""
     _manifest_cache.clear()
+
+
+def _camel_to_snake(name: str) -> str:
+    """Convert CamelCase identifier to snake_case filename stem."""
+    s1 = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1).lower()

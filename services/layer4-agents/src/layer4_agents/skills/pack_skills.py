@@ -4,8 +4,7 @@ from __future__ import annotations
 
 Skills for pack discovery, loading, execution, and customization.
 """
-
-
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -160,6 +159,8 @@ class PackSkills:
                     "workspace_id": pack.workspace_id,
                 },
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return PackLoadOutput(
                 success=False,
@@ -212,6 +213,8 @@ class PackSkills:
                 success=True,
                 new_pack_id=pack.pack_id,
             )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             return PackCustomizeOutput(
                 success=False,

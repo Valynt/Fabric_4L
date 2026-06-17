@@ -19,6 +19,7 @@ interface LeftNavigationProps {
   collapsed: boolean;
   onToggle: () => void;
   currentTier?: UserTier;
+  currentTenantSlug?: string | null;
 }
 
 const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -63,17 +64,19 @@ export function LeftNavigation({
   collapsed,
   onToggle,
   currentTier = "standard",
+  currentTenantSlug,
 }: LeftNavigationProps) {
   const { pathname } = useLocation();
   const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
 
   const accountId = urlAccountId ?? null;
+  const resolvedTenantSlug = tenantSlug ?? currentTenantSlug ?? undefined;
 
   const navItems = NAV_SCHEMA
     .filter((item) => isItemVisible(item.tier, currentTier))
     .map((item) => ({
       ...item,
-      path: resolveNavPath(item.path, tenantSlug, accountId),
+      path: resolveNavPath(item.path, resolvedTenantSlug, accountId),
     }));
 
   return (
@@ -112,23 +115,63 @@ export function LeftNavigation({
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.id] ?? Radar;
 
+          const isFallbackPath =
+            item.path === "/accounts" || item.path === `/t/${tenantSlug}/accounts`;
+          const sectionActive =
+            !collapsed &&
+            !isFallbackPath &&
+            Boolean(item.children?.length) &&
+            pathname.startsWith(item.path);
+
+          const visibleChildren = sectionActive
+            ? (item.children ?? [])
+                .filter((child) => isItemVisible(child.tier, currentTier))
+                .map((child) => ({
+                  ...child,
+                  path: resolveNavPath(child.path, tenantSlug, accountId),
+                }))
+            : [];
+
           return (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              className={({ isActive }) =>
-                [
-                  "flex h-10 items-center rounded-md px-3 text-sm transition-colors hover:bg-accent",
-                  collapsed ? "justify-center" : "gap-3",
-                  isActive
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-muted-foreground",
-                ].join(" ")
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </NavLink>
+            <div key={item.id}>
+              <NavLink
+                to={item.path}
+                end={item.path.endsWith("/intelligence")}
+                className={({ isActive }) =>
+                  [
+                    "flex h-10 items-center rounded-md px-3 text-sm transition-colors hover:bg-accent",
+                    collapsed ? "justify-center" : "gap-3",
+                    isActive
+                      ? "bg-accent font-medium text-accent-foreground"
+                      : "text-muted-foreground",
+                  ].join(" ")
+                }
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </NavLink>
+
+              {visibleChildren.length > 0 && (
+                <div className="mt-0.5 space-y-0.5 border-l border-border pl-3 ml-5">
+                  {visibleChildren.map((child) => (
+                    <NavLink
+                      key={child.id}
+                      to={child.path}
+                      className={({ isActive }) =>
+                        [
+                          "flex h-8 items-center rounded-md px-3 text-xs transition-colors hover:bg-accent",
+                          isActive
+                            ? "bg-accent font-medium text-accent-foreground"
+                            : "text-muted-foreground",
+                        ].join(" ")
+                      }
+                    >
+                      <span className="truncate">{child.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

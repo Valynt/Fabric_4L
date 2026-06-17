@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ConflictError,
@@ -869,16 +871,20 @@ async def quick_roi_analysis(
             user_id=context.user_id,
         )
 
-        aggregate = result.output_data.get("aggregate", {})
+        raw_aggregate = (result.output_data or {}).get("aggregate") or {}
+        aggregate = raw_aggregate if isinstance(raw_aggregate, dict) else {}
 
         return ROIAnalysisResponse(
             prospect_id=prospect_id,
-            aggregated_roi=aggregate.get("aggregated", {}) or {"calculation": "roi", "result": aggregate},
-            detailed_results=aggregate.get("detailed_results", []),
-            benchmark_comparison=result.output_data.get("fetch_benchmarks", {}).get("benchmarks"),
+            aggregated_roi=aggregate.get("aggregated") or {"calculation": "roi", "result": aggregate},
+            detailed_results=aggregate.get("detailed_results") or [],
+            benchmark_comparison=(result.output_data or {}).get("fetch_benchmarks", {}).get("benchmarks"),
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
+        logger.exception("ROI analysis failed: %s", e)
         raise normalize_exception(e, status_code=500, message="ROI analysis failed", error_code="L4_ROI_ANALYSIS_FAILED", request_id=getattr(http_request.state, "request_id", None))
 
 
@@ -926,6 +932,8 @@ async def quick_whitespace_analysis(
             recommendations=score_data.get("recommendations", []),
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         raise normalize_exception(e, status_code=500, message="Whitespace analysis failed", error_code="L4_WHITESPACE_ANALYSIS_FAILED")
 
@@ -954,6 +962,8 @@ async def generate_business_case(
     try:
         try:
             raw_body = await http_request.json()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             raw_body = {}
         if _is_workspace_case_create_body(raw_body):
@@ -1000,7 +1010,7 @@ async def generate_business_case(
             user_id=context.user_id,
         )
 
-        assemble_data = result.output_data.get("assemble_document", {})
+        assemble_data = result.output_data.get("assemble", {})
         truth_gate = result.output_data.get("verify_truth_requirements", {})
         sdes_bundle = result.output_data.get("generate_sdes", {})
 
@@ -1021,6 +1031,15 @@ async def generate_business_case(
         return BusinessCaseResponse(
             case_id=result.workflow_id,
             status=result.status.value,
+            title=assemble_data.get("title", "Business Case"),
+            summary=assemble_data.get("summary", ""),
+            total_value=assemble_data.get("total_value", 0.0),
+            implementation_cost=assemble_data.get("implementation_cost", 0.0),
+            roi_ratio=assemble_data.get("roi_ratio", 0.0),
+            payback_months=assemble_data.get("payback_months", 0),
+            confidence_score=assemble_data.get("confidence_score", 0.0),
+            recommendations=assemble_data.get("recommendations", []),
+            created_at=assemble_data.get("created_at"),
             document_url=assemble_data.get("document_url"),
             page_count=assemble_data.get("page_count", 0),
             file_size_bytes=assemble_data.get("file_size_bytes", 0),
@@ -1030,7 +1049,10 @@ async def generate_business_case(
             case_metadata=case_metadata,
         )
 
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
+        logger.exception("Business case generation failed: %s", e)
         raise normalize_exception(e, status_code=500, message="Business case generation failed", error_code="L4_BUSINESS_CASE_GENERATION_FAILED", request_id=getattr(http_request.state, "request_id", None))
 
 
@@ -1230,6 +1252,8 @@ async def seed_business_case_lifecycle(
                     },
                 )
                 audit_events_requested += 1
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # Audit persistence must be visible in logs but must not create
                 # a fail-open auth path or leave partial lifecycle state hidden.

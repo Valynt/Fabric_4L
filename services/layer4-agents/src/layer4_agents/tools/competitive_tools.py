@@ -22,8 +22,7 @@ A competitive fact is only included if it affects:
   - value risk        (EconomicDifferenceCategory.RISK_AND_CONFIDENCE)
   - capability delta  (EconomicDifferenceCategory.CAPABILITY_TO_OUTCOME)
 """
-
-
+import asyncio
 import logging
 from typing import Any
 
@@ -281,6 +280,8 @@ Return a JSON array of EconomicDifference objects with these fields:
                     })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(
                 "Could not query Knowledge Graph for competitor '%s': %s",
@@ -325,11 +326,15 @@ Return a JSON array of EconomicDifference objects with these fields:
             try:
                 validated = LLMDifferencesResponse.model_validate_json(raw)
                 differences_raw = validated.differences
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # Fallback: try parsing as list directly
                 try:
                     parsed = LLMDifferencesResponse.model_validate({"differences": []})
                     differences_raw = parsed.differences
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     differences_raw = []
 
@@ -345,11 +350,15 @@ Return a JSON array of EconomicDifference objects with these fields:
                         is_unsupported_claim=d.is_unsupported_claim,
                     )
                     differences.append(diff)
+                except asyncio.CancelledError:
+                    raise
                 except Exception as parse_err:
                     logger.warning("Skipping malformed difference: %s", parse_err)
 
             return differences
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("LLM extraction failed for %s: %s", competitor_name, e)
             # Return a single placeholder difference so the artifact is not empty

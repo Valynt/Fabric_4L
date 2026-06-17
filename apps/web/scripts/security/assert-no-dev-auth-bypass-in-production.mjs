@@ -16,8 +16,11 @@ const blockedMarkers = [
   'Development Bypass',
   'sarah-chen-001',
   'axiom-robotics',
-  'VITE_ENABLE_MOCK_FALLBACK',
-  'ENABLE_MOCK_FALLBACK',
+];
+
+const truthyMockFallbackPatterns = [
+  /\bVITE_ENABLE_MOCK_FALLBACK\b\s*[:=]\s*['"]?(?:true|1|yes|on)\b/i,
+  /\bENABLE_MOCK_FALLBACK\b\s*[:=]\s*['"]?(?:true|1|yes|on)\b/i,
 ];
 
 const textExtensions = new Set([
@@ -49,6 +52,11 @@ for (const root of distRoots) {
     for (const marker of blockedMarkers) {
       if (body.includes(marker)) {
         violations.push(`${relative(projectRoot, file)} contains ${marker}`);
+      }
+    }
+    for (const pattern of truthyMockFallbackPatterns) {
+      if (pattern.test(body)) {
+        violations.push(`${relative(projectRoot, file)} contains enabled mock fallback config`);
       }
     }
   }

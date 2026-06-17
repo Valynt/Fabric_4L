@@ -22,9 +22,9 @@ jobs:
     steps:
       - id: profile
         run: |
-          if [["${GITHUB_REF}" == refs/heads/main]]; then
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             echo "profile=mainline-full" >> $GITHUB_OUTPUT
-          elif [["${GITHUB_REF}" == refs/heads/release/*]]; then
+          elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
             echo "profile=release-candidate" >> $GITHUB_OUTPUT
           else
             echo "profile=pr-fast" >> $GITHUB_OUTPUT
@@ -323,7 +323,7 @@ jobs:
             local label="$2"
             local resolved
             resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
-            if [[-z "${resolved}"]]; then
+            if [[ -z "${resolved}" ]]; then
               echo "Missing required artifact for ${label}: ${pattern}" >&2
               exit 1
             fi
