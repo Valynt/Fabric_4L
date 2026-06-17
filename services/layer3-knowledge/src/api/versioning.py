@@ -16,6 +16,7 @@ from typing import Any, Union
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
+from value_fabric.shared.probes import normalize_probe_response
 
 from src.logging_config import get_logger
 
@@ -684,12 +685,6 @@ def transform_v1_search_response(data: dict[str, Any]) -> dict[str, Any]:
 
 def transform_v1_health_response(data: dict[str, Any]) -> dict[str, Any]:
     """Transform health response for v1 compatibility."""
-    transformed = data.copy()
-
-    # Example: ensure old status field format
-    if "status" in transformed:
-        # v1 expected "healthy" as boolean, v2 has string
-        if isinstance(transformed["status"], str):
-            transformed["healthy"] = transformed["status"] == "healthy"
-
+    transformed = normalize_probe_response(data, default_service="layer3-knowledge")
+    transformed["healthy"] = transformed["readiness"]["is_ready"]
     return transformed

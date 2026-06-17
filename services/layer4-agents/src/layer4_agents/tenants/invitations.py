@@ -6,6 +6,7 @@ and sends invitation emails via SendGrid or SMTP.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import secrets
@@ -71,6 +72,8 @@ class InvitationService:
                     int(timedelta(hours=self.token_expiry_hours).total_seconds()),
                     json.dumps(data),
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning("Failed to store invitation token in Redis: %s", e)
 
@@ -87,6 +90,8 @@ class InvitationService:
         key = f"invite:{token}"
         try:
             data = self.redis.get(key)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to retrieve invitation token from Redis: %s", e)
             return None
@@ -132,6 +137,8 @@ class InvitationService:
                 data["used"] = True
                 # Keep for 1 hour post-use for audit/debugging
                 self.redis.setex(key, 3600, json.dumps(data))
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("Failed to mark invitation token as used: %s", e)
 
@@ -197,6 +204,8 @@ If you didn't expect this invitation, please ignore this email.
                     },
                 )
                 return response.status_code == 202
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.error("Failed to send invitation email via SendGrid: %s", e)
                 return False
@@ -221,6 +230,8 @@ If you didn't expect this invitation, please ignore this email.
         except ImportError:
             logger.error("aiosmtplib not installed. Cannot send SMTP email.")
             return False
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Failed to send invitation email via SMTP: %s", e)
             return False

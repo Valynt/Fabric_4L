@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError
 
 """Tenant admin dashboard API."""
@@ -211,6 +213,8 @@ async def get_tenant_audit_log(
             limit=limit,
             offset=offset,
         )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         # Fallback if audit table not available
         return AuditLogResponse(events=[], total=0, limit=limit, offset=offset)

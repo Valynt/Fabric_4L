@@ -18,6 +18,23 @@ describe("layout landmarks", () => {
     expect(nav).toBeInTheDocument();
   });
 
+  it("resolves tenant-scoped sidebar links from the provided tenant slug", () => {
+    render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <LeftNavigation collapsed={false} onToggle={() => {}} currentTenantSlug="acme" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: /accounts/i })).toHaveAttribute(
+      "href",
+      "/t/acme/accounts"
+    );
+    expect(screen.getByRole("link", { name: /governance/i })).toHaveAttribute(
+      "href",
+      "/t/acme/governance"
+    );
+  });
+
   it("renders agent panel as a complementary landmark", () => {
     render(<AgentSidePanel onClose={() => {}} onMinimize={() => {}} />);
 

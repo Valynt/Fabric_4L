@@ -597,13 +597,17 @@ class ValueHypothesisEngine:
 
         where = " AND ".join(where_clauses)
 
-        count_query = f"MATCH (vh:ValueHypothesis) WHERE {where} RETURN count(vh) AS total"
-        list_query = f"""
-        MATCH (vh:ValueHypothesis) WHERE {where}
-        RETURN vh {{.*}} AS hypothesis
-        ORDER BY vh.confidence_score DESC
-        SKIP $skip LIMIT $limit
-        """
+        # Controlled clause concatenation: only hard-coded parameterised
+        # fragments are joined; user input is bound via $params below.
+        count_query = (
+            "MATCH (vh:ValueHypothesis) WHERE " + where + " RETURN count(vh) AS total"
+        )
+        list_query = (
+            "MATCH (vh:ValueHypothesis) WHERE " + where + "\n"
+            "RETURN vh {.*} AS hypothesis\n"
+            "ORDER BY vh.confidence_score DESC\n"
+            "SKIP $skip LIMIT $limit"
+        )
 
         count_records = await fetch_tenant_validated_records(
             driver=self._driver,
@@ -865,19 +869,20 @@ class ValueHypothesisEngine:
 
         where = " AND ".join(where_parts)
 
-        query = f"""
-        MATCH (vh:ValueHypothesis) WHERE {where}
-        RETURN count(vh) AS total,
-               sum(CASE WHEN vh.status = 'draft' THEN 1 ELSE 0 END) AS draft_count,
-               sum(CASE WHEN vh.status = 'validated' THEN 1 ELSE 0 END) AS validated_count,
-               sum(CASE WHEN vh.status = 'rejected' THEN 1 ELSE 0 END) AS rejected_count,
-               sum(CASE WHEN vh.status = 'converted' THEN 1 ELSE 0 END) AS converted_count,
-               avg(vh.confidence_score) AS avg_confidence,
-               sum(vh.estimated_impact_usd) AS total_estimated_impact,
-               avg(vh.estimated_impact_usd) AS avg_estimated_impact,
-               count(DISTINCT vh.product_id) AS unique_products,
-               count(DISTINCT vh.account_id) AS unique_accounts
-        """
+        # Controlled clause concatenation using parameterised fragments only.
+        query = (
+            "MATCH (vh:ValueHypothesis) WHERE " + where + "\n"
+            "RETURN count(vh) AS total,\n"
+            "       sum(CASE WHEN vh.status = 'draft' THEN 1 ELSE 0 END) AS draft_count,\n"
+            "       sum(CASE WHEN vh.status = 'validated' THEN 1 ELSE 0 END) AS validated_count,\n"
+            "       sum(CASE WHEN vh.status = 'rejected' THEN 1 ELSE 0 END) AS rejected_count,\n"
+            "       sum(CASE WHEN vh.status = 'converted' THEN 1 ELSE 0 END) AS converted_count,\n"
+            "       avg(vh.confidence_score) AS avg_confidence,\n"
+            "       sum(vh.estimated_impact_usd) AS total_estimated_impact,\n"
+            "       avg(vh.estimated_impact_usd) AS avg_estimated_impact,\n"
+            "       count(DISTINCT vh.product_id) AS unique_products,\n"
+            "       count(DISTINCT vh.account_id) AS unique_accounts"
+        )
         records = await fetch_tenant_validated_records(
             driver=self._driver,
             query=query,

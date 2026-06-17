@@ -439,6 +439,8 @@ class BillingService:
         try:
             stripe = _get_stripe()
             event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             code, base_message, error_class = self._classify_webhook_exception(e)
             sanitized_error = sanitize_log_error(e)
@@ -547,6 +549,8 @@ class BillingService:
             await self.db.flush()
             await self.db.commit()
             self._emit_webhook_metric("processed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             await self.db.rollback()
             # Record failure state in separate transaction if needed
@@ -574,6 +578,8 @@ class BillingService:
                         self._emit_webhook_metric("failed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
                     await self.db.flush()
                 await self.db.commit()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 # If we can't even record the failure, log and continue
                 logger.error("billing.webhook.failure_recording_failed", extra={"event_id": event_id}, exc_info=True)

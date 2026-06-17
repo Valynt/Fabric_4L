@@ -309,20 +309,52 @@ def _raised_exception_name(node: ast.Raise) -> str | None:
 def _raises_guarded_by_exception_handler(function: ast.FunctionDef | ast.AsyncFunctionDef) -> set[int]:
     guarded: set[int] = set()
     for node in ast.walk(function):
-        if not isinstance(node, ast.Try):
-            continue
-        catches_error = any(
-            handler.type is None
-            or (
-                isinstance(handler.type, ast.Name)
-                and handler.type.id in {"Exception", "BaseException", "ValueError"}
+        if isinstance(node, ast.Try):
+            catches_error = any(
+                handler.type is None
+                or (
+                    isinstance(handler.type, ast.Name)
+                    and handler.type.id in {"Exception", "BaseException", "ValueError"}
+                )
+                for handler in node.handlers
             )
-            for handler in node.handlers
-        )
-        if not catches_error:
-            continue
-        for body_node in node.body:
-            guarded.update(id(child) for child in ast.walk(body_node) if isinstance(child, ast.Raise))
+            if catches_error:
+                for body_node in node.body:
+                    guarded.update(id(child) for child in ast.walk(body_node) if isinstance(child, ast.Raise))
+            # Re-raising asyncio.CancelledError inside its own handler is required
+            # hygiene (PEP 3156) and is not an unstructured tool error.
+            for handler in node.handlers:
+                if handler.type is None:
+                    continue
+                if isinstance(handler.type, ast.Name) and handler.type.id in {"CancelledError", "asyncio.CancelledError", "BaseException"}:
+                    guarded.update(id(child) for child in ast.walk(handler) if isinstance(child, ast.Raise))
+                elif isinstance(handler.type, ast.Attribute) and handler.type.attr == "CancelledError":
+                    guarded.update(id(child) for child in ast.walk(handler) if isinstance(child, ast.Raise))
+                elif isinstance(handler.type, ast.Tuple):
+                    names = {
+                        elt.attr if isinstance(elt, ast.Attribute) else elt.id
+                        for elt in handler.type.elts
+                        if isinstance(elt, (ast.Name, ast.Attribute))
+                    }
+                    if names & {"CancelledError", "asyncio.CancelledError", "BaseException"}:
+                        guarded.update(id(child) for child in ast.walk(handler) if isinstance(child, ast.Raise))
+        elif isinstance(node, ast.ExceptHandler):
+            # Stand-alone except handlers are not expected at function scope, but
+            # guard them consistently if they explicitly catch cancellation.
+            if node.type is None:
+                continue
+            if isinstance(node.type, ast.Name) and node.type.id in {"CancelledError", "asyncio.CancelledError", "BaseException"}:
+                guarded.update(id(child) for child in ast.walk(node) if isinstance(child, ast.Raise))
+            elif isinstance(node.type, ast.Attribute) and node.type.attr == "CancelledError":
+                guarded.update(id(child) for child in ast.walk(node) if isinstance(child, ast.Raise))
+            elif isinstance(node.type, ast.Tuple):
+                names = {
+                    elt.attr if isinstance(elt, ast.Attribute) else elt.id
+                    for elt in node.type.elts
+                    if isinstance(elt, (ast.Name, ast.Attribute))
+                }
+                if names & {"CancelledError", "asyncio.CancelledError", "BaseException"}:
+                    guarded.update(id(child) for child in ast.walk(node) if isinstance(child, ast.Raise))
     return guarded
 
 

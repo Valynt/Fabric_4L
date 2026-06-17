@@ -502,11 +502,13 @@ class TestMaturityLadder:
 class TestHealth:
     @pytest.mark.asyncio
     async def test_health_returns_ok(self, client):
-        """Public health endpoint should return 200 with status ok."""
+        """Public health endpoint should return normalized probe payload."""
         resp = await client.get("/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "healthy"
+        assert data["service"] == "layer5-ground-truth"
+        assert data["readiness"]["is_ready"] is True
         assert data["database"] == "ok"
         assert "version" in data
         assert "timestamp" in data

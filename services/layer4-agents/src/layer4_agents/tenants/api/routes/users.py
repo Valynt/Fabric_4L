@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 """User management API routes (tenant_admin only).
@@ -20,7 +22,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_tenant_admin
+from value_fabric.shared.identity.dependencies import require_authenticated, require_tenant_admin
 from value_fabric.shared.identity.models import (
     UserAcceptInviteRequest,
     UserInviteRequest,
@@ -58,6 +60,8 @@ def _get_invitation_service() -> InvitationService:
             import redis
 
             redis_client = redis.from_url(redis_url, decode_responses=True)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             logger.warning("Failed to connect to Redis for invitations: %s", exc)
     return InvitationService(redis_client=redis_client)
@@ -104,8 +108,7 @@ async def api_invite_user(
         )
         if not email_sent:
             logger.warning(
-                "Invitation email not sent for user %s in tenant %s — "
-                "no email provider configured",
+                "Invitation email not sent for user %s in tenant %s — no email provider configured",
                 request.email,
                 ctx.tenant_id,
             )
@@ -138,6 +141,50 @@ async def api_list_users(
     return await list_users(db, ctx.tenant_id, limit=limit, offset=offset)
 
 
+@router.get("/me", response_model=UserModel)
+async def api_get_current_user(
+    ctx: RequestContext = Depends(require_authenticated),
+    db: AsyncSession = Depends(get_db_from_context),
+) -> UserModel:
+    """Get the currently authenticated user (self-service)."""
+    if not ctx.user_id or not ctx.tenant_id:
+        raise NotFoundError(message="Current user context is incomplete")
+    user_id = UUID(str(ctx.user_id))
+    tenant_id = UUID(str(ctx.tenant_id))
+    user = await get_user(db, tenant_id, user_id)
+    if not user:
+        raise NotFoundError(message="Current user not found")
+    return user
+
+
+@router.patch("/me", response_model=UserModel)
+async def api_update_current_user(
+    request: UserUpdateRequest,
+    ctx: RequestContext = Depends(require_authenticated),
+    db: AsyncSession = Depends(get_db_from_context),
+) -> UserModel:
+    """Update the currently authenticated user's own profile.
+
+    Only ``display_name`` may be changed via self-service. Requests that
+    include ``role`` or ``status`` are rejected to prevent privilege
+    escalation by non-admins.
+    """
+    from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
+    if request.role is not None or request.status is not None:
+        raise AuthorizationError(message="Role and status can only be changed by tenant admins")
+    if not ctx.user_id or not ctx.tenant_id:
+        raise NotFoundError(message="Current user context is incomplete")
+    user_id = UUID(str(ctx.user_id))
+    tenant_id = UUID(str(ctx.tenant_id))
+    user = await update_user(
+        db, tenant_id, user_id, UserUpdateRequest(display_name=request.display_name)
+    )
+    if not user:
+        raise NotFoundError(message="Current user not found")
+    return user
+
+
 @router.get("/{user_id}", response_model=UserModel)
 async def api_get_user(
     user_id: UUID,
@@ -147,7 +194,7 @@ async def api_get_user(
     """Get a user by ID. Requires ``tenant_admin`` role."""
     user = await get_user(db, ctx.tenant_id, user_id)
     if not user:
-        raise NotFoundError(message = str(f"User {user_id} not found"))
+        raise NotFoundError(message=str(f"User {user_id} not found"))
     return user
 
 
@@ -161,7 +208,7 @@ async def api_update_user(
     """Update a user's role or status. Requires ``tenant_admin`` role."""
     user = await update_user(db, ctx.tenant_id, user_id, request)
     if not user:
-        raise NotFoundError(message = str(f"User {user_id} not found"))
+        raise NotFoundError(message=str(f"User {user_id} not found"))
     return user
 
 
@@ -174,4 +221,4 @@ async def api_deactivate_user(
     """Deactivate a user. Requires ``tenant_admin`` role."""
     deactivated = await deactivate_user(db, ctx.tenant_id, user_id)
     if not deactivated:
-        raise NotFoundError(message = str(f"User {user_id} not found"))
+        raise NotFoundError(message=str(f"User {user_id} not found"))

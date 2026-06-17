@@ -32,6 +32,8 @@ def resolve_oidc_config(config: OIDCProviderConfig) -> OIDCProviderConfig:
         # ideally pre-populate these from its centralized Settings so this
         # fallback is not reached in production.
         if not config.issuer_url:
+            # Historical compatibility alias. New gateway deployments should
+            # use services/api's canonical Clerk issuer setting instead.
             clerk_domain = os.getenv("CLERK_JWT_ISSUER", "").replace("https://", "")
             if clerk_domain:
                 config.issuer_url = f"https://{clerk_domain}"

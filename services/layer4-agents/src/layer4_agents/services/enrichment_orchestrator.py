@@ -17,8 +17,7 @@ Architecture:
 - L1 adapters = data fetchers (SEC EDGAR, web crawlers)
 - L3 graph    = downstream projection (deferred — orchestrator writes to L4 only)
 """
-
-
+import asyncio
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
@@ -260,6 +259,8 @@ class EnrichmentOrchestrator:
                 if source_result.get("success"):
                     sources_used.append(source.value)
                 results[source.value] = source_result
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.error(
                     "enrichment_source_failed",
@@ -344,6 +345,8 @@ class EnrichmentOrchestrator:
                     success_count += 1
                 else:
                     fail_count += 1
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.error("batch_enrichment_error", account_id=str(account_id), error_code="BATCH_ENRICHMENT_ERROR")
                 fail_count += 1
@@ -500,6 +503,8 @@ class EnrichmentOrchestrator:
 
         except httpx.HTTPStatusError as e:
             return EnrichmentOrchestrator__enrich_from_sec_edgarResult.model_validate({"success": False, "error": f"SEC API error: {e.response.status_code}"})
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("SEC enrichment failed", exc_info=e, extra={"entity_name": entity_name, "filing_date": filing_date})
             return EnrichmentOrchestrator__enrich_from_sec_edgarResult.model_validate({"success": False, "error": "SEC enrichment failed due to internal error"})
@@ -569,6 +574,8 @@ class EnrichmentOrchestrator:
             return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": f"HTTP {e.response.status_code} for {url}"})
         except httpx.ConnectError:
             return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": f"Connection failed for {url}"})
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error("Web crawl failed", exc_info=e, extra={"account_id": str(account.id), "url": url})
             return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": "Web crawl failed due to internal error"})

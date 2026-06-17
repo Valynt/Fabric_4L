@@ -6,7 +6,7 @@
  * Tabs: Trees | Evidence | Alternatives | Solution Cost
  */
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import DriverTreeShell from "@/components/workspace/DriverTreeShell";
 import { useAccount } from "@/hooks/useAccounts";
 import { useAccountHypotheses } from "@/hooks/useHypotheses";
@@ -21,12 +21,13 @@ import { TreePine, ArrowRight } from "lucide-react";
 import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Btn } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
-export default function DriverTreePage() {
-  const params = useParams<{ accountId: string; tab?: string }>();
-  const { accountId, tab = "trees" } = params;
+export default function DriverTreePage({ accountId }: StudioTabProps) {
   const { navigateTo } = useNavigation();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const sub = searchParams.get("sub") ?? "trees";
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
   const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
@@ -63,10 +64,6 @@ export default function DriverTreePage() {
   if (!account) {
     return <ErrorState title="Account not found." description="Select a valid account to continue in this workspace." fullPage />;
   }
-
-  const accountName = account?.name ?? "Account";
-  const industry = account?.industry ?? "Unknown";
-  const revenue = account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A";
 
   const hypotheses = hypothesesData?.hypotheses ?? [];
   const selectedHypothesis = hypotheses.find((h) => h.id === selectedTreeId);
@@ -172,11 +169,11 @@ export default function DriverTreePage() {
   );
 
   return (
-    <DriverTreeShell accountName={accountName} industry={industry} revenue={revenue}>
-      {tab === "trees" && <TreesTab />}
-      {tab === "evidence" && <EvidenceTabContent />}
-      {tab === "alternatives" && <AlternativesTab />}
-      {tab === "solution-cost" && <SolutionCostTab />}
+    <DriverTreeShell>
+      {sub === "trees" && <TreesTab />}
+      {sub === "evidence" && <EvidenceTabContent />}
+      {sub === "alternatives" && <AlternativesTab />}
+      {sub === "solution-cost" && <SolutionCostTab />}
     </DriverTreeShell>
   );
 }

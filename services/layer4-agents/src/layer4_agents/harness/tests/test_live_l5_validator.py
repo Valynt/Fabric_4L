@@ -169,23 +169,23 @@ class TestStatusMapping:
 class TestClaimTypeInference:
     def test_roi_in_value_pack_id(self):
         req = _req(value_pack_id="saas-roi-v1")
-        assert _infer_claim_type(req) == "roi_assumption"
+        assert _infer_claim_type(req) == "cost_savings_baseline"
 
     def test_benchmark_in_value_pack_id(self):
         req = _req(value_pack_id="benchmark-2024")
-        assert _infer_claim_type(req) == "benchmark"
+        assert _infer_claim_type(req) == "market_benchmark"
 
     def test_no_value_pack_id_defaults_to_outcome(self):
         req = _req(value_pack_id=None)
-        assert _infer_claim_type(req) == "outcome"
+        assert _infer_claim_type(req) == "customer_outcome"
 
     def test_unrecognized_value_pack_id_defaults_to_outcome(self):
         req = _req(value_pack_id="manufacturing-v2")
-        assert _infer_claim_type(req) == "outcome"
+        assert _infer_claim_type(req) == "customer_outcome"
 
     def test_roi_case_insensitive(self):
         req = _req(value_pack_id="ROI-Pack")
-        assert _infer_claim_type(req) == "roi_assumption"
+        assert _infer_claim_type(req) == "cost_savings_baseline"
 
 
 # ---------------------------------------------------------------------------

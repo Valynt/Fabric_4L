@@ -6,7 +6,7 @@ This module intentionally keeps the behavior previously embedded in
 ``executor.OrchestrationController`` so public controller methods can delegate
 without changing their contracts.
 """
-
+import asyncio
 import hashlib
 import json
 import logging
@@ -102,6 +102,8 @@ async def resolve_resume_policy(
                     tenant_id=tenant_id_for_metrics,
                     outcome="mismatch",
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.debug(
                 "Failed to record checkpoint collision mismatch metric", exc_info=True
@@ -135,6 +137,8 @@ async def resolve_resume_policy(
                 tenant_id=tenant_id_for_metrics,
                 outcome="match",
             )
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.debug(
             "Failed to record checkpoint collision match metric", exc_info=True

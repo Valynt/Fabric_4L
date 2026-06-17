@@ -18,7 +18,13 @@ export interface PageShellProps {
  */
 export function PageShell({ children, className, fullWidth }: PageShellProps) {
   return (
-    <div className={cn("mx-auto px-6 py-6", fullWidth ? "w-full" : "max-w-7xl", className)}>
+    <div
+      className={cn(
+        "mx-auto min-w-0 px-4 py-4 sm:px-6 sm:py-6",
+        fullWidth ? "w-full" : "w-full max-w-7xl",
+        className,
+      )}
+    >
       {children}
     </div>
   );

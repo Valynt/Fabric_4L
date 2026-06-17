@@ -1,17 +1,18 @@
-import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
+import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
+import { EmptyState } from "@/components/states/EmptyState";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -51,6 +52,7 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 
 const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
 const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
+const ClerkSsoCallbackPage = lazy(() => import("@/pages/ClerkSsoCallback"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
@@ -108,48 +110,145 @@ const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 
-function LegacyRootRedirect() {
-  const { isAuthenticated, isLoading } = useAuthContext();
+export const VALUEPACT_PUBLIC_SITE_URL = "https://valuepact.ai";
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[200px] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-    );
-  }
-
-  return isAuthenticated ? (
-    <Navigate to="/home" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  );
-}
-
-function ClerkRootRedirect() {
-  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
-  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-
-  const isLoading = !clerkLoaded || legacyIsLoading;
-  const isAuthenticated = clerkLoaded && !!isSignedIn;
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[200px] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
-      </div>
-    );
-  }
-
-  return isAuthenticated ? (
-    <Navigate to="/home" replace />
-  ) : (
-    <Navigate to="/sign-in" replace />
+function AcademyFollowUpState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="p-6">
+      <EmptyState title={title} description={description} />
+    </div>
   );
 }
 
 export function RootRedirect() {
-  return isClerkAuthEnabled() ? <ClerkRootRedirect /> : <LegacyRootRedirect />;
+  return (
+    <RootAuthStateAdapter>
+      {({ isLoading, isAuthenticated }) => {
+        if (isLoading) {
+          return (
+            <div className="flex h-full min-h-[200px] items-center justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+            </div>
+          );
+        }
+
+        return isAuthenticated ? (
+          <Navigate to="/home" replace />
+        ) : (
+          <ExternalRootRedirect />
+        );
+      }}
+    </RootAuthStateAdapter>
+  );
+}
+
+function ExternalRootRedirect() {
+  useEffect(() => {
+    if (import.meta.env.MODE === "test") {
+      return;
+    }
+    window.location.assign(VALUEPACT_PUBLIC_SITE_URL);
+  }, []);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <a className="text-sm text-primary underline-offset-4 hover:underline" href={VALUEPACT_PUBLIC_SITE_URL}>
+        Continue to ValuePact
+      </a>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Legacy flat-route redirects (Phase 1 launch-blocker remediation)
+// ═══════════════════════════════════════════════════════════════
+
+/** Map of legacy flat paths to canonical tenant-scoped paths. */
+export const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
+  "/discover/accounts": "/t/{tenantSlug}/accounts",
+  "/accounts": "/t/{tenantSlug}/accounts",
+  "/discover/jobs": "/t/{tenantSlug}/context/ingestion/jobs",
+  "/discover/extraction": "/t/{tenantSlug}/context/extraction",
+  "/discover/knowledge": "/t/{tenantSlug}/context/ontology",
+  "/discover/integrations": "/t/{tenantSlug}/context/integrations",
+  "/discover/sources": "/t/{tenantSlug}/context/sources",
+  "/library": "/t/{tenantSlug}/context",
+  "/library/models": "/t/{tenantSlug}/context/models",
+  "/library/packs": "/t/{tenantSlug}/context/packs",
+  "/library/authoring": "/t/{tenantSlug}/context/formulas",
+  "/context": "/t/{tenantSlug}/context",
+  "/context/packs": "/t/{tenantSlug}/context/packs",
+  "/context/models": "/t/{tenantSlug}/context/models",
+  "/context/formulas": "/t/{tenantSlug}/context/formulas",
+  "/context/value-trees/explorer": "/t/{tenantSlug}/context/value-trees/explorer",
+  "/context/agents": "/t/{tenantSlug}/context/agents",
+  "/context/ontology": "/t/{tenantSlug}/context/ontology",
+  "/context/ontology/entities": "/t/{tenantSlug}/context/ontology/entities",
+  "/context/ontology/graph": "/t/{tenantSlug}/context/ontology/graph",
+  "/context/ingestion/jobs": "/t/{tenantSlug}/context/ingestion/jobs",
+  "/context/extraction": "/t/{tenantSlug}/context/extraction",
+  "/context/integrations": "/t/{tenantSlug}/context/integrations",
+  "/context/sources": "/t/{tenantSlug}/context/sources",
+  "/context/targets": "/t/{tenantSlug}/context/targets",
+  "/model": "/t/{tenantSlug}/context/models",
+  "/model/value-studio": "/t/{tenantSlug}/context/models",
+  "/governance/traces": "/t/{tenantSlug}/governance/traces",
+  "/governance/audit/log": "/t/{tenantSlug}/governance/audit-log",
+  "/governance/audit-log": "/t/{tenantSlug}/governance/audit-log",
+  "/governance/evidence": "/t/{tenantSlug}/governance/evidence",
+  "/governance/provenance": "/t/{tenantSlug}/governance/provenance",
+  "/governance/compliance": "/t/{tenantSlug}/governance/compliance",
+  "/governance/benchmarks": "/t/{tenantSlug}/governance/benchmarks",
+  "/settings/governance/health": "/t/{tenantSlug}/settings/governance/health",
+  "/settings/governance/benchmarks": "/t/{tenantSlug}/settings/governance/benchmarks",
+};
+
+export function LegacyFlatRedirect() {
+  const { currentTenantSlug, isLoading } = useAuthContext();
+  const { pathname } = useLocation();
+  const normalized = pathname.replace(/\/$/, "") || "/";
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[200px] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    );
+  }
+
+  if (!currentTenantSlug) {
+    if (isClerkAuthEnabled()) {
+      return <Navigate to="/workspaces" replace />;
+    }
+    return <Navigate to="/home" replace />;
+  }
+
+  const targetTemplate = LEGACY_FLAT_ROUTE_MAP[normalized];
+  if (!targetTemplate) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Navigate to={targetTemplate.replace("{tenantSlug}", currentTenantSlug)} replace />;
+}
+
+export function LegacyIntelligenceRedirect() {
+  const { currentTenantSlug, isLoading } = useAuthContext();
+  const { accountId, tabId } = useParams<{ accountId: string; tabId: string }>();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[200px] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+      </div>
+    );
+  }
+
+  if (!currentTenantSlug || !accountId) {
+    return <Navigate to="/home" replace />;
+  }
+
+  const target = `/t/${currentTenantSlug}/accounts/${accountId}/intelligence/${tabId ?? "signals"}`;
+  return <Navigate to={target} replace />;
 }
 
 function AccountOverviewRedirect() {
@@ -172,7 +271,11 @@ const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tr
 
 export const router = createBrowserRouter([
   {
-    path: "/sign-in",
+    path: "/",
+    element: <RootRedirect />,
+  },
+  {
+    path: "/sign-in/*",
     element: <ClerkSignInPage />,
     handle: { accessPolicy: authPolicy },
   },
@@ -182,8 +285,23 @@ export const router = createBrowserRouter([
     handle: { accessPolicy: authPolicy },
   },
   {
-    path: "/sign-up",
+    path: "/login",
+    element: <Navigate to="/sign-in" replace />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/sign-up/*",
     element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/sso-callback/*",
+    element: <ClerkSsoCallbackPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/signup",
+    element: <Navigate to="/sign-up" replace />,
     handle: { accessPolicy: authPolicy },
   },
   {
@@ -212,8 +330,47 @@ export const router = createBrowserRouter([
     ),
     children: [
       {
-        path: "/",
-        element: <RootRedirect />,
+        path: "/dashboard",
+        element: <Navigate to="/home" replace />,
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/blog",
+        element: <Navigate to="/home" replace />,
+        handle: { accessPolicy: homePolicy },
+      },
+      // Legacy flat-route redirects (see Phase 1 launch-blocker remediation)
+      {
+        path: "/intelligence/:accountId/:tabId",
+        element: <LegacyIntelligenceRedirect />,
+      },
+      {
+        path: "/discover/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/accounts",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/library/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/context/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/model/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/governance/*",
+        element: <LegacyFlatRedirect />,
+      },
+      {
+        path: "/settings/governance/*",
+        element: <LegacyFlatRedirect />,
       },
       {
         path: "/home",
@@ -336,7 +493,11 @@ export const router = createBrowserRouter([
             <Navigate to="action-plan" replace />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
@@ -347,7 +508,11 @@ export const router = createBrowserRouter([
             </Suspense>
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
 
       // ═══════════════════════════════════════════════════════════════
@@ -770,7 +935,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/pillars/:pillarId",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Pillar detail coming soon</div>
+            <AcademyFollowUpState
+              title="Pillar detail is not enabled for this release"
+              description="Use the academy overview and quizzes while pillar-level content is being prepared for a later release."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.pillar") },
@@ -788,7 +956,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/resources",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Resources coming soon</div>
+            <AcademyFollowUpState
+              title="Resource library is not enabled for this release"
+              description="Use the academy overview for published guidance. Resource downloads will remain out of the release gate until the library is productized."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.resources") },
@@ -797,7 +968,10 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/academy/profile",
         element: (
           <UnifiedRouteGuard>
-            <div className="p-6 text-muted-foreground">Profile coming soon</div>
+            <AcademyFollowUpState
+              title="Academy profile is not enabled for this release"
+              description="Quiz progress remains available inside the academy flow. Profile-level reporting is tracked as a follow-up surface."
+            />
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantStdPolicy("academy.profile") },

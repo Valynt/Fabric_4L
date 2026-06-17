@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
@@ -372,6 +374,8 @@ async def create_or_update_integration(
                 outcome=AuditOutcome.SUCCESS,
                 details={"provider": provider.value, "enabled": request.enabled, "is_created": is_created},
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as audit_error:
             logger.error(
                 "Audit event failed for integration %s: %s",
@@ -392,6 +396,8 @@ async def create_or_update_integration(
                     f"{base_url}/v1/webhooks/crm/{provider.value}"
                     f"?tenant_id={tenant_id}&webhook_token={webhook_token}"
                 )
+        except asyncio.CancelledError:
+            raise
         except Exception:
             # Don't fail the request if webhook URL generation fails
             pass
@@ -432,6 +438,8 @@ async def delete_integration(
             outcome=AuditOutcome.SUCCESS,
             details={"provider": provider.value},
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as audit_error:
         logger.error(
             "Audit event failed for deleted integration %s:%s: %s",
@@ -484,6 +492,8 @@ async def trigger_sync(
                 outcome=AuditOutcome.SUCCESS,
                 details={"provider": provider.value, "sync_id": result["sync_id"]},
             )
+        except asyncio.CancelledError:
+            raise
         except Exception as audit_error:
             logger.error(
                 "Audit event failed for sync job %s: %s",

@@ -273,15 +273,41 @@ export const DEFAULT_USERS = [
 
 export const DEFAULT_API_KEYS = [
   {
-    id: 'k-1',
+    key_id: 'vf_00000000000000000000000000000001',
     name: 'Primary Key',
     prefix: 'pk_live_',
     tenant_id: 't-1',
-    is_enabled: true,
+    role: 'analyst',
+    enabled: true,
     created_at: '2026-01-01T00:00:00Z',
+    expires_at: undefined,
     last_used_at: '2026-01-03T00:00:00Z',
   },
+  {
+    key_id: 'vf_00000000000000000000000000000002',
+    name: 'Revoked Key',
+    prefix: 'pk_rev_',
+    tenant_id: 't-1',
+    role: 'read_only',
+    enabled: false,
+    revoked_at: '2026-01-04T00:00:00Z',
+    created_at: '2026-01-01T00:00:00Z',
+    expires_at: undefined,
+    last_used_at: undefined,
+  },
 ];
+
+export const DEFAULT_CREATED_API_KEY = {
+  key_id: 'vf_00000000000000000000000000000003',
+  name: 'New Key',
+  prefix: 'pk_new_',
+  tenant_id: 't-1',
+  role: 'analyst',
+  permissions: ['read:health'],
+  api_key: 'vf_testsecretvalue_12345',
+  expires_at: undefined,
+  created_at: '2026-01-05T00:00:00Z',
+};
 
 export const makeUseUsers = (overrides = {}) =>
   vi.fn(() => ({
@@ -298,6 +324,15 @@ export const makeUseApiKeys = (overrides = {}) =>
     isLoading: false,
     error: null,
     refetch: vi.fn(),
+    ...overrides,
+  }));
+
+export const makeUseCreateApiKey = (overrides = {}) =>
+  vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue(DEFAULT_CREATED_API_KEY),
+    isPending: false,
+    reset: vi.fn(),
     ...overrides,
   }));
 

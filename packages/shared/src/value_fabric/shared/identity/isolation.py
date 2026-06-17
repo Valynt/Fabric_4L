@@ -667,6 +667,7 @@ class TenantScopedCypher:
         params: Mapping[str, Any] | None = None,
         operation: str = "custom_tenant_query",
         labels: Sequence[str] = (),
+        allowlist_key: str | None = None,
     ) -> ScopedQuery:
         """Wrap a complex tenant-scoped Cypher query with strict metadata.
 
@@ -680,11 +681,25 @@ class TenantScopedCypher:
         tenant_predicate = f".{self._tenant_property}"
         if tenant_predicate not in cypher and ".tenantId" not in cypher:
             raise ValueError("custom tenant queries must include an explicit tenant predicate")
-        return self._query(
+        scoped = self._query(
             cypher,
             self._params(params),
             operation=operation,
             labels=labels,
+        )
+        if allowlist_key is None:
+            return scoped
+        if not allowlist_key.strip():
+            raise ValueError("tenant custom query allowlist_key must be non-empty when provided")
+        return ScopedQuery(
+            cypher=scoped.cypher,
+            params=scoped.params,
+            scope=scoped.scope,
+            tenant_id=scoped.tenant_id,
+            operation=scoped.operation,
+            labels=scoped.labels,
+            reason=scoped.reason,
+            allowlist_key=allowlist_key,
         )
 
     # -- Procedure wrappers --------------------------------------------------

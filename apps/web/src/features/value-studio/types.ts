@@ -9,6 +9,10 @@ export interface StudioTabProps {
   organizationId?: string;
 }
 
+export interface StudioTabRailProps {
+  accountId: string;
+}
+
 export type StudioTabId =
   | "action-plan"
   | "value-model"
@@ -28,6 +32,8 @@ export interface StudioTabDef {
   label: string;
   description: string;
   component: ComponentType<StudioTabProps> | null;
+  /** Optional tab-specific right-rail component rendered by StudioShell */
+  rightRail?: ComponentType<StudioTabRailProps>;
   queryKey?: string;
   status: StudioTabStatus;
   category: StudioTabCategory;

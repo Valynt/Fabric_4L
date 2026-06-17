@@ -7,6 +7,7 @@ appropriate for low-frequency authentication operations.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
@@ -44,6 +45,8 @@ def _get_pwd_context() -> CryptContext:
             try:
                 _test_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
                 _test_ctx.hash("probe")
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:
                 logger.warning(
                     "bcrypt/passlib compatibility issue detected (%s). "
@@ -94,5 +97,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     try:
         ok: bool = _get_pwd_context().verify(plain, hashed)
         return ok
+    except asyncio.CancelledError:
+        raise
     except Exception:
         return False

@@ -107,7 +107,7 @@ export function SSOButtons({
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            {enabled ? "Or continue with" : "SSO (Coming Soon)"}
+            {enabled ? "Or continue with" : "SSO not enabled"}
           </span>
         </div>
       </div>
@@ -127,12 +127,12 @@ export function SSOButtons({
             title={
               enabled
                 ? `Sign in with ${provider.name}`
-                : `${provider.name} SSO — Coming Soon (Task 69)`
+                : `${provider.name} SSO is not enabled in this environment`
             }
           >
             {provider.icon}
             <span className="flex-1 text-center">
-              {enabled ? provider.name : `${provider.name} — Coming Soon`}
+              {enabled ? provider.name : `${provider.name} SSO not enabled`}
             </span>
           </Button>
         ))}

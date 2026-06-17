@@ -13,12 +13,17 @@ These tests MUST run against PostgreSQL.
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 from uuid import uuid4
 from unittest.mock import MagicMock, patch
+
+from sqlalchemy import text
 
 from layer1_ingestion.shared.database import get_db_session, TenantContextError
 from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_L1_SRC = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion"
 
 pytestmark = pytest.mark.requires_postgres
 
@@ -129,8 +134,8 @@ class TestCeleryTaskRLSEnforcement:
 
     def test_task_with_invalid_tenant_id_fails_closed(self, postgres_db):
         """Task with invalid tenant_id fails with TenantContextError."""
-        fake_tenant_id = uuid4()
-        
+        fake_tenant_id = "not-a-valid-uuid"
+
         with pytest.raises(TenantContextError):
             with get_db_session(tenant_id=fake_tenant_id, require_tenant=True) as session:
                 session.query(ScrapingJob).first()
@@ -174,7 +179,7 @@ class TestPipelineChainTenantPropagation:
         # This is a static check - we verify the code pattern
         import re
         
-        main_file = 'src/layer1_ingestion/api/main.py'
+        main_file = _L1_SRC / 'api' / 'main.py'
         with open(main_file, 'r', encoding='utf-8') as f:
             content = f.read()
         
@@ -193,7 +198,7 @@ class TestPipelineChainTenantPropagation:
         """Verify app_monolith dispatch calls include tenant_id."""
         import re
         
-        app_monolith_file = 'src/api/app_monolith.py'
+        app_monolith_file = _L1_SRC / 'api' / 'app_monolith.py'
         with open(app_monolith_file, 'r', encoding='utf-8') as f:
             content = f.read()
         
@@ -215,17 +220,21 @@ class TestErrorHandlingTenantContext:
     def test_error_handler_uses_tenant_context(self, postgres_db, org_id, make_job):
         """Error handling in tasks uses tenant context."""
         job = make_job(tenant_id=org_id)
-        
+        job_id = job.id
+
         # Simulate error handling with tenant context
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            # Re-attach the job to the tenant-scoped session before mutating.
+            job = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert job is not None
             # This simulates the error handling pattern in tasks
             # where we update stage status with tenant context
             job.status = JobStatus.FAILED.value
-            session.commit()
-            
-            # Verify the update succeeded
-            session.refresh(job)
-            assert job.status == JobStatus.FAILED.value
+
+            # Verify the update succeeded by re-querying in the same transaction.
+            updated = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert updated is not None
+            assert updated.status == JobStatus.FAILED.value
 
     def test_error_handler_without_tenant_fails(self, postgres_db):
         """Error handling without tenant context fails."""
@@ -311,14 +320,19 @@ class TestFailJobTenantContext:
     def test_fail_job_uses_tenant_context(self, postgres_db, org_id, make_job):
         """_fail_job uses tenant context for updates."""
         job = make_job(tenant_id=org_id)
-        
+        job_id = job.id
+
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            # Re-attach the job to the tenant-scoped session before mutating.
+            job = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert job is not None
             # Simulate _fail_job updating job status
             job.status = JobStatus.FAILED.value
-            session.commit()
-            
-            session.refresh(job)
-            assert job.status == JobStatus.FAILED.value
+
+            # Verify the update succeeded by re-querying in the same transaction.
+            updated = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert updated is not None
+            assert updated.status == JobStatus.FAILED.value
 
 
 class TestCrawlUrlWithRoutingTenantContext:

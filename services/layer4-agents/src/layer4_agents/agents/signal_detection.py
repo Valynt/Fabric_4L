@@ -9,8 +9,7 @@ Orchestrates the complete signal detection pipeline:
 4. Persists enriched signals
 5. Emits streaming events to frontend
 """
-
-
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -283,6 +282,8 @@ class SignalDetectionAgent(BaseAgent):
                         )
                         await self._emit_event(event)
 
+                except asyncio.CancelledError:
+                    raise
                 except Exception as e:
                     logger.error(
                         f"Failed to persist signal {signal.id}: {e}",
@@ -328,6 +329,8 @@ class SignalDetectionAgent(BaseAgent):
             })
 
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(
                 f"Signal detection failed: {e}",
@@ -413,6 +416,8 @@ class SignalDetectionAgent(BaseAgent):
                 trace_id=ctx.trace_id,
             )
             return result
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Layer 2 extraction failed: {e}")
             # Return empty result on failure
@@ -504,6 +509,8 @@ class SignalDetectionAgent(BaseAgent):
                 for match in evidence_matches
             ]
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Evidence matching failed for signal {signal.id}: {e}")
 
@@ -542,6 +549,8 @@ class SignalDetectionAgent(BaseAgent):
                 signal.impact_unit = quantification.get("impact_unit")
                 signal.impact_formula_id = quantification.get("formula_id")
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning(f"Impact quantification failed for signal {signal.id}: {e}")
 
@@ -702,6 +711,8 @@ class SignalDetectionAgent(BaseAgent):
                 total_prompt + total_completion,
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.warning("Signal detection LLM layer failed", extra={"code": "llm_failed"})
             agent_result.payload = {
@@ -751,6 +762,8 @@ class SignalDetectionAgent(BaseAgent):
                     tenant_id=ctx.tenant_id,
                 )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Signal persistence failed: {e}")
             raise
@@ -764,6 +777,8 @@ class SignalDetectionAgent(BaseAgent):
         if self.stream_callback:
             try:
                 await self.stream_callback(event.to_json())
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning(f"Failed to emit event: {e}")
 
@@ -794,6 +809,8 @@ class SignalDetectionAgent(BaseAgent):
 
             return [PainSignal.model_validate(data) for data in signals_data]
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.error(f"Failed to retrieve account signals: {e}")
             return []

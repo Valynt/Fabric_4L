@@ -1,0 +1,219 @@
+# Local E2E override for docker-compose.backend-integrated.yml
+# Fixes module-path, dependency, and healthcheck issues so all six layers can
+# start from a clean checkout without Infisical.
+
+x-e2e-local-env: &e2e-local-env
+  - path: .env.generated
+    required: false
+  - path: .env.e2e-local
+    required: false
+
+services:
+  neo4j:
+    environment:
+      NEO4J_AUTH: neo4j/SecureLocalDevPass123
+
+  layer1:
+    env_file: *e2e-local-env
+    build:
+      args:
+        INSTALL_PLAYWRIGHT_BROWSERS: "true"
+        BASE_IMAGE: ${BASE_IMAGE:-}
+    environment:
+      PYTHONPATH: /app:/app/src
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL_SYNC: postgresql+psycopg://postgres:postgres@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://redis:6379/0
+      LAYER1_S3_ENDPOINT: http://minio:9000
+      EXTRACTION_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+      OPENAI_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      layer1-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  layer1-worker:
+    env_file: *e2e-local-env
+    build:
+      args:
+        INSTALL_PLAYWRIGHT_BROWSERS: "true"
+        BASE_IMAGE: ${BASE_IMAGE:-}
+    environment:
+      PYTHONPATH: /app:/app/src
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL_SYNC: postgresql+psycopg://postgres:postgres@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://redis:6379/0
+      LAYER1_S3_ENDPOINT: http://minio:9000
+      EXTRACTION_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+      OPENAI_MODEL: meta-llama/Llama-3.3-70B-Instruct-Turbo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      layer1-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "celery", "-A", "layer1_ingestion.shared.tasks", "inspect", "ping", "--timeout=5"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
+
+  layer1-migrate:
+    env_file: *e2e-local-env
+    build:
+      context: ./services/layer1-ingestion
+      dockerfile: ./Dockerfile
+      args:
+        INSTALL_PLAYWRIGHT_BROWSERS: "false"
+        BASE_IMAGE: ${BASE_IMAGE:-}
+    container_name: vf-bi-layer1-migrate
+    command: alembic upgrade head
+    environment:
+      PYTHONPATH: /app:/app/src
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      LAYER1_DATABASE_URL_SYNC: postgresql+psycopg://postgres:postgres@postgres:5432/ingestion
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev-network
+    restart: "no"
+    healthcheck:
+      disable: true
+
+  layer2:
+    env_file: *e2e-local-env
+    environment:
+      PYTHONPATH: /app:/app/src:/app/canonical
+      LAYER2_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/layer2_extraction
+      LAYER2_DATABASE_URL_SYNC: postgresql+psycopg://postgres:postgres@postgres:5432/layer2_extraction
+      PENDING_INGESTION_SQLITE_PATH: /tmp/pending_ingestion.db
+      EXTRACTION_MODEL: e2e-local-extraction-model
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_PASSWORD: SecureLocalDevPass123
+      LAYER3_API_URL: http://layer3:8001
+    volumes:
+      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
+
+  layer3:
+    env_file: *e2e-local-env
+    environment:
+      PYTHONPATH: /app:/app/src
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_PASSWORD: SecureLocalDevPass123
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
+    command: >
+      uvicorn src.api.main:app --host 0.0.0.0 --port 8001
+
+  layer4:
+    env_file: *e2e-local-env
+    environment:
+      PYTHONPATH: /app:/app/src:/app/canonical
+      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+      CHECKPOINT_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
+      REDIS_URL: redis://redis:6379/0
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_PASSWORD: SecureLocalDevPass123
+      LAYER1_URL: http://layer1:8000
+      LAYER1_API_URL: http://layer1:8000
+      LAYER4_LAYER1_API_URL: http://layer1:8000
+      LAYER2_URL: http://layer2:8000
+      LAYER2_API_URL: http://layer2:8000
+      LAYER4_LAYER2_API_URL: http://layer2:8000
+      LAYER3_URL: http://layer3:8001
+      LAYER3_API_URL: http://layer3:8001
+      LAYER4_LAYER3_API_URL: http://layer3:8001
+      LAYER5_GROUND_TRUTH_URL: http://layer5:8005
+      LAYER4_LAYER5_API_URL: http://layer5:8005
+      LAYER6_BENCHMARKS_URL: http://layer6:8006
+      LAYER4_LAYER6_API_URL: http://layer6:8006
+      LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS: "true"
+      LAYER4_DEFAULT_VALUE_DRIVER_IDS: "se-efficiency,win-rate-lift,cycle-time-reduction"
+      LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE: "true"
+      LAYER4_PROMPTS_ROOT: /app/prompts
+    volumes:
+      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
+      - ./services/layer4-agents/prompts:/app/prompts:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  layer5-migrate:
+    env_file: *e2e-local-env
+    environment:
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth
+    healthcheck:
+      disable: true
+
+  layer5:
+    env_file: *e2e-local-env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth
+      REDIS_URL: redis://redis:6379/0
+      LAYER3_BASE_URL: http://layer3:8001
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_PASSWORD: SecureLocalDevPass123
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  layer6:
+    env_file: *e2e-local-env
+    environment:
+      PYTHONPATH: /app:/app/src
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer6_benchmarks
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/layer6_benchmarks
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_PASSWORD: SecureLocalDevPass123
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      API_KEY_HMAC_SECRET: dev-local-hmac-secret-do-not-use-in-production-32c
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
+      LAYER3_API_KEY: dev-local-layer3-api-key-32chars
+      LAYER5_API_KEY: dev-local-layer5-api-key-32chars
+      LOG_LEVEL: INFO
+    volumes:
+      - ./contracts:/contracts:ro
+    command: >
+      uvicorn layer6_benchmarks.api.main:app --host 0.0.0.0 --port 8006
+
+  minio-init:
+    env_file: *e2e-local-env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 $${MINIO_ROOT_USER:?} $${MINIO_ROOT_PASSWORD:?};
+      /usr/bin/mc mb myminio/layer1-raw-html || true;
+      /usr/bin/mc anonymous set none myminio/layer1-raw-html;
+      exit 0;
+      "

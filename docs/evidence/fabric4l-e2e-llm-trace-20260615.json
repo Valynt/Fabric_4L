@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "run_date": "2026-06-16T21:26:30.953515+00:00",
+    "verdict": "BLOCKED_FOR_REAL_LLM",
+    "reason": "No LLM API key is configured in the environment"
+  },
+  "provider_configuration": {
+    "llm_provider": "together",
+    "layer4_llm_provider": "together",
+    "llm_model_env": "gpt-4o",
+    "layer4_default_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "layer4_together_base_url": "https://api.together.ai/v1"
+  },
+  "credential_check": {
+    "TOGETHER_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    },
+    "LAYER4_TOGETHER_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    },
+    "OPENAI_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    },
+    "ANTHROPIC_API_KEY": {
+      "set": false,
+      "value_redacted": null
+    }
+  },
+  "intended_invocations": [
+    {
+      "step": "l4_roi_analysis",
+      "endpoint": "POST /v1/analysis/roi",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "purpose": "Generate ROI scenarios from value drivers for Nexus Analytics"
+    },
+    {
+      "step": "l4_create_case",
+      "endpoint": "POST /v1/cases",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "purpose": "Synthesize business-case narrative with evidence trace"
+    }
+  ],
+  "actual_invocations": [],
+  "notes": [
+    "Layer 4 workflows that require LLM invocation returned heuristic/seeded responses because no provider API key was available.",
+    "The API transcript records the exact HTTP responses for these calls; no LLM HTTP request was dispatched."
+  ]
+}

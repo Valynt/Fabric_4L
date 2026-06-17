@@ -41,7 +41,8 @@ from typing import NamedTuple
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_ENV_FILE = REPO_ROOT / "value-fabric" / ".env"
+DEFAULT_ENV_FILE = REPO_ROOT / ".env"
+DEFAULT_SCHEMA_FILE = REPO_ROOT / ".env.example"
 INFISICAL_HOST_DEFAULT = "https://app.infisical.com"
 
 # Placeholder values that should not be pushed
@@ -52,6 +53,8 @@ PLACEHOLDER_PATTERNS = [
     r"^changeme-in-production",
     r"^your-",
     r"^REPLACE_WITH_",
+    r"^<CHANGE",
+    r"^<GENERATE",
 ]
 
 # ---------------------------------------------------------------------------
@@ -252,8 +255,46 @@ def is_placeholder(value: str) -> bool:
     return False
 
 
+def load_schema_from_example(path: Path) -> dict[str, str]:
+    """Parse .env.example-style path annotations into a variable→path map.
+
+    Supports two annotation styles, both treated as section headers:
+      - Section header:   # /shared  —  description
+      - Explicit comment: # Infisical path: /apps/web
+    """
+    schema: dict[str, str] = {}
+    if not path.exists():
+        return schema
+
+    current_path = "/app"
+    section_re = re.compile(r"^#\s*(/[/\w\-]+)\s*(?:$|[—–-])")
+    explicit_re = re.compile(r"^#\s*Infisical path:\s*(/[/\w\-]+)")
+
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if line.startswith("#"):
+            if (m := explicit_re.match(line)) or (m := section_re.match(line)):
+                current_path = m.group(1)
+            continue
+
+        if "=" not in line:
+            continue
+
+        key = line.split("=", 1)[0].strip()
+        if key in SKIP_VARS:
+            continue
+
+        schema[key] = current_path
+
+    return schema
+
+
 def classify_secrets(
     env_vars: dict[str, str],
+    schema: dict[str, str],
     include_empty: bool,
     path_override: str | None,
 ) -> tuple[list[Secret], list[str], list[str]]:
@@ -268,7 +309,7 @@ def classify_secrets(
 
         if not value:
             if include_empty:
-                path = path_override or SECRET_SCHEMA.get(key, "/app")
+                path = path_override or schema.get(key, "/app")
                 to_push.append(Secret(key, value, path))
             else:
                 skipped_empty.append(key)
@@ -278,7 +319,7 @@ def classify_secrets(
             skipped_placeholder.append(key)
             continue
 
-        path = path_override or SECRET_SCHEMA.get(key, "/app")
+        path = path_override or schema.get(key, "/app")
         to_push.append(Secret(key, value, path))
 
     return to_push, skipped_placeholder, skipped_empty
@@ -496,6 +537,8 @@ def main() -> None:
     )
     parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE),
                         help=f"Path to .env file (default: {DEFAULT_ENV_FILE})")
+    parser.add_argument("--schema-file", default=str(DEFAULT_SCHEMA_FILE),
+                        help=f"Path to .env.example-style schema file (default: {DEFAULT_SCHEMA_FILE})")
     parser.add_argument("--environment", default=None,
                         help="Infisical environment slug (default: from .env INFISICAL_ENVIRONMENT)")
     parser.add_argument("--dry-run", action="store_true",
@@ -515,6 +558,13 @@ def main() -> None:
 
     # ── Read .env ──────────────────────────────────────────────────────────
     env_vars = parse_env_file(env_file)
+
+    # ── Load canonical path schema from .env.example ─────────────────────────
+    schema_file = Path(args.schema_file)
+    schema = load_schema_from_example(schema_file)
+    if not schema:
+        print(f"WARNING: no schema loaded from {schema_file}; using fallback mapping.", file=sys.stderr)
+        schema = SECRET_SCHEMA
 
     # ── Read Infisical credentials from .env (or real environment) ─────────
     client_id     = os.getenv("INFISICAL_CLIENT_ID")     or env_vars.get("INFISICAL_CLIENT_ID", "")
@@ -541,7 +591,7 @@ def main() -> None:
 
     # ── Classify secrets ───────────────────────────────────────────────────
     to_push, skipped_placeholder, skipped_empty = classify_secrets(
-        env_vars, args.include_empty, args.path
+        env_vars, schema, args.include_empty, args.path
     )
 
     # ── Group by path ──────────────────────────────────────────────────────

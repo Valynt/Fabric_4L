@@ -15,8 +15,7 @@ Intents:
   account_inquiry, promote_signal, validate_hypothesis, generate_business_case,
   general_question
 """
-
-
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -164,6 +163,8 @@ class LLMIntentClassifier:
 
             return self._validate_and_build(parsed)
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             logger.warning("LLM intent classification failed: %s", e)
             return self._fallback(message)

@@ -170,7 +170,6 @@ ROI_WORKFLOW_CONFIG = WorkflowConfig(
             node_type=NodeType.TOOL,
             tool_name="evaluate_formula",
         ),
-        NodeConfig(id="validate", name="Validate Results", node_type=NodeType.CONDITION),
         NodeConfig(
             id="aggregate", name="Aggregate ROI", node_type=NodeType.TOOL, tool_name="aggregate_roi"
         ),
@@ -186,11 +185,7 @@ ROI_WORKFLOW_CONFIG = WorkflowConfig(
         EdgeConfig(source="load_prospect", target="fetch_benchmarks"),
         EdgeConfig(source="fetch_benchmarks", target="substitute_vars"),
         EdgeConfig(source="substitute_vars", target="evaluate"),
-        EdgeConfig(source="evaluate", target="validate"),
-        EdgeConfig(source="validate", target="aggregate", condition="results_valid"),
-        EdgeConfig(
-            source="validate", target="substitute_vars", condition="retry_needed", priority=1
-        ),
+        EdgeConfig(source="evaluate", target="aggregate"),
         EdgeConfig(source="aggregate", target="generate_hypotheses"),
         EdgeConfig(source="generate_hypotheses", target="end"),
     ],

@@ -15,9 +15,10 @@ export default function App() {
         <AuthProvider>
           <TooltipProvider>
             <OfflineBanner />
-            <ClerkAuthBridge />
-            <Toaster />
-            <RouterProvider router={router} />
+            <ClerkAuthBridge>
+              <Toaster />
+              <RouterProvider router={router} />
+            </ClerkAuthBridge>
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>

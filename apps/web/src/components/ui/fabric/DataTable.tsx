@@ -41,8 +41,8 @@ export function DataTable<T>({
     const legacyColumns = columns as string[];
     const safeRows = rows ?? [];
     return (
-      <div className={cn("rounded-lg border border-border overflow-hidden overflow-x-auto", className)}>
-        <Table>
+      <div className={cn("w-full overflow-x-auto rounded-lg border border-border", className)}>
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               {legacyColumns.map((col, idx) => (
@@ -58,7 +58,7 @@ export function DataTable<T>({
           <TableBody>
             {safeRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={legacyColumns.length} className="h-32 text-center text-muted-foreground text-sm">
+                <TableCell colSpan={legacyColumns.length} role="status" className="h-32 text-center text-muted-foreground text-sm">
                   {emptyMessage}
                 </TableCell>
               </TableRow>
@@ -95,8 +95,8 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn("rounded-lg border border-border overflow-hidden overflow-x-auto", className)}>
-      <Table>
+    <div className={cn("w-full overflow-x-auto rounded-lg border border-border", className)}>
+      <Table className="min-w-full">
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             {typedColumns.map((col) => (
@@ -112,7 +112,7 @@ export function DataTable<T>({
         <TableBody>
           {safeData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={typedColumns.length} className="h-32 text-center text-muted-foreground text-sm">
+              <TableCell colSpan={typedColumns.length} role="status" className="h-32 text-center text-muted-foreground text-sm">
                 {emptyMessage}
               </TableCell>
             </TableRow>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     ServiceUnavailableError,
@@ -476,6 +478,8 @@ async def start_prospect_analysis(
                 overall_status = WorkflowStartStatus.STARTED
                 message = f"Workflow {workflow_id} started for prospect analysis"
 
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 # Workflow trigger failed, but prospect was saved
                 overall_status = WorkflowStartStatus.DEGRADED
@@ -573,6 +577,8 @@ async def start_prospect_analysis(
         )
 
     except (HTTPException, ValueFabricException):
+        raise
+    except asyncio.CancelledError:
         raise
     except Exception:
         # Emit failure audit

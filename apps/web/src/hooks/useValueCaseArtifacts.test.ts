@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { createWrapper } from '@/test-utils';
+import React, { type ReactNode } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { createWrapper, createTestQueryClient } from '@/test-utils';
+import { server } from '@/test/mocks/server';
+import { QK } from './queryKeys';
 import { useValueCaseArtifacts, type ValueCaseArtifactsInput } from './useValueCaseArtifacts';
 
 const mutateAsync = vi.fn();
@@ -8,8 +14,10 @@ vi.mock('./useNarratives', () => ({
   useGenerateNarrative: () => ({ mutateAsync }),
 }));
 
+const accountId = 'acc-123';
+
 const sampleInput: ValueCaseArtifactsInput = {
-  account_id: 'acct-1',
+  account_id: accountId,
   account_name: 'Acme',
   stakeholders: ['CFO'],
   accepted_evidence: ['e1'],
@@ -18,14 +26,50 @@ const sampleInput: ValueCaseArtifactsInput = {
   risk_notes: ['risk-1'],
 };
 
+function createApiCase(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'vc-1',
+    account_id: accountId,
+    title: 'Value Case — Acme',
+    status: 'draft',
+    audit: {
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-02T00:00:00.000Z',
+    },
+    executive_summary: '',
+    value_case: {
+      inputs: sampleInput,
+      selected_scenario_id: null,
+      sections: [],
+      assumption_ids: [],
+      evidence_ids: [],
+      stakeholder_framing: [{ persona: 'CFO' }],
+      claim_ids: [],
+      roi_snapshot: null,
+    },
+    assumptions: [],
+    risks: sampleInput.risk_notes,
+    ...overrides,
+  };
+}
+
 describe('useValueCaseArtifacts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     mutateAsync.mockResolvedValue({
       id: 'n-1',
-      title: 'Narrative 1',
-      sections: [],
+      title: 'Value case narrative — Acme',
+      sections: [
+        {
+          section_type: 'executive_summary',
+          title: 'Executive Summary',
+          summary: 'Projected strong ROI based on accepted evidence.',
+          detail: {},
+          data_source: '',
+          caller_supplied: false,
+          verified: false,
+        },
+      ],
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-01T00:00:00.000Z',
     });
@@ -38,27 +82,197 @@ describe('useValueCaseArtifacts', () => {
     expect(result.current.isLoadingVersions).toBe(false);
   });
 
-  it('generates and persists a new artifact (success path)', async () => {
-    const { result } = renderHook(() => useValueCaseArtifacts('acct-1'), { wrapper: createWrapper() });
+  it('loads versions from the backend', async () => {
+    const apiCase = createApiCase({ id: 'vc-loaded' });
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json([apiCase])
+      )
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+
+    expect(result.current.versions).toHaveLength(1);
+    expect(result.current.versions[0]?.id).toBe('vc-loaded');
+    expect(result.current.selectedVersion?.id).toBe('vc-loaded');
+  });
+
+  it('does not write to the legacy value-case-artifacts localStorage key', async () => {
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const apiCase = createApiCase({ id: 'vc-local' });
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json([apiCase])
+      )
+    );
+
+    renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() =>
+      expect(setItemSpy).not.toHaveBeenCalledWith(
+        'value-case-artifacts',
+        expect.any(String)
+      )
+    );
+    setItemSpy.mockRestore();
+  });
+
+  it('generates and persists a value case to the backend and invalidates the query', async () => {
+    let cases: unknown[] = [];
+    let capturedBody: unknown = null;
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      ),
+      http.post(`/api/v1/accounts/${accountId}/value-case`, async ({ request }) => {
+        capturedBody = await request.json();
+        const created = createApiCase({ id: 'vc-new' });
+        cases = [created];
+        return HttpResponse.json(created, { status: 201 });
+      })
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions).toHaveLength(0);
 
     await act(async () => {
       await result.current.generateArtifact.mutateAsync(sampleInput);
     });
 
-    await waitFor(() => expect(result.current.versions).toHaveLength(1));
-    expect(result.current.selectedVersion?.id).toBe('acct-1-v1');
-    expect(result.current.versions[0]?.business_case.summary).toContain('200% ROI');
-  });
-
-  it('surfaces mutation failure and keeps versions empty (error path)', async () => {
-    mutateAsync.mockRejectedValueOnce(new Error('narrative failed'));
-    const { result } = renderHook(() => useValueCaseArtifacts('acct-1'), { wrapper: createWrapper() });
-
-    await act(async () => {
-      await expect(result.current.generateArtifact.mutateAsync(sampleInput)).rejects.toThrow('narrative failed');
+    expect(capturedBody).toMatchObject({
+      title: 'Value Case — Acme',
+      value_case: {
+        inputs: sampleInput,
+        sections: [
+          expect.objectContaining({
+            type: 'executive_summary',
+            title: 'Executive Summary',
+            content: 'Projected strong ROI based on accepted evidence.',
+          }),
+        ],
+      },
     });
 
+    await waitFor(() => expect(result.current.versions).toHaveLength(1));
+    expect(result.current.versions[0]?.id).toBe('vc-new');
+    expect(result.current.selectedVersion?.id).toBe('vc-new');
+  });
+
+  it('refresh rehydrates from the backend', async () => {
+    let cases: unknown[] = [];
+    const queryClient = createTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      React.createElement(
+        MemoryRouter,
+        {},
+        React.createElement(QueryClientProvider, { client: queryClient }, children)
+      );
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      )
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions).toHaveLength(0);
+
+    cases = [createApiCase({ id: 'vc-refreshed' })];
+
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: QK.valueCases.account(accountId) });
+    });
+
+    await waitFor(() => expect(result.current.versions).toHaveLength(1));
+    expect(result.current.versions[0]?.id).toBe('vc-refreshed');
+  });
+
+  it('update persists changes to the backend and refreshes the version', async () => {
+    let capturedBody: unknown = null;
+    let cases: unknown[] = [createApiCase()];
+    const updatedCase = createApiCase({
+      value_case: {
+        ...createApiCase().value_case,
+        selected_scenario_id: 'scenario-2',
+      },
+    });
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      ),
+      http.patch(`/api/v1/accounts/${accountId}/value-cases/vc-1`, async ({ request }) => {
+        capturedBody = await request.json();
+        cases = [updatedCase];
+        return HttpResponse.json(updatedCase);
+      })
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions[0]?.value_case?.selected_scenario_id).toBeNull();
+
+    await act(async () => {
+      await result.current.updateArtifact.mutateAsync({
+        caseId: 'vc-1',
+        fields: { selected_scenario_id: 'scenario-2' },
+      });
+    });
+
+    expect(capturedBody).toEqual({
+      value_case: { selected_scenario_id: 'scenario-2' },
+    });
+
+    await waitFor(() =>
+      expect(result.current.versions[0]?.value_case?.selected_scenario_id).toBe('scenario-2')
+    );
+  });
+
+  it('publishes a value case and refreshes the version', async () => {
+    let cases: unknown[] = [createApiCase({ id: 'vc-publish' })];
+    const publishedCase = createApiCase({ id: 'vc-publish', status: 'published' });
+
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json(cases)
+      ),
+      http.post(`/api/v1/accounts/${accountId}/value-cases/vc-publish/publish`, () => {
+        cases = [publishedCase];
+        return HttpResponse.json(publishedCase);
+      })
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false));
+    expect(result.current.versions[0]?.status).toBe('draft');
+
+    await act(async () => {
+      await result.current.publishArtifact.mutateAsync('vc-publish');
+    });
+
+    await waitFor(() => expect(result.current.versions[0]?.status).toBe('published'));
+  });
+
+  it('exposes an error when the initial load fails', async () => {
+    server.use(
+      http.get(`/api/v1/accounts/${accountId}/value-cases`, () =>
+        HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+      )
+    );
+
+    const { result } = renderHook(() => useValueCaseArtifacts(accountId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isLoadingVersions).toBe(false), { timeout: 3000 });
+    expect(result.current.versionsError).toBeTruthy();
     expect(result.current.versions).toEqual([]);
-    await waitFor(() => expect(result.current.generateArtifact.isError).toBe(true));
   });
 });

@@ -5,8 +5,7 @@ from __future__ import annotations
 Provides async HTTP client for Layer 3 Knowledge Graph API with automatic
 tenant context injection for all queries.
 """
-
-
+import asyncio
 import logging
 import os
 from typing import Any
@@ -169,6 +168,8 @@ class Layer3Client:
             except (httpx.ConnectError, httpx.TimeoutException) as e:
                 # Retry transient network errors
                 last_error = e
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 raise Layer3ClientError(f"Request failed: {e}")
 

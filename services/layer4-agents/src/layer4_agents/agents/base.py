@@ -18,6 +18,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
+from value_fabric.shared.governance.abom import AgentBillOfMaterials
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 _PLATFORM_CONTRACT_PYTHON = next(
@@ -29,6 +30,8 @@ if _PLATFORM_CONTRACT_PYTHON and str(_PLATFORM_CONTRACT_PYTHON) not in sys.path:
 
 try:  # pragma: no cover - contract tests configure this path explicitly
     from agent_contracts import build_agent_output_envelope, validate_agent_output
+except asyncio.CancelledError:
+    raise
 except Exception:  # pragma: no cover - runtime remains warning-only if package import fails
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
@@ -187,6 +190,7 @@ class BaseAgent(ABC):
         self.agent_id = agent_id or f"{self.agent_type.lower()}-{self._id_gen.generate()[:8]}"
         self.config = config or {}
         self.message_bus = message_bus
+        self.abom: AgentBillOfMaterials | None = None
         self.state = AgentState(
             agent_id=self.agent_id,
             agent_type=self.agent_type,
@@ -195,12 +199,32 @@ class BaseAgent(ABC):
         self._initialized = False
         self._execution_lock = asyncio.Lock()
 
+    @staticmethod
+    def _default_manifest_dir() -> Path:
+        # base.py: agents -> layer4_agents -> src -> layer4-agents -> manifests
+        return Path(__file__).resolve().parents[3] / "manifests"
+
     async def initialize(self) -> None:
-        """Initialize agent resources."""
+        """Initialize agent resources and load the GATE ABOM manifest."""
         if self._initialized:
             return
 
         self.state.status = AgentStatus.INITIALIZING
+
+        # GATE Phase 2: load agent bill of materials
+        manifest_path = self.config.get("manifest_path")
+        if manifest_path:
+            from value_fabric.shared.governance.abom import load_abom
+
+            self.abom = load_abom(manifest_path)
+        else:
+            self.abom = AgentBillOfMaterials.from_manifest_dir(
+                self._default_manifest_dir(),
+                self.agent_type,
+                override_agent_id=self.agent_id,
+            )
+        self.state.metadata["abom_hash"] = self.abom.manifest_hash()
+
         await self._initialize_resources()
         self._initialized = True
         self.state.status = AgentStatus.IDLE
@@ -236,6 +260,11 @@ class BaseAgent(ABC):
 
         mode = os.getenv("AGENT_SEMANTIC_CONTRACT_MODE", "warn").strip().lower()
         return "strict" if mode == "strict" else "warn"
+
+    def _replay_enabled(self) -> bool:
+        """Resolve GATE Phase 3 replay snapshot commit mode."""
+
+        return os.getenv("AGENT_REPLAY_MODE", "enabled").lower() != "disabled"
 
     def _validate_agent_output_contract(
         self,
@@ -338,19 +367,43 @@ class BaseAgent(ABC):
 
         # ── GATE Phase 2: ToolGateway injection ──
         tool_gateway = None
-        if "tool_registry" in ctx and "abom" in ctx:
+        if "tool_registry" in ctx and self.abom is not None:
             try:
                 from value_fabric.shared.governance.tool_gateway import ToolGateway
 
                 tool_gateway = ToolGateway(
                     registry=ctx["tool_registry"],
-                    abom=ctx["abom"],
+                    abom=self.abom,
                     tenant_id=ctx.get("tenant_id"),
                     trace_id=ctx.get("trace_id"),
                 )
                 ctx["tool_gateway"] = tool_gateway
             except ImportError:
                 pass  # GATE not installed — graceful degradation
+
+        # ── GATE Phase 3: MemoryGateway injection ──
+        memory_gateway = None
+        if "memory_gateway" in ctx:
+            memory_gateway = ctx["memory_gateway"]
+        elif "retrieval_engine" in ctx and self.abom is not None:
+            try:
+                from value_fabric.shared.governance.memory_gateway import MemoryGateway
+
+                memory_gateway = MemoryGateway(
+                    retrieval_engine=ctx["retrieval_engine"],
+                    tenant_id=ctx.get("tenant_id"),
+                    agent_id=self.agent_id,
+                    trace_id=ctx.get("trace_id"),
+                    source_blocklist=ctx.get("memory_source_blocklist"),
+                )
+                ctx["memory_gateway"] = memory_gateway
+            except ImportError:
+                pass
+
+        if memory_gateway is not None:
+            # ctx was already snapshotted into state.context, so mirror the
+            # injected gateway back so that persisted state reflects it.
+            self.state.context["memory_gateway"] = memory_gateway
 
         # ── GATE Phase 3: ReplayRecorder injection ──
         replay_recorder = None
@@ -361,7 +414,7 @@ class BaseAgent(ABC):
                 replay_recorder = ReplayRecorder(
                     agent_id=self.agent_id,
                     agent_type=self.agent_type,
-                    abom=ctx.get("abom"),
+                    abom=self.abom,
                     tenant_id=ctx.get("tenant_id"),
                     trace_id=ctx.get("trace_id"),
                 )
@@ -389,9 +442,12 @@ class BaseAgent(ABC):
             self.state.completed_at = self._clock.now()
 
             # ── GATE Phase 3: Commit replay snapshot ──
-            if replay_recorder is not None and tool_gateway is not None:
+            if self._replay_enabled() and replay_recorder is not None and tool_gateway is not None:
                 replay_recorder.record_tool_invocations(tool_gateway.invocation_log)
+                if memory_gateway is not None:
+                    replay_recorder.record_memory_accesses(memory_gateway.access_log)
                 await replay_recorder.commit()
+                self.state.metadata["replay_committed"] = True
 
             # Send completion event
             if self.message_bus:
@@ -403,6 +459,8 @@ class BaseAgent(ABC):
 
             return result
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             self.state.status = AgentStatus.FAILED
             self.state.errors.append(f"{type(e).__name__}: agent_execution_failed")

@@ -14,6 +14,7 @@ Enhanced for Phase 1 security hardening:
 """
 
 
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -350,7 +351,7 @@ class AuditedGraphMutation:
                 "entity_id": f"{label}:{node_id}",
                 "action": action,
                 "agent": "AuditedGraphMutation",
-                "details": details,
+                "details": json.dumps(details, default=str),
                 "request_id": self.request_id,
                 "account_id": self.account_id,
                 "operation_source": self.operation_source,

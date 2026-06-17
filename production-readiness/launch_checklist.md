@@ -11,6 +11,7 @@ Production launch requires scorecard review before approval.
 | Tenant isolation evidence retained | Platform Security | Tenant isolation gate and route tenant propagation artifacts retained in CI. | REQUIRED |
 | DR and rollback evidence retained | SRE | Backup, restore, rollback, and deploy evidence artifacts retained in CI or release archive. | REQUIRED |
 | Billing launch decision recorded | Product Engineering | Paid launch scope and billing evidence status recorded. | REQUIRED |
+| End-to-end value workflow evidence | Product Engineering | Evidence from a realistic B2B SaaS opportunity workflow (L1 → L6) retained in `docs/evidence/`. | BLOCKED — see `docs/evidence/fabric4l-e2e-mock-workflow-20260615.md` |
 | Compliance owner signoff recorded | Compliance Owner | Audit snapshot, control owner review, and evidence retention location recorded. | REQUIRED |
 
 ## Launch Decision

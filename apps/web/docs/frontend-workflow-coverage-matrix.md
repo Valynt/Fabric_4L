@@ -16,6 +16,7 @@ A workflow is considered release-significant when it appears in the **P0** or **
 | P1 workflow safety | `pnpm run test:e2e:validation:p1` and `pnpm run test:e2e:guard` pass in CI-capable environments. |
 | Broad workflow safety | `pnpm run test:e2e:validation` passes before release candidate sign-off and includes P0 plus P1 evidence owners. |
 | Accessibility and resilience | P0 flows include keyboard, error, and role-state assertions through focused E2E or component tests. |
+| UI design readiness | `pnpm run test:ui-readiness` passes and confirms release-significant paths keep documented state, accessibility, and placeholder guardrails. |
 | Build and bundle confidence | `pnpm run build` and `pnpm run test:bundle-budget` pass. |
 | Master workflow traceability | `docs/validation/product_workflow_validation_inventory.md` remains aligned to P0/P1 evidence owners in this matrix. |
 

@@ -1186,7 +1186,7 @@ class GraphEdge(BaseModel):
         if not include_legacy_graph_aliases(api_version):
             return data
         # Dynamically add alias fields using the mapping
-        for alias, source in GraphEdgeAliasMap.items():
+        for alias in GraphEdgeAliasMap:
             _increment_deprecated_field_usage("graph_edge_response_legacy_fields")
             data[alias] = getattr(self, alias)
         return data

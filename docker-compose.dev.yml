@@ -44,7 +44,9 @@ services:
   # Infrastructure
   # ---------------------------------------------------------------------------
   postgres:
-    image: postgres:15-alpine
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres-base
     container_name: vf-dev-postgres
     environment:
       POSTGRES_USER: postgres
@@ -62,11 +64,6 @@ services:
       - "5432:5432"
     networks:
       - dev-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
     command:
       - "postgres"
       - "-c"
@@ -98,9 +95,10 @@ services:
 
   # MinIO S3-compatible object storage (local development)
   minio:
-    image: minio/minio:latest
+    extends:
+      file: ./docker-compose.base.yml
+      service: minio-base
     container_name: vf-dev-minio
-    command: server /data --console-address ":9001"
     ports:
       - "9000:9000"  # API
       - "9001:9001"  # Console
@@ -118,9 +116,10 @@ services:
       retries: 3
 
   redis:
-    image: redis:7-alpine
+    extends:
+      file: ./docker-compose.base.yml
+      service: redis-base
     container_name: vf-dev-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "6379:6379"
     volumes:
@@ -134,7 +133,9 @@ services:
       retries: 3
 
   neo4j:
-    image: neo4j:5-community
+    extends:
+      file: ./docker-compose.base.yml
+      service: neo4j-base
     container_name: vf-dev-neo4j
     environment:
       NEO4J_AUTH: neo4j/devpassword

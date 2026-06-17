@@ -20,9 +20,13 @@ export function MobileNavigation({
 }: MobileNavigationProps) {
   const selectedAccountId = useAccountContextStore(state => state.selectedAccountId);
   const setSelectedAccountId = useAccountContextStore(state => state.setSelectedAccountId);
-  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts({ page_size: 100 });
+  const { user, logout, isAuthenticated, isLoading: authLoading, currentTenantSlug } = useAuthContext();
+  const shouldLoadAccounts = !authLoading && isAuthenticated && Boolean(currentTenantSlug);
+  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts(
+    { page_size: 100 },
+    { enabled: shouldLoadAccounts, suppressAuthRedirect: true }
+  );
   const accounts = accountsData?.items ?? [];
-  const { user, logout } = useAuthContext();
 
   return (
     <div className="flex md:hidden">

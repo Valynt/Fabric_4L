@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
-from harness.gate_timeout_scheduler import (
+from layer4_agents.harness.gate_timeout_scheduler import (
     DEFAULT_GATE_TIMEOUT_SECONDS,
     GateTimeoutScheduler,
     create_gate_timeout_scheduler,
@@ -58,7 +58,7 @@ class _FakeSessionFactory:
 def test_create_gate_timeout_scheduler_uses_default_when_env_absent(monkeypatch):
     monkeypatch.delenv("LAYER4_AGENT_GATE_TIMEOUT_SECONDS", raising=False)
 
-    from config.settings import get_settings as get_layer4_settings
+    from layer4_agents.config.settings import get_settings as get_layer4_settings
 
     layer4_settings = get_layer4_settings()
     monkeypatch.setattr(layer4_settings, "agent_gate_timeout_seconds", DEFAULT_GATE_TIMEOUT_SECONDS)
@@ -68,7 +68,7 @@ def test_create_gate_timeout_scheduler_uses_default_when_env_absent(monkeypatch)
 
 
 def test_create_gate_timeout_scheduler_uses_env_override(monkeypatch):
-    from config.settings import get_settings as get_layer4_settings
+    from layer4_agents.config.settings import get_settings as get_layer4_settings
 
     layer4_settings = get_layer4_settings()
     monkeypatch.setattr(layer4_settings, "agent_gate_timeout_seconds", 900)
