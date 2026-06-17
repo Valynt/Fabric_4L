@@ -669,6 +669,14 @@ jobs:
             --json-report --json-report-file=layer1-results.json \
             --cov-fail-under=80
 
+      - name: Run Layer 1 router benchmarks (opt-in)
+        if: ${{ vars.RUN_ROUTER_BENCHMARKS == '1' }}
+        continue-on-error: true
+        env:
+          RUN_ROUTER_BENCHMARKS: "1"
+        run: |
+          uv run pytest tests/benchmarks/test_router_performance.py -v --tb=short
+
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         if: always()

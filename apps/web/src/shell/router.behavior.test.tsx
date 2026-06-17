@@ -5,6 +5,7 @@ import {
   RootRedirect,
   LegacyFlatRedirect,
   LegacyIntelligenceRedirect,
+  LEGACY_FLAT_ROUTE_MAP,
 } from "./router";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
@@ -264,6 +265,16 @@ describe("Legacy flat-route redirects", () => {
     renderWithPath("/discover/jobs", null);
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
   });
+
+  it.each(Object.entries(LEGACY_FLAT_ROUTE_MAP))(
+    "%s redirects to %s",
+    (legacyPath, canonicalPathTemplate) => {
+      renderWithPath(legacyPath);
+      expect(screen.getByTestId("location").textContent).toBe(
+        canonicalPathTemplate.replace("{tenantSlug}", "acme")
+      );
+    }
+  );
 });
 
 describe("Legacy intelligence redirect", () => {

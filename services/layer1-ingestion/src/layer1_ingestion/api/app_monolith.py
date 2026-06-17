@@ -1432,7 +1432,24 @@ async def get_target(
     return _target_to_detail(target)
 
 
-@router.put("/targets/{target_id}", response_model=ScrapingTargetDetail)
+@router.put(
+    "/targets/{target_id}",
+    response_model=ScrapingTargetDetail,
+    responses={
+        401: {
+            "description": "Authentication required",
+            "model": ErrorResponse,
+        },
+        404: {
+            "description": "Target not found",
+            "model": ErrorResponse,
+        },
+        409: {
+            "description": "Conflict: target has active jobs",
+            "model": ErrorResponse,
+        },
+    },
+)
 async def update_target(
     target_id: UUID,
     request: UpdateTargetRequest,

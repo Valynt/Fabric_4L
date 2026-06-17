@@ -1,7 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
+		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
@@ -426,6 +426,9 @@ test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache i
 
 test-layer1-benchmarks: ## Run Layer 1 benchmark and performance tests
 	cd services/layer1-ingestion && $(PYTEST) -m benchmark tests/benchmarks/ -v
+
+test-layer1-router-benchmarks: ## Run quarantined Layer 1 router benchmarks (explicit opt-in)
+	cd services/layer1-ingestion && RUN_ROUTER_BENCHMARKS=1 $(PYTEST) tests/benchmarks/test_router_performance.py -v
 
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."

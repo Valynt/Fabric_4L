@@ -143,7 +143,7 @@ export function RootRedirect() {
 // ═══════════════════════════════════════════════════════════════
 
 /** Map of legacy flat paths to canonical tenant-scoped paths. */
-const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
+export const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
   "/discover/accounts": "/t/{tenantSlug}/accounts",
   "/discover/jobs": "/t/{tenantSlug}/context/ingestion/jobs",
   "/discover/extraction": "/t/{tenantSlug}/context/extraction",

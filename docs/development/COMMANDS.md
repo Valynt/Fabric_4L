@@ -176,6 +176,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-layer1-crawler` | Run focused Layer 1 crawler tests. |
 | `test-layer1-router-cache` | Run focused Layer 1 router/cache tests. |
 | `test-layer1-benchmarks` | Run Layer 1 benchmark and performance tests. |
+| `test-layer1-router-benchmarks` | Run quarantined Layer 1 router benchmarks with explicit opt-in. |
 | `test-layer1-security-postgres` | Run Layer 1 PostgreSQL-backed security tests. |
 | `test-layer2` | Run Layer 2 tests. |
 | `test-layer2-5` | Run Layer 2.5 tests. |

@@ -179,7 +179,9 @@ services:
 
   # Layer 3: Neo4j Knowledge Graph
   neo4j:
-    image: neo4j:5-community
+    extends:
+      file: ./docker-compose.base.yml
+      service: neo4j-base
     container_name: value-fabric-neo4j
     expose:
       - "7474"  # HTTP
@@ -724,7 +726,9 @@ services:
 
   # Redis (shared across all layers)
   redis:
-    image: redis:7-alpine
+    extends:
+      file: ./docker-compose.base.yml
+      service: redis-base
     container_name: value-fabric-redis
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     expose:
@@ -770,7 +774,9 @@ services:
 
   # PostgreSQL (for Layer 1 crawl state + Layer 5 Ground Truth)
   postgres:
-    image: postgres:15-alpine
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres-base
     container_name: value-fabric-postgres
     expose:
       - "5432"
