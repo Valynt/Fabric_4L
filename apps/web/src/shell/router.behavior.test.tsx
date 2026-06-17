@@ -3,6 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import {
   RootRedirect,
+  VALUEPACT_PUBLIC_SITE_URL,
   LegacyFlatRedirect,
   LegacyIntelligenceRedirect,
   LEGACY_FLAT_ROUTE_MAP,
@@ -73,11 +74,14 @@ describe("RootRedirect auth-provider boundary", () => {
     setAuthProvider(savedProvider);
   });
 
-  it("legacy mode: unauthenticated user is redirected to /login", () => {
+  it("legacy mode: unauthenticated root routes to the public ValuePact site", () => {
     setAuthProvider("legacy");
     mockAuthContext.isAuthenticated = false;
     renderRedirect();
-    expect(screen.getByTestId("login-page")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
+      "href",
+      VALUEPACT_PUBLIC_SITE_URL,
+    );
   });
 
   it("legacy mode: authenticated user is redirected to /home", () => {
@@ -103,12 +107,15 @@ describe("RootRedirect auth-provider boundary", () => {
     expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
   });
 
-  it("clerk mode: signed-out user is redirected to /sign-in", () => {
+  it("clerk mode: signed-out root routes to the public ValuePact site", () => {
     setAuthProvider("clerk");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = false;
     renderRedirect();
-    expect(screen.getByTestId("signin-page")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
+      "href",
+      VALUEPACT_PUBLIC_SITE_URL,
+    );
   });
 
   it("clerk mode: signed-in user is redirected to /home", () => {
@@ -132,10 +139,22 @@ describe("RootRedirect auth-provider boundary", () => {
 });
 
 describe("Legacy flat-route redirects", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    setAuthProvider(undefined);
+    vi.mocked(useAuthContext).mockReturnValue(mockAuthContext);
+  });
 
-  function renderWithPath(path: string, tenantSlug: string | null = "acme") {
-    const ctx = { ...mockAuthContext, currentTenantSlug: tenantSlug };
+  function renderWithPath(
+    path: string,
+    tenantSlug: string | null = "acme",
+    options: { isLoading?: boolean } = {},
+  ) {
+    const ctx = {
+      ...mockAuthContext,
+      currentTenantSlug: tenantSlug,
+      isLoading: options.isLoading ?? false,
+    };
     vi.mocked(useAuthContext).mockReturnValue(ctx);
     return render(
       <MemoryRouter initialEntries={[path]}>
@@ -143,6 +162,7 @@ describe("Legacy flat-route redirects", () => {
           <Route path="/login" element={<div data-testid="login-page">login</div>} />
           <Route path="/sign-in" element={<div data-testid="signin-page">signin</div>} />
           <Route path="/home" element={<div data-testid="home-page">home</div>} />
+          <Route path="/workspaces" element={<div data-testid="workspaces-page">workspaces</div>} />
           <Route path="/discover/*" element={<LegacyFlatRedirect />} />
           <Route path="/accounts" element={<LegacyFlatRedirect />} />
           <Route path="/library/*" element={<LegacyFlatRedirect />} />
@@ -238,6 +258,19 @@ describe("Legacy flat-route redirects", () => {
     renderWithPath("/accounts");
     expect(screen.getByTestId("accounts-page")).toBeInTheDocument();
     expect(screen.getByTestId("location").textContent).toBe("/t/acme/accounts");
+  });
+
+  it("/accounts waits for tenant context instead of bouncing home while auth is loading", () => {
+    renderWithPath("/accounts", null, { isLoading: true });
+    expect(screen.getByTestId("location").textContent).toBe("/accounts");
+    expect(screen.queryByTestId("home-page")).not.toBeInTheDocument();
+  });
+
+  it("/accounts redirects signed-in Clerk users without tenant context to workspace selection", () => {
+    setAuthProvider("clerk");
+    renderWithPath("/accounts", null);
+    expect(screen.getByTestId("workspaces-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/workspaces");
   });
 
   it("/library/models redirects to canonical tenant-scoped models", () => {

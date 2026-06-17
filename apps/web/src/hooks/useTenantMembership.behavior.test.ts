@@ -47,7 +47,7 @@ describe("useTenantMembership behavior invariants", () => {
   it("user with matching clerk organization is confirmed as member", async () => {
     mockClerkEnabled.mockReturnValue(true);
     mockUseOrganization.mockReturnValue({
-      organization: { slug: "acme" },
+      organization: { id: "org_1", slug: "acme" },
       isLoaded: true,
     } as never);
 
@@ -69,6 +69,19 @@ describe("useTenantMembership behavior invariants", () => {
     const { result } = await renderTenantMembership("acme");
 
     expect(result.current.isMemberOfTenant).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("user with matching clerk organization id is confirmed when slug is absent", async () => {
+    mockClerkEnabled.mockReturnValue(true);
+    mockUseOrganization.mockReturnValue({
+      organization: { id: "org_without_slug", slug: null },
+      isLoaded: true,
+    } as never);
+
+    const { result } = await renderTenantMembership("org_without_slug");
+
+    expect(result.current.isMemberOfTenant).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
 

@@ -268,7 +268,7 @@ describe("<ClerkAuthBridge />", () => {
     expect(getActiveClerkOrgId()).toBe("org_strict");
   });
 
-  it("withholds protected children until Clerk is loaded and the token getter is registered", async () => {
+  it("renders children while Clerk loads and registers the token getter once signed-in auth is ready", async () => {
     mockClerkState.authLoaded = false;
     mockClerkState.isSignedIn = true;
     mockClerkState.tokenSerial = 7;
@@ -279,7 +279,8 @@ describe("<ClerkAuthBridge />", () => {
       </ClerkAuthBridge>,
     );
 
-    expect(screen.queryByText("protected app")).not.toBeInTheDocument();
+    expect(screen.getByText("protected app")).toBeInTheDocument();
+    await expect(getClerkSessionToken()).resolves.toBeNull();
 
     await act(async () => {
       mockClerkState.authLoaded = true;

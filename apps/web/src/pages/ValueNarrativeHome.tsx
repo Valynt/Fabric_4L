@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useRecentIngestionJobs, type IngestionJob } from "@/hooks/useIngestion";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useProspectSetupAccountCreate } from "@/hooks/useProspectSetupAccount";
@@ -148,8 +149,11 @@ export default function ValueNarrativeHome() {
   const [metricOverrides, setMetricOverrides] = React.useState<Record<string, string>>({});
   const [launchError, setLaunchError] = React.useState("");
   const [showClientEmail, setShowClientEmail] = React.useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const canLoadRecentJobs = isAuthenticated && !authLoading;
   const { data: recentJobs = [], isLoading: jobsLoading } = useRecentIngestionJobs(4, {
     suppressAuthRedirect: true,
+    enabled: canLoadRecentJobs,
   });
   const { navigateTo } = useNavigation();
   const prospectSetup = useProspectSetupAccountCreate();
