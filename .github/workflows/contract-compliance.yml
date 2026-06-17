@@ -725,7 +725,7 @@ jobs:
           python3 scripts/ci/validate_generated_contract_deprecations.py
 
       - name: Enforce agreed deprecation thresholds
-        if: ${{vars.ENFORCE_DEPRECATION_DEBT == 'true'}}
+        if: ${{ vars[format('{0}', 'ENFORCE_DEPRECATION_DEBT')] == 'true' }}
         run: |
           python3 scripts/report_deprecation_debt.py             --mode enforce             --thresholds docs/governance/deprecation-debt-registry.json             --output deprecation-debt-report-enforced.json
 

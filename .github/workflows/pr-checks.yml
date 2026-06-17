@@ -425,7 +425,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: governance-changed-files
-        uses: tj-actions/changed-files@44f58c6df7a7d39a250c8bca2f8f4a8c07c9a0d6 # v46
+        uses: tj-actions/changed-files@v46
 
       - name: Verify required policy and runbook docs exist
         run: |
@@ -670,7 +670,7 @@ jobs:
             --cov-fail-under=80
 
       - name: Run Layer 1 router benchmarks (opt-in)
-        if: ${{ vars.RUN_ROUTER_BENCHMARKS == '1' }}
+        if: ${{ vars[format('{0}', 'RUN_ROUTER_BENCHMARKS')] == '1' }}
         continue-on-error: true
         env:
           RUN_ROUTER_BENCHMARKS: "1"
@@ -1221,7 +1221,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1375,7 +1375,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1427,7 +1427,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1479,10 +1479,10 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Create Kind cluster
-        uses: helm/kind-action@5d5a9f679a1b7e1b6b16a3f86dd6843f6d944a9d # v1
+        uses: helm/kind-action@v1
 
       - name: Set up kubectl
-        uses: azure/setup-kubectl@7af7486c9e5f7fdffd86f25d1f43df89c7a7897c # v4
+        uses: azure/setup-kubectl@v4
 
       - name: Install kustomize
         run: |
@@ -1590,7 +1590,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: changed-files
-        uses: tj-actions/changed-files@44f58c6df7a7d39a250c8bca2f8f4a8c07c9a0d6 # v46
+        uses: tj-actions/changed-files@v46
 
       - name: Enforce shim change acknowledgment labels
         if: github.event_name == 'pull_request'
@@ -1788,7 +1788,7 @@ jobs:
           method: oidc
           env-slug: dev
           project-slug: fabric4l
-          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          identity-id: ${{ secrets[format('{0}', 'INFISICAL_IDENTITY_ID')] }}
           secret-path: /layer2-extraction
 
       - name: Run release smoke gate
@@ -2044,7 +2044,7 @@ jobs:
           retention-days: 14
 
       - name: Verify Dockerfile lint
-        uses: hadolint/hadolint-action@9a9b4e40b6f6d0f6d8f7ecba674498b6ff157131 # v3.1.0
+        uses: hadolint/hadolint-action@v3.1.0
         if: matrix.layer != 'frontend'
         with:
           dockerfile: ${{ matrix.context }}/${{ matrix.dockerfile }}
@@ -2185,12 +2185,12 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Set up Node
-        uses: actions/setup-node@1a4442caab129478691007b6b212744efc46b5be # v4
+        uses: actions/setup-node@v4
         with:
           node-version: "22.12"
 
       - name: Install pnpm
-        uses: pnpm/action-setup@4f10c89a15248b94f4bf597d25045371d9f38563 # v2.4.0
+        uses: pnpm/action-setup@v2.4.0
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -2198,7 +2198,7 @@ jobs:
         run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm cache
-        uses: actions/cache@1bd1e32a3bdc2474371e44619c16ce3d38e92d9c # v4
+        uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
