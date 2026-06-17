@@ -1,6 +1,5 @@
-.PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
-        lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
-        typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
+.PHONY: help verify verify-strict lint lint-% typecheck typecheck-% \
+        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache \
         test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
@@ -203,101 +202,43 @@ verify-strict: verify contract-drift ## Full verification including contract dri
 
 # ─── Linting ─────────────────────────────────────────────────────────────────
 
-lint-layer1: ## Lint Layer 1 only
-	@echo "→ Linting Layer 1..."
-	@cd services/layer1-ingestion && ruff check src/
+# Layer registry used by pattern rules below
+LAYERS := layer1 layer2 layer2-5 layer3 layer4 layer5 layer6
 
-lint-layer2: ## Lint Layer 2 only
-	@echo "→ Linting Layer 2..."
-	@cd services/layer2-extraction && ruff check src/
-
-lint-layer2-5: ## Lint Layer 2.5 only
-	@echo "→ Linting Layer 2.5..."
-	@cd services/layer2-5-signal-refinery && ruff check src/
-
-lint-layer3: ## Lint Layer 3 only
-	@echo "→ Linting Layer 3..."
-	@cd services/layer3-knowledge && ruff check src/
-
-lint-layer4: ## Lint Layer 4 only
-	@echo "→ Linting Layer 4..."
-	@cd services/layer4-agents && ruff check src/
-
-lint-layer5: ## Lint Layer 5 only
-	@echo "→ Linting Layer 5..."
-	@cd services/layer5-ground-truth && ruff check src/
-
-lint-layer6: ## Lint Layer 6 only
-	@echo "→ Linting Layer 6..."
-	@cd services/layer6-benchmarks && ruff check src/
-
-lint: ## Lint all Python layers with ruff (fails fast on first error)
-	@$(ROOT_MAKE) lint-layer1 && \
-	 $(ROOT_MAKE) lint-layer2 && \
-	 $(ROOT_MAKE) lint-layer2-5 && \
-	 $(ROOT_MAKE) lint-layer3 && \
-	 $(ROOT_MAKE) lint-layer4 && \
-	 $(ROOT_MAKE) lint-layer5 && \
-	 $(ROOT_MAKE) lint-layer6 && \
-	 echo "✅  Linting complete for all layers"
+LAYER_DIR_layer1 := layer1-ingestion
+LAYER_DIR_layer2 := layer2-extraction
+LAYER_DIR_layer2_5 := layer2-5-signal-refinery
+LAYER_DIR_layer3 := layer3-knowledge
+LAYER_DIR_layer4 := layer4-agents
+LAYER_DIR_layer5 := layer5-ground-truth
+LAYER_DIR_layer6 := layer6-benchmarks
 
 # Per-layer mypy flags - stricter layers enforce more type safety
-# Layer 1: Relaxed with explicit untyped handling
-MYPY_LAYER1_FLAGS = --warn-return-any --warn-unused-configs
-# Layer 2: Strict - fully typed codebase
-MYPY_LAYER2_FLAGS = --strict --warn-return-any --warn-unused-configs
-# Layer 3: Strict - fully typed codebase
-MYPY_LAYER3_FLAGS = --strict --warn-return-any --warn-unused-configs
-# Layer 4: Moderate - typed with some flexibility for agent patterns
-MYPY_LAYER4_FLAGS = --warn-return-any --warn-unused-configs
-# Layer 5: Strict - fully typed codebase
-MYPY_LAYER5_FLAGS = --strict --warn-return-any --warn-unused-configs
-# Layer 2.5: Moderate - signal refinery with some flexibility
-MYPY_LAYER2_5_FLAGS = --warn-return-any --warn-unused-configs
-
-# Layer 6: Minimal - gradual typing
-MYPY_LAYER6_FLAGS = --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer1 := --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer2 := --strict --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer3 := --strict --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer4 := --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer5 := --strict --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer2_5 := --warn-return-any --warn-unused-configs
+MYPY_FLAGS_layer6 := --warn-return-any --warn-unused-configs
 
 # Allow specific third-party overrides only where needed
 MYPY_OVERRIDES = --python-version 3.11
 
-# Per-layer typecheck targets for development efficiency
-typecheck-layer1: ## Type-check Layer 1 only
-	@echo "→ Type-checking Layer 1..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer1-ingestion src/ -- $(MYPY_LAYER1_FLAGS)
+lint-%: ## Lint a single Python layer (e.g. make lint-layer3)
+	@echo "→ Linting $*..."
+	@cd services/$(LAYER_DIR_$(subst -,_,$*)) && ruff check src/
 
-typecheck-layer2: ## Type-check Layer 2 only
-	@echo "→ Type-checking Layer 2..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-extraction src/ -- $(MYPY_LAYER2_FLAGS)
+lint: ## Lint all Python layers with ruff (fails fast on first error)
+	@$(ROOT_MAKE) $(addprefix lint-,$(LAYERS)) && \
+	 echo "✅  Linting complete for all layers"
 
-typecheck-layer2-5: ## Type-check Layer 2.5 only
-	@echo "→ Type-checking Layer 2.5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-5-signal-refinery src/ -- $(MYPY_LAYER2_5_FLAGS)
-
-typecheck-layer3: ## Type-check Layer 3 only
-	@echo "→ Type-checking Layer 3..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer3-knowledge src/ -- $(MYPY_LAYER3_FLAGS)
-
-typecheck-layer4: ## Type-check Layer 4 only
-	@echo "→ Type-checking Layer 4..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
-
-typecheck-layer5: ## Type-check Layer 5 only
-	@echo "→ Type-checking Layer 5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer5-ground-truth src/ -- $(MYPY_LAYER5_FLAGS)
-
-typecheck-layer6: ## Type-check Layer 6 only
-	@echo "→ Type-checking Layer 6..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
+typecheck-%: ## Type-check a single Python layer (e.g. make typecheck-layer3)
+	@echo "→ Type-checking $*..."
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/$(LAYER_DIR_$(subst -,_,$*)) src/ -- $(MYPY_FLAGS_$(subst -,_,$*)) $(MYPY_OVERRIDES)
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
-	@$(ROOT_MAKE) typecheck-layer1 && \
-	 $(ROOT_MAKE) typecheck-layer2 && \
-	 $(ROOT_MAKE) typecheck-layer2-5 && \
-	 $(ROOT_MAKE) typecheck-layer3 && \
-	 $(ROOT_MAKE) typecheck-layer4 && \
-	 $(ROOT_MAKE) typecheck-layer5 && \
-	 $(ROOT_MAKE) typecheck-layer6 && \
+	@$(ROOT_MAKE) $(addprefix typecheck-,$(LAYERS)) && \
 	 echo "✅  Type-checking complete for all layers"
 
 # ─── Testing (4-Layer Strategy) ───────────────────────────────────────────────
