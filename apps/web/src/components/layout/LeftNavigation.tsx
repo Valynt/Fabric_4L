@@ -19,6 +19,7 @@ interface LeftNavigationProps {
   collapsed: boolean;
   onToggle: () => void;
   currentTier?: UserTier;
+  currentTenantSlug?: string | null;
 }
 
 const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -63,17 +64,19 @@ export function LeftNavigation({
   collapsed,
   onToggle,
   currentTier = "standard",
+  currentTenantSlug,
 }: LeftNavigationProps) {
   const { pathname } = useLocation();
   const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
 
   const accountId = urlAccountId ?? null;
+  const resolvedTenantSlug = tenantSlug ?? currentTenantSlug ?? undefined;
 
   const navItems = NAV_SCHEMA
     .filter((item) => isItemVisible(item.tier, currentTier))
     .map((item) => ({
       ...item,
-      path: resolveNavPath(item.path, tenantSlug, accountId),
+      path: resolveNavPath(item.path, resolvedTenantSlug, accountId),
     }));
 
   return (

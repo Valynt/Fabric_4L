@@ -16,7 +16,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
-import { render, cleanup, act } from "@testing-library/react";
+import { render, cleanup, act, screen, waitFor } from "@testing-library/react";
 
 import {
   _resetClerkSessionForTests,
@@ -266,5 +266,33 @@ describe("<ClerkAuthBridge />", () => {
     );
 
     expect(getActiveClerkOrgId()).toBe("org_strict");
+  });
+
+  it("withholds protected children until Clerk is loaded and the token getter is registered", async () => {
+    mockClerkState.authLoaded = false;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.tokenSerial = 7;
+
+    const { rerender } = render(
+      <ClerkAuthBridge>
+        <div>protected app</div>
+      </ClerkAuthBridge>,
+    );
+
+    expect(screen.queryByText("protected app")).not.toBeInTheDocument();
+
+    await act(async () => {
+      mockClerkState.authLoaded = true;
+      rerender(
+        <ClerkAuthBridge>
+          <div>protected app</div>
+        </ClerkAuthBridge>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("protected app")).toBeInTheDocument();
+    });
+    await expect(getClerkSessionToken()).resolves.toBe("tok_7");
   });
 });

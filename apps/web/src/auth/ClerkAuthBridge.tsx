@@ -20,7 +20,14 @@
  * This component renders nothing. Mount it once near the root, inside
  * the ClerkProvider and AuthProvider.
  */
-import { useEffect, useRef, type ReactElement } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
@@ -47,14 +54,21 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   return null;
 }
 
-export function ClerkAuthBridge(): ReactElement | null {
+interface ClerkAuthBridgeProps {
+  children?: ReactNode;
+}
+
+export function ClerkAuthBridge({
+  children = null,
+}: ClerkAuthBridgeProps = {}): ReactElement | null {
   // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not mounted.
   if (!isClerkAuthEnabled()) {
-    return null;
+    return <>{children}</>;
   }
 
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
+  const [tokenReady, setTokenReady] = useState(false);
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -67,9 +81,13 @@ export function ClerkAuthBridge(): ReactElement | null {
   //    sign-out and on unmount. We intentionally depend only on the
   //    boolean transitions, not on `getToken` identity.
   useEffect(() => {
-    if (!authLoaded) return;
+    if (!authLoaded) {
+      setTokenReady(false);
+      return;
+    }
     if (!isSignedIn) {
       setClerkTokenGetter(null);
+      setTokenReady(true);
       return;
     }
 
@@ -84,14 +102,20 @@ export function ClerkAuthBridge(): ReactElement | null {
         skipCache: options?.skipCache,
       });
     });
+    setTokenReady(true);
 
     // Effect cleanup runs on sign-in→sign-out transitions AND on unmount.
     // In either case we MUST drop the getter so a stale closure cannot
     // mint a Bearer header for a no-longer-signed-in session.
     return () => {
       setClerkTokenGetter(null);
+      setTokenReady(false);
     };
   }, [authLoaded, isSignedIn]);
+
+  if (!authLoaded || !tokenReady) {
+    return null;
+  }
 
   // 2) Track active org only when signed in to avoid Clerk useOrganization
   //    dev warning on the sign-in page. Clear on unmount so HMR / layout
@@ -99,8 +123,13 @@ export function ClerkAuthBridge(): ReactElement | null {
   //    Also call syncTenant so the accountContextStore purges any persisted
   //    account selection that belongs to a different tenant (P1-010).
   if (!isSignedIn) {
-    return null;
+    return <>{children}</>;
   }
 
-  return <OrgSync syncTenant={syncTenant} />;
+  return (
+    <Fragment>
+      <OrgSync syncTenant={syncTenant} />
+      {children}
+    </Fragment>
+  );
 }

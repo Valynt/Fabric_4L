@@ -152,6 +152,10 @@ services:
       RELEASE_SMOKE_LIGHT_HEALTH: 'true'
       JWT_SECRET: ${JWT_SECRET}
       SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
+      CLERK_ISSUER: ${CLERK_ISSUER}
+      CLERK_JWT_AUDIENCE: ${CLERK_JWT_AUDIENCE:-fabric4l-api}
+      CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES:-http://localhost:3011}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
@@ -350,6 +354,10 @@ services:
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
       ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: 'true'
+      CLERK_ISSUER: ${CLERK_ISSUER}
+      CLERK_JWT_AUDIENCE: ${CLERK_JWT_AUDIENCE:-fabric4l-api}
+      CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES:-http://localhost:3011}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
@@ -489,17 +497,21 @@ services:
       dockerfile: ./apps/web/Dockerfile.dev
     container_name: vf-live-frontend
     ports:
-    - 3001:3001
+    - 3011:3001
     environment:
       VITE_API_BASE: /api/v1
       VITE_USE_MOCKS: 'false'
       VITE_ENABLE_MOCK_FALLBACK: 'false'
       VITE_ENABLE_SSE: 'true'
       PLAYWRIGHT_LIVE_MODE: 'true'
-      # Local validation stack uses legacy cookie-based auth with mock/dev identity
-      # so backend-integrated Playwright journeys can run without Clerk credentials.
-      VITE_AUTH_PROVIDER: legacy
-      VITE_ENABLE_MOCK_AUTH: 'true'
+      VITE_AUTH_PROVIDER: ${VITE_AUTH_PROVIDER:-clerk}
+      VITE_ENABLE_MOCK_AUTH: ${VITE_ENABLE_MOCK_AUTH:-false}
+      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      VITE_CLERK_SIGN_IN_URL: ${VITE_CLERK_SIGN_IN_URL:-/sign-in}
+      VITE_CLERK_SIGN_UP_URL: ${VITE_CLERK_SIGN_UP_URL:-/sign-up}
+      VITE_CLERK_AFTER_SIGN_IN_URL: ${VITE_CLERK_AFTER_SIGN_IN_URL:-/home}
+      VITE_CLERK_AFTER_SIGN_UP_URL: ${VITE_CLERK_AFTER_SIGN_UP_URL:-/onboarding}
+      VITE_CLERK_JWT_TEMPLATE: ${VITE_CLERK_JWT_TEMPLATE:-fabric4l-api}
       VITE_PROXY_L1_URL: http://layer1:8000
       VITE_PROXY_L2_URL: http://layer2:8000
       VITE_PROXY_L3_URL: http://layer3:8001
@@ -512,8 +524,8 @@ services:
           cpus: '0.25'
           memory: '512MiB'
     volumes:
-    - ./apps/web:/app
-    - /app/node_modules
+    - ./apps/web:/workspace/apps/web
+    - /workspace/apps/web/node_modules
     networks:
     - live-network
     healthcheck:

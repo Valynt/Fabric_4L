@@ -22,9 +22,9 @@ export class SessionService {
 
     if (isClerkAuthEnabled()) {
       const urls = getClerkUrls();
-      if (loc.pathname !== urls.selectOrgUrl) {
+      if (!loc.pathname.startsWith(urls.signInUrl)) {
         try {
-          loc.replace(urls.selectOrgUrl);
+          loc.replace(urls.signInUrl);
         } catch {
           /* noop */
         }
