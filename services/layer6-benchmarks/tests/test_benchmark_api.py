@@ -225,6 +225,10 @@ async def test_ready_returns_503_when_dependency_health_check_fails(client: Asyn
     assert response.json() == {
         "status": "not_ready",
         "service": "layer6-benchmarks",
+        "liveness": "alive",
+        "readiness": {"is_ready": False, "reason": "dependency_unhealthy"},
+        "dependencies": [],
+        "dependency_status": [],
         "timestamp": response.json()["timestamp"],
         "version": "1.0.0",
         "checks": {

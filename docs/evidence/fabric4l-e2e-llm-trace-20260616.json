@@ -1,0 +1,12 @@
+{
+  "provider": "together",
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "base_url": "https://api.together.ai/v1",
+  "credential_present": false,
+  "result": "BLOCKED",
+  "error": "No Together API key found in LAYER4_TOGETHER_API_KEY or TOGETHER_API_KEY.",
+  "request": null,
+  "response": null,
+  "latency_seconds": null,
+  "tokens": null
+}
