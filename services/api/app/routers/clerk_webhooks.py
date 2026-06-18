@@ -32,6 +32,7 @@ from value_fabric.shared.error_handling.exceptions import (
     BadRequestError,
     ConflictError,
     ServiceUnavailableError,
+    ValueFabricException,
 )
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
@@ -246,6 +247,10 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         )
         raise ConflictError(message="Retry later.") from exc
     except (BadRequestError, ConflictError, AuthenticationError):
+        raise
+    except ValueFabricException:
+        # Let structured domain errors (400/401/403/409/422) propagate to the
+        # global exception handler unchanged.
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.

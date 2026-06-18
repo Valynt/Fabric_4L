@@ -30,7 +30,7 @@ No P0 blocker is production closed.
 - K8s ExternalSecrets: `k8s/external-secrets/postgres-endpoint.yaml`, `redis-endpoint.yaml`
 - K8s ConfigMaps: `k8s/base/configmap-postgres.yaml`, `configmap-redis.yaml`
 - Validation scripts: `validate-rds-backup.sh`, `validate-elasticache-failover.sh`
-- Neo4j hosting ADR: `docs/adr/neo4j-hosting-decision.md`
+- Neo4j hosting ADR: `docs/explanations/adr/ADR-030-neo4j-hosting-decision.md`
 
 ---
 

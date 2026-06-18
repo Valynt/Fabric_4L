@@ -10,7 +10,7 @@ This runbook contains the manual steps required to configure the GitHub reposito
 **Out of scope:**
 - Vault / Infisical / secret-backend setup — see `AGENTS.md` and the platform team's secret-management runbooks
 - EKS application deployment — see service-specific deployment runbooks
-- Neo4j hosting decision — see `docs/adr/neo4j-hosting-decision.md`
+- Neo4j hosting decision — see `docs/explanations/adr/ADR-030-neo4j-hosting-decision.md`
 
 ---
 
