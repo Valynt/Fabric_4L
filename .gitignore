@@ -81,6 +81,7 @@ __pycache__/
 .installed.cfg
 *.egg
 .venv/
+.venv-docs/
 venv/
 env/
 !packages/config/src/env/

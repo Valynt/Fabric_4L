@@ -43,25 +43,23 @@ describe('Contract: POST /accounts create payload', () => {
       segment: 'enterprise',
     });
 
-    expect(payload).toMatchInlineSnapshot(`
-      {
-        "annual_revenue": 125000000,
-        "company_size": 500,
-        "domain": "acme.example",
-        "headquarters": "Austin, TX",
-        "industry": "Manufacturing",
-        "name": "Acme Corp",
-        "owner_email": "casey@acme.example",
-        "owner_id": "owner-001",
-        "owner_name": "Casey Owner",
-        "provider": "manual",
-        "provider_record_id": "manual-acme-corp",
-        "region": "NA",
-        "segment": "enterprise",
-        "stage": "prospect",
-        "website": "https://acme.example",
-      }
-    `);
+    expect(payload).toEqual({
+      annual_revenue: 125000000,
+      company_size: 500,
+      domain: "acme.example",
+      headquarters: "Austin, TX",
+      industry: "Manufacturing",
+      name: "Acme Corp",
+      owner_email: "casey@acme.example",
+      owner_id: "owner-001",
+      owner_name: "Casey Owner",
+      provider: "manual",
+      provider_record_id: "manual-acme-corp",
+      region: "NA",
+      segment: "enterprise",
+      stage: "prospect",
+      website: "https://acme.example",
+    });
   });
 
   it('frontend payload schema validates against backend request contract', () => {

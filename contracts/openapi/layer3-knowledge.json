@@ -11135,10 +11135,7 @@
               }
             ],
             "title": "Formula Id",
-            "description": "Deprecated alias of id. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "description": "Alias for id (frontend compatibility)"
           },
           "name": {
             "type": "string",
@@ -11412,26 +11409,10 @@
             "title": "Name",
             "description": "Display label"
           },
-          "label": {
-            "type": "string",
-            "title": "Label",
-            "description": "Deprecated alias of name. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
-          },
           "entity_type": {
             "type": "string",
             "title": "Entity Type",
             "description": "Node type"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type",
-            "description": "Deprecated alias of entity_type. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
           },
           "confidence_score": {
             "type": "number",
@@ -11440,16 +11421,6 @@
             "title": "Confidence Score",
             "description": "Confidence score",
             "default": 0.8
-          },
-          "confidence": {
-            "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Confidence",
-            "description": "Deprecated alias of confidence_score. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
           },
           "properties": {
             "additionalProperties": true,
@@ -17580,52 +17551,6 @@
           "entity_id"
         ],
         "title": "ValueTreeTraversal"
-      },
-      "EntityContextResponse": {
-        "properties": {
-          "entity_id": {
-            "type": "string",
-            "title": "Entity Id"
-          },
-          "center": {
-            "$ref": "#/components/schemas/GraphNode"
-          },
-          "neighbors": {
-            "items": {
-              "$ref": "#/components/schemas/GraphNode"
-            },
-            "type": "array",
-            "title": "Neighbors"
-          },
-          "relationships": {
-            "items": {
-              "$ref": "#/components/schemas/GraphEdge"
-            },
-            "type": "array",
-            "title": "Relationships"
-          },
-          "entity_count": {
-            "type": "integer",
-            "minimum": 0,
-            "title": "Entity Count"
-          },
-          "relationship_count": {
-            "type": "integer",
-            "minimum": 0,
-            "title": "Relationship Count"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entity_id",
-          "center",
-          "neighbors",
-          "relationships",
-          "entity_count",
-          "relationship_count"
-        ],
-        "title": "EntityContextResponse",
-        "description": "Entity neighborhood context response consumed by graph and analytics clients."
       },
       "VariableAdjustmentInput": {
         "properties": {

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
-    NotFoundError,
     ServiceUnavailableError,
-    ValidationError,
 )
 
 """Compatibility and shared security probe routes for Layer 1."""
@@ -13,15 +11,13 @@ from value_fabric.shared.error_handling.exceptions import (
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
-from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Response
 from value_fabric.shared.identity import RequestContext, Role, require_authenticated, require_role
 from value_fabric.shared.observability.logging import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
-_INGESTION_SOURCE_COMPAT_STORE: dict[str, dict[str, Any]] = {}
 _DEPRECATION_REMOVAL_DATE = "2026-07-15"
 
 
@@ -56,53 +52,6 @@ async def short_ingest_compatibility_boundary(
     _add_deprecation_headers(response)
     _record_compatibility_usage(endpoint="/v1/ingest", tenant_id=str(ctx.tenant_id), user_id=str(ctx.user_id))
     raise ServiceUnavailableError(message="Use the canonical /api/v1/ingestion endpoints for Layer 1 ingestion operations.")
-
-
-@router.post("/api/v1/ingestion/sources", tags=["Compatibility"], status_code=201)
-async def create_ingestion_source_compatibility_boundary(
-    request: Request,
-    response: Response,
-    ctx: RequestContext = Depends(require_authenticated),
-) -> dict[str, Any]:
-    _add_deprecation_headers(response)
-    _record_compatibility_usage(endpoint="/api/v1/ingestion/sources", tenant_id=str(ctx.tenant_id), user_id=str(ctx.user_id))
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        raise ValidationError(message = "Invalid source payload") from exc
-    if not isinstance(payload, dict):
-        raise ValidationError(message="Source payload must be an object")
-    source_id = str(payload.get("id") or uuid4())
-    record = {
-        **payload,
-        "id": source_id,
-        "tenant_id": str(ctx.tenant_id),
-        "status": payload.get("status", "created"),
-        "created_at": datetime.now(UTC).isoformat(),
-    }
-    _INGESTION_SOURCE_COMPAT_STORE[source_id] = record
-    return record
-
-
-@router.get("/api/v1/ingestion/sources/{source_id}", tags=["Compatibility"])
-async def get_ingestion_source_compatibility_boundary(
-    source_id: str,
-    response: Response,
-    ctx: RequestContext = Depends(require_authenticated),
-) -> dict[str, Any]:
-    _add_deprecation_headers(response)
-    _record_compatibility_usage(
-        endpoint="/api/v1/ingestion/sources/{source_id}",
-        tenant_id=str(ctx.tenant_id),
-        user_id=str(ctx.user_id),
-    )
-    record = _INGESTION_SOURCE_COMPAT_STORE.get(source_id)
-    if record is None:
-        raise NotFoundError(message = "Source not found")
-    if str(record.get("tenant_id")) != str(ctx.tenant_id):
-        # Fail closed and do not disclose whether another tenant owns the record.
-        raise NotFoundError(message = "Source not found")
-    return record
 
 
 @router.get("/api/v1/entities", tags=["Security Compatibility"])

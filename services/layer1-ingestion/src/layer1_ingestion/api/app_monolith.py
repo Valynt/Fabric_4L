@@ -3028,6 +3028,9 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
 
 
 # Include the router in the main app
+from .source_routes import register_routes as register_source_routes
+
+register_source_routes(router)
 app.include_router(router)
 
 

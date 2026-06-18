@@ -1,0 +1,61 @@
+{
+  "scanned_at": "2026-06-18T12:28:00+00:00",
+  "method": "registry + import heuristic (previous sweep baseline)",
+  "total_candidates": 10,
+  "existing_candidates": 3,
+  "already_removed": 7,
+  "existing": [
+    {
+      "file": "services/layer4-agents/src/layer4_agents/tools/files.py",
+      "confidence": "LOW",
+      "reason": "Referenced in security test test_file_tool_tenant_fallback.py"
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/tools/admin.py",
+      "confidence": "LOW",
+      "reason": "Referenced in test test_admin_tool_h01.py"
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
+      "confidence": "LOW",
+      "reason": "Referenced in test test_knowledge_tool_persistence.py"
+    }
+  ],
+  "removed": [
+    {
+      "file": "apps/web/src/pages/hypothesis/HypothesisTab.tsx",
+      "confidence": "HIGH",
+      "reason": "Re-export wrapper; zero imports. Registry uses HypothesesTab directly."
+    },
+    {
+      "file": "apps/web/src/pages/studio/StudioCompetitiveTab.tsx",
+      "confidence": "HIGH",
+      "reason": "Old studio tab; not registered in studioTabRegistry.ts"
+    },
+    {
+      "file": "apps/web/src/pages/studio/StudioEnrichmentTab.tsx",
+      "confidence": "HIGH",
+      "reason": "Old studio tab; not registered in studioTabRegistry.ts"
+    },
+    {
+      "file": "apps/web/src/pages/studio/StudioEvidenceTab.tsx",
+      "confidence": "HIGH",
+      "reason": "Old studio tab; not registered in studioTabRegistry.ts"
+    },
+    {
+      "file": "apps/web/src/pages/studio/StudioROITab.tsx",
+      "confidence": "HIGH",
+      "reason": "Old studio tab; not registered in studioTabRegistry.ts"
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/tools/analytics.py",
+      "confidence": "MEDIUM",
+      "reason": "Only imported by dead workflows.py"
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/tools/workflows.py",
+      "confidence": "MEDIUM",
+      "reason": "Not imported anywhere; imports dead analytics + knowledge"
+    }
+  ]
+}

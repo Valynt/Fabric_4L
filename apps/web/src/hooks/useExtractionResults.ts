@@ -74,8 +74,8 @@ export function useExtractionResults(jobId: string | null) {
   return useQuery<ExtractionResult, BaseApiError>({
     queryKey: QK.extraction.results(jobId || ''),
     queryFn: async () => {
-      if (!jobId) throw new Error('No job ID provided');
-      const data = await fetchExtractionStatus(jobId);
+      if (!jobId) throw new BaseApiError('No job ID provided');
+      const data = await withApiError(fetchExtractionStatus(jobId), BaseApiError);
       return mapExtractionResult(data);
     },
     enabled: !!jobId,

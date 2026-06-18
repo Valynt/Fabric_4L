@@ -14,17 +14,17 @@ pytestmark = [pytest.mark.backend_integrated, pytest.mark.integration, pytest.ma
 @pytest.mark.asyncio
 async def test_l1_to_l2_source_to_signal_flow(backend, seed_ids):
     await backend.create_seed_graph()
-    source = await backend.assert_persisted("l1", f"/api/v1/ingestion/sources/{seed_ids.document_id}", seed_ids.document_id)
+    source = await backend.assert_persisted("l1", f"/api/v1/ingestion/sources/{backend.seed_source_id}", backend.seed_source_id)
     assert seed_ids.account_id in str(source), "L1 source persistence must retain account context."
 
     extraction, _ = await backend.request(
         "l2",
         "POST",
         "/api/v1/extractions",
-        json={"source_id": seed_ids.document_id, "account_id": seed_ids.account_id, "mode": "backend_integrated_validation"},
+        json={"source_id": backend.seed_source_id, "account_id": seed_ids.account_id, "mode": "backend_integrated_validation"},
         expected=(200, 201, 202),
     )
-    assert seed_ids.document_id in str(extraction), "L2 must consume the durable L1 source record."
+    assert backend.seed_source_id in str(extraction), "L2 must consume the durable L1 source record."
     assert any(token in str(extraction).lower() for token in ("signal", "extraction", "provenance", "source")), extraction
 
 
@@ -35,22 +35,22 @@ async def test_l2_to_l3_signal_to_graph_flow(backend, seed_ids):
         "l2",
         "POST",
         "/api/v1/extractions",
-        json={"source_id": seed_ids.document_id, "account_id": seed_ids.account_id},
+        json={"source_id": backend.seed_source_id, "account_id": seed_ids.account_id},
         expected=(200, 201, 202),
     )
     extraction_id = extraction.get("id") or extraction.get("extraction_id") or seed_ids.document_id
     signals, _ = await backend.request("l2", "GET", f"/api/v1/extractions/{extraction_id}/signals", expected=(200,))
-    assert seed_ids.document_id in str(signals), "L2 signals must include source provenance."
+    assert backend.seed_source_id in str(signals), "L2 signals must include source provenance."
 
     graph, _ = await backend.request(
         "l3",
         "POST",
         "/api/v1/graph/context",
-        json={"account_id": seed_ids.account_id, "signal_ids": [extraction_id], "source_ids": [seed_ids.document_id]},
+        json={"account_id": seed_ids.account_id, "signal_ids": [extraction_id], "source_ids": [backend.seed_source_id]},
         expected=(200, 201, 202),
     )
     assert seed_ids.account_id in str(graph)
-    assert seed_ids.document_id in str(graph), "L3 graph context must retain signal/source lineage."
+    assert backend.seed_source_id in str(graph), "L3 graph context must retain signal/source lineage."
 
 
 @pytest.mark.asyncio
@@ -60,7 +60,7 @@ async def test_l3_to_l4_graph_context_drives_hypothesis_generation(backend, seed
         "l3",
         "POST",
         "/api/v1/graph/context",
-        json={"account_id": seed_ids.account_id, "source_ids": [seed_ids.document_id], "evidence_ids": [seed_ids.evidence_id]},
+        json={"account_id": seed_ids.account_id, "source_ids": [backend.seed_source_id], "evidence_ids": [seed_ids.evidence_id]},
         expected=(200, 201, 202),
     )
     graph_id = graph.get("id") or graph.get("graph_id") or seed_ids.account_id
@@ -87,7 +87,7 @@ async def test_l5_ground_truth_validation_updates_assumption_status(backend, see
             "id": seed_ids.evidence_id,
             "account_id": seed_ids.account_id,
             "claim": "Conversion improved 11 percent",
-            "source_id": seed_ids.document_id,
+            "source_id": backend.seed_source_id,
             "status": "pending_review",
         },
         expected=(200, 201, 202, 409),

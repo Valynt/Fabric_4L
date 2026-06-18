@@ -1,0 +1,59 @@
+graph TB
+    subgraph External
+        IdP[Enterprise IdP / OIDC / SAML]
+        SCIM[SCIM Client / Enterprise HR]
+        Stripe[Stripe Billing]
+        Users[Web Users / API Consumers]
+    end
+
+    subgraph Fabric
+        FE[apps/web<br/>React + Vite]
+        GW[API Gateway<br/>services/api]
+        L1[Layer 1<br/>Ingestion 8001]
+        L2[Layer 2<br/>Extraction 8002]
+        L2_5[Layer 2.5<br/>Signal Refinery 8007]
+        L3[Layer 3<br/>Knowledge 8003]
+        L4[Layer 4<br/>Agents 8004]
+        L5[Layer 5<br/>Ground Truth 8005]
+        L6[Layer 6<br/>Benchmarks 8006]
+        L7[Layer 7<br/>Billing 8008]
+    end
+
+    subgraph Data
+        PG[(PostgreSQL / RLS)]
+        N4J[(Neo4j + pgvector)]
+        RD[(Redis / Cache / Queues)]
+        S3[(MinIO / S3 Object Store)]
+    end
+
+    Users -->|HTTPS/WSS| FE
+    FE -->|REST/WebSocket| GW
+    GW --> L1
+    GW --> L2
+    GW --> L2_5
+    GW --> L3
+    GW --> L4
+    GW --> L5
+    GW --> L6
+    GW --> L7
+    IdP -->|OIDC/SAML| GW
+    SCIM -->|SCIM| GW
+    Stripe -->|Webhooks| L7
+    L1 -->|Markdown chunks| L2
+    L2 -->|RDF/Turtle| L3
+    L2 --> L2_5
+    L2_5 --> L3
+    L3 -->|Subgraph API| L4
+    L4 -->|Claims| L5
+    L5 -->|Validated TruthObjects| L6
+    L4 --> L6
+    L1 --> PG
+    L2 --> PG
+    L4 --> PG
+    L5 --> PG
+    L3 --> N4J
+    L1 --> RD
+    L2 --> RD
+    L4 --> RD
+    L1 --> S3
+    L4 --> S3

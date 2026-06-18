@@ -300,6 +300,7 @@ nav:
           - Overview: fabric4l/development/index.md
           - Repo Strategy: fabric4l/development/repo-strategy.md
           - Testing: fabric4l/development/testing.md
+          - L1–L6 API curl scenario: fabric4l/development/l1-l6-api-curl-scenario.md
           - Coding Standards: fabric4l/development/coding-standards.md
           - Contribution Guide: fabric4l/development/contribution-guide.md
       - Reference:

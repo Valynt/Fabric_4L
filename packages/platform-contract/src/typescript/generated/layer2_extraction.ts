@@ -29,8 +29,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Default Handler */
-        get: operations["default_handler_health_get"];
+        /**
+         * Health Check
+         * @description Health check endpoint with real metrics and dependency status.
+         */
+        get: operations["health_check_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -107,10 +110,353 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metrics Endpoint
+         * @description Prometheus metrics endpoint.
+         */
+        get: operations["metrics_endpoint_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract
+         * @description Start an extraction job.
+         *
+         *     Extracts entities and relationships from provided Markdown content
+         *     and generates RDF/OWL output.
+         */
+        post: operations["extract_v1_extract_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract-and-ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract And Ingest
+         * @description Start a combined extraction and ingestion pipeline job.
+         */
+        post: operations["extract_and_ingest_v1_extract_and_ingest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract/status/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Extraction Status
+         * @description Get status of a combined extraction and ingestion job.
+         */
+        get: operations["get_extraction_status_v1_extract_status__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quarantine/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quarantine Status */
+        get: operations["get_quarantine_status_v1_quarantine__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Quarantine Jobs */
+        get: operations["list_quarantine_jobs_v1_quarantine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract Batch
+         * @description Start a batch extraction job.
+         */
+        post: operations["extract_batch_v1_extract_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Entities
+         * @description List entities in the ontology.
+         *
+         *     Note: In a full implementation, this would query a persistent store.
+         *     For now, returns empty list (entities are in RDF files).
+         */
+        get: operations["list_entities_v1_entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Relationships
+         * @description Get relationships for an entity.
+         *
+         *     Note: In a full implementation, this would query the graph database.
+         */
+        get: operations["get_relationships_v1_entities__entity_id__relationships_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/provenance/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Provenance
+         * @description Get full provenance trace for an extraction job. Requires authentication.
+         */
+        get: operations["get_provenance_v1_provenance__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/provenance/entity/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Provenance
+         * @description Get provenance for a specific entity. Requires authentication.
+         */
+        get: operations["get_entity_provenance_v1_provenance_entity__entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract/jobs/{job_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Job Events
+         * @description Stream real-time events for a pipeline job via SSE.
+         *
+         *     Returns a Server-Sent Events stream with progress updates,
+         *     status changes, entity discovery, and log messages.
+         *
+         *     Event types:
+         *     - `progress`: Extraction progress percentage (0-100)
+         *     - `status`: Job status changes (pending, running, completed, failed)
+         *     - `log`: Pipeline log messages with timestamp and level
+         *     - `entity`: Newly discovered entities during extraction
+         *     - `complete`: Job completion event
+         *     - `error`: Error event with details
+         *
+         *     Args:
+         *         job_id: The pipeline job ID to stream events for
+         *
+         *     Returns:
+         *         StreamingResponse with text/event-stream content type
+         */
+        get: operations["stream_job_events_v1_extract_jobs__job_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ExtractAndIngestResponse
+         * @description Response for combined extract-and-ingest endpoint.
+         */
+        ExtractAndIngestResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Overall Status */
+            overall_status: string;
+            /** Extraction Status */
+            extraction_status: string;
+            /** Ingestion Status */
+            ingestion_status: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ExtractRequest
+         * @description Request body for extraction endpoint.
+         */
+        ExtractRequest: {
+            /**
+             * Content Id
+             * @description ID of content to extract from (from Layer 1)
+             */
+            content_id: string;
+            /**
+             * Source Url
+             * @description URL of source document
+             */
+            source_url: string;
+            /**
+             * Markdown Content
+             * @description Markdown content to extract from
+             */
+            markdown_content: string;
+            /** Extraction Config */
+            extraction_config?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * ExtractResponse
+         * @description Response from extraction endpoint.
+         */
+        ExtractResponse: {
+            /** Extraction Job Id */
+            extraction_job_id: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ExtractionStatusResponse
+         * @description Status of a combined extraction + ingestion pipeline job.
+         */
+        ExtractionStatusResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Overall Status */
+            overall_status: string;
+            /** Extraction Status */
+            extraction_status: string;
+            /** Ingestion Status */
+            ingestion_status: string;
+            /** Entities Extracted */
+            entities_extracted: number;
+            /** Relationships Extracted */
+            relationships_extracted: number;
+            /**
+             * Retry Count
+             * @default 0
+             */
+            retry_count: number;
+            /** Last Error */
+            last_error?: string | null;
+            /** Next Retry At */
+            next_retry_at?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Completed At */
+            completed_at: string | null;
+        };
         /**
          * HTTPValidationError
          * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
@@ -258,7 +604,7 @@ export interface operations {
             };
         };
     };
-    default_handler_health_get: {
+    health_check_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -273,9 +619,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
                 };
             };
         };
@@ -390,6 +734,363 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationalSignalLifecycleRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    metrics_endpoint_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    extract_v1_extract_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extract_and_ingest_v1_extract_and_ingest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractAndIngestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_extraction_status_v1_extract_status__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractionStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quarantine_status_v1_quarantine__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_quarantine_jobs_v1_quarantine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    extract_batch_v1_extract_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractRequest"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entities_v1_entities_get: {
+        parameters: {
+            query?: {
+                entity_type?: "Capability" | "UseCase" | "Persona" | "ValueDriver" | "Feature";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_relationships_v1_entities__entity_id__relationships_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_provenance_v1_provenance__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entity_provenance_v1_provenance_entity__entity_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_job_events_v1_extract_jobs__job_id__events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

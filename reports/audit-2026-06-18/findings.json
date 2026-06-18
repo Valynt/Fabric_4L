@@ -1,0 +1,34 @@
+{
+  "started_at": "2026-06-18T12:13:08.416984+00:00",
+  "repo_root": "C:\\Users\\BBB\\Fabric_4L",
+  "scans": {
+    "pnpm_audit": {
+      "exit_code": 1,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 6,
+        "moderate": 11,
+        "high": 3,
+        "critical": 0
+      }
+    },
+    "make_lint": {
+      "exit_code": 2
+    },
+    "make_typecheck": {
+      "exit_code": 0
+    },
+    "semgrep": {
+      "exit_code": 0,
+      "results": 411,
+      "errors": 24
+    },
+    "pip_audit": {
+      "exit_code": 1
+    },
+    "bandit": {
+      "exit_code": 1
+    }
+  },
+  "finished_at": "2026-06-18T12:17:55.153449+00:00"
+}

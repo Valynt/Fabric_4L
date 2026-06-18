@@ -30,7 +30,7 @@ async def test_chaos_database_latency_spike_surfaces_degraded_mode(backend, seed
         "POST",
         "/api/v1/extractions",
         json={
-            "source_id": seed_ids.document_id,
+            "source_id": backend.seed_source_id,
             "account_id": seed_ids.account_id,
             "simulate_db_latency_ms": 3000,
         },

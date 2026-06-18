@@ -1108,23 +1108,6 @@
             "description": "Items per page"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1958,7 +1941,7 @@
           "analysis"
         ],
         "summary": "Generate Workspace Intelligence",
-        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call — just exposes graph data\nthe frontend currently can't see.",
+        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call \u2014 just exposes graph data\nthe frontend currently can't see.",
         "operationId": "generate_workspace_intelligence_v1_cases__case_id__workspace_generate_post",
         "parameters": [
           {
@@ -3321,7 +3304,7 @@
           "agent-stream"
         ],
         "summary": "Agent Stream Chat Sse",
-        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED → STEP_STARTED/STEP_FINISHED → TEXT_MESSAGE_* → RUN_FINISHED",
+        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED \u2192 STEP_STARTED/STEP_FINISHED \u2192 TEXT_MESSAGE_* \u2192 RUN_FINISHED",
         "operationId": "agent_stream_chat_sse_v1_agent_stream_chat_stream_post",
         "requestBody": {
           "content": {
@@ -3446,9 +3429,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized CRM webhook credentials or signature."
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -3568,9 +3548,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized CRM webhook credentials or signature."
           },
           "422": {
             "description": "Validation Error",
@@ -4957,7 +4934,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_create_tenant_v1_tenants_post"
+                "$ref": "#/components/schemas/TenantCreateRequest"
               }
             }
           }
@@ -5033,23 +5010,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5098,23 +5058,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5162,7 +5105,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_update_tenant_v1_tenants__tenant_id__patch"
+                "$ref": "#/components/schemas/TenantUpdateRequest"
               }
             }
           }
@@ -5209,23 +5152,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -5267,7 +5193,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StatusChangeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
               }
             }
           }
@@ -5320,7 +5254,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_activate_tenant_v1_tenants__tenant_id__activate_post"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StatusChangeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
               }
             }
           }
@@ -5384,7 +5326,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_change_tenant_status_v1_tenants__tenant_id__status_post"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StatusChangeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
               }
             }
           }
@@ -5419,13 +5369,13 @@
           "Users"
         ],
         "summary": "Api Invite User",
-        "description": "Invite a user to the caller's tenant. Requires ``tenant_admin`` role.",
+        "description": "Invite a user to the caller's tenant. Requires ``tenant_admin`` role.\n\nGenerates an invitation token and sends an invitation email if an email\nprovider (SendGrid or SMTP) is configured.",
         "operationId": "api_invite_user_v1_users_invite_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_invite_user_v1_users_invite_post"
+                "$ref": "#/components/schemas/UserInviteRequest"
               }
             }
           },
@@ -5433,6 +5383,48 @@
         },
         "responses": {
           "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/accept-invite": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Api Accept Invite",
+        "description": "Accept an invitation by setting a password and activating the account.\n\nThis endpoint is **public** (does not require authentication) because the\ncaller is an unauthenticated invitee redeeming their invitation token.",
+        "operationId": "api_accept_invite_v1_users_accept_invite_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAcceptInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -5488,23 +5480,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5516,6 +5491,68 @@
                     "$ref": "#/components/schemas/UserModel"
                   },
                   "title": "Response Api List Users V1 Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/me": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Api Get Current User",
+        "description": "Get the currently authenticated user (self-service).",
+        "operationId": "api_get_current_user_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Api Update Current User",
+        "description": "Update the currently authenticated user's own profile.\n\nOnly ``display_name`` may be changed via self-service. Requests that\ninclude ``role`` or ``status`` are rejected to prevent privilege\nescalation by non-admins.",
+        "operationId": "api_update_current_user_v1_users_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
                 }
               }
             }
@@ -5553,23 +5590,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5617,7 +5637,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_update_user_v1_users__user_id__patch"
+                "$ref": "#/components/schemas/UserUpdateRequest"
               }
             }
           }
@@ -5664,23 +5684,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -5711,7 +5714,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_api_create_key_v1_api_keys_post"
+                "$ref": "#/components/schemas/APIKeyCreateRequest"
               }
             }
           }
@@ -5748,33 +5751,16 @@
         "operationId": "api_list_keys_v1_api_keys_get",
         "parameters": [
           {
-            "name": "enabled_only",
+            "name": "active_only",
             "in": "query",
             "required": false,
             "schema": {
               "type": "boolean",
               "default": true,
-              "title": "Enabled Only"
+              "title": "Active Only"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5822,23 +5808,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -6222,23 +6191,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6315,9 +6267,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized provisioning webhook signature, including expired timestamp."
           },
           "422": {
             "description": "Validation Error",
@@ -6505,23 +6454,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6580,23 +6512,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6661,23 +6576,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6722,23 +6620,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6786,7 +6667,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch"
+                "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"
               }
             }
           }
@@ -6849,23 +6730,6 @@
             "description": "Number of days to aggregate"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6922,23 +6786,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6983,23 +6830,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7068,23 +6898,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7170,23 +6983,6 @@
             "description": "Filter by action type"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7231,23 +7027,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7276,7 +7055,7 @@
           "Tenant Admin Dashboard"
         ],
         "summary": "Update Tenant Settings",
-        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates — only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
+        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates \u2014 only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
         "operationId": "update_tenant_settings_v1__tenant_id__settings_patch",
         "parameters": [
           {
@@ -7295,7 +7074,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_update_tenant_settings_v1__tenant_id__settings_patch"
+                "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"
               }
             }
           }
@@ -7845,23 +7624,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7909,23 +7671,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7972,7 +7717,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upsert_feature_flag_v1_feature_flags__flag_key__put"
+                "$ref": "#/components/schemas/FeatureFlagUpsertRequest"
               }
             }
           }
@@ -8018,23 +7763,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -8071,23 +7799,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/RequestContext"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Context"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9204,8 +8915,8 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "maximum": 1,
-                  "minimum": 0
+                  "maximum": 1.0,
+                  "minimum": 0.0
                 },
                 {
                   "type": "null"
@@ -9536,7 +9247,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_review_v1_governance_reviews_post"
+                "$ref": "#/components/schemas/ReviewRequest"
               }
             }
           }
@@ -9713,7 +9424,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_decision_v1_governance_reviews__review_id__decisions_post"
+                "$ref": "#/components/schemas/ApprovalDecision"
               }
             }
           }
@@ -9795,7 +9506,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_version_v1_governance_versions_post"
+                "$ref": "#/components/schemas/VersionRecord"
               }
             }
           },
@@ -9887,7 +9598,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_audit_export_v1_governance_audit_exports_post"
+                "$ref": "#/components/schemas/AuditExportCreateRequest"
               }
             }
           },
@@ -10007,7 +9718,7 @@
           "Billing"
         ],
         "summary": "Get Subscription",
-        "description": "[STUB] Forwarded to Layer 7. Get current subscription status.",
+        "description": "Get current subscription status.",
         "operationId": "get_subscription_v1_billing_subscription_get",
         "parameters": [
           {
@@ -10053,7 +9764,7 @@
           "Billing"
         ],
         "summary": "Create Checkout",
-        "description": "[STUB] Forwarded to Layer 7. Create a Stripe checkout session.",
+        "description": "Create a Stripe checkout session.",
         "operationId": "create_checkout_v1_billing_checkout_post",
         "parameters": [
           {
@@ -10113,7 +9824,7 @@
           "Billing"
         ],
         "summary": "Create Portal",
-        "description": "[STUB] Forwarded to Layer 7. Create a Stripe customer portal session.",
+        "description": "Create a Stripe customer portal session.",
         "operationId": "create_portal_v1_billing_portal_post",
         "parameters": [
           {
@@ -10173,7 +9884,7 @@
           "Billing"
         ],
         "summary": "Cancel Subscription",
-        "description": "[STUB] Forwarded to Layer 7. Cancel a customer's subscription.",
+        "description": "Cancel a customer's subscription.",
         "operationId": "cancel_subscription_v1_billing_subscription_cancel_post",
         "parameters": [
           {
@@ -10231,7 +9942,7 @@
           "Billing"
         ],
         "summary": "Update Subscription Plan",
-        "description": "[STUB] Forwarded to Layer 7. Update a customer's subscription plan.",
+        "description": "Update a customer's subscription plan.",
         "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post",
         "parameters": [
           {
@@ -10289,7 +10000,7 @@
           "Billing"
         ],
         "summary": "Reactivate Subscription",
-        "description": "[STUB] Forwarded to Layer 7. Reactivate a subscription.",
+        "description": "Reactivate a subscription.",
         "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post",
         "parameters": [
           {
@@ -10337,7 +10048,7 @@
           "Billing"
         ],
         "summary": "Get Entitlements",
-        "description": "[STUB] Forwarded to Layer 7. Get all feature entitlements for a customer.",
+        "description": "Get all feature entitlements for a customer.",
         "operationId": "get_entitlements_v1_billing_entitlements_get",
         "parameters": [
           {
@@ -10385,7 +10096,7 @@
           "Billing"
         ],
         "summary": "Check Feature",
-        "description": "[STUB] Forwarded to Layer 7. Check if a customer has access to a specific feature.",
+        "description": "Check if a customer has access to a specific feature.",
         "operationId": "check_feature_v1_billing_check_feature_get",
         "parameters": [
           {
@@ -10442,7 +10153,7 @@
           "Billing"
         ],
         "summary": "Sync Customer",
-        "description": "[STUB] Forwarded to Layer 7. Sync customer with Stripe.",
+        "description": "Sync customer with Stripe.",
         "operationId": "sync_customer_v1_billing_sync_customer_post",
         "parameters": [
           {
@@ -10492,13 +10203,56 @@
         }
       }
     },
+    "/v1/billing/webhook": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Stripe Webhook",
+        "description": "Handle Stripe webhook events.",
+        "operationId": "stripe_webhook_v1_billing_webhook_post",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stripe-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/stripe_webhookResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/billing/invoices": {
       "get": {
         "tags": [
           "Billing"
         ],
         "summary": "List Invoices",
-        "description": "[STUB] Forwarded to Layer 7. List invoices with optional filters.",
+        "description": "List invoices with optional filters.",
         "operationId": "list_invoices_v1_billing_invoices_get",
         "parameters": [
           {
@@ -10585,7 +10339,7 @@
           "Billing"
         ],
         "summary": "Create Invoice",
-        "description": "[STUB] Forwarded to Layer 7. Create a new invoice.",
+        "description": "Create a new invoice.",
         "operationId": "create_invoice_v1_billing_invoices_post",
         "requestBody": {
           "required": true,
@@ -10627,7 +10381,7 @@
           "Billing"
         ],
         "summary": "Get Invoice",
-        "description": "[STUB] Forwarded to Layer 7. Get invoice details including line items and charges.",
+        "description": "Get invoice details including line items and charges.",
         "operationId": "get_invoice_v1_billing_invoices__invoice_id__get",
         "parameters": [
           {
@@ -10670,7 +10424,7 @@
           "Billing"
         ],
         "summary": "Add Invoice Item",
-        "description": "[STUB] Forwarded to Layer 7. Add a line item to an invoice.",
+        "description": "Add a line item to an invoice.",
         "operationId": "add_invoice_item_v1_billing_invoices__invoice_id__items_post",
         "parameters": [
           {
@@ -10723,7 +10477,7 @@
           "Billing"
         ],
         "summary": "Finalize Invoice",
-        "description": "[STUB] Forwarded to Layer 7. Finalize a draft invoice.",
+        "description": "Finalize a draft invoice.",
         "operationId": "finalize_invoice_v1_billing_invoices__invoice_id__finalize_post",
         "parameters": [
           {
@@ -10766,7 +10520,7 @@
           "Billing"
         ],
         "summary": "Void Invoice",
-        "description": "[STUB] Forwarded to Layer 7. Void an invoice.",
+        "description": "Void an invoice.",
         "operationId": "void_invoice_v1_billing_invoices__invoice_id__void_post",
         "parameters": [
           {
@@ -10827,7 +10581,7 @@
           "Billing"
         ],
         "summary": "List Charges",
-        "description": "[STUB] Forwarded to Layer 7. List charge records.",
+        "description": "List charge records.",
         "operationId": "list_charges_v1_billing_charges_get",
         "parameters": [
           {
@@ -10930,7 +10684,7 @@
           "Billing"
         ],
         "summary": "Record Charge",
-        "description": "[STUB] Forwarded to Layer 7. Record a charge attempt.",
+        "description": "Record a charge attempt.",
         "operationId": "record_charge_v1_billing_charges_post",
         "requestBody": {
           "required": true,
@@ -10972,7 +10726,7 @@
           "Billing"
         ],
         "summary": "Get Revenue Summary",
-        "description": "[STUB] Forwarded to Layer 7. Get revenue summary for a period.",
+        "description": "Get revenue summary for a period.",
         "operationId": "get_revenue_summary_v1_billing_reports_revenue_get",
         "parameters": [
           {
@@ -11028,7 +10782,7 @@
           "Billing"
         ],
         "summary": "Get Customer Balance",
-        "description": "[STUB] Forwarded to Layer 7. Get customer balance summary.",
+        "description": "Get customer balance summary.",
         "operationId": "get_customer_balance_v1_billing_customers__customer_id__balance_get",
         "parameters": [
           {
@@ -11073,7 +10827,7 @@
           "Billing"
         ],
         "summary": "Get Usage Limits",
-        "description": "[STUB] Forwarded to Layer 7. Get current usage and limits for a customer.",
+        "description": "Get current usage and limits for a customer.",
         "operationId": "get_usage_limits_v1_billing_limits__customer_id__get",
         "parameters": [
           {
@@ -11116,7 +10870,7 @@
           "Billing"
         ],
         "summary": "Check Request Allowed",
-        "description": "[STUB] Forwarded to Layer 7. Check if a request should be allowed based on usage limits.",
+        "description": "Check if a request should be allowed based on usage limits.",
         "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post",
         "parameters": [
           {
@@ -11144,7 +10898,7 @@
             "schema": {
               "type": "number",
               "minimum": 0,
-              "default": 1,
+              "default": 1.0,
               "title": "Quantity"
             }
           }
@@ -11181,7 +10935,7 @@
           "Billing"
         ],
         "summary": "Get Plan Limits",
-        "description": "[STUB] Forwarded to Layer 7. Get the configured usage limits for a plan.",
+        "description": "Get the configured usage limits for a plan.",
         "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get",
         "parameters": [
           {
@@ -11224,7 +10978,7 @@
           "Billing"
         ],
         "summary": "Ingest Usage Event",
-        "description": "[STUB] Forwarded to Layer 7. Ingest a single usage event for billing.",
+        "description": "Ingest a single usage event for billing.",
         "operationId": "ingest_usage_event_v1_billing_events_post",
         "requestBody": {
           "content": {
@@ -11266,7 +11020,7 @@
           "Billing"
         ],
         "summary": "Ingest Usage Batch",
-        "description": "[STUB] Forwarded to Layer 7. Ingest multiple usage events in a batch.",
+        "description": "Ingest multiple usage events in a batch.",
         "operationId": "ingest_usage_batch_v1_billing_events_batch_post",
         "requestBody": {
           "content": {
@@ -11308,7 +11062,7 @@
           "Billing"
         ],
         "summary": "Get Usage Summary",
-        "description": "[STUB] Forwarded to Layer 7. Get aggregated usage summary.",
+        "description": "Get aggregated usage summary.",
         "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get",
         "parameters": [
           {
@@ -11396,7 +11150,7 @@
           "Billing"
         ],
         "summary": "List Usage Events",
-        "description": "[STUB] Forwarded to Layer 7. List individual usage events for a customer.",
+        "description": "List individual usage events for a customer.",
         "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get",
         "parameters": [
           {
@@ -11517,7 +11271,7 @@
           "Billing"
         ],
         "summary": "Sync Usage To Stripe",
-        "description": "[STUB] Forwarded to Layer 7. Sync pending usage events to Stripe MeterEvents.",
+        "description": "Sync pending usage events to Stripe MeterEvents.",
         "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post",
         "parameters": [
           {
@@ -11558,60 +11312,6 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/webhook": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Stripe Webhook",
-        "description": "[STUB] Forwarded to Layer 7. Handle Stripe webhook events.",
-        "operationId": "stripe_webhook_v1_billing_webhook_post",
-        "parameters": [
-          {
-            "name": "background_tasks",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "title": "Background Tasks"
-            }
-          },
-          {
-            "name": "Stripe-Signature",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Stripe-Signature"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/stripe_webhookResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid webhook payload or timestamp."
           },
           "422": {
             "description": "Validation Error",
@@ -11918,7 +11618,7 @@
           "prospects"
         ],
         "summary": "Start Prospect Analysis",
-        "description": "Start prospect analysis workflow — real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
+        "description": "Start prospect analysis workflow \u2014 real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
         "operationId": "start_prospect_analysis_v1_prospects__prospect_id__start_analysis_post",
         "parameters": [
           {
@@ -12360,8 +12060,8 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "maximum": 1,
-                  "minimum": 0
+                  "maximum": 1.0,
+                  "minimum": 0.0
                 },
                 {
                   "type": "null"
@@ -13097,7 +12797,7 @@
           "harness"
         ],
         "summary": "Decide a human gate",
-        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id — any\nbody-supplied value is ignored to prevent spoofing.",
+        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id \u2014 any\nbody-supplied value is ignored to prevent spoofing.",
         "operationId": "decide_gate_v1_harness_gates__gate_id__decide_post",
         "parameters": [
           {
@@ -13115,7 +12815,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_decide_gate_v1_harness_gates__gate_id__decide_post"
+                "$ref": "#/components/schemas/GateDecisionRequest"
               }
             }
           }
@@ -13311,8 +13011,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 10000,
-                "minimum": 1
+                "maximum": 10000.0,
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -13351,7 +13051,7 @@
           "api_key": {
             "type": "string",
             "title": "Api Key",
-            "description": "Full key — shown ONCE, store securely"
+            "description": "Full key \u2014 shown ONCE, store securely"
           },
           "prefix": {
             "type": "string",
@@ -13411,7 +13111,7 @@
           "created_at"
         ],
         "title": "APIKeyCreateResponse",
-        "description": "Returned once on key creation — includes the raw secret (shown only once)."
+        "description": "Returned once on key creation \u2014 includes the raw secret (shown only once)."
       },
       "APIKeyModel": {
         "properties": {
@@ -13466,6 +13166,18 @@
             "title": "Enabled",
             "default": true
           },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -13499,8 +13211,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 10000,
-                "minimum": 1
+                "maximum": 10000.0,
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -14100,14 +13812,14 @@
           },
           "page": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Page",
             "default": 1
           },
           "page_size": {
             "type": "integer",
-            "maximum": 100,
-            "minimum": 1,
+            "maximum": 100.0,
+            "minimum": 1.0,
             "title": "Page Size",
             "default": 20
           },
@@ -14277,16 +13989,16 @@
           },
           "amount_cents": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Amount Cents",
             "description": "Amount in cents"
           },
           "quantity": {
             "type": "number",
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Quantity",
             "description": "Quantity",
-            "default": 1
+            "default": 1.0
           },
           "unit_amount_cents": {
             "anyOf": [
@@ -14332,14 +14044,14 @@
           },
           "tax_cents": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Tax Cents",
             "description": "Tax amount in cents",
             "default": 0
           },
           "discount_cents": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Discount Cents",
             "description": "Discount amount in cents",
             "default": 0
@@ -14986,8 +14698,8 @@
         "properties": {
           "limit": {
             "type": "integer",
-            "maximum": 500,
-            "minimum": 1,
+            "maximum": 500.0,
+            "minimum": 1.0,
             "title": "Limit",
             "description": "Max accounts to enrich",
             "default": 50
@@ -15001,124 +14713,6 @@
         },
         "type": "object",
         "title": "BatchEnrichRequest"
-      },
-      "Body_api_activate_tenant_v1_tenants__tenant_id__activate_post": {
-        "properties": {
-          "body": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StatusChangeRequest"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "title": "Body_api_activate_tenant_v1_tenants__tenant_id__activate_post"
-      },
-      "Body_api_change_tenant_status_v1_tenants__tenant_id__status_post": {
-        "properties": {
-          "body": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StatusChangeRequest"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "title": "Body_api_change_tenant_status_v1_tenants__tenant_id__status_post"
-      },
-      "Body_api_create_key_v1_api_keys_post": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/APIKeyCreateRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_api_create_key_v1_api_keys_post"
-      },
-      "Body_api_create_tenant_v1_tenants_post": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/TenantCreateRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_api_create_tenant_v1_tenants_post"
-      },
-      "Body_api_invite_user_v1_users_invite_post": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/UserInviteRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_api_invite_user_v1_users_invite_post"
       },
       "Body_api_promote_model_v1_models__model_id__promote_post": {
         "properties": {
@@ -15185,252 +14779,6 @@
           "request"
         ],
         "title": "Body_api_register_model_v1_models_post"
-      },
-      "Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post": {
-        "properties": {
-          "body": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/StatusChangeRequest"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "title": "Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post"
-      },
-      "Body_api_update_tenant_v1_tenants__tenant_id__patch": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/TenantUpdateRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_api_update_tenant_v1_tenants__tenant_id__patch"
-      },
-      "Body_api_update_user_v1_users__user_id__patch": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/UserUpdateRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_api_update_user_v1_users__user_id__patch"
-      },
-      "Body_create_audit_export_v1_governance_audit_exports_post": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/AuditExportCreateRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_create_audit_export_v1_governance_audit_exports_post"
-      },
-      "Body_create_decision_v1_governance_reviews__review_id__decisions_post": {
-        "properties": {
-          "decision": {
-            "$ref": "#/components/schemas/ApprovalDecision"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "decision"
-        ],
-        "title": "Body_create_decision_v1_governance_reviews__review_id__decisions_post"
-      },
-      "Body_create_review_v1_governance_reviews_post": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/ReviewRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_create_review_v1_governance_reviews_post"
-      },
-      "Body_create_version_v1_governance_versions_post": {
-        "properties": {
-          "version": {
-            "$ref": "#/components/schemas/VersionRecord"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "version"
-        ],
-        "title": "Body_create_version_v1_governance_versions_post"
-      },
-      "Body_decide_gate_v1_harness_gates__gate_id__decide_post": {
-        "properties": {
-          "body": {
-            "$ref": "#/components/schemas/GateDecisionRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "body"
-        ],
-        "title": "Body_decide_gate_v1_harness_gates__gate_id__decide_post"
-      },
-      "Body_update_tenant_settings_v1__tenant_id__settings_patch": {
-        "properties": {
-          "update": {
-            "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "update"
-        ],
-        "title": "Body_update_tenant_settings_v1__tenant_id__settings_patch"
-      },
-      "Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch": {
-        "properties": {
-          "update": {
-            "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "update"
-        ],
-        "title": "Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch"
-      },
-      "Body_upsert_feature_flag_v1_feature_flags__flag_key__put": {
-        "properties": {
-          "request": {
-            "$ref": "#/components/schemas/FeatureFlagUpsertRequest"
-          },
-          "context": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RequestContext"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "request"
-        ],
-        "title": "Body_upsert_feature_flag_v1_feature_flags__flag_key__put"
       },
       "BusinessCaseLifecycleSeedRequest": {
         "properties": {
@@ -15529,17 +14877,17 @@
           "total_value": {
             "type": "number",
             "title": "Total Value",
-            "default": 0
+            "default": 0.0
           },
           "implementation_cost": {
             "type": "number",
             "title": "Implementation Cost",
-            "default": 0
+            "default": 0.0
           },
           "roi_ratio": {
             "type": "number",
             "title": "Roi Ratio",
-            "default": 0
+            "default": 0.0
           },
           "payback_months": {
             "type": "integer",
@@ -15549,7 +14897,7 @@
           "confidence_score": {
             "type": "number",
             "title": "Confidence Score",
-            "default": 0
+            "default": 0.0
           },
           "recommendations": {
             "items": {
@@ -16196,14 +15544,14 @@
           },
           "confidence": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence"
           },
           "trust_score": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Trust Score"
           },
           "validator": {
@@ -16337,6 +15685,7 @@
             "title": "Website"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "company_name"
@@ -16381,8 +15730,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -16766,10 +16115,10 @@
           },
           "packet_loss_percent": {
             "type": "number",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Packet Loss Percent",
-            "default": 0
+            "default": 0.0
           },
           "connection_type": {
             "type": "string",
@@ -17006,7 +16355,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -17018,7 +16367,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "minimum": 0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -17138,6 +16487,18 @@
             ],
             "title": "Title",
             "description": "Case title"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id",
+            "description": "Optional deterministic case id. Generated if omitted."
           }
         },
         "type": "object",
@@ -18000,28 +17361,28 @@
         "properties": {
           "overall_pass_rate": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Overall Pass Rate",
             "description": "Overall evaluation pass rate"
           },
           "total_tests": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Total Tests",
             "description": "Total number of tests run",
             "default": 0
           },
           "passed_tests": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Passed Tests",
             "description": "Number of passing tests",
             "default": 0
           },
           "skills_evaluated": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Skills Evaluated",
             "description": "Number of skills evaluated",
             "default": 0
@@ -18268,8 +17629,8 @@
           },
           "rollout_percentage": {
             "type": "integer",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Rollout Percentage"
           },
           "description": {
@@ -18333,8 +17694,8 @@
           },
           "rollout_percentage": {
             "type": "integer",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Rollout Percentage"
           },
           "description": {
@@ -18583,15 +17944,15 @@
           },
           "min_confidence": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Min Confidence",
             "default": 0.3
           },
           "max_hypotheses": {
             "type": "integer",
-            "maximum": 100,
-            "minimum": 1,
+            "maximum": 100.0,
+            "minimum": 1.0,
             "title": "Max Hypotheses",
             "default": 20
           },
@@ -18720,7 +18081,7 @@
           "CANCELLED"
         ],
         "title": "HarnessState",
-        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT → RESOLVE_CONTEXT → LOAD_VALUE_PACK → RETRIEVE_KNOWLEDGE\n  → GENERATE_HYPOTHESES → MATCH_EVIDENCE → QUANTIFY_IMPACT\n  → VALIDATE_CLAIMS → HUMAN_REVIEW → PUBLISH_OUTPUT → DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
+        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT \u2192 RESOLVE_CONTEXT \u2192 LOAD_VALUE_PACK \u2192 RETRIEVE_KNOWLEDGE\n  \u2192 GENERATE_HYPOTHESES \u2192 MATCH_EVIDENCE \u2192 QUANTIFY_IMPACT\n  \u2192 VALIDATE_CLAIMS \u2192 HUMAN_REVIEW \u2192 PUBLISH_OUTPUT \u2192 DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
       },
       "HarnessWorkflowType": {
         "type": "string",
@@ -18954,8 +18315,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -19088,8 +18449,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -19286,8 +18647,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -19447,15 +18808,15 @@
           },
           "sync_interval_minutes": {
             "type": "integer",
-            "maximum": 1440,
-            "minimum": 5,
+            "maximum": 1440.0,
+            "minimum": 5.0,
             "title": "Sync Interval Minutes",
             "default": 60
           },
           "sync_batch_size": {
             "type": "integer",
-            "maximum": 500,
-            "minimum": 10,
+            "maximum": 500.0,
+            "minimum": 10.0,
             "title": "Sync Batch Size",
             "default": 100
           },
@@ -19558,6 +18919,37 @@
         ],
         "title": "IntegrationStatusResponse",
         "description": "Integration with sync status (response only)."
+      },
+      "JsonValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "KnowledgeSourceCreateRequest": {
         "properties": {
@@ -19937,8 +19329,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -20110,15 +19502,15 @@
           },
           "roi_time_horizon_months": {
             "type": "integer",
-            "maximum": 120,
-            "minimum": 1,
+            "maximum": 120.0,
+            "minimum": 1.0,
             "title": "Roi Time Horizon Months",
             "default": 36
           },
           "top_n_hypotheses": {
             "type": "integer",
-            "maximum": 20,
-            "minimum": 1,
+            "maximum": 20.0,
+            "minimum": 1.0,
             "title": "Top N Hypotheses",
             "default": 5
           },
@@ -20455,8 +19847,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -21514,7 +20906,7 @@
           },
           "amount_cents": {
             "type": "integer",
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Amount Cents",
             "description": "Charge amount in cents"
           },
@@ -22090,7 +21482,7 @@
           "system"
         ],
         "title": "Role",
-        "description": "Business roles used across all layers.\n\nHierarchy (highest → lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
+        "description": "Business roles used across all layers.\n\nHierarchy (highest \u2192 lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
       },
       "RunListResponse": {
         "properties": {
@@ -23785,12 +23177,16 @@
       "ToolSchemaExample": {
         "properties": {
           "input": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
             "type": "object",
             "title": "Input"
           },
           "output": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
             "type": "object",
             "title": "Output"
           }
@@ -23813,12 +23209,16 @@
             "title": "Description"
           },
           "input_schema": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
             "type": "object",
             "title": "Input Schema"
           },
           "output_schema": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
             "type": "object",
             "title": "Output Schema"
           },
@@ -24086,7 +23486,7 @@
           },
           "quantity": {
             "type": "number",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Quantity",
             "description": "Quantity to record"
           },
@@ -24172,6 +23572,40 @@
         ],
         "title": "UsageMetricsResponse",
         "description": "Usage metrics response."
+      },
+      "UserAcceptInviteRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Token",
+            "description": "Invitation token from email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "title": "Password",
+            "description": "Password for the new account"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "UserAcceptInviteRequest",
+        "description": "Accept an invitation by setting a password and activating the account."
       },
       "UserInviteRequest": {
         "properties": {
@@ -24281,7 +23715,7 @@
           "email"
         ],
         "title": "UserModel",
-        "description": "Read-only representation of a user (returned by API — no password)."
+        "description": "Read-only representation of a user (returned by API \u2014 no password)."
       },
       "UserStatus": {
         "type": "string",
@@ -24424,11 +23858,11 @@
           },
           "confidence_adjustment": {
             "type": "number",
-            "maximum": 1,
-            "minimum": -1,
+            "maximum": 1.0,
+            "minimum": -1.0,
             "title": "Confidence Adjustment",
             "description": "Additive confidence adjustment",
-            "default": 0
+            "default": 0.0
           }
         },
         "type": "object",
@@ -24739,8 +24173,8 @@
           },
           "expires_in_seconds": {
             "type": "integer",
-            "maximum": 86400,
-            "minimum": 60,
+            "maximum": 86400.0,
+            "minimum": 60.0,
             "title": "Expires In Seconds",
             "default": 3600
           }
@@ -24882,8 +24316,8 @@
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 1,
-                "minimum": 0
+                "maximum": 1.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -25490,10 +24924,10 @@
           },
           "progress": {
             "type": "number",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Progress",
-            "default": 0
+            "default": 0.0
           },
           "created_at": {
             "anyOf": [
@@ -25758,10 +25192,10 @@
           },
           "percent": {
             "type": "number",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Percent",
-            "default": 0
+            "default": 0.0
           },
           "message": {
             "type": "string",
@@ -26033,10 +25467,10 @@
           },
           "progress": {
             "type": "number",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Progress",
-            "default": 0
+            "default": 0.0
           },
           "started_at": {
             "anyOf": [

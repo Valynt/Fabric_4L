@@ -1,6 +1,6 @@
 # Async Boundary Inventory
 
-Generated: 2026-06-04T17:48:50.600Z
+Generated: 2026-06-18T09:02:38.408Z
 
 ## src/api/auth.ts
 - L26 [async-boundary] `async function registerWithEmailPassword`
@@ -21,7 +21,7 @@ Generated: 2026-06-04T17:48:50.600Z
 - L21 [async-boundary] `async function search`
 
 ## src/api/thesysClient.ts
-- L170 [async-boundary] `async function evaluateWhatIf`
+- L184 [async-boundary] `async function evaluateWhatIf`
 
 ## src/api/typedClient.ts
 - L13 [async-boundary] `async function apiGet`
@@ -52,14 +52,14 @@ Generated: 2026-06-04T17:48:50.600Z
 ## src/auth/clerkSession.ts
 - L62 [async-boundary] `async function getClerkSessionToken`
 
+## src/components/billing/InvoiceDetailDrawer.tsx
+- L47 [async-boundary] `const handleDownloadPDF = async (`
+
 ## src/components/ErrorBoundary.tsx
 - L33 [async-boundary] `const handleCopy = async (`
 
 ## src/components/ExportMenu.tsx
 - L16 [async-boundary] `const handleExport = async (`
-
-## src/components/billing/InvoiceDetailDrawer.tsx
-- L47 [async-boundary] `const handleDownloadPDF = async (`
 
 ## src/components/login-form.tsx
 - L146 [async-boundary] `const handleSubmit = async (`
@@ -75,39 +75,49 @@ Generated: 2026-06-04T17:48:50.600Z
 - L1286 [async-boundary] `const handleAttach = async (`
 
 ## src/contexts/AuthContext.tsx
-- L120 [async-boundary] `const initiateLogin = async (`
-- L126 [async-boundary] `const handleCallback = async (`
-- L131 [async-boundary] `const logout = async (`
-- L147 [async-boundary] `const refreshToken = async (`
+- L113 [async-boundary] `const initiateLogin = async (`
+- L117 [async-boundary] `const handleCallback = async (`
+- L122 [async-boundary] `const logout = async (`
+- L131 [async-boundary] `const refreshToken = async (`
 
-## src/features/intelligence-workspace/hooks/useWorkspaceTabQuery.ts
-- L25 [async-boundary] `queryFn: async (`
+## src/hooks/useAcademy.ts
+- L120 [async-boundary] `async function fetchPillars`
+- L125 [async-boundary] `async function fetchQuiz`
+- L130 [async-boundary] `async function submitQuizPayload`
+- L138 [async-boundary] `async function fetchProgress`
+- L143 [async-boundary] `async function updateProgressPayload`
+- L152 [async-boundary] `async function fetchCertifications`
+- L157 [async-boundary] `async function fetchMaturityLevels`
+- L162 [async-boundary] `async function fetchMaturityAssessments`
+- L167 [async-boundary] `async function createMaturityAssessmentPayload`
+- L175 [async-boundary] `async function fetchResources`
+- L196 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useAccountAccess.ts
 - L17 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useAccounts.ts
-- L133 [async-boundary] `async function fetchAccounts`
-- L181 [async-boundary] `async function resolveBackendAccountId`
-- L214 [async-boundary] `async function fetchAccount`
-- L223 [async-boundary] `queryFn: async (`
-- L234 [async-boundary] `async function fetchAccountActivity`
-- L257 [async-boundary] `queryFn: async (`
-- L268 [async-boundary] `async function fetchSyncStatus`
-- L283 [async-boundary] `async function fetchFilterOptions`
-- L376 [async-boundary] `mutationFn: async (`
-- L394 [async-boundary] `mutationFn: async (`
-- L416 [async-boundary] `mutationFn: async (`
+- L139 [async-boundary] `async function fetchAccounts`
+- L190 [async-boundary] `async function resolveBackendAccountId`
+- L238 [async-boundary] `async function fetchAccount`
+- L247 [async-boundary] `queryFn: async (`
+- L258 [async-boundary] `async function fetchAccountActivity`
+- L281 [async-boundary] `queryFn: async (`
+- L292 [async-boundary] `async function fetchSyncStatus`
+- L307 [async-boundary] `async function fetchFilterOptions`
+- L400 [async-boundary] `mutationFn: async (`
+- L418 [async-boundary] `mutationFn: async (`
+- L440 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useApiShared.ts
-- L156 [async-boundary] `async function withApiError`
+- L82 [async-boundary] `async function withApiError`
 
 ## src/hooks/useBenchmarks.ts
-- L87 [async-boundary] `async function fetchBenchmarks`
-- L114 [async-boundary] `async function fetchBenchmark`
-- L128 [async-boundary] `queryFn: async (`
-- L139 [async-boundary] `async function fetchBenchmarkPolicies`
-- L173 [async-boundary] `mutationFn: async (`
+- L82 [async-boundary] `async function fetchBenchmarks`
+- L109 [async-boundary] `async function fetchBenchmark`
+- L123 [async-boundary] `queryFn: async (`
+- L134 [async-boundary] `async function fetchBenchmarkPolicies`
+- L168 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useBilling.ts
 - L59 [async-boundary] `queryFn: async (`
@@ -188,24 +198,12 @@ Generated: 2026-06-04T17:48:50.600Z
 
 ## src/hooks/useExtractionResults.ts
 - L76 [async-boundary] `queryFn: async (`
-- L106 [async-boundary] `queryFn: async (`
-
-## src/hooks/useFabricQuery.ts
-- L53 [async-boundary] `queryFn: async (`
+- L107 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useFormulaDependents.ts
 - L34 [async-boundary] `async function fetchFormulaDependencies`
 - L62 [async-boundary] `queryFn: async (`
 - L103 [async-boundary] `queryFn: async (`
-
-## src/hooks/useFormulaScenario.ts
-- L79 [async-boundary] `mutationFn: async (`
-
-## src/hooks/useFormulaVersions.ts
-- L45 [async-boundary] `async function fetchFormulaVersions`
-- L53 [async-boundary] `async function fetchFormulaGovernance`
-- L79 [async-boundary] `queryFn: async (`
-- L105 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useFormulas.ts
 - L38 [async-boundary] `async function fetchFormulas`
@@ -219,6 +217,15 @@ Generated: 2026-06-04T17:48:50.600Z
 - L338 [async-boundary] `mutationFn: async (`
 - L369 [async-boundary] `mutationFn: async (`
 
+## src/hooks/useFormulaScenario.ts
+- L79 [async-boundary] `mutationFn: async (`
+
+## src/hooks/useFormulaVersions.ts
+- L45 [async-boundary] `async function fetchFormulaVersions`
+- L53 [async-boundary] `async function fetchFormulaGovernance`
+- L79 [async-boundary] `queryFn: async (`
+- L105 [async-boundary] `queryFn: async (`
+
 ## src/hooks/useGates.ts
 - L54 [async-boundary] `queryFn: async (`
 - L67 [async-boundary] `queryFn: async (`
@@ -227,11 +234,12 @@ Generated: 2026-06-04T17:48:50.600Z
 - L115 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useGovernance.ts
-- L54 [async-boundary] `async function fetchTenants`
-- L59 [async-boundary] `async function fetchUsers`
-- L64 [async-boundary] `async function fetchApiKeys`
-- L105 [async-boundary] `mutationFn: async (`
-- L119 [async-boundary] `mutationFn: async (`
+- L69 [async-boundary] `async function fetchTenants`
+- L74 [async-boundary] `async function fetchUsers`
+- L79 [async-boundary] `async function fetchApiKeys`
+- L120 [async-boundary] `mutationFn: async (`
+- L143 [async-boundary] `mutationFn: async (`
+- L157 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useGraphQuery.ts
 - L90 [async-boundary] `mutationFn: async (`
@@ -267,15 +275,15 @@ Generated: 2026-06-04T17:48:50.600Z
 
 ## src/hooks/useIngestion.ts
 - L173 [async-boundary] `queryFn: async (`
-- L185 [async-boundary] `queryFn: async (`
-- L217 [async-boundary] `queryFn: async (`
-- L247 [async-boundary] `mutationFn: async (`
-- L291 [async-boundary] `queryFn: async (`
-- L331 [async-boundary] `queryFn: async (`
-- L403 [async-boundary] `queryFn: async (`
-- L428 [async-boundary] `mutationFn: async (`
-- L446 [async-boundary] `mutationFn: async (`
-- L489 [async-boundary] `mutationFn: async (`
+- L197 [async-boundary] `queryFn: async (`
+- L231 [async-boundary] `queryFn: async (`
+- L261 [async-boundary] `mutationFn: async (`
+- L305 [async-boundary] `queryFn: async (`
+- L345 [async-boundary] `queryFn: async (`
+- L417 [async-boundary] `queryFn: async (`
+- L442 [async-boundary] `mutationFn: async (`
+- L460 [async-boundary] `mutationFn: async (`
+- L503 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useIntegrations.ts
 - L66 [async-boundary] `async function fetchIntegrations`
@@ -322,19 +330,19 @@ Generated: 2026-06-04T17:48:50.600Z
 - L79 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useOntology.ts
-- L171 [async-boundary] `queryFn: async (`
-- L186 [async-boundary] `queryFn: async (`
-- L221 [async-boundary] `mutationFn: async (`
-- L257 [async-boundary] `mutationFn: async (`
-- L293 [async-boundary] `mutationFn: async (`
-- L316 [async-boundary] `mutationFn: async (`
-- L361 [async-boundary] `mutationFn: async (`
-- L407 [async-boundary] `mutationFn: async (`
-- L439 [async-boundary] `mutationFn: async (`
-- L475 [async-boundary] `mutationFn: async (`
-- L497 [async-boundary] `mutationFn: async (`
-- L534 [async-boundary] `mutationFn: async (`
-- L576 [async-boundary] `mutationFn: async (`
+- L170 [async-boundary] `queryFn: async (`
+- L185 [async-boundary] `queryFn: async (`
+- L220 [async-boundary] `mutationFn: async (`
+- L256 [async-boundary] `mutationFn: async (`
+- L292 [async-boundary] `mutationFn: async (`
+- L315 [async-boundary] `mutationFn: async (`
+- L360 [async-boundary] `mutationFn: async (`
+- L406 [async-boundary] `mutationFn: async (`
+- L438 [async-boundary] `mutationFn: async (`
+- L474 [async-boundary] `mutationFn: async (`
+- L496 [async-boundary] `mutationFn: async (`
+- L533 [async-boundary] `mutationFn: async (`
+- L575 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useOperationalAudit.ts
 - L68 [async-boundary] `async function fetchOperationalAudit`
@@ -439,8 +447,10 @@ Generated: 2026-06-04T17:48:50.600Z
 - L128 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useValueCaseArtifacts.ts
-- L58 [async-boundary] `queryFn: async (`
-- L73 [async-boundary] `mutationFn: async (`
+- L136 [async-boundary] `queryFn: async (`
+- L156 [async-boundary] `mutationFn: async (`
+- L206 [async-boundary] `mutationFn: async (`
+- L232 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useValuePacks.ts
 - L55 [async-boundary] `async function fetchValuePacks`
@@ -486,26 +496,178 @@ Generated: 2026-06-04T17:48:50.600Z
 - L151 [async-boundary] `mutationFn: async (`
 - L185 [async-boundary] `mutationFn: async (`
 - L219 [async-boundary] `mutationFn: async (`
-- L262 [async-boundary] `mutationFn: async (`
-- L316 [async-boundary] `async function getOrCreateCanonicalCaseId`
-- L345 [async-boundary] `async function persistWorkspaceTab`
+- L260 [async-boundary] `mutationFn: async (`
+- L314 [async-boundary] `async function getOrCreateCanonicalCaseId`
+- L343 [async-boundary] `async function persistWorkspaceTab`
+
+## src/pages/admin/FormulaGovernance.tsx
+- L228 [async-boundary] `const handleApprovalAction = async (`
+
+## src/pages/admin/PermissionsAdmin.tsx
+- L164 [async-boundary] `const handleInvite = async (`
+- L175 [async-boundary] `const handleCreateKey = async (`
+- L199 [async-boundary] `const handleRevokeConfirm = async (`
+
+## src/pages/admin/PlatformSettings.tsx
+- L415 [async-boundary] `const handleUpdate = async (`
+
+## src/pages/admin/VariableRegistry.tsx
+- L206 [async-boundary] `const handleTestBinding = async (`
+
+## src/pages/calculator/ROITab.tsx
+- L98 [async-boundary] `queryFn: async (`
+- L107 [async-boundary] `mutationFn: async (`
+- L129 [async-boundary] `mutationFn: async (`
+
+## src/pages/ClerkSignIn.tsx
+- L131 [async-boundary] `async function handleEmailSignIn`
+- L162 [async-boundary] `async function handleOAuthSignIn`
+- L351 [async-boundary] `useEffect(() => {`
+- L379 [async-boundary] `useEffect(() => {`
+- L215 [fire-and-forget-no-catch] `void handleOAuthSignIn("oauth_google")}
+                    >
+                      {pendingAction === "oauth_google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
+                      Continue with Google
+                    </Button>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isBusy}
+                        data-testid="oauth-apple"
+                        onClick={() => void handleOAuthSignIn("oauth_apple")}
+                      >
+                        {pendingAction === "oauth_apple" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Apple className="size-4" aria-hidden="true" />}
+                        Apple
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isBusy}
+                        data-testid="oauth-microsoft"
+                        onClick={() => void handleOAuthSignIn("oauth_microsoft")}
+                      >
+                        {pendingAction === "oauth_microsoft" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <MicrosoftIcon />}
+                        Microsoft
+                      </Button>
+                    </div>
+                  </FieldGroup>
+
+                  <FieldSeparator>Or continue with email</FieldSeparator>
+
+                  <FieldGroup className="gap-4">
+                    <Field data-invalid={Boolean(error)}>
+                      <FieldLabel htmlFor={emailId}>Email</FieldLabel>
+                      <Input
+                        id={emailId}
+                        data-testid="login-email"
+                        type="email"
+                        autoComplete="username"
+                        placeholder="name@company.com"
+                        value={email}
+                        disabled={isBusy}
+                        aria-describedby={error ? errorId : undefined}
+                        aria-invalid={Boolean(error)}
+                        onChange={(event) => setEmail(event.target.value)}
+                      />
+                    </Field>
+
+                    <Field data-invalid={Boolean(error)}>
+                      <div className="flex items-center justify-between gap-3">
+                        <FieldLabel htmlFor={passwordId}>Password</FieldLabel>
+                        <Link
+                          to={\`${urls.signInUrl}/forgot-password\`}
+                          className="text-sm text-primary underline-offset-4 hover:underline"
+                          data-testid="forgot-password-link"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <Input
+                        id={passwordId}
+                        data-testid="login-password"
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        disabled={isBusy}
+                        aria-describedby={error ? errorId : undefined}
+                        aria-invalid={Boolean(error)}
+                        onChange={(event) => setPassword(event.target.value)}
+                      />
+                      <FieldError>{error}</FieldError>
+                    </Field>
+                  </FieldGroup>
+
+                  <Button type="submit" className="w-full" disabled={isBusy} data-testid="login-submit">
+                    {pendingAction === "email" ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign in"
+                    )}
+                  </Button>
+
+                  <p className="text-center text-sm text-muted-foreground">
+                    No account yet?{" "}
+                    <Link to={urls.signUpUrl} className="font-medium text-primary underline-offset-4 hover:underline" data-testid="signup-link">
+                      Create one
+                    </Link>
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="hidden bg-muted lg:block">
+          <div className="flex h-full flex-col justify-between p-10">
+            <div className="flex flex-col gap-4">
+              <div className="w-fit rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                Ontology-guided revenue operations
+              </div>
+              <h2 className="max-w-xl text-3xl font-semibold tracking-normal text-foreground">
+                Turn evidence, workflows, and benchmarks into auditable value cases.
+              </h2>
+              <p className="max-w-lg text-sm leading-6 text-muted-foreground">
+                Secure access protects tenant-scoped intelligence, agent workflows, and governed business-case evidence.
+              </p>
+            </div>
+            <Card>
+              <CardContent className="flex flex-col gap-3 p-4">
+                {["Tenant-aware workspaces", "Evidence-backed claims", "Provider-agnostic agents"].map((item) => (
+                  <div key={item} className="flex items-center gap-3 text-sm text-foreground">
+                    <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+                    {item}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </div>
+    </main>
+  );`
 
 ## src/pages/CollaborationCommentsPage.tsx
-- L28 [async-boundary] `const handleSubmit = async (`
+- L29 [async-boundary] `const handleSubmit = async (`
 
 ## src/pages/DecisionTrace.tsx
-- L66 [async-boundary] `const handleExportProvO = async (`
+- L81 [async-boundary] `const handleExportProvO = async (`
 
 ## src/pages/ExtractionEngine.tsx
-- L112 [async-boundary] `const handleRunExtraction = async (`
-- L131 [async-boundary] `const handlePauseAll = async (`
+- L113 [async-boundary] `const handleRunExtraction = async (`
+- L132 [async-boundary] `const handlePauseAll = async (`
 
 ## src/pages/NotificationsPage.tsx
-- L23 [async-boundary] `const handleSubmit = async (`
-- L141 [async-boundary] `onClick={async (`
+- L24 [async-boundary] `const handleSubmit = async (`
+- L143 [async-boundary] `onClick={async (`
 
 ## src/pages/OntologyEditor.tsx
-- L436 [async-boundary] `onClick={async (`
+- L440 [async-boundary] `onClick={async (`
 
 ## src/pages/TargetsAdmin.detail.tsx
 - L64 [async-boundary] `const handleRun = async (`
@@ -515,37 +677,14 @@ Generated: 2026-06-04T17:48:50.600Z
 
 ## src/pages/TasksPage.tsx
 - L29 [async-boundary] `const handleSubmit = async (`
-- L128 [async-boundary] `onClick={async (`
+- L129 [async-boundary] `onClick={async (`
+
+## src/pages/ValueNarrativeHome.tsx
+- L215 [async-boundary] `const handleLaunch = async (`
 
 ## src/pages/ValueTreeExplorer.tsx
-- L299 [async-boundary] `const handleCreateTree = async (`
-- L326 [async-boundary] `const handleImportFile = async (`
-
-## src/pages/admin/FormulaGovernance.tsx
-- L260 [async-boundary] `const handleApprovalAction = async (`
-
-## src/pages/admin/PermissionsAdmin.tsx
-- L140 [async-boundary] `const handleInvite = async (`
-
-## src/pages/admin/PlatformSettings.tsx
-- L465 [async-boundary] `const handleUpdate = async (`
-
-## src/pages/admin/VariableRegistry.tsx
-- L243 [async-boundary] `const handleTestBinding = async (`
-
-## src/pages/calculator/ROITab.tsx
-- L102 [async-boundary] `queryFn: async (`
-- L111 [async-boundary] `mutationFn: async (`
-- L133 [async-boundary] `mutationFn: async (`
-
-## src/pages/intelligence/EvidenceTab.tsx
-- L150 [async-boundary] `onClick={async (`
-- L156 [async-boundary] `onClick={async (`
-- L162 [async-boundary] `onClick={async (`
-
-## src/pages/intelligence/SignalsTab.tsx
-- L159 [async-boundary] `const handleReview = async (`
-- L169 [async-boundary] `const handlePromote = async (`
+- L303 [async-boundary] `const handleCreateTree = async (`
+- L330 [async-boundary] `const handleImportFile = async (`
 
 ## src/test/utils/withAuthProvider.ts
 - L28 [async-boundary] `async function withAuthProvider`

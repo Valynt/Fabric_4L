@@ -17,6 +17,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createWrapper, renderWithRouter } from '../../test-utils';
 
+vi.mock('@/lib/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
+
+import { copyToClipboard } from '@/lib/clipboard';
+
 // Static imports avoid per-test dynamic import overhead
 import FormulaGovernance from './FormulaGovernance';
 import BenchmarkPolicies from './BenchmarkPolicies';
@@ -450,7 +456,7 @@ describe('PermissionsAdmin', () => {
   it('sets API Keys as the active tab for /settings/access/keys', async () => {
     renderWithRouter(<PermissionsAdmin />, { path: '/settings/access/keys' });
     await waitFor(() => {
-      const apiKeysTab = screen.getByRole('tab', { name: /^API Keys/i });
+      const apiKeysTab = screen.getAllByRole('tab', { name: /^API Keys/i })[0];
       const usersTab = screen.getByRole('tab', { name: /^Users/i });
       expect(apiKeysTab).toHaveClass('text-primary');
       expect(usersTab).not.toHaveClass('text-primary');
@@ -461,7 +467,7 @@ describe('PermissionsAdmin', () => {
     renderWithRouter(<PermissionsAdmin />, { path: '/settings/access/roles' });
     await waitFor(() => {
       const usersTab = screen.getByRole('tab', { name: /^Users/i });
-      const apiKeysTab = screen.getByRole('tab', { name: /^API Keys/i });
+      const apiKeysTab = screen.getAllByRole('tab', { name: /^API Keys/i })[0];
       expect(usersTab).toHaveClass('text-primary');
       expect(apiKeysTab).not.toHaveClass('text-primary');
     });
@@ -472,8 +478,8 @@ describe('PermissionsAdmin', () => {
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     await waitFor(() => expect(screen.getByText('Primary Key')).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: /^Users/i }));
@@ -505,11 +511,14 @@ describe('PermissionsAdmin', () => {
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     await waitFor(() => screen.getByText('Primary Key'));
-    const revokeBtn = screen.getByLabelText('Revoke API key');
-    await user.click(revokeBtn);
+    const revokeBtn = screen.getAllByLabelText('Revoke API key').find(
+      (btn) => !btn.hasAttribute('disabled')
+    );
+    expect(revokeBtn).toBeDefined();
+    await user.click(revokeBtn!);
     await waitFor(() => {
       expect(screen.getByText('Revoke API Key')).toBeInTheDocument();
       expect(screen.getByText(/Tenant scope/i)).toBeInTheDocument();
@@ -520,9 +529,9 @@ describe('PermissionsAdmin', () => {
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
 
     await waitFor(() => {
       expect(screen.getByText('Primary Key')).toBeInTheDocument();
@@ -536,9 +545,9 @@ describe('PermissionsAdmin', () => {
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
 
     await waitFor(() => screen.getByText('Revoked Key'));
     const rows = screen.getAllByRole('row');
@@ -549,15 +558,15 @@ describe('PermissionsAdmin', () => {
   }, 10_000);
 
   it('creates an API key and reveals the raw secret once with copy support', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
+    const mockedCopy = copyToClipboard as ReturnType<typeof vi.fn>;
+    mockedCopy.mockResolvedValue(undefined);
 
     const user = userEvent.setup();
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     await waitFor(() => screen.getByText('Primary Key'));
 
     await user.click(screen.getByRole('button', { name: /New API Key/i }));
@@ -572,7 +581,7 @@ describe('PermissionsAdmin', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /Copy/i }));
-    expect(writeText).toHaveBeenCalledWith('vf_testsecretvalue_12345');
+    expect(mockedCopy).toHaveBeenCalledWith('vf_testsecretvalue_12345');
   }, 10_000);
 
   it('revokes an API key after tenant-scoped confirmation', async () => {
@@ -583,8 +592,8 @@ describe('PermissionsAdmin', () => {
     const wrapper = createWrapper();
     render(<PermissionsAdmin />, { wrapper });
 
-    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
-    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
+    await user.click(screen.getAllByRole('tab', { name: /^API Keys/i })[0]);
     await waitFor(() => screen.getByText('Primary Key'));
 
     const revokeBtn = screen.getAllByLabelText('Revoke API key').find(

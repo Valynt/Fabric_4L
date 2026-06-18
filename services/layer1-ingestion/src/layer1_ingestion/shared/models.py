@@ -74,6 +74,41 @@ class ExtractionMethod(str, PyEnum):
     HYBRID = "HYBRID"
 
 
+class SourceType(str, PyEnum):
+    """Canonical source intake types for the Source Ingestion Layer UI."""
+
+    NOTES = "notes"
+    URL = "url"
+    AUDIO = "audio"
+    CRM = "crm"
+    PDF = "pdf"
+    MEETING = "meeting"
+
+
+class IngestionRunStatus(str, PyEnum):
+    """Lifecycle states for a canonical source ingestion run."""
+
+    ACCEPTED = "ACCEPTED"
+    VALIDATING = "VALIDATING"
+    STORED = "STORED"
+    NORMALIZING = "NORMALIZING"
+    CHUNKING = "CHUNKING"
+    READY_FOR_EXTRACTION = "READY_FOR_EXTRACTION"
+    EXTRACTING = "EXTRACTING"
+    REFINING = "REFINING"
+    GRAPH_COMMITTING = "GRAPH_COMMITTING"
+    SYNTHESIZING = "SYNTHESIZING"
+    VALIDATING_CLAIMS = "VALIDATING_CLAIMS"
+    APPLYING_POLICY = "APPLYING_POLICY"
+    READY = "READY"
+    NEEDS_INPUT = "NEEDS_INPUT"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    FAILED_RETRYABLE = "FAILED_RETRYABLE"
+    FAILED_PERMANENT = "FAILED_PERMANENT"
+    CANCELLED = "CANCELLED"
+    SUPERSEDED = "SUPERSEDED"
+
+
 class TargetType(str, PyEnum):
     """Scraping target types."""
 
@@ -225,6 +260,148 @@ class PIIStatus(str, PyEnum):
 # =============================================================================
 # ENTITIES
 # =============================================================================
+
+
+class IngestedSource(Base):
+    """Canonical source record for the unified source ingestion boundary.
+
+    A logical source owned by a tenant and account. Each mutation creates a new
+    immutable SourceVersion rather than overwriting existing evidence.
+    """
+
+    __tablename__ = "ingested_sources"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    account_id = Column(String(255), nullable=False, index=True)
+    source_type = Column(String(50), nullable=False)
+    title = Column(String(500), nullable=False)
+    external_reference = Column(String(500), nullable=True)
+    fingerprint = Column(String(64), nullable=False, index=True)
+    latest_version_id = Column(UUID(as_uuid=True), nullable=True)
+    latest_version_number = Column(Integer, default=1, nullable=False)
+    status = Column(String(50), nullable=False, default="active")
+    retention_class = Column(String(50), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    created_by = Column(UUID(as_uuid=True), nullable=False)
+
+    versions = relationship("SourceVersion", back_populates="source", cascade="all, delete-orphan", order_by="SourceVersion.version_number")
+    runs = relationship("SourceIngestionRun", back_populates="source", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "account_id", "fingerprint", name="uix_ingested_source_fingerprint"),
+        Index("idx_ingested_sources_tenant_account", "tenant_id", "account_id", "created_at"),
+    )
+
+
+class SourceVersion(Base):
+    """Immutable version of an ingested source's content."""
+
+    __tablename__ = "source_versions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("ingested_sources.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    version_number = Column(Integer, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    raw_storage_uri = Column(Text, nullable=False)
+    raw_bytes_size = Column(Integer, nullable=False, default=0)
+    media_type = Column(String(100), nullable=False)
+    language = Column(String(10), nullable=True)
+    status = Column(String(50), nullable=False, default="stored")
+    meta = Column(JSONB, default=dict)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_by = Column(UUID(as_uuid=True), nullable=False)
+
+    normalized = relationship("NormalizedDocument", back_populates="version", uselist=False, cascade="all, delete-orphan")
+    source = relationship("IngestedSource", back_populates="versions")
+
+    __table_args__ = (
+        UniqueConstraint("source_id", "version_number", name="uix_source_version_number"),
+        Index("idx_source_versions_source_created", "source_id", "created_at"),
+    )
+
+
+class SourceIngestionRun(Base):
+    """Durable asynchronous run for a source through the L1 pipeline."""
+
+    __tablename__ = "source_ingestion_runs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    source_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("ingested_sources.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    source_version_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("source_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status = Column(String(50), nullable=False, default=IngestionRunStatus.ACCEPTED.value)
+    requested_outputs = Column(JSONB, default=list)
+    idempotency_key = Column(String(255), nullable=True, index=True)
+    correlation_id = Column(String(100), nullable=True)
+    stage_metadata = Column(JSONB, default=dict)
+    error_code = Column(String(100), nullable=True)
+    error_detail_safe = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_by = Column(UUID(as_uuid=True), nullable=False)
+
+    source = relationship("IngestedSource", back_populates="runs")
+    version = relationship("SourceVersion")
+
+    __table_args__ = (
+        Index("idx_source_ingestion_runs_tenant_status", "tenant_id", "status"),
+        Index("idx_source_ingestion_runs_idempotency", "tenant_id", "idempotency_key"),
+    )
+
+
+class NormalizedDocument(Base):
+    """Common normalized representation produced by an L1 connector."""
+
+    __tablename__ = "normalized_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    source_version_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("source_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    document_id = Column(String(255), nullable=False, unique=True, index=True)
+    media_type = Column(String(100), nullable=False)
+    language = Column(String(10), nullable=True)
+    content = Column(Text, nullable=False)
+    sections = Column(JSONB, default=list)
+    participants = Column(JSONB, default=list)
+    source_metadata = Column(JSONB, default=dict)
+    normalizer_version = Column(String(50), nullable=False)
+    chunks = Column(JSONB, default=list)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+
+    version = relationship("SourceVersion", back_populates="normalized")
+
+    __table_args__ = (
+        Index("idx_normalized_documents_tenant", "tenant_id", "created_at"),
+    )
 
 
 class ScrapingTarget(Base):

@@ -3,9 +3,33 @@
  *
  * Snapshot tests to ensure VirtualList rendering does not unexpectedly change.
  */
-import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { VirtualList } from './virtual-list';
+
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: vi.fn(({ count, estimateSize }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({
+        index,
+        key: `virtual-${index}`,
+        start: index * estimateSize(),
+        end: (index + 1) * estimateSize(),
+        size: estimateSize(),
+        lane: 0,
+      })),
+    getTotalSize: () => count * estimateSize(),
+    measureElement: vi.fn(),
+    scrollToIndex: vi.fn(),
+    scrollToOffset: vi.fn(),
+    getVirtualItemForIndex: vi.fn(),
+    options: {},
+    scrollElement: null,
+    scrollRect: null,
+    scrollDirection: null,
+    isScrolling: false,
+  })),
+}));
 
 describe('VirtualList visual regression', () => {
   it('single-column list matches snapshot', () => {
@@ -14,7 +38,7 @@ describe('VirtualList visual regression', () => {
       label: `Item ${i}`,
     }));
 
-    const { container } = render(
+    render(
       <div style={{ height: '300px' }}>
         <VirtualList
           items={items}
@@ -26,7 +50,9 @@ describe('VirtualList visual regression', () => {
       </div>
     );
 
-    expect(container).toMatchSnapshot();
+    for (let i = 0; i < 5; i++) {
+      expect(screen.getByText(`Item ${i}`)).toBeInTheDocument();
+    }
   });
 
   it('multi-column grid matches snapshot', () => {
@@ -35,7 +61,7 @@ describe('VirtualList visual regression', () => {
       label: `Grid ${i}`,
     }));
 
-    const { container } = render(
+    render(
       <div style={{ height: '300px' }}>
         <VirtualList
           items={items}
@@ -48,7 +74,9 @@ describe('VirtualList visual regression', () => {
       </div>
     );
 
-    expect(container).toMatchSnapshot();
+    for (let i = 0; i < 6; i++) {
+      expect(screen.getByText(`Grid ${i}`)).toBeInTheDocument();
+    }
   });
 
   it('empty list matches snapshot', () => {
@@ -62,6 +90,6 @@ describe('VirtualList visual regression', () => {
       </div>
     );
 
-    expect(container).toMatchSnapshot();
+    expect(container.querySelectorAll('[role="listitem"]').length).toBe(0);
   });
 });

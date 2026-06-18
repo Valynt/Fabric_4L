@@ -14,7 +14,6 @@ import { BaseApiError, RETRY_CONFIG, STALE_TIME, withApiError } from "./useApiSh
 import type {
   SignalPromoteRequest,
   SignalRefineRequest,
-  SignalReviewRequest,
   ValueSignal,
   ValueSignalCreate,
   ValueSignalListResponse,
@@ -132,39 +131,6 @@ export function useUpdateSignal() {
       });
       queryClient.invalidateQueries({
         queryKey: QK.valueSignals.list(signal.account_id),
-      });
-    },
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Mutation: review signal (approve / reject)
-// ---------------------------------------------------------------------------
-
-export interface ReviewSignalVars {
-  signalId: string;
-  accountId: string;
-  body: SignalReviewRequest;
-}
-
-export function useReviewSignal() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ signalId, body }: ReviewSignalVars) =>
-      withApiError(
-        apiPost<ValueSignal>(
-          "l2_5",
-          `/api/v1/signals/${signalId}/review`,
-          body,
-        ).then((r) => r.data),
-        BaseApiError,
-      ),
-    onSuccess: (signal, vars) => {
-      queryClient.invalidateQueries({
-        queryKey: QK.valueSignals.detail(signal.id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: QK.valueSignals.list(vars.accountId),
       });
     },
   });

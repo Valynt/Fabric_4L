@@ -1,0 +1,28 @@
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 1...
+UP037 [*] Remove quotes from type annotation
+   --> src\layer1_ingestion\api\source_routes.py:163:28
+    |
+162 |     @classmethod
+163 |     def from_run(cls, run: "SourceIngestionRun") -> "IngestionRunResponse":
+    |                            ^^^^^^^^^^^^^^^^^^^^
+164 |         """Build a response from a SQLAlchemy SourceIngestionRun instance.
+    |
+help: Remove quotes
+
+UP037 [*] Remove quotes from type annotation
+   --> src\layer1_ingestion\api\source_routes.py:163:53
+    |
+162 |     @classmethod
+163 |     def from_run(cls, run: "SourceIngestionRun") -> "IngestionRunResponse":
+    |                                                     ^^^^^^^^^^^^^^^^^^^^^^
+164 |         """Build a response from a SQLAlchemy SourceIngestionRun instance.
+    |
+help: Remove quotes
+
+Found 2 errors.
+[*] 2 fixable with the `--fix` option.
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+
+make[1]: *** [Makefile:208: lint-layer1] Error 1
+make: *** [Makefile:236: lint] Error 2
