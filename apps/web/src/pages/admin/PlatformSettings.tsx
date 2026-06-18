@@ -11,6 +11,7 @@
  * Connected to Layer 4 governance endpoints
  */
 
+import { EmptyState, ErrorState } from "@/components/states";
 import { useState, useMemo } from "react";
 import {
   Settings, Bell, Shield, Zap, Users, Database,
@@ -24,8 +25,7 @@ import {
   usePlatformSettings,
   useUpdatePlatformSettings,
   type TenantSettings,
-  type UpdateSettingsPayload,
-} from "@/hooks/usePlatformSettings";
+  type UpdateSettingsPayload} from "@/hooks/usePlatformSettings";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { Input } from "@/components/ui/input";
 import { Btn } from "@/components/ui/fabric";
@@ -35,8 +35,6 @@ import {
   AdminTabPanel,
   AdminStatCard,
   AdminStatsRow,
-  AdminErrorState,
-  AdminEmptyState,
   AdminConfirmDialog,
 } from "@/components/admin";
 
@@ -52,15 +50,13 @@ const FEATURE_DESCRIPTIONS: Record<keyof TenantSettings['features'], string> = {
   advanced_analytics: "Enable advanced data visualization and custom dashboards",
   custom_integrations: "Allow custom API integrations and webhooks",
   ai_assistant: "Enable AI-powered formula suggestions and business case insights",
-  audit_trail: "Track all user actions with detailed audit logs",
-};
+  audit_trail: "Track all user actions with detailed audit logs"};
 
 const FEATURE_ICONS: Record<keyof TenantSettings['features'], React.ReactNode> = {
   advanced_analytics: <Database size={16} />,
   custom_integrations: <ExternalLink size={16} />,
   ai_assistant: <Zap size={16} />,
-  audit_trail: <Info size={16} />,
-};
+  audit_trail: <Info size={16} />};
 
 // ── Helper Functions ───────────────────────────────────────────────────────────
 
@@ -74,8 +70,7 @@ function FeatureToggle({
   feature,
   enabled,
   onToggle,
-  disabled,
-}: {
+  disabled}: {
   feature: keyof TenantSettings['features'];
   enabled: boolean;
   onToggle: (value: boolean) => void;
@@ -111,8 +106,7 @@ function FeatureToggle({
 function NotificationsPanel({
   settings,
   onUpdate,
-  isPending,
-}: {
+  isPending}: {
   settings: TenantSettings['notifications'];
   onUpdate: (updates: Partial<TenantSettings['notifications']>) => void;
   isPending: boolean;
@@ -199,8 +193,7 @@ function NotificationsPanel({
 function SecurityPanel({
   settings,
   onUpdate,
-  isPending,
-}: {
+  isPending}: {
   settings: TenantSettings['security'];
   onUpdate: (updates: Partial<TenantSettings['security']>) => void;
   isPending: boolean;
@@ -323,8 +316,7 @@ function SecurityPanel({
 function BrandingPanel({
   branding,
   onUpdate,
-  isPending,
-}: {
+  isPending}: {
   branding?: TenantSettings['branding'];
   onUpdate: (updates: Partial<TenantSettings['branding']>) => void;
   isPending: boolean;
@@ -395,8 +387,7 @@ function BrandingPanel({
           onClick={() => onUpdate({
             logo_url: localLogo || undefined,
             primary_color: localColor,
-            favicon_url: localFavicon || undefined,
-          })}
+            favicon_url: localFavicon || undefined})}
           disabled={isPending}
         >
           {isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Save size={14} className="mr-1" />}
@@ -417,8 +408,7 @@ function PlatformSettingsContent() {
     data: settings,
     isLoading,
     error,
-    refetch,
-  } = usePlatformSettings();
+    refetch} = usePlatformSettings();
 
   const updateMutation = useUpdatePlatformSettings();
 
@@ -434,8 +424,7 @@ function PlatformSettingsContent() {
 
   const handleFeatureToggle = (feature: keyof TenantSettings['features'], enabled: boolean) => {
     handleUpdate({
-      features: { [feature]: enabled },
-    });
+      features: { [feature]: enabled }});
   };
 
   const stats = useMemo(() => {
@@ -445,8 +434,7 @@ function PlatformSettingsContent() {
     return {
       enabledCount,
       totalCount,
-      utilizationPercent: Math.round((settings.limits.max_users / 100) * 100),
-    };
+      utilizationPercent: Math.round((settings.limits.max_users / 100) * 100)};
   }, [settings]);
 
   if (isLoading) {
@@ -467,7 +455,7 @@ function PlatformSettingsContent() {
   if (error) {
     return (
       <AdminShell title="Platform Settings" subtitle="Tenant configuration">
-        <AdminErrorState
+        <ErrorState
           title="Failed to load platform settings"
           description="Ensure you have admin access and the API is available."
           error={error}
@@ -480,7 +468,7 @@ function PlatformSettingsContent() {
   if (!settings) {
     return (
       <AdminShell title="Platform Settings" subtitle="Tenant configuration">
-        <AdminEmptyState
+        <EmptyState
           title="No Settings Available"
           description="Platform settings could not be loaded. Please contact support."
           icon={Settings}

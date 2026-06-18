@@ -9,20 +9,19 @@
  * Uses shared admin primitives for enterprise-grade consistency.
  */
 
+import { EmptyState } from "@/components/states";
 import { useState } from "react";
 import {
   CreditCard, Receipt, Activity, Calendar, Shield, AlertCircle,
   CheckCircle2, Clock, ExternalLink, Download, FileText,
-  TrendingUp, AlertTriangle, Zap,
-} from "lucide-react";
+  TrendingUp, AlertTriangle, Zap} from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Btn } from "@/components/ui/fabric";
 import {
   useBilling,
   useEntitlements,
-  type Subscription,
-} from "@/hooks/useBilling";
+  type Subscription} from "@/hooks/useBilling";
 import { useInvoices, type Invoice } from "@/hooks/useInvoices";
 import { useUsage } from "@/hooks/useUsage";
 import {
@@ -33,7 +32,6 @@ import {
   AdminStatsRow,
   AdminDataTable,
   AdminFilterBar,
-  AdminEmptyState,
   AdminIconButton,
   AdminIconButtonGroup,
   type AdminDataTableColumn,
@@ -75,8 +73,7 @@ function SubscriptionOverview({
   isLoading,
   error,
   onOpenPortal,
-  isOpeningPortal,
-}: {
+  isOpeningPortal}: {
   subscription?: Subscription;
   isLoading: boolean;
   error: Error | null;
@@ -104,7 +101,7 @@ function SubscriptionOverview({
 
   if (!subscription) {
     return (
-      <AdminEmptyState
+      <EmptyState
         icon={CreditCard}
         title="No subscription found"
         description="This tenant does not have an active subscription."
@@ -181,8 +178,7 @@ function SubscriptionOverview({
 }
 
 function EntitlementsGrid({
-  entitlements,
-}: {
+  entitlements}: {
   entitlements?: { features: Record<string, { enabled: boolean; name: string; description: string }> };
 }) {
   if (!entitlements?.features) return null;
@@ -222,8 +218,7 @@ function EntitlementsGrid({
 function UsageMetricsPanel({
   metrics,
   isLoading,
-  error,
-}: {
+  error}: {
   metrics: ReturnType<typeof useUsage>["metrics"];
   isLoading: boolean;
   error: Error | null;
@@ -250,7 +245,7 @@ function UsageMetricsPanel({
 
   if (!metrics.length) {
     return (
-      <AdminEmptyState
+      <EmptyState
         icon={Activity}
         title="No usage metrics"
         description="Usage data is not available for this tenant."
@@ -318,8 +313,7 @@ function BillingAdminContent() {
     error: subError,
     openCustomerPortal,
     isOpeningPortal,
-    portalError,
-  } = useBilling(customerId);
+    portalError} = useBilling(customerId);
 
   const { data: entitlements } = useEntitlements(customerId);
 
@@ -327,15 +321,13 @@ function BillingAdminContent() {
     invoices,
     isLoading: invoicesLoading,
     error: invoicesError,
-    refetch: refetchInvoices,
-  } = useInvoices(customerId);
+    refetch: refetchInvoices} = useInvoices(customerId);
 
   const {
     metrics,
     isLoading: usageLoading,
     error: usageError,
-    refetch: refetchUsage,
-  } = useUsage(customerId);
+    refetch: refetchUsage} = useUsage(customerId);
 
   const handleOpenPortal = () => {
     safeAsync(openCustomerPortal(window.location.href), "billing.openPortal"); // navigation-guardrail: ignore — external Stripe customer portal requires current return URL
@@ -362,18 +354,15 @@ function BillingAdminContent() {
           <FileText size={14} className="text-primary shrink-0" />
           <span className="font-medium text-foreground">{i.invoice_number}</span>
         </div>
-      ),
-    },
+      )},
     {
       key: "status",
       header: "Status",
-      render: (i) => <InvoiceStatusBadge status={i.status} />,
-    },
+      render: (i) => <InvoiceStatusBadge status={i.status} />},
     {
       key: "total",
       header: "Total",
-      render: (i) => <span className="font-medium text-foreground">{formatCurrency(i.total_cents)}</span>,
-    },
+      render: (i) => <span className="font-medium text-foreground">{formatCurrency(i.total_cents)}</span>},
     {
       key: "period",
       header: "Period",
@@ -381,13 +370,11 @@ function BillingAdminContent() {
         <span className="vf-text-caption text-muted-foreground">
           {formatDate(i.period_start)} — {formatDate(i.period_end)}
         </span>
-      ),
-    },
+      )},
     {
       key: "issued",
       header: "Issued",
-      render: (i) => <span className="vf-text-caption text-muted-foreground">{formatDate(i.created_at)}</span>,
-    },
+      render: (i) => <span className="vf-text-caption text-muted-foreground">{formatDate(i.created_at)}</span>},
     {
       key: "actions",
       header: "",
@@ -409,8 +396,7 @@ function BillingAdminContent() {
             onClick={() => handleViewInvoice(i)}
           />
         </AdminIconButtonGroup>
-      ),
-    },
+      )},
   ];
 
   const stats = [
@@ -422,8 +408,7 @@ function BillingAdminContent() {
         "—"
       ),
       icon: <Shield size={14} />,
-      color: "primary" as const,
-    },
+      color: "primary" as const},
     {
       label: "Status",
       value: subscription?.status ? (
@@ -432,22 +417,19 @@ function BillingAdminContent() {
         "—"
       ),
       icon: getStatusConfig(subscription?.status || "").icon,
-      color: getStatusConfig(subscription?.status || "").color,
-    },
+      color: getStatusConfig(subscription?.status || "").color},
     {
       label: "Renewal",
       value: subscription?.current_period_end
         ? formatDate(subscription.current_period_end)
         : "—",
       icon: <Calendar size={14} />,
-      color: "default" as const,
-    },
+      color: "default" as const},
     {
       label: "Invoices",
       value: invoices.length,
       icon: <Receipt size={14} />,
-      color: "default" as const,
-    },
+      color: "default" as const},
   ];
 
   return (

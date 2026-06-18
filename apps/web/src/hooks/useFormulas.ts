@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/typedClient';
 import { createLogger } from '@/lib/telemetry';
 import { QK } from './queryKeys';
-import { withApiError, FormulaApiError, STALE_TIME, RETRY_CONFIG, formatZodError } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG, formatZodError } from './useApiShared';
 import {
   FormulaSchema,
   FormulaListSchema,
@@ -33,7 +33,7 @@ export interface FormulaFilters {
 }
 
 // Re-export for backward compatibility
-export { FormulaApiError } from './useApiShared';
+export { BaseApiError } from './useApiShared';
 
 async function fetchFormulas(filters: FormulaFilters): Promise<Formula[]> {
   const params = new URLSearchParams();
@@ -51,7 +51,7 @@ async function fetchFormulas(filters: FormulaFilters): Promise<Formula[]> {
   const parsed = FormulaListSchema.safeParse(formulasArray);
   if (!parsed.success) {
     log.error('Formula list validation failed', { error: parsed.error });
-    throw new FormulaApiError(formatZodError(parsed.error, 'formula list response'));
+    throw new BaseApiError(formatZodError(parsed.error, 'formula list response'));
   }
   return parsed.data;
 }
@@ -63,9 +63,9 @@ async function fetchFormulas(filters: FormulaFilters): Promise<Formula[]> {
  * @returns Query result with Formula array and loading/error states
  */
 export function useFormulas(filters: FormulaFilters = {}) {
-  return useQuery<Formula[], FormulaApiError>({
+  return useQuery<Formula[], BaseApiError>({
     queryKey: QK.formulas.list(filters),
-    queryFn: () => withApiError(fetchFormulas(filters), FormulaApiError),
+    queryFn: () => withApiError(fetchFormulas(filters), BaseApiError),
     staleTime: STALE_TIME.list,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -79,7 +79,7 @@ async function fetchFormula(formulaId: string): Promise<Formula> {
   const parsed = FormulaSchema.safeParse(response.data);
   if (!parsed.success) {
     log.error('Formula detail validation failed', { error: parsed.error });
-    throw new FormulaApiError(formatZodError(parsed.error, 'formula response'));
+    throw new BaseApiError(formatZodError(parsed.error, 'formula response'));
   }
   return parsed.data;
 }
@@ -91,11 +91,11 @@ async function fetchFormula(formulaId: string): Promise<Formula> {
  * @returns Query result with Formula data and loading/error states
  */
 export function useFormula(formulaId: string | null) {
-  return useQuery<Formula, FormulaApiError>({
+  return useQuery<Formula, BaseApiError>({
     queryKey: QK.formulas.detail(formulaId || ''),
     queryFn: async () => {
-      if (!formulaId) throw new FormulaApiError('No formula ID provided');
-      return withApiError(fetchFormula(formulaId), FormulaApiError);
+      if (!formulaId) throw new BaseApiError('No formula ID provided');
+      return withApiError(fetchFormula(formulaId), BaseApiError);
     },
     enabled: !!formulaId,
     staleTime: STALE_TIME.detail,
@@ -111,7 +111,7 @@ async function fetchFormulaApprovals(): Promise<ApprovalRequest[]> {
   const parsed = ApprovalRequestListSchema.safeParse(response.data);
   if (!parsed.success) {
     log.error('Formula approvals validation failed', { error: parsed.error });
-    throw new FormulaApiError(formatZodError(parsed.error, 'formula approvals response'));
+    throw new BaseApiError(formatZodError(parsed.error, 'formula approvals response'));
   }
   return parsed.data;
 }
@@ -122,9 +122,9 @@ async function fetchFormulaApprovals(): Promise<ApprovalRequest[]> {
  * @returns Query result with approval requests array
  */
 export function useFormulaApprovals() {
-  return useQuery<ApprovalRequest[], FormulaApiError>({
+  return useQuery<ApprovalRequest[], BaseApiError>({
     queryKey: QK.formulas.approvals,
-    queryFn: () => withApiError(fetchFormulaApprovals(), FormulaApiError),
+    queryFn: () => withApiError(fetchFormulaApprovals(), BaseApiError),
     staleTime: STALE_TIME.approvals,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -139,7 +139,7 @@ export function useFormulaApprovals() {
 export function useApproveFormula() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, FormulaApiError, ApproveFormulaParams>({
+  return useMutation<unknown, BaseApiError, ApproveFormulaParams>({
     mutationFn: async ({ formulaId, action, reason }) => {
       const response = await apiPost<unknown>('l3', `/formulas/${formulaId}/approve`, {
         action,
@@ -164,7 +164,7 @@ export function useApproveFormula() {
 export function useSubmitFormula() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, FormulaApiError, string>({
+  return useMutation<unknown, BaseApiError, string>({
     mutationFn: async (formulaId) => {
       const response = await apiPost<unknown>('l3', `/formulas/${formulaId}/submit`, {});
       return response.data;
@@ -198,13 +198,13 @@ export interface CreateFormulaInput {
 export function useCreateFormula() {
   const queryClient = useQueryClient();
 
-  return useMutation<Formula, FormulaApiError, CreateFormulaInput, { previousFormulas?: Formula[] }>({
+  return useMutation<Formula, BaseApiError, CreateFormulaInput, { previousFormulas?: Formula[] }>({
     mutationFn: async (input) => {
       const response = await apiPost<unknown>('l3', '/formulas', input);
       const parsed = FormulaSchema.safeParse(response.data);
       if (!parsed.success) {
         log.error('Formula creation validation failed', { error: parsed.error });
-        throw new FormulaApiError(formatZodError(parsed.error, 'formula creation response'));
+        throw new BaseApiError(formatZodError(parsed.error, 'formula creation response'));
       }
       return parsed.data;
     },
@@ -271,13 +271,13 @@ export interface UpdateFormulaInput {
 export function useUpdateFormula() {
   const queryClient = useQueryClient();
 
-  return useMutation<Formula, FormulaApiError, UpdateFormulaInput, { previousFormula?: Formula; previousFormulas?: Formula[] }>({
+  return useMutation<Formula, BaseApiError, UpdateFormulaInput, { previousFormula?: Formula; previousFormulas?: Formula[] }>({
     mutationFn: async ({ formulaId, ...updates }) => {
       const response = await apiPatch<unknown>('l3', `/formulas/${formulaId}`, updates);
       const parsed = FormulaSchema.safeParse(response.data);
       if (!parsed.success) {
         log.error('Formula update validation failed', { error: parsed.error });
-        throw new FormulaApiError(formatZodError(parsed.error, 'formula update response'));
+        throw new BaseApiError(formatZodError(parsed.error, 'formula update response'));
       }
       return parsed.data;
     },
@@ -334,7 +334,7 @@ export function useUpdateFormula() {
 export function useDeleteFormula() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, FormulaApiError, string>({
+  return useMutation<unknown, BaseApiError, string>({
     mutationFn: async (formulaId) => {
       const response = await apiDelete<unknown>('l3', `/formulas/${formulaId}`);
       return response.data;
@@ -365,7 +365,7 @@ export interface FormulaEvaluationInput {
  * @returns Mutation result with execute function and loading/error states
  */
 export function useEvaluateFormula() {
-  return useMutation<FormulaEvaluationResult, FormulaApiError, FormulaEvaluationInput>({
+  return useMutation<FormulaEvaluationResult, BaseApiError, FormulaEvaluationInput>({
     mutationFn: async (input) => {
       const response = await apiPost<unknown>('l3', '/formulas/evaluate', input);
       
@@ -373,7 +373,7 @@ export function useEvaluateFormula() {
       const parsed = FormulaEvaluationResultSchema.safeParse(response.data);
       if (!parsed.success) {
         log.error('Formula evaluation validation failed', { error: parsed.error });
-        throw new FormulaApiError(formatZodError(parsed.error, 'formula evaluation response'));
+        throw new BaseApiError(formatZodError(parsed.error, 'formula evaluation response'));
       }
       return parsed.data;
     },

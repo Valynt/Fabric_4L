@@ -11,7 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/api/typedClient';
 import { QK } from './queryKeys';
-import { withApiError, FormulaVersionsApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 import type { FormulaVersionStatus } from '@/api/statuses';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -74,11 +74,11 @@ async function fetchFormulaGovernance(formulaId: string): Promise<FormulaGoverna
  * ```
  */
 export function useFormulaVersions(formulaId: string | null, includeRetired = false) {
-  return useQuery<FormulaVersion[], FormulaVersionsApiError>({
+  return useQuery<FormulaVersion[], BaseApiError>({
     queryKey: [...QK.formulas.all, 'versions', formulaId, includeRetired] as const,
     queryFn: async () => {
-      if (!formulaId) throw new FormulaVersionsApiError('No formula ID provided');
-      return withApiError(fetchFormulaVersions(formulaId, includeRetired), FormulaVersionsApiError);
+      if (!formulaId) throw new BaseApiError('No formula ID provided');
+      return withApiError(fetchFormulaVersions(formulaId, includeRetired), BaseApiError);
     },
     enabled: !!formulaId,
     staleTime: STALE_TIME.detail,
@@ -100,11 +100,11 @@ export function useFormulaVersions(formulaId: string | null, includeRetired = fa
  * ```
  */
 export function useFormulaGovernance(formulaId: string | null) {
-  return useQuery<FormulaGovernance, FormulaVersionsApiError>({
+  return useQuery<FormulaGovernance, BaseApiError>({
     queryKey: [...QK.formulas.all, 'governance', formulaId] as const,
     queryFn: async () => {
-      if (!formulaId) throw new FormulaVersionsApiError('No formula ID provided');
-      return withApiError(fetchFormulaGovernance(formulaId), FormulaVersionsApiError);
+      if (!formulaId) throw new BaseApiError('No formula ID provided');
+      return withApiError(fetchFormulaGovernance(formulaId), BaseApiError);
     },
     enabled: !!formulaId,
     staleTime: STALE_TIME.detail,

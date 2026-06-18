@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPut } from '@/api/typedClient';
 import { QK } from './queryKeys';
-import { withApiError, BenchmarkApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 import { createFeatureLogger } from '@/lib/telemetry';
 import type { BenchmarkDatasetSummary } from '@/api/types';
 import type { L3BenchmarkStatus } from '@/api/statuses';
@@ -35,11 +35,6 @@ export interface Benchmark {
  * Keep this hook L6-only; L3 ROI assumptions live in useROICalculator.
  */
 export type L6BenchmarkDataset = BenchmarkDatasetSummary;
-
-// Re-export for backward compatibility
-export { BenchmarkApiError } from './useApiShared';
-
-
 
 export interface BenchmarkPolicy {
   id: string;
@@ -102,9 +97,9 @@ async function fetchBenchmarks(filters: BenchmarkFilters): Promise<Benchmark[]> 
  * @returns Query result with Benchmark array and loading/error states
  */
 export function useBenchmarks(filters: BenchmarkFilters = {}) {
-  return useQuery<Benchmark[], BenchmarkApiError>({
+  return useQuery<Benchmark[], BaseApiError>({
     queryKey: QK.benchmarks.list(filters),
-    queryFn: () => withApiError(fetchBenchmarks(filters), BenchmarkApiError),
+    queryFn: () => withApiError(fetchBenchmarks(filters), BaseApiError),
     staleTime: STALE_TIME.stats,      // 1 minute for benchmark lists
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -123,11 +118,11 @@ async function fetchBenchmark(benchmarkId: string): Promise<Benchmark> {
  * @returns Query result with Benchmark data and loading/error states
  */
 export function useBenchmark(benchmarkId: string | null) {
-  return useQuery<Benchmark, BenchmarkApiError>({
+  return useQuery<Benchmark, BaseApiError>({
     queryKey: QK.benchmarks.detail(benchmarkId || ''),
     queryFn: async () => {
-      if (!benchmarkId) throw new BenchmarkApiError('No benchmark ID provided');
-      return withApiError(fetchBenchmark(benchmarkId), BenchmarkApiError);
+      if (!benchmarkId) throw new BaseApiError('No benchmark ID provided');
+      return withApiError(fetchBenchmark(benchmarkId), BaseApiError);
     },
     enabled: !!benchmarkId,
     staleTime: STALE_TIME.detail,
@@ -147,9 +142,9 @@ async function fetchBenchmarkPolicies(): Promise<BenchmarkPolicy[]> {
  * @returns Query result with policy array and loading/error states
  */
 export function useBenchmarkPolicies() {
-  return useQuery<BenchmarkPolicy[], BenchmarkApiError>({
+  return useQuery<BenchmarkPolicy[], BaseApiError>({
     queryKey: QK.benchmarks.policies,
-    queryFn: () => withApiError(fetchBenchmarkPolicies(), BenchmarkApiError),
+    queryFn: () => withApiError(fetchBenchmarkPolicies(), BaseApiError),
     staleTime: STALE_TIME.policies,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -169,9 +164,9 @@ export interface UpdateBenchmarkPolicyParams extends Partial<BenchmarkPolicy> {
 export function useUpdateBenchmarkPolicy() {
   const queryClient = useQueryClient();
 
-  return useMutation<BenchmarkPolicy, BenchmarkApiError, UpdateBenchmarkPolicyParams>({
+  return useMutation<BenchmarkPolicy, BaseApiError, UpdateBenchmarkPolicyParams>({
     mutationFn: async (policy) => {
-      if (!policy.id) throw new BenchmarkApiError('Policy ID is required');
+      if (!policy.id) throw new BaseApiError('Policy ID is required');
       const response = await apiPut<BenchmarkPolicy>('l3', `/benchmarks/policies/${policy.id}`, policy);
       return response.data;
     },

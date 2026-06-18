@@ -1,0 +1,435 @@
+{
+  "file_map": [
+    {
+      "path": "DEPRECATED.md",
+      "source": "root_only"
+    },
+    {
+      "path": "__init__.py",
+      "source": "both"
+    },
+    {
+      "path": "audit/__init__.py",
+      "source": "both"
+    },
+    {
+      "path": "audit/emitter.py",
+      "source": "both"
+    },
+    {
+      "path": "audit/ledger.py",
+      "source": "root_only"
+    },
+    {
+      "path": "audit/models.py",
+      "source": "both"
+    },
+    {
+      "path": "audit/tests/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "audit/tests/test_audit.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "boundaries/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "boundaries/tenant_boundary.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "crypto/__init__.py",
+      "source": "root_only"
+    },
+    {
+      "path": "crypto/canonical.py",
+      "source": "root_only"
+    },
+    {
+      "path": "error_handling/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/exceptions.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/handlers.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/middleware.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/models.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/tests/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "error_handling/tests/test_error_handling.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "governance/__init__.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/abom.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/invariants.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/memory_gateway.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/policy_engine.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/replay.py",
+      "source": "root_only"
+    },
+    {
+      "path": "governance/tool_gateway.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/__init__.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/api_key_cache.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/api_key_stub.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/context.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/dependencies.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/dev_bypass.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/feature_flags.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/governance_core.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/hashing.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/isolation.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/jwt.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/middleware.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/middleware_sync.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/models.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/oidc.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/oidc_config.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/permissions.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/rate_limiter.py",
+      "source": "both"
+    },
+    {
+      "path": "identity/rate_limiting.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/session_cache.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/tests/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/tests/test_context.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/tests/test_hashing.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/tests/test_jwt.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/tests/test_permissions.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "identity/tool_contract.py",
+      "source": "root_only"
+    },
+    {
+      "path": "identity/vault_check.py",
+      "source": "both"
+    },
+    {
+      "path": "llm_safety/__init__.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/exceptions.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/observability.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/output_guard.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/pii_guard.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/prompt_guard.py",
+      "source": "root_only"
+    },
+    {
+      "path": "llm_safety/token_limits.py",
+      "source": "root_only"
+    },
+    {
+      "path": "mcp_gateway/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/auth.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/gateway.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/manifest.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/mcp_types.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/registry.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/README.md",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/conftest.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/contract/fixtures/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/contract/fixtures/mock_mcp_client.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/contract/fixtures/mock_mcp_server.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/contract/test_mcp_handshake.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/contract/test_tool_discovery.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/integration/docker-compose.yml",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/security/test_auth_security.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/unit/conftest.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/tests/unit/test_mcp_gateway_unit.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "mcp_gateway/token_exchange.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "models/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "models/typed_dict.py",
+      "source": "both"
+    },
+    {
+      "path": "observability/__init__.py",
+      "source": "root_only"
+    },
+    {
+      "path": "observability/metrics_access.py",
+      "source": "root_only"
+    },
+    {
+      "path": "observability/path_normalization.py",
+      "source": "root_only"
+    },
+    {
+      "path": "rate_limiting/__init__.py",
+      "source": "root_only"
+    },
+    {
+      "path": "rate_limiting/admin_api.py",
+      "source": "root_only"
+    },
+    {
+      "path": "rate_limiting/middleware.py",
+      "source": "root_only"
+    },
+    {
+      "path": "rate_limiting/tenant_rate_limiter.py",
+      "source": "root_only"
+    },
+    {
+      "path": "secrets/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "secrets/audit_logger.py",
+      "source": "root_only"
+    },
+    {
+      "path": "secrets/infisical.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "secrets/infisical_client.py",
+      "source": "root_only"
+    },
+    {
+      "path": "secrets/reload.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "secrets/test_watcher.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "secrets/watcher.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "security/__init__.py",
+      "source": "both"
+    },
+    {
+      "path": "security/config.py",
+      "source": "root_only"
+    },
+    {
+      "path": "security/dil_auth.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "security/middleware.py",
+      "source": "both"
+    },
+    {
+      "path": "testability/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "testability/clock.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "testability/id_generator.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "testability/interfaces.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "testability/tests/__init__.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "testability/tests/test_testability.py",
+      "source": "vf_only"
+    },
+    {
+      "path": "tracing/README.md",
+      "source": "root_only"
+    },
+    {
+      "path": "tracing/tracing-config.yaml",
+      "source": "root_only"
+    }
+  ],
+  "root_count": 57,
+  "vf_count": 72,
+  "total_unique": 107
+}

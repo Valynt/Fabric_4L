@@ -1,9 +1,0 @@
-Exception: layer3-knowledge startup rejected: production-like environment cannot enable auth bypass flags: ALLOW_DEV_AUTH_BYPASS.
-Traceback (most recent call last):
-  File "C:\Users\BBB\Fabric_4L\tests\contract\test_l3_route_alias_parity.py", line 5, in <module>
-    from src.api.main import app
-  File "C:\Users\BBB\Fabric_4L\services\layer3-knowledge\src\api\main.py", line 310, in <module>
-    reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
-  File "C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\startup\validator.py", line 72, in reject_insecure_bypass_in_production
-    raise RuntimeError(
-RuntimeError: layer3-knowledge startup rejected: production-like environment cannot enable auth bypass flags: ALLOW_DEV_AUTH_BYPASS.

@@ -16,7 +16,7 @@
     ".devin/",
     "archive/",
     "docs/archive/",
-    "reports/repo-cleanup/",
+    "docs/archive/evidence/reports/repo-cleanup/",
     "apps/web/src/api/generated/",
     "contracts/deprecations/",
     "contracts/openapi/",

@@ -1,0 +1,415 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-05-02",
+  "description": "Proposed file and directory moves for Fabric_4L repository cleanup",
+  "phases": [
+    {
+      "phase": 2,
+      "name": "Delete Generated Junk",
+      "actions": [
+        {
+          "action": "delete",
+          "pattern": "**/__pycache__",
+          "type": "cache",
+          "reason": "Python cache - should be gitignored"
+        },
+        {
+          "action": "delete",
+          "pattern": "**/.pytest_cache",
+          "type": "cache",
+          "reason": "pytest cache - should be gitignored"
+        },
+        {
+          "action": "delete",
+          "pattern": "**/.mypy_cache",
+          "type": "cache",
+          "reason": "mypy cache - should be gitignored"
+        },
+        {
+          "action": "delete",
+          "pattern": "**/.ruff_cache",
+          "type": "cache",
+          "reason": "ruff cache - should be gitignored"
+        },
+        {
+          "action": "delete",
+          "pattern": "**/node_modules",
+          "type": "cache",
+          "reason": "npm packages - should be gitignored"
+        },
+        {
+          "action": "delete",
+          "path": "C:UsersBBBAppDataLocalTemptmpf7egnv3erelease",
+          "type": "temp",
+          "reason": "Windows temp artifact"
+        },
+        {
+          "action": "delete",
+          "path": "C:UsersBBBAppDataLocalTemptmpflqqs5kprelease",
+          "type": "temp",
+          "reason": "Windows temp artifact"
+        },
+        {
+          "action": "delete",
+          "path": "test-results",
+          "type": "generated",
+          "reason": "Test output - should be gitignored"
+        },
+        {
+          "action": "move",
+          "source": "build.log",
+          "target": "generated/logs/build-2026-05-02.log",
+          "type": "log",
+          "reason": "Archive build log"
+        },
+        {
+          "action": "move",
+          "source": "build-progress.log",
+          "target": "generated/logs/build-progress-2026-05-02.log",
+          "type": "log",
+          "reason": "Archive build log"
+        },
+        {
+          "action": "move",
+          "source": "e2e-results.log",
+          "target": "generated/logs/",
+          "type": "log",
+          "reason": "Archive test log"
+        },
+        {
+          "action": "move",
+          "source": "e2e-test-output.log",
+          "target": "generated/logs/",
+          "type": "log",
+          "reason": "Archive test log"
+        },
+        {
+          "action": "move",
+          "source": "valuepacks_output.txt",
+          "target": "generated/valuepacks_output-2026-05-02.txt",
+          "type": "generated",
+          "reason": "Generated output file"
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Move Root Markdown Files",
+      "actions": [
+        {
+          "action": "move",
+          "source": "AGENTS.md",
+          "target": "docs/AGENTS.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "Architecture.md",
+          "target": "docs/architecture/system-overview.md",
+          "type": "doc",
+          "reason": "Consolidate architecture docs"
+        },
+        {
+          "action": "move",
+          "source": "ASSURANCE_REMEDIATION_REPORT.md",
+          "target": "reports/ASSURANCE_REMEDIATION_REPORT.md",
+          "type": "report",
+          "reason": "Move to reports/"
+        },
+        {
+          "action": "move",
+          "source": "audit_violations.txt",
+          "target": "reports/audit_violations.txt",
+          "type": "report",
+          "reason": "Move to reports/"
+        },
+        {
+          "action": "move",
+          "source": "CHANGES.md",
+          "target": "docs/CHANGES.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "contract.md",
+          "target": "docs/contract.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "DEAD_CODE_SWEEP_REPORT.md",
+          "target": "reports/DEAD_CODE_SWEEP_REPORT.md",
+          "type": "report",
+          "reason": "Move to reports/"
+        },
+        {
+          "action": "move",
+          "source": "DEPRECATIONS.md",
+          "target": "docs/DEPRECATIONS.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "Providers.md",
+          "target": "docs/Providers.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "SECURITY_FIXES_IMPLEMENTED.md",
+          "target": "reports/SECURITY_FIXES_IMPLEMENTED.md",
+          "type": "report",
+          "reason": "Move to reports/"
+        },
+        {
+          "action": "move",
+          "source": "TEST_CATALOG.md",
+          "target": "docs/testing/TEST_CATALOG.md",
+          "type": "doc",
+          "reason": "Consolidate testing docs"
+        },
+        {
+          "action": "move",
+          "source": "VERSIONING.md",
+          "target": "docs/VERSIONING.md",
+          "type": "doc",
+          "reason": "Relocate to docs/"
+        },
+        {
+          "action": "move",
+          "source": "4 layer",
+          "target": "archive/4-layer-legacy.md",
+          "type": "archive",
+          "reason": "Archive old doc"
+        },
+        {
+          "action": "move",
+          "source": "test_search_debug.py",
+          "target": "tests/debug/test_search_debug.py",
+          "type": "test",
+          "reason": "Move to tests/"
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Move Frontend",
+      "actions": [
+        {
+          "action": "move",
+          "source": "frontend/client",
+          "target": "apps/web",
+          "type": "app",
+          "reason": "Production frontend app"
+        },
+        {
+          "action": "move",
+          "source": "_ui-prototype",
+          "target": "prototypes/ui",
+          "type": "prototype",
+          "reason": "Prototype separation"
+        },
+        {
+          "action": "move",
+          "source": "eslint-plugin-fabric-contracts",
+          "target": "packages/eslint-plugin",
+          "type": "package",
+          "reason": "Consolidate packages"
+        }
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Move Backend Services",
+      "actions": [
+        {
+          "action": "move",
+          "source": "services/layer1-ingestion",
+          "target": "services/layer1-ingestion",
+          "type": "service",
+          "reason": "Layer 1 ingestion service"
+        },
+        {
+          "action": "move",
+          "source": "services/layer2-extraction",
+          "target": "services/layer2-extraction",
+          "type": "service",
+          "reason": "Layer 2 extraction service"
+        },
+        {
+          "action": "move",
+          "source": "services/layer3-knowledge",
+          "target": "services/layer3-knowledge",
+          "type": "service",
+          "reason": "Layer 3 knowledge service"
+        },
+        {
+          "action": "move",
+          "source": "services/layer4-agents",
+          "target": "services/layer4-agents",
+          "type": "service",
+          "reason": "Layer 4 agents service"
+        },
+        {
+          "action": "move",
+          "source": "services/layer5-ground-truth",
+          "target": "services/layer5-ground-truth",
+          "type": "service",
+          "reason": "Layer 5 ground truth service"
+        },
+        {
+          "action": "move",
+          "source": "services/layer6-benchmarks",
+          "target": "services/layer6-benchmarks",
+          "type": "service",
+          "reason": "Layer 6 benchmarks service"
+        },
+        {
+          "action": "move",
+          "source": "packages/shared/src/value_fabric/shared",
+          "target": "packages/shared/src/value_fabric/layer_shared",
+          "type": "shared",
+          "reason": "Layer-specific shared code"
+        },
+        {
+          "action": "delete",
+          "source": "value_fabric",
+          "type": "junction",
+          "reason": "Remove junctions - no longer needed"
+        },
+        {
+          "action": "move",
+          "source": "docs/explanations/adr",
+          "target": "docs/adr",
+          "type": "doc",
+          "reason": "Consolidate ADRs"
+        },
+        {
+          "action": "move",
+          "source": "services/docs",
+          "target": "docs/layer-docs",
+          "type": "doc",
+          "reason": "Layer-specific docs"
+        },
+        {
+          "action": "archive",
+          "source": "value-fabric",
+          "target": "archive/value-fabric-remaining",
+          "type": "review",
+          "reason": "Archive remaining value-fabric contents"
+        }
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "Move Shared Code",
+      "actions": [
+        {
+          "action": "move",
+          "source": "shared",
+          "target": "packages/shared/src/value_fabric/shared",
+          "type": "shared",
+          "reason": "Root shared code to package"
+        },
+        {
+          "action": "move",
+          "source": "sdk",
+          "target": "packages/sdk",
+          "type": "package",
+          "reason": "Consolidate SDK"
+        }
+      ]
+    },
+    {
+      "phase": 8,
+      "name": "Consolidate Infrastructure",
+      "actions": [
+        {
+          "action": "move",
+          "source": "k8s",
+          "target": "infra/k8s",
+          "type": "infra",
+          "reason": "Consolidate K8s manifests"
+        },
+        {
+          "action": "move",
+          "source": "monitoring",
+          "target": "infra/monitoring",
+          "type": "infra",
+          "reason": "Consolidate monitoring config"
+        },
+        {
+          "action": "move",
+          "source": "docker-compose.dev.yml",
+          "target": "infra/docker/docker-compose.dev.yml",
+          "type": "infra",
+          "reason": "Consolidate docker configs"
+        },
+        {
+          "action": "move",
+          "source": "docker-compose.e2e.yml",
+          "target": "infra/docker/docker-compose.e2e.yml",
+          "type": "infra",
+          "reason": "Consolidate docker configs"
+        }
+      ]
+    },
+    {
+      "phase": 9,
+      "name": "Organize Scripts",
+      "actions": [
+        {
+          "action": "move",
+          "source": "scripts/ci",
+          "target": "scripts/ci",
+          "type": "scripts",
+          "reason": "Already organized - verify contents"
+        },
+        {
+          "action": "move",
+          "pattern": "scripts/*health*.ps1",
+          "target": "scripts/dev/",
+          "type": "scripts",
+          "reason": "Dev utility scripts"
+        },
+        {
+          "action": "move",
+          "pattern": "scripts/*seed*.ts",
+          "target": "scripts/db/",
+          "type": "scripts",
+          "reason": "Database scripts"
+        },
+        {
+          "action": "move",
+          "pattern": "scripts/*security*.py",
+          "target": "scripts/security/",
+          "type": "scripts",
+          "reason": "Security scripts"
+        }
+      ]
+    }
+  ],
+  "files_to_keep_in_root": [
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "ROADMAP.md",
+    "Makefile",
+    "pyproject.toml",
+    "pytest.ini",
+    "package.json",
+    "pnpm-workspace.yaml",
+    ".gitignore",
+    ".gitattributes",
+    ".pre-commit-config.yaml",
+    ".tool-versions",
+    ".npmrc",
+    ".env.dev.example"
+  ]
+}

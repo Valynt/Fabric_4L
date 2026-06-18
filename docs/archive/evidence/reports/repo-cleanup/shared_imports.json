@@ -1,0 +1,1441 @@
+{
+  "tests\\test_tenant_rate_limiting.py": [
+    "from shared.rate_limiting.admin_api import get_tenant_quota",
+    "from shared.rate_limiting.tenant_rate_limiter import ("
+  ],
+  "value_fabric\\shared\\audit\\emitter.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\identity\\context.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\identity\\jwt.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\manifest.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\registry.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\security\\middleware.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\testability\\tests\\test_testability.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\conftest.py": [
+    "from shared.mcp_gateway import (",
+    "from shared.mcp_gateway.mcp_types import (",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\contract\\test_mcp_handshake.py": [
+    "from shared.mcp_gateway.tests.contract.fixtures import MockMCPClient, MockMCPServer, MCPMessage",
+    "from shared.mcp_gateway.tests.contract.fixtures.mock_mcp_client import MCPErrorCode"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\contract\\test_tool_discovery.py": [
+    "from shared.mcp_gateway.tests.contract.fixtures import ("
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\security\\test_auth_security.py": [
+    "from shared.mcp_gateway import (",
+    "from shared.mcp_gateway.mcp_types import (",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\unit\\conftest.py": [
+    "from shared.mcp_gateway.mcp_types import (",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\unit\\test_mcp_gateway_unit.py": [
+    "from shared.mcp_gateway import (",
+    "from shared.mcp_gateway.mcp_types import ("
+  ],
+  "value_fabric\\shared\\mcp_gateway\\tests\\contract\\fixtures\\mock_mcp_server.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\shared\\error_handling\\tests\\test_error_handling.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer6_benchmarks\\src\\api\\main.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer6_benchmarks\\src\\models\\benchmark_dataset.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer5_ground_truth\\src\\layer5_ground_truth\\api\\router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer5_ground_truth\\src\\layer5_ground_truth\\api\\schemas.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer5_ground_truth\\src\\layer5_ground_truth\\services\\freshness_monitor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\model_registry_client.py": [
+    "from shared.audit import audit_log",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\resilience.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_accounts_api.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_business_case_claim_promotion.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_case_permissions_and_audit.py": [
+    "from shared.audit.models import AuditAction",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_checkpoint_resume.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_checkpoint_resume_failure_paths.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_crm_sync_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_export_provenance.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_feature_flags.py": [
+    "from shared.audit.models import AuditAction",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.feature_flags import (",
+    "from shared.identity.permissions import Role",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_frontend_compat_routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_langgraph_execution.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_oidc.py": [
+    "from shared.identity.oidc import OIDCClient, map_role_from_claims",
+    "from shared.identity.oidc_config import OIDCProviderConfig",
+    "from shared.identity.permissions import Role"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_pack_variable_loader.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_tenant_api.py": [
+    "from shared.identity.context import RequestContext"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_tenant_isolation.py": [
+    "from shared.identity.context import (",
+    "from shared.identity.dependencies import require_tenant_context",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_tenant_lifecycle.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_tenant_rate_limits.py": [
+    "from shared.identity.middleware import (",
+    "from shared.identity.rate_limiting import RateLimitScope"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_workflows_real_execution.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_workflow_archive_and_list.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\tests\\test_workflow_controls.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\tests\\unit\\test_workflow_state_machine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\agents\\base.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\agents\\signal_detection.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\agents\\taxonomy.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\main.py": [
+    "from shared.error_handling import RequestIDMiddleware, register_exception_handlers",
+    "from shared.identity.feature_flags import init_feature_flags, register_feature_flag_lookup",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\tenants.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_privileged_access"
+  ],
+  "value_fabric\\layer4_agents\\src\\config\\plans.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\engine\\executor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\engine\\scheduler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\feature_flags\\service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\integration\\layer5_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\messaging\\router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\messaging\\types.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\models\\agent_state.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\provenance\\models.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\provenance\\store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\account_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\billing_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\conversation.py": [
+    "from shared.audit.emitter import emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\crm_sync_scheduler.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\crm_sync_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\enrichment_orchestrator.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import SSRFBlockedError, validate_url_safe"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\export_provenance.py": [
+    "from shared.crypto.canonical import canonical_hash",
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\formula_governance_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\health_tracker.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\integration_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\intelligence_orchestrator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\invoice_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\llm_budget_guardrails.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\narrative_builder_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\overage_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\stripe_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\tenant_provisioning.py": [
+    "from shared.audit.emitter import emit_audit_event",
+    "from shared.audit.models import AuditAction, AuditOutcome",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\usage_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\services\\value_hypothesis_engine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenant\\context.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenant\\middleware.py": [
+    "from shared.identity.middleware import GovernanceMiddleware as TenantMiddleware  # noqa: F401"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\provisioning.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.secrets.infisical_client import TenantSecretManager"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\tier_enforcement.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\usage.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\usage_tracking.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\admin.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\analytics.py": [
+    "from shared.identity.context import RequestContext, require_context",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\competitive_tools.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\files.py": [
+    "from shared.identity.context import RequestContext, require_context"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\generation_tools.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\knowledge.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext, require_context"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\registry.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tools\\workflows.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\workflows\\base.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\workflows\\business_case.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\workflows\\roi_calculator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\workflows\\whitespace.py": [
+    "from shared.identity.context import require_context",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\workflows\\__init__.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\admin.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\admin_dashboard.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\api_keys.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.models import ("
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\oidc.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.jwt import encode_jwt",
+    "from shared.identity.oidc_config import OIDCProviderConfig",
+    "from shared.identity.permissions import Role",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.identity.oidc import OIDCClient, map_role_from_claims"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\provisioning.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated, require_super_admin"
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\tenants.py": [
+    "from shared.identity.dependencies import require_authenticated, require_super_admin",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.models import ("
+  ],
+  "value_fabric\\layer4_agents\\src\\tenants\\api\\routes\\users.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.models import ("
+  ],
+  "value_fabric\\layer4_agents\\src\\shared\\domain\\context.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\registry\\api\\routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_any_permission",
+    "from shared.identity.permissions import Permission"
+  ],
+  "value_fabric\\layer4_agents\\src\\feature_flags\\api\\routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\accounts.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\agent_stream.py": [
+    "from shared.error_handling.middleware import get_request_id",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\analysis.py": [
+    "from shared.audit import AuditAction, AuditEmitter, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\billing.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\checkpoints.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\crm_webhooks.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\enrichment.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\frontend_compat.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\ground_truth_proxy.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\health_badges.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\integrations.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\intelligence.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\narratives.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\prospects.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\signals.py": [
+    "from shared.audit import AuditAction, AuditEmitter, AuditOutcome",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\tools.py": [
+    "from shared.audit import AuditAction, AuditEmitter, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\value_flow.py": [
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\value_hypotheses.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\routes\\workflows.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer4_agents\\src\\api\\websocket\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\config.py": [
+    "from shared.secrets import load_infisical_secrets"
+  ],
+  "value_fabric\\layer3_knowledge\\tests\\conftest.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\tests\\test_error_handling_integration.py": [
+    "from shared.error_handling.exceptions import (",
+    "from shared.error_handling.middleware import RequestIDMiddleware",
+    "from shared.error_handling.models import ErrorCode",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\tests\\test_tenant_read_isolation.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\tests\\test_versioning_registration.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\narrative_synthesis.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\provenance_tracking.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\roi_calculation.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\scenario_engine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\value_tree_projection.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\agents\\whitespace_analysis.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\analytics\\centrality.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\analytics\\communities.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\analytics\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\analytics\\similarity.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\main.py": [
+    "from shared.error_handling import RequestIDMiddleware",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\rate_limiter.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\auth\\api_keys.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\backup\\backup_manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\cache\\redis_cache.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\config\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\db\\driver.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\db\\tenant_queries.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\ingestion\\sync_manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\ingestion\\validators.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\load_balancing\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\migrations\\migrate_tenant_ids.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\performance\\cache.py": [
+    "from shared.testability import Clock, SystemClock"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\rate_limiting\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\retrieval\\graph_rag.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\retrieval\\vector_store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\schema\\initializer.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\security\\monitor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\security\\query_validator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\services\\case_study_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\services\\competitive_intel_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\services\\product_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\services\\roi_calculator_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\services\\signal_quantification.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\tracing\\tracer.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\routes\\competitive_intel.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\routes\\evidence.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\routes\\products.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\routes\\roi_calculator.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value_fabric\\layer3_knowledge\\src\\api\\routes\\value_packs.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\tests\\test_extract_and_ingest_pipeline.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\api\\main.py": [
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.secrets import load_infisical_secrets",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\extraction\\prompt_loader.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\integration\\layer3_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\integration\\pending_ingestion_store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\models\\extraction_cost.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\output\\provenance.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\repositories\\ontology_schema_repository.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\shared\\llm_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer2_extraction\\src\\layer2_extraction\\api\\routes\\ontology.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\scripts\\benchmark_router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\tests\\unit\\test_playwright_crawler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\adapters\\sec_edgar.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\api\\main.py": [
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security import SecurityConfig, add_security_middleware"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\compliance\\pii_scanner.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\compliance\\robots_checker.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\crawler\\crawler_config.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\crawler\\execution_logger.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\crawler\\httpx_crawler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\crawler\\smart_router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\crawler\\telemetry.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\scheduler\\priority_queue.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.testability import Clock, SystemClock"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\shared\\config.py": [
+    "from shared.secrets import load_infisical_secrets"
+  ],
+  "value_fabric\\layer1_ingestion\\src\\shared\\tasks.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\tests\\security\\conftest.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer6-benchmarks\\src\\api\\main.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer6-benchmarks\\src\\models\\benchmark_dataset.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer5-ground-truth\\src\\layer5_ground_truth\\api\\router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer5-ground-truth\\src\\layer5_ground_truth\\api\\schemas.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer5-ground-truth\\src\\layer5_ground_truth\\services\\freshness_monitor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\model_registry_client.py": [
+    "from shared.audit import audit_log",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\resilience.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_accounts_api.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_business_case_claim_promotion.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_case_permissions_and_audit.py": [
+    "from shared.audit.models import AuditAction",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_checkpoint_resume.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_checkpoint_resume_failure_paths.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_crm_sync_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_export_provenance.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_feature_flags.py": [
+    "from shared.audit.models import AuditAction",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.feature_flags import (",
+    "from shared.identity.permissions import Role",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_frontend_compat_routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_langgraph_execution.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_oidc.py": [
+    "from shared.identity.oidc import OIDCClient, map_role_from_claims",
+    "from shared.identity.oidc_config import OIDCProviderConfig",
+    "from shared.identity.permissions import Role"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_pack_variable_loader.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_tenant_api.py": [
+    "from shared.identity.context import RequestContext"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_tenant_isolation.py": [
+    "from shared.identity.context import (",
+    "from shared.identity.dependencies import require_tenant_context",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_tenant_lifecycle.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_tenant_rate_limits.py": [
+    "from shared.identity.middleware import (",
+    "from shared.identity.rate_limiting import RateLimitScope"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_workflows_real_execution.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_workflow_archive_and_list.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\tests\\test_workflow_controls.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\tests\\unit\\test_workflow_state_machine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\agents\\base.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\agents\\signal_detection.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\agents\\taxonomy.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\main.py": [
+    "from shared.error_handling import RequestIDMiddleware, register_exception_handlers",
+    "from shared.identity.feature_flags import init_feature_flags, register_feature_flag_lookup",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\tenants.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_privileged_access"
+  ],
+  "value-fabric\\layer4-agents\\src\\config\\plans.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\engine\\executor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\engine\\scheduler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\feature_flags\\service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\integration\\layer5_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\messaging\\router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\messaging\\types.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\models\\agent_state.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\provenance\\models.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\provenance\\store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\account_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\billing_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\conversation.py": [
+    "from shared.audit.emitter import emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\crm_sync_scheduler.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\crm_sync_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\enrichment_orchestrator.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import SSRFBlockedError, validate_url_safe"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\export_provenance.py": [
+    "from shared.crypto.canonical import canonical_hash",
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\formula_governance_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\health_tracker.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\integration_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\intelligence_orchestrator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\invoice_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\llm_budget_guardrails.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\narrative_builder_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\overage_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\stripe_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\tenant_provisioning.py": [
+    "from shared.audit.emitter import emit_audit_event",
+    "from shared.audit.models import AuditAction, AuditOutcome",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\usage_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\services\\value_hypothesis_engine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenant\\context.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenant\\middleware.py": [
+    "from shared.identity.middleware import GovernanceMiddleware as TenantMiddleware  # noqa: F401"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\provisioning.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.secrets.infisical_client import TenantSecretManager"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\tier_enforcement.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\usage.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\usage_tracking.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\admin.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\analytics.py": [
+    "from shared.identity.context import RequestContext, require_context",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\competitive_tools.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\files.py": [
+    "from shared.identity.context import RequestContext, require_context"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\generation_tools.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\knowledge.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext, require_context"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\registry.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tools\\workflows.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\workflows\\base.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\workflows\\business_case.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\workflows\\roi_calculator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\workflows\\whitespace.py": [
+    "from shared.identity.context import require_context",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\workflows\\__init__.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\admin.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\admin_dashboard.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\api_keys.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.models import ("
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\oidc.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.jwt import encode_jwt",
+    "from shared.identity.oidc_config import OIDCProviderConfig",
+    "from shared.identity.permissions import Role",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.identity.oidc import OIDCClient, map_role_from_claims"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\provisioning.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated, require_super_admin"
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\tenants.py": [
+    "from shared.identity.dependencies import require_authenticated, require_super_admin",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.models import ("
+  ],
+  "value-fabric\\layer4-agents\\src\\tenants\\api\\routes\\users.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.identity.models import ("
+  ],
+  "value-fabric\\layer4-agents\\src\\shared\\domain\\context.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\registry\\api\\routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_any_permission",
+    "from shared.identity.permissions import Permission"
+  ],
+  "value-fabric\\layer4-agents\\src\\feature_flags\\api\\routes.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_tenant_admin",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\accounts.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\agent_stream.py": [
+    "from shared.error_handling.middleware import get_request_id",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\analysis.py": [
+    "from shared.audit import AuditAction, AuditEmitter, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\billing.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\checkpoints.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\crm_webhooks.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\enrichment.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\frontend_compat.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\ground_truth_proxy.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\health_badges.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\integrations.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\intelligence.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\narratives.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\prospects.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\signals.py": [
+    "from shared.audit import AuditAction, AuditEmitter, AuditOutcome",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\tools.py": [
+    "from shared.audit import AuditAction, AuditEmitter, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\value_flow.py": [
+    "from shared.identity.dependencies import require_authenticated"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\value_hypotheses.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\routes\\workflows.py": [
+    "from shared.audit import AuditAction, AuditOutcome, emit_audit_event",
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_authenticated",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer4-agents\\src\\api\\websocket\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\config.py": [
+    "from shared.secrets import load_infisical_secrets"
+  ],
+  "value-fabric\\layer3-knowledge\\tests\\conftest.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\tests\\test_error_handling_integration.py": [
+    "from shared.error_handling.exceptions import (",
+    "from shared.error_handling.middleware import RequestIDMiddleware",
+    "from shared.error_handling.models import ErrorCode",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\tests\\test_tenant_read_isolation.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\tests\\test_versioning_registration.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\narrative_synthesis.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\provenance_tracking.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\roi_calculation.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\scenario_engine.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\value_tree_projection.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\agents\\whitespace_analysis.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\analytics\\centrality.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\analytics\\communities.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\analytics\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\analytics\\similarity.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\main.py": [
+    "from shared.error_handling import RequestIDMiddleware",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\rate_limiter.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\auth\\api_keys.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\backup\\backup_manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\cache\\redis_cache.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\config\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\db\\driver.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\db\\tenant_queries.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\ingestion\\sync_manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\ingestion\\validators.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\load_balancing\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\migrations\\migrate_tenant_ids.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\performance\\cache.py": [
+    "from shared.testability import Clock, SystemClock"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\rate_limiting\\manager.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\retrieval\\graph_rag.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\retrieval\\vector_store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\schema\\initializer.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\security\\monitor.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\security\\query_validator.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\services\\case_study_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\services\\competitive_intel_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\services\\product_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\services\\roi_calculator_service.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\services\\signal_quantification.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\tracing\\tracer.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\routes\\competitive_intel.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import ("
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\routes\\evidence.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\routes\\products.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\routes\\roi_calculator.py": [
+    "from shared.security.dil_auth import get_verified_tenant_id"
+  ],
+  "value-fabric\\layer3-knowledge\\src\\api\\routes\\value_packs.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\tests\\test_extract_and_ingest_pipeline.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\api\\main.py": [
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.secrets import load_infisical_secrets",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.security import SecurityConfig, add_security_middleware",
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\extraction\\prompt_loader.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\integration\\layer3_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\integration\\pending_ingestion_store.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\models\\extraction_cost.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\output\\provenance.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\repositories\\ontology_schema_repository.py": [
+    "from shared.identity.context import require_context"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\shared\\llm_client.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer2-extraction\\src\\layer2_extraction\\api\\routes\\ontology.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\scripts\\benchmark_router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\tests\\unit\\test_playwright_crawler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\adapters\\sec_edgar.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\api\\main.py": [
+    "from shared.identity.api_key_stub import reject_api_key_unsupported",
+    "from shared.identity.middleware import GovernanceMiddleware",
+    "from shared.identity.rate_limiter import RedisRateLimiter",
+    "from shared.identity.vault_check import is_vault_healthy",
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.security import SecurityConfig, add_security_middleware"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\compliance\\pii_scanner.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\compliance\\robots_checker.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\crawler\\crawler_config.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\crawler\\execution_logger.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\crawler\\httpx_crawler.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\crawler\\smart_router.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\crawler\\telemetry.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\scheduler\\priority_queue.py": [
+    "from shared.models.typed_dict import TypedDictModel",
+    "from shared.testability import Clock, SystemClock"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\shared\\config.py": [
+    "from shared.secrets import load_infisical_secrets"
+  ],
+  "value-fabric\\layer1-ingestion\\src\\shared\\tasks.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "tests\\cache\\test_redis_tenant_isolation.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.rate_limiting.tenant_rate_limiter import TenantRateLimiter, TenantTier"
+  ],
+  "tests\\context\\test_tenant_context_contract.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import ("
+  ],
+  "tests\\integration\\test_gate_integration.py": [
+    "from shared.crypto.canonical import canonical_hash",
+    "from shared.audit.models import AuditAction",
+    "from shared.governance.abom import AgentBillOfMaterials"
+  ],
+  "tests\\security\\test_cross_layer_tenant.py": [
+    "from shared.identity.context import (",
+    "from shared.identity.dependencies import require_tenant_context"
+  ],
+  "tests\\security\\test_jwt_rotation.py": [
+    "from shared.identity.jwt import decode_jwt"
+  ],
+  "tests\\security\\test_oidc.py": [
+    "from shared.audit import AuditAction, AuditOutcome",
+    "from shared.identity.oidc import OIDCClient, map_role_from_claims",
+    "from shared.identity.oidc_config import OIDCProviderConfig"
+  ],
+  "tests\\security\\test_p0_5_api_key_rejection.py": [
+    "from shared.identity.api_key_stub import ("
+  ],
+  "tests\\security\\test_privileged_audit.py": [
+    "from shared.identity.context import RequestContext",
+    "from shared.identity.dependencies import require_privileged_access",
+    "from shared.audit.models import AuditAction, PrivilegedAccessDetails"
+  ],
+  "tests\\security\\test_tenant_audit.py": [
+    "from shared.audit import (",
+    "from shared.identity.context import (",
+    "from shared.identity.middleware import GovernanceMiddleware"
+  ],
+  "tests\\security\\test_tenant_boundary_fails_closed.py": [
+    "from shared.boundaries.tenant_boundary import (",
+    "from shared.identity.context import RequestContext, set_request_context"
+  ],
+  "tests\\shared\\test_observability.py": [
+    "from shared.observability import ("
+  ],
+  "tests\\tools\\test_tool_tenant_boundaries.py": [
+    "from shared.identity.context import RequestContext"
+  ],
+  "tests\\shared\\audit\\test_ledger_chain.py": [
+    "from shared.audit.emitter import AuditEmitter, emit_audit_event, _create_audit_event",
+    "from shared.audit.ledger import LedgerCommitHandler",
+    "from shared.audit.models import AuditAction, AuditEvent, AuditOutcome"
+  ],
+  "tests\\shared\\crypto\\test_canonical.py": [
+    "from shared.crypto.canonical import canonical_hash, canonical_json_encode"
+  ],
+  "tests\\shared\\governance\\test_gate_phase2.py": [
+    "from shared.governance.abom import (",
+    "from shared.governance.invariants import InvariantEvaluator",
+    "from shared.governance.policy_engine import PolicyDecision, PolicyEngineClient",
+    "from shared.governance.tool_gateway import ("
+  ],
+  "tests\\shared\\governance\\test_gate_phase3.py": [
+    "from shared.audit.models import MemoryAccessRecord, ReplaySnapshotRecord",
+    "from shared.crypto.canonical import canonical_hash",
+    "from shared.governance.memory_gateway import MemoryGateway",
+    "from shared.governance.replay import ReplayRecorder"
+  ],
+  "tests\\shared\\identity\\test_middleware_rate_limiter_init.py": [
+    "from shared.identity.middleware import ("
+  ],
+  "tests\\shared\\identity\\test_middleware_sync.py": [
+    "from shared.identity.middleware_sync import ("
+  ],
+  "tests\\shared\\identity\\test_vault_check.py": [
+    "from shared.identity.vault_check import get_vault_health, get_vault_healthResult"
+  ],
+  "tests\\shared\\models\\test_typed_dict.py": [
+    "from shared.models.typed_dict import TypedDictModel"
+  ],
+  "tests\\contracts\\gate\\test_phase1_contracts.py": [
+    "from shared.audit.models import (",
+    "from shared.crypto.canonical import canonical_hash"
+  ]
+}

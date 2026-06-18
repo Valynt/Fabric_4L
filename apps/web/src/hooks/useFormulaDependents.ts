@@ -11,7 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/api/typedClient';
 import { QK } from './queryKeys';
-import { withApiError, FormulaDependentsApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,15 +57,15 @@ async function fetchFormulaDependencies(
  * ```
  */
 export function useFormulaDependents(formulaId: string | null) {
-  return useQuery<DependentAsset[], FormulaDependentsApiError>({
+  return useQuery<DependentAsset[], BaseApiError>({
     queryKey: [...QK.formulas.all, 'dependents', formulaId] as const,
     queryFn: async () => {
-      if (!formulaId) throw new FormulaDependentsApiError('No formula ID provided');
+      if (!formulaId) throw new BaseApiError('No formula ID provided');
       
       // Fetch incoming dependencies (formulas that depend on this one)
       const deps = await withApiError(
         fetchFormulaDependencies(formulaId, 'incoming'),
-        FormulaDependentsApiError
+        BaseApiError
       );
       
       // Transform to DependentAsset format
@@ -98,15 +98,15 @@ export function useFormulaDependents(formulaId: string | null) {
  * ```
  */
 export function useFormulaDependencies(formulaId: string | null) {
-  return useQuery<DependentAsset[], FormulaDependentsApiError>({
+  return useQuery<DependentAsset[], BaseApiError>({
     queryKey: [...QK.formulas.all, 'dependencies', formulaId] as const,
     queryFn: async () => {
-      if (!formulaId) throw new FormulaDependentsApiError('No formula ID provided');
+      if (!formulaId) throw new BaseApiError('No formula ID provided');
       
       // Fetch outgoing dependencies (formulas this one depends on)
       const deps = await withApiError(
         fetchFormulaDependencies(formulaId, 'outgoing'),
-        FormulaDependentsApiError
+        BaseApiError
       );
       
       return deps.map(dep => ({

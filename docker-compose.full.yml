@@ -730,7 +730,7 @@ services:
       file: ./docker-compose.base.yml
       service: redis-base
     container_name: value-fabric-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    # Command inherited from docker-compose.base.yml
     expose:
       - "6379"
     volumes:

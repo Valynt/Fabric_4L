@@ -11,6 +11,7 @@
  * Connected to Layer 4 health endpoints
  */
 
+import { EmptyState, ErrorState } from "@/components/states";
 import { useState, useMemo } from "react";
 import {
   Activity, AlertCircle, CheckCircle2, Clock, RefreshCw,
@@ -27,24 +28,20 @@ import {
   useHealthAlerts,
   type ServiceStatus,
   type ServiceHealth,
-  type HealthAlert,
-} from "@/hooks";
+  type HealthAlert} from "@/hooks";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import {
   AdminShell,
   AdminStatCard,
   AdminStatsRow,
   AdminFilterBar,
-  AdminEmptyState,
-  AdminErrorState,
 } from "@/components/admin";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue} from "@/components/ui/select";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,27 +60,22 @@ const STATUS_CONFIG: Record<ServiceStatus, {
     label: "Healthy",
     color: "text-success",
     bgColor: "bg-success/10",
-    icon: <CheckCircle2 size={16} />,
-  },
+    icon: <CheckCircle2 size={16} />},
   degraded: {
     label: "Degraded",
     color: "text-warning",
     bgColor: "bg-warning/10",
-    icon: <AlertTriangle size={16} />,
-  },
+    icon: <AlertTriangle size={16} />},
   unhealthy: {
     label: "Unhealthy",
     color: "text-destructive",
     bgColor: "bg-destructive/10",
-    icon: <XCircle size={16} />,
-  },
+    icon: <XCircle size={16} />},
   unknown: {
     label: "Unknown",
     color: "text-muted-foreground",
     bgColor: "bg-muted",
-    icon: <AlertCircle size={16} />,
-  },
-};
+    icon: <AlertCircle size={16} />}};
 
 const ALERT_SEVERITY_CONFIG: Record<HealthAlert['severity'], {
   color: string;
@@ -93,19 +85,15 @@ const ALERT_SEVERITY_CONFIG: Record<HealthAlert['severity'], {
   critical: {
     color: "text-destructive",
     bgColor: "bg-destructive/10",
-    icon: <XCircle size={14} />,
-  },
+    icon: <XCircle size={14} />},
   warning: {
     color: "text-warning",
     bgColor: "bg-warning/10",
-    icon: <AlertTriangle size={14} />,
-  },
+    icon: <AlertTriangle size={14} />},
   info: {
     color: "text-primary",
     bgColor: "bg-primary/10",
-    icon: <Bell size={14} />,
-  },
-};
+    icon: <Bell size={14} />}};
 
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
   "l1-ingestion": <Globe size={18} />,
@@ -113,8 +101,7 @@ const SERVICE_ICONS: Record<string, React.ReactNode> = {
   "l3-knowledge": <Database size={18} />,
   "l4-agents": <Server size={18} />,
   "l5-truth": <Shield size={18} />,
-  "l6-benchmarks": <Activity size={18} />,
-};
+  "l6-benchmarks": <Activity size={18} />};
 
 // ── Helper Functions ────────────────────────────────────────────────────────
 
@@ -276,15 +263,13 @@ function HealthMonitorContent() {
     isLoading: healthLoading,
     error: healthError,
     refetch: refetchHealth,
-    dataUpdatedAt,
-  } = useSystemHealth();
+    dataUpdatedAt} = useSystemHealth();
 
   const {
     data: alerts,
     isLoading: alertsLoading,
     error: alertsError,
-    refetch: refetchAlerts,
-  } = useHealthAlerts();
+    refetch: refetchAlerts} = useHealthAlerts();
 
   const isLoading = healthLoading || alertsLoading;
   const error = healthError || alertsError;
@@ -324,7 +309,7 @@ function HealthMonitorContent() {
         title="System Health"
         subtitle="Monitor real-time status of all platform services"
       >
-        <AdminErrorState
+        <ErrorState
           title="Failed to load health data"
           description="An error occurred while loading system health information."
           error={error}
@@ -340,7 +325,7 @@ function HealthMonitorContent() {
         title="System Health"
         subtitle="Monitor real-time status of all platform services"
       >
-        <AdminEmptyState
+        <EmptyState
           title="No Health Data"
           description="System health information is unavailable. Please check the API status."
           icon={Activity}
@@ -448,7 +433,7 @@ function HealthMonitorContent() {
         </div>
 
         {filteredServices.length === 0 && (
-          <AdminEmptyState
+          <EmptyState
             icon={Server}
             title="No services match"
             description="No services match the selected filter."
@@ -491,7 +476,7 @@ function HealthMonitorContent() {
         </div>
 
         {filteredAlerts.length === 0 && (
-          <AdminEmptyState
+          <EmptyState
             icon={Bell}
             title={showResolved ? "No alerts found" : "No active alerts"}
             description={showResolved ? "There are no alerts in the selected range." : "All systems are operating normally."}

@@ -51,7 +51,7 @@ The validator reported PASS for all P0, P1, and P2 foundations and printed the e
 
 ## P0 Blocker Evidence
 
-Local/static verification evidence captured in `reports/p0-blockers-local-evidence-2026-05-31.md`.
+Local/static verification evidence captured in `docs/archive/evidence/reports/2026-06-18/p0-blockers-local-evidence-2026-05-31.md`.
 Staging and production evidence will be appended after runtime validation.
 
 **Operator setup runbook for GitHub/AWS prerequisites:** `docs/runbooks/p0-aws-github-environment-setup.md`

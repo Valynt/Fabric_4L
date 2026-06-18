@@ -76,7 +76,7 @@ The completion audit in [repository-discoverability-audit.md](../governance/repo
 | Evidence need | Preferred location |
 | --- | --- |
 | Test inventory and coverage posture | `docs/testing/`, `reports/testing/`, `reports/autonomous-test-assurance/` |
-| Contract and API alignment | `docs/contracts/`, `contracts/`, `reports/api-contract-stability-audit.md` |
+| Contract and API alignment | `docs/contracts/`, `contracts/`, `docs/archive/evidence/reports/2026-06-18/api-contract-stability-audit.md` |
 | Production readiness and release gates | `docs/validation/`, `reports/production-readiness-gap-analysis.md`, `reports/production-launch-readiness-audit.md` |
 | Repository discoverability completion | `docs/governance/repository-discoverability-audit.md`, `docs/development/DISCOVERY_MAP.md`, `docs/development/COMMANDS.md` |
 | Security and tenant isolation | `docs/security/`, `docs/validation/tenant-isolation-evidence-summary.md`, `reports/security/`, `tests/security/` |

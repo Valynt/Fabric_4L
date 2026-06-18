@@ -13,7 +13,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '@/api/typedClient';
 import type { l1 } from '@/api/generated';
 import { createLogger } from '@/lib/telemetry';
 import { QK } from './queryKeys';
-import { withApiError, SourceApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 
 const log = createLogger('useSources');
 
@@ -385,7 +385,7 @@ export function useSources(filters: SourceFilters = {}) {
     sortOrder = 'desc',
   } = filters;
 
-  return useQuery<SourceListResponse, SourceApiError>({
+  return useQuery<SourceListResponse, BaseApiError>({
     queryKey: QK.sources.list(filters),
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -398,7 +398,7 @@ export function useSources(filters: SourceFilters = {}) {
 
       const response = await withApiError(
         apiGet<ApiTargetListResponse>('l1', `/targets?${params.toString()}`),
-        SourceApiError
+        BaseApiError
       );
 
       const data = response.data;
@@ -422,13 +422,13 @@ export function useSources(filters: SourceFilters = {}) {
  * Get detailed information about a specific data source
  */
 export function useSource(id: string | null) {
-  return useQuery<DataSource, SourceApiError>({
+  return useQuery<DataSource, BaseApiError>({
     queryKey: id ? QK.sources.detail(id) : ['sources', 'detail', 'null'],
     queryFn: async () => {
-      if (!id) throw new SourceApiError('Source ID is required');
+      if (!id) throw new BaseApiError('Source ID is required');
       const response = await withApiError(
         apiGet<ApiScrapingTargetDetail>('l1', `/targets/${id}`),
-        SourceApiError
+        BaseApiError
       );
       return normalizeDataSource(response.data);
     },
@@ -445,12 +445,12 @@ export function useSource(id: string | null) {
  * aggregation instead of fetching all sources client-side.
  */
 export function useSourceStats() {
-  return useQuery<SourceStats, SourceApiError>({
+  return useQuery<SourceStats, BaseApiError>({
     queryKey: QK.sources.stats,
     queryFn: async () => {
       const response = await withApiError(
         apiGet<l1.components['schemas']['TargetStatsResponse']>('l1', '/targets/stats'),
-        SourceApiError
+        BaseApiError
       );
 
       const data = response.data;
@@ -477,13 +477,13 @@ export function useSourceStats() {
 export function useCreateSource() {
   const queryClient = useQueryClient();
 
-  return useMutation<DataSource, SourceApiError, CreateSourceRequest>({
+  return useMutation<DataSource, BaseApiError, CreateSourceRequest>({
     mutationFn: async (request) => {
       const payload = buildTargetPayload(request);
 
       const response = await withApiError(
         apiPost<ApiScrapingTargetDetail>('l1', '/targets', payload),
-        SourceApiError
+        BaseApiError
       );
 
       return normalizeDataSource(response.data);
@@ -503,7 +503,7 @@ export function useCreateSource() {
 export function useUpdateSource() {
   const queryClient = useQueryClient();
 
-  return useMutation<DataSource, SourceApiError, UpdateSourceRequest>({
+  return useMutation<DataSource, BaseApiError, UpdateSourceRequest>({
     mutationFn: async (request) => {
       const { id, ...updates } = request;
 
@@ -529,7 +529,7 @@ export function useUpdateSource() {
 
       const response = await withApiError(
         apiPut<ApiScrapingTargetDetail>('l1', `/targets/${id}`, payload),
-        SourceApiError
+        BaseApiError
       );
 
       return normalizeDataSource(response.data);
@@ -550,11 +550,11 @@ export function useUpdateSource() {
 export function useDeleteSource() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, SourceApiError, string>({
+  return useMutation<unknown, BaseApiError, string>({
     mutationFn: async (id) => {
       return withApiError(
         apiDelete<unknown>('l1', `/targets/${id}`),
-        SourceApiError
+        BaseApiError
       );
     },
     onSuccess: () => {
@@ -570,11 +570,11 @@ export function useDeleteSource() {
  * Test connection to a data source
  */
 export function useTestConnection() {
-  return useMutation<TestConnectionResult, SourceApiError, { id: string; config?: Record<string, unknown> }>({
+  return useMutation<TestConnectionResult, BaseApiError, { id: string; config?: Record<string, unknown> }>({
     mutationFn: async ({ id, config }) => {
       const response = await withApiError(
         apiPost<ApiValidateTargetResponse>('l1', `/targets/${id}/validate`, config ? { config } : {}),
-        SourceApiError
+        BaseApiError
       );
 
       const data = response.data;
@@ -598,11 +598,11 @@ export function useTestConnection() {
 export function useExecuteSource() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ jobId: string }, SourceApiError, { id: string; priority?: number }>({
+  return useMutation<{ jobId: string }, BaseApiError, { id: string; priority?: number }>({
     mutationFn: async ({ id, priority = DEFAULT_EXECUTION_PRIORITY }) => {
       const response = await withApiError(
         apiPost<l1.components['schemas']['ExecuteTargetResponse']>('l1', `/targets/${id}/execute`, { priority }),
-        SourceApiError
+        BaseApiError
       );
 
       return { jobId: response.data.job_id };

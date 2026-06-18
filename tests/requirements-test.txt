@@ -67,6 +67,11 @@ pandas>=2.2.0              # Required by Layer 4 workflow/tooling imports in man
 langgraph>=0.2.0           # Required by Layer 4 tenant/security imports during mandatory collection
 
 # ---------------------------------------------------------------------------
+# Shared / rate limiting
+# ---------------------------------------------------------------------------
+limits>=3.13.0           # Required by value_fabric.shared.rate_limiting.ip_limiter; imported at contract-test collection time
+
+# ---------------------------------------------------------------------------
 # Shared identity — JWT
 # ---------------------------------------------------------------------------
 python-jose[cryptography]>=3.3.0

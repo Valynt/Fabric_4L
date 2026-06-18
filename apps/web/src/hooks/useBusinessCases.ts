@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/api/typedClient';
 import type { l4 } from '@/api/generated';
 import { QK } from './queryKeys';
-import { STALE_TIME, BusinessCaseApiError, withApiError } from './useApiShared';
+import { STALE_TIME, BaseApiError, withApiError } from './useApiShared';
 import { formatCompactCurrency } from '@/lib/formatters';
 import {
   parseBusinessCaseNarrativeOutput,
@@ -199,9 +199,9 @@ async function fetchBusinessCases(filters: BusinessCaseFilters): Promise<Busines
  * ```
  */
 export function useBusinessCases(filters: BusinessCaseFilters = {}) {
-  return useQuery<BusinessCaseListItem[], BusinessCaseApiError>({
+  return useQuery<BusinessCaseListItem[], BaseApiError>({
     queryKey: QK.businessCases.list(filters),
-    queryFn: () => withApiError(fetchBusinessCases(filters), BusinessCaseApiError),
+    queryFn: () => withApiError(fetchBusinessCases(filters), BaseApiError),
     staleTime: STALE_TIME.list,
   });
 }
@@ -218,7 +218,7 @@ export function useBusinessCases(filters: BusinessCaseFilters = {}) {
 export function useCreateBusinessCase() {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateBusinessCaseResponse, BusinessCaseApiError, CreateBusinessCasePayload>({
+  return useMutation<CreateBusinessCaseResponse, BaseApiError, CreateBusinessCasePayload>({
     mutationFn: async (payload) => {
       const response = await apiPost<Record<string, unknown>>('l4', '/workflows', {
         workflow_type: 'business_case',
@@ -259,7 +259,7 @@ export function useCreateBusinessCase() {
 export function useArchiveBusinessCase() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, BusinessCaseApiError, string>({
+  return useMutation<unknown, BaseApiError, string>({
     mutationFn: async (caseId) => {
       const response = await apiPost<l4.components['schemas']['ArchiveWorkflowResponse']>('l4', `/workflows/${caseId}/archive`, {});
       return response.data;

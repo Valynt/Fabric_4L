@@ -11,7 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch } from '@/api/typedClient';
 import { QK } from './queryKeys';
-import { withApiError, PlatformSettingsApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 import { createLogger } from '@/lib/telemetry';
 
 const log = createLogger('usePlatformSettings');
@@ -200,9 +200,9 @@ async function updatePlatformSettings(payload: UpdateSettingsPayload): Promise<T
  * ```
  */
 export function usePlatformSettings() {
-  return useQuery<TenantSettings, PlatformSettingsApiError>({
+  return useQuery<TenantSettings, BaseApiError>({
     queryKey: QK.platform.settings,
-    queryFn: () => withApiError(fetchPlatformSettings(), PlatformSettingsApiError),
+    queryFn: () => withApiError(fetchPlatformSettings(), BaseApiError),
     staleTime: STALE_TIME.reference,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -225,8 +225,8 @@ export function usePlatformSettings() {
 export function useUpdatePlatformSettings() {
   const queryClient = useQueryClient();
 
-  return useMutation<TenantSettings, PlatformSettingsApiError, UpdateSettingsPayload>({
-    mutationFn: (payload) => withApiError(updatePlatformSettings(payload), PlatformSettingsApiError),
+  return useMutation<TenantSettings, BaseApiError, UpdateSettingsPayload>({
+    mutationFn: (payload) => withApiError(updatePlatformSettings(payload), BaseApiError),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.platform.settings });
     },

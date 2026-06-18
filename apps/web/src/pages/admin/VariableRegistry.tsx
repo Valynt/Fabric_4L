@@ -12,6 +12,7 @@
  * - Usage tracking
  */
 
+import { EmptyState } from "@/components/states";
 import React, { useState, useMemo, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -26,8 +27,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue} from "@/components/ui/select";
 import {
   useVariables,
   useSourceBindings,
@@ -38,8 +38,7 @@ import {
   type SourceBinding,
   type VariableType,
   type SourceType,
-  type ValidationStatus,
-} from "@/hooks/useVariables";
+  type ValidationStatus} from "@/hooks/useVariables";
 import { Btn } from "@/components/ui/fabric";
 import {
   AdminShell,
@@ -51,7 +50,6 @@ import {
   AdminIconButton,
   AdminIconButtonGroup,
   AdminConfirmDialog,
-  AdminEmptyState,
 } from "@/components/admin";
 
 // ── Styling Constants ───────────────────────────────────────────────────────────
@@ -62,8 +60,7 @@ const TYPE_CONFIG: Record<VariableType, { label: string; color: string; icon: Re
   integer:  { label: "Integer",  color: "bg-primary/10 text-primary",     icon: <Hash size={10}/> },
   float:    { label: "Float",    color: "bg-primary/10 text-primary",  icon: <Code2 size={10}/> },
   boolean:  { label: "Boolean",  color: "bg-warning/10 text-warning",    icon: <Check size={10}/> },
-  string:   { label: "String",   color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
-};
+  string:   { label: "String",   color: "bg-muted text-muted-foreground", icon: <Type size={10}/> }};
 
 const SOURCE_CONFIG: Record<SourceType, { color: string; icon: React.ReactNode }> = {
   CRM:      { color: "bg-primary/10 text-primary", icon: <Database size={10}/> },
@@ -72,15 +69,13 @@ const SOURCE_CONFIG: Record<SourceType, { color: string; icon: React.ReactNode }
   Manual:   { color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
   Model:    { color: "bg-warning/10 text-warning", icon: <Code2 size={10}/> },
   API:      { color: "bg-info/10 text-info", icon: <ExternalLink size={10}/> },
-  Database: { color: "bg-success/10 text-success", icon: <Database size={10}/> },
-};
+  Database: { color: "bg-success/10 text-success", icon: <Database size={10}/> }};
 
 const VALIDATION_CONFIG: Record<ValidationStatus, { color: string; icon: React.ReactNode; label: string }> = {
   validated:  { color: "text-success", icon: <CheckCircle2 size={14}/>, label: "Validated" },
   pending:    { color: "text-warning", icon: <AlertCircle size={14}/>, label: "Pending" },
   failed:     { color: "text-destructive", icon: <X size={14}/>, label: "Failed" },
-  deprecated: { color: "text-muted-foreground", icon: <AlertCircle size={14}/>, label: "Deprecated" },
-};
+  deprecated: { color: "text-muted-foreground", icon: <AlertCircle size={14}/>, label: "Deprecated" }};
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -111,8 +106,7 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
   const statusColors: Record<string, string> = {
     connected: "bg-success/10 text-success border-success/20",
     disconnected: "bg-muted text-muted-foreground border-border",
-    error: "bg-destructive/10 text-destructive border-destructive/20",
-  };
+    error: "bg-destructive/10 text-destructive border-destructive/20"};
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
@@ -184,8 +178,7 @@ function VariableRegistryContent() {
   } = useVariables({
     type: typeFilter === "all" ? undefined : typeFilter,
     source: sourceFilter === "all" ? undefined : sourceFilter,
-    search: search || undefined,
-  });
+    search: search || undefined});
 
   const {
     data: bindings = [],
@@ -218,15 +211,11 @@ function VariableRegistryContent() {
         payload: {
           sample_input: {
             tenant_id: "demo-tenant",
-            effective_at: new Date().toISOString(),
-          },
+            effective_at: new Date().toISOString()},
           context: {
             trigger: "admin-variable-registry",
             source: variable.source,
-            binding: variable.binding,
-          },
-        },
-      });
+            binding: variable.binding}}});
       setTestResultsByVariable(prev => ({ ...prev, [variable.variable_id]: result }));
     } finally {
       setActiveTestVariableId(null);
@@ -459,7 +448,7 @@ function VariableRegistryContent() {
                 </tbody>
               </table>
               {filteredVariables.length === 0 && !variablesLoading && (
-                <AdminEmptyState
+                <EmptyState
                   icon={ListChecks}
                   title="No variables match your filters"
                   description="Try adjusting your search or filter criteria."

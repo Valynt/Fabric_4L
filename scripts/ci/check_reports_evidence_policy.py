@@ -15,7 +15,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORTS_DIR = ROOT / "reports"
-ARCHIVE_ALLOWLIST_PREFIX = REPORTS_DIR / "archive"
+DOCS_ARCHIVE_DIR = ROOT / "docs" / "archive" / "evidence" / "reports"
+ARCHIVE_ALLOWLIST_PREFIXES = (REPORTS_DIR / "archive", DOCS_ARCHIVE_DIR)
 FAIL_MARKERS = (
     "errors during collection",
     "Interrupted:",
@@ -39,10 +40,14 @@ def main() -> int:
         lowered = text.lower()
 
         has_failure_marker = any(marker.lower() in lowered for marker in FAIL_MARKERS)
-        if has_failure_marker and not file_path.resolve().is_relative_to(ARCHIVE_ALLOWLIST_PREFIX.resolve()):
+        in_allowed_archive = any(
+            file_path.resolve().is_relative_to(prefix.resolve())
+            for prefix in ARCHIVE_ALLOWLIST_PREFIXES
+        )
+        if has_failure_marker and not in_allowed_archive:
             violations.append(
                 f"{file_path.relative_to(ROOT)} contains failing snapshot markers but is not under "
-                f"{ARCHIVE_ALLOWLIST_PREFIX.relative_to(ROOT)}/"
+                f"any allowed archive prefix: {', '.join(str(p.relative_to(ROOT)) for p in ARCHIVE_ALLOWLIST_PREFIXES)}"
             )
 
     if violations:
@@ -50,7 +55,8 @@ def main() -> int:
         for violation in violations:
             print(f" - {violation}")
         print(
-            "\nMove failing/historical snapshots into reports/archive/<date-context>/ or remove them."
+            "\nMove failing/historical snapshots into reports/archive/<date-context>/ or "
+            "docs/archive/evidence/reports/<date-context>/, or remove them."
         )
         return 1
 

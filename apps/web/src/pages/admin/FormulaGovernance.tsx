@@ -13,13 +13,13 @@
  * - Destructive action confirmations with tenant scope
  */
 
+import { EmptyState } from "@/components/states";
 import { useState, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import {
   FlaskConical, CheckCircle2, Clock, AlertCircle, History,
   Plus, Search, Filter, Shield, Eye, Edit3, Trash2, GitBranch,
-  Download, FileText, Check, X, MessageSquare, Send,
-} from "lucide-react";
+  Download, FileText, Check, X, MessageSquare, Send} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -32,8 +32,7 @@ import {
   useSubmitFormula,
   type Formula,
   type ApprovalRequest,
-  type FormulaStatus,
-} from "@/hooks";
+  type FormulaStatus} from "@/hooks";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { Btn } from "@/components/ui/fabric";
 import {
@@ -46,7 +45,6 @@ import {
   AdminIconButton,
   AdminIconButtonGroup,
   AdminConfirmDialog,
-  AdminEmptyState,
 } from "@/components/admin";
 
 const log = createFeatureLogger('FormulaGovernance');
@@ -79,33 +77,27 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
     label: "Active",
     color: "bg-success/10 text-success border-success/20",
     icon: <CheckCircle2 size={11}/>,
-    description: "Approved and available for use",
-  },
+    description: "Approved and available for use"},
   draft: {
     label: "Draft",
     color: "bg-muted text-muted-foreground border-border",
     icon: <Clock size={11}/>,
-    description: "In development, not yet submitted",
-  },
+    description: "In development, not yet submitted"},
   pending: {
     label: "Pending",
     color: "bg-warning/10 text-warning border-warning/20",
     icon: <AlertCircle size={11}/>,
-    description: "Awaiting approval review",
-  },
+    description: "Awaiting approval review"},
   deprecated: {
     label: "Deprecated",
     color: "bg-destructive/10 text-destructive border-destructive/20",
     icon: <History size={11}/>,
-    description: "No longer recommended for use",
-  },
+    description: "No longer recommended for use"},
   archived: {
     label: "Archived",
     color: "bg-muted text-muted-foreground border-border",
     icon: <FileText size={11}/>,
-    description: "Retired and preserved for reference",
-  },
-};
+    description: "Retired and preserved for reference"}};
 
 const STATUS_CHIPS = [
   { value: "all", label: "All" },
@@ -195,8 +187,7 @@ function FormulaGovernanceContent() {
   const [selectedFormulas, setSelectedFormulas] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState<{ open: boolean; action: BulkAction }>({
     open: false,
-    action: "delete",
-  });
+    action: "delete"});
 
   const {
     data: formulas = [],
@@ -383,7 +374,7 @@ function FormulaGovernanceContent() {
                 </tbody>
               </table>
               {formulas.length === 0 && (
-                <AdminEmptyState
+                <EmptyState
                   icon={FlaskConical}
                   title="No formulas match your filters"
                   description="Try adjusting your search or filter criteria."
@@ -421,7 +412,7 @@ function FormulaGovernanceContent() {
       </AdminTabPanel>
 
       <AdminTabPanel tabId="versions" activeTab={activeTab}>
-        <AdminEmptyState
+        <EmptyState
           icon={History}
           title="Version History"
           description="Formula version history will be available in an upcoming release."
@@ -446,7 +437,7 @@ function FormulaGovernanceContent() {
               ))}
             </div>
           ) : (
-            <AdminEmptyState
+            <EmptyState
               icon={CheckCircle2}
               title="No pending approvals"
               description="All formula submissions have been reviewed."

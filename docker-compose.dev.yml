@@ -68,6 +68,7 @@ services:
       - "postgres"
       - "-c"
       - "config_file=/etc/postgresql/postgresql.conf"
+    # Healthcheck inherited from docker-compose.base.yml
 
   # PgBouncer connection pool (P1-1: Connection Pooling)
   pgbouncer:
@@ -109,11 +110,7 @@ services:
       - minio-data:/data
     networks:
       - dev-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    # Healthcheck inherited from docker-compose.base.yml
 
   redis:
     extends:
@@ -126,11 +123,7 @@ services:
       - dev-redis-data:/data
     networks:
       - dev-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+    # Healthcheck inherited from docker-compose.base.yml
 
   neo4j:
     extends:

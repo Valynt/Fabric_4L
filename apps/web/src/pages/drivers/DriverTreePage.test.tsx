@@ -25,7 +25,7 @@ vi.mock("@/hooks/useAccounts", () => ({
   resolveBackendAccountId: (accountId: string | null | undefined) => accountId ?? null,
 }));
 
-vi.mock("@/pages/intelligence/EvidenceTab", () => ({
+vi.mock("@/features/intelligence-workspace/components/EvidenceTabContent", () => ({
   EvidenceTabContent: () => <div data-testid="evidence-content">Evidence</div>,
 }));
 

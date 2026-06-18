@@ -3,4 +3,4 @@ export { default as IntelligenceWorkspaceTabs } from "./IntelligenceWorkspaceTab
 export { workspaceTabs, getTabDef, isValidTab, getTabOrDefault, DEFAULT_TAB } from "./workspaceTabRegistry";
 export { workspacePath, workspaceBasePath, parseWorkspaceRoute } from "./workspaceRoutes";
 export type { WorkspaceTabProps, IntelligenceTabId, WorkspaceTabDef } from "./types";
-export { useWorkspaceTabQuery, useWorkspaceContext, useWorkspaceReadiness } from "./hooks";
+export { useWorkspaceContext, useWorkspaceReadiness } from "./hooks";

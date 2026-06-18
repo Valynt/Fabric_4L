@@ -13,7 +13,7 @@ import { apiGet } from "@/api/typedClient";
 import { QK } from "./queryKeys";
 import {
   withApiError,
-  HealthMonitorApiError,
+  BaseApiError,
   STALE_TIME,
   RETRY_CONFIG,
 } from "./useApiShared";
@@ -56,9 +56,9 @@ async function fetchHealthAlerts(): Promise<HealthAlert[]> {
  * ```
  */
 export function useSystemHealth() {
-  return useQuery<SystemHealth, HealthMonitorApiError>({
+  return useQuery<SystemHealth, BaseApiError>({
     queryKey: QK.platform.health,
-    queryFn: () => withApiError(fetchSystemHealth(), HealthMonitorApiError),
+    queryFn: () => withApiError(fetchSystemHealth(), BaseApiError),
     staleTime: STALE_TIME.realtime,
     refetchInterval: STALE_TIME.poll, // 30 seconds for live monitoring
     retry: RETRY_CONFIG.maxRetries,
@@ -78,9 +78,9 @@ export function useSystemHealth() {
  * ```
  */
 export function useHealthAlerts() {
-  return useQuery<HealthAlert[], HealthMonitorApiError>({
+  return useQuery<HealthAlert[], BaseApiError>({
     queryKey: [...QK.platform.health, "alerts"] as const,
-    queryFn: () => withApiError(fetchHealthAlerts(), HealthMonitorApiError),
+    queryFn: () => withApiError(fetchHealthAlerts(), BaseApiError),
     staleTime: STALE_TIME.poll,
     refetchInterval: STALE_TIME.stats, // 1 minute
     retry: RETRY_CONFIG.maxRetries,

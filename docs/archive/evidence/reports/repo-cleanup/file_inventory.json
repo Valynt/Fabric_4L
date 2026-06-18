@@ -1,0 +1,397 @@
+{
+  "scan_date": "2026-05-02",
+  "repo_root": "c:\\Users\\BBB\\Fabric_4L",
+  "directories": [
+    {
+      "name": ".codex",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": ".devcontainer",
+      "type": "directory",
+      "estimated_items": 5
+    },
+    {
+      "name": ".fabric",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": ".jr",
+      "type": "directory",
+      "estimated_items": 3
+    },
+    {
+      "name": ".mypy_cache",
+      "type": "directory",
+      "estimated_items": 4
+    },
+    {
+      "name": ".pytest_cache",
+      "type": "directory",
+      "estimated_items": 8
+    },
+    {
+      "name": ".ruff_cache",
+      "type": "directory",
+      "estimated_items": 44
+    },
+    {
+      "name": ".vite",
+      "type": "directory",
+      "estimated_items": 2
+    },
+    {
+      "name": ".vscode",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": ".windsurf",
+      "type": "directory",
+      "estimated_items": 288
+    },
+    {
+      "name": "_ui-prototype",
+      "type": "directory",
+      "estimated_items": 164
+    },
+    {
+      "name": "_value-packs",
+      "type": "directory",
+      "estimated_items": 165
+    },
+    {
+      "name": "artifacts",
+      "type": "directory",
+      "estimated_items": 64
+    },
+    {
+      "name": "audit-output",
+      "type": "directory",
+      "estimated_items": 109
+    },
+    {
+      "name": "contracts",
+      "type": "directory",
+      "estimated_items": 54
+    },
+    {
+      "name": "C\uf03aUsersBBBAppDataLocalTemptmpf7egnv3erelease",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": "C\uf03aUsersBBBAppDataLocalTemptmpflqqs5kprelease",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": "data",
+      "type": "directory",
+      "estimated_items": 3
+    },
+    {
+      "name": "docs",
+      "type": "directory",
+      "estimated_items": 254
+    },
+    {
+      "name": "eslint-plugin-fabric-contracts",
+      "type": "directory",
+      "estimated_items": 8708
+    },
+    {
+      "name": "examples",
+      "type": "directory",
+      "estimated_items": 31
+    },
+    {
+      "name": "frontend",
+      "type": "directory",
+      "estimated_items": 222109
+    },
+    {
+      "name": "infra",
+      "type": "directory",
+      "estimated_items": 4
+    },
+    {
+      "name": "k8s",
+      "type": "directory",
+      "estimated_items": 188
+    },
+    {
+      "name": "monitoring",
+      "type": "directory",
+      "estimated_items": 37
+    },
+    {
+      "name": "node_modules",
+      "type": "directory",
+      "estimated_items": 8
+    },
+    {
+      "name": "packages",
+      "type": "directory",
+      "estimated_items": 32
+    },
+    {
+      "name": "packs",
+      "type": "directory",
+      "estimated_items": 115
+    },
+    {
+      "name": "reports",
+      "type": "directory",
+      "estimated_items": 3
+    },
+    {
+      "name": "scripts",
+      "type": "directory",
+      "estimated_items": 98
+    },
+    {
+      "name": "sdk",
+      "type": "directory",
+      "estimated_items": 97
+    },
+    {
+      "name": "shared",
+      "type": "directory",
+      "estimated_items": 156
+    },
+    {
+      "name": "specs",
+      "type": "directory",
+      "estimated_items": 10
+    },
+    {
+      "name": "test-results",
+      "type": "directory",
+      "estimated_items": 1
+    },
+    {
+      "name": "tests",
+      "type": "directory",
+      "estimated_items": 498
+    },
+    {
+      "name": "value-fabric",
+      "type": "directory",
+      "estimated_items": 112516
+    },
+    {
+      "name": "value_fabric",
+      "type": "directory",
+      "estimated_items": 112460
+    }
+  ],
+  "root_files": [
+    {
+      "name": ".env.dev",
+      "size_bytes": 1120,
+      "ext": ".dev"
+    },
+    {
+      "name": ".env.dev.example",
+      "size_bytes": 854,
+      "ext": ".example"
+    },
+    {
+      "name": ".gitattributes",
+      "size_bytes": 176,
+      "ext": ""
+    },
+    {
+      "name": ".gitignore",
+      "size_bytes": 1466,
+      "ext": ""
+    },
+    {
+      "name": ".infisical.json",
+      "size_bytes": 550,
+      "ext": ".json"
+    },
+    {
+      "name": ".npmrc",
+      "size_bytes": 44,
+      "ext": ""
+    },
+    {
+      "name": ".pre-commit-config.yaml",
+      "size_bytes": 6704,
+      "ext": ".yaml"
+    },
+    {
+      "name": ".tool-versions",
+      "size_bytes": 485,
+      "ext": ""
+    },
+    {
+      "name": "4 layer",
+      "size_bytes": 13999,
+      "ext": ""
+    },
+    {
+      "name": "AGENTS.md",
+      "size_bytes": 8727,
+      "ext": ".md"
+    },
+    {
+      "name": "Architecture.md",
+      "size_bytes": 32765,
+      "ext": ".md"
+    },
+    {
+      "name": "ASSURANCE_REMEDIATION_REPORT.md",
+      "size_bytes": 12818,
+      "ext": ".md"
+    },
+    {
+      "name": "audit_violations.txt",
+      "size_bytes": 273592,
+      "ext": ".txt"
+    },
+    {
+      "name": "build-progress.log",
+      "size_bytes": 8560,
+      "ext": ".log"
+    },
+    {
+      "name": "build.log",
+      "size_bytes": 15738,
+      "ext": ".log"
+    },
+    {
+      "name": "CHANGELOG.md",
+      "size_bytes": 2732,
+      "ext": ".md"
+    },
+    {
+      "name": "CHANGES.md",
+      "size_bytes": 8499,
+      "ext": ".md"
+    },
+    {
+      "name": "contract.md",
+      "size_bytes": 25104,
+      "ext": ".md"
+    },
+    {
+      "name": "CONTRIBUTING.md",
+      "size_bytes": 3683,
+      "ext": ".md"
+    },
+    {
+      "name": "DEAD_CODE_SWEEP_REPORT.md",
+      "size_bytes": 2720,
+      "ext": ".md"
+    },
+    {
+      "name": "DEPRECATIONS.md",
+      "size_bytes": 12014,
+      "ext": ".md"
+    },
+    {
+      "name": "docker-compose.dev.yml",
+      "size_bytes": 5899,
+      "ext": ".yml"
+    },
+    {
+      "name": "docker-compose.e2e.yml",
+      "size_bytes": 6150,
+      "ext": ".yml"
+    },
+    {
+      "name": "docs - Shortcut.lnk",
+      "size_bytes": 1139,
+      "ext": ".lnk"
+    },
+    {
+      "name": "e2e-results.log",
+      "size_bytes": 140,
+      "ext": ".log"
+    },
+    {
+      "name": "e2e-test-output.log",
+      "size_bytes": 140,
+      "ext": ".log"
+    },
+    {
+      "name": "Makefile",
+      "size_bytes": 24482,
+      "ext": ""
+    },
+    {
+      "name": "package-lock.json",
+      "size_bytes": 88,
+      "ext": ".json"
+    },
+    {
+      "name": "pnpm-lock.yaml",
+      "size_bytes": 20606,
+      "ext": ".yaml"
+    },
+    {
+      "name": "Providers.md",
+      "size_bytes": 12101,
+      "ext": ".md"
+    },
+    {
+      "name": "pytest.ini",
+      "size_bytes": 2281,
+      "ext": ".ini"
+    },
+    {
+      "name": "README.md",
+      "size_bytes": 7347,
+      "ext": ".md"
+    },
+    {
+      "name": "ROADMAP.md",
+      "size_bytes": 214594,
+      "ext": ".md"
+    },
+    {
+      "name": "SECURITY.md",
+      "size_bytes": 2808,
+      "ext": ".md"
+    },
+    {
+      "name": "SECURITY_FIXES_IMPLEMENTED.md",
+      "size_bytes": 7101,
+      "ext": ".md"
+    },
+    {
+      "name": "TEST_CATALOG.md",
+      "size_bytes": 21347,
+      "ext": ".md"
+    },
+    {
+      "name": "test_search_debug.py",
+      "size_bytes": 2035,
+      "ext": ".py"
+    },
+    {
+      "name": "valuepacks_output.txt",
+      "size_bytes": 352471,
+      "ext": ".txt"
+    },
+    {
+      "name": "VERSIONING.md",
+      "size_bytes": 3424,
+      "ext": ".md"
+    }
+  ],
+  "secret_risk_files": [
+    {
+      "name": ".env.dev",
+      "risk": "potential_secret",
+      "action": "review_only"
+    }
+  ],
+  "generated_dirs": [],
+  "cache_dirs": []
+}

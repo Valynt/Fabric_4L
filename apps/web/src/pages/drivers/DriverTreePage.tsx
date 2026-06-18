@@ -13,7 +13,7 @@ import { useValueTreePaths } from "@/hooks/useValueTrees";
 import { useNavigation } from "@/hooks";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
-import { EvidenceTabContent } from "@/pages/intelligence/EvidenceTab";
+import { EvidenceTabContent } from "@/features/intelligence-workspace/components/EvidenceTabContent";
 import AlternativesTab from "@/pages/evidence/AlternativesTab";
 import SolutionCostTab from "@/pages/evidence/SolutionCostTab";
 import { TreePine, ArrowRight } from "lucide-react";

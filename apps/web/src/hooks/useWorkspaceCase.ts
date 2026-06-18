@@ -238,8 +238,6 @@ export function useAttachEvidenceToDriverMutation() {
   });
 }
 
-export const useReviewSignalMutation = useSignalReview;
-
 // ── Generic workspace page action dispatcher ──────────────────────────────────
 
 export interface WorkspacePageActionContract {
