@@ -1,6 +1,6 @@
 # Enterprise Production-Readiness Audit Report
 
-**Date:** 2026-06-18T12:36:03.831514+00:00
+**Date:** 2026-06-18T13:34:28.952166+00:00
 **Repository:** C:\Users\BBB\Fabric_4L
 **Scope:** Initial discovery audit — dependency vulnerabilities, static analysis, lint, type-check, dead code.
 
@@ -8,8 +8,8 @@
 
 | Scan | Result | Notes |
 | ---- | ------ | ----- |
-| `pnpm audit` | FAIL (3 high, 11 moderate, 6 low) | 17 advisories; see details below |
-| `make lint` | FAIL | 2 fixable UP037 errors in `services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py` |
+| `pnpm audit` | FAIL (0 high, 11 moderate, 5 low) | 13 advisories; see details below |
+| `make lint` | PASS | All layers lint cleanly |
 | `make typecheck` | PASS | All layers type-check cleanly |
 | `semgrep` | FAIL (411 results, 24 errors) | Automated SAST findings across services/apps/packages |
 | `pip-audit` | FAIL (29 vulnerabilities) | Python dependency vulnerabilities; see top issues below |
@@ -21,18 +21,23 @@
 
 ## P0 Blockers
 
-1. **Layer 1 lint failures** — `source_routes.py` contains forward-referenced type annotations that break ruff.
-2. **Dependency vulnerabilities** — pnpm audit reports high-severity packages in the frontend dependency tree.
-3. **Semgrep SAST findings** — 411 results must be triaged and classified.
-4. **Bandit medium findings** — Python security patterns require review and suppression or remediation.
-5. **Missing secret scanner** — `gitleaks` is not installed locally; CI already runs it, but local verification is blocked.
+1. **Semgrep SAST findings** — 411 results must be triaged and classified.
+2. **Bandit medium findings** — Python security patterns require review and suppression or remediation.
+3. **Layer 1 Celery helper naming** — Fixed in `tasks.py`; verify with full `make test-layer1` once Postgres is available.
+4. **Missing secret scanner** — `gitleaks` is not installed locally; CI already runs it, but local verification is blocked.
 
 ## P1 Items
 
 1. **Trivy container/filesystem scan** — Not installed locally; CI runs it, but local verification is blocked.
 2. **Dead code** — Remaining 3 low-confidence Layer 4 tool modules need ownership review.
-3. **SLOs documentation** — Exit criteria require `docs/slo.md`; currently missing.
-4. **DR runbooks** — Exit criteria require runbooks; some exist in `ops/`, need completeness review.
+3. **DR runbooks** — Exit criteria require runbooks; some exist in `ops/`, need completeness review.
+4. **Local Postgres for full test suite** — 87 Layer 1 tests fail due to connection refused on localhost:5432; start Docker Compose stack.
+
+## Resolved
+
+- **Layer 1 lint failures** — Fixed UP037 errors in `source_routes.py`; `make lint` passes.
+- **Dependency vulnerabilities** — High-severity pnpm advisories (`react-router`, `tmp`, `form-data`) resolved via version bump and overrides.
+- **SLOs documentation** — Created `docs/slo.md` with platform and layer SLOs, burn-rate alerts, and error budget policy.
 
 ## Tool Details
 
@@ -42,9 +47,6 @@
 | -------- | ------ | -------- | ----- |
 | GHSA-w5hq-g745-h8pq | `uuid` | moderate | uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided |
 | GHSA-q8mj-m7cp-5q26 | `qs` | moderate | qs has a remotely triggerable DoS: qs.stringify crashes with TypeError on null/u |
-| GHSA-8x6r-g9mw-2r78 | `react-router` | high | React Router vulnerable to DoS via unbounded path expansion in __manifest endpoi |
-| GHSA-ph9p-34f9-6g65 | `tmp` | high | tmp has Path Traversal via unsanitized prefix/postfix that enables directory esc |
-| GHSA-hmw2-7cc7-3qxx | `form-data` | high | form-data: CRLF injection in form-data via unescaped multipart field names and f |
 | GHSA-h67p-54hq-rp68 | `js-yaml` | moderate | JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases |
 | GHSA-76mc-f452-cxcm | `dompurify` | moderate | DOMPurify: Hook mutation of `data.allowedTags` / `data.allowedAttributes` perman |
 | GHSA-hpcv-96wg-7vj8 | `dompurify` | moderate | DOMPurify: Cross-realm IN_PLACE sanitization leaves executable markup intact via |

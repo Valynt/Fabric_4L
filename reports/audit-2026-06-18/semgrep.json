@@ -21980,24 +21980,10 @@
     {
       "code": 2,
       "level": "warn",
-      "type": "Other syntax error",
-      "message": "Other syntax error at line services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py:1:\n Sys_error(\"C:\\\\Users\\\\BBB\\\\AppData\\\\Local\\\\Temp\\\\semgrep-core.exe2612-9f7608.mvar-pattern: Permission denied\")",
-      "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py"
-    },
-    {
-      "code": 2,
-      "level": "warn",
-      "type": "Other syntax error",
-      "message": "Other syntax error at line services\\layer3-knowledge\\src\\docs\\api_documentation.py:1:\n Sys_error(\"C:\\\\Users\\\\BBB\\\\AppData\\\\Local\\\\Temp\\\\semgrep-core.exe2612-d3d8c5.mvar-pattern: Permission denied\")",
-      "path": "services\\layer3-knowledge\\src\\docs\\api_documentation.py"
-    },
-    {
-      "code": 2,
-      "level": "warn",
       "type": "Timeout",
       "rule_id": "python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http",
-      "message": "Timeout when running python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http on services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py:\n ",
-      "path": "services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py"
+      "message": "Timeout when running python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http on services\\layer1-ingestion\\migrations\\versions\\003_spec_compliant_schema.py:\n ",
+      "path": "services\\layer1-ingestion\\migrations\\versions\\003_spec_compliant_schema.py"
     },
     {
       "code": 2,
@@ -22006,6 +21992,22 @@
       "rule_id": "python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http",
       "message": "Timeout when running python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http on services\\layer3-knowledge\\src\\models\\valuepack.py:\n ",
       "path": "services\\layer3-knowledge\\src\\models\\valuepack.py"
+    },
+    {
+      "code": 2,
+      "level": "warn",
+      "type": "Timeout",
+      "rule_id": "python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http",
+      "message": "Timeout when running python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http on services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py:\n ",
+      "path": "services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py"
+    },
+    {
+      "code": 2,
+      "level": "warn",
+      "type": "Timeout",
+      "rule_id": "python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http",
+      "message": "Timeout when running python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http on services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py:\n ",
+      "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py"
     },
     {
       "code": 3,
@@ -23537,6 +23539,7 @@
       "apps\\web\\src\\lib\\apiConfig.ts",
       "apps\\web\\src\\lib\\async.test.ts",
       "apps\\web\\src\\lib\\async.ts",
+      "apps\\web\\src\\lib\\clipboard.ts",
       "apps\\web\\src\\lib\\demoData.ts",
       "apps\\web\\src\\lib\\entity-colors.tsx",
       "apps\\web\\src\\lib\\errors.ts",
@@ -25376,12 +25379,12 @@
   },
   "time": {
     "rules": [],
-    "rules_parse_time": 0.8867249488830566,
+    "rules_parse_time": 0.663811206817627,
     "profiling_times": {
-      "config_time": 4.177389860153198,
-      "core_time": 204.23711276054382,
-      "ignores_time": 0.0,
-      "total_time": 208.43249893188477
+      "config_time": 5.062243700027466,
+      "core_time": 233.71339750289917,
+      "ignores_time": 0.0030279159545898438,
+      "total_time": 238.81085109710693
     },
     "parsing_time": {
       "total_time": 0.0,
@@ -25396,55 +25399,55 @@
       "very_slow_files": []
     },
     "scanning_time": {
-      "total_time": 712.9549241065979,
+      "total_time": 699.4827449321747,
       "per_file_time": {
-        "mean": 0.09480783565247301,
-        "std_dev": 0.304645621081775
+        "mean": 0.09297922968658448,
+        "std_dev": 0.2955530157298096
       },
       "very_slow_stats": {
-        "time_ratio": 0.47658173583036706,
-        "count_ratio": 0.01276595744680851
+        "time_ratio": 0.48572182472835057,
+        "count_ratio": 0.012627940980991625
       },
       "very_slow_files": [
         {
-          "fpath": "services\\layer3-knowledge\\src\\api\\models.py",
-          "ftime": 6.988210678100586
-        },
-        {
-          "fpath": "packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py",
-          "ftime": 7.784510850906372
-        },
-        {
           "fpath": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
-          "ftime": 9.402855157852173
+          "ftime": 7.342846632003784
         },
         {
-          "fpath": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py",
-          "ftime": 10.17208194732666
+          "fpath": "services\\layer3-knowledge\\src\\api\\models.py",
+          "ftime": 7.81441593170166
         },
         {
-          "fpath": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\models.py",
-          "ftime": 10.37188196182251
+          "fpath": "services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py",
+          "ftime": 7.863131999969482
         },
         {
-          "fpath": "services\\layer3-knowledge\\src\\models\\valuepack.py",
-          "ftime": 11.52761459350586
+          "fpath": "services\\layer4-agents\\src\\layer4_agents\\services\\conversation.py",
+          "ftime": 7.923041343688965
         },
         {
           "fpath": "services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py",
-          "ftime": 12.221422672271729
+          "ftime": 9.958214044570923
         },
         {
-          "fpath": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
-          "ftime": 14.180849075317383
+          "fpath": "services\\layer3-knowledge\\src\\models\\valuepack.py",
+          "ftime": 10.819466590881348
         },
         {
           "fpath": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\main.py",
-          "ftime": 14.605336666107178
+          "ftime": 13.113564491271973
+        },
+        {
+          "fpath": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
+          "ftime": 14.261974096298218
         },
         {
           "fpath": "services\\layer1-ingestion\\src\\api\\app_monolith.py",
-          "ftime": 18.32410168647766
+          "ftime": 14.707025527954102
+        },
+        {
+          "fpath": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py",
+          "ftime": 16.382534503936768
         }
       ]
     },
@@ -25494,6 +25497,24 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\public\\__manus__\\debug-collector.js:1:0 [rules: 1, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "location": {
+          "path": "apps\\web\\public\\__manus__\\debug-collector.js",
+          "start": {
+            "line": 1,
+            "col": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 1,
+            "col": 1,
+            "offset": 0
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
         "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit-fast.ts:127:15 [rules: 3, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\scripts\\playwright-route-audit-fast.ts",
@@ -25512,7 +25533,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit.ts:107:15 [rules: 1, first: javascript.lang.security.audit.code-string-concat.code-string-concat]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit.ts:107:15 [rules: 1, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\scripts\\playwright-route-audit.ts",
           "start": {
@@ -25530,7 +25551,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit.ts:140:9 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit.ts:140:9 [rules: 1, first: javascript.express.security.audit.xss.direct-response-write.direct-response-write]",
         "location": {
           "path": "apps\\web\\scripts\\playwright-route-audit.ts",
           "start": {
@@ -25542,6 +25563,24 @@
             "line": 140,
             "col": 18,
             "offset": 10539
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\scripts\\playwright-route-audit.ts:192:15 [rules: 1, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "location": {
+          "path": "apps\\web\\scripts\\playwright-route-audit.ts",
+          "start": {
+            "line": 192,
+            "col": 16,
+            "offset": 14278
+          },
+          "end": {
+            "line": 192,
+            "col": 20,
+            "offset": 14282
           }
         }
       },
@@ -25566,43 +25605,61 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\agui\\AgentEventClient.ts:223:23 [rules: 1, first: javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\api\\client.ts:1:0 [rules: 1, first: javascript.express.security.express-wkhtml-injection.express-wkhtmltoimage-injection]",
         "location": {
-          "path": "apps\\web\\src\\agui\\AgentEventClient.ts",
+          "path": "apps\\web\\src\\api\\client.ts",
           "start": {
-            "line": 223,
-            "col": 24,
-            "offset": 9074
+            "line": 1,
+            "col": 1,
+            "offset": 0
           },
           "end": {
-            "line": 223,
-            "col": 40,
-            "offset": 9090
+            "line": 1,
+            "col": 1,
+            "offset": 0
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\agui\\AgentEventClient.ts:411:16 [rules: 1, first: javascript.express.security.audit.express-ssrf.express-ssrf]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\api\\validation.ts:1:0 [rules: 1, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
-          "path": "apps\\web\\src\\agui\\AgentEventClient.ts",
+          "path": "apps\\web\\src\\api\\validation.ts",
           "start": {
-            "line": 411,
-            "col": 17,
-            "offset": 14953
+            "line": 1,
+            "col": 1,
+            "offset": 0
           },
           "end": {
-            "line": 411,
-            "col": 46,
-            "offset": 14982
+            "line": 1,
+            "col": 1,
+            "offset": 0
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\app\\settings\\pages\\GovernanceAuditTrail.tsx:30:16 [rules: 2, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\api\\valuePackFramework.ts:1:0 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "location": {
+          "path": "apps\\web\\src\\api\\valuePackFramework.ts",
+          "start": {
+            "line": 1,
+            "col": 1,
+            "offset": 0
+          },
+          "end": {
+            "line": 1,
+            "col": 1,
+            "offset": 0
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\app\\settings\\pages\\GovernanceAuditTrail.tsx:30:16 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\app\\settings\\pages\\GovernanceAuditTrail.tsx",
           "start": {
@@ -25620,25 +25677,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\app\\settings\\pages\\TeamAccessScreens.tsx:125:16 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
-        "location": {
-          "path": "apps\\web\\src\\app\\settings\\pages\\TeamAccessScreens.tsx",
-          "start": {
-            "line": 125,
-            "col": 17,
-            "offset": 5083
-          },
-          "end": {
-            "line": 125,
-            "col": 38,
-            "offset": 5104
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\HarnessRunDetail.tsx:279:16 [rules: 2, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\HarnessRunDetail.tsx:279:16 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\components\\HarnessRunDetail.tsx",
           "start": {
@@ -25656,43 +25695,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\WorkflowDetail.tsx:55:16 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
-        "location": {
-          "path": "apps\\web\\src\\components\\WorkflowDetail.tsx",
-          "start": {
-            "line": 55,
-            "col": 17,
-            "offset": 1912
-          },
-          "end": {
-            "line": 55,
-            "col": 31,
-            "offset": 1926
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\integrations\\IntegrationList.tsx:24:16 [rules: 1, first: javascript.express.security.require-request.require-request]",
-        "location": {
-          "path": "apps\\web\\src\\components\\integrations\\IntegrationList.tsx",
-          "start": {
-            "line": 24,
-            "col": 17,
-            "offset": 681
-          },
-          "end": {
-            "line": 24,
-            "col": 32,
-            "offset": 696
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\login-form.tsx:124:16 [rules: 1, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\login-form.tsx:124:16 [rules: 2, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\src\\components\\login-form.tsx",
           "start": {
@@ -25710,25 +25713,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\login-form.tsx:357:16 [rules: 1, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
-        "location": {
-          "path": "apps\\web\\src\\components\\login-form.tsx",
-          "start": {
-            "line": 357,
-            "col": 17,
-            "offset": 15153
-          },
-          "end": {
-            "line": 357,
-            "col": 27,
-            "offset": 15163
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\ontology\\PropertyEditor.tsx:260:9 [rules: 1, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\ontology\\PropertyEditor.tsx:260:9 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\components\\ontology\\PropertyEditor.tsx",
           "start": {
@@ -25746,7 +25731,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\AccountIntakeModal.tsx:147:24 [rules: 3, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\routing\\UnifiedRouteGuard.tsx:26:9 [rules: 1, first: javascript.browser.security.raw-html-concat.raw-html-concat]",
+        "location": {
+          "path": "apps\\web\\src\\components\\routing\\UnifiedRouteGuard.tsx",
+          "start": {
+            "line": 26,
+            "col": 10,
+            "offset": 976
+          },
+          "end": {
+            "line": 26,
+            "col": 32,
+            "offset": 998
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\AccountIntakeModal.tsx:147:24 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\components\\workspace\\AccountIntakeModal.tsx",
           "start": {
@@ -25764,7 +25767,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx:1432:16 [rules: 2, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx:1432:16 [rules: 4, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx",
           "start": {
@@ -25782,7 +25785,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx:1:0 [rules: 3, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx:1:0 [rules: 4, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\src\\components\\workspace\\ProspectPromptBuilder.tsx",
           "start": {
@@ -25800,7 +25803,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\RightRail.tsx:156:9 [rules: 2, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\components\\workspace\\RightRail.tsx:156:9 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\components\\workspace\\RightRail.tsx",
           "start": {
@@ -25818,43 +25821,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\hooks\\queryKeys.ts:1:0 [rules: 4, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\features\\intelligence-workspace\\tabs\\evidence\\EvidenceTab.tsx:29:24 [rules: 2, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
         "location": {
-          "path": "apps\\web\\src\\hooks\\queryKeys.ts",
+          "path": "apps\\web\\src\\features\\intelligence-workspace\\tabs\\evidence\\EvidenceTab.tsx",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 29,
+            "col": 25,
+            "offset": 1124
           },
           "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 29,
+            "col": 36,
+            "offset": 1135
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\Accounts.tsx:244:9 [rules: 2, first: javascript.express.security.express-insecure-template-usage.express-insecure-template-usage]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\Accounts.tsx",
-          "start": {
-            "line": 244,
-            "col": 10,
-            "offset": 7329
-          },
-          "end": {
-            "line": 244,
-            "col": 28,
-            "offset": 7347
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\Accounts.tsx:491:9 [rules: 2, first: javascript.express.security.express-insecure-template-usage.express-insecure-template-usage]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\Accounts.tsx:491:9 [rules: 2, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\Accounts.tsx",
           "start": {
@@ -25872,7 +25857,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\AgentWorkflows.tsx:130:24 [rules: 4, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\AgentWorkflows.tsx:130:24 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\AgentWorkflows.tsx",
           "start": {
@@ -25890,7 +25875,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\BusinessCase.tsx:198:24 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\BusinessCase.tsx:198:24 [rules: 2, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\BusinessCase.tsx",
           "start": {
@@ -25908,7 +25893,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\BusinessCaseList.tsx:212:9 [rules: 1, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\BusinessCaseList.tsx:212:9 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\pages\\BusinessCaseList.tsx",
           "start": {
@@ -25926,7 +25911,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\ClerkSignIn.tsx:118:9 [rules: 5, first: javascript.express.security.audit.express-open-redirect.express-open-redirect]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\ClerkSignIn.tsx:118:9 [rules: 1, first: javascript.browser.security.open-redirect.js-open-redirect]",
         "location": {
           "path": "apps\\web\\src\\pages\\ClerkSignIn.tsx",
           "start": {
@@ -25944,25 +25929,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\CollaborationCommentsPage.tsx:14:24 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\CollaborationCommentsPage.tsx",
-          "start": {
-            "line": 14,
-            "col": 25,
-            "offset": 728
-          },
-          "end": {
-            "line": 14,
-            "col": 50,
-            "offset": 753
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\CommandCenter.tsx:48:24 [rules: 2, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\CommandCenter.tsx:48:24 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\CommandCenter.tsx",
           "start": {
@@ -25980,7 +25947,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\DecisionTrace.tsx:26:24 [rules: 4, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\DecisionTrace.tsx:26:24 [rules: 1, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
         "location": {
           "path": "apps\\web\\src\\pages\\DecisionTrace.tsx",
           "start": {
@@ -25998,7 +25965,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\EntityBrowser.tsx:51:24 [rules: 3, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\EntityBrowser.tsx:51:24 [rules: 2, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\pages\\EntityBrowser.tsx",
           "start": {
@@ -26016,7 +25983,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\EntityDetail.tsx:81:24 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\EntityDetail.tsx:81:24 [rules: 3, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\pages\\EntityDetail.tsx",
           "start": {
@@ -26034,7 +26001,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\FormulaBuilder.tsx:174:24 [rules: 2, first: javascript.lang.security.audit.code-string-concat.code-string-concat]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\FormulaBuilder.tsx:174:24 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\FormulaBuilder.tsx",
           "start": {
@@ -26052,25 +26019,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\FormulaBuilder\\components\\ScenarioPanel.tsx:43:16 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\FormulaBuilder\\components\\ScenarioPanel.tsx",
-          "start": {
-            "line": 43,
-            "col": 17,
-            "offset": 1372
-          },
-          "end": {
-            "line": 43,
-            "col": 30,
-            "offset": 1385
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\GraphExplorer.tsx:30:24 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\GraphExplorer.tsx:30:24 [rules: 3, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\GraphExplorer.tsx",
           "start": {
@@ -26088,7 +26037,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\IngestionJobs.tsx:99:24 [rules: 4, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\IngestionJobs.tsx:659:9 [rules: 1, first: javascript.express.security.audit.res-render-injection.res-render-injection]",
+        "location": {
+          "path": "apps\\web\\src\\pages\\IngestionJobs.tsx",
+          "start": {
+            "line": 659,
+            "col": 10,
+            "offset": 28290
+          },
+          "end": {
+            "line": 659,
+            "col": 31,
+            "offset": 28311
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\IngestionJobs.tsx:99:24 [rules: 3, first: javascript.express.security.audit.express-ssrf.express-ssrf]",
         "location": {
           "path": "apps\\web\\src\\pages\\IngestionJobs.tsx",
           "start": {
@@ -26106,7 +26073,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\Integrations.tsx:43:9 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\Integrations.tsx:43:9 [rules: 1, first: javascript.browser.security.open-redirect.js-open-redirect]",
         "location": {
           "path": "apps\\web\\src\\pages\\Integrations.tsx",
           "start": {
@@ -26124,7 +26091,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\InteractiveBusinessCase.tsx:245:24 [rules: 2, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\InteractiveBusinessCase.tsx:245:24 [rules: 3, first: javascript.express.security.audit.xss.direct-response-write.direct-response-write]",
         "location": {
           "path": "apps\\web\\src\\pages\\InteractiveBusinessCase.tsx",
           "start": {
@@ -26142,25 +26109,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\MyModels.tsx:413:24 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\NotificationsPage.tsx:14:24 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
-          "path": "apps\\web\\src\\pages\\MyModels.tsx",
+          "path": "apps\\web\\src\\pages\\NotificationsPage.tsx",
           "start": {
-            "line": 413,
+            "line": 14,
             "col": 25,
-            "offset": 14666
+            "offset": 766
           },
           "end": {
-            "line": 413,
-            "col": 33,
-            "offset": 14674
+            "line": 14,
+            "col": 42,
+            "offset": 783
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\OntologyEditor.tsx:51:24 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\OntologyEditor.tsx:51:24 [rules: 3, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\pages\\OntologyEditor.tsx",
           "start": {
@@ -26178,7 +26145,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\SourceConfiguration.tsx:410:9 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\SourceConfiguration.tsx:107:9 [rules: 1, first: javascript.express.security.require-request.require-request]",
+        "location": {
+          "path": "apps\\web\\src\\pages\\SourceConfiguration.tsx",
+          "start": {
+            "line": 107,
+            "col": 10,
+            "offset": 3558
+          },
+          "end": {
+            "line": 107,
+            "col": 20,
+            "offset": 3568
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\SourceConfiguration.tsx:410:9 [rules: 1, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
         "location": {
           "path": "apps\\web\\src\\pages\\SourceConfiguration.tsx",
           "start": {
@@ -26196,7 +26181,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\TargetsAdmin.detail.tsx:47:16 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\TargetsAdmin.detail.tsx:47:16 [rules: 3, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "apps\\web\\src\\pages\\TargetsAdmin.detail.tsx",
           "start": {
@@ -26214,25 +26199,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\TargetsAdmin.form.tsx:144:16 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\TargetsAdmin.form.tsx",
-          "start": {
-            "line": 144,
-            "col": 17,
-            "offset": 6076
-          },
-          "end": {
-            "line": 144,
-            "col": 32,
-            "offset": 6091
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\TargetsAdmin.tsx:129:9 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\TargetsAdmin.tsx:129:9 [rules: 1, first: javascript.express.security.require-request.require-request]",
         "location": {
           "path": "apps\\web\\src\\pages\\TargetsAdmin.tsx",
           "start": {
@@ -26268,25 +26235,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\ValuePacks.tsx:548:9 [rules: 3, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\ValuePacks.tsx",
-          "start": {
-            "line": 548,
-            "col": 10,
-            "offset": 23906
-          },
-          "end": {
-            "line": 548,
-            "col": 27,
-            "offset": 23923
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\ValueTreeExplorer.tsx:212:24 [rules: 3, first: javascript.express.security.audit.remote-property-injection.remote-property-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\ValueTreeExplorer.tsx:212:24 [rules: 4, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\src\\pages\\ValueTreeExplorer.tsx",
           "start": {
@@ -26304,7 +26253,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\BillingAdmin.tsx:302:9 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\BillingAdmin.tsx:302:9 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\admin\\BillingAdmin.tsx",
           "start": {
@@ -26322,7 +26271,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\FormulaGovernance.tsx:179:9 [rules: 3, first: javascript.express.security.audit.express-ssrf.express-ssrf]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\FormulaGovernance.tsx:179:9 [rules: 2, first: javascript.express.security.audit.express-ssrf.express-ssrf]",
         "location": {
           "path": "apps\\web\\src\\pages\\admin\\FormulaGovernance.tsx",
           "start": {
@@ -26340,61 +26289,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\HealthMonitor.tsx:256:9 [rules: 1, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\admin\\HealthMonitor.tsx",
-          "start": {
-            "line": 256,
-            "col": 10,
-            "offset": 9074
-          },
-          "end": {
-            "line": 256,
-            "col": 30,
-            "offset": 9094
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\PermissionsAdmin.tsx:121:9 [rules: 6, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\PermissionsAdmin.tsx:122:9 [rules: 1, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\admin\\PermissionsAdmin.tsx",
           "start": {
-            "line": 121,
+            "line": 122,
             "col": 10,
-            "offset": 3918
+            "offset": 3969
           },
           "end": {
-            "line": 121,
+            "line": 122,
             "col": 28,
-            "offset": 3936
+            "offset": 3987
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\PlatformSettings.tsx:403:9 [rules: 1, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\admin\\PlatformSettings.tsx",
-          "start": {
-            "line": 403,
-            "col": 10,
-            "offset": 15158
-          },
-          "end": {
-            "line": 403,
-            "col": 33,
-            "offset": 15181
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\VariableRegistry.tsx:160:9 [rules: 7, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\admin\\VariableRegistry.tsx:160:9 [rules: 6, first: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal]",
         "location": {
           "path": "apps\\web\\src\\pages\\admin\\VariableRegistry.tsx",
           "start": {
@@ -26412,43 +26325,43 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\deliverables\\ExecutiveView.tsx:21:24 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\calculator\\ROITab.tsx:57:24 [rules: 1, first: javascript.browser.security.open-redirect.js-open-redirect]",
         "location": {
-          "path": "apps\\web\\src\\pages\\deliverables\\ExecutiveView.tsx",
+          "path": "apps\\web\\src\\pages\\calculator\\ROITab.tsx",
           "start": {
-            "line": 21,
+            "line": 57,
             "col": 25,
-            "offset": 887
+            "offset": 1850
           },
           "end": {
-            "line": 21,
-            "col": 38,
-            "offset": 900
+            "line": 57,
+            "col": 35,
+            "offset": 1860
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\intelligence\\HypothesesTab.tsx:161:24 [rules: 2, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\intelligence\\EnrichmentTab.tsx:181:24 [rules: 1, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
-          "path": "apps\\web\\src\\pages\\intelligence\\HypothesesTab.tsx",
+          "path": "apps\\web\\src\\pages\\intelligence\\EnrichmentTab.tsx",
           "start": {
-            "line": 161,
+            "line": 181,
             "col": 25,
-            "offset": 6547
+            "offset": 7038
           },
           "end": {
-            "line": 161,
+            "line": 181,
             "col": 38,
-            "offset": 6560
+            "offset": 7051
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\intelligence\\ROITab.tsx:224:24 [rules: 2, first: javascript.express.security.x-frame-options-misconfiguration.x-frame-options-misconfiguration]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\intelligence\\ROITab.tsx:224:24 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
         "location": {
           "path": "apps\\web\\src\\pages\\intelligence\\ROITab.tsx",
           "start": {
@@ -26466,43 +26379,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\studio\\ActionPlanTab.tsx:144:24 [rules: 2, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\studio\\ActionPlanTab.tsx",
-          "start": {
-            "line": 144,
-            "col": 25,
-            "offset": 6540
-          },
-          "end": {
-            "line": 144,
-            "col": 38,
-            "offset": 6553
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\studio\\NarrativeTab.tsx:136:24 [rules: 5, first: javascript.express.security.audit.express-ssrf.express-ssrf]",
-        "location": {
-          "path": "apps\\web\\src\\pages\\studio\\NarrativeTab.tsx",
-          "start": {
-            "line": 136,
-            "col": 25,
-            "offset": 4558
-          },
-          "end": {
-            "line": 136,
-            "col": 37,
-            "offset": 4570
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\studio\\ValueModelTab.tsx:128:24 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\pages\\studio\\ValueModelTab.tsx:128:24 [rules: 2, first: javascript.express.security.cors-misconfiguration.cors-misconfiguration]",
         "location": {
           "path": "apps\\web\\src\\pages\\studio\\ValueModelTab.tsx",
           "start": {
@@ -26520,36 +26397,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\shell\\router.tsx:1:0 [rules: 2, first: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring]",
+        "message": "Fixpoint timeout while performing taint analysis at apps\\web\\src\\stores\\ontologyStore.ts:128:9 [rules: 1, first: javascript.express.security.injection.raw-html-format.raw-html-format]",
         "location": {
-          "path": "apps\\web\\src\\shell\\router.tsx",
+          "path": "apps\\web\\src\\stores\\ontologyStore.ts",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 128,
+            "col": 10,
+            "offset": 3901
           },
           "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\layer2\\validation.py:28:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "packages\\shared\\src\\value_fabric\\layer2\\validation.py",
-          "start": {
-            "line": 28,
-            "col": 9,
-            "offset": 532
-          },
-          "end": {
-            "line": 28,
-            "col": 17,
-            "offset": 540
+            "line": 128,
+            "col": 21,
+            "offset": 3912
           }
         }
       },
@@ -26574,7 +26433,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py:477:14 [rules: 3, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py:477:14 [rules: 1, first: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string]",
         "location": {
           "path": "packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py",
           "start": {
@@ -26592,7 +26451,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py:655:14 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py:655:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "packages\\shared\\src\\value_fabric\\shared\\identity\\middleware.py",
           "start": {
@@ -26610,90 +26469,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\infrastructure\\auth\\api_keys.py:556:8 [rules: 1, first: python.flask.security.injection.raw-html-concat.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at packages\\shared\\src\\value_fabric\\shared\\identity\\oidc_config.py:46:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "packages\\shared\\src\\value_fabric\\shared\\infrastructure\\auth\\api_keys.py",
+          "path": "packages\\shared\\src\\value_fabric\\shared\\identity\\oidc_config.py",
           "start": {
-            "line": 556,
+            "line": 46,
             "col": 9,
-            "offset": 17561
+            "offset": 1834
           },
           "end": {
-            "line": 556,
-            "col": 29,
-            "offset": 17581
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\api\\app\\core\\security.py:353:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\api\\app\\core\\security.py",
-          "start": {
-            "line": 353,
-            "col": 5,
-            "offset": 12823
-          },
-          "end": {
-            "line": 353,
-            "col": 17,
-            "offset": 12835
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\api\\app\\models\\schemas.py:1:0 [rules: 1, first: python.flask.security.injection.raw-html-concat.raw-html-format]",
-        "location": {
-          "path": "services\\api\\app\\models\\schemas.py",
-          "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          },
-          "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\migrations\\versions\\001_initial.py:19:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\migrations\\versions\\001_initial.py",
-          "start": {
-            "line": 19,
-            "col": 5,
-            "offset": 297
-          },
-          "end": {
-            "line": 19,
-            "col": 12,
-            "offset": 304
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\migrations\\versions\\003_spec_compliant_schema.py:361:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\migrations\\versions\\003_spec_compliant_schema.py",
-          "start": {
-            "line": 361,
-            "col": 5,
-            "offset": 24524
-          },
-          "end": {
-            "line": 361,
-            "col": 14,
-            "offset": 24533
+            "line": 46,
+            "col": 22,
+            "offset": 1847
           }
         }
       },
@@ -26718,18 +26505,36 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\scripts\\benchmark_router.py:164:10 [rules: 1, first: python.flask.security.injection.raw-html-concat.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\migrations\\versions\\019_add_canonical_source_ingestion.py:32:4 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer1-ingestion\\scripts\\benchmark_router.py",
+          "path": "services\\layer1-ingestion\\migrations\\versions\\019_add_canonical_source_ingestion.py",
           "start": {
-            "line": 164,
-            "col": 11,
-            "offset": 5200
+            "line": 32,
+            "col": 5,
+            "offset": 886
           },
           "end": {
-            "line": 164,
+            "line": 32,
+            "col": 12,
+            "offset": 893
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\adapters\\pdf_adapter.py:150:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\adapters\\pdf_adapter.py",
+          "start": {
+            "line": 150,
             "col": 15,
-            "offset": 5204
+            "offset": 5255
+          },
+          "end": {
+            "line": 150,
+            "col": 32,
+            "offset": 5272
           }
         }
       },
@@ -26754,61 +26559,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\adapters\\xbrl_parser.py:258:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\adapters\\xbrl_parser.py",
-          "start": {
-            "line": 258,
-            "col": 9,
-            "offset": 9273
-          },
-          "end": {
-            "line": 258,
-            "col": 23,
-            "offset": 9287
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\api\\app_monolith.py:1438:10 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\api\\app_monolith.py",
-          "start": {
-            "line": 1438,
-            "col": 11,
-            "offset": 46889
-          },
-          "end": {
-            "line": 1438,
-            "col": 24,
-            "offset": 46902
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\api\\app_monolith.py:1:0 [rules: 1, first: python.aws-lambda.security.sqlalchemy-sqli.sqlalchemy-sqli]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\api\\app_monolith.py",
-          "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          },
-          "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\api\\app_monolith.py:2285:10 [rules: 4, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\api\\app_monolith.py:2285:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\api\\app_monolith.py",
           "start": {
@@ -26820,24 +26571,6 @@
             "line": 2285,
             "col": 26,
             "offset": 76162
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\crawler\\playwright_crawler.py:184:14 [rules: 1, first: python.flask.security.injection.nan-injection.nan-injection]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\crawler\\playwright_crawler.py",
-          "start": {
-            "line": 184,
-            "col": 15,
-            "offset": 6752
-          },
-          "end": {
-            "line": 184,
-            "col": 24,
-            "offset": 6761
           }
         }
       },
@@ -26862,25 +26595,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:1453:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
-          "start": {
-            "line": 1453,
-            "col": 11,
-            "offset": 47500
-          },
-          "end": {
-            "line": 1453,
-            "col": 24,
-            "offset": 47513
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:1:0 [rules: 2, first: python.aws-lambda.security.tainted-html-response.tainted-html-response]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:1:0 [rules: 1, first: python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
           "start": {
@@ -26898,7 +26613,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:2301:10 [rules: 3, first: python.django.security.nan-injection.nan-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:2301:10 [rules: 5, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
           "start": {
@@ -26916,18 +26631,36 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\main.py:1437:10 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py:2828:10 [rules: 1, first: python.aws-lambda.security.tainted-html-string.tainted-html-string]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\app_monolith.py",
+          "start": {
+            "line": 2828,
+            "col": 11,
+            "offset": 96852
+          },
+          "end": {
+            "line": 2828,
+            "col": 23,
+            "offset": 96864
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\main.py:1:0 [rules: 1, first: python.django.security.injection.raw-html-format.raw-html-format]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\main.py",
           "start": {
-            "line": 1437,
-            "col": 11,
-            "offset": 44934
+            "line": 1,
+            "col": 1,
+            "offset": 0
           },
           "end": {
-            "line": 1437,
-            "col": 24,
-            "offset": 44947
+            "line": 1,
+            "col": 1,
+            "offset": 0
           }
         }
       },
@@ -26952,54 +26685,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\api\\source_routes.py:342:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\metrics\\prometheus_metrics.py:38:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\api\\source_routes.py",
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\metrics\\prometheus_metrics.py",
           "start": {
-            "line": 342,
-            "col": 11,
-            "offset": 11176
-          },
-          "end": {
-            "line": 342,
-            "col": 24,
-            "offset": 11189
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\crawler\\decision_store.py:382:8 [rules: 1, first: python.django.security.injection.tainted-url-host.tainted-url-host]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\crawler\\decision_store.py",
-          "start": {
-            "line": 382,
+            "line": 38,
             "col": 9,
-            "offset": 12968
+            "offset": 1147
           },
           "end": {
-            "line": 382,
-            "col": 33,
-            "offset": 12992
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\crawler\\httpx_crawler.py:227:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\crawler\\httpx_crawler.py",
-          "start": {
-            "line": 227,
-            "col": 15,
-            "offset": 7890
-          },
-          "end": {
-            "line": 227,
-            "col": 32,
-            "offset": 7907
+            "line": 38,
+            "col": 23,
+            "offset": 1161
           }
         }
       },
@@ -27024,7 +26721,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\models.py:1:0 [rules: 5, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\models.py:1:0 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\models.py",
           "start": {
@@ -27042,7 +26739,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1241:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1002:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
+          "start": {
+            "line": 1002,
+            "col": 5,
+            "offset": 44662
+          },
+          "end": {
+            "line": 1002,
+            "col": 26,
+            "offset": 44683
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1241:4 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
           "start": {
@@ -27060,7 +26775,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1399:4 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1399:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
           "start": {
@@ -27078,7 +26793,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:2171:4 [rules: 1, first: python.flask.security.injection.raw-html-concat.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:1806:10 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
+          "start": {
+            "line": 1806,
+            "col": 11,
+            "offset": 82166
+          },
+          "end": {
+            "line": 1806,
+            "col": 35,
+            "offset": 82190
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:2171:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
           "start": {
@@ -27090,6 +26823,24 @@
             "line": 2171,
             "col": 24,
             "offset": 96673
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py:320:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\shared\\tasks.py",
+          "start": {
+            "line": 320,
+            "col": 11,
+            "offset": 10331
+          },
+          "end": {
+            "line": 320,
+            "col": 35,
+            "offset": 10355
           }
         }
       },
@@ -27132,18 +26883,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\metrics\\prometheus_metrics.py:38:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\layer1_ingestion\\skills\\prospect_research.py:129:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer1-ingestion\\src\\metrics\\prometheus_metrics.py",
+          "path": "services\\layer1-ingestion\\src\\layer1_ingestion\\skills\\prospect_research.py",
           "start": {
-            "line": 38,
+            "line": 129,
             "col": 9,
-            "offset": 1147
+            "offset": 4263
           },
           "end": {
-            "line": 38,
-            "col": 23,
-            "offset": 1161
+            "line": 129,
+            "col": 21,
+            "offset": 4275
           }
         }
       },
@@ -27168,7 +26919,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\shared\\models.py:1:0 [rules: 3, first: python.lang.security.dangerous-system-call.dangerous-system-call]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\shared\\config.py:155:8 [rules: 1, first: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string]",
+        "location": {
+          "path": "services\\layer1-ingestion\\src\\shared\\config.py",
+          "start": {
+            "line": 155,
+            "col": 9,
+            "offset": 5947
+          },
+          "end": {
+            "line": 155,
+            "col": 35,
+            "offset": 5973
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer1-ingestion\\src\\shared\\models.py:1:0 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
         "location": {
           "path": "services\\layer1-ingestion\\src\\shared\\models.py",
           "start": {
@@ -27186,7 +26955,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py:1122:10 [rules: 4, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-5-signal-refinery\\src\\layer2_5_signal_refinery\\api\\routes\\signals.py:246:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer2-5-signal-refinery\\src\\layer2_5_signal_refinery\\api\\routes\\signals.py",
+          "start": {
+            "line": 246,
+            "col": 11,
+            "offset": 8327
+          },
+          "end": {
+            "line": 246,
+            "col": 24,
+            "offset": 8340
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py:1122:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py",
           "start": {
@@ -27222,18 +27009,36 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py:1:0 [rules: 1, first: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py:950:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer2-extraction\\src\\layer2_extraction\\api\\main.py",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 950,
+            "col": 11,
+            "offset": 34500
           },
           "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 950,
+            "col": 38,
+            "offset": 34527
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\extraction\\deduplicator.py:228:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer2-extraction\\src\\layer2_extraction\\extraction\\deduplicator.py",
+          "start": {
+            "line": 228,
+            "col": 9,
+            "offset": 8664
+          },
+          "end": {
+            "line": 228,
+            "col": 30,
+            "offset": 8685
           }
         }
       },
@@ -27258,126 +27063,108 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\extraction\\llm_extractor.py:625:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\models\\ontology.py:713:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer2-extraction\\src\\layer2_extraction\\extraction\\llm_extractor.py",
+          "path": "services\\layer2-extraction\\src\\layer2_extraction\\models\\ontology.py",
           "start": {
-            "line": 625,
-            "col": 15,
-            "offset": 26573
+            "line": 713,
+            "col": 9,
+            "offset": 26525
           },
           "end": {
-            "line": 625,
-            "col": 36,
-            "offset": 26594
+            "line": 713,
+            "col": 24,
+            "offset": 26540
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\agents\\roi_calculation.py:280:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer2-extraction\\src\\layer2_extraction\\validation\\artifact_validator.py:199:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\agents\\roi_calculation.py",
+          "path": "services\\layer2-extraction\\src\\layer2_extraction\\validation\\artifact_validator.py",
           "start": {
-            "line": 280,
-            "col": 15,
-            "offset": 9519
+            "line": 199,
+            "col": 5,
+            "offset": 6411
           },
           "end": {
-            "line": 280,
-            "col": 40,
-            "offset": 9544
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\analytics\\communities.py:102:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\analytics\\communities.py",
-          "start": {
-            "line": 102,
-            "col": 15,
-            "offset": 3352
-          },
-          "end": {
-            "line": 102,
+            "line": 199,
             "col": 29,
-            "offset": 3366
+            "offset": 6435
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\main.py:1:0 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\agents\\whitespace_analysis.py:123:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\main.py",
+          "path": "services\\layer3-knowledge\\src\\agents\\whitespace_analysis.py",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 123,
+            "col": 15,
+            "offset": 3450
           },
           "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 123,
+            "col": 22,
+            "offset": 3457
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\models.py:1:0 [rules: 4, first: python.lang.security.dangerous-system-call.dangerous-system-call]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\analytics.py:550:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\models.py",
+          "path": "services\\layer3-knowledge\\src\\api\\routes\\analytics.py",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          },
-          "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\entities.py:179:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\routes\\entities.py",
-          "start": {
-            "line": 179,
+            "line": 550,
             "col": 11,
-            "offset": 7511
+            "offset": 20766
           },
           "end": {
-            "line": 179,
-            "col": 28,
-            "offset": 7528
+            "line": 550,
+            "col": 26,
+            "offset": 20781
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\formulas.py:1080:10 [rules: 1, first: python.django.security.nan-injection.nan-injection]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\formulas.py:1:0 [rules: 1, first: python.django.security.injection.tainted-url-host.tainted-url-host]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\api\\routes\\formulas.py",
           "start": {
-            "line": 1080,
-            "col": 11,
-            "offset": 38869
+            "line": 1,
+            "col": 1,
+            "offset": 0
           },
           "end": {
-            "line": 1080,
-            "col": 25,
-            "offset": 38883
+            "line": 1,
+            "col": 1,
+            "offset": 0
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\formulas.py:833:4 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "location": {
+          "path": "services\\layer3-knowledge\\src\\api\\routes\\formulas.py",
+          "start": {
+            "line": 833,
+            "col": 5,
+            "offset": 29931
+          },
+          "end": {
+            "line": 833,
+            "col": 23,
+            "offset": 29949
           }
         }
       },
@@ -27438,24 +27225,6 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\pack_loader.py:65:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\routes\\pack_loader.py",
-          "start": {
-            "line": 65,
-            "col": 5,
-            "offset": 1967
-          },
-          "end": {
-            "line": 65,
-            "col": 23,
-            "offset": 1985
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
         "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\provenance_audit.py:162:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\api\\routes\\provenance_audit.py",
@@ -27474,25 +27243,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\value_packs.py:1296:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\routes\\value_packs.py",
-          "start": {
-            "line": 1296,
-            "col": 11,
-            "offset": 42678
-          },
-          "end": {
-            "line": 1296,
-            "col": 27,
-            "offset": 42694
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\value_trees.py:127:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\value_trees.py:127:10 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\api\\routes\\value_trees.py",
           "start": {
@@ -27510,151 +27261,61 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\api\\routes\\variables.py:594:10 [rules: 2, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\db\\tenant_queries.py:244:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\api\\routes\\variables.py",
+          "path": "services\\layer3-knowledge\\src\\db\\tenant_queries.py",
           "start": {
-            "line": 594,
+            "line": 244,
             "col": 11,
-            "offset": 20140
+            "offset": 8368
           },
           "end": {
-            "line": 594,
-            "col": 25,
-            "offset": 20154
+            "line": 244,
+            "col": 29,
+            "offset": 8386
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\backup\\backup_manager.py:1166:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\backup\\backup_manager.py",
-          "start": {
-            "line": 1166,
-            "col": 15,
-            "offset": 41964
-          },
-          "end": {
-            "line": 1166,
-            "col": 37,
-            "offset": 41986
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\backup\\backup_manager.py:1330:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\backup\\backup_manager.py",
-          "start": {
-            "line": 1330,
-            "col": 15,
-            "offset": 47909
-          },
-          "end": {
-            "line": 1330,
-            "col": 36,
-            "offset": 47930
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\backup\\backup_manager.py:567:14 [rules: 2, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\backup\\backup_manager.py",
-          "start": {
-            "line": 567,
-            "col": 15,
-            "offset": 18504
-          },
-          "end": {
-            "line": 567,
-            "col": 28,
-            "offset": 18517
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\cache\\redis_cache.py:646:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\cache\\redis_cache.py",
-          "start": {
-            "line": 646,
-            "col": 15,
-            "offset": 20401
-          },
-          "end": {
-            "line": 646,
-            "col": 22,
-            "offset": 20408
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\gateway\\api_gateway.py:337:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\gateway\\api_gateway.py",
-          "start": {
-            "line": 337,
-            "col": 15,
-            "offset": 11144
-          },
-          "end": {
-            "line": 337,
-            "col": 36,
-            "offset": 11165
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\ingestion\\neo4j_loader.py:593:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\ingestion\\neo4j_loader.py:247:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\ingestion\\neo4j_loader.py",
           "start": {
-            "line": 593,
-            "col": 15,
-            "offset": 22665
+            "line": 247,
+            "col": 9,
+            "offset": 9061
           },
           "end": {
-            "line": 593,
-            "col": 41,
-            "offset": 22691
+            "line": 247,
+            "col": 40,
+            "offset": 9092
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\migrations\\028_l3_tenant_standardization.py:445:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\metrics\\prometheus_metrics.py:109:8 [rules: 1, first: python.flask.security.injection.nan-injection.nan-injection]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\migrations\\028_l3_tenant_standardization.py",
+          "path": "services\\layer3-knowledge\\src\\metrics\\prometheus_metrics.py",
           "start": {
-            "line": 445,
-            "col": 11,
-            "offset": 18366
+            "line": 109,
+            "col": 9,
+            "offset": 2628
           },
           "end": {
-            "line": 445,
-            "col": 15,
-            "offset": 18370
+            "line": 109,
+            "col": 23,
+            "offset": 2642
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\models\\valuepack.py:1:0 [rules: 3, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\models\\valuepack.py:1:0 [rules: 4, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\models\\valuepack.py",
           "start": {
@@ -27672,43 +27333,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\retrieval\\hybrid_search.py:191:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\retrieval\\graph_rag.py:285:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\retrieval\\hybrid_search.py",
+          "path": "services\\layer3-knowledge\\src\\retrieval\\graph_rag.py",
           "start": {
-            "line": 191,
+            "line": 285,
             "col": 15,
-            "offset": 6970
+            "offset": 10457
           },
           "end": {
-            "line": 191,
-            "col": 27,
-            "offset": 6982
+            "line": 285,
+            "col": 33,
+            "offset": 10475
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\retrieval\\hybrid_search.py:283:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer3-knowledge\\src\\retrieval\\hybrid_search.py",
-          "start": {
-            "line": 283,
-            "col": 15,
-            "offset": 10522
-          },
-          "end": {
-            "line": 283,
-            "col": 28,
-            "offset": 10535
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\schema\\constraints.py:1:0 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\schema\\constraints.py:1:0 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\schema\\constraints.py",
           "start": {
@@ -27726,25 +27369,43 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\services\\case_study_service.py:434:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\security\\monitor.py:873:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer3-knowledge\\src\\services\\case_study_service.py",
+          "path": "services\\layer3-knowledge\\src\\security\\monitor.py",
           "start": {
-            "line": 434,
+            "line": 873,
             "col": 15,
-            "offset": 16022
+            "offset": 30890
           },
           "end": {
-            "line": 434,
-            "col": 21,
-            "offset": 16028
+            "line": 873,
+            "col": 28,
+            "offset": 30903
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\tracing\\middleware.py:35:14 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\services\\roi_calculator_service.py:624:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer3-knowledge\\src\\services\\roi_calculator_service.py",
+          "start": {
+            "line": 624,
+            "col": 15,
+            "offset": 21736
+          },
+          "end": {
+            "line": 624,
+            "col": 32,
+            "offset": 21753
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer3-knowledge\\src\\tracing\\middleware.py:35:14 [rules: 2, first: python.django.security.injection.tainted-url-host.tainted-url-host]",
         "location": {
           "path": "services\\layer3-knowledge\\src\\tracing\\middleware.py",
           "start": {
@@ -27762,7 +27423,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\migrations\\versions\\029_add_company_knowledge_tables.py:34:4 [rules: 2, first: python.aws-lambda.security.tainted-html-string.tainted-html-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\migrations\\versions\\029_add_company_knowledge_tables.py:34:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\migrations\\versions\\029_add_company_knowledge_tables.py",
           "start": {
@@ -27780,7 +27441,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\migrations\\versions\\031_add_harness_tables.py:43:4 [rules: 1, first: python.aws-lambda.security.tainted-html-response.tainted-html-response]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\migrations\\versions\\031_add_harness_tables.py:43:4 [rules: 2, first: python.aws-lambda.security.tainted-html-response.tainted-html-response]",
         "location": {
           "path": "services\\layer4-agents\\migrations\\versions\\031_add_harness_tables.py",
           "start": {
@@ -27834,72 +27495,72 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py:616:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py:1018:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py",
           "start": {
-            "line": 616,
+            "line": 1018,
             "col": 15,
-            "offset": 25207
+            "offset": 42739
           },
           "end": {
-            "line": 616,
+            "line": 1018,
             "col": 22,
-            "offset": 25214
+            "offset": 42746
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\audit.py:84:10 [rules: 2, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py:776:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\audit.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\agents\\taxonomy.py",
           "start": {
-            "line": 84,
-            "col": 11,
-            "offset": 2638
+            "line": 776,
+            "col": 15,
+            "offset": 32405
           },
           "end": {
-            "line": 84,
-            "col": 26,
-            "offset": 2653
+            "line": 776,
+            "col": 22,
+            "offset": 32412
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\crm_webhooks.py:452:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py:1148:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\crm_webhooks.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py",
           "start": {
-            "line": 452,
+            "line": 1148,
             "col": 11,
-            "offset": 15856
+            "offset": 43546
           },
           "end": {
-            "line": 452,
-            "col": 29,
-            "offset": 15874
+            "line": 1148,
+            "col": 39,
+            "offset": 43574
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\crm_webhooks.py:697:10 [rules: 1, first: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py:1281:10 [rules: 1, first: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\crm_webhooks.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\analysis.py",
           "start": {
-            "line": 697,
+            "line": 1281,
             "col": 11,
-            "offset": 24871
+            "offset": 48470
           },
           "end": {
-            "line": 697,
-            "col": 26,
-            "offset": 24886
+            "line": 1281,
+            "col": 31,
+            "offset": 48490
           }
         }
       },
@@ -27924,43 +27585,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\state_inspector.py:407:10 [rules: 1, first: python.flask.security.injection.nan-injection.nan-injection]",
-        "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\state_inspector.py",
-          "start": {
-            "line": 407,
-            "col": 11,
-            "offset": 12934
-          },
-          "end": {
-            "line": 407,
-            "col": 34,
-            "offset": 12957
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\state_inspector.py:632:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
-        "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\state_inspector.py",
-          "start": {
-            "line": 632,
-            "col": 5,
-            "offset": 20706
-          },
-          "end": {
-            "line": 632,
-            "col": 22,
-            "offset": 20723
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\tools.py:290:10 [rules: 5, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\tools.py:290:10 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\tools.py",
           "start": {
@@ -27978,43 +27603,61 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\harness\\registry.py:138:8 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\api\\routes\\workflows.py:416:10 [rules: 1, first: python.flask.security.injection.nan-injection.nan-injection]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\harness\\registry.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\api\\routes\\workflows.py",
           "start": {
-            "line": 138,
-            "col": 9,
-            "offset": 4021
+            "line": 416,
+            "col": 11,
+            "offset": 13598
           },
           "end": {
-            "line": 138,
-            "col": 19,
-            "offset": 4031
+            "line": 416,
+            "col": 41,
+            "offset": 13628
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\models\\account.py:99:6 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\engine\\executor.py:1486:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\models\\account.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\engine\\executor.py",
           "start": {
-            "line": 99,
-            "col": 7,
-            "offset": 2496
+            "line": 1486,
+            "col": 15,
+            "offset": 55209
           },
           "end": {
-            "line": 99,
-            "col": 14,
-            "offset": 2503
+            "line": 1486,
+            "col": 33,
+            "offset": 55227
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\anthropic_provider.py:192:14 [rules: 4, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\engine\\executor.py:1852:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer4-agents\\src\\layer4_agents\\engine\\executor.py",
+          "start": {
+            "line": 1852,
+            "col": 15,
+            "offset": 70210
+          },
+          "end": {
+            "line": 1852,
+            "col": 48,
+            "offset": 70243
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\anthropic_provider.py:192:14 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\services\\anthropic_provider.py",
           "start": {
@@ -28050,18 +27693,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\crm_sync_job_runner.py:87:14 [rules: 1, first: python.django.security.injection.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\conversation.py:1060:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\crm_sync_job_runner.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\conversation.py",
           "start": {
-            "line": 87,
-            "col": 15,
-            "offset": 2961
+            "line": 1060,
+            "col": 9,
+            "offset": 44651
           },
           "end": {
-            "line": 87,
-            "col": 30,
-            "offset": 2976
+            "line": 1060,
+            "col": 28,
+            "offset": 44670
           }
         }
       },
@@ -28086,36 +27729,54 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\integration_service.py:736:14 [rules: 2, first: python.django.security.injection.tainted-url-host.tainted-url-host]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\enrichment_orchestrator.py:512:14 [rules: 1, first: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\integration_service.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\enrichment_orchestrator.py",
           "start": {
-            "line": 736,
+            "line": 512,
             "col": 15,
-            "offset": 25920
+            "offset": 18943
           },
           "end": {
-            "line": 736,
-            "col": 39,
-            "offset": 25944
+            "line": 512,
+            "col": 37,
+            "offset": 18965
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\usage_service.py:257:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\export_provenance.py:180:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\usage_service.py",
+          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\export_provenance.py",
           "start": {
-            "line": 257,
-            "col": 15,
-            "offset": 8941
+            "line": 180,
+            "col": 5,
+            "offset": 6561
           },
           "end": {
-            "line": 257,
-            "col": 27,
-            "offset": 8953
+            "line": 180,
+            "col": 37,
+            "offset": 6593
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\services\\formula_governance_service.py:63:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer4-agents\\src\\layer4_agents\\services\\formula_governance_service.py",
+          "start": {
+            "line": 63,
+            "col": 15,
+            "offset": 2082
+          },
+          "end": {
+            "line": 63,
+            "col": 29,
+            "offset": 2096
           }
         }
       },
@@ -28134,24 +27795,6 @@
             "line": 40,
             "col": 25,
             "offset": 1000
-          }
-        }
-      },
-      {
-        "error_type": "Fixpoint timeout",
-        "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\tenants\\api\\routes\\oidc.py:309:10 [rules: 1, first: python.aws-lambda.security.tainted-code-exec.tainted-code-exec]",
-        "location": {
-          "path": "services\\layer4-agents\\src\\layer4_agents\\tenants\\api\\routes\\oidc.py",
-          "start": {
-            "line": 309,
-            "col": 11,
-            "offset": 10590
-          },
-          "end": {
-            "line": 309,
-            "col": 24,
-            "offset": 10603
           }
         }
       },
@@ -28188,6 +27831,24 @@
             "line": 320,
             "col": 42,
             "offset": 9464
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\tools\\registry.py:280:14 [rules: 1, first: python.django.security.nan-injection.nan-injection]",
+        "location": {
+          "path": "services\\layer4-agents\\src\\layer4_agents\\tools\\registry.py",
+          "start": {
+            "line": 280,
+            "col": 15,
+            "offset": 8821
+          },
+          "end": {
+            "line": 280,
+            "col": 18,
+            "offset": 8824
           }
         }
       },
@@ -28248,7 +27909,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\business_case.py:581:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\business_case.py:581:14 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\workflows\\business_case.py",
           "start": {
@@ -28338,7 +27999,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\roi_calculator.py:487:14 [rules: 1, first: python.lang.security.dangerous-system-call.dangerous-system-call]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\roi_calculator.py:487:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\workflows\\roi_calculator.py",
           "start": {
@@ -28374,6 +28035,24 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\whitespace.py:317:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "location": {
+          "path": "services\\layer4-agents\\src\\layer4_agents\\workflows\\whitespace.py",
+          "start": {
+            "line": 317,
+            "col": 15,
+            "offset": 12103
+          },
+          "end": {
+            "line": 317,
+            "col": 37,
+            "offset": 12125
+          }
+        }
+      },
+      {
+        "error_type": "Fixpoint timeout",
+        "severity": "warn",
         "message": "Fixpoint timeout while performing taint analysis at services\\layer4-agents\\src\\layer4_agents\\workflows\\whitespace.py:473:14 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer4-agents\\src\\layer4_agents\\workflows\\whitespace.py",
@@ -28392,18 +28071,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\api\\main.py:469:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\api\\main.py:363:10 [rules: 1, first: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text]",
         "location": {
           "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\api\\main.py",
           "start": {
-            "line": 469,
-            "col": 5,
-            "offset": 16043
+            "line": 363,
+            "col": 11,
+            "offset": 11891
           },
           "end": {
-            "line": 469,
-            "col": 15,
-            "offset": 16053
+            "line": 363,
+            "col": 19,
+            "offset": 11899
           }
         }
       },
@@ -28428,7 +28107,7 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\012_add_governance_entities.py:23:4 [rules: 1, first: python.django.security.injection.raw-html-format.raw-html-format]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\012_add_governance_entities.py:23:4 [rules: 3, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
           "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\012_add_governance_entities.py",
           "start": {
@@ -28446,25 +28125,25 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\013_add_assumption_registry.py:23:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\021_add_value_evidence_graph.py:40:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\013_add_assumption_registry.py",
+          "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\021_add_value_evidence_graph.py",
           "start": {
-            "line": 23,
+            "line": 40,
             "col": 5,
-            "offset": 610
+            "offset": 838
           },
           "end": {
-            "line": 23,
+            "line": 40,
             "col": 12,
-            "offset": 617
+            "offset": 845
           }
         }
       },
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\20240101_0000_a1b2c3d4e5f6_initial_ground_truth_schema.py:27:4 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\20240101_0000_a1b2c3d4e5f6_initial_ground_truth_schema.py:27:4 [rules: 1, first: python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text]",
         "location": {
           "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\migrations\\versions\\20240101_0000_a1b2c3d4e5f6_initial_ground_truth_schema.py",
           "start": {
@@ -28482,18 +28161,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\metrics\\prometheus_metrics.py:65:8 [rules: 1, first: python.boto3.security.hardcoded-token.hardcoded-token]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer5-ground-truth\\src\\layer5_ground_truth\\models\\formula_governance.py:1:0 [rules: 2, first: python.boto3.security.hardcoded-token.hardcoded-token]",
         "location": {
-          "path": "services\\layer5-ground-truth\\src\\metrics\\prometheus_metrics.py",
+          "path": "services\\layer5-ground-truth\\src\\layer5_ground_truth\\models\\formula_governance.py",
           "start": {
-            "line": 65,
-            "col": 9,
-            "offset": 1665
+            "line": 1,
+            "col": 1,
+            "offset": 0
           },
           "end": {
-            "line": 65,
-            "col": 23,
-            "offset": 1679
+            "line": 1,
+            "col": 1,
+            "offset": 0
           }
         }
       },
@@ -28518,18 +28197,18 @@
       {
         "error_type": "Fixpoint timeout",
         "severity": "warn",
-        "message": "Fixpoint timeout while performing taint analysis at services\\layer7-billing\\src\\layer7_billing\\api\\main.py:1:0 [rules: 1, first: python.aws-lambda.security.tainted-sql-string.tainted-sql-string]",
+        "message": "Fixpoint timeout while performing taint analysis at services\\layer6-benchmarks\\src\\layer6_benchmarks\\api\\main.py:454:10 [rules: 2, first: python.flask.security.injection.tainted-url-host.tainted-url-host]",
         "location": {
-          "path": "services\\layer7-billing\\src\\layer7_billing\\api\\main.py",
+          "path": "services\\layer6-benchmarks\\src\\layer6_benchmarks\\api\\main.py",
           "start": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 454,
+            "col": 11,
+            "offset": 15673
           },
           "end": {
-            "line": 1,
-            "col": 1,
-            "offset": 0
+            "line": 454,
+            "col": 18,
+            "offset": 15680
           }
         }
       }
@@ -28538,13 +28217,13 @@
       "project_level_time": 0.0,
       "file_level_time": 0.0,
       "rules_with_project_prefilters_ratio": 0.0,
-      "rules_with_file_prefilters_ratio": 0.9880983993998579,
-      "rules_selected_ratio": 0.04094608679488286,
-      "rules_matched_ratio": 0.04094608679488286
+      "rules_with_file_prefilters_ratio": 0.9880972116309141,
+      "rules_selected_ratio": 0.041049699943635824,
+      "rules_matched_ratio": 0.041049699943635824
     },
     "targets": [],
     "total_bytes": 0,
-    "max_memory_bytes": 2569152128
+    "max_memory_bytes": 2637767424
   },
   "engine_requested": "OSS",
   "skipped_rules": [],

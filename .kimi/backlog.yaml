@@ -60,6 +60,15 @@ p0:
     owner: "SRE"
     summary: "Exit criteria require documented and tested DR."
 
+  - id: P0-007
+    title: "Layer 1 Celery stage helper naming mismatch"
+    area: "Layer 1 Ingestion"
+    status: "completed"
+    evidence: "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py, services/layer1-ingestion/tests/unit/test_celery_tasks.py"
+    command: "pytest services/layer1-ingestion/tests/unit/test_celery_tasks.py"
+    owner: "L1"
+    summary: "Renamed helpers to _*_stage_async convention to match test expectations and ai_extraction_stage pattern."
+
 # P1 — Reliability / Observability / Compliance
 p1:
   - id: P1-001
@@ -90,6 +99,15 @@ p1:
     summary: "files.py, admin.py, knowledge.py are referenced only by tests. Determine ownership."
 
   - id: P1-004
+    title: "Run full Layer 1 test suite with PostgreSQL"
+    area: "Layer 1 Ingestion"
+    status: "blocked-on-env"
+    evidence: "make test-layer1"
+    command: "docker compose -f docker-compose.dev.yml --env-file .env.generated up -d"
+    owner: "L1"
+    summary: "87 test failures are connection-refused to localhost:5432. Need local Postgres via Docker Compose."
+
+  - id: P1-005
     title: "Complete DPA and SOC2 control mapping in compliance/"
     area: "Compliance"
     status: "unblocked"
@@ -98,7 +116,7 @@ p1:
     owner: "Compliance"
     summary: "Exit criteria require SOC2 control mapping and DPA template."
 
-  - id: P1-005
+  - id: P1-006
     title: "Validate status page and incident runbook completeness"
     area: "Operations"
     status: "unblocked"

