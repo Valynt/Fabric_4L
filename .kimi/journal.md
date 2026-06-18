@@ -86,3 +86,25 @@
 2. Triage the 411 semgrep findings and establish a baseline/ignore list.
 3. Review and suppress or remediate the 5 Bandit medium findings.
 4. Open a draft PR with the current fixes and evidence.
+
+## 2026-06-18 — PROMOTE
+
+### Branch
+- `feat/audit-phase-initial-fixes` (local, ready to push)
+- 2 commits: initial audit fixes + cleanup of helper script
+
+### How to publish
+```bash
+# Push the branch
+git push -u origin feat/audit-phase-initial-fixes
+
+# Open a draft PR (requires GitHub CLI or browser)
+gh pr create --draft --title "feat: initial audit phase — lint, SLOs, dependency patches, and L1 test sync" --body-file .github/pull_request_template.md
+```
+
+### Validation commands already run
+- `make lint` — PASS
+- `make typecheck` — PASS
+- `pytest services/layer1-ingestion/tests/unit/test_celery_tasks.py` — 40 passed
+- `pytest services/layer1-ingestion/tests/unit/test_batch_operations.py` — 8 passed
+- `make test-layer1` — blocked by missing PostgreSQL (87 connection-refused failures)
