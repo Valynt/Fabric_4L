@@ -33,11 +33,11 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
     psutil = _PsutilFallback()
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
+from value_fabric.shared.probes import normalize_probe_payload
 
 from src.api.metrics_state import get_system_metrics, set_app_metrics
 from src.config import get_settings

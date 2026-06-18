@@ -44,9 +44,9 @@ from value_fabric.shared.environment import (
     get_service_environment,
     is_production_like_environment,
 )
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.security.config import is_strict_environment
-from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api.deps import RequestContext, require_authenticated
@@ -104,6 +104,7 @@ prompt_template_hash: str | None = None
 
 from value_fabric.shared.audit import AuditAction, emit_audit_event
 
+from layer2_extraction.extraction.entity_id import compute_deterministic_id
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
@@ -126,7 +127,6 @@ from layer2_extraction.models import (
     ValueCategory,
     ValueDriver,
 )
-from layer2_extraction.extraction.entity_id import compute_deterministic_id
 from layer2_extraction.output.provenance import (
     ExtractionStep,
     get_provenance_tracker,

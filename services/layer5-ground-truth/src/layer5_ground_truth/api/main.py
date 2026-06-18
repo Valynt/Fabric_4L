@@ -53,7 +53,6 @@ from ..integration.layer3_client import (
     Layer3TenantMismatchError,
 )
 from .router import router
-from .schemas import HealthResponse
 
 # ---------------------------------------------------------------------------
 # Logging
