@@ -45,6 +45,12 @@ class ToolGatewayDenied(Exception):
         super().__init__(f"ToolGateway denied '{tool_name}': {reason}")
 
 
+class ToolError(Exception):
+    """Raised when the underlying tool execution reports a structured failure."""
+
+    pass
+
+
 class InvariantViolation(Exception):
     """Raised when an invariant check fails."""
 
@@ -186,12 +192,25 @@ class ToolGateway:
         # ── Step 4: Execute tool ──
         start_time = asyncio.get_running_loop().time()
         try:
-            result = await self._registry.execute(tool_name, input_data)
+            raw_result = await self._registry.execute(tool_name, input_data)
         except Exception:
             self._invariant_evaluator.record_invocation(
                 tool_name, cost_usd=0.0, success=False
             )
             raise
+
+        # Normalize structured ToolResult (Layer 4 registry) to a plain dict.
+        if hasattr(raw_result, "model_dump"):
+            result_dict = raw_result.model_dump()
+            if hasattr(raw_result, "is_success") and not raw_result.is_success():
+                error = result_dict.get("error") or {}
+                raise ToolError(
+                    f"Tool '{tool_name}' execution failed: {error.get('message', 'unknown')}"
+                )
+        elif isinstance(raw_result, dict):
+            result_dict = raw_result
+        else:
+            result_dict = {"result": raw_result}
 
         elapsed_ms = int((asyncio.get_running_loop().time() - start_time) * 1000)
 
@@ -200,7 +219,7 @@ class ToolGateway:
             tool_name, cost_usd=estimated_cost_usd, success=True
         )
 
-        response_hash = canonical_hash(result)
+        response_hash = canonical_hash(result_dict)
         log_entry = {
             "tool_name": tool_name,
             "request_hash": request_hash,
@@ -222,7 +241,7 @@ class ToolGateway:
             invariant_checks=inv_result.warnings,
         )
 
-        return result
+        return result_dict
 
     async def _emit_success_audit(
         self,

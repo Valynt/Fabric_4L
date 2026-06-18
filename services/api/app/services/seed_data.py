@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 
-from app.core.config import get_settings
+from app.core.config import _is_production_like
 from app.core.database import db
 from app.core.security import hash_password
 from app.models.schemas import (
@@ -33,9 +33,8 @@ logger = structlog.get_logger(__name__)
 def _required_dev_seed_password(env_name: str) -> str:
     password = os.getenv(env_name, "").strip()
     if not password:
-        raise RuntimeError(
-            f"{env_name} must be set to seed demo users in non-production environments"
-        )
+        message = f"{env_name} must be set to seed demo users in non-production environments"
+        raise RuntimeError(message)
     return password
 
 
@@ -65,9 +64,9 @@ def seed_tenants():
 
 
 def seed_users(tenant_ids: list[str]):
-    settings = get_settings()
-    if settings.is_production_like:
-        raise RuntimeError("seed_users is disabled in production-like environments")
+    if _is_production_like(os.getenv("APP_ENV", "")):
+        _SEED_USERS_PRODUCTION_MESSAGE = "seed_users is disabled in production-like environments"
+        raise RuntimeError(_SEED_USERS_PRODUCTION_MESSAGE)
     admin_password = _required_dev_seed_password("DEV_SEED_ADMIN_PASSWORD")
     analyst_password = _required_dev_seed_password("DEV_SEED_ANALYST_PASSWORD")
     users = [

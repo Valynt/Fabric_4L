@@ -116,6 +116,11 @@ jobs:
             owner: "@value-fabric/architects"
             escalation: "@value-fabric/maintainers"
             command: "python scripts/ci/check_deprecated_namespace_imports.py --strict"
+          - id: compatibility-shims-unified
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_compatibility_shims.py run-all --strict --json"
           - id: adr027-duplicate-source-trees
             service: shared
             owner: "@value-fabric/architects"
@@ -173,7 +178,7 @@ jobs:
       - name: Set up Node.js for pnpm gates
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate

@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer5_ground_truth import __version__
@@ -778,6 +779,14 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Academy router not available")
 
+    # Mount the Value Evidence Graph / ValueClaim router
+    try:
+        from .value_claim_routes import router as value_claim_router
+
+        app.include_router(value_claim_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("ValueClaim router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):
@@ -810,23 +819,23 @@ def create_app() -> FastAPI:
     # Public health check (matches middleware PUBLIC_PATH_ALLOWLIST)
     @app.get(
         "/health",
-        response_model=HealthResponse,
         tags=["system"],
         include_in_schema=False,
     )
     @app.get(
         "/health/live",
-        response_model=HealthResponse,
         tags=["system"],
         include_in_schema=False,
     )
-    async def public_health() -> HealthResponse:
-        return HealthResponse(
+    async def public_health() -> dict[str, object]:
+        return normalize_probe_payload(
             status="ok",
             service="layer5-ground-truth",
-            version=__version__,
-            timestamp=datetime.now(UTC),
-            database="ok",
+            extra={
+                "version": __version__,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "database": "ok",
+            },
         )
 
     # Readiness check — verifies database connectivity and migration alignment
@@ -836,9 +845,10 @@ def create_app() -> FastAPI:
             await _check_database_connectivity()
             schema_state = await _check_schema_migration_alignment()
             if not schema_state["ready"]:
-                return JSONResponse(
-                    content={
-                        "status": "not_ready",
+                payload = normalize_probe_payload(
+                    status="not_ready",
+                    service="layer5-ground-truth",
+                    extra={
                         "database": "ok",
                         "schema": schema_state["schema"],
                         "not_ready": {
@@ -848,16 +858,26 @@ def create_app() -> FastAPI:
                             "expected_heads": schema_state["expected_heads"],
                         },
                     },
+                )
+                return JSONResponse(
+                    content=payload,
                     status_code=503,
                 )
-            return JSONResponse(
-                content={"status": "ready", "database": "ok"},
-                status_code=200,
+            payload = normalize_probe_payload(
+                status="ready",
+                service="layer5-ground-truth",
+                extra={"database": "ok"},
             )
+            return JSONResponse(content=payload, status_code=200)
         except Exception as exc:
             logger.warning("Readiness check failed: %s", exc)
+            payload = normalize_probe_payload(
+                status="not_ready",
+                service="layer5-ground-truth",
+                extra={"database": "unavailable"},
+            )
             return JSONResponse(
-                content={"status": "not_ready", "database": "unavailable"},
+                content=payload,
                 status_code=503,
             )
 

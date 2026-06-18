@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { useOrganization } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { matchesClerkTenantRouteSlug } from "@/auth/clerkTenant";
 
 interface TenantMembership {
   isMemberOfTenant: boolean;
@@ -28,8 +29,8 @@ function useTenantMembershipClerk(tenantSlug: string | undefined): TenantMembers
     // Under Clerk, membership is determined by active organization slug.
     // The backend is the ultimate authority; this is a UX convenience.
     if (!orgLoaded) return false;
-    return organization?.slug === tenantSlug;
-  }, [tenantSlug, orgLoaded, organization?.slug]);
+    return matchesClerkTenantRouteSlug(organization, tenantSlug);
+  }, [tenantSlug, orgLoaded, organization]);
 
   return { isMemberOfTenant, isLoading: !orgLoaded };
 }

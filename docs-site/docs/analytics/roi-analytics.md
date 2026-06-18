@@ -65,7 +65,7 @@ If benchmarks are available, the calculator shows:
 
 - **Peer Median** — the p50 value for your industry and segment.
 - **Your Percentile** — where your metric ranks among peers.
-- **Assessment** — top performer, above average, average, below average, or needs improvement.
+- **Assessment** — `top_performer`, `above_average`, `average`, `below_average`, or `needs_improvement`.
 
 ### 6. Export results
 

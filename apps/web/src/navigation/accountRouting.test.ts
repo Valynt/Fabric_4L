@@ -96,4 +96,25 @@ describe("resolveAccountScopedWorkspacePath — tab path construction", () => {
       })
     ).toBe("/t/acme/accounts/acct-1/studio/action-plan");
   });
+
+  it("preserves tenant slug and account id for valid studio tabs", () => {
+    expect(
+      resolveAccountScopedWorkspacePath({
+        workspace: "studio",
+        accountId: "acct-123",
+        tab: "narrative",
+        tenantSlug: "acme",
+      })
+    ).toBe("/t/acme/accounts/acct-123/studio/narrative");
+  });
+
+  it("falls back to default tenant when tenantSlug is omitted", () => {
+    expect(
+      resolveAccountScopedWorkspacePath({
+        workspace: "studio",
+        accountId: "acct-123",
+        tab: "value-model",
+      })
+    ).toBe("/t/default/accounts/acct-123/studio/value-model");
+  });
 });

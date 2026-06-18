@@ -87,6 +87,19 @@ class APIKey(Base):
         default=True,
     )
 
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Immutable revocation timestamp; preferred over enabled=False",
+    )
+
+    creator_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="User who created the key",
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -126,6 +139,12 @@ class APIKey(Base):
         if self.expires_at is None:
             return False
         return datetime.now(UTC) > self.expires_at
+
+    def is_revoked(self) -> bool:
+        return self.revoked_at is not None or not self.enabled
+
+    def is_active(self) -> bool:
+        return not self.is_revoked() and not self.is_expired()
 
     def __repr__(self) -> str:
         return f"<APIKey(key_id={self.key_id!r}, tenant={self.tenant_id}, role={self.role!r})>"

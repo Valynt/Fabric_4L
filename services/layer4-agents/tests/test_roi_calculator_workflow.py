@@ -179,7 +179,7 @@ class TestExecuteGetProspectData:
         state.roi_input = Mock()
         state.roi_input.prospect_id = "p-001"
         state.roi_input.industry_vertical = None
-        state.metadata["tenant_id"] = "tenant-99"
+        state.tenant_id = "tenant-99"
 
         registry.execute.return_value = _make_tool_result({"profile": {}})
         await wf._execute_get_prospect_data(state)
@@ -245,7 +245,7 @@ class TestExecuteFetchBenchmarks:
         state.roi_input = Mock()
         state.roi_input.industry_vertical = "saas"
         state.roi_input.company_size = "large"
-        state.metadata["tenant_id"] = "tenant-77"
+        state.tenant_id = "tenant-77"
 
         registry.execute.return_value = _make_tool_result({})
         await wf._execute_fetch_benchmarks(state)
@@ -481,7 +481,7 @@ class TestExecuteEvaluateFormula:
         )
         state.roi_input = Mock()
         state.roi_input.value_driver_ids = ["vd-1"]
-        state.metadata["tenant_id"] = "tenant-abc"
+        state.tenant_id = "tenant-abc"
 
         registry.execute.return_value = _make_tool_result(
             {

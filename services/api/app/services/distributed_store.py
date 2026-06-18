@@ -160,12 +160,60 @@ class RedisDistributedStore(DistributedStore):
 _store_singleton: DistributedStore | None = None
 
 
+class InMemoryDistributedStore(DistributedStore):
+    """Process-local distributed store for tests and local development.
+
+    Mirrors the Redis-backed contract without external dependencies.  Data does
+    not survive process restarts and is not shared across workers, so this must
+    never be used in production-like deployments.
+    """
+
+    def __init__(self) -> None:
+        self._data: dict[str, tuple[dict[str, object], float]] = {}
+
+    def _expire(self, key: str) -> None:
+        item = self._data.get(key)
+        if item is None:
+            return
+        _, expires_at = item
+        if time.monotonic() >= expires_at:
+            self._data.pop(key, None)
+
+    def get_json(self, key: str) -> dict[str, object] | None:
+        self._expire(key)
+        item = self._data.get(key)
+        if item is None:
+            return None
+        value, _ = item
+        return value
+
+    def set_json(self, key: str, value: dict[str, object], ttl_seconds: int) -> None:
+        expires_at = time.monotonic() + ttl_seconds
+        self._data[key] = (value, expires_at)
+
+    def delete(self, key: str) -> bool:
+        return self._data.pop(key, None) is not None
+
+    def validate_backend(self) -> None:
+        """No-op: the in-memory backend is always available in this process."""
+        return None
+
+
 def get_distributed_store() -> DistributedStore:
     global _store_singleton
     if _store_singleton is None:
         settings = get_settings()
-        if not settings.redis_url:
+        if settings.mock_persistence:
+            _store_singleton = InMemoryDistributedStore()
+        elif not settings.redis_url:
             raise StoreUnavailableError(ERR_REDIS_URL_NOT_CONFIGURED)
-        client = Redis.from_url(settings.redis_url, decode_responses=False)
-        _store_singleton = RedisDistributedStore(client=client)
+        else:
+            client = Redis.from_url(settings.redis_url, decode_responses=False)
+            _store_singleton = RedisDistributedStore(client=client)
     return _store_singleton
+
+
+def reset_distributed_store() -> None:
+    """Reset the module-level store singleton; intended for tests."""
+    global _store_singleton
+    _store_singleton = None

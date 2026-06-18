@@ -8,6 +8,8 @@ export interface NavSchemaNode {
   badge?: string;
   description?: string;
   breadcrumbLabel?: string;
+  /** Core children lead the section and are surfaced in the left sidebar. */
+  core?: boolean;
   children?: NavSchemaNode[];
 }
 
@@ -21,16 +23,17 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     tier: "standard",
     description: "Discover and validate prospect pain signals",
     children: [
-      { id: "intel-signals", label: "Signals", path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", tier: "standard" },
+      { id: "intel-overview", label: "Overview", path: "/t/:tenantSlug/accounts/:accountId/intelligence/overview", tier: "standard", core: true },
+      { id: "intel-signals", label: "Signals", path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", tier: "standard", core: true },
+      { id: "intel-drivers", label: "Drivers", path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", tier: "standard", core: true },
+      { id: "intel-evidence", label: "Evidence", path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", tier: "standard", core: true },
+      { id: "intel-stakeholders", label: "Stakeholders", path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", tier: "standard", core: true },
       { id: "intel-enrichment", label: "Enrichment", path: "/t/:tenantSlug/accounts/:accountId/intelligence/enrichment", tier: "advanced" },
-      { id: "intel-stakeholders", label: "Stakeholders", path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", tier: "standard" },
       { id: "intel-ontology-match", label: "Value Ontology", path: "/t/:tenantSlug/accounts/:accountId/intelligence/ontology-match", tier: "advanced" },
       { id: "intel-hypotheses", label: "Value Hypotheses", path: "/t/:tenantSlug/accounts/:accountId/intelligence/hypotheses", tier: "standard" },
       { id: "intel-discovery-questions", label: "Discovery Questions", path: "/t/:tenantSlug/accounts/:accountId/intelligence/discovery-questions", tier: "standard" },
       { id: "intel-persona-fit", label: "Persona Fit", path: "/t/:tenantSlug/accounts/:accountId/intelligence/persona-fit", tier: "standard" },
       { id: "intel-assumptions", label: "Assumptions", path: "/t/:tenantSlug/accounts/:accountId/intelligence/assumptions", tier: "standard" },
-      { id: "intel-drivers", label: "Value Drivers", path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", tier: "standard" },
-      { id: "intel-evidence", label: "Evidence", path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", tier: "standard" },
       { id: "intel-alternatives", label: "Alternatives", path: "/t/:tenantSlug/accounts/:accountId/intelligence/alternatives", tier: "advanced" },
       { id: "intel-solution-cost", label: "Solution Cost", path: "/t/:tenantSlug/accounts/:accountId/intelligence/solution-cost", tier: "advanced" },
     ],

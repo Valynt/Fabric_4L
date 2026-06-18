@@ -6,7 +6,7 @@ exports[`VirtualList visual regression > empty list matches snapshot 1`] = `
     style="height: 200px;"
   >
     <div
-      class="overflow-auto"
+      class="h-full overflow-auto"
       style="contain: strict;"
     >
       <div
@@ -23,7 +23,7 @@ exports[`VirtualList visual regression > multi-column grid matches snapshot 1`] 
     style="height: 300px;"
   >
     <div
-      class="overflow-auto"
+      class="h-full overflow-auto"
       style="contain: strict;"
     >
       <div
@@ -40,7 +40,7 @@ exports[`VirtualList visual regression > single-column list matches snapshot 1`]
     style="height: 300px;"
   >
     <div
-      class="overflow-auto"
+      class="h-full overflow-auto"
       style="contain: strict;"
     >
       <div

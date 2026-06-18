@@ -124,7 +124,7 @@ Staging and production evidence will be appended after runtime validation.
 - Validation scripts:
   - `scripts/ci/validate-rds-backup.sh`
   - `scripts/ci/validate-elasticache-failover.sh`
-- Neo4j hosting decision ADR: `docs/adr/neo4j-hosting-decision.md`
+- Neo4j hosting decision ADR: `docs/explanations/adr/ADR-030-neo4j-hosting-decision.md`
   - Preferred: managed Neo4j Aura evaluation
   - Fallback: official Neo4j Helm chart on EKS
   - Raw cluster YAML avoided

@@ -270,6 +270,9 @@ def request_payload() -> dict:
             "chunk_size": 200,
             "chunk_overlap": 20,
             "confidence_threshold": 0.8,
+            "model_version": "test-extraction-model",
+            "schema_version": "value-fabric-extraction-v1",
+            "prompt_version": "test-prompt-v1",
         },
     }).model_dump()
 
@@ -743,4 +746,3 @@ async def test_run_extract_and_ingest_quarantines_invalid_artifacts_before_persi
 
     assert quarantined["called"] is True
     assert queued["called"] is False
-

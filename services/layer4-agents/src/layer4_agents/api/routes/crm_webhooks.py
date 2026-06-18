@@ -39,6 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.probes import normalize_probe_payload
 
 # SECURITY: CRM webhook endpoints are server-to-server calls from
 # Salesforce/HubSpot. Authentication is via HMAC signature verification,
@@ -886,9 +887,11 @@ async def hubspot_webhook(
 @router.get("/health")
 async def webhook_health() -> dict[str, Any]:
     """Health check endpoint for webhook monitoring."""
-    return webhook_healthResult.model_validate({
-        "status": "healthy",
-        "webhooks": ["salesforce", "hubspot"],
-    }).model_dump()
+    payload = normalize_probe_payload(
+        status="healthy",
+        service="layer4-agents",
+        extra={"webhooks": ["salesforce", "hubspot"]},
+    )
+    return webhook_healthResult.model_validate(payload).model_dump()
 
 

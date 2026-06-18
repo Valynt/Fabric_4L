@@ -1,5 +1,6 @@
 """Tests for JWT encode/decode helpers (shared/identity/jwt.py)."""
 
+import json
 import os
 import time
 from unittest.mock import patch
@@ -7,16 +8,20 @@ from uuid import uuid4
 
 import jwt as pyjwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import HTTPException
 
 from ..jwt import TokenClaims, _get_jwt_secret, decode_jwt, encode_jwt
 
 
 # Use a fixed secret across all tests to avoid env-var interference
-_TEST_SECRET = "test-jwt-secret-for-unit-tests"
+_TEST_SECRET = "test-jwt-secret-for-unit-tests-32"
 _TEST_TENANT = uuid4()
 _TEST_ISSUER = "value-fabric-internal"
 _TEST_AUDIENCE = "value-fabric-services"
+_TEST_CLERK_ISSUER = "https://clerk.fabric4l.test"
+_TEST_CLERK_AUDIENCE = "fabric4l-api"
+_TEST_CLERK_ORIGIN = "http://localhost:3001"
 
 
 @pytest.fixture(autouse=True)
@@ -214,6 +219,25 @@ class TestDecodeJwt:
         with patch.dict(os.environ, env_overrides, clear=False):
             assert decode_jwt(token) is None
 
+    def test_clerk_token_accepts_configured_authorized_party(self):
+        token, env = _make_clerk_rs256_token(azp=_TEST_CLERK_ORIGIN)
+        with patch.dict(os.environ, env, clear=False):
+            claims = decode_jwt(token)
+
+        assert claims is not None
+        assert claims.tenant_id == str(_TEST_TENANT)
+        assert claims.extra_claims["azp"] == _TEST_CLERK_ORIGIN
+
+    def test_clerk_token_rejects_unconfigured_authorized_party(self):
+        token, env = _make_clerk_rs256_token(azp="https://attacker.example")
+        with patch.dict(os.environ, env, clear=False):
+            assert decode_jwt(token) is None
+
+    def test_clerk_token_rejects_missing_authorized_party_when_configured(self):
+        token, env = _make_clerk_rs256_token(azp=None)
+        with patch.dict(os.environ, env, clear=False):
+            assert decode_jwt(token) is None
+
 
 class TestJwtSecretPolicy:
     """Tests for fail-closed JWT secret policy."""
@@ -231,3 +255,41 @@ class TestJwtSecretPolicy:
         with patch.dict(os.environ, {"APP_ENV": "test"}, clear=True):
             with pytest.raises(RuntimeError, match="JWT_SECRET is required"):
                 encode_jwt(_TEST_TENANT)
+
+
+def _make_clerk_rs256_token(*, azp: str | None) -> tuple[str, dict[str, str]]:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_jwk = json.loads(pyjwt.algorithms.RSAAlgorithm.to_jwk(private_key.public_key()))
+    public_jwk.update({"kid": "clerk-test-key", "alg": "RS256", "use": "sig"})
+    now = int(time.time())
+    payload = {
+        "sub": "user_clerk_123",
+        "tenant_id": str(_TEST_TENANT),
+        "org_id": "org_clerk_123",
+        "roles": ["analyst"],
+        "iss": _TEST_CLERK_ISSUER,
+        "aud": _TEST_CLERK_AUDIENCE,
+        "iat": now,
+        "nbf": now,
+        "exp": now + 3600,
+    }
+    if azp is not None:
+        payload["azp"] = azp
+
+    token = pyjwt.encode(
+        payload,
+        private_key,
+        algorithm="RS256",
+        headers={"kid": "clerk-test-key"},
+    )
+    env = {
+        "CLERK_ISSUER": _TEST_CLERK_ISSUER,
+        "CLERK_JWT_AUDIENCE": _TEST_CLERK_AUDIENCE,
+        "CLERK_AUTHORIZED_PARTIES": _TEST_CLERK_ORIGIN,
+        "OIDC_JWKS_JSON": json.dumps({"keys": [public_jwk]}),
+        "OIDC_ISSUER": "",
+        "OIDC_AUDIENCE": "",
+        "OIDC_JWKS_URL": "",
+        "CLERK_JWKS_URL": "",
+    }
+    return token, env

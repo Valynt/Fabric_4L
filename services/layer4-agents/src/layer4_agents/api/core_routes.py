@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.probes import normalize_probe_payload
 
 logger = logging.getLogger(__name__)
 
@@ -63,27 +64,30 @@ def register_core_routes(app: FastAPI) -> None:
         memory_info = psutil.virtual_memory()
         executor_ready = runtime_state.workflow_executor is not None
 
-        return health_checkResult.model_validate({
-            "status": "healthy",
-            "service": "layer4-agents",
-            "version": "0.2.0",
-            "timestamp": datetime.now(UTC).isoformat(),
-            "executor_ready": executor_ready,
-            "uptime_seconds": uptime,
-            "dependencies": [
+        payload = normalize_probe_payload(
+            status="healthy",
+            service="layer4-agents",
+            dependencies=[
                 {
                     "name": "workflow_executor",
                     "status": "healthy" if executor_ready else "degraded",
                     "failure_reason": None if executor_ready else "workflow_executor_unavailable",
                 }
             ],
-            "metrics": {
-                "memory_usage_mb": memory_info.used / (1024 * 1024),
-                "cpu_percent": psutil.cpu_percent(),
-                "active_connections": 0,
-                "total_requests": 0,
+            extra={
+                "version": "0.2.0",
+                "timestamp": datetime.now(UTC).isoformat(),
+                "executor_ready": executor_ready,
+                "uptime_seconds": uptime,
+                "metrics": {
+                    "memory_usage_mb": memory_info.used / (1024 * 1024),
+                    "cpu_percent": psutil.cpu_percent(),
+                    "active_connections": 0,
+                    "total_requests": 0,
+                },
             },
-        })
+        )
+        return health_checkResult.model_validate(payload)
 
     @app.get("/metrics")
     async def metrics_endpoint(request: Request):

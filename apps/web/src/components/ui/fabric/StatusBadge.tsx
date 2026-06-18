@@ -59,6 +59,7 @@ export function StatusBadgeBlock({
 
   return (
     <span
+      aria-label={`Status: ${label ?? config.label}`}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full font-medium",
         size === "sm" ? "text-xs px-2 py-0.5" : "text-xs px-2.5 py-1",
@@ -66,7 +67,7 @@ export function StatusBadgeBlock({
         className,
       )}
     >
-      <Icon className={size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3"} />
+      <Icon className={size === "sm" ? "w-2.5 h-2.5" : "w-3 h-3"} aria-hidden="true" />
       {label ?? config.label}
     </span>
   );
@@ -149,6 +150,7 @@ export function StatusBadge({ children, variant = "default", status, className }
   return (
     <Badge
       variant={isCustom ? "secondary" : resolvedVariant as "default" | "secondary" | "outline" | "destructive"}
+      aria-label={typeof resolvedChildren === "string" ? `Status: ${resolvedChildren}` : undefined}
       className={cn("vf-text-caption px-2 py-0.5 rounded-full font-medium", isCustom && variantStyles[resolvedVariant], className)}
     >
       {resolvedChildren}

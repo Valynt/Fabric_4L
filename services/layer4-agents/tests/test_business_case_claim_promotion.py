@@ -7,13 +7,14 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.services.export_provenance import build_export_provenance_manifest
 from layer4_agents.workflows.business_case import (
     BusinessCaseGeneratorWorkflow,
     MissingTenantContextError,
+    _to_layer5_claim_type,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class _FakeLayer5Client_list_truthsResult(TypedDictModel):
@@ -31,9 +32,12 @@ class _FakeLayer5Client_sync_validated_truthsResult(TypedDictModel):
 
 
 class _FakeLayer5Client:
+    last_instance: "_FakeLayer5Client | None" = None
+
     def __init__(self, *args, **kwargs):
         self.created_truths: list[dict] = []
         self.validations: list[dict] = []
+        _FakeLayer5Client.last_instance = self
 
     async def list_truths(self, **kwargs):
         return {"items": []}
@@ -103,6 +107,16 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     assert result["truth_object_ids"]
     assert result["case_metadata"]["truth_object_ids"] == result["truth_object_ids"]
     assert result["case_metadata"]["claim_traceability"]
+    fake_client = _FakeLayer5Client.last_instance
+    assert fake_client is not None
+    created_claim_types = {truth["claim_type"] for truth in fake_client.created_truths}
+    assert "roi_assumption" not in created_claim_types
+    assert "metric" not in created_claim_types
+    assert created_claim_types <= {
+        "value_driver_metric",
+        "cost_savings_baseline",
+        "customer_outcome",
+    }
     assert any(
         d["decision"] in {"promoted", "existing"} for d in result["case_metadata"]["threshold_decisions"]
     )
@@ -183,6 +197,12 @@ def test_export_manifest_reads_persisted_case_linkage():
     assert manifest["source_references"] == [{"pointer": "truth-123", "type": "claim", "locator": None}]
 
 
+def test_layer4_claim_type_mapping_fails_closed_for_unknown_values():
+    assert _to_layer5_claim_type("metric") == "value_driver_metric"
+    with pytest.raises(ValueError, match="Unmapped Layer 4 claim_type"):
+        _to_layer5_claim_type("legacy_unknown")
+
+
 def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
     workflow = BusinessCaseGeneratorWorkflow(tool_registry=AsyncMock())
     state = workflow.create_initial_state(
@@ -194,7 +214,12 @@ def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
         },
         tenant_id="test-tenant",
     )
+    # Simulate a forged runtime context: the raw tenant_id is present but the
+    # authenticated claim has been cleared. Only the authenticated claim is
+    # trusted by _resolve_organization_id.
     state.metadata["tenant_id"] = "forged-metadata-tenant"
+    state.metadata.pop("authenticated_tenant_id", None)
+    state.tenant_id = ""
 
     with pytest.raises(MissingTenantContextError):
         workflow._resolve_organization_id(state)

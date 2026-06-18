@@ -123,7 +123,13 @@ def build_lifespan(
 
         # The tool registry must share the production Redis client so that
         # idempotent tool results survive pod restarts.
-        tool_registry = create_default_registry(redis_client=startup_redis_client)
+        tool_config = {
+            "neo4j_uri": os.getenv("NEO4J_URI", "bolt://neo4j:7687"),
+            "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
+            "neo4j_password": os.getenv("NEO4J_PASSWORD"),
+            "database": os.getenv("NEO4J_DATABASE", "valuefabric"),
+        }
+        tool_registry = create_default_registry(config=tool_config, redis_client=startup_redis_client)
 
         redis_status = await check_redis_ready(getattr(runtime_state.state_manager, "redis_client", None))
         if not redis_status.ok:
@@ -225,14 +231,17 @@ async def start_optional_integrations(app: FastAPI) -> None:
             await runtime_state.crm_sync_job_runner.start()
 
     if get_settings().enable_oidc_cleanup:
-        from ..database import get_db_from_context
+        from ..database import get_session_factory
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
-            db_session_factory=get_db_from_context,
+            db_session_factory=get_session_factory(),
             interval_seconds=300.0,
         )
 
-    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
-    from ..database import get_db_from_context
+    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001).
+    # Background tasks need a plain async-session factory (async context manager),
+    # not the request-scoped get_db_from_context() dependency which is an async
+    # generator and requires a RequestContext.
+    from ..database import get_session_factory
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
-    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_session_factory())
     await runtime_state.gate_timeout_scheduler.start()

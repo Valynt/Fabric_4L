@@ -10,6 +10,8 @@
 # Documentation
 *.md
 docs/
+# Keep versioned prompt templates (they are required at runtime)
+!prompts/**/*.md
 
 # Python
 __pycache__

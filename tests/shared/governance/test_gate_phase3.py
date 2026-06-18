@@ -12,13 +12,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
-from typing import Any
 
 import jsonschema
 import pytest
 
 from value_fabric.shared.audit.models import MemoryAccessRecord, ReplaySnapshotRecord
-from value_fabric.shared.crypto.canonical import canonical_hash
 from value_fabric.shared.governance.memory_gateway import MemoryGateway
 from value_fabric.shared.governance.replay import ReplayRecorder
 
@@ -158,8 +156,8 @@ class TestReplayRecorder:
         assert snapshot["memory_access_count"] == 1
         assert len(snapshot["snapshot_hash"]) == 64
 
-    def test_snapshot_hash_deterministic(self) -> None:
-        """Same inputs must produce the same snapshot hash."""
+    def test_snapshot_hash_is_valid_hex(self) -> None:
+        """The snapshot hash must be a valid 64-character hex string."""
         abom = _make_mock_abom()
 
         def _build() -> str:
@@ -171,8 +169,8 @@ class TestReplayRecorder:
             r.record_tool_invocations([{"tool": "a"}])
             return r.build_snapshot()["snapshot_hash"]
 
-        # Note: timestamps differ, so hashes will differ.
-        # This test validates the hash is a valid 64-char hex string.
+        # Note: timestamps differ between calls, so hashes will differ.
+        # This test only validates the hash format, not determinism.
         h = _build()
         assert len(h) == 64
         assert all(c in "0123456789abcdef" for c in h)
@@ -200,6 +198,37 @@ class TestReplayRecorder:
 
         with pytest.raises(RuntimeError, match="already called"):
             await recorder.commit()
+
+    def test_snapshot_hash_deterministic_with_fixed_clock(self) -> None:
+        from value_fabric.shared.testability import FixedClock
+
+        clock = FixedClock()
+        abom = _make_mock_abom()
+
+        def _build() -> str:
+            r = ReplayRecorder(
+                agent_id="TestAgent-abcd1234",
+                agent_type="TestAgent",
+                abom=abom,
+                clock=clock,
+            )
+            r.record_tool_invocations([{"tool": "a"}])
+            r.record_memory_accesses([{"query": "q", "content_hash": "b" * 64}])
+            return r.build_snapshot()["snapshot_hash"]
+
+        assert _build() == _build()
+
+    def test_snapshot_includes_memory_accesses(self) -> None:
+        abom = _make_mock_abom()
+        r = ReplayRecorder(
+            agent_id="TestAgent-abcd1234",
+            agent_type="TestAgent",
+            abom=abom,
+        )
+        r.record_memory_accesses([{"query": "q", "content_hash": "c" * 64}])
+        snapshot = r.build_snapshot()
+        assert snapshot["memory_access_count"] == 1
+        assert snapshot["memory_accesses"][0]["query"] == "q"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -179,15 +179,25 @@ class QueryGraphTool(BaseTool):
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+            effective_tenant_id = tenant_ctx.tenant_id
         except TenantContextError as e:
-            logger.warning(f"Tenant context error in query_graph: {e}")
-            return QueryGraphOutput(
-                results=[],
-                columns=[],
-                row_count=0,
-                execution_time_ms=0,
-                error=f"Tenant context required: {e}. Authentication required."
+            # Workflow engine calls tools outside an HTTP request context.  Fall
+            # back to the tenant_id provided in the tool input or tool config.
+            fallback_tenant_id = getattr(input_data, "tenant_id", None) or (
+                self.config.get("tenant_id") if self.config else None
             )
+            if fallback_tenant_id:
+                effective_tenant_id = UUID(str(fallback_tenant_id))
+                logger.debug("Using fallback tenant_id for query_graph: %s", fallback_tenant_id)
+            else:
+                logger.warning(f"Tenant context error in query_graph: {e}")
+                return QueryGraphOutput(
+                    results=[],
+                    columns=[],
+                    row_count=0,
+                    execution_time_ms=0,
+                    error=f"Tenant context required: {e}. Authentication required."
+                )
         
         # P1-11 FIX: Validate query is read-only before execution
         validation_error = self._validate_read_only(input_data.cypher_query)
@@ -204,8 +214,8 @@ class QueryGraphTool(BaseTool):
         # P0 FIX: Inject tenant filter into Cypher query with proper alias detection
         try:
             scoped_query, node_alias = self._inject_tenant_filter(
-                input_data.cypher_query, 
-                tenant_ctx.tenant_id
+                input_data.cypher_query,
+                effective_tenant_id
             )
         except ValueError as e:
             # Query parsing failed, return structured error
@@ -219,9 +229,7 @@ class QueryGraphTool(BaseTool):
         
         # Log with tenant context for audit trail
         logger.info(
-            f"Executing Cypher query for tenant={tenant_ctx.tenant_id}, "
-            f"user={tenant_ctx.user_id}, "
-            f"source={tenant_ctx.source}"
+            f"Executing Cypher query for tenant={effective_tenant_id}"
         )
 
         driver = self._get_driver()
@@ -230,10 +238,10 @@ class QueryGraphTool(BaseTool):
 
         # P0 FIX: Override any tenant_id in parameters with authenticated context
         scoped_parameters = self._ensure_tenant_parameters(
-            input_data.parameters, 
-            tenant_ctx.tenant_id
+            input_data.parameters,
+            effective_tenant_id
         )
-        
+
         try:
             async with driver.session(database=self.database) as session:
                 result = await session.run(scoped_query, scoped_parameters)
@@ -254,7 +262,7 @@ class QueryGraphTool(BaseTool):
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            logger.error(f"Neo4j query failed for tenant={tenant_ctx.tenant_id}: {e}")
+            logger.error(f"Neo4j query failed for tenant={effective_tenant_id}: {e}")
             return QueryGraphOutput(
                 results=[],
                 columns=[],

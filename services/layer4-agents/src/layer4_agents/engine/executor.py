@@ -1509,8 +1509,15 @@ class OrchestrationController:
                 raise
             except asyncio.CancelledError:
                 raise
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "tenant_kill_switch_check_failed",
+                    extra={"tenant_id": tenant_id, "error": str(exc)},
+                )
+                raise WorkflowExecutionError(
+                    f"Tenant kill-switch check failed for {tenant_id}; "
+                    "blocking workflow execution as a fail-closed safety measure."
+                ) from exc
 
         await mark_workflow_running(
             state_manager=self.state_manager,
@@ -1527,19 +1534,46 @@ class OrchestrationController:
             timeout_seconds = float(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
             wf_type = task.parameters.get("workflow_type", "unknown")
             tenant_id_for_trace = task.get_tenant_id() or "unknown"
-            with _tracer.start_as_current_span(
-                "layer4.workflow.execute",
-                attributes={
-                    "workflow.id": workflow_id,
-                    "workflow.type": wf_type,
-                    "tenant.id": tenant_id_for_trace,
-                },
-            ) as span:
-                result = await asyncio.wait_for(
-                    workflow.run(initial_state, thread_id=workflow_id),
-                    timeout=timeout_seconds,
+
+            # Propagate an authenticated RequestContext into the workflow task so
+            # tools and LLM clients that depend on governance context do not fail
+            # with "No RequestContext is set" when running outside the HTTP
+            # request handler (e.g. scheduled/background workflow execution).
+            ctx_token = None
+            try:
+                from value_fabric.shared.identity.context import RequestContext, set_request_context
+
+                workflow_ctx = RequestContext(
+                    tenant_id=tenant_id_for_trace,
+                    user_id=task.context.get("user_id") or "workflow_executor",
+                    roles=["tenant_admin"],
+                    auth_source="workflow_execution",
+                    request_id=workflow_id,
+                    trace_id=task.context.get("trace_id") or workflow_id,
                 )
-                span.set_attribute("workflow.status", self._fmt_enum(result.status))
+                ctx_token = set_request_context(workflow_ctx)
+            except Exception as ctx_exc:
+                logger.warning("Failed to set workflow RequestContext: %s", ctx_exc)
+
+            try:
+                with _tracer.start_as_current_span(
+                    "layer4.workflow.execute",
+                    attributes={
+                        "workflow.id": workflow_id,
+                        "workflow.type": wf_type,
+                        "tenant.id": tenant_id_for_trace,
+                    },
+                ) as span:
+                    result = await asyncio.wait_for(
+                        workflow.run(initial_state, thread_id=workflow_id),
+                        timeout=timeout_seconds,
+                    )
+                    span.set_attribute("workflow.status", self._fmt_enum(result.status))
+            finally:
+                if ctx_token is not None:
+                    from value_fabric.shared.identity.context import _current_context
+
+                    _current_context.reset(ctx_token)
 
             if result.status == WorkflowStatus.COMPLETED:
                 validation = validate_final_output(result)

@@ -71,7 +71,10 @@ class TestHealth:
             with TestClient(app, raise_server_exceptions=False) as client:
                 resp = client.get("/health")
         assert resp.status_code == 200
-        assert resp.json() == {"status": "ok"}
+        payload = resp.json()
+        assert payload["status"] == "healthy"
+        assert payload["service"] == "billing"
+        assert payload["readiness"] == {"is_ready": True, "reason": "dependencies_available"}
 
 
 # ---------------------------------------------------------------------------

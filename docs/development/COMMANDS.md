@@ -136,6 +136,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-layer4-boundaries` | Check Layer 4 bounded-context dependencies. |
 | `check-layer3-legacy-tenant-dependency-imports` | Block legacy Layer 3 tenant dependency imports. |
 | `check-layer3-tenant-dependency-imports` | Compatibility alias for the legacy Layer 3 tenant import gate. |
+| `check-compatibility-shims` | Run the unified registry-driven compatibility shim gate. |
 | `check-raw-http-exception-usage` | Enforce raw `HTTPException` usage boundaries. |
 | `check-value-fabric-public-imports` | Enforce public import policy. |
 | `docs-harness` | Validate harness documentation artifacts. |
@@ -175,6 +176,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-layer1-crawler` | Run focused Layer 1 crawler tests. |
 | `test-layer1-router-cache` | Run focused Layer 1 router/cache tests. |
 | `test-layer1-benchmarks` | Run Layer 1 benchmark and performance tests. |
+| `test-layer1-router-benchmarks` | Run quarantined Layer 1 router benchmarks with explicit opt-in. |
 | `test-layer1-security-postgres` | Run Layer 1 PostgreSQL-backed security tests. |
 | `test-layer2` | Run Layer 2 tests. |
 | `test-layer2-5` | Run Layer 2.5 tests. |
@@ -233,6 +235,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-tool-contracts` | Validate tool error structure. |
 | `check-deprecated-tracer-imports` | Block deprecated tracer imports. |
 | `check-deprecations` | Check overdue deprecations. |
+| `check-compatibility-shims` | Run registry inventory compatibility checks across shim/deprecated guardrails. |
 | `gate-api-contracts` | API/platform contract readiness gate. |
 
 ### Migrations And Database

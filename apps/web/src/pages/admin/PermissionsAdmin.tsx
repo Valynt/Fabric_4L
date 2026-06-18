@@ -40,10 +40,12 @@ import {
 import {
   useUsers,
   useApiKeys,
+  useCreateApiKey,
   useRevokeApiKey,
   useInviteUser,
   type User,
   type ApiKey,
+  type ApiKeyCreateResponse,
 } from "@/hooks/useGovernance";
 import {
   AdminShell,
@@ -70,7 +72,15 @@ const STATUS_STYLES: Record<string, string> = {
   active:      "bg-success/10 text-success border-success/20",
   invited:     "bg-warning/10 text-warning border-warning/20",
   deactivated: "bg-destructive/10 text-destructive border-destructive/20",
+  expired:     "bg-warning/10 text-warning border-warning/20",
+  revoked:     "bg-destructive/10 text-destructive border-destructive/20",
 };
+
+function getApiKeyStatus(key: ApiKey): string {
+  if (key.revoked_at || !key.enabled) return "revoked";
+  if (key.expires_at && new Date(key.expires_at) < new Date()) return "expired";
+  return "active";
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -131,12 +141,19 @@ function PermissionsContent() {
     refetch: refetchKeys,
   } = useApiKeys();
 
+  const createKeyMutation = useCreateApiKey();
   const revokeMutation = useRevokeApiKey();
   const inviteMutation = useInviteUser();
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
+
+  const [showCreateKey, setShowCreateKey] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyRole, setNewKeyRole] = useState<ApiKey['role']>("analyst");
+  const [newKeyExpiryDays, setNewKeyExpiryDays] = useState<string>("");
+  const [revealedKey, setRevealedKey] = useState<ApiKeyCreateResponse | null>(null);
 
   const [confirmRevoke, setConfirmRevoke] = useState<{ open: boolean; keyId: string; keyName: string }>({
     open: false,
@@ -153,6 +170,30 @@ function PermissionsContent() {
       setInviteRole("member");
       refetchUsers();
     } catch (e) { /* error shown via mutation state */ }
+  };
+
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) return;
+    const expiresAt = newKeyExpiryDays
+      ? new Date(Date.now() + parseInt(newKeyExpiryDays, 10) * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+    try {
+      const response = await createKeyMutation.mutateAsync({
+        name: newKeyName.trim(),
+        role: newKeyRole,
+        expires_at: expiresAt,
+      });
+      setRevealedKey(response);
+      setNewKeyName("");
+      setNewKeyExpiryDays("");
+      refetchKeys();
+    } catch (e) { /* error shown via mutation state */ }
+  };
+
+  const closeCreateKey = () => {
+    setShowCreateKey(false);
+    setRevealedKey(null);
+    createKeyMutation.reset();
   };
 
   const handleRevokeConfirm = async () => {
@@ -212,30 +253,36 @@ function PermissionsContent() {
   const keyColumns: AdminDataTableColumn<ApiKey>[] = [
     { key: "name", header: "Key Name", render: (k) => <span className="font-medium text-foreground">{k.name}</span> },
     { key: "prefix", header: "Prefix", render: (k) => <span className="font-mono vf-text-caption text-muted-foreground">{k.prefix}•••</span> },
+    { key: "role", header: "Role", render: (k) => <RoleBadge role={k.role} /> },
     {
-      key: "enabled",
-      header: "Enabled",
-      render: (k) =>
-        k.is_enabled
-          ? <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 size={12} /> Active</span>
-          : <span className="inline-flex items-center gap-1 text-muted-foreground"><EyeOff size={12} /> Disabled</span>,
+      key: "status",
+      header: "Status",
+      render: (k) => {
+        const status = getApiKeyStatus(k);
+        return <StatusChip status={status} />;
+      },
     },
     { key: "created_at", header: "Created", render: (k) => <span className="text-muted-foreground">{formatDate(k.created_at)}</span> },
+    { key: "expires_at", header: "Expires", render: (k) => <span className="text-muted-foreground">{formatDate(k.expires_at)}</span> },
     { key: "last_used_at", header: "Last Used", render: (k) => <span className="text-muted-foreground">{formatDate(k.last_used_at)}</span> },
     {
       key: "actions",
       header: "",
       className: "w-16",
-      render: (k) => (
-        <AdminIconButtonGroup>
-          <AdminIconButton
-            icon={Trash2}
-            label="Revoke API key"
-            variant="destructive"
-            onClick={() => setConfirmRevoke({ open: true, keyId: k.id, keyName: k.name })}
-          />
-        </AdminIconButtonGroup>
-      ),
+      render: (k) => {
+        const status = getApiKeyStatus(k);
+        return (
+          <AdminIconButtonGroup>
+            <AdminIconButton
+              icon={Trash2}
+              label="Revoke API key"
+              variant="destructive"
+              disabled={status === "revoked"}
+              onClick={() => setConfirmRevoke({ open: true, keyId: k.key_id, keyName: k.name })}
+            />
+          </AdminIconButtonGroup>
+        );
+      },
     },
   ];
 
@@ -245,7 +292,7 @@ function PermissionsContent() {
       subtitle="Manage users, roles, and API keys for your tenant."
       fullWidth
       actions={
-        <Btn variant="primary" onClick={() => activeTab === "users" ? setShowInvite(true) : null}>
+        <Btn variant="primary" onClick={() => activeTab === "users" ? setShowInvite(true) : setShowCreateKey(true)}>
           {activeTab === "users"
             ? <><UserPlus size={13} className="mr-1" /> Invite User</>
             : <><Plus size={13} className="mr-1" /> New API Key</>
@@ -286,7 +333,7 @@ function PermissionsContent() {
         <AdminDataTable
           data={filteredKeys}
           columns={keyColumns}
-          keyExtractor={(k) => k.id}
+          keyExtractor={(k) => k.key_id}
           isLoading={keysLoading}
           error={keysError}
           onRetry={refetchKeys}
@@ -338,6 +385,95 @@ function PermissionsContent() {
             <Btn variant="primary" onClick={handleInvite} disabled={!inviteEmail || inviteMutation.isPending}>
               {inviteMutation.isPending ? "Sending…" : "Send Invite"}
             </Btn>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create API Key Dialog */}
+      <Dialog open={showCreateKey} onOpenChange={(open) => { if (!open) closeCreateKey(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="vf-heading-l font-semibold">
+              {revealedKey ? "API Key Created" : "Create API Key"}
+            </DialogTitle>
+            <DialogDescription className="vf-text-body-m">
+              {revealedKey
+                ? "Copy the key now. It will not be shown again."
+                : "Create a new API key for external integrations."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {revealedKey ? (
+            <div className="space-y-3 py-2">
+              <div className="rounded-md border border-warning/30 bg-warning/5 p-3">
+                <p className="vf-text-caption font-mono break-all text-foreground">{revealedKey.api_key}</p>
+              </div>
+              <p className="vf-text-caption text-muted-foreground">
+                Prefix: <span className="font-mono">{revealedKey.prefix}</span> · Role: {revealedKey.role.replace("_", " ")}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <div>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Name</label>
+                <Input
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="e.g. CI deployment"
+                />
+              </div>
+              <div>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Role</label>
+                <Select value={newKeyRole} onValueChange={(v) => setNewKeyRole(v as ApiKey['role'])}>
+                  <SelectTrigger className="w-full vf-text-body-s">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                    <SelectItem value="content_admin">Content Admin</SelectItem>
+                    <SelectItem value="analyst">Analyst</SelectItem>
+                    <SelectItem value="read_only">Read Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Expires in (days)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={newKeyExpiryDays}
+                  onChange={(e) => setNewKeyExpiryDays(e.target.value)}
+                  placeholder="Leave blank for no expiry"
+                />
+              </div>
+              {createKeyMutation.error && (
+                <p className="vf-text-caption text-destructive">
+                  {createKeyMutation.error instanceof Error ? createKeyMutation.error.message : "Failed to create API key"}
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            {revealedKey ? (
+              <>
+                <Btn variant="ghost" onClick={() => { navigator.clipboard.writeText(revealedKey.api_key); }}>
+                  Copy
+                </Btn>
+                <Btn variant="primary" onClick={closeCreateKey}>Done</Btn>
+              </>
+            ) : (
+              <>
+                <Btn variant="ghost" onClick={closeCreateKey}>Cancel</Btn>
+                <Btn
+                  variant="primary"
+                  onClick={handleCreateKey}
+                  disabled={!newKeyName.trim() || createKeyMutation.isPending}
+                >
+                  {createKeyMutation.isPending ? "Creating…" : "Create Key"}
+                </Btn>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

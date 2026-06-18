@@ -15,8 +15,6 @@
     "docs:check": "python -m pytest tests/docs/",
     "ops:runbooks:lint": "python scripts/ci/check_incident_runbooks.py --mode runbooks-lint",
     "ops:incident:check": "python scripts/ci/check_incident_runbooks.py --mode incident-check",
-    "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
-    "test": "python scripts/ci/run_root_aggregate_checks.py test",
     "test:observability": "python -m pytest tests/observability/ -v --tb=short",
     "test:reliability": "python -m pytest tests/reliability/ -v --tb=short",
     "test:recovery": "python -m pytest tests/recovery/ -v --tb=short",
@@ -35,7 +33,6 @@
     "lint:logs": "python scripts/ci/check_observability_coverage.py",
     "test:agents": "python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py",
     "readiness:10": "python scripts/ci/readiness_10_gate.py",
-    "test:security": "python -m pytest tests/security/ -v --tb=short",
     "test:critical-behaviors": "corepack pnpm --filter ./apps/web run test:critical-behaviors && python scripts/ci/check_route_auth_dependencies.py && python -m pytest tests/security/test_tenant_boundary_fails_closed.py tests/security/test_billing_tenant_boundary.py tests/security/test_hostile_tenant_endpoint_family_contracts.py services/layer2-extraction/tests/test_sse_streaming_behavior.py services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py -q",
     "test:critical-behaviors:validate-skips": "python scripts/ci/validate_critical_behavior_skips.py",
     "readiness:behavior-audit": "python scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json",
@@ -48,10 +45,7 @@
     "test:router": "python scripts/ci/run_root_aggregate_checks.py router",
     "db:extensions:check": "python scripts/ci/run_root_aggregate_checks.py db-extensions-check",
     "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
-    "db:migrate:check": "python scripts/ci/migration_status_report.py --mode check",
     "db:migrate:test": "python scripts/ci/check_migration_drift.py --round-trip",
-    "db:schema:diff": "python scripts/ci/migration_status_report.py --mode check",
-    "typecheck": "python scripts/ci/run_root_aggregate_checks.py typecheck",
     "check:default-scope": "node scripts/ci/check_default_scope.mjs",
     "preinstall": "node scripts/enforce-package-manager.cjs",
     "check:package-manager-policy": "node scripts/ci/check_package_manager_policy.mjs",
@@ -82,7 +76,7 @@
     "ops:quota:check": "python scripts/ci/check_quota_policy.py"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "packageManager": "pnpm@10.18.1",
   "pnpm": {

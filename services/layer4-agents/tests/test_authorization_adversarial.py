@@ -20,19 +20,18 @@ Date: 2026-05-27
 """
 
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
 from fastapi import FastAPI
-
-from layer4_agents.api.routes import accounts
-from value_fabric.shared.error_handling.handlers import register_exception_handlers
+from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.permissions import Role
 
+from layer4_agents.api.routes import accounts
 
 pytestmark = [
     pytest.mark.security,
@@ -55,8 +54,18 @@ async def list_no_accounts(self, **_kwargs):
     return [], 0
 
 
+_original_list_accounts = accounts.AccountService.list_accounts
+
+
+@pytest_asyncio.fixture(autouse=True)
+def _patch_account_service_for_adversarial_tests():
+    """Temporarily replace list_accounts so auth-layer tests remain isolated."""
+    accounts.AccountService.list_accounts = list_no_accounts
+    yield
+    accounts.AccountService.list_accounts = _original_list_accounts
+
+
 test_app.dependency_overrides[accounts.get_db_from_context] = override_db
-accounts.AccountService.list_accounts = list_no_accounts
 
 
 @pytest_asyncio.fixture

@@ -97,7 +97,10 @@ class PromptRegistry:
         prompts_root: Path | None = None,
         default_version: str = "v1",
     ) -> None:
-        self._root = prompts_root or _PROMPTS_ROOT
+        import os
+
+        env_root = os.getenv("LAYER4_PROMPTS_ROOT")
+        self._root = prompts_root or (Path(env_root) if env_root else _PROMPTS_ROOT)
         self._default_version = default_version
         self._cache: dict[str, PromptTemplate] = {}
 
