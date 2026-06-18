@@ -1,8 +1,14 @@
-
-import { PanelLeftClose, PanelLeftOpen, Search, Bell, User, LogOut, Settings, ChevronDown } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  LogOut,
+  Settings,
+  CreditCard,
+} from "lucide-react";
 import { useMatches, Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/react";
+import { SignInButton, SignUpButton, useAuth, useUser } from "@clerk/react";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import {
   DropdownMenu,
@@ -10,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,7 +35,7 @@ function useHeaderMeta(): { title: string; subtitle: string } {
   const matches = useMatches();
 
   // Find the deepest route that has handle metadata
-  const routeWithMeta = [...matches].reverse().find((m) => {
+  const routeWithMeta = [...matches].reverse().find(m => {
     const handle = m.handle as RouteHandle | undefined;
     return handle?.title || handle?.category;
   });
@@ -49,24 +56,51 @@ function useHeaderMeta(): { title: string; subtitle: string } {
 
   const formatted = lastSegment
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/\b\w/g, c => c.toUpperCase());
 
   return { title: formatted, subtitle: "" };
 }
 
 function ClerkAuthControl() {
-  // Hooks from @clerk/react may only be called inside <ClerkProvider>.
-  // In legacy mode the provider is not mounted, so render nothing and never
-  // reach the inner component that calls Clerk hooks.
   if (!isClerkAuthEnabled()) return null;
   return <ClerkAuthControlInner />;
 }
 
 function ClerkAuthControlInner() {
   const { isSignedIn } = useAuth();
+  const { user: clerkUser } = useUser();
+  const { logout } = useAuthContext();
+  const { currentTenantSlug } = useAuthContext();
 
-  if (isSignedIn) {
-    return <UserButton />;
+  if (isSignedIn && clerkUser) {
+    const displayName =
+      clerkUser.firstName ||
+      clerkUser.fullName ||
+      clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+      "User";
+
+    const email = clerkUser.primaryEmailAddress?.emailAddress ?? "";
+
+    const initials = displayName
+      .split(/[\s.]+/)
+      .map(n => n[0]?.toUpperCase())
+      .join("")
+      .slice(0, 1);
+
+    const billingPath = currentTenantSlug
+      ? `/t/${currentTenantSlug}/settings/billing`
+      : "/settings";
+
+    return (
+      <UserMenuDropdown
+        displayName={displayName}
+        email={email}
+        initials={initials}
+        settingsPath="/settings"
+        billingPath={billingPath}
+        onLogout={logout}
+      />
+    );
   }
 
   return (
@@ -91,70 +125,102 @@ function ClerkAuthControlInner() {
   );
 }
 
-function UserMenu() {
-  const { user, logout } = useAuthContext();
+interface UserMenuDropdownProps {
+  displayName: string;
+  email: string;
+  initials: string;
+  settingsPath: string;
+  billingPath: string;
+  onLogout: () => void;
+}
 
-  if (!user) return null;
-
-  const initials = user.email
-    .split("@")[0]
-    .split(".")
-    .map((n) => n[0]?.toUpperCase())
-    .join("")
-    .slice(0, 2);
-
+function UserMenuDropdown({
+  displayName,
+  email,
+  initials,
+  settingsPath,
+  billingPath,
+  onLogout,
+}: UserMenuDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center gap-2 rounded-md border px-2 hover:bg-accent"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:opacity-80"
           aria-label="User menu"
         >
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="vf-text-micro bg-primary/10 text-primary">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-amber-800 text-sm font-medium text-white">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <span className="hidden max-w-[120px] truncate text-sm text-muted-foreground md:inline">
-            {user.email.split("@")[0]}
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user.email}</p>
-            <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          <div className="flex flex-col space-y-0.5">
+            <p className="text-sm font-semibold">{displayName}</p>
+            <p className="text-xs text-muted-foreground">{email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/personal/profile" className="cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/personal/notifications" className="cursor-pointer">
-            <Bell className="mr-2 h-4 w-4" />
-            Notifications
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/personal/preferences" className="cursor-pointer">
+          <Link to={settingsPath} className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            Preferences
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to={billingPath} className="cursor-pointer">
+            <CreditCard className="mr-2 h-4 w-4" />
+            Billing
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          onClick={onLogout}
+          className="cursor-pointer text-destructive focus:text-destructive"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Log out
+          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function LegacyUserMenu() {
+  const { user, logout, currentTenantSlug } = useAuthContext();
+
+  if (!user) return null;
+
+  const displayName = user.email
+    .split("@")[0]
+    .split(".")
+    .map(n => n.charAt(0).toUpperCase() + n.slice(1))
+    .join(" ");
+
+  const initials = displayName
+    .split(/[\s.]+/)
+    .map(n => n[0]?.toUpperCase())
+    .join("")
+    .slice(0, 1);
+
+  const billingPath = currentTenantSlug
+    ? `/t/${currentTenantSlug}/settings/billing`
+    : "/settings";
+
+  return (
+    <UserMenuDropdown
+      displayName={displayName}
+      email={user.email}
+      initials={initials}
+      settingsPath="/settings"
+      billingPath={billingPath}
+      onLogout={logout}
+    />
   );
 }
 
@@ -171,7 +237,9 @@ export function AppHeader({
           type="button"
           onClick={onToggleLeftNav}
           className="hidden h-9 w-9 items-center justify-center rounded-md border hover:bg-accent md:inline-flex"
-          aria-label={leftNavCollapsed ? "Expand navigation" : "Collapse navigation"}
+          aria-label={
+            leftNavCollapsed ? "Expand navigation" : "Collapse navigation"
+          }
         >
           {leftNavCollapsed ? (
             <PanelLeftOpen className="h-4 w-4" />
@@ -199,7 +267,7 @@ export function AppHeader({
           Search
         </button>
 
-        <ClerkAuthControl />
+        {isClerkAuthEnabled() ? <ClerkAuthControl /> : <LegacyUserMenu />}
       </div>
     </header>
   );

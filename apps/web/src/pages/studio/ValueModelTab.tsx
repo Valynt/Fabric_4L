@@ -5,7 +5,6 @@
  * DIL enrichment: ROI calculator for financial modeling + industry benchmarks
  */
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
 import { Settings2, Calculator, TrendingUp, BarChart3 } from "lucide-react";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
@@ -18,6 +17,7 @@ import {
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
 import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -125,8 +125,7 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark | null }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function ValueModelTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function ValueModelTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -221,7 +220,7 @@ export default function ValueModelTab() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       {lines.length === 0 ? (
         <SectionCard title="Value Breakdown">
           <div className="text-sm text-muted-foreground">
@@ -364,6 +363,6 @@ export default function ValueModelTab() {
           <BenchmarkCard benchmark={benchmark} />
         </>
       )}
-    </>
+    </div>
   );
 }

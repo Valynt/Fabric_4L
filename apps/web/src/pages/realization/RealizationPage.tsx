@@ -8,7 +8,6 @@
  * dedicated realization backend is built in a future phase.
  */
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
 import {
   TrendingUp,
   CheckCircle2,
@@ -31,6 +30,7 @@ import { useNavigation } from "@/hooks";
 import { createNextAction } from "@/components/workspace/nextAction";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,10 +148,8 @@ const MILESTONE_ICON: Record<MilestoneStatus, React.ReactNode> = {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function RealizationPage() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
+export default function RealizationPage({ accountId }: StudioTabProps) {
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { navigateTo } = useNavigation();
 
   const { data: hypothesesData, isLoading: hypothesesLoading } = useAccountHypotheses(

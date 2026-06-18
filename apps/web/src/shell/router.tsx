@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -7,6 +7,7 @@ import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import { EmptyState } from "@/components/states/EmptyState";
 import CommandCenter from "@/pages/CommandCenter";
@@ -51,6 +52,7 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 
 const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
 const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
+const ClerkSsoCallbackPage = lazy(() => import("@/pages/ClerkSsoCallback"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
@@ -108,6 +110,8 @@ const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 
+export const VALUEPACT_PUBLIC_SITE_URL = "https://valuepact.ai";
+
 function AcademyFollowUpState({ title, description }: { title: string; description: string }) {
   return (
     <div className="p-6">
@@ -119,7 +123,7 @@ function AcademyFollowUpState({ title, description }: { title: string; descripti
 export function RootRedirect() {
   return (
     <RootAuthStateAdapter>
-      {({ isLoading, isAuthenticated, unauthenticatedRedirectTo }) => {
+      {({ isLoading, isAuthenticated }) => {
         if (isLoading) {
           return (
             <div className="flex h-full min-h-[200px] items-center justify-center">
@@ -131,10 +135,27 @@ export function RootRedirect() {
         return isAuthenticated ? (
           <Navigate to="/home" replace />
         ) : (
-          <Navigate to={unauthenticatedRedirectTo} replace />
+          <ExternalRootRedirect />
         );
       }}
     </RootAuthStateAdapter>
+  );
+}
+
+function ExternalRootRedirect() {
+  useEffect(() => {
+    if (import.meta.env.MODE === "test") {
+      return;
+    }
+    window.location.assign(VALUEPACT_PUBLIC_SITE_URL);
+  }, []);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <a className="text-sm text-primary underline-offset-4 hover:underline" href={VALUEPACT_PUBLIC_SITE_URL}>
+        Continue to ValuePact
+      </a>
+    </div>
   );
 }
 
@@ -196,6 +217,9 @@ export function LegacyFlatRedirect() {
   }
 
   if (!currentTenantSlug) {
+    if (isClerkAuthEnabled()) {
+      return <Navigate to="/workspaces" replace />;
+    }
     return <Navigate to="/home" replace />;
   }
 
@@ -247,6 +271,10 @@ const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tr
 
 export const router = createBrowserRouter([
   {
+    path: "/",
+    element: <RootRedirect />,
+  },
+  {
     path: "/sign-in/*",
     element: <ClerkSignInPage />,
     handle: { accessPolicy: authPolicy },
@@ -264,6 +292,11 @@ export const router = createBrowserRouter([
   {
     path: "/sign-up/*",
     element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/sso-callback/*",
+    element: <ClerkSsoCallbackPage />,
     handle: { accessPolicy: authPolicy },
   },
   {
@@ -296,10 +329,6 @@ export const router = createBrowserRouter([
       </RequireClerkAuth>
     ),
     children: [
-      {
-        path: "/",
-        element: <RootRedirect />,
-      },
       {
         path: "/dashboard",
         element: <Navigate to="/home" replace />,
@@ -464,7 +493,11 @@ export const router = createBrowserRouter([
             <Navigate to="action-plan" replace />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
@@ -475,7 +508,11 @@ export const router = createBrowserRouter([
             </Suspense>
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
+        handle: {
+          accessPolicy: accountStdPolicy("studio.workspace"),
+          title: "Value Studio",
+          category: "Workspace",
+        },
       },
 
       // ═══════════════════════════════════════════════════════════════
@@ -533,7 +570,11 @@ export const router = createBrowserRouter([
             <CFOView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.cfo-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.cfo-view"),
+          title: "CFO View",
+          category: "Deliverables",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive",
@@ -542,7 +583,11 @@ export const router = createBrowserRouter([
             <ExecutiveView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.executive-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.executive-view"),
+          title: "Executive View",
+          category: "Deliverables",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical",
@@ -551,7 +596,11 @@ export const router = createBrowserRouter([
             <TechnicalView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.technical-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.technical-view"),
+          title: "Technical View",
+          category: "Deliverables",
+        },
       },
 
       // ═══════════════════════════════════════════════════════════════

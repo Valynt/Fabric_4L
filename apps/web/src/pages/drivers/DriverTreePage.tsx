@@ -6,7 +6,7 @@
  * Tabs: Trees | Evidence | Alternatives | Solution Cost
  */
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAccount } from "@/hooks/useAccounts";
 import { useAccountHypotheses } from "@/hooks/useHypotheses";
 import { useValueTreePaths } from "@/hooks/useValueTrees";
@@ -21,6 +21,7 @@ import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Btn } from "@/components/ui/fabric";
 import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 const ENABLE_EXPERIMENTAL_DRIVER_TABS =
   import.meta.env.VITE_ENABLE_DRIVER_TREE_EXPERIMENTAL_TABS === "true";
@@ -38,9 +39,7 @@ const DRIVER_SUB_TABS: { key: DriverSubTab; label: string }[] = [
     : []),
 ];
 
-export default function DriverTreePage() {
-  const params = useParams<{ accountId: string }>();
-  const { accountId } = params;
+export default function DriverTreePage({ accountId }: StudioTabProps) {
   const { navigateTo } = useNavigation();
   const location = useLocation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);

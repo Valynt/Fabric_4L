@@ -9,7 +9,8 @@ const mockClerkState = {
   isSignedIn: false,
   userLoaded: true,
   user: null as { id: string; primaryEmailAddress?: { emailAddress?: string } | null; organizationMemberships?: Array<{ organization: { id: string }; role: string }> } | null,
-  organization: null as { id: string; slug: string } | null,
+  organizationLoaded: true,
+  organization: null as { id: string; slug?: string | null } | null,
   signOut: vi.fn(async (_options?: { redirectUrl?: string }) => undefined),
 };
 
@@ -24,6 +25,7 @@ vi.mock("@clerk/react", () => ({
     user: mockClerkState.user,
   }),
   useOrganization: () => ({
+    isLoaded: mockClerkState.organizationLoaded,
     organization: mockClerkState.organization,
   }),
   useClerk: () => ({
@@ -32,11 +34,12 @@ vi.mock("@clerk/react", () => ({
 }));
 
 function Probe() {
-  const { isAuthenticated, isLoading, logout } = useAuthContext();
+  const { isAuthenticated, isLoading, currentTenantSlug, logout } = useAuthContext();
   return (
     <div>
       <div data-testid="auth">{isAuthenticated ? "yes" : "no"}</div>
       <div data-testid="loading">{isLoading ? "yes" : "no"}</div>
+      <div data-testid="tenant">{currentTenantSlug ?? "none"}</div>
       <button type="button" onClick={() => void logout()}>
         logout
       </button>
@@ -65,6 +68,7 @@ describe("Auth behavior invariants", () => {
     mockClerkState.authLoaded = true;
     mockClerkState.userLoaded = true;
     mockClerkState.isSignedIn = false;
+    mockClerkState.organizationLoaded = true;
     mockClerkState.user = null;
     mockClerkState.organization = null;
     mockClerkState.signOut.mockClear();
@@ -121,5 +125,46 @@ describe("Auth behavior invariants", () => {
     await userEvent.click(screen.getByRole("button", { name: "logout" }));
 
     expect(mockClerkState.signOut).toHaveBeenCalledWith({ redirectUrl: "/" });
+  });
+
+  it("keeps signed-in Clerk auth loading until active organization state resolves", () => {
+    setAuthProvider("clerk");
+    mockClerkState.authLoaded = true;
+    mockClerkState.userLoaded = true;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organizationLoaded = false;
+    mockClerkState.organization = null;
+    mockClerkState.user = {
+      id: "user_1",
+      primaryEmailAddress: { emailAddress: "alice@example.com" },
+      organizationMemberships: [],
+    };
+
+    renderProbe();
+
+    expect(screen.getByTestId("loading").textContent).toBe("yes");
+    expect(screen.getByTestId("auth").textContent).toBe("yes");
+  });
+
+  it("falls back to Clerk organization id when the active organization has no slug", () => {
+    setAuthProvider("clerk");
+    mockClerkState.authLoaded = true;
+    mockClerkState.userLoaded = true;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organizationLoaded = true;
+    mockClerkState.organization = { id: "org_without_slug", slug: null };
+    mockClerkState.user = {
+      id: "user_1",
+      primaryEmailAddress: { emailAddress: "alice@example.com" },
+      organizationMemberships: [
+        { organization: { id: "org_without_slug" }, role: "admin" },
+      ],
+    };
+
+    renderProbe();
+
+    expect(screen.getByTestId("loading").textContent).toBe("no");
+    expect(screen.getByTestId("auth").textContent).toBe("yes");
+    expect(screen.getByTestId("tenant").textContent).toBe("org_without_slug");
   });
 });

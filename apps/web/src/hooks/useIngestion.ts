@@ -181,6 +181,7 @@ export function useIngestionJobs() {
 
 interface RecentIngestionJobsOptions {
   suppressAuthRedirect?: boolean;
+  enabled?: boolean;
 }
 
 export function useRecentIngestionJobs(
@@ -198,8 +199,10 @@ export function useRecentIngestionJobs(
       const jobs = parseIngestionJobs(response.data.data);
       return jobs.map(mapIngestionJob);
     },
+    enabled: options.enabled ?? true,
+    retry: options.suppressAuthRedirect ? false : undefined,
     staleTime: STALE_TIME.poll,
-    refetchInterval: POLL_INTERVALS.ingestion,
+    refetchInterval: options.suppressAuthRedirect ? false : POLL_INTERVALS.ingestion,
   });
 }
 

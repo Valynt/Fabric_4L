@@ -41,7 +41,7 @@ export function VirtualList<T>({
   return (
     <div
       ref={parentRef}
-      className={cn("overflow-auto", className)}
+      className={cn("h-full overflow-auto", className)}
       style={{ contain: "strict" }}
     >
       <div

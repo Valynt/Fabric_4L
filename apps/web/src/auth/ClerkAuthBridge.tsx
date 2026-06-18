@@ -24,7 +24,6 @@ import {
   Fragment,
   useEffect,
   useRef,
-  useState,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -68,7 +67,6 @@ export function ClerkAuthBridge({
 
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
-  const [tokenReady, setTokenReady] = useState(false);
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -82,12 +80,10 @@ export function ClerkAuthBridge({
   //    boolean transitions, not on `getToken` identity.
   useEffect(() => {
     if (!authLoaded) {
-      setTokenReady(false);
       return;
     }
     if (!isSignedIn) {
       setClerkTokenGetter(null);
-      setTokenReady(true);
       return;
     }
 
@@ -102,27 +98,21 @@ export function ClerkAuthBridge({
         skipCache: options?.skipCache,
       });
     });
-    setTokenReady(true);
 
     // Effect cleanup runs on sign-in→sign-out transitions AND on unmount.
     // In either case we MUST drop the getter so a stale closure cannot
     // mint a Bearer header for a no-longer-signed-in session.
     return () => {
       setClerkTokenGetter(null);
-      setTokenReady(false);
     };
   }, [authLoaded, isSignedIn]);
-
-  if (!authLoaded || !tokenReady) {
-    return null;
-  }
 
   // 2) Track active org only when signed in to avoid Clerk useOrganization
   //    dev warning on the sign-in page. Clear on unmount so HMR / layout
   //    swaps do not leak a stale org id into the module-scope bridge state.
   //    Also call syncTenant so the accountContextStore purges any persisted
   //    account selection that belongs to a different tenant (P1-010).
-  if (!isSignedIn) {
+  if (!authLoaded || !isSignedIn) {
     return <>{children}</>;
   }
 

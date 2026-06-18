@@ -44,6 +44,7 @@ import {
   makeUseTestVariableBinding,
   makeUseUsers,
   makeUseApiKeys,
+  makeUseCreateApiKey,
   makeUseRevokeApiKey,
   makeUseInviteUser,
   makeUsePlatformSettings,
@@ -67,6 +68,7 @@ let mockUseValidateVariable = makeUseValidateVariable();
 let mockUseTestVariableBinding = makeUseTestVariableBinding();
 let mockUseUsers = makeUseUsers();
 let mockUseApiKeys = makeUseApiKeys();
+let mockUseCreateApiKey = makeUseCreateApiKey();
 let mockUseRevokeApiKey = makeUseRevokeApiKey();
 let mockUseInviteUser = makeUseInviteUser();
 let mockUsePlatformSettings = makeUsePlatformSettings();
@@ -103,6 +105,7 @@ vi.mock('@/hooks/useVariables', () => ({
 vi.mock('@/hooks/useGovernance', () => ({
   useUsers: () => mockUseUsers(),
   useApiKeys: () => mockUseApiKeys(),
+  useCreateApiKey: () => mockUseCreateApiKey(),
   useRevokeApiKey: () => mockUseRevokeApiKey(),
   useInviteUser: () => mockUseInviteUser(),
 }));
@@ -151,6 +154,7 @@ beforeEach(() => {
   mockUseTestVariableBinding = makeUseTestVariableBinding();
   mockUseUsers = makeUseUsers();
   mockUseApiKeys = makeUseApiKeys();
+  mockUseCreateApiKey = makeUseCreateApiKey();
   mockUseRevokeApiKey = makeUseRevokeApiKey();
   mockUseInviteUser = makeUseInviteUser();
   mockUsePlatformSettings = makeUsePlatformSettings();
@@ -509,6 +513,91 @@ describe('PermissionsAdmin', () => {
     await waitFor(() => {
       expect(screen.getByText('Revoke API Key')).toBeInTheDocument();
       expect(screen.getByText(/Tenant scope/i)).toBeInTheDocument();
+    });
+  }, 10_000);
+
+  it('lists API keys with prefix, role, status, created, expiry, and last used', async () => {
+    const wrapper = createWrapper();
+    render(<PermissionsAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Primary Key')).toBeInTheDocument();
+      expect(screen.getByText('pk_live_•••')).toBeInTheDocument();
+      expect(screen.getAllByText('active').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('revoked')).toBeInTheDocument();
+    });
+  }, 10_000);
+
+  it('disables revoke action for already revoked keys', async () => {
+    const wrapper = createWrapper();
+    render(<PermissionsAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+
+    await waitFor(() => screen.getByText('Revoked Key'));
+    const rows = screen.getAllByRole('row');
+    const revokedRow = rows.find((row) => row.textContent?.includes('Revoked Key'));
+    expect(revokedRow).toBeDefined();
+    const revokeBtn = revokedRow?.querySelector('button[aria-label="Revoke API key"]');
+    expect(revokeBtn).toBeDisabled();
+  }, 10_000);
+
+  it('creates an API key and reveals the raw secret once with copy support', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const user = userEvent.setup();
+    const wrapper = createWrapper();
+    render(<PermissionsAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getByText('Primary Key'));
+
+    await user.click(screen.getByRole('button', { name: /New API Key/i }));
+    await waitFor(() => screen.getByText('Create API Key'));
+
+    await user.type(screen.getByPlaceholderText(/CI deployment/i), 'CI Key');
+    await user.click(screen.getByRole('button', { name: /^Create Key$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('API Key Created')).toBeInTheDocument();
+      expect(screen.getByText('vf_testsecretvalue_12345')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Copy/i }));
+    expect(writeText).toHaveBeenCalledWith('vf_testsecretvalue_12345');
+  }, 10_000);
+
+  it('revokes an API key after tenant-scoped confirmation', async () => {
+    const revokeAsync = vi.fn().mockResolvedValue(undefined);
+    mockUseRevokeApiKey = makeUseRevokeApiKey({ mutateAsync: revokeAsync });
+
+    const user = userEvent.setup();
+    const wrapper = createWrapper();
+    render(<PermissionsAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^API Keys/i }));
+    await user.click(screen.getByRole('tab', { name: /^API Keys/i }));
+    await waitFor(() => screen.getByText('Primary Key'));
+
+    const revokeBtn = screen.getAllByLabelText('Revoke API key').find(
+      (btn) => !btn.hasAttribute('disabled')
+    );
+    expect(revokeBtn).toBeDefined();
+    await user.click(revokeBtn!);
+
+    await waitFor(() => screen.getByRole('button', { name: /Revoke Key/i }));
+    await user.click(screen.getByRole('button', { name: /Revoke Key/i }));
+
+    await waitFor(() => {
+      expect(revokeAsync).toHaveBeenCalledWith('vf_00000000000000000000000000000001');
     });
   }, 10_000);
 });

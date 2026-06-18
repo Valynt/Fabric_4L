@@ -43,6 +43,10 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 | [ADR-023](./ADR-023-billing-service-extraction.md) | Billing Service Extraction | Superseded by Layer 7 ownership rationalization | 2026-05-29 |
 | [ADR-025](./ADR-025-layer-25-signal-refinery.md) | Layer 2.5 Signal Refinery as Official Architecture Extension | ✅ Accepted | 2026-06-10 |
 | [ADR-027](./ADR-027-shim-removal.md) | Namespace Shim Removal | ✅ Accepted | 2026-06-04 |
+| [ADR-028](./ADR-028-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
+| [ADR-029](./ADR-029-deterministic-entity-id-generation.md) | Deterministic Entity ID Generation | ✅ Accepted | — |
+| [ADR-030](./ADR-030-neo4j-hosting-decision.md) | Neo4j Hosting Decision | Proposed | — |
+| [ADR-031](./ADR-031-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
 
 ---
 

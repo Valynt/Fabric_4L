@@ -40,7 +40,6 @@ export default function StudioShell() {
     });
 
   const railApi = useMemo(() => ({ setDetailContent }), []);
-
   return (
     <StudioRightRailContext.Provider value={railApi}>
       <div className="flex flex-col h-full overflow-hidden">

@@ -4,7 +4,7 @@
  * Workspace tab for the Calculator workspace.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Calculator, Loader2, RefreshCcw, Save } from "lucide-react";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
@@ -18,6 +18,7 @@ import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Input } from "@/components/ui/input";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 type ScenarioState = {
   deal_size: number;
@@ -53,13 +54,11 @@ function fmtCurrency(value: number): string {
   return `$${Math.round(value).toLocaleString()}`;
 }
 
-export default function CalcROITab() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
+export default function CalcROITab({ accountId }: StudioTabProps) {
   const location = useLocation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
   const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<ScenarioState>(DEFAULT_SCENARIO);

@@ -36,14 +36,29 @@ export interface User {
 }
 
 export interface ApiKey {
-  id: string;
+  key_id: string;
   name: string;
   prefix: string;
   tenant_id: string;
-  is_enabled: boolean;
+  role: 'tenant_admin' | 'content_admin' | 'analyst' | 'read_only';
+  enabled: boolean;
+  revoked_at?: string;
   created_at: string;
   expires_at?: string;
   last_used_at?: string;
+}
+
+export interface ApiKeyCreateResponse {
+  key_id: string;
+  tenant_id: string;
+  name: string;
+  api_key: string;
+  prefix: string;
+  role: ApiKey['role'];
+  permissions: string[];
+  expires_at?: string;
+  rate_limit_per_minute?: number;
+  created_at: string;
 }
 
 // ── Query Keys ──────────────────────────────────────────────────────────────
@@ -108,6 +123,29 @@ export function useInviteUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.governance.users() });
+    },
+  });
+}
+
+export interface ApiKeyCreateRequest {
+  name: string;
+  role: ApiKey['role'];
+  expires_at?: string;
+  permissions?: string[];
+  rate_limit_per_minute?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export function useCreateApiKey() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ApiKeyCreateResponse, GovernanceApiError, ApiKeyCreateRequest>({
+    mutationFn: async (payload) => {
+      const response = await apiPost<ApiKeyCreateResponse>('l4', '/api-keys', payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QK.governance.apiKeys() });
     },
   });
 }

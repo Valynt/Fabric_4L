@@ -6,7 +6,6 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { useParams } from "react-router-dom";
 import {
   Users,
   Download,
@@ -27,6 +26,7 @@ import {
   useWorkspaceTabQuery,
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -133,8 +133,7 @@ function DILNarrativeCard({
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function NarrativeTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function NarrativeTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -275,7 +274,7 @@ export default function NarrativeTab() {
   const readyCount = narratives.filter((n) => n.status === "ready").length;
 
   return (
-    <>
+    <div className="space-y-6">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard
@@ -503,6 +502,6 @@ export default function NarrativeTab() {
           </div>
         </SectionCard>
       ) : null}
-    </>
+    </div>
   );
 }

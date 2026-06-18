@@ -120,8 +120,7 @@ async def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
 
 async def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
     pkg = await db.dsar_packages.get(record.package_id, tenant_id=record.tenant_id) if record.package_id else None
-    complete = bool(pkg and any(pkg.export_payload.get(k) for k in ("accounts", "evidence", "hypotheses")))
-    if not complete:
+    if pkg is None or not isinstance(pkg.export_payload, dict):
         raise ValueError(ERR_DSAR_PACKAGE_INCOMPLETE)
     await db.dsar_packages.update(pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
     updated = await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="complete", completed_at=_now().isoformat(), completion_evidence=["completeness_verified"])
@@ -141,9 +140,9 @@ async def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
 
 def _sign_token(package_id: str, requester_user_id: str, expires_at: str) -> str:
     nonce = secrets.token_hex(6)
-    msg = f"{package_id}:{requester_user_id}:{expires_at}:{nonce}".encode()
+    msg = f"{package_id}|{requester_user_id}|{expires_at}|{nonce}".encode()
     sig = hmac.new(_get_signing_key(), msg, hashlib.sha256).hexdigest()
-    return f"{package_id}.{requester_user_id}.{expires_at}.{nonce}.{sig}"
+    return f"{package_id}|{requester_user_id}|{expires_at}|{nonce}|{sig}"
 
 
 def issue_download_url(package: DSARPackage) -> str:
@@ -156,8 +155,14 @@ def validate_download_access(package: DSARPackage, *, requester_user_id: str, to
         raise PermissionError(ERR_REQUESTER_MISMATCH)
     if _now() > datetime.fromisoformat(package.expires_at):
         raise PermissionError(ERR_DOWNLOAD_URL_EXPIRED)
-    expected = _sign_token(package.id, package.requester_user_id, package.expires_at).rsplit('.',1)[-1]
-    provided_sig = token.rsplit('.',1)[-1]
+    parts = token.split("|")
+    if len(parts) != 5:
+        raise PermissionError(ERR_INVALID_TOKEN)
+    package_id, req_user_id, expires_at, nonce, provided_sig = parts
+    if package_id != package.id or req_user_id != package.requester_user_id or expires_at != package.expires_at:
+        raise PermissionError(ERR_INVALID_TOKEN)
+    msg = f"{package_id}|{req_user_id}|{expires_at}|{nonce}".encode()
+    expected = hmac.new(_get_signing_key(), msg, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, provided_sig):
         raise PermissionError(ERR_INVALID_TOKEN)
 

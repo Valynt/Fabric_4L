@@ -5,7 +5,6 @@
  * DIL enrichment: value hypotheses + product capabilities for recommendation generation
  */
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
 import { ChevronDown, ChevronUp, Lightbulb, Package, Sparkles, ArrowRight } from "lucide-react";
 import { useAccount } from "@/hooks/useAccounts";
 import { useNavigation } from "@/hooks";
@@ -13,6 +12,7 @@ import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
 import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import { useAccountHypotheses, type ValueHypothesis } from "@/hooks/useHypotheses";
@@ -141,8 +141,7 @@ function ProductBadge({ p }: { p: Product }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function ActionPlanTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function ActionPlanTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { navigateTo } = useNavigation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -187,7 +186,7 @@ export default function ActionPlanTab() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
       {/* Metrics row */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard label="Recommendations" value={String(recommendations.length)} />
@@ -320,6 +319,6 @@ export default function ActionPlanTab() {
           </div>
         </SectionCard>
       )}
-    </>
+    </div>
   );
 }

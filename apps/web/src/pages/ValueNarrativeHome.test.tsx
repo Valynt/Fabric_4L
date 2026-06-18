@@ -5,7 +5,12 @@ import ValueNarrativeHome from "./ValueNarrativeHome";
 
 const navigateTo = vi.fn();
 const createSetup = vi.fn();
+const useRecentIngestionJobs = vi.fn();
 let isSubmitting = false;
+let authState = {
+  isAuthenticated: true,
+  isLoading: false,
+};
 
 const discoveryNotes = `Acme Corp Discovery Notes
 Met with Sarah (VP of Support / Champion) and John (Chief Financial Officer / Decision Maker).
@@ -18,7 +23,11 @@ vi.mock("@/hooks/useNavigation", () => ({
 }));
 
 vi.mock("@/hooks/useIngestion", () => ({
-  useRecentIngestionJobs: () => ({ data: [], isLoading: false }),
+  useRecentIngestionJobs: (...args: unknown[]) => useRecentIngestionJobs(...args),
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuthContext: () => authState,
 }));
 
 vi.mock("@/hooks/useProspectSetupAccount", () => ({
@@ -33,7 +42,36 @@ describe("ValueNarrativeHome intake workspace", () => {
     navigateTo.mockReset();
     createSetup.mockReset();
     createSetup.mockResolvedValue({ accountId: "acc-home-created-001" });
+    useRecentIngestionJobs.mockReset();
+    useRecentIngestionJobs.mockReturnValue({ data: [], isLoading: false });
     isSubmitting = false;
+    authState = {
+      isAuthenticated: true,
+      isLoading: false,
+    };
+  });
+
+  it("loads recent ingestion activity only after authenticated auth state is ready", () => {
+    render(<ValueNarrativeHome />);
+
+    expect(useRecentIngestionJobs).toHaveBeenCalledWith(4, {
+      suppressAuthRedirect: true,
+      enabled: true,
+    });
+  });
+
+  it("does not enable recent ingestion activity while auth is still resolving", () => {
+    authState = {
+      isAuthenticated: false,
+      isLoading: true,
+    };
+
+    render(<ValueNarrativeHome />);
+
+    expect(useRecentIngestionJobs).toHaveBeenCalledWith(4, {
+      suppressAuthRedirect: true,
+      enabled: false,
+    });
   });
 
   it("renders all source input modes", () => {
