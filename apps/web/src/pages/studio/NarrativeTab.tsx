@@ -4,7 +4,8 @@
  * Primary data: workspace case narratives (existing)
  * DIL enrichment: DIL Narrative Builder for tone/audience-specific generation
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Users,
   Download,
@@ -15,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useStudioDetailRail } from "@/features/value-studio/StudioRightRailContext";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
@@ -24,7 +26,6 @@ import {
   useWorkspaceTabQuery,
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
-import { useStudioRail } from "@/features/value-studio/context/StudioRailContext";
 import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
@@ -142,7 +143,6 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
   const [selectedNarrative, setSelectedNarrative] =
     useState<NarrativeVersion | null>(null);
   const [selectedDIL, setSelectedDIL] = useState<Narrative | null>(null);
-  const { setDetailContent, clearDetailContent } = useStudioRail();
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [genTone, setGenTone] = useState<string>("executive");
   const [genAudience, setGenAudience] = useState<string>("c_suite");
@@ -165,6 +165,43 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
   }, [narratives, selectedNarrative, selectedDIL]);
 
   const generateMutation = useGenerateWorkspaceIntelligence();
+
+  const detailNode = useMemo<ReactNode>(() => {
+    if (selectedNarrative) {
+      const status = STATUS_CONFIG[selectedNarrative.status];
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedNarrative.stakeholder}</h3>
+          <p className="text-xs text-muted-foreground">{selectedNarrative.role}</p>
+          {status && (
+            <span className={cn("vf-text-micro font-semibold", status.color)}>
+              {status.label}
+            </span>
+          )}
+        </div>
+      );
+    }
+    if (selectedDIL) {
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {selectedDIL.tone} · {selectedDIL.audience}
+          </p>
+          <span
+            className={cn(
+              "vf-text-micro font-semibold",
+              DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
+            )}
+          >
+            {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }, [selectedNarrative, selectedDIL]);
+  useStudioDetailRail(detailNode);
 
   useEffect(() => {
     if (
@@ -235,44 +272,6 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
   }
 
   const readyCount = narratives.filter((n) => n.status === "ready").length;
-  const selectedStatus = selectedNarrative
-    ? STATUS_CONFIG[selectedNarrative.status]
-    : null;
-
-  useEffect(() => {
-    if (selectedNarrative) {
-      setDetailContent(
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold">{selectedNarrative.stakeholder}</h3>
-          <p className="text-xs text-muted-foreground">{selectedNarrative.role}</p>
-          {selectedStatus && (
-            <span className={cn("vf-text-micro font-semibold", selectedStatus.color)}>
-              {selectedStatus.label}
-            </span>
-          )}
-        </div>
-      );
-    } else if (selectedDIL) {
-      setDetailContent(
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
-          <p className="text-xs text-muted-foreground">
-            {selectedDIL.tone} · {selectedDIL.audience}
-          </p>
-          <span
-            className={cn(
-              "vf-text-micro font-semibold",
-              DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
-            )}
-          >
-            {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
-          </span>
-        </div>
-      );
-    } else {
-      clearDetailContent();
-    }
-  }, [selectedNarrative, selectedDIL, selectedStatus, setDetailContent, clearDetailContent]);
 
   return (
     <div className="space-y-6">

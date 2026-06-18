@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -14,20 +15,34 @@ vi.mock("./components/StudioTabFrame", () => ({
   default: () => <div data-testid="tab-frame">Tab content</div>,
 }));
 
-vi.mock("./components/StudioRightRail", () => ({
+vi.mock("@/components/workspace/RightRail", () => ({
   default: () => <div data-testid="right-rail">Right rail</div>,
 }));
 
+vi.mock("@/agui", () => ({
+  useAgentEvents: () => ({
+    messages: [],
+    sendMessage: vi.fn(),
+    suggestedActions: [],
+    steps: [],
+    isStreaming: false,
+    metadata: undefined,
+  }),
+}));
+
 function renderShell(path = "/t/acme/accounts/acc-123/studio/value-model") {
+  const queryClient = new QueryClient();
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path="/t/:tenantSlug/accounts/:accountId/studio/:tabId"
-          element={<StudioShell />}
-        />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/t/:tenantSlug/accounts/:accountId/studio/:tabId"
+            element={<StudioShell />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 

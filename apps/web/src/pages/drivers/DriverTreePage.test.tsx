@@ -12,6 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/mocks/server";
 import { createWrapperWithRouterPath } from "@/test-utils";
@@ -21,6 +22,7 @@ const mockUseAccount = vi.fn();
 
 vi.mock("@/hooks/useAccounts", () => ({
   useAccount: (accountId: string | null) => mockUseAccount(accountId),
+  resolveBackendAccountId: (accountId: string | null | undefined) => accountId ?? null,
 }));
 
 vi.mock("@/pages/intelligence/EvidenceTab", () => ({
@@ -84,7 +86,7 @@ describe("DriverTreePage account/loading guards", () => {
     expect(screen.getByText("Account not found.")).toBeInTheDocument();
   });
 
-  it("renders page content without its own account header", () => {
+  it("renders page content without its own account header", async () => {
     mockUseAccount.mockReturnValue({
       data: {
         id: "acc-123",
@@ -97,6 +99,7 @@ describe("DriverTreePage account/loading guards", () => {
 
     const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree?sub=evidence");
     render(<DriverTreePage accountId="acc-123" />, { wrapper });
+    await userEvent.click(screen.getByRole("button", { name: "Evidence" }));
 
     // Page content is present
     expect(screen.getByTestId("evidence-content")).toBeInTheDocument();
