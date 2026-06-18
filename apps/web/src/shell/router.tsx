@@ -570,7 +570,11 @@ export const router = createBrowserRouter([
             <CFOView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.cfo-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.cfo-view"),
+          title: "CFO View",
+          category: "Deliverables",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive",
@@ -579,7 +583,11 @@ export const router = createBrowserRouter([
             <ExecutiveView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.executive-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.executive-view"),
+          title: "Executive View",
+          category: "Deliverables",
+        },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical",
@@ -588,7 +596,11 @@ export const router = createBrowserRouter([
             <TechnicalView />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.technical-view") },
+        handle: {
+          accessPolicy: accountStdPolicy("deliverables.technical-view"),
+          title: "Technical View",
+          category: "Deliverables",
+        },
       },
 
       // ═══════════════════════════════════════════════════════════════

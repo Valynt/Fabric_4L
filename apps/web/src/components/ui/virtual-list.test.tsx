@@ -156,4 +156,19 @@ describe('VirtualList', () => {
     const scrollContainer = document.querySelector('[style*="contain: strict"]');
     expect(scrollContainer).toBeInTheDocument();
   });
+
+  it('root scroll container fills parent height', () => {
+    render(
+      <div style={{ height: '200px' }}>
+        <VirtualList
+          items={items.slice(0, 3)}
+          estimateSize={50}
+          renderItem={(item) => <div>{item.label}</div>}
+        />
+      </div>
+    );
+
+    const container = document.querySelector('[style*="contain: strict"]');
+    expect(container).toHaveClass('h-full');
+  });
 });
