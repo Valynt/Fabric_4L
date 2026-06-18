@@ -36,6 +36,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
+from ..orchestrator import PipelineCoordinator
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
     EventOutbox,
@@ -384,7 +385,7 @@ async def create_source(
             .first()
         )
         if latest_version and latest_version.content_hash == content_hash:
-            # Exact duplicate: return existing source/version.
+            # Exact duplicate: return existing source/version but start a new run.
             run = SourceIngestionRun(
                 tenant_id=org_id,
                 source_id=existing.id,
@@ -396,6 +397,8 @@ async def create_source(
                 created_by=user_id,
             )
             db.add(run)
+            coordinator = PipelineCoordinator(db)
+            coordinator.start_run(run)
             db.commit()
             db.refresh(run)
             db.refresh(existing)
@@ -517,6 +520,9 @@ async def create_source(
         status=OutboxStatus.PENDING,
     )
     db.add(outbox)
+
+    coordinator = PipelineCoordinator(db)
+    coordinator.start_run(run)
 
     db.commit()
     db.refresh(source)

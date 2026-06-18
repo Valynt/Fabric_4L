@@ -106,7 +106,7 @@ def _get_app():
         _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
         return _MockResult()
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
     register_exception_handlers(app)
     return app

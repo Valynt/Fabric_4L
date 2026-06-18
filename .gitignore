@@ -62,10 +62,9 @@ htmlcov/
 
 # CI runtime artifacts — keep directory skeleton, ignore generated files
 artifacts/*
+artifacts/**/*
 !artifacts/*/
 !artifacts/*/.gitkeep
-# Ignore all contents of artifacts subdirectories
-artifacts/**/*
 
 # Node.js (if used at root)
 node_modules/
@@ -83,10 +82,6 @@ __pycache__/
 .venv/
 .venv-docs/
 venv/
-env/
-!packages/config/src/env/
-!packages/config/src/env/**
-ENV/
 
 # Python artifacts in all subdirectories (ensures no __pycache__ anywhere)
 **/__pycache__/
@@ -140,6 +135,10 @@ generated/
 !packages/platform-contract/src/typescript/generated/
 !packages/platform-contract/src/typescript/generated/*.ts
 
+# Committed Python SDK OpenAPI clients (generated, but part of the published interface)
+!sdk/python/src/valuefabric/generated/
+!sdk/python/src/valuefabric/generated/**/*.py
+
 # Root-level generated outputs (conservative cleanup)
 valuepacks_output.txt
 audit_violations.txt
@@ -155,7 +154,9 @@ audit-output/
 *.cer
 
 # Archived frontend snapshots/backups (non-runtime)
-/archive/
+# Stale archive subtrees that are no longer tracked
+archive/prototypes/**
+archive/testsprite-legacy/**
 apps/web/src/*.backup.*
 apps/web/coverage/
 

@@ -86,27 +86,62 @@ class SourceType(str, PyEnum):
 
 
 class IngestionRunStatus(str, PyEnum):
-    """Lifecycle states for a canonical source ingestion run."""
+    """Lifecycle states for a canonical source ingestion run (v3.0).
+
+    Happy path:
+    ACCEPTED -> VALIDATING_ACCESS -> RESOLVING_CONNECTOR -> FETCHING_SOURCE
+    -> APPLYING_POLICY -> NORMALIZING -> CHUNKING -> EXTRACTING
+    -> BUILDING_CLAIMS -> VALIDATING_CLAIMS -> PROJECTING_SUMMARY -> READY
+    """
 
     ACCEPTED = "ACCEPTED"
-    VALIDATING = "VALIDATING"
-    STORED = "STORED"
+    VALIDATING_ACCESS = "VALIDATING_ACCESS"
+    RESOLVING_CONNECTOR = "RESOLVING_CONNECTOR"
+    FETCHING_SOURCE = "FETCHING_SOURCE"
+    APPLYING_POLICY = "APPLYING_POLICY"
     NORMALIZING = "NORMALIZING"
     CHUNKING = "CHUNKING"
-    READY_FOR_EXTRACTION = "READY_FOR_EXTRACTION"
     EXTRACTING = "EXTRACTING"
-    REFINING = "REFINING"
-    GRAPH_COMMITTING = "GRAPH_COMMITTING"
-    SYNTHESIZING = "SYNTHESIZING"
+    BUILDING_CLAIMS = "BUILDING_CLAIMS"
     VALIDATING_CLAIMS = "VALIDATING_CLAIMS"
-    APPLYING_POLICY = "APPLYING_POLICY"
+    PROJECTING_SUMMARY = "PROJECTING_SUMMARY"
     READY = "READY"
-    NEEDS_INPUT = "NEEDS_INPUT"
-    NEEDS_REVIEW = "NEEDS_REVIEW"
+    NEEDS_USER_ACTION = "NEEDS_USER_ACTION"
     FAILED_RETRYABLE = "FAILED_RETRYABLE"
     FAILED_PERMANENT = "FAILED_PERMANENT"
     CANCELLED = "CANCELLED"
     SUPERSEDED = "SUPERSEDED"
+
+
+class CustodyMode(str, PyEnum):
+    """Data custody model for an ingested source (v3.0).
+
+    A: Fabric full custody — raw content stored in Fabric.
+    B: Reference + extract — metadata and extracted values stored; raw fetched on demand.
+    C: Customer hosted — no raw content persisted; only hashes, pointers, and attestations.
+    """
+
+    FULL_CUSTODY = "A"
+    REFERENCE_EXTRACT = "B"
+    CUSTOMER_HOSTED = "C"
+
+
+class EvidenceChunkStatus(str, PyEnum):
+    """Lifecycle status of an evidence chunk."""
+
+    ACTIVE = "active"
+    VERIFICATION_FAILED = "verification_failed"
+    SUPERSEDED = "superseded"
+    REDACTED = "redacted"
+
+
+class SourceConsentStatus(str, PyEnum):
+    """Lifecycle status of a source consent record."""
+
+    PENDING = "pending"
+    GRANTED = "granted"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
 
 
 class TargetType(str, PyEnum):
@@ -282,6 +317,16 @@ class IngestedSource(Base):
     latest_version_number = Column(Integer, default=1, nullable=False)
     status = Column(String(50), nullable=False, default="active")
     retention_class = Column(String(50), nullable=True)
+    # v3.0 custody and consent
+    custody_mode = Column(String(1), nullable=False, default=CustodyMode.FULL_CUSTODY.value)
+    consent_id = Column(UUID(as_uuid=True), ForeignKey("source_consents.id", ondelete="SET NULL"), nullable=True, index=True)
+    # v3.0 external identity (excludes custody/runtime from deduplication)
+    external_system = Column(String(100), nullable=True)
+    external_object_type = Column(String(100), nullable=True)
+    external_object_id = Column(String(255), nullable=True)
+    external_version = Column(String(100), nullable=True)
+    snapshot_hash = Column(String(64), nullable=True)
+    field_scope_id = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
@@ -291,12 +336,15 @@ class IngestedSource(Base):
     )
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
+    consent = relationship("SourceConsent", back_populates="sources")
     versions = relationship("SourceVersion", back_populates="source", cascade="all, delete-orphan", order_by="SourceVersion.version_number")
     runs = relationship("SourceIngestionRun", back_populates="source", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "account_id", "fingerprint", name="uix_ingested_source_fingerprint"),
         Index("idx_ingested_sources_tenant_account", "tenant_id", "account_id", "created_at"),
+        Index("idx_ingested_sources_external_identity", "tenant_id", "external_system", "external_object_type", "external_object_id"),
+        Index("idx_ingested_sources_consent", "consent_id"),
     )
 
 
@@ -320,9 +368,14 @@ class SourceVersion(Base):
     language = Column(String(10), nullable=True)
     status = Column(String(50), nullable=False, default="stored")
     meta = Column(JSONB, default=dict)
+    # v3.0: custody-aware storage
+    fetched_at = Column(DateTime(timezone=True), nullable=True)
+    source_uri = Column(Text, nullable=True)
+    storage_backend = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
+    chunks = relationship("EvidenceChunk", back_populates="version", cascade="all, delete-orphan")
     normalized = relationship("NormalizedDocument", back_populates="version", uselist=False, cascade="all, delete-orphan")
     source = relationship("IngestedSource", back_populates="versions")
 
@@ -332,8 +385,18 @@ class SourceVersion(Base):
     )
 
 
+class IngestionRunStepStatus(str, PyEnum):
+    """Status of a single pipeline stage attempt."""
+
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
 class SourceIngestionRun(Base):
-    """Durable asynchronous run for a source through the L1 pipeline."""
+    """Durable asynchronous run for a source through the L1-L6 pipeline."""
 
     __tablename__ = "source_ingestion_runs"
 
@@ -358,17 +421,69 @@ class SourceIngestionRun(Base):
     stage_metadata = Column(JSONB, default=dict)
     error_code = Column(String(100), nullable=True)
     error_detail_safe = Column(Text, nullable=True)
+    current_step_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    # v3.0 connector and consent binding
+    connector_name = Column(String(100), nullable=True)
+    connector_config_hash = Column(String(64), nullable=True)
+    policy_version = Column(String(50), nullable=True)
+    source_snapshot_hash = Column(String(64), nullable=True)
+    consent_id = Column(UUID(as_uuid=True), ForeignKey("source_consents.id", ondelete="SET NULL"), nullable=True, index=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
     source = relationship("IngestedSource", back_populates="runs")
+    consent = relationship("SourceConsent", back_populates="runs")
     version = relationship("SourceVersion")
+    steps = relationship("IngestionRunStep", back_populates="run", cascade="all, delete-orphan", order_by="IngestionRunStep.created_at")
 
     __table_args__ = (
         Index("idx_source_ingestion_runs_tenant_status", "tenant_id", "status"),
         Index("idx_source_ingestion_runs_idempotency", "tenant_id", "idempotency_key"),
+        Index("idx_source_ingestion_runs_consent", "consent_id"),
+    )
+
+
+class IngestionRunStep(Base):
+    """A single stage attempt within a source ingestion pipeline run.
+
+    Records idempotency, input/output artifact references, errors, and timing
+    so that the pipeline can resume, retry, and audit every stage.
+    """
+
+    __tablename__ = "ingestion_run_steps"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    run_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("source_ingestion_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    stage_name = Column(String(50), nullable=False)
+    attempt = Column(Integer, nullable=False, default=1)
+    status = Column(
+        String(50),
+        nullable=False,
+        default=IngestionRunStepStatus.PENDING.value,
+    )
+    input_artifact_ids = Column(JSONB, default=dict)
+    output_artifact_ids = Column(JSONB, default=dict)
+    error_code = Column(String(100), nullable=True)
+    error_detail_safe = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+
+    run = relationship("SourceIngestionRun", back_populates="steps")
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "stage_name", "attempt", name="uq_ingestion_run_step_stage_attempt"),
+        Index("idx_ingestion_run_steps_tenant_status", "tenant_id", "status"),
+        Index("idx_ingestion_run_steps_run_stage", "run_id", "stage_name"),
+        Index("idx_ingestion_run_steps_run_created", "run_id", "created_at"),
     )
 
 
@@ -401,6 +516,78 @@ class NormalizedDocument(Base):
 
     __table_args__ = (
         Index("idx_normalized_documents_tenant", "tenant_id", "created_at"),
+    )
+
+
+class SourceConsent(Base):
+    """Consent record for a source ingestion scope.
+
+    v3.0 requires explicit consent before a source ingestion run can be created.
+    A single consent record may cover one or more sources of the same scope.
+    """
+
+    __tablename__ = "source_consents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    account_id = Column(String(255), nullable=False, index=True)
+    source_type = Column(String(50), nullable=False)
+    scope = Column(JSONB, nullable=False, default=dict)
+    status = Column(String(50), nullable=False, default=SourceConsentStatus.PENDING.value)
+    consent_hash = Column(String(64), nullable=False)
+    granted_by = Column(UUID(as_uuid=True), nullable=True)
+    granted_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+
+    sources = relationship("IngestedSource", back_populates="consent")
+    runs = relationship("SourceIngestionRun", back_populates="consent")
+
+    __table_args__ = (
+        Index("idx_source_consents_tenant_account", "tenant_id", "account_id", "created_at"),
+        Index("idx_source_consents_status", "tenant_id", "status"),
+    )
+
+
+class EvidenceChunk(Base):
+    """Atomic evidence unit produced by the L1 chunking stage.
+
+    Every chunk keeps an anchor (provenance pointer) back to its source version
+    and the raw text segment. v3.0 requires every chunk to be linkable as
+    evidence for downstream signals and claims.
+    """
+
+    __tablename__ = "evidence_chunks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    source_version_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("source_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    chunk_index = Column(Integer, nullable=False)
+    status = Column(String(50), nullable=False, default=EvidenceChunkStatus.ACTIVE.value)
+    content = Column(Text, nullable=False)
+    anchor = Column(JSONB, nullable=False, default=dict)
+    confidence = Column(Numeric(3, 2), nullable=False, default=1.00)
+    trust_score = Column(Numeric(3, 2), nullable=False, default=1.00)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    version = relationship("SourceVersion", back_populates="chunks")
+
+    __table_args__ = (
+        UniqueConstraint("source_version_id", "chunk_index", name="uq_evidence_chunk_version_index"),
+        Index("idx_evidence_chunks_version", "source_version_id", "created_at"),
+        Index("idx_evidence_chunks_tenant", "tenant_id", "status"),
     )
 
 
@@ -1346,6 +1533,10 @@ class EventOutbox(Base):
     event_type = Column(String(100), nullable=False)
     aggregate_type = Column(String(100), nullable=False)
     aggregate_id = Column(String(255), nullable=False)
+
+    # Pipeline routing (nullable — used for canonical source-ingestion pipeline events)
+    stage_name = Column(String(50), nullable=True, index=True)
+    topic = Column(String(100), nullable=True, index=True)
 
     # Full event payload (tenant_id, job_id, output_id, output_contract, emitted_at, ...)
     payload = Column(JSONB, nullable=False)

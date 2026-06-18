@@ -5,7 +5,7 @@ from uuid import uuid4, UUID
 from sqlalchemy.orm import Session
 
 from layer1_ingestion.shared.models import JobStatus, TargetStatus, ScrapingTarget, ScrapingJob, create_scraping_job
-from layer1_ingestion.api.app_monolith import (
+from layer1_ingestion.api.main import (
     BatchOperationType,
     BatchOperationRequest,
     BatchOperationResponse,
@@ -15,7 +15,7 @@ from layer1_ingestion.api.app_monolith import (
 @pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):
     """Mock Celery task delay so batch tests don't fail when broker is unavailable."""
-    import layer1_ingestion.api.app_monolith as _app_mod
+    import layer1_ingestion.api._batch_and_stats as _app_mod
     monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None})())
 
 

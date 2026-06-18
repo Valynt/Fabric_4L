@@ -1670,6 +1670,76 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
 
 
 # =============================================================================
+# CANONICAL SOURCE INGESTION PIPELINE ORCHESTRATOR
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=3)
+def run_pipeline_stage(self, stage_name: str, payload: dict):
+    """Execute a single stage of the canonical source ingestion pipeline.
+
+    Loads the run, validates the current step, delegates to the stage handler,
+    and advances the run transactionally.
+
+    Args:
+        stage_name: IngestionRunStatus value for the stage to execute.
+        payload: Outbox event payload containing run_id, tenant_id, etc.
+    """
+    import uuid
+
+    from layer1_ingestion.orchestrator.coordinator import PipelineCoordinator
+    from layer1_ingestion.orchestrator.outbox_relay import run_pipeline_stage_from_payload
+    from layer1_ingestion.shared.database import get_db_session
+
+    run_id = uuid.UUID(payload["run_id"])
+    tenant_uuid = uuid.UUID(payload["tenant_id"])
+
+    try:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
+            run_pipeline_stage_from_payload(session, stage_name, payload)
+            session.commit()
+        logger.info(
+            "Pipeline stage completed",
+            run_id=str(run_id),
+            stage_name=stage_name,
+            tenant_id=str(tenant_uuid),
+        )
+    except Exception as exc:
+        logger.error(
+            "Pipeline stage failed",
+            run_id=str(run_id),
+            stage_name=stage_name,
+            tenant_id=str(tenant_uuid),
+            error=sanitize_log_error(exc),
+        )
+        # Retry with exponential backoff.
+        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+
+
+@celery_app.task
+def dispatch_pipeline_outbox_events(max_events: int = 100):
+    """Poll and dispatch pending pipeline events from the transactional outbox.
+
+    This task is intended to be run on a Celery beat schedule.
+    """
+    from layer1_ingestion.orchestrator.outbox_relay import dispatch_pending_pipeline_events
+    from layer1_ingestion.shared.database import get_db_session
+
+    # We need a tenant context to query, but the relay handles all tenants.
+    # Use a system/no-tenant session for the poll; downstream handlers enforce
+    # tenant context per event.
+    with get_db_session(require_tenant=False) as session:
+        dispatched = dispatch_pending_pipeline_events(session, max_events=max_events)
+        session.commit()
+
+    logger.info(
+        "Pipeline outbox relay dispatched events",
+        dispatched_count=dispatched,
+    )
+    return {"dispatched": dispatched}
+
+
+# =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
 
