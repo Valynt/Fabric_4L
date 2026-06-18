@@ -25,11 +25,11 @@ async def test_partial_extraction_persists_available_results_and_warning(backend
         "l2",
         "POST",
         "/api/v1/extractions",
-        json={"source_id": seed_ids.document_id, "account_id": seed_ids.account_id, "simulate_partial_failure": True},
+        json={"source_id": backend.seed_source_id, "account_id": seed_ids.account_id, "simulate_partial_failure": True},
         expected=(200, 201, 202, 206),
     )
     assert any(token in str(extraction).lower() for token in ("partial", "warning", "signal", "persisted")), extraction
-    assert seed_ids.document_id in str(extraction), "Partial extraction must retain source provenance."
+    assert backend.seed_source_id in str(extraction), "Partial extraction must retain source provenance."
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ async def test_long_running_job_records_progress(backend, seed_ids):
         "l1",
         "POST",
         "/api/v1/ingestion/jobs",
-        json={"account_id": seed_ids.account_id, "source_id": seed_ids.document_id, "mode": "long_running_validation"},
+        json={"account_id": seed_ids.account_id, "source_id": backend.seed_source_id, "mode": "long_running_validation"},
         expected=(200, 201, 202),
     )
     job_id = job.get("id") or job.get("job_id") or seed_ids.document_id
@@ -127,7 +127,7 @@ async def test_cancelled_job_records_terminal_state(backend, seed_ids):
         "l1",
         "POST",
         "/api/v1/ingestion/jobs",
-        json={"account_id": seed_ids.account_id, "source_id": seed_ids.document_id, "mode": "cancellable_validation"},
+        json={"account_id": seed_ids.account_id, "source_id": backend.seed_source_id, "mode": "cancellable_validation"},
         expected=(200, 201, 202),
     )
     job_id = job.get("id") or job.get("job_id") or seed_ids.document_id

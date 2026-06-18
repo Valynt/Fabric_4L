@@ -1,0 +1,193 @@
+meta:
+  title: "Value Fabric — Enterprise SaaS Release Backlog"
+  updated_at: "2026-06-18T12:35:00Z"
+  owner: "Platform Release"
+  source: "DISCOVER + AUDIT phase"
+
+# P0 — Security / Correctness / Launch-blocking
+p0:
+  - id: P0-001
+    title: "Fix Layer 1 ruff lint failures (UP037 in source_routes.py)"
+    area: "Layer 1 Ingestion"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/make-lint.txt"
+    command: "make lint"
+    owner: "L1"
+    summary: "Two forward-referenced type annotations need unquoting for ruff UP037."
+
+  - id: P0-002
+    title: "Triage and remediate 3 high-severity pnpm audit advisories"
+    area: "Supply Chain / Frontend"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/pnpm-audit.json"
+    command: "pnpm audit"
+    owner: "Security"
+    summary: "High-severity: react-router, tmp, form-data. Need upgrade or pnpm override."
+
+  - id: P0-003
+    title: "Triage 411 Semgrep SAST findings"
+    area: "Security"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/semgrep.json"
+    command: "semgrep"
+    owner: "Security"
+    summary: "Top findings are formatted SQL queries and SQLAlchemy raw text. Need triage and baseline."
+
+  - id: P0-004
+    title: "Review and remediate 5 Bandit medium findings"
+    area: "Security"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/bandit.json"
+    command: "bandit -r services"
+    owner: "Security"
+    summary: "B608 SQL injection in migrations and B104 binding in test configs."
+
+  - id: P0-005
+    title: "Create docs/slo.md with SLOs and alerting rules"
+    area: "Reliability"
+    status: "unblocked"
+    evidence: "Exit criteria"
+    command: "n/a"
+    owner: "SRE"
+    summary: "Required exit criteria file is missing. Define SLIs/SLOs and link to monitoring/alerting rules."
+
+  - id: P0-006
+    title: "Document and validate DR RPO/RTO ≤ 15m/1h"
+    area: "Reliability"
+    status: "unblocked"
+    evidence: "docs/reliability/dr-policy.md, production-readiness/risk_register.md"
+    command: "make test:recovery"
+    owner: "SRE"
+    summary: "Exit criteria require documented and tested DR."
+
+  - id: P0-007
+    title: "Layer 1 Celery stage helper naming mismatch"
+    area: "Layer 1 Ingestion"
+    status: "completed"
+    evidence: "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py, services/layer1-ingestion/tests/unit/test_celery_tasks.py"
+    command: "pytest services/layer1-ingestion/tests/unit/test_celery_tasks.py"
+    owner: "L1"
+    summary: "Renamed helpers to _*_stage_async convention to match test expectations and ai_extraction_stage pattern."
+
+# P1 — Reliability / Observability / Compliance
+p1:
+  - id: P1-001
+    title: "Install and run gitleaks locally"
+    area: "Security"
+    status: "blocked-on-tool"
+    evidence: "reports/audit-2026-06-18/audit-report.md"
+    command: "gitleaks detect"
+    owner: "Security"
+    summary: "Local secret scan not available; CI runs it. Need local parity."
+
+  - id: P1-002
+    title: "Install and run Trivy filesystem/container scan locally"
+    area: "Security"
+    status: "blocked-on-tool"
+    evidence: "reports/audit-2026-06-18/audit-report.md"
+    command: "trivy fs ."
+    owner: "Security"
+    summary: "Local vulnerability scan not available; CI runs it. Need local parity."
+
+  - id: P1-003
+    title: "Review 3 low-confidence dead-code Layer 4 tool modules"
+    area: "Layer 4 Agents"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/dead-code.json"
+    command: "n/a"
+    owner: "L4"
+    summary: "files.py, admin.py, knowledge.py are referenced only by tests. Determine ownership."
+
+  - id: P1-004
+    title: "Run full Layer 1 test suite with PostgreSQL"
+    area: "Layer 1 Ingestion"
+    status: "blocked-on-env"
+    evidence: "make test-layer1"
+    command: "docker compose -f docker-compose.dev.yml --env-file .env.generated up -d"
+    owner: "L1"
+    summary: "87 test failures are connection-refused to localhost:5432. Need local Postgres via Docker Compose."
+
+  - id: P1-005
+    title: "Complete DPA and SOC2 control mapping in compliance/"
+    area: "Compliance"
+    status: "unblocked"
+    evidence: "compliance/"
+    command: "n/a"
+    owner: "Compliance"
+    summary: "Exit criteria require SOC2 control mapping and DPA template."
+
+  - id: P1-006
+    title: "Validate status page and incident runbook completeness"
+    area: "Operations"
+    status: "unblocked"
+    evidence: "ops/incident/"
+    command: "pnpm run ops:runbooks:lint"
+    owner: "SRE"
+    summary: "Exit criteria require status page config and runbooks."
+
+# P2 — Polish / Performance / Tooling
+p2:
+  - id: P2-001
+    title: "Update all moderate/low pnpm audit advisories"
+    area: "Supply Chain"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/pnpm-audit.json"
+    command: "pnpm audit"
+    owner: "Security"
+    summary: "11 moderate and 6 low severity advisories after P0 high items are fixed."
+
+  - id: P2-002
+    title: "Remediate 29 pip-audit Python vulnerabilities"
+    area: "Supply Chain / Backend"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/pip-audit.json"
+    command: "pip-audit"
+    owner: "Security"
+    summary: "Mostly aiohttp and other transitive deps. Update uv.lock and pyproject constraints."
+
+  - id: P2-003
+    title: "Enable local gitleaks + trivy in dev setup"
+    area: "Developer Experience"
+    status: "blocked-on-P1-001"
+    evidence: "n/a"
+    command: "n/a"
+    owner: "Platform"
+    summary: "Add scanner installation to Makefile or devcontainer."
+
+  - id: P2-004
+    title: "Improve mypy coverage for Layer 4 untyped functions"
+    area: "Quality"
+    status: "unblocked"
+    evidence: "reports/audit-2026-06-18/make-typecheck.txt"
+    command: "make typecheck"
+    owner: "L4"
+    summary: "Several annotation-unchecked notes for untyped functions."
+
+# P3 — Documentation / UX
+p3:
+  - id: P3-001
+    title: "Refresh public docs-site for ValuePact branding"
+    area: "Documentation"
+    status: "unblocked"
+    evidence: "docs-site/"
+    command: "pnpm run docs:check"
+    owner: "Docs"
+    summary: "Ensure public docs are current and aligned with production architecture."
+
+  - id: P3-002
+    title: "Add ADRs for audit decisions (gitleaks/trivy local, SLO defaults)"
+    area: "Governance"
+    status: "unblocked"
+    evidence: "docs/adr/"
+    command: "n/a"
+    owner: "Architecture"
+    summary: "Document industry-standard defaults chosen during autonomous audit."
+
+  - id: P3-003
+    title: "Auto-generate dependency update PRs after vulnerability triage"
+    area: "Maintenance"
+    status: "unblocked"
+    evidence: "n/a"
+    command: "n/a"
+    owner: "Platform"
+    summary: "Use pnpm update / uv sync after vulnerability triage to keep lockfiles clean."

@@ -474,6 +474,688 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/governance/formulas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Formulas
+         * @description List formulas with pagination and filtering.
+         */
+        get: operations["list_formulas_api_v1_governance_formulas_get"];
+        put?: never;
+        /**
+         * Create a new Formula
+         * @description Create a new value calculation formula with versioning and schema validation.
+         */
+        post: operations["create_formula_api_v1_governance_formulas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a Formula
+         * @description Get a single formula by ID.
+         */
+        get: operations["get_formula_api_v1_governance_formulas__formula_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new Formula version
+         * @description Create a new version of an existing formula.
+         */
+        post: operations["create_formula_version_api_v1_governance_formulas__formula_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Formula version for approval
+         * @description Submit a formula version for approval (DRAFT → PENDING).
+         */
+        post: operations["submit_formula_version_api_v1_governance_formulas__formula_id__versions__version__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Formula version
+         * @description Approve a formula version (PENDING → APPROVED).
+         */
+        post: operations["approve_formula_version_api_v1_governance_formulas__formula_id__versions__version__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Formula version
+         * @description Reject a formula version (PENDING → REJECTED).
+         */
+        post: operations["reject_formula_version_api_v1_governance_formulas__formula_id__versions__version__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/deprecate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deprecate a Formula
+         * @description Deprecate a formula (APPROVED → DEPRECATED).
+         */
+        post: operations["deprecate_formula_api_v1_governance_formulas__formula_id__deprecate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/formulas/{formula_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a Formula
+         * @description Archive a formula (DEPRECATED → ARCHIVED or DRAFT → ARCHIVED).
+         */
+        post: operations["archive_formula_api_v1_governance_formulas__formula_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Benchmarks
+         * @description List benchmarks with pagination and filtering.
+         */
+        get: operations["list_benchmarks_api_v1_governance_benchmarks_get"];
+        put?: never;
+        /**
+         * Create a new Benchmark
+         * @description Create a new benchmark dataset with versioning and metadata.
+         */
+        post: operations["create_benchmark_api_v1_governance_benchmarks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/benchmarks/{benchmark_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new Benchmark version
+         * @description Create a new version of an existing benchmark.
+         */
+        post: operations["create_benchmark_version_api_v1_governance_benchmarks__benchmark_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Policies
+         * @description List policies with pagination and filtering.
+         */
+        get: operations["list_policies_api_v1_governance_policies_get"];
+        put?: never;
+        /**
+         * Create a new Policy
+         * @description Create a new policy with rules and versioning.
+         */
+        post: operations["create_policy_api_v1_governance_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/policies/{policy_id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate a Policy
+         * @description Evaluate a policy against an entity.
+         */
+        post: operations["evaluate_policy_api_v1_governance_policies__policy_id__evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/assumptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Assumptions
+         * @description List assumptions with pagination and filtering.
+         */
+        get: operations["list_assumptions_api_v1_governance_assumptions_get"];
+        put?: never;
+        /**
+         * Create a new Assumption
+         * @description Create a new assumption with evidence linkage.
+         */
+        post: operations["create_assumption_api_v1_governance_assumptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/assumptions/{assumption_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add evidence to an Assumption
+         * @description Add supporting evidence to an assumption.
+         */
+        post: operations["add_assumption_evidence_api_v1_governance_assumptions__assumption_id__evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/assumptions/{assumption_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Assumption for approval
+         * @description Submit a high-impact assumption for approval.
+         */
+        post: operations["submit_assumption_api_v1_governance_assumptions__assumption_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/value-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Value Realization Entries
+         * @description List value realization entries with pagination and filtering.
+         */
+        get: operations["list_value_entries_api_v1_governance_value_entries_get"];
+        put?: never;
+        /**
+         * Create a Value Realization Entry
+         * @description Create a new value realization entry with audit trail.
+         */
+        post: operations["create_value_entry_api_v1_governance_value_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/value-entries/{entry_id}/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Value Realization Update
+         * @description Add an update to a value realization entry with audit trail.
+         */
+        post: operations["add_value_update_api_v1_governance_value_entries__entry_id__updates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Approval Requests
+         * @description List approval requests with pagination and filtering.
+         */
+        get: operations["list_approvals_api_v1_governance_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/approvals/{approval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Approval Request
+         * @description Get a single approval request by ID.
+         */
+        get: operations["get_approval_request_api_v1_governance_approvals__approval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/approvals/{approval_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve an Approval Request
+         * @description Approve a pending approval request.
+         */
+        post: operations["approve_request_api_v1_governance_approvals__approval_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/governance/approvals/{approval_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject an Approval Request
+         * @description Reject a pending approval request.
+         */
+        post: operations["reject_request_api_v1_governance_approvals__approval_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/pillars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pillars */
+        get: operations["get_pillars_api_v1_academy_pillars_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/pillars/{pillar_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pillar */
+        get: operations["get_pillar_api_v1_academy_pillars__pillar_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/pillars/by-number/{pillar_number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pillar By Number Route */
+        get: operations["get_pillar_by_number_route_api_v1_academy_pillars_by_number__pillar_number__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/pillars/{pillar_id}/quiz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quiz */
+        get: operations["get_quiz_api_v1_academy_pillars__pillar_id__quiz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/quiz/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Quiz */
+        post: operations["submit_quiz_api_v1_academy_quiz_submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Progress */
+        get: operations["get_progress_api_v1_academy_progress_get"];
+        /** Update Progress */
+        put: operations["update_progress_api_v1_academy_progress_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/certifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Certifications */
+        get: operations["get_certifications_api_v1_academy_certifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/maturity/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Maturity Levels */
+        get: operations["get_maturity_levels_api_v1_academy_maturity_levels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/maturity/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Maturity Assessments */
+        get: operations["get_maturity_assessments_api_v1_academy_maturity_assessments_get"];
+        put?: never;
+        /** Create Assessment */
+        post: operations["create_assessment_api_v1_academy_maturity_assessments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Resources */
+        get: operations["get_resources_api_v1_academy_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academy/pillars/{pillar_id}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pillar Resources */
+        get: operations["get_pillar_resources_api_v1_academy_pillars__pillar_id__resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/value-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List ValueClaims for an account */
+        get: operations["list_value_claims_api_v1_value_claims_get"];
+        put?: never;
+        /** Create a ValueClaim */
+        post: operations["create_value_claim_api_v1_value_claims_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/value-claims/{claim_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a ValueClaim */
+        get: operations["get_value_claim_api_v1_value_claims__claim_id__get"];
+        put?: never;
+        post?: never;
+        /** Archive a ValueClaim */
+        delete: operations["archive_value_claim_api_v1_value_claims__claim_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/value-claims/{claim_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transition a ValueClaim status */
+        post: operations["transition_value_claim_status_api_v1_value_claims__claim_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -537,44 +1219,326 @@ export interface components {
              */
             context: string;
         };
-        /** AssumptionCreate */
-        AssumptionCreate: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /**
-             * Impact Value
-             * @default 0
-             */
-            impact_value: number;
-        };
-        /** AssumptionResponse */
-        AssumptionResponse: {
-            /** Name */
-            name: string;
-            /** Description */
-            description?: string | null;
-            /**
-             * Impact Value
-             * @default 0
-             */
-            impact_value: number;
+        /**
+         * ApprovalRequestResponse
+         * @description Schema for approval request response.
+         */
+        ApprovalRequestResponse: {
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            lifecycle_state: components["schemas"]["LifecycleState"];
-            /** Is Approved For Use */
-            is_approved_for_use: boolean;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Entity Version */
+            entity_version: string | null;
+            /** Status */
+            status: string;
+            /** Requested By */
+            requested_by: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Request Reason */
+            request_reason: string | null;
+            /** Request Metadata */
+            request_metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** Reviewed By */
+            reviewed_by: string | null;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Review Notes */
+            review_notes: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /** Rejected At */
+            rejected_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AssessmentData */
+        AssessmentData: {
+            /** Self Assessment */
+            self_assessment: number;
+            /** Quiz Average */
+            quiz_average: number;
+            /** Pillars Completed */
+            pillars_completed: number;
+            /** Behavior Indicators */
+            behavior_indicators?: string[];
+            /** Recommendations */
+            recommendations?: string[];
         };
         /**
-         * ClaimType
-         * @description Semantic category of the claim being recorded.
+         * AssumptionEvidenceCreate
+         * @description Schema for adding evidence to an assumption.
+         */
+        AssumptionEvidenceCreate: {
+            /**
+             * Evidence Type
+             * @description truth_object, external_source
+             */
+            evidence_type: string;
+            /** Truth Object Id */
+            truth_object_id?: string | null;
+            /** Source Url */
+            source_url?: string | null;
+            /** Source Title */
+            source_title?: string | null;
+            /** Excerpt */
+            excerpt?: string | null;
+            /**
+             * Confidence
+             * @description high, medium, low
+             * @default medium
+             */
+            confidence: string;
+            /**
+             * Relevance
+             * @description high, medium, low
+             * @default medium
+             */
+            relevance: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * BenchmarkCreateWithVersion
+         * @description Schema for creating a benchmark with initial version.
+         */
+        BenchmarkCreateWithVersion: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Benchmark Type
+             * @description industry_standard, competitive, historical, customer_reference, internal, third_party
+             */
+            benchmark_type: string;
+            /** Description */
+            description?: string | null;
+            /** Source Name */
+            source_name: string;
+            /** Source Url */
+            source_url?: string | null;
+            /**
+             * Source Type
+             * @description research, survey, internal, external
+             */
+            source_type: string;
+            /** Source Date */
+            source_date?: string | null;
+            /** Collection Methodology */
+            collection_methodology?: string | null;
+            /**
+             * Confidence Level
+             * @description high, medium, low
+             * @default medium
+             */
+            confidence_level: string;
+            /** Sample Size */
+            sample_size?: number | null;
+            /** Margin Of Error */
+            margin_of_error?: {
+                [key: string]: unknown;
+            } | null;
+            /** Data Quality Notes */
+            data_quality_notes?: string | null;
+            /**
+             * Data
+             * @description Benchmark data
+             */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Data Schema
+             * @description JSON Schema for data structure
+             */
+            data_schema: {
+                [key: string]: unknown;
+            };
+            /**
+             * Effective From
+             * Format: date-time
+             * @description Effective start date
+             */
+            effective_from: string;
+            /** Effective Until */
+            effective_until?: string | null;
+            /**
+             * Version
+             * @description Initial version
+             * @default 1.0.0
+             */
+            version: string;
+        };
+        /**
+         * BenchmarkResponse
+         * @description Schema for benchmark response.
+         */
+        BenchmarkResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Benchmark Type */
+            benchmark_type: string;
+            /** Description */
+            description: string | null;
+            /** Current Version */
+            current_version: string;
+            /** Latest Version */
+            latest_version: string;
+            /** Source Name */
+            source_name: string;
+            /** Source Url */
+            source_url: string | null;
+            /** Source Type */
+            source_type: string;
+            /** Source Date */
+            source_date: string | null;
+            /** Confidence Level */
+            confidence_level: string;
+            /** Sample Size */
+            sample_size: number | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Deprecated At */
+            deprecated_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BenchmarkVersionCreate
+         * @description Schema for creating a benchmark version.
+         */
+        BenchmarkVersionCreate: {
+            /**
+             * Version
+             * @description Semver version string
+             */
+            version: string;
+            /**
+             * Data
+             * @description Benchmark data
+             */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Data Schema
+             * @description JSON Schema for data structure
+             */
+            data_schema: {
+                [key: string]: unknown;
+            };
+            /**
+             * Effective From
+             * Format: date-time
+             * @description Effective start date
+             */
+            effective_from: string;
+            /** Effective Until */
+            effective_until?: string | null;
+            /** Change Description */
+            change_description?: string | null;
+        };
+        /** CertificationListResponse */
+        CertificationListResponse: {
+            /** Items */
+            items: components["schemas"]["CertificationResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** CertificationResponse */
+        CertificationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** User Id */
+            user_id: string;
+            /** Badge Name */
+            badge_name: string;
+            /**
+             * Pillar Id
+             * Format: uuid
+             */
+            pillar_id: string;
+            /** Vos Role */
+            vos_role: string;
+            /** Certificate Url */
+            certificate_url: string | null;
+            /**
+             * Awarded At
+             * Format: date-time
+             */
+            awarded_at: string;
+        };
+        /**
+         * ClaimStatus
+         * @description Lifecycle states of a ValueClaim.
+         *
+         *     A claim progresses from raw insight to customer-facing, auditable,
+         *     and eventually realized value statement.
          * @enum {string}
          */
-        ClaimType: "cost_savings_baseline" | "revenue_impact" | "efficiency_gain" | "risk_reduction" | "compliance_requirement" | "customer_outcome" | "technical_capability" | "market_benchmark" | "persona_pain_point" | "value_driver_metric" | "other";
+        ClaimStatus: "draft" | "supported" | "modeled" | "approved" | "published" | "challenged" | "committed" | "validated" | "invalidated" | "archived";
+        /**
+         * Confidence
+         * @description Confidence level for a claim, assumption, or piece of evidence.
+         * @enum {string}
+         */
+        Confidence: "low" | "medium" | "high";
         /**
          * DeploymentEnvironment
          * @description Deployment environments for traffic routing.
@@ -587,6 +1551,205 @@ export interface components {
          * @enum {string}
          */
         DisputeReason: "conflicting_sources" | "stale_data" | "methodology_flaw" | "out_of_scope" | "other";
+        /**
+         * FormulaCreate
+         * @description Schema for creating a formula.
+         */
+        FormulaCreate: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Formula Type
+             * @description roi_calculation, cost_savings, revenue_impact, efficiency_gain, risk_reduction, custom
+             */
+            formula_type: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Expression
+             * @description Formula expression
+             */
+            expression: string;
+            /**
+             * Expression Language
+             * @description python, javascript, etc.
+             * @default python
+             */
+            expression_language: string;
+            /**
+             * Input Schema
+             * @description JSON Schema for input validation
+             */
+            input_schema: {
+                [key: string]: unknown;
+            };
+            /**
+             * Output Schema
+             * @description JSON Schema for output validation
+             */
+            output_schema: {
+                [key: string]: unknown;
+            };
+            /** Parameters */
+            parameters?: components["schemas"]["FormulaParameterCreate"][];
+        };
+        /**
+         * FormulaParameterCreate
+         * @description Schema for creating a formula parameter.
+         */
+        FormulaParameterCreate: {
+            /** Name */
+            name: string;
+            /** Display Name */
+            display_name?: string | null;
+            /**
+             * Parameter Type
+             * @description number, string, boolean, currency, percentage, date, duration
+             */
+            parameter_type: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /** Default Value */
+            default_value?: unknown;
+            /** Min Value */
+            min_value?: unknown;
+            /** Max Value */
+            max_value?: unknown;
+            /** Allowed Values */
+            allowed_values?: unknown[] | null;
+        };
+        /**
+         * FormulaResponse
+         * @description Schema for formula response.
+         */
+        FormulaResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Formula Type */
+            formula_type: string;
+            /** Description */
+            description: string | null;
+            /** Current Version */
+            current_version: string | null;
+            /** Latest Version */
+            latest_version: string;
+            /** Input Schema */
+            input_schema: {
+                [key: string]: unknown;
+            };
+            /** Output Schema */
+            output_schema: {
+                [key: string]: unknown;
+            };
+            /** Is Active */
+            is_active: boolean;
+            /** Deprecated At */
+            deprecated_at: string | null;
+            /** Deprecation Reason */
+            deprecation_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * FormulaVersionCreate
+         * @description Schema for creating a formula version.
+         */
+        FormulaVersionCreate: {
+            /**
+             * Version
+             * @description Semver version string
+             */
+            version: string;
+            /**
+             * Expression
+             * @description Formula expression
+             */
+            expression: string;
+            /**
+             * Expression Language
+             * @default python
+             */
+            expression_language: string;
+            /** Change Description */
+            change_description?: string | null;
+        };
+        /**
+         * FormulaVersionResponse
+         * @description Schema for formula version response.
+         */
+        FormulaVersionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /**
+             * Formula Id
+             * Format: uuid
+             */
+            formula_id: string;
+            /** Version */
+            version: string;
+            /** Expression */
+            expression: string;
+            /** Expression Language */
+            expression_language: string;
+            /** Status */
+            status: string;
+            /** Validation Errors */
+            validation_errors: {
+                [key: string]: unknown;
+            } | null;
+            /** Test Results */
+            test_results: {
+                [key: string]: unknown;
+            } | null;
+            /** Change Description */
+            change_description: string | null;
+            /** Changed By */
+            changed_by: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /**
          * FreshnessCheckResponse
          * @description Result envelope returned after a freshness reconciliation run.
@@ -656,6 +1819,35 @@ export interface components {
          * @enum {string}
          */
         LifecycleState: "draft" | "approved" | "deprecated" | "archived" | "published";
+        /** MaturityAssessmentCreateRequest */
+        MaturityAssessmentCreateRequest: {
+            /** Level */
+            level: number;
+            assessment_data: components["schemas"]["AssessmentData"];
+        };
+        /** MaturityAssessmentResponse */
+        MaturityAssessmentResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** User Id */
+            user_id: string;
+            /** Level */
+            level: number;
+            assessment_data: components["schemas"]["AssessmentData"];
+            /**
+             * Assessed At
+             * Format: date-time
+             */
+            assessed_at: string;
+        };
         /**
          * MaturityHistoryResponse
          * @description Schema for a MaturityHistory entry in API responses.
@@ -704,6 +1896,17 @@ export interface components {
             required_status: string;
             /** Advancement Trigger */
             advancement_trigger: string;
+        };
+        /** MaturityLevelResponse */
+        MaturityLevelResponse: {
+            /** Level */
+            level: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Behaviors */
+            behaviors: string[];
         };
         /**
          * ModelCapability
@@ -1042,6 +2245,10 @@ export interface components {
             extra_metadata?: {
                 [key: string]: unknown;
             } | null;
+            /** Deprecated At */
+            deprecated_at?: string | null;
+            /** Deprecation Reason */
+            deprecation_reason?: string | null;
             /** Created By */
             created_by: string | null;
             /**
@@ -1085,8 +2292,228 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * PaginatedResponse
+         * @description Standard paginated response envelope.
+         */
+        PaginatedResponse: {
+            /** Items */
+            items: unknown[];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Has Next */
+            has_next: boolean;
+        };
+        /** PillarContent */
+        PillarContent: {
+            /**
+             * Overview
+             * @default
+             */
+            overview: string;
+            /** Learning Objectives */
+            learning_objectives?: string[];
+            /** Key Takeaways */
+            key_takeaways?: string[];
+            /** Resources */
+            resources?: {
+                [key: string]: string;
+            }[];
+        };
+        /** PillarListResponse */
+        PillarListResponse: {
+            /** Items */
+            items: components["schemas"]["PillarResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** PillarResponse */
+        PillarResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Pillar Number */
+            pillar_number: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /** Target Maturity Level */
+            target_maturity_level: number;
+            /** Duration */
+            duration: string | null;
+            content: components["schemas"]["PillarContent"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PillarStatus
+         * @enum {string}
+         */
+        PillarStatus: "not_started" | "in_progress" | "completed";
+        /**
+         * PolicyCreate
+         * @description Schema for creating a policy.
+         */
+        PolicyCreate: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Policy Type
+             * @description validation, approval, access_control, data_quality, compliance, security, custom
+             */
+            policy_type: string;
+            /**
+             * Description
+             * @description Policy description
+             */
+            description: string;
+            /**
+             * Rules
+             * @description List of policy rules
+             */
+            rules: components["schemas"]["layer5_ground_truth__api__governance_router__PolicyRuleCreate"][];
+            /**
+             * Severity
+             * @description high, medium, low
+             * @default medium
+             */
+            severity: string;
+            /** Scope */
+            scope?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * PolicyEvaluationRequest
+         * @description Schema for policy evaluation request.
+         */
+        PolicyEvaluationRequest: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Type
+             * @description formula, benchmark, assumption, value_entry, etc.
+             */
+            entity_type: string;
+            /**
+             * Context
+             * @description Evaluation context
+             */
+            context: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * PolicyEvaluationResponse
+         * @description Schema for policy evaluation response.
+         */
+        PolicyEvaluationResponse: {
+            /**
+             * Policy Id
+             * Format: uuid
+             */
+            policy_id: string;
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Is Compliant */
+            is_compliant: boolean;
+            /** Passed Rules */
+            passed_rules: {
+                [key: string]: unknown;
+            }[];
+            /** Failed Rules */
+            failed_rules: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Evaluation Id
+             * Format: uuid
+             */
+            evaluation_id: string;
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+        };
+        /**
+         * PolicyResponse
+         * @description Schema for policy response.
+         */
+        PolicyResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Policy Type */
+            policy_type: string;
+            /** Description */
+            description: string;
+            /** Current Version */
+            current_version: string | null;
+            /** Latest Version */
+            latest_version: string;
+            /** Severity */
+            severity: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            } | null;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** PolicyRuleCreate */
-        PolicyRuleCreate: {
+        "PolicyRuleCreate-Output": {
             /** Name */
             name: string;
             /**
@@ -1096,6 +2523,58 @@ export interface components {
             min_impact_threshold: number;
             /** Required Reviewer Role */
             required_reviewer_role: string;
+        };
+        /** ProgressListResponse */
+        ProgressListResponse: {
+            /** Items */
+            items: components["schemas"]["ProgressResponse"][];
+            /** Overall Percentage */
+            overall_percentage: number;
+            /** Completed Count */
+            completed_count: number;
+            /** Total Count */
+            total_count: number;
+        };
+        /** ProgressResponse */
+        ProgressResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** User Id */
+            user_id: string;
+            /**
+             * Pillar Id
+             * Format: uuid
+             */
+            pillar_id: string;
+            status: components["schemas"]["PillarStatus"];
+            /** Completion Percentage */
+            completion_percentage: number;
+            /**
+             * Last Accessed
+             * Format: date-time
+             */
+            last_accessed: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** ProgressUpdateRequest */
+        ProgressUpdateRequest: {
+            /**
+             * Pillar Id
+             * Format: uuid
+             */
+            pillar_id: string;
+            status: components["schemas"]["PillarStatus"];
+            /** Completion Percentage */
+            completion_percentage: number;
         };
         /**
          * PromoteModelRequest
@@ -1148,12 +2627,155 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** QuizAnswer */
+        QuizAnswer: {
+            /**
+             * Question Id
+             * Format: uuid
+             */
+            question_id: string;
+            /** Selected Answer */
+            selected_answer: string;
+        };
+        /** QuizFeedback */
+        QuizFeedback: {
+            /** Overall */
+            overall: string;
+            /** Strengths */
+            strengths?: string[];
+            /** Improvements */
+            improvements?: string[];
+            /** Next Steps */
+            next_steps?: string[];
+        };
+        /** QuizListResponse */
+        QuizListResponse: {
+            /** Items */
+            items: components["schemas"]["QuizQuestionResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** QuizOption */
+        QuizOption: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** QuizQuestionResponse */
+        QuizQuestionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Question Number */
+            question_number: number;
+            /** Question Type */
+            question_type: string;
+            /** Category */
+            category: string;
+            /** Question Text */
+            question_text: string;
+            /** Options */
+            options: components["schemas"]["QuizOption"][];
+            /** Points */
+            points: number;
+        };
+        /** QuizResultResponse */
+        QuizResultResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** User Id */
+            user_id: string;
+            /**
+             * Pillar Id
+             * Format: uuid
+             */
+            pillar_id: string;
+            /** Score */
+            score: number;
+            /** Category Scores */
+            category_scores: {
+                [key: string]: number;
+            } | null;
+            /** Passed */
+            passed: boolean;
+            feedback: components["schemas"]["QuizFeedback"];
+            /** Attempt Number */
+            attempt_number: number;
+            /**
+             * Completed At
+             * Format: date-time
+             */
+            completed_at: string;
+        };
+        /** QuizSubmitRequest */
+        QuizSubmitRequest: {
+            /**
+             * Pillar Id
+             * Format: uuid
+             */
+            pillar_id: string;
+            /** Answers */
+            answers: components["schemas"]["QuizAnswer"][];
+        };
         /**
          * RejectionReason
          * @description Reason a truth object was rejected.
          * @enum {string}
          */
         RejectionReason: "insufficient_evidence" | "out_of_scope" | "factually_incorrect" | "superseded" | "other";
+        /** ResourceListResponse */
+        ResourceListResponse: {
+            /** Items */
+            items: components["schemas"]["ResourceResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** ResourceResponse */
+        ResourceResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /** Resource Type */
+            resource_type: string;
+            /** File Url */
+            file_url: string;
+            /** Pillar Id */
+            pillar_id: string | null;
+            /** Vos Role */
+            vos_role: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * RollbackModelRequest
          * @description Schema for rolling back a deployment.
@@ -1256,7 +2878,7 @@ export interface components {
              * @description Semantic category of the claim
              * @default other
              */
-            claim_type: components["schemas"]["ClaimType"];
+            claim_type: components["schemas"]["layer5_ground_truth__models__truth_object__ClaimType"];
             /**
              * Confidence
              * @description Extraction model confidence score
@@ -1719,6 +3341,476 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * ValueClaimCreate
+         * @description Request body for creating a ValueClaim.
+         */
+        ValueClaimCreate: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Statement */
+            statement: string;
+            claim_type: components["schemas"]["layer5_ground_truth__models__value_evidence_graph_enums__ClaimType"];
+            /** Value Unit */
+            value_unit: string;
+            /** Conservative Value */
+            conservative_value: number | string;
+            /** Expected Value */
+            expected_value: number | string;
+            /** Aggressive Value */
+            aggressive_value: number | string;
+            confidence: components["schemas"]["Confidence"];
+            /** @default draft */
+            status: components["schemas"]["ClaimStatus"] | null;
+            /** Case Id */
+            case_id?: string | null;
+            /** Truth Object Id */
+            truth_object_id?: string | null;
+        };
+        /**
+         * ValueClaimListResponse
+         * @description Paginated list response for ValueClaims.
+         */
+        ValueClaimListResponse: {
+            /** Items */
+            items: components["schemas"]["ValueClaimSummary"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Has More */
+            has_more: boolean;
+        };
+        /**
+         * ValueClaimResponse
+         * @description Full ValueClaim representation in API responses.
+         */
+        ValueClaimResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Case Id */
+            case_id?: string | null;
+            /** Statement */
+            statement: string;
+            /** Claim Type */
+            claim_type: string;
+            /** Value Unit */
+            value_unit: string;
+            /** Conservative Value */
+            conservative_value: string;
+            /** Expected Value */
+            expected_value: string;
+            /** Aggressive Value */
+            aggressive_value: string;
+            /** Confidence */
+            confidence: string;
+            /** Status */
+            status: string;
+            /** Maturity Level */
+            maturity_level: number;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Truth Object Id */
+            truth_object_id?: string | null;
+        };
+        /**
+         * ValueClaimStatusTransition
+         * @description Request body for transitioning a ValueClaim status.
+         */
+        ValueClaimStatusTransition: {
+            status: components["schemas"]["ClaimStatus"];
+        };
+        /**
+         * ValueClaimSummary
+         * @description Compact ValueClaim representation for list responses.
+         */
+        ValueClaimSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Statement */
+            statement: string;
+            /** Claim Type */
+            claim_type: string;
+            /** Value Unit */
+            value_unit: string;
+            /** Expected Value */
+            expected_value: string;
+            /** Confidence */
+            confidence: string;
+            /** Status */
+            status: string;
+            /** Maturity Level */
+            maturity_level: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ValueRealizationEntryCreate
+         * @description Schema for creating a value realization entry.
+         */
+        ValueRealizationEntryCreate: {
+            /**
+             * Entry Type
+             * @description roi, cost_savings, revenue_impact, efficiency_gain, time_savings, risk_reduction, custom
+             */
+            entry_type: string;
+            /** Entry Name */
+            entry_name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Current Value
+             * @description Current value of the metric
+             */
+            current_value: number;
+            /** Value Unit */
+            value_unit?: string | null;
+            /**
+             * Value Currency
+             * @description ISO currency code
+             */
+            value_currency?: string | null;
+            /** Formula Id */
+            formula_id?: string | null;
+            /** Formula Version */
+            formula_version?: string | null;
+            /** Benchmark Id */
+            benchmark_id?: string | null;
+            /** Benchmark Version */
+            benchmark_version?: string | null;
+            /** Assumption Ids */
+            assumption_ids?: string[] | null;
+            /** Opportunity Id */
+            opportunity_id?: string | null;
+            /** Account Id */
+            account_id?: string | null;
+            /** Business Case Id */
+            business_case_id?: string | null;
+        };
+        /**
+         * ValueRealizationEntryResponse
+         * @description Schema for value realization entry response.
+         */
+        ValueRealizationEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Entry Type */
+            entry_type: string;
+            /** Entry Name */
+            entry_name: string;
+            /** Description */
+            description: string | null;
+            /** Current Value */
+            current_value: number;
+            /** Value Unit */
+            value_unit: string | null;
+            /** Value Currency */
+            value_currency: string | null;
+            /** Formula Id */
+            formula_id: string | null;
+            /** Formula Version */
+            formula_version: string | null;
+            /** Benchmark Id */
+            benchmark_id: string | null;
+            /** Benchmark Version */
+            benchmark_version: string | null;
+            /** Assumption Ids */
+            assumption_ids: string[] | null;
+            /** Opportunity Id */
+            opportunity_id: string | null;
+            /** Account Id */
+            account_id: string | null;
+            /** Business Case Id */
+            business_case_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ValueRealizationUpdateCreate
+         * @description Schema for creating a value realization update.
+         */
+        ValueRealizationUpdateCreate: {
+            /**
+             * New Value
+             * @description New value after update
+             */
+            new_value: number;
+            /**
+             * Update Reason
+             * @description new_calculation, data_refresh, formula_change, benchmark_update, assumption_change, correction, revalidation, manual_override, other
+             */
+            update_reason: string;
+            /** Update Notes */
+            update_notes?: string | null;
+            /** Formula Id At Update */
+            formula_id_at_update?: string | null;
+            /** Formula Version At Update */
+            formula_version_at_update?: string | null;
+            /** Benchmark Id At Update */
+            benchmark_id_at_update?: string | null;
+            /** Benchmark Version At Update */
+            benchmark_version_at_update?: string | null;
+            /** Assumption Ids At Update */
+            assumption_ids_at_update?: string[] | null;
+            /** Calculation Metadata */
+            calculation_metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** AssumptionCreate */
+        layer5_ground_truth__api__assumption_governance_routes__AssumptionCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Impact Value
+             * @default 0
+             */
+            impact_value: number;
+        };
+        /** AssumptionResponse */
+        layer5_ground_truth__api__assumption_governance_routes__AssumptionResponse: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Impact Value
+             * @default 0
+             */
+            impact_value: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle_state: components["schemas"]["LifecycleState"];
+            /** Is Approved For Use */
+            is_approved_for_use: boolean;
+        };
+        /** PolicyRuleCreate */
+        layer5_ground_truth__api__assumption_governance_routes__PolicyRuleCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Min Impact Threshold
+             * @default 0
+             */
+            min_impact_threshold: number;
+            /** Required Reviewer Role */
+            required_reviewer_role: string;
+        };
+        /**
+         * AssumptionCreate
+         * @description Schema for creating an assumption.
+         */
+        layer5_ground_truth__api__governance_router__AssumptionCreate: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Assumption Type
+             * @description market_growth, pricing, cost_structure, timeline, resource_availability, competitive_response, customer_behavior, technical_feasibility, regulatory, custom
+             */
+            assumption_type: string;
+            /**
+             * Description
+             * @description Detailed description of the assumption
+             */
+            description: string;
+            /**
+             * Value
+             * @description Assumption value
+             */
+            value: {
+                [key: string]: unknown;
+            };
+            /**
+             * Value Type
+             * @description number, percentage, currency, string, boolean, date, duration
+             */
+            value_type: string;
+            /**
+             * Impact Level
+             * @description low, medium, high, critical
+             */
+            impact_level: string;
+            /** Truth Object Id */
+            truth_object_id?: string | null;
+            /** Applies To Opportunity Id */
+            applies_to_opportunity_id?: string | null;
+            /** Applies To Formula Id */
+            applies_to_formula_id?: string | null;
+        };
+        /**
+         * AssumptionResponse
+         * @description Schema for assumption response.
+         */
+        layer5_ground_truth__api__governance_router__AssumptionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Tenant Id
+             * Format: uuid
+             */
+            tenant_id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Assumption Type */
+            assumption_type: string;
+            /** Description */
+            description: string;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+            /** Value Type */
+            value_type: string;
+            /** Impact Level */
+            impact_level: string;
+            /** Sensitivity Analysis */
+            sensitivity_analysis: {
+                [key: string]: unknown;
+            } | null;
+            /** Truth Object Id */
+            truth_object_id: string | null;
+            /** Evidence Count */
+            evidence_count: number;
+            /** Status */
+            status: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Approval Request Id */
+            approval_request_id: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PolicyRuleCreate
+         * @description Schema for creating a policy rule.
+         */
+        layer5_ground_truth__api__governance_router__PolicyRuleCreate: {
+            /** Rule Name */
+            rule_name: string;
+            /**
+             * Rule Type
+             * @description validation, constraint, business_rule, security, compliance
+             */
+            rule_type: string;
+            /**
+             * Condition
+             * @description Rule condition
+             */
+            condition: {
+                [key: string]: unknown;
+            };
+            /**
+             * Action
+             * @description Action to take if condition is met
+             */
+            action: string;
+            /**
+             * Severity
+             * @description high, medium, low
+             * @default medium
+             */
+            severity: string;
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * ClaimType
+         * @description Semantic category of the claim being recorded.
+         * @enum {string}
+         */
+        layer5_ground_truth__models__truth_object__ClaimType: "cost_savings_baseline" | "revenue_impact" | "efficiency_gain" | "risk_reduction" | "compliance_requirement" | "customer_outcome" | "technical_capability" | "market_benchmark" | "persona_pain_point" | "value_driver_metric" | "other";
+        /**
+         * ClaimType
+         * @description Semantic category of a ValueClaim.
+         * @enum {string}
+         */
+        layer5_ground_truth__models__value_evidence_graph_enums__ClaimType: "cost_savings" | "revenue_growth" | "risk_reduction" | "productivity_gain" | "cycle_time_reduction" | "compliance_improvement" | "customer_experience" | "strategic_capability";
         /** ErrorEnvelope */
         ErrorEnvelope: {
             error: {
@@ -1767,7 +3859,7 @@ export interface operations {
                 /** @description Filter by validation status */
                 status?: components["schemas"]["TruthStatus"] | null;
                 /** @description Filter by claim type */
-                claim_type?: components["schemas"]["ClaimType"] | null;
+                claim_type?: components["schemas"]["layer5_ground_truth__models__truth_object__ClaimType"] | null;
                 /** @description Minimum maturity level (0–5) */
                 min_maturity?: number | null;
                 /** @description Minimum confidence score */
@@ -2563,7 +4655,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AssumptionCreate"];
+                "application/json": components["schemas"]["layer5_ground_truth__api__assumption_governance_routes__AssumptionCreate"];
             };
         };
         responses: {
@@ -2573,7 +4665,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssumptionResponse"];
+                    "application/json": components["schemas"]["layer5_ground_truth__api__assumption_governance_routes__AssumptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2596,7 +4688,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PolicyRuleCreate"];
+                "application/json": components["schemas"]["layer5_ground_truth__api__assumption_governance_routes__PolicyRuleCreate"];
             };
         };
         responses: {
@@ -2606,7 +4698,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PolicyRuleCreate"];
+                    "application/json": components["schemas"]["PolicyRuleCreate-Output"];
                 };
             };
             /** @description Validation Error */
@@ -2644,6 +4736,1475 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_formulas_api_v1_governance_formulas_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                formula_type?: string | null;
+                is_active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_formula_api_v1_governance_formulas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormulaCreate"];
+            };
+        };
+        responses: {
+            /** @description Formula created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaResponse"];
+                };
+            };
+            /** @description Invalid request data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Formula slug already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_formula_api_v1_governance_formulas__formula_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaResponse"];
+                };
+            };
+            /** @description Formula not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_formula_version_api_v1_governance_formulas__formula_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormulaVersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Formula version created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaVersionResponse"];
+                };
+            };
+            /** @description Invalid version or expression */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Formula not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_formula_version_api_v1_governance_formulas__formula_id__versions__version__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version submitted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaVersionResponse"];
+                };
+            };
+            /** @description Invalid status transition */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Formula or version not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_formula_version_api_v1_governance_formulas__formula_id__versions__version__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version approved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaVersionResponse"];
+                };
+            };
+            /** @description Invalid status transition */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_formula_version_api_v1_governance_formulas__formula_id__versions__version__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+                version: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Version rejected successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaVersionResponse"];
+                };
+            };
+            /** @description Invalid status transition */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deprecate_formula_api_v1_governance_formulas__formula_id__deprecate_post: {
+        parameters: {
+            query: {
+                /** @description Reason for deprecation */
+                reason: string;
+            };
+            header?: never;
+            path: {
+                formula_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Formula deprecated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaResponse"];
+                };
+            };
+            /** @description Formula already deprecated */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Formula not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_formula_api_v1_governance_formulas__formula_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                formula_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Formula archived successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaResponse"];
+                };
+            };
+            /** @description Formula not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_benchmarks_api_v1_governance_benchmarks_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                benchmark_type?: string | null;
+                is_active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_benchmark_api_v1_governance_benchmarks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkCreateWithVersion"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_benchmark_version_api_v1_governance_benchmarks__benchmark_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                benchmark_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkVersionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormulaVersionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_policies_api_v1_governance_policies_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                policy_type?: string | null;
+                is_active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_policy_api_v1_governance_policies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_policy_api_v1_governance_policies__policy_id__evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyEvaluationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyEvaluationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assumptions_api_v1_governance_assumptions_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                assumption_type?: string | null;
+                impact_level?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assumption_api_v1_governance_assumptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_assumption_evidence_api_v1_governance_assumptions__assumption_id__evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assumption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssumptionEvidenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_assumption_api_v1_governance_assumptions__assumption_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assumption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_value_entries_api_v1_governance_value_entries_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                entry_type?: string | null;
+                opportunity_id?: string | null;
+                account_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_value_entry_api_v1_governance_value_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueRealizationEntryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueRealizationEntryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_value_update_api_v1_governance_value_entries__entry_id__updates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueRealizationUpdateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueRealizationEntryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_governance_approvals_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                entity_type?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_request_api_v1_governance_approvals__approval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_request_api_v1_governance_approvals__approval_id__approve_post: {
+        parameters: {
+            query?: {
+                notes?: string | null;
+            };
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_request_api_v1_governance_approvals__approval_id__reject_post: {
+        parameters: {
+            query?: {
+                notes?: string | null;
+            };
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pillars_api_v1_academy_pillars_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PillarListResponse"];
+                };
+            };
+        };
+    };
+    get_pillar_api_v1_academy_pillars__pillar_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pillar_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PillarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pillar_by_number_route_api_v1_academy_pillars_by_number__pillar_number__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pillar_number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PillarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quiz_api_v1_academy_pillars__pillar_id__quiz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pillar_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuizListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_quiz_api_v1_academy_quiz_submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuizSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuizResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_progress_api_v1_academy_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressListResponse"];
+                };
+            };
+        };
+    };
+    update_progress_api_v1_academy_progress_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_certifications_api_v1_academy_certifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CertificationListResponse"];
+                };
+            };
+        };
+    };
+    get_maturity_levels_api_v1_academy_maturity_levels_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaturityLevelResponse"][];
+                };
+            };
+        };
+    };
+    get_maturity_assessments_api_v1_academy_maturity_assessments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaturityAssessmentResponse"][];
+                };
+            };
+        };
+    };
+    create_assessment_api_v1_academy_maturity_assessments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaturityAssessmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaturityAssessmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resources_api_v1_academy_resources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceListResponse"];
+                };
+            };
+        };
+    };
+    get_pillar_resources_api_v1_academy_pillars__pillar_id__resources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pillar_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_value_claims_api_v1_value_claims_get: {
+        parameters: {
+            query: {
+                account_id: string;
+                status?: components["schemas"]["ClaimStatus"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueClaimListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_value_claim_api_v1_value_claims_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueClaimCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_value_claim_api_v1_value_claims__claim_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_value_claim_api_v1_value_claims__claim_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_value_claim_status_api_v1_value_claims__claim_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueClaimStatusTransition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueClaimResponse"];
                 };
             };
             /** @description Validation Error */

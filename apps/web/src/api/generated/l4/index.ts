@@ -2306,8 +2306,34 @@ export interface paths {
         /**
          * Api Invite User
          * @description Invite a user to the caller's tenant. Requires ``tenant_admin`` role.
+         *
+         *     Generates an invitation token and sends an invitation email if an email
+         *     provider (SendGrid or SMTP) is configured.
          */
         post: operations["api_invite_user_v1_users_invite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/accept-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Api Accept Invite
+         * @description Accept an invitation by setting a password and activating the account.
+         *
+         *     This endpoint is **public** (does not require authentication) because the
+         *     caller is an unauthenticated invitee redeeming their invitation token.
+         */
+        post: operations["api_accept_invite_v1_users_accept_invite_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2332,6 +2358,34 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Api Get Current User
+         * @description Get the currently authenticated user (self-service).
+         */
+        get: operations["api_get_current_user_v1_users_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Api Update Current User
+         * @description Update the currently authenticated user's own profile.
+         *
+         *     Only ``display_name`` may be changed via self-service. Requests that
+         *     include ``role`` or ``status`` are rejected to prevent privilege
+         *     escalation by non-admins.
+         */
+        patch: operations["api_update_current_user_v1_users_me_patch"];
         trace?: never;
     };
     "/v1/users/{user_id}": {
@@ -3841,7 +3895,7 @@ export interface paths {
         };
         /**
          * Get Subscription
-         * @description [STUB] Forwarded to Layer 7. Get current subscription status.
+         * @description Get current subscription status.
          */
         get: operations["get_subscription_v1_billing_subscription_get"];
         put?: never;
@@ -3863,7 +3917,7 @@ export interface paths {
         put?: never;
         /**
          * Create Checkout
-         * @description [STUB] Forwarded to Layer 7. Create a Stripe checkout session.
+         * @description Create a Stripe checkout session.
          */
         post: operations["create_checkout_v1_billing_checkout_post"];
         delete?: never;
@@ -3883,7 +3937,7 @@ export interface paths {
         put?: never;
         /**
          * Create Portal
-         * @description [STUB] Forwarded to Layer 7. Create a Stripe customer portal session.
+         * @description Create a Stripe customer portal session.
          */
         post: operations["create_portal_v1_billing_portal_post"];
         delete?: never;
@@ -3903,7 +3957,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel Subscription
-         * @description [STUB] Forwarded to Layer 7. Cancel a customer's subscription.
+         * @description Cancel a customer's subscription.
          */
         post: operations["cancel_subscription_v1_billing_subscription_cancel_post"];
         delete?: never;
@@ -3923,7 +3977,7 @@ export interface paths {
         put?: never;
         /**
          * Update Subscription Plan
-         * @description [STUB] Forwarded to Layer 7. Update a customer's subscription plan.
+         * @description Update a customer's subscription plan.
          */
         post: operations["update_subscription_plan_v1_billing_subscription_update_plan_post"];
         delete?: never;
@@ -3943,7 +3997,7 @@ export interface paths {
         put?: never;
         /**
          * Reactivate Subscription
-         * @description [STUB] Forwarded to Layer 7. Reactivate a subscription.
+         * @description Reactivate a subscription.
          */
         post: operations["reactivate_subscription_v1_billing_subscription_reactivate_post"];
         delete?: never;
@@ -3961,7 +4015,7 @@ export interface paths {
         };
         /**
          * Get Entitlements
-         * @description [STUB] Forwarded to Layer 7. Get all feature entitlements for a customer.
+         * @description Get all feature entitlements for a customer.
          */
         get: operations["get_entitlements_v1_billing_entitlements_get"];
         put?: never;
@@ -3981,7 +4035,7 @@ export interface paths {
         };
         /**
          * Check Feature
-         * @description [STUB] Forwarded to Layer 7. Check if a customer has access to a specific feature.
+         * @description Check if a customer has access to a specific feature.
          */
         get: operations["check_feature_v1_billing_check_feature_get"];
         put?: never;
@@ -4003,9 +4057,29 @@ export interface paths {
         put?: never;
         /**
          * Sync Customer
-         * @description [STUB] Forwarded to Layer 7. Sync customer with Stripe.
+         * @description Sync customer with Stripe.
          */
         post: operations["sync_customer_v1_billing_sync_customer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe Webhook
+         * @description Handle Stripe webhook events.
+         */
+        post: operations["stripe_webhook_v1_billing_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4021,13 +4095,13 @@ export interface paths {
         };
         /**
          * List Invoices
-         * @description [STUB] Forwarded to Layer 7. List invoices with optional filters.
+         * @description List invoices with optional filters.
          */
         get: operations["list_invoices_v1_billing_invoices_get"];
         put?: never;
         /**
          * Create Invoice
-         * @description [STUB] Forwarded to Layer 7. Create a new invoice.
+         * @description Create a new invoice.
          */
         post: operations["create_invoice_v1_billing_invoices_post"];
         delete?: never;
@@ -4045,7 +4119,7 @@ export interface paths {
         };
         /**
          * Get Invoice
-         * @description [STUB] Forwarded to Layer 7. Get invoice details including line items and charges.
+         * @description Get invoice details including line items and charges.
          */
         get: operations["get_invoice_v1_billing_invoices__invoice_id__get"];
         put?: never;
@@ -4067,7 +4141,7 @@ export interface paths {
         put?: never;
         /**
          * Add Invoice Item
-         * @description [STUB] Forwarded to Layer 7. Add a line item to an invoice.
+         * @description Add a line item to an invoice.
          */
         post: operations["add_invoice_item_v1_billing_invoices__invoice_id__items_post"];
         delete?: never;
@@ -4087,7 +4161,7 @@ export interface paths {
         put?: never;
         /**
          * Finalize Invoice
-         * @description [STUB] Forwarded to Layer 7. Finalize a draft invoice.
+         * @description Finalize a draft invoice.
          */
         post: operations["finalize_invoice_v1_billing_invoices__invoice_id__finalize_post"];
         delete?: never;
@@ -4107,7 +4181,7 @@ export interface paths {
         put?: never;
         /**
          * Void Invoice
-         * @description [STUB] Forwarded to Layer 7. Void an invoice.
+         * @description Void an invoice.
          */
         post: operations["void_invoice_v1_billing_invoices__invoice_id__void_post"];
         delete?: never;
@@ -4125,13 +4199,13 @@ export interface paths {
         };
         /**
          * List Charges
-         * @description [STUB] Forwarded to Layer 7. List charge records.
+         * @description List charge records.
          */
         get: operations["list_charges_v1_billing_charges_get"];
         put?: never;
         /**
          * Record Charge
-         * @description [STUB] Forwarded to Layer 7. Record a charge attempt.
+         * @description Record a charge attempt.
          */
         post: operations["record_charge_v1_billing_charges_post"];
         delete?: never;
@@ -4149,7 +4223,7 @@ export interface paths {
         };
         /**
          * Get Revenue Summary
-         * @description [STUB] Forwarded to Layer 7. Get revenue summary for a period.
+         * @description Get revenue summary for a period.
          */
         get: operations["get_revenue_summary_v1_billing_reports_revenue_get"];
         put?: never;
@@ -4169,7 +4243,7 @@ export interface paths {
         };
         /**
          * Get Customer Balance
-         * @description [STUB] Forwarded to Layer 7. Get customer balance summary.
+         * @description Get customer balance summary.
          */
         get: operations["get_customer_balance_v1_billing_customers__customer_id__balance_get"];
         put?: never;
@@ -4189,7 +4263,7 @@ export interface paths {
         };
         /**
          * Get Usage Limits
-         * @description [STUB] Forwarded to Layer 7. Get current usage and limits for a customer.
+         * @description Get current usage and limits for a customer.
          */
         get: operations["get_usage_limits_v1_billing_limits__customer_id__get"];
         put?: never;
@@ -4211,7 +4285,7 @@ export interface paths {
         put?: never;
         /**
          * Check Request Allowed
-         * @description [STUB] Forwarded to Layer 7. Check if a request should be allowed based on usage limits.
+         * @description Check if a request should be allowed based on usage limits.
          */
         post: operations["check_request_allowed_v1_billing_limits__customer_id__check_post"];
         delete?: never;
@@ -4229,7 +4303,7 @@ export interface paths {
         };
         /**
          * Get Plan Limits
-         * @description [STUB] Forwarded to Layer 7. Get the configured usage limits for a plan.
+         * @description Get the configured usage limits for a plan.
          */
         get: operations["get_plan_limits_v1_billing_plans__plan_id__limits_get"];
         put?: never;
@@ -4251,7 +4325,7 @@ export interface paths {
         put?: never;
         /**
          * Ingest Usage Event
-         * @description [STUB] Forwarded to Layer 7. Ingest a single usage event for billing.
+         * @description Ingest a single usage event for billing.
          */
         post: operations["ingest_usage_event_v1_billing_events_post"];
         delete?: never;
@@ -4271,7 +4345,7 @@ export interface paths {
         put?: never;
         /**
          * Ingest Usage Batch
-         * @description [STUB] Forwarded to Layer 7. Ingest multiple usage events in a batch.
+         * @description Ingest multiple usage events in a batch.
          */
         post: operations["ingest_usage_batch_v1_billing_events_batch_post"];
         delete?: never;
@@ -4289,7 +4363,7 @@ export interface paths {
         };
         /**
          * Get Usage Summary
-         * @description [STUB] Forwarded to Layer 7. Get aggregated usage summary.
+         * @description Get aggregated usage summary.
          */
         get: operations["get_usage_summary_v1_billing_usage__customer_id__summary_get"];
         put?: never;
@@ -4309,7 +4383,7 @@ export interface paths {
         };
         /**
          * List Usage Events
-         * @description [STUB] Forwarded to Layer 7. List individual usage events for a customer.
+         * @description List individual usage events for a customer.
          */
         get: operations["list_usage_events_v1_billing_usage__customer_id__events_get"];
         put?: never;
@@ -4331,29 +4405,9 @@ export interface paths {
         put?: never;
         /**
          * Sync Usage To Stripe
-         * @description [STUB] Forwarded to Layer 7. Sync pending usage events to Stripe MeterEvents.
+         * @description Sync pending usage events to Stripe MeterEvents.
          */
         post: operations["sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stripe Webhook
-         * @description [STUB] Forwarded to Layer 7. Handle Stripe webhook events.
-         */
-        post: operations["stripe_webhook_v1_billing_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5050,6 +5104,8 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            /** Revoked At */
+            revoked_at?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -5636,31 +5692,6 @@ export interface components {
              */
             force: boolean;
         };
-        /** Body_api_activate_tenant_v1_tenants__tenant_id__activate_post */
-        Body_api_activate_tenant_v1_tenants__tenant_id__activate_post: {
-            body?: components["schemas"]["StatusChangeRequest"] | null;
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_change_tenant_status_v1_tenants__tenant_id__status_post */
-        Body_api_change_tenant_status_v1_tenants__tenant_id__status_post: {
-            body?: components["schemas"]["StatusChangeRequest"] | null;
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_create_key_v1_api_keys_post */
-        Body_api_create_key_v1_api_keys_post: {
-            request: components["schemas"]["APIKeyCreateRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_create_tenant_v1_tenants_post */
-        Body_api_create_tenant_v1_tenants_post: {
-            request: components["schemas"]["TenantCreateRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_invite_user_v1_users_invite_post */
-        Body_api_invite_user_v1_users_invite_post: {
-            request: components["schemas"]["UserInviteRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
         /** Body_api_promote_model_v1_models__model_id__promote_post */
         Body_api_promote_model_v1_models__model_id__promote_post: {
             request: components["schemas"]["ModelPromoteRequest"];
@@ -5674,61 +5705,6 @@ export interface components {
         /** Body_api_register_model_v1_models_post */
         Body_api_register_model_v1_models_post: {
             request: components["schemas"]["ModelRegisterRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post */
-        Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post: {
-            body?: components["schemas"]["StatusChangeRequest"] | null;
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_update_tenant_v1_tenants__tenant_id__patch */
-        Body_api_update_tenant_v1_tenants__tenant_id__patch: {
-            request: components["schemas"]["TenantUpdateRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_api_update_user_v1_users__user_id__patch */
-        Body_api_update_user_v1_users__user_id__patch: {
-            request: components["schemas"]["UserUpdateRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_create_audit_export_v1_governance_audit_exports_post */
-        Body_create_audit_export_v1_governance_audit_exports_post: {
-            request: components["schemas"]["AuditExportCreateRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_create_decision_v1_governance_reviews__review_id__decisions_post */
-        Body_create_decision_v1_governance_reviews__review_id__decisions_post: {
-            decision: components["schemas"]["ApprovalDecision"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_create_review_v1_governance_reviews_post */
-        Body_create_review_v1_governance_reviews_post: {
-            request: components["schemas"]["ReviewRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_create_version_v1_governance_versions_post */
-        Body_create_version_v1_governance_versions_post: {
-            version: components["schemas"]["VersionRecord"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_decide_gate_v1_harness_gates__gate_id__decide_post */
-        Body_decide_gate_v1_harness_gates__gate_id__decide_post: {
-            body: components["schemas"]["GateDecisionRequest"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_update_tenant_settings_v1__tenant_id__settings_patch */
-        Body_update_tenant_settings_v1__tenant_id__settings_patch: {
-            update: components["schemas"]["layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch */
-        Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch: {
-            update: components["schemas"]["layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"];
-            context?: components["schemas"]["RequestContext"] | null;
-        };
-        /** Body_upsert_feature_flag_v1_feature_flags__flag_key__put */
-        Body_upsert_feature_flag_v1_feature_flags__flag_key__put: {
-            request: components["schemas"]["FeatureFlagUpsertRequest"];
             context?: components["schemas"]["RequestContext"] | null;
         };
         /**
@@ -6471,6 +6447,11 @@ export interface components {
              * @description Case title
              */
             title?: string | null;
+            /**
+             * Case Id
+             * @description Optional deterministic case id. Generated if omitted.
+             */
+            case_id?: string | null;
         };
         /**
          * CreateCaseResponse
@@ -7467,6 +7448,9 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
+        JsonValue: string | number | boolean | components["schemas"]["JsonValue"][] | {
+            [key: string]: components["schemas"]["JsonValue"];
+        } | null;
         /**
          * KnowledgeSourceCreateRequest
          * @description Request to add a new knowledge source.
@@ -9441,11 +9425,11 @@ export interface components {
         ToolSchemaExample: {
             /** Input */
             input?: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["JsonValue"];
             };
             /** Output */
             output?: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["JsonValue"];
             };
         };
         /**
@@ -9460,11 +9444,11 @@ export interface components {
             description: string;
             /** Input Schema */
             input_schema?: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["JsonValue"];
             };
             /** Output Schema */
             output_schema?: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["JsonValue"];
             };
             /** Examples */
             examples?: components["schemas"]["ToolSchemaExample"][];
@@ -9621,6 +9605,24 @@ export interface components {
             llm_usage: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * UserAcceptInviteRequest
+         * @description Accept an invitation by setting a password and activating the account.
+         */
+        UserAcceptInviteRequest: {
+            /**
+             * Token
+             * @description Invitation token from email
+             */
+            token: string;
+            /**
+             * Password
+             * @description Password for the new account
+             */
+            password: string;
+            /** Display Name */
+            display_name?: string | null;
         };
         /**
          * UserInviteRequest
@@ -11988,11 +11990,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14485,11 +14483,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14520,7 +14514,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_api_create_tenant_v1_tenants_post"];
+                "application/json": components["schemas"]["TenantCreateRequest"];
             };
         };
         responses: {
@@ -14553,11 +14547,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14588,11 +14578,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -14623,7 +14609,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_api_update_tenant_v1_tenants__tenant_id__patch"];
+                "application/json": components["schemas"]["TenantUpdateRequest"];
             };
         };
         responses: {
@@ -14658,7 +14644,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post"];
+                "application/json": components["schemas"]["StatusChangeRequest"] | null;
             };
         };
         responses: {
@@ -14693,7 +14679,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Body_api_activate_tenant_v1_tenants__tenant_id__activate_post"];
+                "application/json": components["schemas"]["StatusChangeRequest"] | null;
             };
         };
         responses: {
@@ -14731,7 +14717,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["Body_api_change_tenant_status_v1_tenants__tenant_id__status_post"];
+                "application/json": components["schemas"]["StatusChangeRequest"] | null;
             };
         };
         responses: {
@@ -14764,12 +14750,45 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_api_invite_user_v1_users_invite_post"];
+                "application/json": components["schemas"]["UserInviteRequest"];
             };
         };
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_accept_invite_v1_users_accept_invite_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserAcceptInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -14798,9 +14817,58 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_get_current_user_v1_users_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserModel"];
+                };
+            };
+        };
+    };
+    api_update_current_user_v1_users_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
+                "application/json": components["schemas"]["UserUpdateRequest"];
             };
         };
         responses: {
@@ -14810,7 +14878,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserModel"][];
+                    "application/json": components["schemas"]["UserModel"];
                 };
             };
             /** @description Validation Error */
@@ -14833,11 +14901,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14868,11 +14932,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -14903,7 +14963,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_api_update_user_v1_users__user_id__patch"];
+                "application/json": components["schemas"]["UserUpdateRequest"];
             };
         };
         responses: {
@@ -14930,17 +14990,13 @@ export interface operations {
     api_list_keys_v1_api_keys_get: {
         parameters: {
             query?: {
-                enabled_only?: boolean;
+                active_only?: boolean;
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -14971,7 +15027,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_api_create_key_v1_api_keys_post"];
+                "application/json": components["schemas"]["APIKeyCreateRequest"];
             };
         };
         responses: {
@@ -15004,11 +15060,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -15231,11 +15283,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15419,11 +15467,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15456,11 +15500,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15494,11 +15534,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15529,11 +15565,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15566,7 +15598,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch"];
+                "application/json": components["schemas"]["layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"];
             };
         };
         responses: {
@@ -15602,11 +15634,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15639,11 +15667,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15674,11 +15698,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15712,11 +15732,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15752,11 +15768,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15787,11 +15799,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -15824,7 +15832,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_update_tenant_settings_v1__tenant_id__settings_patch"];
+                "application/json": components["schemas"]["layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"];
             };
         };
         responses: {
@@ -16139,11 +16147,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -16174,11 +16178,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -16211,7 +16211,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_upsert_feature_flag_v1_feature_flags__flag_key__put"];
+                "application/json": components["schemas"]["FeatureFlagUpsertRequest"];
             };
         };
         responses: {
@@ -16244,11 +16244,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -16277,11 +16273,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RequestContext"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -17241,7 +17233,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_create_review_v1_governance_reviews_post"];
+                "application/json": components["schemas"]["ReviewRequest"];
             };
         };
         responses: {
@@ -17307,7 +17299,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_create_decision_v1_governance_reviews__review_id__decisions_post"];
+                "application/json": components["schemas"]["ApprovalDecision"];
             };
         };
         responses: {
@@ -17371,7 +17363,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_create_version_v1_governance_versions_post"];
+                "application/json": components["schemas"]["VersionRecord"];
             };
         };
         responses: {
@@ -17437,7 +17429,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_create_audit_export_v1_governance_audit_exports_post"];
+                "application/json": components["schemas"]["AuditExportCreateRequest"];
             };
         };
         responses: {
@@ -17822,6 +17814,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["sync_customerResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_v1_billing_webhook_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Stripe-Signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["stripe_webhookResult"];
                 };
             };
             /** @description Validation Error */
@@ -18430,39 +18453,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stripe_webhook_v1_billing_webhook_post: {
-        parameters: {
-            query: {
-                background_tasks: unknown;
-            };
-            header: {
-                "Stripe-Signature": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["stripe_webhookResult"];
                 };
             };
             /** @description Validation Error */
@@ -19391,7 +19381,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_decide_gate_v1_harness_gates__gate_id__decide_post"];
+                "application/json": components["schemas"]["GateDecisionRequest"];
             };
         };
         responses: {

@@ -22,6 +22,7 @@ import { formatDate } from "@/lib/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Btn } from "@/components/ui/fabric";
 import { Input } from "@/components/ui/input";
+import { copyToClipboard } from "@/lib/clipboard";
 import {
   Select,
   SelectContent,
@@ -457,7 +458,7 @@ function PermissionsContent() {
           <DialogFooter>
             {revealedKey ? (
               <>
-                <Btn variant="ghost" onClick={() => { navigator.clipboard.writeText(revealedKey.api_key); }}>
+                <Btn variant="ghost" onClick={() => { copyToClipboard(revealedKey.api_key); }}>
                   Copy
                 </Btn>
                 <Btn variant="primary" onClick={closeCreateKey}>Done</Btn>

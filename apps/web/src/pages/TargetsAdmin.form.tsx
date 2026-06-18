@@ -5,7 +5,7 @@
 import { useEffect } from 'react';
 import { useForm, Controller, type UseFormProps } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -147,7 +147,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
   const updateTarget = useUpdateTarget();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: standardSchemaResolver(schema),
     defaultValues: existing ? targetToForm(existing) : BASE_DEFAULTS,
   } as UseFormProps<FormValues>);
 

@@ -62,7 +62,7 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
   it('checked-in OpenAPI fixtures keep expected base-path version prefixes', () => {
     const expectedPrefixes: Record<string, Array<`/${string}`>> = {
       'layer1-ingestion.json': ['/api/v1', '/api', '/v1', '/health', '/ready', '/metrics'],
-      'layer2-extraction.json': ['/signals', '/health', '/health/live', '/ready', '/metrics'],
+      'layer2-extraction.json': ['/v1', '/signals', '/health', '/health/live', '/ready', '/metrics'],
       'layer3-knowledge.json': ['/v1', '/health', '/ready', '/metrics', '/graph', '/entities'],
       'layer4-agents.json': ['/v1', '/', '/health', '/ready', '/metrics', '/auth'],
       'layer5-ground-truth.json': ['/api/v1', '/health', '/ready', '/metrics'],

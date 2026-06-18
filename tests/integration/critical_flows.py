@@ -210,17 +210,20 @@ async def test_flow_1_tenant_onboarding(flow: CriticalFlowClient) -> None:
 @pytest.mark.asyncio
 async def test_flow_2_document_ingestion_extraction_to_knowledge_graph(flow: CriticalFlowClient) -> None:
     document = {
-        "id": flow.ids.document_id,
         "account_id": flow.ids.account_id,
+        "source_type": "notes",
         "title": f"Critical flow document {RUN_ID}",
-        "source_type": "integration_test",
         "content": "Acme reduced support handling time by 18 percent after workflow automation.",
+        "external_reference": flow.ids.document_id,
+        "idempotency_key": flow.ids.document_id,
+        "requested_outputs": ["fabric_found_summary"],
         "metadata": {"run_id": RUN_ID},
     }
     source, _ = await flow.request("l1", "POST", "/api/v1/ingestion/sources", json_body=document, expected=(200, 201, 202, 409))
-    flow.cleanup("l1", f"/api/v1/ingestion/sources/{flow.ids.document_id}")
-    job_id = str(source.get("job_id") or source.get("id") or flow.ids.document_id)
-    await _wait_for(flow, "l1", f"/api/v1/ingestion/jobs/{job_id}", {"queued", "running", "completed", "succeeded", "failed"})
+    source_id = str(source.get("source_id") or source.get("id") or flow.ids.document_id)
+    run_id = str(source.get("ingestion_run_id") or source_id)
+    flow.cleanup("l1", f"/api/v1/ingestion/sources/{source_id}")
+    await _wait_for(flow, "l1", f"/api/v1/ingestion/runs/{run_id}", {"accepted", "ready", "failed", "needs_review"})
 
     extraction_payload = {
         "content_id": flow.ids.document_id,

@@ -3431,7 +3431,9 @@ from .main_content_routes import router as content_routes
 from .main_job_routes import router as job_routes
 from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
+from .source_routes import register_routes as register_source_routes
 
+register_source_routes(router)
 router.include_router(target_routes)
 router.include_router(job_routes)
 router.include_router(skill_routes)

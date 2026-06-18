@@ -6,8 +6,8 @@ Verifies that tools return structured ToolResult instead of raising exceptions.
 import pytest
 from pydantic import BaseModel
 
-from src.tools.registry import BaseTool, ToolRegistry, ToolResult
-from src.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
+from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
+from layer4_agents.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
 
 
 def validate_tool_result(result):
@@ -22,6 +22,7 @@ def validate_tool_result(result):
     assert result.status in {"success", "error"}
 
     if result.status == "error":
+        assert result.error is not None, "error is required for error status"
         assert isinstance(result.error, dict), "error must be a dict"
         assert result.error.get("code"), "error.code is required"
         assert result.error.get("message"), "error.message is required"
@@ -31,7 +32,7 @@ def validate_tool_result(result):
         assert "exception" not in message or "expected" in message, "raw exception leaked"
 
     # Metadata should exist for traceability (except for input validation which occurs before execution)
-    if result.status == "error" and result.error.get("code") != "INPUT_VALIDATION_ERROR":
+    if result.status == "error" and result.error is not None and result.error.get("code") != "INPUT_VALIDATION_ERROR":
         assert result.metadata is not None, "metadata required for traceability"
         assert "trace_id" in result.metadata or "execution_time_ms" in result.metadata, \
             "metadata should contain trace_id or execution_time_ms"
@@ -48,6 +49,7 @@ class TestToolResultStructure:
         result = ToolResult.success(data=data, metadata=metadata)
 
         assert result.status == "success"
+        assert result.data is not None
         assert result.data == data
         assert result.error is None
         assert result.metadata == metadata
@@ -65,6 +67,7 @@ class TestToolResultStructure:
         )
 
         assert result.status == "error"
+        assert result.error is not None
         assert result.data is None
         assert result.error is not None
         assert result.error["code"] == "VALIDATION_ERROR"
@@ -82,6 +85,7 @@ class TestToolResultStructure:
             message="Tool timed out",
         )
 
+        assert result.error is not None
         assert result.error["code"] == "TIMEOUT"
         assert result.error["message"] == "Tool timed out"
         assert result.error["recoverable"] is False
@@ -143,6 +147,7 @@ class TestBaseToolContractCompliance:
         assert isinstance(result, ToolResult)
         validate_tool_result(result)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data["result"] == 10
         assert result.error is None
         assert result.metadata is not None
@@ -156,6 +161,7 @@ class TestBaseToolContractCompliance:
         assert isinstance(result, ToolResult)
         validate_tool_result(result)
         assert result.status == "error"
+        assert result.error is not None
         assert result.data is None
         assert result.error is not None
         assert result.error["code"] == "TOOL_EXECUTION_ERROR"
@@ -176,6 +182,7 @@ class TestBaseToolContractCompliance:
 
         assert isinstance(result, ToolResult)
         assert result.status == "error"
+        assert result.error is not None
         assert result.error["code"] == "INPUT_VALIDATION_ERROR"
         assert "Invalid input" in result.error["message"]
         assert result.error["recoverable"] is False
@@ -194,17 +201,19 @@ class TestBaseToolContractCompliance:
 
         assert isinstance(result, ToolResult)
         assert result.status == "error"
-        assert result.error["code"] == "TOOL_CONFIGURATION_ERROR"
+        assert result.error is not None
+        assert result.error["code"] == "CONFIGURATION_ERROR"
 
     @pytest.mark.asyncio
     async def test_registry_execute_returns_tool_result(self, registry, test_tool):
         """Verify registry.execute returns ToolResult."""
         registry.register(test_tool)
 
-        result = await registry.execute("simple_tool", {"value": 10})
+        result = await registry.execute("simple_tool", {"value": 10, "tenant_id": "tenant-test"})
 
         assert isinstance(result, ToolResult)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data["result"] == 20
 
     @pytest.mark.asyncio
@@ -214,6 +223,7 @@ class TestBaseToolContractCompliance:
 
         assert isinstance(result, ToolResult)
         assert result.status == "error"
+        assert result.error is not None
         assert result.error["code"] == "TOOL_NOT_FOUND"
 
 
@@ -232,6 +242,7 @@ class TestCalculationToolsContract:
         assert isinstance(result, ToolResult)
         validate_tool_result(result)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data["result"] == 30
 
     @pytest.mark.asyncio
@@ -247,6 +258,7 @@ class TestCalculationToolsContract:
         assert isinstance(result, ToolResult)
         # The tool returns EvaluateFormulaOutput with error field set
         if result.status == "success":
+            assert result.data is not None
             assert "Missing variables" in result.data.get("error", "")
 
     @pytest.mark.asyncio
@@ -260,6 +272,7 @@ class TestCalculationToolsContract:
 
         assert isinstance(result, ToolResult)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data["success"] is False
         assert "Missing variables" in result.data["error"]
 
@@ -274,6 +287,7 @@ class TestCalculationToolsContract:
 
         assert isinstance(result, ToolResult)
         assert result.status == "error"
+        assert result.error is not None
         assert result.error["code"] == "INPUT_VALIDATION_ERROR"
 
     @pytest.mark.asyncio
@@ -289,6 +303,7 @@ class TestCalculationToolsContract:
 
         assert isinstance(result, ToolResult)
         assert result.status == "success"
+        assert result.data is not None
         assert "simple_roi_percent" in result.data
         assert "npv" in result.data
 
@@ -340,6 +355,7 @@ class TestToolResultTraceId:
         result = await tool.run({"should_fail": True}, trace_id="trace-error-456")
 
         assert result.status == "error"
+        assert result.error is not None
         assert result.metadata is not None
         assert result.metadata.get("trace_id") == "trace-error-456"
 
@@ -356,8 +372,10 @@ class TestToolResultContractSchema:
 
         validate_tool_result(result)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data == {"key": "value"}
         assert result.error is None
+        assert result.metadata is not None
         assert result.metadata["trace_id"] == "trace-123"
 
     def test_error_result_schema(self):
@@ -372,11 +390,13 @@ class TestToolResultContractSchema:
 
         validate_tool_result(result)
         assert result.status == "error"
+        assert result.error is not None
         assert result.data is None
         assert result.error["code"] == "VALIDATION_FAILED"
         assert result.error["message"] == "Input validation failed"
         assert result.error["details"] == {"field": "email"}
         assert result.error["recoverable"] is True
+        assert result.metadata is not None
         assert result.metadata["trace_id"] == "trace-error-456"
 
     def test_error_result_no_leakage(self):
@@ -388,11 +408,14 @@ class TestToolResultContractSchema:
         )
 
         # User-facing message should be safe
+        assert result.error is not None
+        assert result.metadata is not None
         assert "traceback" not in result.error["message"].lower()
         assert "exception" not in result.error["message"].lower()
         assert "internal" not in result.error["message"].lower() or "error" in result.error["message"].lower()
 
         # But trace_id should be in metadata for debugging
+        assert result.metadata is not None
         assert result.metadata.get("trace_id") == "trace-secret-123"
 
 
@@ -423,6 +446,7 @@ class TestToolResultBackwardCompatibility:
         # Should still be wrapped in ToolResult
         assert isinstance(result, ToolResult)
         assert result.status == "success"
+        assert result.data is not None
         assert result.data["result"] == "processed: test"
 
 
@@ -434,13 +458,13 @@ class TestLLMResponseValidation:
 
     def test_llm_response_model_validates_correct_json(self):
         """Test that valid LLM JSON response is parsed correctly."""
-        from services.layer4_agents.src.tools.competitive_tools import (
+        from layer4_agents.tools.competitive_tools import (
             LLMDifferenceItem,
             LLMDifferencesResponse,
         )
 
         valid_json = '''{"differences": [
-            {RUCTURE", "description": "20% cheaper", "impact_direction": "FAVORS_US", "confidence_score": 0.8}
+            {"category": "COST_STRUCTURE", "description": "20% cheaper", "impact_direction": "FAVORS_US", "confidence_score": 0.8}
         ]}'''
 
         result = LLMDifferencesResponse.model_validate_json(valid_json)
@@ -450,7 +474,7 @@ class TestLLMResponseValidation:
 
     def test_llm_response_model_handles_invalid_json(self):
         """Test that invalid JSON is handled gracefully."""
-        from services.layer4_agents.src.tools.competitive_tools import (
+        from layer4_agents.tools.competitive_tools import (
             LLMDifferencesResponse,
         )
 
@@ -462,7 +486,7 @@ class TestLLMResponseValidation:
 
     def test_llm_response_model_uses_defaults_for_missing_fields(self):
         """Test that missing fields use sensible defaults."""
-        from services.layer4_agents.src.tools.competitive_tools import (
+        from layer4_agents.tools.competitive_tools import (
             LLMDifferenceItem,
         )
 

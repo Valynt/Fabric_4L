@@ -27,21 +27,15 @@
     },
     "/health": {
       "get": {
-        "tags": [
-          "health"
-        ],
-        "summary": "Default Handler",
-        "operationId": "default_handler_health_get",
+        "summary": "Health Check",
+        "description": "Health check endpoint with real metrics and dependency status.",
+        "operationId": "health_check_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Default Handler Health Get"
-                }
+                "schema": {}
               }
             }
           }
@@ -216,10 +210,637 @@
           }
         }
       }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics Endpoint",
+        "description": "Prometheus metrics endpoint.",
+        "operationId": "metrics_endpoint_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/extract": {
+      "post": {
+        "summary": "Extract",
+        "description": "Start an extraction job.\n\nExtracts entities and relationships from provided Markdown content\nand generates RDF/OWL output.",
+        "operationId": "extract_v1_extract_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/extract-and-ingest": {
+      "post": {
+        "summary": "Extract And Ingest",
+        "description": "Start a combined extraction and ingestion pipeline job.",
+        "operationId": "extract_and_ingest_v1_extract_and_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractAndIngestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/extract/status/{job_id}": {
+      "get": {
+        "summary": "Get Extraction Status",
+        "description": "Get status of a combined extraction and ingestion job.",
+        "operationId": "get_extraction_status_v1_extract_status__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quarantine/{job_id}": {
+      "get": {
+        "summary": "Get Quarantine Status",
+        "operationId": "get_quarantine_status_v1_quarantine__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quarantine": {
+      "get": {
+        "summary": "List Quarantine Jobs",
+        "operationId": "list_quarantine_jobs_v1_quarantine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/extract/batch": {
+      "post": {
+        "summary": "Extract Batch",
+        "description": "Start a batch extraction job.",
+        "operationId": "extract_batch_v1_extract_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/ExtractRequest"
+                },
+                "type": "array",
+                "title": "Requests"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities": {
+      "get": {
+        "summary": "List Entities",
+        "description": "List entities in the ontology.\n\nNote: In a full implementation, this would query a persistent store.\nFor now, returns empty list (entities are in RDF files).",
+        "operationId": "list_entities_v1_entities_get",
+        "parameters": [
+          {
+            "name": "entity_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "enum": [
+                "Capability",
+                "UseCase",
+                "Persona",
+                "ValueDriver",
+                "Feature"
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/relationships": {
+      "get": {
+        "summary": "Get Relationships",
+        "description": "Get relationships for an entity.\n\nNote: In a full implementation, this would query the graph database.",
+        "operationId": "get_relationships_v1_entities__entity_id__relationships_get",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provenance/{job_id}": {
+      "get": {
+        "summary": "Get Provenance",
+        "description": "Get full provenance trace for an extraction job. Requires authentication.",
+        "operationId": "get_provenance_v1_provenance__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/provenance/entity/{entity_id}": {
+      "get": {
+        "summary": "Get Entity Provenance",
+        "description": "Get provenance for a specific entity. Requires authentication.",
+        "operationId": "get_entity_provenance_v1_provenance_entity__entity_id__get",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/extract/jobs/{job_id}/events": {
+      "get": {
+        "summary": "Stream Job Events",
+        "description": "Stream real-time events for a pipeline job via SSE.\n\nReturns a Server-Sent Events stream with progress updates,\nstatus changes, entity discovery, and log messages.\n\nEvent types:\n- `progress`: Extraction progress percentage (0-100)\n- `status`: Job status changes (pending, running, completed, failed)\n- `log`: Pipeline log messages with timestamp and level\n- `entity`: Newly discovered entities during extraction\n- `complete`: Job completion event\n- `error`: Error event with details\n\nArgs:\n    job_id: The pipeline job ID to stream events for\n\nReturns:\n    StreamingResponse with text/event-stream content type",
+        "operationId": "stream_job_events_v1_extract_jobs__job_id__events_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ExtractAndIngestResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "overall_status": {
+            "type": "string",
+            "title": "Overall Status"
+          },
+          "extraction_status": {
+            "type": "string",
+            "title": "Extraction Status"
+          },
+          "ingestion_status": {
+            "type": "string",
+            "title": "Ingestion Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "overall_status",
+          "extraction_status",
+          "ingestion_status",
+          "message"
+        ],
+        "title": "ExtractAndIngestResponse",
+        "description": "Response for combined extract-and-ingest endpoint."
+      },
+      "ExtractRequest": {
+        "properties": {
+          "content_id": {
+            "type": "string",
+            "title": "Content Id",
+            "description": "ID of content to extract from (from Layer 1)"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url",
+            "description": "URL of source document"
+          },
+          "markdown_content": {
+            "type": "string",
+            "title": "Markdown Content",
+            "description": "Markdown content to extract from"
+          },
+          "extraction_config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Extraction Config"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_id",
+          "source_url",
+          "markdown_content"
+        ],
+        "title": "ExtractRequest",
+        "description": "Request body for extraction endpoint."
+      },
+      "ExtractResponse": {
+        "properties": {
+          "extraction_job_id": {
+            "type": "string",
+            "title": "Extraction Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "extraction_job_id",
+          "status",
+          "message"
+        ],
+        "title": "ExtractResponse",
+        "description": "Response from extraction endpoint."
+      },
+      "ExtractionStatusResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "overall_status": {
+            "type": "string",
+            "title": "Overall Status"
+          },
+          "extraction_status": {
+            "type": "string",
+            "title": "Extraction Status"
+          },
+          "ingestion_status": {
+            "type": "string",
+            "title": "Ingestion Status"
+          },
+          "entities_extracted": {
+            "type": "integer",
+            "title": "Entities Extracted"
+          },
+          "relationships_extracted": {
+            "type": "integer",
+            "title": "Relationships Extracted"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count",
+            "default": 0
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "next_retry_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Retry At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "overall_status",
+          "extraction_status",
+          "ingestion_status",
+          "entities_extracted",
+          "relationships_extracted",
+          "completed_at"
+        ],
+        "title": "ExtractionStatusResponse",
+        "description": "Status of a combined extraction + ingestion pipeline job."
+      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
