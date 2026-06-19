@@ -216,7 +216,7 @@ class _FakeExecutor:
 
 
 def test_l1_ctx_source_of_truth() -> None:
-    from layer1_ingestion.api.app_monolith import get_tenant_id
+    from layer1_ingestion.api.main import get_tenant_id
 
     request = _request_with_context(TENANT_A)
     request.headers["X-Organization-ID"] = str(TENANT_B)
@@ -260,13 +260,17 @@ async def test_l1_write_cross_tenant_denied() -> None:
 
 
 def test_l1_query_filters_present() -> None:
-    content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "api" / "app_monolith.py").read_text(encoding="utf-8")
-    condition = "ScrapingTarget.tenant_id == org_id" in content and "ScrapingJob.tenant_id == org_id" in content
+    main_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main_target_routes.py").read_text(encoding="utf-8")
+    batch_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "_batch_and_stats.py").read_text(encoding="utf-8")
+    condition = (
+        "ScrapingTarget.tenant_id == org_id" in main_content
+        and "ScrapingJob.tenant_id == org_id" in batch_content
+    )
     _assert_control("L1", "QUERY-001", condition, "L1 canonical ingestion routes include tenant filters for targets and jobs")
 
 
 def test_l1_fail_closed_without_context() -> None:
-    from layer1_ingestion.api.app_monolith import get_tenant_id
+    from layer1_ingestion.api.main import get_tenant_id
 
     request = _request_with_context(None)
     with pytest.raises((HTTPException, AuthenticationError)) as exc_info:

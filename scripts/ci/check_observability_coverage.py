@@ -17,7 +17,7 @@ MAINTAINED_SERVICES: dict[str, dict[str, str]] = {
         "metrics": "services/api/app/core/metrics.py",
     },
     "layer1": {
-        "entrypoint": "services/layer1-ingestion/src/layer1_ingestion/api/app_monolith.py",
+        "entrypoint": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
         "logging": "packages/shared/src/value_fabric/shared/observability/logging.py",
         "metrics": "services/layer1-ingestion/src/metrics/prometheus_metrics.py",
     },

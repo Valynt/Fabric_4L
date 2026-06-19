@@ -36,7 +36,7 @@ ALLOWLIST = (
     "/api/websocket/routes.py",
     # Health check endpoints return structured status to operators
     "/api/core_routes.py",
-    "/api/app_monolith.py",
+    "/api/main.py",
     "/retrieval/vector_store.py",
     "/database.py",
     # Internal service-to-service client contracts are not external HTTP leaks

@@ -25,7 +25,7 @@ def _force_test_startup_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.unit
 def test_layer1_observability_endpoints_contract() -> None:
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)

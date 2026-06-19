@@ -27,7 +27,7 @@ pytestmark = pytest.mark.requires_postgres
 @pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):
     """Mock Celery task delay so batch tests don't fail when broker is unavailable."""
-    import layer1_ingestion.api.app_monolith as _app_mod
+    import layer1_ingestion.api._batch_and_stats as _app_mod
     monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None})())
 
 
@@ -84,7 +84,7 @@ class TestStatusEndpointTenantIsolation:
         assert str(b_target.id) not in body or "not found" in body.lower()
 
     def test_unauthenticated_status_request_returns_401(self, db, org_id, make_target):
-        from layer1_ingestion.api.app_monolith import app
+        from layer1_ingestion.api.main import app
         t = make_target(org_id, status="ACTIVE")
         with TestClient(app, raise_server_exceptions=False) as raw:
             resp = raw.put(
@@ -104,7 +104,7 @@ class TestBatchEndpointTenantIsolation:
     ):
         """Cross-tenant target execution via batch returns skipped, no job created."""
         from layer1_ingestion.shared.models import ScrapingJob
-        from layer1_ingestion.api.app_monolith import BatchOperationRequest, BatchOperationType
+        from layer1_ingestion.api.main import BatchOperationRequest, BatchOperationType
 
         b_target = make_target(other_org_id, status="ACTIVE")
         request = BatchOperationRequest(
@@ -128,7 +128,7 @@ class TestBatchEndpointTenantIsolation:
         assert job_count == 0
 
     def test_unauthenticated_batch_request_returns_401(self, db, org_id, make_target):
-        from layer1_ingestion.api.app_monolith import app, BatchOperationRequest, BatchOperationType
+        from layer1_ingestion.api.main import app, BatchOperationRequest, BatchOperationType
         t = make_target(org_id, status="ACTIVE")
         request = BatchOperationRequest(
             operation=BatchOperationType.EXECUTE,
@@ -152,7 +152,7 @@ class TestMixedTenantBatch:
     ):
         """Own target gets queued, foreign target is skipped in batch execute."""
         from layer1_ingestion.shared.models import ScrapingJob
-        from layer1_ingestion.api.app_monolith import BatchOperationRequest, BatchOperationType
+        from layer1_ingestion.api.main import BatchOperationRequest, BatchOperationType
 
         own = make_target(org_id, status="ACTIVE")
         foreign = make_target(other_org_id, status="ACTIVE")

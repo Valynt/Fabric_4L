@@ -6,21 +6,16 @@ verify the run's current state and step before doing work.
 
 from __future__ import annotations
 
-from typing import Any
-
-from sqlalchemy.orm import Session
-
 from layer1_ingestion.shared.models import IngestionRunStatus
 
-from ..coordinator import PipelineCoordinator
 from .base import StageHandler
 
 # Import concrete handlers here as they are implemented.
 from .noop import NoopStageHandler
-
+from .validating_access import ValidatingAccessHandler
 
 _STAGE_HANDLER_REGISTRY: dict[str, type[StageHandler]] = {
-    IngestionRunStatus.VALIDATING_ACCESS.value: NoopStageHandler,
+    IngestionRunStatus.VALIDATING_ACCESS.value: ValidatingAccessHandler,
     IngestionRunStatus.RESOLVING_CONNECTOR.value: NoopStageHandler,
     IngestionRunStatus.FETCHING_SOURCE.value: NoopStageHandler,
     IngestionRunStatus.APPLYING_POLICY.value: NoopStageHandler,
@@ -51,6 +46,7 @@ def register_stage_handler(stage_name: str, handler_cls: type[StageHandler]) -> 
 __all__ = [
     "StageHandler",
     "NoopStageHandler",
+    "ValidatingAccessHandler",
     "get_stage_handler",
     "register_stage_handler",
 ]

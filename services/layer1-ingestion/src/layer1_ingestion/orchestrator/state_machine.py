@@ -27,29 +27,41 @@ class TerminalStateError(TransitionError):
 class PipelineStateMachine:
     """Deterministic state machine for SourceIngestionRun lifecycle.
 
-    Valid transitions follow the canonical pipeline:
-    ACCEPTED → VALIDATING → STORED → NORMALIZING → CHUNKING
-    → READY_FOR_EXTRACTION → EXTRACTING → REFINING → GRAPH_COMMITTING
-    → SYNTHESIZING → VALIDATING_CLAIMS → APPLYING_POLICY → READY
+    Valid transitions follow the v3.0 canonical pipeline:
+    ACCEPTED → VALIDATING_ACCESS → RESOLVING_CONNECTOR → FETCHING_SOURCE
+    → APPLYING_POLICY → NORMALIZING → CHUNKING → EXTRACTING
+    → BUILDING_CLAIMS → VALIDATING_CLAIMS → PROJECTING_SUMMARY → READY
 
-    Any non-terminal state may transition to NEEDS_INPUT, NEEDS_REVIEW,
+    Any non-terminal state may transition to NEEDS_USER_ACTION,
     FAILED_RETRYABLE, FAILED_PERMANENT, or CANCELLED.
     """
 
     _TRANSITIONS: Final[dict[str, set[str]]] = {
         IngestionRunStatus.ACCEPTED.value: {
-            IngestionRunStatus.VALIDATING.value,
+            IngestionRunStatus.VALIDATING_ACCESS.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
-        IngestionRunStatus.VALIDATING.value: {
-            IngestionRunStatus.STORED.value,
+        IngestionRunStatus.VALIDATING_ACCESS.value: {
+            IngestionRunStatus.RESOLVING_CONNECTOR.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
-        IngestionRunStatus.STORED.value: {
+        IngestionRunStatus.RESOLVING_CONNECTOR.value: {
+            IngestionRunStatus.FETCHING_SOURCE.value,
+            IngestionRunStatus.FAILED_RETRYABLE.value,
+            IngestionRunStatus.FAILED_PERMANENT.value,
+            IngestionRunStatus.CANCELLED.value,
+        },
+        IngestionRunStatus.FETCHING_SOURCE.value: {
+            IngestionRunStatus.APPLYING_POLICY.value,
+            IngestionRunStatus.FAILED_RETRYABLE.value,
+            IngestionRunStatus.FAILED_PERMANENT.value,
+            IngestionRunStatus.CANCELLED.value,
+        },
+        IngestionRunStatus.APPLYING_POLICY.value: {
             IngestionRunStatus.NORMALIZING.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
@@ -62,77 +74,56 @@ class PipelineStateMachine:
             IngestionRunStatus.CANCELLED.value,
         },
         IngestionRunStatus.CHUNKING.value: {
-            IngestionRunStatus.READY_FOR_EXTRACTION.value,
-            IngestionRunStatus.FAILED_RETRYABLE.value,
-            IngestionRunStatus.FAILED_PERMANENT.value,
-            IngestionRunStatus.CANCELLED.value,
-        },
-        IngestionRunStatus.READY_FOR_EXTRACTION.value: {
             IngestionRunStatus.EXTRACTING.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
         IngestionRunStatus.EXTRACTING.value: {
-            IngestionRunStatus.REFINING.value,
+            IngestionRunStatus.BUILDING_CLAIMS.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
-        IngestionRunStatus.REFINING.value: {
-            IngestionRunStatus.GRAPH_COMMITTING.value,
-            IngestionRunStatus.FAILED_RETRYABLE.value,
-            IngestionRunStatus.FAILED_PERMANENT.value,
-            IngestionRunStatus.CANCELLED.value,
-        },
-        IngestionRunStatus.GRAPH_COMMITTING.value: {
-            IngestionRunStatus.SYNTHESIZING.value,
-            IngestionRunStatus.FAILED_RETRYABLE.value,
-            IngestionRunStatus.FAILED_PERMANENT.value,
-            IngestionRunStatus.CANCELLED.value,
-        },
-        IngestionRunStatus.SYNTHESIZING.value: {
+        IngestionRunStatus.BUILDING_CLAIMS.value: {
             IngestionRunStatus.VALIDATING_CLAIMS.value,
-            IngestionRunStatus.NEEDS_REVIEW.value,
+            IngestionRunStatus.NEEDS_USER_ACTION.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
         IngestionRunStatus.VALIDATING_CLAIMS.value: {
-            IngestionRunStatus.APPLYING_POLICY.value,
-            IngestionRunStatus.NEEDS_REVIEW.value,
+            IngestionRunStatus.PROJECTING_SUMMARY.value,
+            IngestionRunStatus.NEEDS_USER_ACTION.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
-        IngestionRunStatus.APPLYING_POLICY.value: {
+        IngestionRunStatus.PROJECTING_SUMMARY.value: {
             IngestionRunStatus.READY.value,
-            IngestionRunStatus.NEEDS_REVIEW.value,
+            IngestionRunStatus.NEEDS_USER_ACTION.value,
             IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
-        IngestionRunStatus.NEEDS_INPUT.value: {
-            IngestionRunStatus.NORMALIZING.value,
-            IngestionRunStatus.FAILED_RETRYABLE.value,
-            IngestionRunStatus.FAILED_PERMANENT.value,
-            IngestionRunStatus.CANCELLED.value,
-        },
-        IngestionRunStatus.NEEDS_REVIEW.value: {
+        IngestionRunStatus.NEEDS_USER_ACTION.value: {
             IngestionRunStatus.APPLYING_POLICY.value,
-            IngestionRunStatus.SYNTHESIZING.value,
+            IngestionRunStatus.BUILDING_CLAIMS.value,
+            IngestionRunStatus.FAILED_RETRYABLE.value,
             IngestionRunStatus.FAILED_PERMANENT.value,
             IngestionRunStatus.CANCELLED.value,
         },
         IngestionRunStatus.FAILED_RETRYABLE.value: {
-            IngestionRunStatus.NORMALIZING.value,
-            IngestionRunStatus.READY_FOR_EXTRACTION.value,
-            IngestionRunStatus.EXTRACTING.value,
-            IngestionRunStatus.REFINING.value,
-            IngestionRunStatus.GRAPH_COMMITTING.value,
-            IngestionRunStatus.SYNTHESIZING.value,
-            IngestionRunStatus.VALIDATING_CLAIMS.value,
+            IngestionRunStatus.VALIDATING_ACCESS.value,
+            IngestionRunStatus.RESOLVING_CONNECTOR.value,
+            IngestionRunStatus.FETCHING_SOURCE.value,
             IngestionRunStatus.APPLYING_POLICY.value,
+            IngestionRunStatus.NORMALIZING.value,
+            IngestionRunStatus.CHUNKING.value,
+            IngestionRunStatus.EXTRACTING.value,
+            IngestionRunStatus.BUILDING_CLAIMS.value,
+            IngestionRunStatus.VALIDATING_CLAIMS.value,
+            IngestionRunStatus.PROJECTING_SUMMARY.value,
             IngestionRunStatus.CANCELLED.value,
         },
         IngestionRunStatus.READY.value: set(),
@@ -150,17 +141,16 @@ class PipelineStateMachine:
 
     _HAPPY_PATH: Final[Sequence[str]] = (
         IngestionRunStatus.ACCEPTED.value,
-        IngestionRunStatus.VALIDATING.value,
-        IngestionRunStatus.STORED.value,
+        IngestionRunStatus.VALIDATING_ACCESS.value,
+        IngestionRunStatus.RESOLVING_CONNECTOR.value,
+        IngestionRunStatus.FETCHING_SOURCE.value,
+        IngestionRunStatus.APPLYING_POLICY.value,
         IngestionRunStatus.NORMALIZING.value,
         IngestionRunStatus.CHUNKING.value,
-        IngestionRunStatus.READY_FOR_EXTRACTION.value,
         IngestionRunStatus.EXTRACTING.value,
-        IngestionRunStatus.REFINING.value,
-        IngestionRunStatus.GRAPH_COMMITTING.value,
-        IngestionRunStatus.SYNTHESIZING.value,
+        IngestionRunStatus.BUILDING_CLAIMS.value,
         IngestionRunStatus.VALIDATING_CLAIMS.value,
-        IngestionRunStatus.APPLYING_POLICY.value,
+        IngestionRunStatus.PROJECTING_SUMMARY.value,
         IngestionRunStatus.READY.value,
     )
 

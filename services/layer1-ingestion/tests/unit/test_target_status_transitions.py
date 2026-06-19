@@ -10,7 +10,7 @@ from layer1_ingestion.shared.models import TargetStatus, ScrapingTarget, TargetT
 @pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):
     """Mock Celery task delay so batch tests don't fail when broker is unavailable."""
-    import layer1_ingestion.api.app_monolith as _app_mod
+    import layer1_ingestion.api._batch_and_stats as _app_mod
     monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None})())
 
 
@@ -110,7 +110,7 @@ class TestUpdateTargetStatus:
 
     def test_cross_tenant_returns_404(self, db, org_id, other_org_id, user_id):
         from fastapi.testclient import TestClient
-        from layer1_ingestion.api.app_monolith import app
+        from layer1_ingestion.api.main import app
         from layer1_ingestion.shared.database import get_db_from_context_sync
         from tests.conftest import _InjectGovernanceMiddleware
 
@@ -189,7 +189,7 @@ class TestBatchTargetOperation:
         assert t.status == "PAUSED"
 
     def test_batch_execute_queues_jobs(self, client, db, org_id, user_id):
-        from layer1_ingestion.api.app_monolith import BatchOperationRequest, BatchOperationType
+        from layer1_ingestion.api.main import BatchOperationRequest, BatchOperationType
         t = _make_target(db, org_id, user_id, "ACTIVE")
         request = BatchOperationRequest(
             operation=BatchOperationType.EXECUTE,
@@ -206,7 +206,7 @@ class TestBatchTargetOperation:
         assert data["results"][0]["job_id"] is not None
 
     def test_batch_empty_target_ids_rejected(self, client, org_id):
-        from layer1_ingestion.api.app_monolith import BatchOperationRequest, BatchOperationType
+        from layer1_ingestion.api.main import BatchOperationRequest, BatchOperationType
         request = BatchOperationRequest(
             operation=BatchOperationType.EXECUTE,
             target_ids=[],

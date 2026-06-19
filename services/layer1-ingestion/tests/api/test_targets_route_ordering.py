@@ -19,11 +19,11 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from layer1_ingestion.api.app_monolith import BatchOperationRequest, BatchOperationType
+from layer1_ingestion.api.main import BatchOperationRequest, BatchOperationType
 
 
 def _get_app():
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
     return app
 
 
@@ -75,7 +75,7 @@ class TestValidateRouteStillWorks:
         t = make_target(org_id, status="ACTIVE")
         resp = client.post(
             f"/api/v1/ingestion/targets/{t.id}/validate",
-            json={"test_url": "https://example.com"},
+            json={"test_url": "https://example.com", "validate_robots_txt": False},
         )
         # 200 or 422 = validate handler reached; 404 = wrong route matched
         assert resp.status_code != 404, (

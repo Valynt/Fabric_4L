@@ -11,7 +11,7 @@ pytestmark = [pytest.mark.config, pytest.mark.production_readiness]
 
 RUNTIME_BOOTSTRAP_FILES = (
     "services/api/app/main.py",
-    "services/layer1-ingestion/src/layer1_ingestion/api/app_monolith.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer3-knowledge/src/api/main.py",
     "services/layer4-agents/src/layer4_agents/api/startup.py",
     "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",

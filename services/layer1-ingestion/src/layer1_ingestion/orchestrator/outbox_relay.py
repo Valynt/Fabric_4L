@@ -17,7 +17,6 @@ from layer1_ingestion.shared.models import EventOutbox, OutboxStatus
 
 from .coordinator import PipelineCoordinator
 
-
 # Map of stage names to Celery task import paths.  These are populated lazily
 # to avoid a circular import with the tasks module.
 _STAGE_TASKS: dict[str, str] = {

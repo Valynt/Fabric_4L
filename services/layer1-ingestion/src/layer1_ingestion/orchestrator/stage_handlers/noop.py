@@ -10,8 +10,6 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from layer1_ingestion.shared.models import IngestionRunStatus
-
 from ..coordinator import PipelineCoordinator
 from ..state_machine import PipelineStateMachine
 from .base import StageHandler

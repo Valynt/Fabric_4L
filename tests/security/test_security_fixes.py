@@ -41,7 +41,7 @@ def test_tools_invoke_requires_auth():
 
 def test_get_current_tenant_id_requires_auth():
     """P0-3: Missing authentication should raise 401, not return dev tenant UUID."""
-    source = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "api" / "app_monolith.py").read_text(encoding="utf-8")
+    source = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main.py").read_text(encoding="utf-8")
     assert "def get_tenant_id" in source
     assert "Authentication required" in source
     assert "raise HTTPException(status_code=401" in source or "AuthenticationError" in source

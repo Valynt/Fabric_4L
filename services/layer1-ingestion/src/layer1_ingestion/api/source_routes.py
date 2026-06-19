@@ -37,6 +37,8 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ..orchestrator import PipelineCoordinator
+from ..shared.consent_service import ConsentService
+from ..shared.custody_policy import CustodyPolicyService
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
     EventOutbox,
@@ -91,6 +93,7 @@ class SourceIntakeRequest(BaseModel):
     content: str = Field(..., min_length=1)
     external_reference: str | None = Field(None, max_length=500)
     idempotency_key: str | None = Field(None, max_length=255)
+    consent_id: str | None = Field(None, description="Explicit consent record id (v3.0). Optional during migration.")
     requested_outputs: list[str] = Field(default_factory=lambda: ["fabric_found_summary"])
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -305,18 +308,27 @@ def _compute_fingerprint(
     source_type: str,
     external_reference: str | None,
     content_hash: str,
+    external_identity: dict[str, Any] | None = None,
 ) -> str:
     """Deterministic fingerprint for deduplication.
 
     Exact repeat of tenant + account + source type + external reference +
-    content hash returns the existing logical source.
+    content hash + external identity (v3.0) returns the existing logical
+    source. Custody mode, connector name, and runtime are intentionally
+    excluded from the fingerprint.
     """
+    identity = external_identity or {}
     key = "|".join(
         [
             str(tenant_id),
             account_id,
             source_type,
             external_reference or "",
+            identity.get("external_system", ""),
+            identity.get("external_object_type", ""),
+            identity.get("external_object_id", ""),
+            identity.get("external_version", ""),
+            identity.get("snapshot_hash", ""),
             content_hash,
         ]
     )
@@ -358,12 +370,18 @@ async def create_source(
 
     content_bytes = intake.content.encode("utf-8")
     content_hash = hashlib.sha256(content_bytes).hexdigest()
+    external_identity = {
+        k: v
+        for k, v in intake.metadata.get("external_identity", {}).items()
+        if k in {"external_system", "external_object_type", "external_object_id", "external_version", "snapshot_hash"}
+    }
     fingerprint = _compute_fingerprint(
         str(org_id),
         intake.account_id,
         intake.source_type.value,
         intake.external_reference,
         content_hash,
+        external_identity=external_identity,
     )
 
     # Idempotency: exact fingerprint returns existing logical source and a new
@@ -378,6 +396,27 @@ async def create_source(
         .first()
     )
 
+    # Resolve explicit consent if provided (v3.0). During migration consent is
+    # optional; if omitted the source/run is created without consent binding.
+    consent_id: uuid.UUID | None = None
+    if intake.consent_id:
+        consent_service = ConsentService(db)
+        consent = consent_service.require_active_consent(
+            tenant_id=org_id,
+            account_id=intake.account_id,
+            source_type=intake.source_type.value,
+            scope={"title": intake.title, "external_reference": intake.external_reference},
+        )
+        consent_id = consent.id
+
+    # Resolve custody policy (v3.0). Defaults are source-type driven.
+    custody_service = CustodyPolicyService()
+    custody = custody_service.decide(
+        intake.source_type,
+        connector_name=intake.metadata.get("connector_name"),
+        customer_hosted=intake.metadata.get("customer_hosted", False),
+    )
+
     if existing:
         latest_version = (
             db.query(SourceVersion)
@@ -390,6 +429,7 @@ async def create_source(
                 tenant_id=org_id,
                 source_id=existing.id,
                 source_version_id=latest_version.id,
+                consent_id=consent_id,
                 status=IngestionRunStatus.ACCEPTED,
                 requested_outputs=intake.requested_outputs,
                 idempotency_key=intake.idempotency_key,
@@ -418,6 +458,13 @@ async def create_source(
         title=intake.title,
         external_reference=intake.external_reference,
         fingerprint=fingerprint,
+        custody_mode=custody.mode.value,
+        consent_id=consent_id,
+        external_system=external_identity.get("external_system"),
+        external_object_type=external_identity.get("external_object_type"),
+        external_object_id=external_identity.get("external_object_id"),
+        external_version=external_identity.get("external_version"),
+        snapshot_hash=external_identity.get("snapshot_hash"),
         created_by=user_id,
     )
     db.add(source)
@@ -427,6 +474,8 @@ async def create_source(
     if existing:
         version_number = cast(int, existing.latest_version_number) + 1
         source = existing
+        if consent_id:
+            source.consent_id = consent_id  # type: ignore[assignment]
 
     version_id = uuid.uuid4()
     storage_uri = _raw_storage_uri(str(org_id), intake.account_id, str(source.id), str(version_id))
@@ -441,7 +490,14 @@ async def create_source(
         media_type=MEDIA_TYPES.get(intake.source_type, "text/plain"),
         language="en",
         status="stored",
+        storage_backend=custody.allowed_backends[0] if custody.allowed_backends else None,
         meta={
+            "custody_mode": custody.mode.value,
+            "retention_class": custody.retention_class,
+            "store_raw": custody.store_raw,
+            "store_extracted": custody.store_extracted,
+            "store_reference_only": custody.store_reference_only,
+            "policy_version": custody.policy_version,
             "idempotency_key": intake.idempotency_key,
             "external_reference": intake.external_reference,
             "requested_outputs": intake.requested_outputs,
@@ -485,6 +541,7 @@ async def create_source(
         tenant_id=org_id,
         source_id=source.id,
         source_version_id=version.id,
+        consent_id=consent_id,
         status=IngestionRunStatus.ACCEPTED,
         requested_outputs=intake.requested_outputs,
         idempotency_key=intake.idempotency_key,
@@ -630,6 +687,8 @@ async def retry_ingestion_run(
         created_by=user_id,
     )
     db.add(new_run)
+    coordinator = PipelineCoordinator(db)
+    coordinator.start_run(new_run)
     db.commit()
     db.refresh(new_run)
     return IngestionRunResponse.from_run(new_run)

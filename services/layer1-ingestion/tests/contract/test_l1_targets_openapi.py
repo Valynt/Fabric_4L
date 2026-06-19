@@ -19,7 +19,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 def _get_schema() -> dict:
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
     return app.openapi()
 
 

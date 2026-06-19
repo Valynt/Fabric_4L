@@ -1687,7 +1687,6 @@ def run_pipeline_stage(self, stage_name: str, payload: dict):
     """
     import uuid
 
-    from layer1_ingestion.orchestrator.coordinator import PipelineCoordinator
     from layer1_ingestion.orchestrator.outbox_relay import run_pipeline_stage_from_payload
     from layer1_ingestion.shared.database import get_db_session
 

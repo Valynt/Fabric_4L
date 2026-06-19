@@ -14,9 +14,9 @@ from sqlalchemy.orm import Session
 
 from layer1_ingestion.shared.models import (
     EventOutbox,
+    IngestionRunStatus,
     IngestionRunStep,
     IngestionRunStepStatus,
-    IngestionRunStatus,
     OutboxStatus,
     SourceIngestionRun,
 )

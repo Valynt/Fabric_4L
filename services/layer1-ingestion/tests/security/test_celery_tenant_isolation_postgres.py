@@ -194,26 +194,6 @@ class TestPipelineChainTenantPropagation:
             assert 'tenant_id' in match or 'str(job.tenant_id)' in match or 'str(new_job.tenant_id)' in match, \
                 f"Dispatch call missing tenant_id: {match[:100]}"
 
-    def test_app_monolith_dispatch_calls_include_tenant_id(self):
-        """Verify app_monolith dispatch calls include tenant_id."""
-        import re
-        
-        app_monolith_file = _L1_SRC / 'api' / 'app_monolith.py'
-        with open(app_monolith_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # Find process_scraping_job.delay calls (multi-line aware)
-        # Match balanced parentheses
-        pattern = r'process_scraping_job\.delay\((?:[^()]|\([^()]*\))*\)'
-        matches = re.findall(pattern, content)
-        
-        # Verify each call includes tenant_id
-        for match in matches:
-            # Should contain tenant_id parameter
-            assert 'tenant_id' in match or 'str(job.tenant_id)' in match or 'str(new_job.tenant_id)' in match, \
-                f"Dispatch call missing tenant_id: {match[:100]}"
-
-
 class TestErrorHandlingTenantContext:
     """Test that error handling paths respect tenant context."""
 

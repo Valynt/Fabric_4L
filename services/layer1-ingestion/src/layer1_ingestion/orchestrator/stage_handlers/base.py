@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any
 
 from sqlalchemy.orm import Session
 

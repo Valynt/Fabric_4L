@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 MAINTAINED_APP_ENTRYPOINTS = {
     "api": REPO_ROOT / "services/api/app/main.py",
-    "layer1": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/app_monolith.py",
+    "layer1": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "layer2": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "layer3": REPO_ROOT / "services/layer3-knowledge/src/api/main.py",
     "layer4": REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/app_factory.py",

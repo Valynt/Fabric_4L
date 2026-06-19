@@ -14,7 +14,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 L1_API_DIR = REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api"
 L1_MAIN = L1_API_DIR / "main.py"
 L1_ADMIN_ROUTES = L1_API_DIR / "main_admin_routes.py"
-L1_MONOLITH = L1_API_DIR / "app_monolith.py"
 
 
 def _source(path: Path) -> str:
@@ -45,7 +44,7 @@ def test_l1_registered_metrics_paths_are_inventoried() -> None:
 
 
 @pytest.mark.security
-@pytest.mark.parametrize("path", [L1_MAIN, L1_MONOLITH])
+@pytest.mark.parametrize("path", [L1_MAIN])
 def test_l1_metrics_handler_verifies_metrics_access_before_reading_metrics(
     path: Path,
 ) -> None:

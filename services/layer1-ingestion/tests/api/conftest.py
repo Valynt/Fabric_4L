@@ -24,7 +24,7 @@ from starlette.types import ASGIApp
 
 
 # ---------------------------------------------------------------------------
-# Lazy import helpers — avoid importing app_monolith at module level so that
+# Lazy import helpers — avoid importing the main app at module level so that
 # the root conftest stubs are applied first.
 # ---------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ def _get_app():
         _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
         return _MockResult()
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
     register_exception_handlers(app)
     return app
@@ -183,3 +183,16 @@ def make_target(db: Session, user_id: UUID):
         return t
 
     return _make
+
+
+@pytest.fixture(autouse=True)
+def _mock_process_scraping_job(monkeypatch):
+    """Mock Celery task delay/apply_async so API tests don't need a broker."""
+    import layer1_ingestion.api._batch_and_stats as _batch_mod
+    import layer1_ingestion.api.main as _main_mod
+    _MockTask = type("_MockTask", (), {
+        "delay": lambda *a, **k: None,
+        "apply_async": lambda *a, **k: None,
+    })
+    monkeypatch.setattr(_batch_mod, "process_scraping_job", _MockTask())
+    monkeypatch.setattr(_main_mod, "process_scraping_job", _MockTask())

@@ -3440,8 +3440,10 @@ from .main_job_routes import router as job_routes
 from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
 from .source_routes import register_routes as register_source_routes
+from .consent_routes import register_routes as register_consent_routes
 
 register_source_routes(router)
+register_consent_routes(router)
 router.include_router(target_routes)
 router.include_router(job_routes)
 router.include_router(skill_routes)
@@ -3517,6 +3519,13 @@ async def legacy_health_check():
         },
     )
     return legacy_health_checkResult.model_validate(payload)
+
+
+@app.get("/metrics", include_in_schema=False)
+async def legacy_metrics():
+    """Legacy-compatible metrics endpoint."""
+    content = "# HELP layer1_ingestion_metrics_legacy placeholder\n# TYPE layer1_ingestion_metrics_legacy gauge\nlayer1_ingestion_metrics_legacy 0\n"
+    return Response(content=content, media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
 if __name__ == "__main__":

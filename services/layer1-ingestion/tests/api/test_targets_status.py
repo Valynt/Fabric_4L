@@ -173,7 +173,7 @@ class TestValidation:
         The DB dependency is still overridden so the request reaches the auth
         check before attempting a real database connection.
         """
-        from layer1_ingestion.api.app_monolith import app
+        from layer1_ingestion.api.main import app
         from layer1_ingestion.shared.database import get_db_from_context_sync
         from fastapi.testclient import TestClient
         t = make_target(org_id, status="ACTIVE")

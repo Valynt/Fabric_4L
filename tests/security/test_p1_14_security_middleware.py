@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER_CONFIG_SOURCES = {
-    "l1": REPO_ROOT / "services" / "layer1-ingestion" / "src" / "api" / "app_monolith.py",
+    "l1": REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main.py",
     "l2": REPO_ROOT / "services" / "layer2-extraction" / "src" / "layer2_extraction" / "api" / "main.py",
     "l3": REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "main.py",
     "l4": REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "middleware.py",

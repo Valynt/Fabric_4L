@@ -16,7 +16,7 @@ LAYER_PARITY_RULES: dict[str, dict[str, object]] = {
         "canonical_import": "layer1_ingestion.api.routes",
         "service_interface": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
         "repository_interface": REPO_ROOT / "services/layer1-ingestion/src/crawler/decision_store.py",
-        "middleware_anchor": REPO_ROOT / "services/layer1-ingestion/src/api/app_monolith.py",
+        "middleware_anchor": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     },
     "layer2": {
         "canonical_routes": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/routes/__init__.py",

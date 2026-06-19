@@ -148,7 +148,6 @@ exclude = [
 # Suppressing arg-type/assignment/misc noise; genuine logic errors are caught elsewhere.
 [[tool.mypy.overrides]]
 module = [
-    "src.api.app_monolith",
     "src.api.main",
     "src.shared.tasks",
     "src.shared.models",
@@ -170,7 +169,6 @@ module = [
     "src.shared.config",
     "src.shared.maintenance",
     "src.metrics.prometheus_metrics",
-    "src.layer1_ingestion.api.app_monolith",
     "src.layer1_ingestion.api.main",
     "src.layer1_ingestion.shared.tasks",
     "src.layer1_ingestion.shared.models",

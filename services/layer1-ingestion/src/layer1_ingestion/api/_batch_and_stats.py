@@ -1,8 +1,6 @@
 """Batch operation and target statistics endpoints for Layer 1.
 
-These endpoints were originally defined in the legacy ``src.api.app_monolith``
-module. They are now part of the canonical ``layer1_ingestion.api.main`` app to
-eliminate the parallel app implementation.
+These endpoints are part of the canonical ``layer1_ingestion.api.main`` app.
 """
 
 from __future__ import annotations
@@ -13,7 +11,7 @@ import structlog
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request as _Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -31,11 +29,26 @@ from ..shared.models import (
     create_scraping_job,
 )
 from ..shared.tasks import process_scraping_job
-from .main import get_current_user_id, get_tenant_id
 
 logger = structlog.get_logger()
 
 router = APIRouter()
+
+
+# Lazy proxies avoid a circular import with layer1_ingestion.api.main
+# because main.py includes this router and also defines these dependencies.
+
+
+def _get_tenant_id(request: _Request):
+    from .main import get_tenant_id
+
+    return get_tenant_id(request)
+
+
+def _get_current_user_id(request: _Request):
+    from .main import get_current_user_id
+
+    return get_current_user_id(request)
 
 
 # =============================================================================
@@ -97,7 +110,7 @@ class TargetStatsResponse(BaseModel):
 
 @router.get("/targets/stats", response_model=TargetStatsResponse)
 async def get_target_stats(
-    org_id: UUID = Depends(get_tenant_id),
+    org_id: UUID = Depends(_get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
     """Get aggregated statistics for all scraping targets.
@@ -174,8 +187,8 @@ async def get_target_stats(
 @router.post("/jobs/batch", response_model=BatchOperationResponse, status_code=202)
 async def batch_operation(
     request: BatchOperationRequest,
-    org_id: UUID = Depends(get_tenant_id),
-    user_id: UUID = Depends(get_current_user_id),
+    org_id: UUID = Depends(_get_tenant_id),
+    user_id: UUID = Depends(_get_current_user_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
     """Execute batch operations on ingestion jobs and targets.

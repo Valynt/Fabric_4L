@@ -125,9 +125,41 @@ def upgrade() -> None:
         ondelete="SET NULL",
     )
 
+    # v3.0: RLS policies for tenant isolation on new tables
+    # Create roles if they don't exist (idempotent)
+    op.execute("DO $$ BEGIN CREATE ROLE admin_role; EXCEPTION WHEN duplicate_object THEN NULL; END $$;")
+    op.execute("DO $$ BEGIN CREATE ROLE system_role; EXCEPTION WHEN duplicate_object THEN NULL; END $$;")
+
+    for table in ("source_consents", "evidence_chunks"):
+        op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+        op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
+        op.execute(f"""
+            CREATE POLICY tenant_isolation_policy ON {table}
+                FOR ALL
+                TO PUBLIC
+                USING (
+                    tenant_id::text = current_setting('app.tenant_id', true)
+                )
+                WITH CHECK (
+                    tenant_id::text = current_setting('app.tenant_id', true)
+                )
+        """)
+        op.execute(f"""
+            CREATE POLICY admin_bypass_policy ON {table}
+                FOR ALL
+                TO admin_role, system_role
+                USING (current_setting('app.tenant_id', true) = '')
+        """)
+
 
 def downgrade() -> None:
     """Remove v3.0 source schema objects."""
+    for table in ("source_consents", "evidence_chunks"):
+        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
+        op.execute(f"ALTER TABLE {table} NO FORCE ROW LEVEL SECURITY")
+        op.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")
+
     op.drop_constraint("fk_source_ingestion_runs_consent", "source_ingestion_runs", type_="foreignkey")
     op.drop_index("idx_source_ingestion_runs_consent", table_name="source_ingestion_runs")
     op.drop_column("source_ingestion_runs", "consent_id")

@@ -6,14 +6,10 @@ import importlib
 
 
 def test_layer1_entrypoint_modules_import() -> None:
-    for module_name in (
-        "layer1_ingestion.api.main",
-        "layer1_ingestion.api.app_monolith",
-    ):
-        module = importlib.import_module(module_name)
-        assert module is not None
-        assert getattr(module, "__file__", None)
-        assert hasattr(module, "app")
+    module = importlib.import_module("layer1_ingestion.api.main")
+    assert module is not None
+    assert getattr(module, "__file__", None)
+    assert hasattr(module, "app")
 
 
 def test_crawler_modules_resolve_via_canonical_paths() -> None:

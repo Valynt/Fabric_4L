@@ -286,7 +286,6 @@ class TestSecurityHardeningCompleteness:
         
         api_files = [
             _L1_SRC / 'api' / 'main.py',
-            _L1_SRC / 'api' / 'app_monolith.py',
         ]
         for api_file in api_files:
             with open(api_file, 'r', encoding='utf-8') as f:

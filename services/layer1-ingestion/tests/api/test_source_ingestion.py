@@ -75,7 +75,7 @@ class TestSourceIngestion:
         assert data["id"] == created["ingestion_run_id"]
         assert data["source_id"] == created["source_id"]
         assert data["source_version_id"] == created["source_version_id"]
-        assert data["status"] == "ACCEPTED"
+        assert data["status"] == "VALIDATING_ACCESS"
 
     def test_source_tenant_isolation(self, client, source_payload, org_id, other_org_id, db):
         # Create a source under the default client tenant

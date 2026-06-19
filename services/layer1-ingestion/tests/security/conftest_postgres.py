@@ -28,7 +28,7 @@ from starlette.types import ASGIApp
 
 # Lazy import helpers
 def _get_app():
-    from layer1_ingestion.api.app_monolith import app
+    from layer1_ingestion.api.main import app
     return app
 
 

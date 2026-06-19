@@ -16,20 +16,45 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch
 
 
+class _FakeRedis:
+    """Minimal in-memory Redis stand-in for idempotency tests."""
+
+    def __init__(self):
+        self._store: dict[str, str] = {}
+
+    def get(self, key: str) -> str | None:
+        return self._store.get(key)
+
+    def set(self, key: str, value: str, nx: bool = False, ex: int | None = None) -> bool | None:
+        if nx and key in self._store:
+            return None
+        self._store[key] = value
+        return True
+
+    def setex(self, key: str, ex: int, value: str) -> bool:
+        self._store[key] = value
+        return True
+
+    def delete(self, key: str) -> int:
+        return 1 if self._store.pop(key, None) is not None else 0
+
+
 @pytest.fixture(autouse=True)
-def _mock_process_scraping_job(monkeypatch):
-    """Mock Celery task delay so execute tests don't fail when broker is unavailable."""
-    import layer1_ingestion.api.app_monolith as _app_mod
-    monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None})())
+def _mock_process_scraping_job_and_redis(monkeypatch):
+    """Mock Celery task and Redis so execute tests don't need a broker."""
+    import layer1_ingestion.api.main as _app_mod
+    import layer1_ingestion.shared.database as _db_mod
+    monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None, "apply_async": lambda *a, **k: None})())
+    monkeypatch.setattr(_db_mod, "redis_client", _FakeRedis())
 
 
 class TestIdempotencyKeyBehavior:
     """Test idempotency key behavior for /targets/{id}/execute."""
 
-    def test_duplicate_requests_with_same_idempotency_key_create_separate_jobs(
+    def test_duplicate_requests_with_same_idempotency_key_return_same_job(
         self, client, db, org_id, make_target
     ):
-        """Endpoint creates a new job for each request regardless of idempotency key."""
+        """Endpoint is idempotent: same idempotency key returns the same job."""
         target = make_target(org_id, status="ACTIVE")
         idempotency_key = str(uuid4())
 
@@ -41,7 +66,7 @@ class TestIdempotencyKeyBehavior:
         assert resp1.status_code == 202
         job_id_1 = resp1.json().get("job_id")
 
-        # Second request with same idempotency_key
+        # Second request with same idempotency_key returns existing job
         resp2 = client.post(
             f"/api/v1/ingestion/targets/{target.id}/execute",
             json={"idempotency_key": idempotency_key},
@@ -49,14 +74,16 @@ class TestIdempotencyKeyBehavior:
         assert resp2.status_code == 202
         job_id_2 = resp2.json().get("job_id")
 
-        # Each request creates a new job
+        assert job_id_1 == job_id_2
+
+        # Only one job was created
         from layer1_ingestion.shared.models import ScrapingJob
         job_count = (
             db.query(ScrapingJob)
             .filter(ScrapingJob.target_id == target.id)
             .count()
         )
-        assert job_count == 2
+        assert job_count == 1
 
     def test_different_idempotency_keys_create_different_job_ids(
         self, client, db, org_id, make_target
