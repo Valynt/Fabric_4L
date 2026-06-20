@@ -126,6 +126,8 @@ export interface SourceStats {
   averageHealthScore: number;
 }
 
+type ApiTargetStatsResponse = l1.components['schemas']['TargetStatsResponse'];
+
 export interface TestConnectionResult {
   success: boolean;
   message: string;
@@ -449,7 +451,7 @@ export function useSourceStats() {
     queryKey: QK.sources.stats,
     queryFn: async () => {
       const response = await withApiError(
-        apiGet<l1.components['schemas']['TargetStatsResponse']>('l1', '/targets/stats'),
+        apiGet<ApiTargetStatsResponse>('l1', '/targets/stats'),
         BaseApiError
       );
 

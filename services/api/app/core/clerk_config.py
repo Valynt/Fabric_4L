@@ -70,6 +70,10 @@ class AuthSettings:
     envelope: InternalEnvelope | None = None
 
 
+# Canonical provider identifiers for the auth layer.
+AUTH_PROVIDER_CLERK = "clerk"
+
+
 def _load_signing_key(pem: str, kid: str) -> SigningKey:
     private_key = serialization.load_pem_private_key(pem.encode(), password=None)
     if not isinstance(private_key, Ed25519PrivateKey):

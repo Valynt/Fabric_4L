@@ -485,6 +485,460 @@
         }
       }
     },
+    "/v1/auth/signup": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Signup",
+        "description": "Create a new tenant and user, then return a JWT.",
+        "operationId": "signup_v1_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login",
+        "description": "Authenticate a user and return a JWT.",
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/invite": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Invite User",
+        "description": "Invite a new user to the current tenant.\n\nAn inviter may only grant roles with a rank strictly lower than their own\n(F-11). This applies to all authenticated roles: a content_admin can invite\nanalysts and read_only users; an analyst cannot invite anyone because no\ncanonical role has a rank below theirs except read_only, and read_only has\nrank 20 < analyst rank 40, so analysts can invite read_only users.\nRoles with an unrecognised name resolve to rank 0 and are always blocked.",
+        "operationId": "invite_user_v1_auth_invite_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/accept-invite": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Accept Invite",
+        "description": "Accept an invitation by setting a password and activating the account.",
+        "operationId": "accept_invite_v1_auth_accept_invite_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Invalidate the current session via token blocklist until token expiry.",
+        "operationId": "logout_v1_auth_logout_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/impersonation/start": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Start Impersonation",
+        "operationId": "start_impersonation_v1_auth_impersonation_start_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpersonationStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpersonationStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/impersonation/stop": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Stop Impersonation",
+        "operationId": "stop_impersonation_v1_auth_impersonation_stop_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get Me",
+        "description": "Return the currently authenticated user (requires valid JWT).",
+        "operationId": "get_me_v1_auth_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/tenant": {
+      "get": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "Get Clerk Tenant",
+        "description": "Return the Fabric tenant mapping for the active Clerk organization.\n\nThis endpoint is the single source of truth for Clerk org \u2192 Fabric tenant\nresolution. Callers must present a valid Clerk Bearer token. Failures map\nto the standard codes from ``require_clerk_authenticated``:\n\n- 401: missing/invalid/expired token\n- 403: no active Clerk org, no tenant mapping, inactive membership, or\n  suspended/deleted tenant",
+        "operationId": "get_clerk_tenant_v1_auth_clerk_tenant_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClerkTenantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/accounts/{account_id}/signals": {
       "get": {
         "tags": [
@@ -2345,13 +2799,82 @@
         }
       }
     },
+    "/v1/accounts/{account_id}/value-cases": {
+      "get": {
+        "tags": [
+          "Value Case"
+        ],
+        "summary": "List Value Cases",
+        "description": "List all value cases for an account, most recently updated first.",
+        "operationId": "list_value_cases_v1_accounts__account_id__value_cases_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BusinessCase"
+                  },
+                  "title": "Response List Value Cases V1 Accounts  Account Id  Value Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/accounts/{account_id}/value-case": {
       "get": {
         "tags": [
           "Value Case"
         ],
-        "summary": "Get Value Case",
-        "operationId": "get_value_case_v1_accounts__account_id__value_case_get",
+        "summary": "Get Account Value Case",
+        "description": "Return the most recently updated value case for an account.",
+        "operationId": "get_account_value_case_v1_accounts__account_id__value_case_get",
         "security": [
           {
             "HTTPBearer": []
@@ -2406,6 +2929,78 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Value Case"
+        ],
+        "summary": "Create Value Case",
+        "description": "Create a new value case for an account.",
+        "operationId": "create_value_case_v1_accounts__account_id__value_case_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateValueCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessCase"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/accounts/{account_id}/value-case/generate": {
@@ -2414,6 +3009,7 @@
           "Value Case"
         ],
         "summary": "Generate Value Case",
+        "description": "Persist a generated value case artifact.",
         "operationId": "generate_value_case_v1_accounts__account_id__value_case_generate_post",
         "security": [
           {
@@ -2482,11 +3078,83 @@
       }
     },
     "/v1/accounts/{account_id}/value-cases/{value_case_id}": {
+      "get": {
+        "tags": [
+          "Value Case"
+        ],
+        "summary": "Get Value Case",
+        "description": "Get a specific value case, verifying account ownership.",
+        "operationId": "get_value_case_v1_accounts__account_id__value_cases__value_case_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "value_case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Value Case Id"
+            }
+          },
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessCase"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "tags": [
           "Value Case"
         ],
         "summary": "Update Value Case",
+        "description": "Update editable fields on a value case.",
         "operationId": "update_value_case_v1_accounts__account_id__value_cases__value_case_id__patch",
         "security": [
           {
@@ -2494,6 +3162,15 @@
           }
         ],
         "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
           {
             "name": "value_case_id",
             "in": "path",
@@ -2532,6 +3209,79 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessCase"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/{account_id}/value-cases/{value_case_id}/publish": {
+      "post": {
+        "tags": [
+          "Value Case"
+        ],
+        "summary": "Publish Value Case",
+        "description": "Publish a draft value case.",
+        "operationId": "publish_value_case_v1_accounts__account_id__value_cases__value_case_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "value_case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Value Case Id"
+            }
+          },
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vf Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5578,6 +6328,30 @@
   },
   "components": {
     "schemas": {
+      "AcceptInviteRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "name"
+        ],
+        "title": "AcceptInviteRequest"
+      },
       "Account": {
         "properties": {
           "id": {
@@ -6292,6 +7066,16 @@
             "title": "Status",
             "default": "draft"
           },
+          "value_case": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValueCaseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "audit": {
             "$ref": "#/components/schemas/AuditMeta"
           }
@@ -6304,6 +7088,58 @@
           "title"
         ],
         "title": "BusinessCase"
+      },
+      "ClerkTenantResponse": {
+        "properties": {
+          "fabric_tenant_id": {
+            "type": "string",
+            "title": "Fabric Tenant Id"
+          },
+          "tenant_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Slug"
+          },
+          "clerk_org_id": {
+            "type": "string",
+            "title": "Clerk Org Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fabric_tenant_id",
+          "tenant_slug",
+          "clerk_org_id",
+          "status",
+          "roles",
+          "permissions"
+        ],
+        "title": "ClerkTenantResponse",
+        "description": "Canonical mapping from a Clerk organization to a Fabric tenant."
       },
       "ContextEngineItem": {
         "properties": {
@@ -6374,6 +7210,23 @@
         },
         "type": "object",
         "title": "ContextOntologyResponse"
+      },
+      "CreateValueCaseRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "value_case": {
+            "$ref": "#/components/schemas/ValueCaseContent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "value_case"
+        ],
+        "title": "CreateValueCaseRequest"
       },
       "DSARCreateResponse": {
         "properties": {
@@ -7087,6 +7940,25 @@
         "type": "object",
         "title": "GovernanceReviewQueueResponse"
       },
+      "HTTPAuthorizationCredentials": {
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "title": "Scheme"
+          },
+          "credentials": {
+            "type": "string",
+            "title": "Credentials"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheme",
+          "credentials"
+        ],
+        "title": "HTTPAuthorizationCredentials",
+        "description": "The HTTP authorization credentials in the result of using `HTTPBearer` or\n`HTTPDigest` in a dependency.\n\nThe HTTP authorization header value is split by the first space.\n\nThe first part is the `scheme`, the second part is the `credentials`.\n\nFor example, in an HTTP Bearer token scheme, the client will send a header\nlike:\n\n```\nAuthorization: Bearer deadbeef12346\n```\n\nIn this case:\n\n* `scheme` will have the value `\"Bearer\"`\n* `credentials` will have the value `\"deadbeef12346\"`"
+      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -7133,6 +8005,111 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "ImpersonationStartRequest": {
+        "properties": {
+          "target_user_id": {
+            "type": "string",
+            "title": "Target User Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "notify_email": {
+            "type": "boolean",
+            "title": "Notify Email",
+            "default": false
+          },
+          "notify_webhook": {
+            "type": "boolean",
+            "title": "Notify Webhook",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_user_id",
+          "reason"
+        ],
+        "title": "ImpersonationStartRequest"
+      },
+      "ImpersonationStartResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "impersonation_session_id": {
+            "type": "string",
+            "title": "Impersonation Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "impersonation_session_id"
+        ],
+        "title": "ImpersonationStartResponse"
+      },
+      "InviteRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "tenant_admin",
+              "content_admin",
+              "analyst",
+              "read_only"
+            ],
+            "title": "Role",
+            "default": "analyst"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "name"
+        ],
+        "title": "InviteRequest"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
       },
       "OntologyMatchResponse": {
         "properties": {
@@ -8416,6 +9393,35 @@
         ],
         "title": "Signal"
       },
+      "SignupRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tenant_name": {
+            "type": "string",
+            "title": "Tenant Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "name",
+          "tenant_name"
+        ],
+        "title": "SignupRequest"
+      },
       "SnapshotDiffChange": {
         "properties": {
           "field": {
@@ -8563,6 +9569,29 @@
         ],
         "title": "Stakeholder"
       },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in"
+        ],
+        "title": "TokenResponse"
+      },
       "ToolResult": {
         "properties": {
           "id": {
@@ -8635,6 +9664,44 @@
         ],
         "title": "ToolResult"
       },
+      "UserResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role",
+          "tenant_id",
+          "status"
+        ],
+        "title": "UserResponse"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -8675,6 +9742,75 @@
         ],
         "title": "ValidationError"
       },
+      "ValueCaseContent": {
+        "properties": {
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          },
+          "selected_scenario_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Scenario Id"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ValueCaseSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "assumption_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumption Ids"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Ids"
+          },
+          "stakeholder_framing": {
+            "items": {
+              "$ref": "#/components/schemas/ValueCaseStakeholderFraming"
+            },
+            "type": "array",
+            "title": "Stakeholder Framing"
+          },
+          "claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Claim Ids"
+          },
+          "roi_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roi Snapshot"
+          }
+        },
+        "type": "object",
+        "title": "ValueCaseContent"
+      },
       "ValueCaseExportResponse": {
         "properties": {
           "status": {
@@ -8712,6 +9848,84 @@
           "size_bytes"
         ],
         "title": "ValueCaseExportResponse"
+      },
+      "ValueCaseSection": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "stakeholder_mapping",
+              "roi_overview",
+              "risk_and_mitigation",
+              "custom"
+            ],
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "content"
+        ],
+        "title": "ValueCaseSection"
+      },
+      "ValueCaseStakeholderFraming": {
+        "properties": {
+          "persona": {
+            "type": "string",
+            "title": "Persona"
+          },
+          "priorities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Priorities"
+          },
+          "pains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pains"
+          },
+          "decision_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "persona"
+        ],
+        "title": "ValueCaseStakeholderFraming"
       },
       "ValueDriver": {
         "properties": {

@@ -263,9 +263,18 @@ MYPY_LAYER6_FLAGS = --warn-return-any --warn-unused-configs
 MYPY_OVERRIDES = --python-version 3.11
 
 # Per-layer typecheck targets for development efficiency
-typecheck-layer1: ## Type-check Layer 1 only
-	@echo "→ Type-checking Layer 1..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer1-ingestion src/ -- $(MYPY_LAYER1_FLAGS)
+typecheck-layer1: ## Type-check Layer 1 typed core + baseline ratchet
+	@echo "→ Type-checking Layer 1 typed core (must be clean)..."
+	@$(PYTHON) scripts/ci/check_mypy_typed_core.py --service-dir services/layer1-ingestion
+	@echo "→ Enforcing Layer 1 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer1-ingestion \
+		--baseline config/ci/mypy_baseline_layer1.json \
+		--paths src
+
+mypy-changed-layer1: ## Type-check changed Python files in Layer 1 (PR gate)
+	@echo "→ Type-checking changed Layer 1 files..."
+	@$(PYTHON) scripts/ci/check_mypy_changed_files.py --service-dir services/layer1-ingestion
 
 typecheck-layer2: ## Type-check Layer 2 only
 	@echo "→ Type-checking Layer 2..."
@@ -414,8 +423,11 @@ setup: ## Install all service dev dependencies into the pytest Python environmen
 
 # ─── Layer-Specific Tests ─────────────────────────────────────────────────────
 
-test-layer1: ## Run Layer 1 tests
-	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1 -m "not postgres and not requires_postgres and not benchmark" tests/
+test-layer1: ## Run Layer 1 unit tests (no external services)
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1 -m "not integration and not postgres and not requires_postgres and not benchmark" tests/unit
+
+test-layer1-integration: ## Run Layer 1 integration tests (requires PostgreSQL)
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-integration -m "integration or postgres or requires_postgres" tests/integration
 
 test-layer1-crawler: ## Run focused Layer 1 crawler tests
 	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-crawler tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py

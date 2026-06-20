@@ -424,11 +424,13 @@ class ApiClient {
         retries: 3,
         retryDelay: axiosRetry.exponentialDelay,
         retryCondition: error => {
-          // Retry on network errors and 5xx responses
+          // Retry on network errors, 5xx responses, and rate-limiting (429)
+          // so the client can recover from transient infrastructure failures.
+          const status = error.response?.status;
           return (
             axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-            (error.response?.status !== undefined &&
-              error.response.status >= 500)
+            (status !== undefined && status >= 500) ||
+            status === 429
           );
         },
       });
@@ -505,6 +507,16 @@ class ApiClient {
 
           if (error.response?.status === 401 && !skipAuthRedirect) {
             sessionService.handleUnauthorized({
+              route:
+                typeof window !== "undefined"
+                  ? window.location.pathname
+                  : undefined,
+              traceId,
+            });
+          }
+
+          if (error.response?.status === 403 && !skipAuthRedirect) {
+            sessionService.handleForbidden({
               route:
                 typeof window !== "undefined"
                   ? window.location.pathname

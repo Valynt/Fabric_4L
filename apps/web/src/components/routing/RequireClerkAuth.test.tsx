@@ -40,6 +40,12 @@ const mockClerkState = {
   organization: null as { id: string } | null,
 };
 
+const mockTenantState = {
+  tenant: null as { fabricTenantId: string } | null,
+  isLoading: false,
+  error: null as { status?: number } | null,
+};
+
 vi.mock("@clerk/react", () => ({
   useAuth: () => ({
     isLoaded: mockClerkState.authLoaded,
@@ -51,6 +57,10 @@ vi.mock("@clerk/react", () => ({
     organization: mockClerkState.organization,
   }),
   useUser: () => ({ user: mockClerkState.isSignedIn ? { id: "u_1" } : null }),
+}));
+
+vi.mock("@/hooks/useResolvedTenant", () => ({
+  useResolvedTenant: () => mockTenantState,
 }));
 
 // Import AFTER vi.mock so the component picks up the mocked module.
@@ -112,6 +122,10 @@ describe("<RequireClerkAuth />", () => {
     mockClerkState.isSignedIn = false;
     mockClerkState.orgLoaded = true;
     mockClerkState.organization = null;
+    // Reset tenant resolution state.
+    mockTenantState.tenant = null;
+    mockTenantState.isLoading = false;
+    mockTenantState.error = null;
   });
 
   afterEach(() => {
@@ -136,11 +150,18 @@ describe("<RequireClerkAuth />", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("legacy mode (default, unset provider): renders children", () => {
+  it("clerk mode (default, unset provider): redirects signed-out users to sign-in", () => {
     setAuthProvider(undefined);
-    renderAt("/protected");
-    expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    mockClerkState.isSignedIn = false;
+
+    renderAt("/protected/nested");
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/sign-in?redirect_url=%2Fprotected%2Fnested",
+      { replace: true },
+    );
+    expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -257,6 +278,48 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.queryByText(SIGN_IN_LANDING)).not.toBeInTheDocument();
     expect(screen.queryByText(SELECT_ORG_LANDING)).not.toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Tenant resolution via backend
+  // ─────────────────────────────────────────────────────────────────────
+  it("clerk mode signed-in with org: renders nothing while tenant resolves", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_phase2" };
+    mockTenantState.isLoading = true;
+
+    renderAt("/protected");
+
+    expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
+    expect(document.body.textContent?.trim()).toBe("");
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("clerk mode signed-in with org: redirects to /forbidden on tenant 403", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_phase2" };
+    mockTenantState.error = { status: 403 };
+
+    renderAt("/protected");
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/forbidden", { replace: true });
+    expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
+  });
+
+  it("clerk mode signed-in with org: redirects to sign-in on tenant 401", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_phase2" };
+    mockTenantState.error = { status: 401 };
+
+    renderAt("/protected");
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/sign-in", { replace: true });
+    expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
   // ─────────────────────────────────────────────────────────────────────

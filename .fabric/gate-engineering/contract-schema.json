@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/fabric/gate-engineering/contract-schema.json",
+  "title": "Fabric_4L Contract Definition Schema",
+  "description": "Machine-readable schema for a product, API, event, data, workflow, connector, AI, security, or operability contract.",
+  "type": "object",
+  "required": [
+    "contract_id",
+    "version",
+    "type",
+    "owner",
+    "provider",
+    "consumers",
+    "syntax",
+    "semantics",
+    "invariants",
+    "compatibility",
+    "validation",
+    "runtime_enforcement",
+    "failure_behavior",
+    "migration_process"
+  ],
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "Stable dotted identifier. Example: fabric.api.source_normalized"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "SemVer of this contract definition."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "product",
+        "api",
+        "event",
+        "data",
+        "workflow",
+        "connector",
+        "ai_agent",
+        "security",
+        "operability",
+        "deployment"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "description": "Semantic owner accountable for the contract."
+    },
+    "provider": {
+      "type": "string",
+      "description": "System or team producing the contract."
+    },
+    "consumers": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Known consumers."
+    },
+    "syntax": {
+      "type": "string",
+      "description": "URI or path to the authoritative schema (OpenAPI, JSON Schema, SQL DDL, etc.)."
+    },
+    "semantics": {
+      "type": "string",
+      "description": "Human-readable semantic meaning of the contract."
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "compatibility": {
+      "type": "object",
+      "required": ["mode", "supported_versions", "deprecation_window_days"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["backward", "forward", "full", "breaking"]
+        },
+        "supported_versions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deprecation_window_days": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sunset_date": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "required": ["producer_tests", "consumer_tests", "runtime_validation"],
+      "properties": {
+        "producer_tests": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "consumer_tests": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "runtime_validation": {
+          "type": "boolean"
+        },
+        "schema_linter": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtime_enforcement": {
+      "type": "object",
+      "required": ["enabled", "enforcement_point"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "enforcement_point": { "type": "string" },
+        "layer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "failure_behavior": {
+      "type": "object",
+      "required": ["invalid_message", "unknown_version", "semantic_violation"],
+      "properties": {
+        "invalid_message": {
+          "type": "string",
+          "enum": ["reject", "dead_letter", "warn", "alert"]
+        },
+        "unknown_version": {
+          "type": "string",
+          "enum": ["reject_and_alert", "reject", "warn", "fallback"]
+        },
+        "semantic_violation": {
+          "type": "string",
+          "enum": ["reject", "dead_letter", "warn", "alert", "block_release", "release_freeze"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "migration_process": {
+      "type": "string",
+      "description": "How to migrate consumers or schema safely."
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "rfc": { "type": "string", "format": "uri" },
+        "docs": { "type": "string", "format": "uri" },
+        "schema": { "type": "string", "format": "uri" },
+        "producer": { "type": "string" },
+        "consumer": { "type": "string" }
+      }
+    },
+    "classification": {
+      "type": "string",
+      "description": "Data classification affected by this contract."
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -87,7 +87,7 @@ os.environ["CORS_ORIGINS"] = '["http://localhost:3000"]'
 # and tests/pipeline/ can access them)
 # ---------------------------------------------------------------------------
 
-from typing import Generator
+from collections.abc import Generator
 from uuid import UUID, uuid4
 
 import pytest
@@ -103,11 +103,12 @@ def _get_app():
     # Patch rate limiting before app import so tests don't get 429 from Redis
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     async def _mock_check_rate_limit(self, request, ctx):
-        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
-        return _MockResult()
+        mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return mock_result()
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    from layer1_ingestion.api.main import app
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
+
+    from layer1_ingestion.api.main import app
     register_exception_handlers(app)
     return app
 
@@ -153,8 +154,8 @@ class _InjectGovernanceMiddleware(BaseHTTPMiddleware):
         )
         # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
         # skips its Redis rate-limit check (avoids 429 in tests).
-        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
-        request.state.rate_limit_result = _MockResult()
+        mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        request.state.rate_limit_result = mock_result()
         request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
         return await call_next(request)
 
@@ -166,19 +167,38 @@ def engine():
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
-    Base = _get_base()
-    Base.metadata.create_all(eng)
+    base = _get_base()
+    base.metadata.create_all(eng)
+    yield eng
+    eng.dispose()
+
+
+@pytest.fixture(scope="session")
+def _postgres_engine():
+    """PostgreSQL engine for integration tests marked with ``postgres``."""
+    eng = create_engine(
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion",
+    )
+    base = _get_base()
+    base.metadata.create_all(eng)
     yield eng
     eng.dispose()
 
 
 @pytest.fixture()
-def db(engine) -> Generator[Session, None, None]:
-    """Per-test DB session that rolls back after each test."""
-    connection = engine.connect()
+def db(request, engine) -> Generator[Session, None, None]:
+    """Per-test DB session that rolls back after each test.
+
+    Uses PostgreSQL for tests marked with ``postgres``; SQLite otherwise.
+    """
+    if "postgres" in request.keywords:
+        postgres_engine = request.getfixturevalue("_postgres_engine")
+        connection = postgres_engine.connect()
+    else:
+        connection = engine.connect()
     transaction = connection.begin()
-    TestingSession = sessionmaker(bind=connection)
-    session = TestingSession()
+    testing_session = sessionmaker(bind=connection)
+    session = testing_session()
     yield session
     session.close()
     transaction.rollback()
@@ -220,7 +240,7 @@ def client(db: Session, org_id: UUID, user_id: UUID):
 def make_target(db: Session, user_id: UUID):
     """Factory: create a ScrapingTarget row in the test DB."""
     factory = _make_target_factory()
-    from layer1_ingestion.shared.models import TargetType, SourceCategory
+    from layer1_ingestion.shared.models import SourceCategory, TargetType
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", **kwargs) -> object:
         t = factory(
@@ -243,8 +263,7 @@ def make_target(db: Session, user_id: UUID):
 
 def pytest_runtest_setup(item):
     """Skip tests that require PostgreSQL if no PostgreSQL instance is available."""
-    if "requires_postgres" in item.keywords:
-        import sqlalchemy
+    if "postgres" in item.keywords or "requires_postgres" in item.keywords:
         from sqlalchemy import create_engine, text
         try:
             engine = create_engine(
@@ -254,5 +273,5 @@ def pytest_runtest_setup(item):
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
         except Exception:
-            pytest.skip("PostgreSQL not available; skipping requires_postgres test")
+            pytest.skip("PostgreSQL not available; skipping postgres test")
 

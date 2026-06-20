@@ -415,7 +415,7 @@ class CrawlDecisionRepository:
             for d in all_decisions:
                 if d.fallback_reason:
                     reasons[d.fallback_reason] = reasons.get(d.fallback_reason, 0) + 1
-            fast_times = [d.fast_duration_ms for d in all_decisions if d.fast_duration_ms > 0]
+            fast_times = [d.fast_duration_ms for d in all_decisions if d.fast_duration_ms is not None and d.fast_duration_ms > 0]
             browser_times = [d.browser_duration_ms for d in all_decisions if d.browser_duration_ms]
             avg_fast = sum(fast_times) / len(fast_times) if fast_times else 0.0
             avg_browser = sum(browser_times) / len(browser_times) if browser_times else 0.0
@@ -489,7 +489,7 @@ class CrawlDecisionRepository:
                 elif d.quality_passed is False and d.final_path == "fallback":
                     correct_quality += 1
             accuracy = correct_quality / total if total > 0 else 0.0
-            times = [(d.url, d.fetch_time_ms) for d in decisions if d.fetch_time_ms > 0]
+            times = [(d.url, d.fetch_time_ms) for d in decisions if d.fetch_time_ms is not None and d.fetch_time_ms > 0]
             avg_time = sum(t[1] for t in times) / len(times) if times else 0.0
             sorted_times = sorted(times, key=lambda x: x[1])
             slowest = sorted_times[-1][0] if sorted_times else None

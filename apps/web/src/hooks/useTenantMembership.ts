@@ -52,10 +52,17 @@ function useTenantMembershipLegacy(tenantSlug: string | undefined): TenantMember
 }
 
 /**
- * Selected once at module load based on the build-time auth provider flag.
- * A component therefore uses a single, stable hook implementation for its
- * entire lifetime, satisfying the Rules of Hooks.
+ * Resolve tenant membership at render time based on the active auth provider.
+ *
+ * The auth provider flag is stable for the lifetime of the app, so the hook
+ * branch is effectively fixed once the app mounts. This pattern is used by
+ * other auth-aware components (e.g., UnifiedRouteGuard, RootAuthStateAdapter)
+ * and allows tests to switch providers without re-importing the module.
  */
-export const useTenantMembership = isClerkAuthEnabled()
-  ? useTenantMembershipClerk
-  : useTenantMembershipLegacy;
+export function useTenantMembership(tenantSlug: string | undefined): TenantMembership {
+  // Auth-provider is stable at runtime; branch once per render.
+  if (isClerkAuthEnabled()) {
+    return useTenantMembershipClerk(tenantSlug);
+  }
+  return useTenantMembershipLegacy(tenantSlug);
+}

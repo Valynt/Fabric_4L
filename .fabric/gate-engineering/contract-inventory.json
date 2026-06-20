@@ -1,0 +1,626 @@
+{
+  "inventory_version": "1.0.0",
+  "schema": "https://valuefabric.ai/fabric/gate-engineering/contract-schema.json",
+  "generated_at": "2026-06-19T05:00:00Z",
+  "sources": [
+    "contracts/schema-index.json",
+    "contracts/behavior-contract.yaml",
+    "contracts/openapi/*.json",
+    "contracts/tool-manifests/*.json",
+    "contracts/jsonschema/*.json",
+    "contracts/route-contracts.json"
+  ],
+  "contracts": [
+    {
+      "contract_id": "fabric.api.ingestion",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer1-ingestion",
+      "consumers": [
+        "apps/web",
+        "services/layer2-extraction",
+        "services/layer4-agents"
+      ],
+      "syntax": "contracts/openapi/layer1-ingestion.json",
+      "semantics": "Create, list, and version sources (notes, web, audio, CRM, PDF, meetings).",
+      "invariants": [
+        "tenant_id is required and derived from JWT",
+        "source_version_id is immutable",
+        "idempotency key is honored"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/contract/test_openapi_freshness.py",
+          "services/layer1-ingestion/tests/test_api_contracts.py"
+        ],
+        "consumer_tests": [
+          "apps/web/src/api/__tests__/contract/ingestion.contract.test.ts"
+        ],
+        "runtime_validation": true,
+        "schema_linter": "scripts/ci/python_contract_lint.py"
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "api-gateway",
+        "layer": "layer1"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Breaking changes require Contract Council RFC and a new /vN endpoint.",
+      "links": {
+        "schema": "contracts/openapi/layer1-ingestion.json",
+        "docs": "docs/api/layer1.md"
+      },
+      "classification": "customer-data"
+    },
+    {
+      "contract_id": "fabric.api.extraction",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer2-extraction",
+      "consumers": [
+        "services/layer3-knowledge",
+        "services/layer4-agents"
+      ],
+      "syntax": "contracts/openapi/layer2-extraction.json",
+      "semantics": "Extract signals, entities, and provenance from normalized sources.",
+      "invariants": [
+        "Every extracted signal has a source_version_id",
+        "Provenance anchors are non-empty",
+        "Tenant context is propagated"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer2-extraction/tests/test_api_contracts.py"
+        ],
+        "consumer_tests": [
+          "services/layer3-knowledge/tests/test_extraction_consumer.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "api-gateway",
+        "layer": "layer2"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Expand-and-contract for schema changes.",
+      "links": {
+        "schema": "contracts/openapi/layer2-extraction.json"
+      }
+    },
+    {
+      "contract_id": "fabric.api.knowledge",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer3-knowledge",
+      "consumers": [
+        "services/layer4-agents",
+        "services/layer6-benchmarks",
+        "apps/web"
+      ],
+      "syntax": "contracts/openapi/layer3-knowledge.json",
+      "semantics": "Knowledge graph queries, entity resolution, and semantic search.",
+      "invariants": [
+        "Cypher queries are tenant-scoped",
+        "Graph writes are tenant-partitioned",
+        "Vector search is tenant-filtered"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer3-knowledge/tests/test_api_contracts.py",
+          "tests/security/test_l3_cypher_tenant_inventory.py"
+        ],
+        "consumer_tests": [
+          "services/layer4-agents/tests/test_l3_consumer.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "tenant-session-wrapper",
+        "layer": "layer3"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "New graph indexes must be backfilled before consumers migrate.",
+      "links": {
+        "schema": "contracts/openapi/layer3-knowledge.json"
+      }
+    },
+    {
+      "contract_id": "fabric.api.agents",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/agent-leads",
+      "provider": "services/layer4-agents",
+      "consumers": [
+        "apps/web"
+      ],
+      "syntax": "contracts/openapi/layer4-agents.json",
+      "semantics": "Agentic workflow orchestration, structured output, and tool invocation.",
+      "invariants": [
+        "Tool input/output conforms to tool-manifest schema",
+        "Workflow state transitions are valid",
+        "Agent outputs include provenance"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer4-agents/tests/test_api_contracts.py",
+          "tests/agents/test_conversation_service.py"
+        ],
+        "consumer_tests": [
+          "apps/web/src/api/__tests__/contract/agent.contract.test.ts"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "api-gateway",
+        "layer": "layer4"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Prompt/tool schema changes require versioned manifest and eval updates.",
+      "links": {
+        "schema": "contracts/openapi/layer4-agents.json"
+      }
+    },
+    {
+      "contract_id": "fabric.api.ground_truth",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer5-ground-truth",
+      "consumers": [
+        "services/layer4-agents",
+        "services/layer6-benchmarks",
+        "apps/web"
+      ],
+      "syntax": "contracts/openapi/layer5-ground-truth.json",
+      "semantics": "TruthObject validation, maturity ladder, and audit append-only log.",
+      "invariants": [
+        "Audit logs are append-only",
+        "Validation events require privileged insert",
+        "TruthObject status transitions are valid"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer5-ground-truth/tests/test_api_contracts.py"
+        ],
+        "consumer_tests": [
+          "tests/security/test_layer5_governance_security_controls.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "repository-guard",
+        "layer": "layer5"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Append-only schema changes are additive only.",
+      "links": {
+        "schema": "contracts/openapi/layer5-ground-truth.json"
+      }
+    },
+    {
+      "contract_id": "fabric.api.benchmarks",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer6-benchmarks",
+      "consumers": [
+        "services/layer4-agents",
+        "apps/web"
+      ],
+      "syntax": "contracts/openapi/layer6-benchmarks.json",
+      "semantics": "Benchmark recommendation, acceptance, and statistical validation.",
+      "invariants": [
+        "Benchmarks are not represented as customer truth",
+        "Benchmark metadata includes provenance",
+        "Acceptance requires authorized role"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer6-benchmarks/tests/test_api_contracts.py"
+        ],
+        "consumer_tests": [
+          "tests/layer6/test_benchmark_acceptance.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "api-gateway",
+        "layer": "layer6"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Benchmark schema changes require backfill of benchmark cache.",
+      "links": {
+        "schema": "contracts/openapi/layer6-benchmarks.json"
+      }
+    },
+    {
+      "contract_id": "fabric.tool_manifests.agent",
+      "version": "1.0.0",
+      "type": "ai_agent",
+      "owner": "value-fabric/agent-leads",
+      "provider": "services/layer4-agents",
+      "consumers": [
+        "LLM runtime",
+        "apps/web"
+      ],
+      "syntax": "contracts/tool-manifests/",
+      "semantics": "Agent tool input/output schemas, permissions, and structured-output contracts.",
+      "invariants": [
+        "Every tool has a JSON Schema manifest",
+        "Tool implementations conform to manifests",
+        "Tool outputs validate against schema"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "scripts/ci/check_tool_contracts.py",
+          "scripts/ci/check_agent_registry.py"
+        ],
+        "consumer_tests": [
+          "tests/agents/test_tool_contracts.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "tool-invocation",
+        "layer": "layer4"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "New tool versions require manifest update and eval regression.",
+      "links": {
+        "schema": "contracts/tool-manifests/"
+      }
+    },
+    {
+      "contract_id": "fabric.event.source_normalized",
+      "version": "1.0.0",
+      "type": "event",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer1-ingestion",
+      "consumers": [
+        "services/layer2-extraction",
+        "services/layer2-5-signal-refinery"
+      ],
+      "syntax": "contracts/jsonschema/workflows/workflow-event.json",
+      "semantics": "Normalized source event emitted after ingestion and provenance anchoring.",
+      "invariants": [
+        "tenant_id is required",
+        "source_version_id is immutable",
+        "event_id is globally unique",
+        "idempotency_key is present"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer1-ingestion/tests/test_event_emit.py"
+        ],
+        "consumer_tests": [
+          "services/layer2-extraction/tests/test_event_consumer.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "message-bus",
+        "layer": "layer1"
+      },
+      "failure_behavior": {
+        "invalid_message": "dead_letter",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "alert"
+      },
+      "migration_process": "Event schema changes require consumer compatibility window.",
+      "links": {
+        "schema": "contracts/jsonschema/workflows/workflow-event.json"
+      }
+    },
+    {
+      "contract_id": "fabric.workflow.ingestion",
+      "version": "1.0.0",
+      "type": "workflow",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer1-ingestion",
+      "consumers": [
+        "services/layer2-extraction",
+        "services/layer3-knowledge",
+        "services/layer4-agents"
+      ],
+      "syntax": "contracts/jsonschema/workflows/workflow-detail.json",
+      "semantics": "Ingestion run state machine: valid states, transitions, retry, resume, cancellation.",
+      "invariants": [
+        "States are a strict enumerated set",
+        "Only allowed transitions are permitted",
+        "Terminal states are final",
+        "Retries are bounded and idempotent"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "services/layer1-ingestion/tests/test_state_machine.py"
+        ],
+        "consumer_tests": [
+          "tests/integration/test_workflow_state_transitions.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "workflow-engine",
+        "layer": "layer1"
+      },
+      "failure_behavior": {
+        "invalid_message": "dead_letter",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "alert"
+      },
+      "migration_process": "New states are additive; old terminal states remain recognized.",
+      "links": {
+        "schema": "contracts/jsonschema/workflows/workflow-detail.json"
+      }
+    },
+    {
+      "contract_id": "fabric.security.tenant_isolation",
+      "version": "1.0.0",
+      "type": "security",
+      "owner": "value-fabric/security-leads",
+      "provider": "packages/shared",
+      "consumers": [
+        "all layers"
+      ],
+      "syntax": "packages/shared/src/value_fabric/shared/identity/middleware.py",
+      "semantics": "Tenant context propagation and enforcement contract.",
+      "invariants": [
+        "tenant_id is derived from JWT or trusted context",
+        "request body tenant_id is ignored",
+        "require_tenant_context() fails closed"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/security/test_tenant_isolation.py",
+          "tests/security/test_tenant_boundary_fails_closed.py"
+        ],
+        "consumer_tests": [
+          "services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py",
+          "services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "governance-middleware",
+        "layer": "shared"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Changes require hostile tenant test suite expansion.",
+      "links": {
+        "schema": "packages/shared/src/value_fabric/shared/identity/middleware.py"
+      },
+      "classification": "tenant-boundary"
+    },
+    {
+      "contract_id": "fabric.data.retention",
+      "version": "1.0.0",
+      "type": "data",
+      "owner": "value-fabric/security-leads",
+      "provider": "all services",
+      "consumers": [
+        "compliance-auditors"
+      ],
+      "syntax": "contracts/jsonschema/dsar-request.schema.json",
+      "semantics": "Data retention, deletion, and export behavior.",
+      "invariants": [
+        "Customer data retention is declared in source",
+        "Audit logs retained 7 years",
+        "Hard delete preserves audit logs"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/contract/test_retention_deletion_contract.py"
+        ],
+        "consumer_tests": [
+          "tests/data_lifecycle/test_audit_log_retention.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "data-lifecycle-jobs",
+        "layer": "all"
+      },
+      "failure_behavior": {
+        "invalid_message": "alert",
+        "unknown_version": "warn",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Retention changes require data lifecycle backfill and audit evidence.",
+      "links": {
+        "schema": "contracts/jsonschema/dsar-request.schema.json"
+      },
+      "classification": "audit"
+    },
+    {
+      "contract_id": "fabric.product.cfo_readiness",
+      "version": "1.0.0",
+      "type": "product",
+      "owner": "value-fabric/product-leads",
+      "provider": "services/layer4-agents",
+      "consumers": [
+        "apps/web"
+      ],
+      "syntax": "contracts/value-signal.json",
+      "semantics": "CFO-target readiness states and evidence-strength bands.",
+      "invariants": [
+        "Evidence-strength bands are one of the declared enum values",
+        "Unsupported claims block CFO-ready status",
+        "Override requires human review and audit event"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/backend_integrated/test_approval_export_crm_governance.py"
+        ],
+        "consumer_tests": [
+          "apps/web/e2e/behaviors/j3-value-studio.behavior.spec.ts"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "business-case-evaluator",
+        "layer": "layer4"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "New readiness states require UI and backend migration.",
+      "links": {
+        "schema": "contracts/value-signal.json"
+      }
+    },
+    {
+      "contract_id": "fabric.operability.slo",
+      "version": "1.0.0",
+      "type": "operability",
+      "owner": "value-fabric/sre-leads",
+      "provider": "monitoring/alerting",
+      "consumers": [
+        "platform-engineering",
+        "release-engineering"
+      ],
+      "syntax": "monitoring/alerting/layer-sli-rules-production.yml",
+      "semantics": "SLOs, SLIs, error budgets, and alert thresholds.",
+      "invariants": [
+        "Every SLO has an SLI formula",
+        "Alert has owner and runbook",
+        "Error budget is measured over a rolling window"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": ["1.0.x"],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/observability/test_slo_definitions.py"
+        ],
+        "consumer_tests": [
+          "scripts/ci/check_production_alert_metadata.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "prometheus-alertmanager",
+        "layer": "monitoring"
+      },
+      "failure_behavior": {
+        "invalid_message": "alert",
+        "unknown_version": "warn",
+        "semantic_violation": "release_freeze"
+      },
+      "migration_process": "SLO changes require burn-rate validation in staging.",
+      "links": {
+        "schema": "monitoring/alerting/layer-sli-rules-production.yml"
+      }
+    }
+  ]
+}

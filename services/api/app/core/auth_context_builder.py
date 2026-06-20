@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from .auth_directory import AuthDirectory
-from .clerk_config import InternalEnvelopeSettings
+from .clerk_config import InternalEnvelope
 from .clerk_verifier import ClerkAuthorizedPartyError, ClerkClaims, ClerkTokenError
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def build_auth_context(
     *,
     claims: ClerkClaims,
     directory: AuthDirectory,
-    envelope_settings: InternalEnvelopeSettings,
+    envelope_settings: InternalEnvelope,
     request_id: str | None = None,
     now: int | None = None,
 ) -> AuthContext:

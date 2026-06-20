@@ -24,6 +24,7 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { useResolvedTenant } from "@/hooks/useResolvedTenant";
 
 interface RequireClerkAuthProps {
   children: ReactNode;
@@ -66,6 +67,7 @@ function RequireClerkAuthOrgCheck({
   // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
   // called unconditionally here.
   const { isLoaded: orgLoaded, organization } = useOrganization();
+  const { isLoading: tenantLoading, error: tenantError } = useResolvedTenant();
   const hasNavigated = useRef(false);
 
   // All hooks must run on every render before any conditional return, so the
@@ -78,6 +80,20 @@ function RequireClerkAuthOrgCheck({
     }
   }, [requireOrganization, orgLoaded, organization, navigateTo, urls.selectOrgUrl]);
 
+  useLayoutEffect(() => {
+    if (!tenantError || hasNavigated.current) {
+      return;
+    }
+    const status = (tenantError as { status?: number }).status;
+    if (status === 401) {
+      hasNavigated.current = true;
+      navigateTo(urls.signInUrl, { replace: true });
+    } else if (status === 403) {
+      hasNavigated.current = true;
+      navigateTo("/forbidden", { replace: true });
+    }
+  }, [tenantError, navigateTo, urls.signInUrl]);
+
   if (requireOrganization && !orgLoaded) {
     // Render nothing while org state loads to prevent UI flash
     return null;
@@ -85,6 +101,16 @@ function RequireClerkAuthOrgCheck({
 
   if (requireOrganization && !organization) {
     // Redirect in progress — render nothing to prevent UI flash
+    return null;
+  }
+
+  if (requireOrganization && tenantLoading) {
+    // Render nothing while the backend resolves the tenant mapping.
+    return null;
+  }
+
+  if (requireOrganization && tenantError) {
+    // Redirect in progress; the effect above decides the destination.
     return null;
   }
 

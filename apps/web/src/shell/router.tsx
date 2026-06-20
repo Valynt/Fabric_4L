@@ -102,6 +102,7 @@ const BillingAdminPage = lazy(() => import("@/pages/admin/BillingAdmin"));
 // ── Dev Tools ──
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const ForbiddenPage = lazy(() => import("@/pages/ForbiddenPage"));
 
 // ── Academy ──
 const AcademyPage = lazy(() => import("@/pages/Academy"));
@@ -318,6 +319,15 @@ export const router = createBrowserRouter([
     element: (
       <RequireClerkAuth requireOrganization={false}>
         <OnboardingPage />
+      </RequireClerkAuth>
+    ),
+    handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },
+  },
+  {
+    path: "/forbidden",
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <ForbiddenPage />
       </RequireClerkAuth>
     ),
     handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },

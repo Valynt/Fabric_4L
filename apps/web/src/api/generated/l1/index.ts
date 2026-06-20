@@ -144,6 +144,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ingestion/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a consent record
+         * @description Create a pending consent record for a source ingestion scope.
+         */
+        post: operations["create_consent_api_v1_ingestion_consents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/consents/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Grant a consent record
+         * @description Approve a pending consent record so ingestion can proceed.
+         */
+        post: operations["grant_consent_api_v1_ingestion_consents_grant_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/consents/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a consent record
+         * @description Revoke an existing consent record.
+         */
+        post: operations["revoke_consent_api_v1_ingestion_consents_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/consents/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active consent records
+         * @description List granted, non-expired consent records for an account.
+         */
+        get: operations["list_active_consent_api_v1_ingestion_consents_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ingestion/targets": {
         parameters: {
             query?: never;
@@ -781,6 +861,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ingestion/targets/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Target Stats
+         * @description Get aggregated statistics for all scraping targets.
+         *
+         *     Computes counts by derived connection status and average health score
+         *     server-side to avoid transferring large target lists to the client.
+         */
+        get: operations["get_target_stats_api_v1_ingestion_targets_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/jobs/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Operation
+         * @description Execute batch operations on ingestion jobs and targets.
+         *
+         *     Supports three operations:
+         *     - execute: Trigger crawl jobs for multiple targets
+         *     - cancel: Cancel multiple running/queued jobs
+         *     - retry: Retry multiple failed jobs
+         *
+         *     Returns per-item results with success/failure status.
+         */
+        post: operations["batch_operation_api_v1_ingestion_jobs_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -934,6 +1064,92 @@ export interface components {
          */
         AuthenticationType: "NONE" | "BEARER" | "API_KEY" | "BASIC" | "OAUTH2";
         /**
+         * BatchOperationItemResult
+         * @description Result of a single item in a batch operation.
+         */
+        BatchOperationItemResult: {
+            /**
+             * Id
+             * Format: uuid
+             * @description Target or job ID
+             */
+            id: string;
+            /**
+             * Status
+             * @description Operation status: succeeded, failed, or skipped
+             */
+            status: string;
+            /**
+             * Job Id
+             * @description Resulting job ID (if applicable)
+             */
+            job_id?: string | null;
+            /**
+             * Error
+             * @description Error message if failed
+             */
+            error?: string | null;
+        };
+        /**
+         * BatchOperationRequest
+         * @description Request for batch operations on jobs and targets.
+         */
+        BatchOperationRequest: {
+            /** @description Operation to perform */
+            operation: components["schemas"]["BatchOperationType"];
+            /**
+             * Target Ids
+             * @description Target IDs for execute operation
+             */
+            target_ids?: string[];
+            /**
+             * Job Ids
+             * @description Job IDs for cancel/retry operations
+             */
+            job_ids?: string[];
+            /**
+             * Options
+             * @description Additional operation options
+             */
+            options?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * BatchOperationResponse
+         * @description Response for batch operation.
+         */
+        BatchOperationResponse: {
+            /** @description Operation performed */
+            operation: components["schemas"]["BatchOperationType"];
+            /**
+             * Requested
+             * @description Total number of items requested
+             */
+            requested: number;
+            /**
+             * Succeeded
+             * @description Number of successful operations
+             */
+            succeeded: number;
+            /**
+             * Failed
+             * @description Number of failed operations
+             */
+            failed: number;
+            /**
+             * Results
+             * @description Per-item results
+             */
+            results: components["schemas"]["BatchOperationItemResult"][];
+        };
+        /**
+         * BatchOperationType
+         * @description Types of batch operations supported.
+         * @enum {string}
+         */
+        BatchOperationType: "execute" | "cancel" | "retry";
+        /**
          * BrowserConfigInput
          * @description Browser configuration for a target.
          */
@@ -1073,6 +1289,75 @@ export interface components {
             latency_ms?: number | null;
             /** Message */
             message?: string | null;
+        };
+        /**
+         * ConsentCreateRequest
+         * @description Request to create a consent record.
+         */
+        ConsentCreateRequest: {
+            /** Account Id */
+            account_id: string;
+            /** Source Type */
+            source_type: string;
+            /** Scope */
+            scope?: {
+                [key: string]: unknown;
+            };
+            /** Expires At */
+            expires_at?: string | null;
+        };
+        /**
+         * ConsentGrantRequest
+         * @description Request to grant an existing consent record.
+         */
+        ConsentGrantRequest: {
+            /** Consent Id */
+            consent_id: string;
+            /** Expires At */
+            expires_at?: string | null;
+        };
+        /**
+         * ConsentResponse
+         * @description Consent record response.
+         */
+        ConsentResponse: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Source Type */
+            source_type: string;
+            /** Status */
+            status: string;
+            /** Consent Hash */
+            consent_hash: string;
+            /** Scope */
+            scope: {
+                [key: string]: unknown;
+            };
+            /** Granted By */
+            granted_by: string | null;
+            /** Granted At */
+            granted_at: string | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ConsentRevokeRequest
+         * @description Request to revoke an existing consent record.
+         */
+        ConsentRevokeRequest: {
+            /** Consent Id */
+            consent_id: string;
         };
         /**
          * CrawlDecisionSummary
@@ -1884,6 +2169,8 @@ export interface components {
             url: string;
             /** Target Type */
             target_type: string;
+            /** Source Category */
+            source_category?: string | null;
             /** Status */
             status: string;
             /**
@@ -1969,6 +2256,8 @@ export interface components {
             url: string;
             /** Target Type */
             target_type: string;
+            /** Source Category */
+            source_category?: string | null;
             /** Status */
             status: string;
             /**
@@ -2156,6 +2445,11 @@ export interface components {
             external_reference?: string | null;
             /** Idempotency Key */
             idempotency_key?: string | null;
+            /**
+             * Consent Id
+             * @description Explicit consent record id (v3.0). Optional during migration.
+             */
+            consent_id?: string | null;
             /** Requested Outputs */
             requested_outputs?: string[];
             /** Metadata */
@@ -2203,6 +2497,24 @@ export interface components {
             pagination: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * TargetStatsResponse
+         * @description Aggregated statistics for scraping targets.
+         */
+        TargetStatsResponse: {
+            /** Total */
+            total: number;
+            /** Connected */
+            connected: number;
+            /** Disconnected */
+            disconnected: number;
+            /** Error */
+            error: number;
+            /** Total Records */
+            total_records: number;
+            /** Average Health Score */
+            average_health_score: number;
         };
         /**
          * TargetStatus
@@ -2561,6 +2873,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IngestionRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_consent_api_v1_ingestion_consents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_consent_api_v1_ingestion_consents_grant_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_consent_api_v1_ingestion_consents_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_active_consent_api_v1_ingestion_consents_active_get: {
+        parameters: {
+            query: {
+                account_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -3677,6 +4119,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProxyPoolResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_target_stats_api_v1_ingestion_targets_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetStatsResponse"];
+                };
+            };
+        };
+    };
+    batch_operation_api_v1_ingestion_jobs_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchOperationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchOperationResponse"];
                 };
             };
             /** @description Validation Error */

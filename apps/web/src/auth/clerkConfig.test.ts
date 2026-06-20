@@ -43,34 +43,35 @@ describe("clerkConfig — provider normalization", () => {
     }
   });
 
-  it("defaults to legacy when VITE_AUTH_PROVIDER is unset", () => {
+  it("defaults to clerk when VITE_AUTH_PROVIDER is unset", () => {
     setAuthProvider(undefined);
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
-    expect(isClerkAuthEnabled()).toBe(false);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
   });
 
-  it("treats empty string as legacy", () => {
+  it("treats empty string as clerk (default)", () => {
     setAuthProvider("");
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
-  it("treats whitespace-only as legacy", () => {
+  it("treats whitespace-only as clerk (default)", () => {
     setAuthProvider("   \t\n  ");
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
   it("treats explicit 'legacy' as legacy", () => {
     setAuthProvider("legacy");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(isClerkAuthEnabled()).toBe(false);
   });
 
-  it("activates clerk on exact lowercase 'clerk'", () => {
+  it("treats explicit 'clerk' as clerk", () => {
     setAuthProvider("clerk");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
     expect(isClerkAuthEnabled()).toBe(true);
   });
 
-  it("activates clerk after trim + case-fold", () => {
+  it("normalizes 'clerk' after trim + case-fold", () => {
     setAuthProvider("  CLERK  ");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
     setAuthProvider("Clerk");
@@ -78,11 +79,11 @@ describe("clerkConfig — provider normalization", () => {
   });
 
   it.each(["true", "1", "yes", "on", "enable", "CLERK_MODE", "clerk-mode", "clerks"])(
-    "does NOT activate clerk for garbage-looking value %s",
+    "does NOT activate legacy for garbage-looking value %s",
     (v) => {
       setAuthProvider(v);
-      expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
-      expect(isClerkAuthEnabled()).toBe(false);
+      expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+      expect(isClerkAuthEnabled()).toBe(true);
     },
   );
 });

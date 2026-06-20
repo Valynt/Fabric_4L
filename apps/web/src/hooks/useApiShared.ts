@@ -26,6 +26,7 @@ export const STALE_TIME = {
   // Domain-specific durations (previously scattered across individual hook files)
   policies:  60_000,          //  1 minute  — benchmark/governance policies
   approvals: 10_000,          // 10 seconds — pending approval queues
+  tenant:    30_000,          // 30 seconds — Clerk org → Fabric tenant mapping
 } as const;
 
 // ── Retry configuration ───────────────────────────────────────────────────────

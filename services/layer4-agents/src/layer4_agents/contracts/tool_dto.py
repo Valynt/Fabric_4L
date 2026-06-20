@@ -3,19 +3,14 @@ from __future__ import annotations
 """DTOs for tool route contracts."""
 
 
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel, Field
-from typing_extensions import TypeAliasType
 
 from ..models.tool_schemas import ToolCategory
 
-JsonScalar: TypeAlias = str | int | float | bool | None
-JsonValue = TypeAliasType(
-    "JsonValue",
-    JsonScalar | list["JsonValue"] | dict[str, "JsonValue"],
-)
-ToolSchemaDocument: TypeAlias = dict[str, JsonValue]
+JsonValue: TypeAlias = Any
+ToolSchemaDocument: TypeAlias = dict[str, Any]
 
 
 class ToolSchemaExample(BaseModel):

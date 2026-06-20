@@ -18,6 +18,7 @@ from app.routers import (
     agents,
     auth,
     calculator,
+    clerk_auth,
     clerk_webhooks,
     context_engine,
     drivers,
@@ -206,6 +207,7 @@ add_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
+app.include_router(clerk_auth.router, prefix="/v1")
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")
 app.include_router(hypotheses.router, prefix="/v1")

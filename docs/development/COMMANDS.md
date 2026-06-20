@@ -154,7 +154,8 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `lint-layer5` | Lint Layer 5. |
 | `lint-layer6` | Lint Layer 6. |
 | `typecheck` | Type-check all Python layers. |
-| `typecheck-layer1` | Type-check Layer 1. |
+| `typecheck-layer1` | Type-check Layer 1 typed core + enforce mypy baseline ratchet. |
+| `mypy-changed-layer1` | Type-check changed Layer 1 source files (PR gate). |
 | `typecheck-layer2` | Type-check Layer 2. |
 | `typecheck-layer2-5` | Type-check Layer 2.5. |
 | `typecheck-layer3` | Type-check Layer 3. |
@@ -172,7 +173,8 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-unit` | Run unit tests only. |
 | `test-integration` | Run integration tests. |
 | `test-fast` | Run fast tests excluding slow and e2e. |
-| `test-layer1` | Run Layer 1 tests. |
+| `test-layer1` | Run Layer 1 unit tests (no external services). |
+| `test-layer1-integration` | Run Layer 1 integration tests (requires PostgreSQL). |
 | `test-layer1-crawler` | Run focused Layer 1 crawler tests. |
 | `test-layer1-router-cache` | Run focused Layer 1 router/cache tests. |
 | `test-layer1-benchmarks` | Run Layer 1 benchmark and performance tests. |

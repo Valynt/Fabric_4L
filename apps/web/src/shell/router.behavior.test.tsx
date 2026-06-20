@@ -321,9 +321,10 @@ describe("Legacy flat-route redirects", () => {
     expect(screen.getByTestId("location").textContent).toBe("/t/acme/settings/governance/health");
   });
 
-  it("falls back to /home when tenant slug is unavailable", () => {
+  it("falls back to /workspaces when tenant slug is unavailable in Clerk mode", () => {
     renderWithPath("/discover/jobs", null);
-    expect(screen.getByTestId("home-page")).toBeInTheDocument();
+    expect(screen.getByTestId("workspaces-page")).toBeInTheDocument();
+    expect(screen.getByTestId("location").textContent).toBe("/workspaces");
   });
 
   it.each(Object.entries(LEGACY_FLAT_ROUTE_MAP))(

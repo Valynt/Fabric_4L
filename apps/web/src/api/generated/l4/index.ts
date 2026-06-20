@@ -7448,9 +7448,6 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
-        JsonValue: string | number | boolean | components["schemas"]["JsonValue"][] | {
-            [key: string]: components["schemas"]["JsonValue"];
-        } | null;
         /**
          * KnowledgeSourceCreateRequest
          * @description Request to add a new knowledge source.
@@ -9425,11 +9422,11 @@ export interface components {
         ToolSchemaExample: {
             /** Input */
             input?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: unknown;
             };
             /** Output */
             output?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: unknown;
             };
         };
         /**
@@ -9444,11 +9441,11 @@ export interface components {
             description: string;
             /** Input Schema */
             input_schema?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: unknown;
             };
             /** Output Schema */
             output_schema?: {
-                [key: string]: components["schemas"]["JsonValue"];
+                [key: string]: unknown;
             };
             /** Examples */
             examples?: components["schemas"]["ToolSchemaExample"][];

@@ -138,6 +138,7 @@ ignore_missing_imports = true
 check_untyped_defs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 # Note: Additional flags are passed via Makefile for CI consistency
 exclude = [
     "migrations/",
@@ -171,7 +172,6 @@ module = [
     "src.metrics.prometheus_metrics",
     "src.layer1_ingestion.api.main",
     "src.layer1_ingestion.shared.tasks",
-    "src.layer1_ingestion.shared.models",
     "src.layer1_ingestion.crawler.decision_store",
     "src.layer1_ingestion.crawler.playwright_crawler",
     "src.layer1_ingestion.crawler.telemetry",
@@ -193,6 +193,16 @@ module = [
 ]
 disable_error_code = ["arg-type", "assignment", "misc", "valid-type", "no-any-return", "union-attr", "attr-defined", "var-annotated", "index", "call-overload", "return-value"]
 
+[[tool.mypy.overrides]]
+module = [
+    "src.layer1_ingestion.domain.stages",
+    "src.layer1_ingestion.orchestrator.connector_resolution",
+    "src.layer1_ingestion.orchestrator.stage_handlers.context",
+    "src.layer1_ingestion.orchestrator.stage_handlers.fetching_source",
+    "src.layer1_ingestion.orchestrator.stage_handlers.applying_policy",
+]
+disable_error_code = ["import-untyped"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
@@ -210,6 +220,7 @@ markers = [
     "quarantine: Tests temporarily isolated due to external dependencies (Docker, env, timing)",
     "security: Security and tenant isolation tests",
     "rls: Row-Level Security enforcement tests",
+    "slow: Tests that take >1 second or require optional heavy deps",
     "unit: Unit tests that do not require PostgreSQL",
     "integration: Integration tests requiring PostgreSQL",
 ]

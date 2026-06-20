@@ -28,13 +28,16 @@ export type AuthProvider =
   | typeof AUTH_PROVIDER_CLERK;
 
 /**
- * The configured auth provider for this build. Defaults to legacy so adding
- * Clerk code to the bundle does not change behavior until the env flag is set.
+ * The configured auth provider for this build.
+ *
+ * Clerk is the canonical identity and organization boundary for Fabric_4L.
+ * It is the default; legacy OIDC/cookie mode is opt-in only via
+ * VITE_AUTH_PROVIDER=legacy and is intended for transitional use.
  */
 export function getAuthProvider(): AuthProvider {
   const raw = (import.meta.env.VITE_AUTH_PROVIDER ?? "").toString().trim().toLowerCase();
-  if (raw === AUTH_PROVIDER_CLERK) return AUTH_PROVIDER_CLERK;
-  return AUTH_PROVIDER_LEGACY;
+  if (raw === AUTH_PROVIDER_LEGACY) return AUTH_PROVIDER_LEGACY;
+  return AUTH_PROVIDER_CLERK;
 }
 
 export function isClerkAuthEnabled(): boolean {

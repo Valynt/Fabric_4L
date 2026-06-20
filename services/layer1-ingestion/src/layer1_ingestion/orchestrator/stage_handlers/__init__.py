@@ -8,17 +8,19 @@ from __future__ import annotations
 
 from layer1_ingestion.shared.models import IngestionRunStatus
 
+from .applying_policy import ApplyingPolicyHandler
 from .base import StageHandler
 
 # Import concrete handlers here as they are implemented.
+from .fetching_source import FetchingSourceHandler
 from .noop import NoopStageHandler
 from .validating_access import ValidatingAccessHandler
 
 _STAGE_HANDLER_REGISTRY: dict[str, type[StageHandler]] = {
     IngestionRunStatus.VALIDATING_ACCESS.value: ValidatingAccessHandler,
     IngestionRunStatus.RESOLVING_CONNECTOR.value: NoopStageHandler,
-    IngestionRunStatus.FETCHING_SOURCE.value: NoopStageHandler,
-    IngestionRunStatus.APPLYING_POLICY.value: NoopStageHandler,
+    IngestionRunStatus.FETCHING_SOURCE.value: FetchingSourceHandler,
+    IngestionRunStatus.APPLYING_POLICY.value: ApplyingPolicyHandler,
     IngestionRunStatus.NORMALIZING.value: NoopStageHandler,
     IngestionRunStatus.CHUNKING.value: NoopStageHandler,
     IngestionRunStatus.EXTRACTING.value: NoopStageHandler,
@@ -47,6 +49,8 @@ __all__ = [
     "StageHandler",
     "NoopStageHandler",
     "ValidatingAccessHandler",
+    "FetchingSourceHandler",
+    "ApplyingPolicyHandler",
     "get_stage_handler",
     "register_stage_handler",
 ]

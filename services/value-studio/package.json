@@ -1,0 +1,20 @@
+{
+  "name": "value-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "typescript": "5.6.3",
+    "vitest": "^3.2.6"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

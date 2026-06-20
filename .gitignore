@@ -220,3 +220,10 @@ skip_debug.txt
 .hypothesis/
 .tmp/
 
+# Root-level scratch files from ad-hoc test commands
+/tmp_test_output.txt
+/tmp_*.py
+/tmp_*.txt
+/C*Users*tmp_*
+/c*Users*tmp_*
+

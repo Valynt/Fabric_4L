@@ -18920,37 +18920,6 @@
         "title": "IntegrationStatusResponse",
         "description": "Integration with sync status (response only)."
       },
-      "JsonValue": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "integer"
-          },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          },
-          {
-            "items": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
-            "type": "array"
-          },
-          {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
-            "type": "object"
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
       "KnowledgeSourceCreateRequest": {
         "properties": {
           "profile_id": {
@@ -23177,16 +23146,12 @@
       "ToolSchemaExample": {
         "properties": {
           "input": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Input"
           },
           "output": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Output"
           }
@@ -23209,16 +23174,12 @@
             "title": "Description"
           },
           "input_schema": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Input Schema"
           },
           "output_schema": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
+            "additionalProperties": true,
             "type": "object",
             "title": "Output Schema"
           },

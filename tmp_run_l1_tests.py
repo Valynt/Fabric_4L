@@ -1,8 +1,8 @@
 import subprocess, sys
 
 files = [
-    "tests/unit/test_batch_operations.py",
-    "tests/unit/test_target_status_transitions.py",
+    "tests/integration/test_batch_operations.py",
+    "tests/integration/test_target_status_transitions.py",
     "tests/api/test_targets_batch.py",
     "tests/api/test_targets_execute_idempotency.py",
     "tests/api/test_targets_route_ordering.py",

@@ -657,6 +657,7 @@ class ScrapingTargetSummary(BaseModel):
     name: str
     url: str
     target_type: str
+    source_category: str | None = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -1263,6 +1264,7 @@ async def list_targets(
                 name=t.name,  # type: ignore[arg-type]
                 url=t.url,  # type: ignore[arg-type]
                 target_type=t.target_type,  # type: ignore[arg-type]
+                source_category=t.source_category,  # type: ignore[arg-type]
                 status=t.status,  # type: ignore[arg-type]
                 created_at=t.created_at,  # type: ignore[arg-type]
                 updated_at=t.updated_at,  # type: ignore[arg-type]
@@ -3394,6 +3396,7 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
         name=target.name,
         url=target.url,
         target_type=target.target_type,
+        source_category=target.source_category,
         status=target.status,
         created_at=target.created_at,
         updated_at=target.updated_at,

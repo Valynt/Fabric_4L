@@ -44,6 +44,18 @@ export class SessionService {
     logWarn('Unauthorized response received', context);
     this.redirectToLogin();
   }
+
+  handleForbidden(context: { traceId?: string | null; route?: string } = {}): void {
+    logWarn('Forbidden response received', context);
+    const loc = typeof window !== 'undefined' ? window.location : null;
+    if (!loc) return;
+    if (loc.pathname === '/forbidden') return;
+    try {
+      loc.replace('/forbidden');
+    } catch {
+      /* noop */
+    }
+  }
 }
 
 export const sessionService = new SessionService();

@@ -114,8 +114,6 @@ interface LoginFormProps extends React.ComponentProps<"div"> {
   onLogin?: (email: string, password: string) => Promise<void>
   /** SSO provider button handler — receives "apple" | "google" */
   onSSOProvider?: (provider: string) => void
-  /** Dev-only bypass button */
-  onDevBypass?: () => void
   isLoading?: boolean
   error?: string | null
   successMessage?: string | null
@@ -125,7 +123,6 @@ export function LoginForm({
   className,
   onLogin,
   onSSOProvider,
-  onDevBypass,
   isLoading = false,
   error: externalError = null,
   successMessage = null,
@@ -306,19 +303,6 @@ export function LoginForm({
                     )}
                   </Button>
                 </>
-              )}
-
-              {/* Dev bypass */}
-              {import.meta.env.DEV && onDevBypass && (
-                <Button
-                  variant="ghost"
-                  type="button"
-                  size="sm"
-                  className="w-full text-xs text-muted-foreground hover:text-primary"
-                  onClick={onDevBypass}
-                >
-                  Development Bypass
-                </Button>
               )}
 
               {/* Sign up link */}

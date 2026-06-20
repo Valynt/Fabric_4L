@@ -73,7 +73,9 @@
     "ops:backup:verify": "python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py",
     "ops:restore:dry-run": "python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery",
     "ops:walg:gate": "python scripts/ci/check_walg_enablement_gate.py",
-    "ops:quota:check": "python scripts/ci/check_quota_policy.py"
+    "ops:quota:check": "python scripts/ci/check_quota_policy.py",
+    "gate-engineering:validate": "python scripts/ci/gate_engineering_validator.py validate",
+    "gate-engineering:test": "python -m pytest tests/ci/test_gate_engineering.py -v --tb=short"
   },
   "engines": {
     "node": ">=22.13.0"

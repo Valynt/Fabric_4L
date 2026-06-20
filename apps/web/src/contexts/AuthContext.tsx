@@ -52,7 +52,6 @@ interface AuthContextType {
   handleCallback: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
-  devBypass?: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,13 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // is not mounted in legacy mode. Calling them here crashes the app with
   // "useAuth can only be used within the <ClerkProvider /> component".
   if (!clerkMode) {
-    const devBypass: AuthContextType['devBypass'] =
-      import.meta.env.DEV || import.meta.env.MODE === 'test'
-        ? () => {
-            log.info('devBypass called in legacy auth mode - no-op');
-          }
-        : undefined;
-
     const value: AuthContextType = {
       isAuthenticated: mockAuthEnabled,
       isLoading: false,
@@ -96,7 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         safeNavigate('/');
       },
       refreshToken: async () => true,
-      ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -133,14 +124,6 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
-  let devBypass: AuthContextType['devBypass'];
-
-  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-    devBypass = () => {
-      log.warn('devBypass called in Clerk mode - not supported');
-    };
-  }
-
   if (!authLoaded || !userLoaded || !isSignedIn) {
     const value: AuthContextType = {
       isAuthenticated: authLoaded && !!isSignedIn,
@@ -152,7 +135,6 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       handleCallback,
       logout,
       refreshToken,
-      ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -165,7 +147,6 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       handleCallback={handleCallback}
       logout={logout}
       refreshToken={refreshToken}
-      devBypass={devBypass}
     >
       {children}
     </SignedInClerkAuthProvider>
@@ -179,7 +160,6 @@ function SignedInClerkAuthProvider({
   handleCallback,
   logout,
   refreshToken,
-  devBypass,
 }: {
   children: React.ReactNode;
   clerkUser: ReturnType<typeof useClerkUser>['user'];
@@ -187,7 +167,6 @@ function SignedInClerkAuthProvider({
   handleCallback: AuthContextType['handleCallback'];
   logout: AuthContextType['logout'];
   refreshToken: AuthContextType['refreshToken'];
-  devBypass: AuthContextType['devBypass'];
 }) {
   const { organization, isLoaded: organizationLoaded } = useOrganization();
 
@@ -240,7 +219,6 @@ function SignedInClerkAuthProvider({
     handleCallback,
     logout,
     refreshToken,
-    ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

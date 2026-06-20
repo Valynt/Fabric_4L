@@ -122,6 +122,8 @@ export interface TargetStats {
   averageHealthScore: number;
 }
 
+type ApiTargetStatsResponse = l1.components['schemas']['TargetStatsResponse'];
+
 export interface CreateTargetRequest {
   name: string;
   url: string;
@@ -333,7 +335,7 @@ export function useTargetStats() {
     queryKey: QK.targets.stats,
     queryFn: async () => {
       const response = await withApiError(
-        apiGet<l1.components['schemas']['TargetStatsResponse']>('l1', '/targets/stats'),
+        apiGet<ApiTargetStatsResponse>('l1', '/targets/stats'),
         BaseApiError,
       );
       const d = response.data;

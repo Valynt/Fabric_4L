@@ -1,15 +1,22 @@
 """Tests for batch operations API endpoints."""
 
+from uuid import UUID, uuid4
+
 import pytest
-from uuid import uuid4, UUID
 from sqlalchemy.orm import Session
 
-from layer1_ingestion.shared.models import JobStatus, TargetStatus, ScrapingTarget, ScrapingJob, create_scraping_job
 from layer1_ingestion.api.main import (
-    BatchOperationType,
     BatchOperationRequest,
-    BatchOperationResponse,
+    BatchOperationType,
 )
+from layer1_ingestion.shared.models import (
+    JobStatus,
+    ScrapingJob,
+    ScrapingTarget,
+    create_scraping_job,
+)
+
+pytestmark = [pytest.mark.integration, pytest.mark.postgres]
 
 
 @pytest.fixture(autouse=True)
@@ -34,9 +41,7 @@ def user_id():
 @pytest.fixture
 def active_target(db: Session, org_id: UUID, user_id: UUID):
     """Create an active scraping target for testing."""
-    from layer1_ingestion.shared.models import create_scraping_target, TargetType
-    
-    from layer1_ingestion.shared.models import SourceCategory
+    from layer1_ingestion.shared.models import SourceCategory, TargetType, create_scraping_target
     target = create_scraping_target(
         tenant_id=org_id,
         name="Test Target",
@@ -111,7 +116,6 @@ def test_batch_cancel_success(
     client, db: Session, org_id: UUID, user_id: UUID, active_target: ScrapingTarget
 ):
     """Test successful batch cancel operation."""
-    from layer1_ingestion.shared.models import ScrapingJob
     
     # Create a running job
     job = create_scraping_job(
@@ -184,7 +188,6 @@ def test_batch_mixed_success_failure(
     client, db: Session, org_id: UUID, user_id: UUID, active_target: ScrapingTarget
 ):
     """Test batch operation with mixed success and failure."""
-    from layer1_ingestion.shared.models import ScrapingJob
     
     # Create a failed job
     failed_job = create_scraping_job(
@@ -266,7 +269,7 @@ def test_batch_cross_tenant_access_denied(
     client, db: Session, org_id: UUID, user_id: UUID
 ):
     """Test that cross-tenant access is denied."""
-    from layer1_ingestion.shared.models import create_scraping_target, TargetType, SourceCategory
+    from layer1_ingestion.shared.models import SourceCategory, TargetType, create_scraping_target
     other_org_id = uuid4()
     
     # Create a target belonging to a different tenant

@@ -1,10 +1,13 @@
-"""Tests for target status transitions (PUT /targets/{id}) and batch operations (POST /jobs/batch)."""
+"""Tests for target status transitions (PUT /targets/{id})."""
+
+from uuid import UUID, uuid4
 
 import pytest
-from uuid import uuid4, UUID
 from sqlalchemy.orm import Session
 
-from layer1_ingestion.shared.models import TargetStatus, ScrapingTarget, TargetType, SourceCategory
+from layer1_ingestion.shared.models import ScrapingTarget, SourceCategory, TargetType
+
+pytestmark = [pytest.mark.integration, pytest.mark.postgres]
 
 
 @pytest.fixture(autouse=True)
@@ -110,6 +113,7 @@ class TestUpdateTargetStatus:
 
     def test_cross_tenant_returns_404(self, db, org_id, other_org_id, user_id):
         from fastapi.testclient import TestClient
+
         from layer1_ingestion.api.main import app
         from layer1_ingestion.shared.database import get_db_from_context_sync
         from tests.conftest import _InjectGovernanceMiddleware

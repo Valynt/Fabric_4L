@@ -28,6 +28,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth, useOrganization } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
 import { useAccountContextStore } from "@/stores/accountContextStore";
@@ -41,14 +42,19 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   // gate and an isSignedIn check, so <ClerkProvider> is guaranteed to be mounted
   // and the hook may be called unconditionally.
   const { organization } = useOrganization();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setActiveClerkOrgId(organization?.id ?? null);
     syncTenant();
+    // Tenant/org switch: do not reuse any cached account or tenant-scoped data
+    // from the previous organization. The gateway is the authority, but this
+    // prevents the frontend from momentarily displaying stale data.
+    queryClient.invalidateQueries();
     return () => {
       setActiveClerkOrgId(null);
     };
-  }, [organization?.id, syncTenant]);
+  }, [organization?.id, syncTenant, queryClient]);
 
   return null;
 }

@@ -407,7 +407,7 @@ async def create_source(
             source_type=intake.source_type.value,
             scope={"title": intake.title, "external_reference": intake.external_reference},
         )
-        consent_id = consent.id
+        consent_id = cast(uuid.UUID | None, consent.id)
 
     # Resolve custody policy (v3.0). Defaults are source-type driven.
     custody_service = CustodyPolicyService()
