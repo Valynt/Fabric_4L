@@ -113,15 +113,6 @@ export interface TargetListResponse {
   };
 }
 
-export interface TargetStats {
-  total: number;
-  connected: number;
-  disconnected: number;
-  error: number;
-  totalRecords: number;
-  averageHealthScore: number;
-}
-
 type ApiTargetStatsResponse = l1.components['schemas']['TargetStatsResponse'];
 
 export interface CreateTargetRequest {
@@ -331,22 +322,14 @@ export function useTarget(id: string | null) {
 
 /** Aggregated stats for all targets in the tenant. */
 export function useTargetStats() {
-  return useQuery<TargetStats, BaseApiError>({
+  return useQuery<ApiTargetStatsResponse, BaseApiError>({
     queryKey: QK.targets.stats,
     queryFn: async () => {
       const response = await withApiError(
         apiGet<ApiTargetStatsResponse>('l1', '/targets/stats'),
         BaseApiError,
       );
-      const d = response.data;
-      return {
-        total: d.total,
-        connected: d.connected,
-        disconnected: d.disconnected,
-        error: d.error,
-        totalRecords: d.total_records,
-        averageHealthScore: d.average_health_score,
-      };
+      return response.data;
     },
     staleTime: STALE_TIME.stats,
     retry: RETRY_CONFIG.maxRetries,

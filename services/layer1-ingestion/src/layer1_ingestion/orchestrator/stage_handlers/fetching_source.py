@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
-import urllib.error
-import urllib.request
 from typing import Any, Protocol, runtime_checkable
+
+import httpx
 
 from layer1_ingestion.domain.stages import IngestionStage
 from layer1_ingestion.orchestrator.connector_resolution import (
@@ -20,12 +21,16 @@ from layer1_ingestion.orchestrator.stage_handlers.context import (
     _flatten_artifact_ids,
 )
 
+# Default timeout for outbound HTTP(S) fetches. Web pages and external metadata
+# endpoints are expected to respond within this window.
+_DEFAULT_FETCH_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+
 
 @runtime_checkable
 class ObjectStorageClient(Protocol):
     """Protocol for downloading raw bytes from object storage."""
 
-    def download_bytes(self, storage_uri: str) -> bytes:
+    async def download_bytes(self, storage_uri: str) -> bytes:
         ...
 
 
@@ -33,8 +38,40 @@ class ObjectStorageClient(Protocol):
 class SecretManager(Protocol):
     """Protocol for retrieving connector credentials without exposing secrets."""
 
-    def get_connector_credentials(self, tenant_id: str, connector_id: str) -> dict[str, str]:
+    async def get_connector_credentials(
+        self, tenant_id: str, connector_id: str
+    ) -> dict[str, str]:
         ...
+
+
+def _classify_storage_error(exc: Exception) -> tuple[str, bool]:
+    """Return (error_code, is_permanent) for a storage-layer exception."""
+    if isinstance(exc, (FileNotFoundError, PermissionError)):
+        return ("STORAGE_RESOURCE_NOT_ACCESSIBLE", True)
+    if isinstance(exc, ValueError):
+        return ("STORAGE_INVALID_URI", True)
+    return ("STORAGE_READ_ERROR", False)
+
+
+def _classify_http_error(exc: httpx.HTTPStatusError) -> tuple[str, bool]:
+    """Return (error_code, is_permanent) for an HTTP response error."""
+    status = exc.response.status_code
+    if status == 429:
+        return ("HTTP_RATE_LIMITED", False)
+    if status >= 500:
+        return ("HTTP_SERVER_ERROR", False)
+    return ("HTTP_CLIENT_ERROR", True)
+
+
+def _build_web_headers(resolution: ConnectorResolution) -> dict[str, str]:
+    """Merge resolution headers with the mandatory service User-Agent."""
+    headers = {"User-Agent": "Fabric4L-Ingest-Agent/2.6"}
+    if resolution.headers:
+        # Resolution headers take precedence except for User-Agent, which we keep
+        # as an observability signal.
+        headers.update(resolution.headers)
+        headers.setdefault("User-Agent", "Fabric4L-Ingest-Agent/2.6")
+    return headers
 
 
 class FetchingSourceHandler(StageHandler):
@@ -46,13 +83,13 @@ class FetchingSourceHandler(StageHandler):
         self,
         storage_client: ObjectStorageClient | None = None,
         secret_manager: SecretManager | None = None,
+        http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.storage_client = storage_client
         self.secret_manager = secret_manager
+        self.http_client = http_client
 
-    def handle(self, ctx: StageContext) -> str:
-        tenant_id = getattr(ctx, "tenant_id", "default_tenant")
-
+    async def handle(self, ctx: StageContext) -> str:
         # 1. Retrieve prior stage artifact
         resolution_dict = ctx.get_step_artifact("connector_resolution")
         if not resolution_dict:
@@ -71,6 +108,7 @@ class FetchingSourceHandler(StageHandler):
 
         strategy = resolution.fetch_strategy
         raw_payload: bytes = b""
+        metadata_attestation: dict[str, Any] | None = None
 
         custody_mode = normalize_custody_mode(
             getattr(ctx.source, "custody_mode", CustodyMode.REFERENCE_EXTRACT.value)
@@ -90,10 +128,16 @@ class FetchingSourceHandler(StageHandler):
                     error_detail_safe="Object storage client was not configured for LOCAL_PAYLOAD.",
                 )
             try:
-                raw_payload = self.storage_client.download_bytes(storage_uri)
+                raw_payload = await self.storage_client.download_bytes(storage_uri)
             except Exception as exc:
+                code, permanent = _classify_storage_error(exc)
+                if permanent:
+                    return ctx.fail_permanent(
+                        error_code=code,
+                        error_detail_safe=f"Permanent failure reading local payload: {str(exc)}",
+                    )
                 return ctx.fail_transient(
-                    error_code="LOCAL_PAYLOAD_READ_ERROR",
+                    error_code=code,
                     error_detail_safe=f"Transient failure reading local payload: {str(exc)}",
                 )
 
@@ -110,38 +154,90 @@ class FetchingSourceHandler(StageHandler):
                     error_detail_safe="Storage reference path was not found in resolution metadata.",
                 )
             try:
-                raw_payload = self.storage_client.download_bytes(storage_uri)
+                raw_payload = await self.storage_client.download_bytes(storage_uri)
             except Exception as exc:
+                code, permanent = _classify_storage_error(exc)
+                if permanent:
+                    return ctx.fail_permanent(
+                        error_code=code,
+                        error_detail_safe=f"Permanent failure downloading object: {str(exc)}",
+                    )
                 return ctx.fail_transient(
-                    error_code="OBJECT_STORAGE_ERROR",
+                    error_code=code,
                     error_detail_safe=f"Transient failure downloading object: {str(exc)}",
                 )
 
-        elif strategy in (FetchStrategy.EXTERNAL_CONNECTOR, FetchStrategy.CUSTOMER_HOSTED_CONNECTOR):
-            if not self.secret_manager:
+        elif strategy == FetchStrategy.EXTERNAL_CONNECTOR:
+            # External connector fetch is not yet production-ready. Fail closed
+            # rather than fabricating a payload or silently returning placeholder
+            # data.
+            return ctx.fail_permanent(
+                error_code="UNSUPPORTED_FETCH_STRATEGY",
+                error_detail_safe=(
+                    f"The fetch strategy {strategy.value} is not implemented for production use."
+                ),
+            )
+
+        elif strategy == FetchStrategy.CUSTOMER_HOSTED_CONNECTOR:
+            # Customer-hosted connectors fetch only metadata/attestation; the raw
+            # payload is never persisted by Fabric.
+            metadata_url = resolution.metadata.get("metadata_url")
+            if not metadata_url:
                 return ctx.fail_permanent(
-                    error_code="SECRET_MANAGER_NOT_INITIALIZED",
-                    error_detail_safe="Secret manager credential client was not configured.",
+                    error_code="UNSUPPORTED_FETCH_STRATEGY",
+                    error_detail_safe=(
+                        "CUSTOMER_HOSTED_CONNECTOR requires a metadata_url in the connector resolution."
+                    ),
                 )
-            conn_id = resolution.connector_id or resolution.connector_name
+            if not (
+                metadata_url.startswith("https://") or metadata_url.startswith("http://")
+            ):
+                return ctx.fail_permanent(
+                    error_code="INSECURE_OR_INVALID_PROTOCOL",
+                    error_detail_safe="Customer-hosted metadata URL must use HTTP or HTTPS.",
+                )
+
             try:
-                secrets = self.secret_manager.get_connector_credentials(tenant_id, conn_id)
+                metadata_attestation = await self._http_get(metadata_url, resolution)
+            except httpx.TimeoutException as exc:
+                return ctx.fail_transient(
+                    error_code="HTTP_FETCH_TIMEOUT",
+                    error_detail_safe=f"Timeout fetching customer-hosted metadata: {str(exc)}",
+                )
+            except httpx.NetworkError as exc:
+                return ctx.fail_transient(
+                    error_code="HTTP_FETCH_NETWORK_ERROR",
+                    error_detail_safe=f"Network error fetching customer-hosted metadata: {str(exc)}",
+                )
+            except httpx.HTTPStatusError as exc:
+                code, permanent = _classify_http_error(exc)
+                if permanent:
+                    return ctx.fail_permanent(
+                        error_code=code,
+                        error_detail_safe=f"Permanent failure fetching customer-hosted metadata: {str(exc)}",
+                    )
+                return ctx.fail_transient(
+                    error_code=code,
+                    error_detail_safe=f"Transient failure fetching customer-hosted metadata: {str(exc)}",
+                )
             except Exception as exc:
                 return ctx.fail_permanent(
-                    error_code="CONNECTOR_CREDENTIAL_DECRYPTION_FAILED",
-                    error_detail_safe=f"Failed to decrypt credentials: {str(exc)}",
+                    error_code="CUSTOMER_HOSTED_METADATA_ERROR",
+                    error_detail_safe=f"Permanent failure fetching customer-hosted metadata: {str(exc)}",
                 )
 
-            endpoint = resolution.connector_endpoint or "https://api.external.service/v1/fetch"
-            if "api_key" not in secrets and "oauth_token" not in secrets:
-                return ctx.fail_permanent(
-                    error_code="MISSING_AUTHENTICATION_CREDENTIALS",
-                    error_detail_safe="Decrypted credentials did not yield an API key or OAuth token.",
-                )
-
-            raw_payload = (
-                f"Fetched data from {endpoint} for object {resolution.external_object_id}"
-            ).encode()
+            # Never store the raw payload; record an attestation artifact only.
+            ctx.persist_step_artifact(
+                "raw_source_bytes",
+                {
+                    "bytes_size": 0,
+                    "custody_mode": CustodyMode.CUSTOMER_HOSTED.value,
+                    "stored": False,
+                    "metadata_attestation": metadata_attestation,
+                },
+            )
+            ctx.set_scratchpad("fetched_raw_data", metadata_attestation)
+            return ctx.advance(IngestionStage.APPLYING_POLICY)
 
         elif strategy == FetchStrategy.WEB_FETCH:
             url = resolution.metadata.get("url")
@@ -155,17 +251,29 @@ class FetchingSourceHandler(StageHandler):
                     error_code="INSECURE_OR_INVALID_PROTOCOL",
                     error_detail_safe="Web URL must use HTTP or HTTPS.",
                 )
+
             try:
-                req = urllib.request.Request(
-                    url,
-                    headers={"User-Agent": "Fabric4L-Ingest-Agent/2.6"},
-                )
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    raw_payload = response.read()
-            except urllib.error.URLError as exc:
+                raw_payload = await self._http_get_bytes(url, resolution)
+            except httpx.TimeoutException as exc:
                 return ctx.fail_transient(
-                    error_code="HTTP_FETCH_TIMEOUT_OR_NETWORK_ERROR",
-                    error_detail_safe=f"Transient network exception when crawling URL: {str(exc)}",
+                    error_code="HTTP_FETCH_TIMEOUT",
+                    error_detail_safe=f"Timeout fetching target URL: {str(exc)}",
+                )
+            except httpx.NetworkError as exc:
+                return ctx.fail_transient(
+                    error_code="HTTP_FETCH_NETWORK_ERROR",
+                    error_detail_safe=f"Network error fetching target URL: {str(exc)}",
+                )
+            except httpx.HTTPStatusError as exc:
+                code, permanent = _classify_http_error(exc)
+                if permanent:
+                    return ctx.fail_permanent(
+                        error_code=code,
+                        error_detail_safe=f"Permanent failure fetching target URL: {str(exc)}",
+                    )
+                return ctx.fail_transient(
+                    error_code=code,
+                    error_detail_safe=f"Transient failure fetching target URL: {str(exc)}",
                 )
             except Exception as exc:
                 return ctx.fail_permanent(
@@ -203,6 +311,32 @@ class FetchingSourceHandler(StageHandler):
         ctx.set_scratchpad("fetched_raw_data", raw_payload)
         return ctx.advance(IngestionStage.APPLYING_POLICY)
 
+    async def _http_get_bytes(
+        self, url: str, resolution: ConnectorResolution
+    ) -> bytes:
+        """Perform an async HTTP GET and return raw response bytes."""
+        client = self.http_client or httpx.AsyncClient(timeout=_DEFAULT_FETCH_TIMEOUT)
+        try:
+            response = await client.get(url, headers=_build_web_headers(resolution))
+            response.raise_for_status()
+            return response.content
+        finally:
+            if self.http_client is None:
+                await client.aclose()
+
+    async def _http_get(
+        self, url: str, resolution: ConnectorResolution
+    ) -> dict[str, Any]:
+        """Perform an async HTTP GET and return a JSON metadata object."""
+        client = self.http_client or httpx.AsyncClient(timeout=_DEFAULT_FETCH_TIMEOUT)
+        try:
+            response = await client.get(url, headers=_build_web_headers(resolution))
+            response.raise_for_status()
+            return response.json()
+        finally:
+            if self.http_client is None:
+                await client.aclose()
+
     def execute(
         self,
         db: Any,
@@ -210,7 +344,7 @@ class FetchingSourceHandler(StageHandler):
         run: Any,
         step: Any,
     ) -> None:
-        """Pipeline entry point: wrap the execution in a StageContext."""
+        """Pipeline entry point: run the async handler in a dedicated event loop."""
         coordinator.mark_step_running(step)
         ctx = StageContext(
             tenant_id=run.tenant_id,
@@ -223,4 +357,4 @@ class FetchingSourceHandler(StageHandler):
             db=db,
             artifacts=_flatten_artifact_ids(step.input_artifact_ids or {}),
         )
-        self.handle(ctx)
+        asyncio.run(self.handle(ctx))

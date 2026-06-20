@@ -187,3 +187,21 @@ def test_startup_validation_hook_fails_fast_for_missing_required_env() -> None:
                 validate_layer6_startup_settings()
     finally:
         get_layer6_settings.cache_clear()
+
+
+def test_log_level_uppercase_is_accepted() -> None:
+    env = _base_env()
+    env["LOG_LEVEL"] = "INFO"
+
+    settings = Layer6Settings.model_validate(env)
+
+    assert settings.log_level == "INFO"
+
+
+def test_log_level_lowercase_is_normalized() -> None:
+    env = _base_env()
+    env["LOG_LEVEL"] = "info"
+
+    settings = Layer6Settings.model_validate(env)
+
+    assert settings.log_level == "INFO"

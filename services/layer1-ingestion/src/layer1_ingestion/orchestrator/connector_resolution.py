@@ -64,14 +64,23 @@ _REPO_CUSTODY_TO_SPEC: dict[str, str] = {
 }
 
 
-def normalize_custody_mode(value: str | CustodyMode) -> str:
+def normalize_custody_mode(value: str | CustodyMode | Any) -> str:
     """Return the canonical spec custody-mode string.
 
-    Accepts either the spec enum/value, or the repository's single-letter code.
+    Accepts:
+      - The local spec CustodyMode enum
+      - The SQLAlchemy DB CustodyMode enum (which uses single-letter values)
+      - The single-letter repository code (A/B/C)
+      - A full spec name string
+
     Unknown values are returned unchanged so the caller can fail safely.
     """
     if isinstance(value, CustodyMode):
         return value.value
+    if isinstance(value, Enum):
+        value = value.value
+    if not isinstance(value, str):
+        return value
     mapped = _REPO_CUSTODY_TO_SPEC.get(value)
     return mapped if mapped is not None else value
 
@@ -99,6 +108,7 @@ class ConnectorResolution(BaseModel):
     customer_hosted: bool = False
     connector_endpoint: str | None = None
     connector_id: str | None = None
+    headers: dict[str, str] | None = None
     policy_version: str = Field(default="default-v1")
     fetch_strategy: FetchStrategy
     requires_fetch: bool

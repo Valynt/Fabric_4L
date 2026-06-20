@@ -3428,22 +3428,15 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
 
 
 # Adjacent route modules register cohesive endpoint groups without changing public paths.
+from . import _batch_and_stats
+from .consent_routes import register_routes as register_consent_routes
 from .main_admin_routes import router as admin_routes
 from .main_compliance_routes import router as compliance_routes
-from . import _batch_and_stats
-from ._batch_and_stats import (
-    BatchOperationItemResult,
-    BatchOperationRequest,
-    BatchOperationResponse,
-    BatchOperationType,
-    TargetStatsResponse,
-)
 from .main_content_routes import router as content_routes
 from .main_job_routes import router as job_routes
 from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
 from .source_routes import register_routes as register_source_routes
-from .consent_routes import register_routes as register_consent_routes
 
 register_source_routes(router)
 register_consent_routes(router)

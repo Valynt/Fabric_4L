@@ -12,7 +12,6 @@ import json
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -115,7 +114,7 @@ def _load_verification_keys(raw: str) -> VerificationKeys:
 @lru_cache(maxsize=1)
 def get_auth_settings() -> AuthSettings:
     """Return auth provider settings, loaded from environment and cached."""
-    provider = os.getenv("AUTH_PROVIDER", "layer4").strip().lower()
+    provider = os.getenv("AUTH_PROVIDER", "clerk").strip().lower()
     clerk_settings = ClerkSettings(
         issuer=os.getenv("CLERK_ISSUER") or None,
         jwt_audience=os.getenv("CLERK_JWT_AUDIENCE") or None,

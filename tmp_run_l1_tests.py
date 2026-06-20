@@ -1,6 +1,6 @@
 import subprocess, sys
 
-files = [
+ZXxfiles = [
     "tests/integration/test_batch_operations.py",
     "tests/integration/test_target_status_transitions.py",
     "tests/api/test_targets_batch.py",

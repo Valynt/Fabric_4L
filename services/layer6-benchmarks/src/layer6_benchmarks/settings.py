@@ -100,6 +100,13 @@ class Layer6Settings(BaseSettings):
     def neo4j_auth(self) -> tuple[str, str]:
         return (self.neo4j_user, self.neo4j_password.get_secret_value())
 
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _normalize_log_level(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            return value.upper()
+        return value
+
     @field_validator("database_url", "database_url_sync")
     @classmethod
     def _validate_database_url(cls, value: str, info: ValidationInfo) -> str:

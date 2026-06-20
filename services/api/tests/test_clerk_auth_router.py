@@ -7,10 +7,10 @@ routers).
 from __future__ import annotations
 
 import pytest
-from fastapi import Request
-
-from app.core.auth_directory import AuthDirectory, get_auth_directory
+from fastapi import HTTPException, Request
 from value_fabric.shared.identity.fabric_auth import AuthContext
+
+from app.core.auth_directory import get_auth_directory
 from app.routers import clerk_auth as clerk_auth_module
 
 
@@ -78,3 +78,41 @@ def test_clerk_tenant_response_schema() -> None:
         "roles",
         "permissions",
     ]
+
+
+async def test_clerk_tenant_fails_closed_when_org_id_missing() -> None:
+    directory = get_auth_directory()
+    auth = _build_auth_context(org_id=None)  # type: ignore[arg-type]
+
+    with pytest.raises(HTTPException) as exc_info:
+        clerk_auth_module._resolve_directory_tenant(directory, auth.clerk_org_id)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"
+
+
+async def test_clerk_tenant_fails_closed_when_tenant_missing() -> None:
+    directory = get_auth_directory()
+
+    with pytest.raises(HTTPException) as exc_info:
+        clerk_auth_module._resolve_directory_tenant(directory, "org_unknown")
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"
+
+
+@pytest.mark.parametrize("status", ["suspended", "deleted", "inactive"])
+async def test_clerk_tenant_fails_closed_for_non_active_tenant(status: str) -> None:
+    directory = get_auth_directory()
+    directory.upsert_tenant(
+        clerk_org_id="org_suspended",
+        name="Suspended",
+        slug="suspended",
+        status=status,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        clerk_auth_module._resolve_directory_tenant(directory, "org_suspended")
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"

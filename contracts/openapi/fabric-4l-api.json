@@ -7112,6 +7112,11 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "active",
+              "suspended",
+              "deleted"
+            ],
             "title": "Status"
           },
           "roles": {

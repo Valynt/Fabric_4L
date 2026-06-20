@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import structlog
@@ -10,6 +11,7 @@ from value_fabric.shared.observability.sentry_init import init_sentry
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from app.core.audit import AuditMiddleware
+from app.core.clerk_config import AUTH_PROVIDER_CLERK
 from app.core.config import get_settings
 from app.core.metrics import metrics_middleware, render_metrics
 from app.logging_config import configure_structured_logging
@@ -207,7 +209,13 @@ add_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
-app.include_router(clerk_auth.router, prefix="/v1")
+
+# Clerk routes are exposed only when the gateway is configured for Clerk auth.
+# This prevents 500 responses from the Clerk dependency when AUTH_PROVIDER is set
+# to a legacy mode and keeps the API surface consistent with runtime config.
+if os.getenv("AUTH_PROVIDER", "clerk").strip().lower() == AUTH_PROVIDER_CLERK:
+    app.include_router(clerk_auth.router, prefix="/v1")
+
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")
 app.include_router(hypotheses.router, prefix="/v1")

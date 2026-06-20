@@ -58,7 +58,6 @@ def test_report_blocks_on_missing_critical_gate():
         "report",
         "--release-id", "rel_test_001",
         "--artifact-digest", "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-        "--commit-sha", "0" * 40,
         "--environment", "production",
         "--risk-class", "high",
         "--artifact-dir", artifact_dir.as_posix(),
@@ -89,8 +88,8 @@ def test_report_passes_with_all_gate_results():
                 {
                     "gate_id": gate["gate_id"],
                     "status": "PASS",
-                    "reason": "injected pass",
-                    "evidence_uri": "artifact:test",
+                    "reason": "real evidence from CI",
+                    "evidence_uri": "https://ci.fabric.io/evidence",
                 }
             )
         )
@@ -99,7 +98,6 @@ def test_report_passes_with_all_gate_results():
         "report",
         "--release-id", "rel_test_002",
         "--artifact-digest", "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-        "--commit-sha", "1" * 40,
         "--environment", "production",
         "--risk-class", "medium",
         "--artifact-dir", artifact_dir.as_posix(),
@@ -127,7 +125,7 @@ def test_report_blocks_on_explicit_fail():
                 {
                     "gate_id": gate["gate_id"],
                     "status": "PASS",
-                    "reason": "injected pass",
+                    "reason": "real evidence from CI",
                 }
             )
         )
@@ -140,7 +138,7 @@ def test_report_blocks_on_explicit_fail():
                 "gate_id": "pre_production.tenant_isolation",
                 "status": "FAIL",
                 "reason": "cross-tenant read succeeded",
-                "evidence_uri": "artifact:test",
+                "evidence_uri": "https://ci.fabric.io/failed-tenant-isolation",
             }
         )
     )
@@ -149,7 +147,6 @@ def test_report_blocks_on_explicit_fail():
         "report",
         "--release-id", "rel_test_003",
         "--artifact-digest", "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-        "--commit-sha", "2" * 40,
         "--environment", "production",
         "--risk-class", "high",
         "--artifact-dir", artifact_dir.as_posix(),
@@ -180,7 +177,7 @@ def test_warning_is_non_blocking():
                 {
                     "gate_id": gate["gate_id"],
                     "status": "PASS",
-                    "reason": "injected pass",
+                    "reason": "real evidence from CI",
                 }
             )
         )
@@ -200,7 +197,6 @@ def test_warning_is_non_blocking():
         "report",
         "--release-id", "rel_test_004",
         "--artifact-digest", "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-        "--commit-sha", "3" * 40,
         "--environment", "production",
         "--risk-class", "medium",
         "--artifact-dir", artifact_dir.as_posix(),
@@ -218,6 +214,83 @@ def test_cross_reference_validation():
     result = run_validator("validate")
     assert result.returncode == 0, result.stderr
     assert "Validation passed" in result.stdout
+
+
+def test_placeholder_evidence_is_blocked_in_strict_mode():
+    """Strict mode rejects placeholder evidence as INCONCLUSIVE for blocking gates."""
+    artifact_dir = ROOT / "artifacts" / "test-gate-engineering" / "placeholder"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    _clear_artifact_dir(artifact_dir)
+    output_dir = ROOT / "artifacts" / "test-gate-engineering" / "report-placeholder"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    registry = json.loads((ROOT / ".fabric" / "gate-engineering" / "gate-registry.json").read_text())
+    for gate in registry["gates"]:
+        path = _artifact_path(artifact_dir, gate["gate_id"])
+        path.write_text(
+            json.dumps(
+                {
+                    "gate_id": gate["gate_id"],
+                    "status": "PASS",
+                    "reason": "placeholder evidence",
+                    "evidence_uri": "artifact:test",
+                    "owner": gate["owner"],
+                }
+            )
+        )
+
+    result = run_validator(
+        "report",
+        "--release-id", "rel_test_005",
+        "--artifact-digest", "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "--environment", "production",
+        "--risk-class", "high",
+        "--artifact-dir", artifact_dir.as_posix(),
+        "--output-dir", output_dir.as_posix(),
+        "--strict",
+    )
+    assert result.returncode == 1, result.stderr
+    report = json.loads((output_dir / "release-readiness-report.json").read_text())
+    assert report["decision"] == "blocked"
+    assert report["strict"] is True
+    assert any(g["reason"] == "evidence contains placeholder/example values" for g in report["inconclusive_gates"])
+
+
+def test_unknown_command_evidence_is_inconclusive():
+    """Evidence produced by an unregistered command is INCONCLUSIVE."""
+    artifact_dir = ROOT / "artifacts" / "test-gate-engineering" / "unknown-command"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    _clear_artifact_dir(artifact_dir)
+    output_dir = ROOT / "artifacts" / "test-gate-engineering" / "report-unknown-command"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    registry = json.loads((ROOT / ".fabric" / "gate-engineering" / "gate-registry.json").read_text())
+    for gate in registry["gates"]:
+        path = _artifact_path(artifact_dir, gate["gate_id"])
+        path.write_text(
+            json.dumps(
+                {
+                    "gate_id": gate["gate_id"],
+                    "status": "PASS",
+                    "reason": "real evidence",
+                    "command": "unknown-command --example",
+                    "owner": gate["owner"],
+                }
+            )
+        )
+
+    result = run_validator(
+        "report",
+        "--release-id", "rel_test_006",
+        "--artifact-digest", "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "--environment", "production",
+        "--risk-class", "high",
+        "--artifact-dir", artifact_dir.as_posix(),
+        "--output-dir", output_dir.as_posix(),
+    )
+    assert result.returncode == 1, result.stderr
+    report = json.loads((output_dir / "release-readiness-report.json").read_text())
+    assert any(g["reason"].startswith("evidence produced by unknown command") for g in report["inconclusive_gates"])
 
 
 if __name__ == "__main__":

@@ -166,6 +166,26 @@ jobs:
             owner: "@value-fabric/security-leads"
             escalation: "@value-fabric/ciso"
             command: "python -m pytest -q tests/security/test_rate_limit_safety.py --maxfail=1"
+          - id: l1-target-schema
+            service: layer1
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_l1_target_schema.py"
+          - id: targets-stats-named-schema
+            service: layer1
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_targets_stats_named_schema.py"
+          - id: l4-generated-jsonvalue
+            service: layer4
+            owner: "@value-fabric/frontend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_l4_generated_jsonvalue.py"
+          - id: generated-client-reproducibility
+            service: frontend
+            owner: "@value-fabric/frontend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_generated_client_reproducibility.py"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332

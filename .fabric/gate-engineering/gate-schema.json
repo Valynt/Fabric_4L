@@ -61,7 +61,9 @@
         "connector",
         "ai_agent",
         "security",
-        "operability"
+        "operability",
+        "contract",
+        "e2e"
       ],
       "description": "Lifecycle stage or contract domain this gate belongs to."
     },
@@ -185,14 +187,49 @@
       "items": { "type": "string" }
     },
     "evidence_producer": {
-      "type": "string",
-      "description": "Team or system that produces the evidence."
+      "type": "object",
+      "description": "Authoritative evidence producer for this gate.",
+      "required": ["command", "artifact_path", "freshness", "artifact_binding", "owner"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Exact CLI command that produces the evidence."
+        },
+        "artifact_path": {
+          "type": "string",
+          "description": "Path to the evidence artifact or directory."
+        },
+        "freshness": {
+          "type": "string",
+          "description": "Maximum age of the evidence (e.g., PR lifetime, 24h, 7d)."
+        },
+        "artifact_binding": {
+          "type": "string",
+          "description": "What the evidence must be bound to: commit-sha, container-image-digest, artifact-digest, etc."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Team or system responsible for keeping the producer green."
+        }
+      },
+      "additionalProperties": false
     },
     "enforcement_system_owner": {
       "type": "string"
     },
     "remediation_owner": {
       "type": "string"
+    },
+    "remediation": {
+      "type": "object",
+      "description": "Remediation plan when a gate is INCONCLUSIVE or not yet executable.",
+      "properties": {
+        "ticket": { "type": "string" },
+        "owner": { "type": "string" },
+        "target_date": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
     },
     "override_policy": {
       "type": "string",

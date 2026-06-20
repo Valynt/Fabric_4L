@@ -8,12 +8,13 @@ frontend state for tenant context.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from typing import Literal
+from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, get_auth_directory
 from app.core.clerk_auth import require_clerk_authenticated
-from value_fabric.shared.identity.fabric_auth import AuthContext
 
 router = APIRouter(prefix="/auth/clerk", tags=["Clerk Authentication"])
 
@@ -24,7 +25,7 @@ class ClerkTenantResponse(BaseModel):
     fabric_tenant_id: str
     tenant_slug: str | None
     clerk_org_id: str
-    status: str
+    status: Literal["active", "suspended", "deleted"]
     roles: list[str]
     permissions: list[str]
 
@@ -35,16 +36,27 @@ def _resolve_directory_tenant(
     """Look up the directory tenant record for the verified Clerk org.
 
     Raises:
-        RuntimeError: when the directory no longer contains the tenant that
-        was validated by ``require_clerk_authenticated``. This should be
-        impossible in normal operation and indicates a race or data-loss bug.
+        HTTPException: 403 when the directory does not contain the tenant that
+        was validated by ``require_clerk_authenticated``, or when the tenant is
+        not active. This should be impossible in normal operation but is handled
+        as a controlled authorization failure rather than a 500.
     """
     if clerk_org_id is None:
-        raise RuntimeError("clerk_org_id is required for tenant resolution")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "auth.tenant_unresolved",
+                "message": "No active Clerk organization is associated with this request.",
+            },
+        )
     tenant = directory.get_tenant_by_clerk_org(clerk_org_id)
-    if tenant is None:
-        raise RuntimeError(
-            f"directory tenant missing for clerk_org_id={clerk_org_id!r}"
+    if tenant is None or tenant.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "auth.tenant_unresolved",
+                "message": "The tenant for this organization is not active or no longer exists.",
+            },
         )
     return tenant
 

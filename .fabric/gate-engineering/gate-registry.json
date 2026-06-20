@@ -1,7 +1,7 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "schema": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json",
-  "generated_at": "2026-06-19T05:00:00Z",
+  "generated_at": "2026-06-20T16:00:00Z",
   "source_of_truth": [
     ".fabric/prod-gates.policy.yaml",
     ".github/workflows/critical-gates.yml",
@@ -10,7 +10,12 @@
     ".github/workflows/deploy.yml",
     ".github/workflows/environment-promotion.yml",
     "contracts/behavior-contract.yaml",
-    "production-readiness/scorecard.md"
+    "production-readiness/scorecard.md",
+    "scripts/ci/gate_engineering_validator.py",
+    "scripts/ci/contract_compliance_gate.py",
+    "scripts/ci/check_behavior_contract.py",
+    "apps/web/e2e/behaviors/",
+    "apps/web/e2e/journeys/"
   ],
   "gates": [
     {
@@ -53,15 +58,29 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "release",
         "retention": "1y",
-        "required_fields": ["design_artifact_uri", "reviewer_identity", "acceptance_criteria_count"]
+        "required_fields": [
+          "design_artifact_uri",
+          "reviewer_identity",
+          "acceptance_criteria_count"
+        ]
       },
       "enforcement_point": "design-approval",
       "failure_action": "block",
       "owner": "value-fabric/architects",
-      "approvers": ["value-fabric/architects", "value-fabric/security-leads"],
+      "approvers": [
+        "value-fabric/architects",
+        "value-fabric/security-leads"
+      ],
       "override_policy": "requires_architect",
       "review_cadence": "quarterly",
-      "deprecation_policy": "Superseded by design.acceptance_criteria.v2 when contract coverage model changes."
+      "deprecation_policy": "Superseded by design.acceptance_criteria.v2 when contract coverage model changes.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_design_acceptance_criteria.py",
+        "artifact_path": "artifacts/release/gate-design-acceptance_criteria.json",
+        "freshness": "release",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/architects"
+      }
     },
     {
       "gate_id": "change.tests_added",
@@ -96,14 +115,24 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "PR lifetime",
         "retention": "1y",
-        "required_fields": ["behavior_contract_report", "pytest_skip_report"]
+        "required_fields": [
+          "behavior_contract_report",
+          "pytest_skip_report"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/qa-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "per-release",
-      "deprecation_policy": "Superseded when test coverage is derived from code-coverage-to-gate binding."
+      "deprecation_policy": "Superseded when test coverage is derived from code-coverage-to-gate binding.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json",
+        "artifact_path": "artifacts/release/gate-change-tests_added.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/qa-leads"
+      }
     },
     {
       "gate_id": "change.static_analysis",
@@ -136,14 +165,24 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "PR lifetime",
         "retention": "1y",
-        "required_fields": ["lint_report", "typecheck_report"]
+        "required_fields": [
+          "lint_report",
+          "typecheck_report"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/backend-leads",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "Updated when lint/type tools change."
+      "deprecation_policy": "Updated when lint/type tools change.",
+      "evidence_producer": {
+        "command": "make lint && make typecheck && make verify-structure",
+        "artifact_path": "artifacts/release/gate-change-static_analysis.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      }
     },
     {
       "gate_id": "change.secret_scan",
@@ -176,14 +215,24 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "PR lifetime",
         "retention": "1y",
-        "required_fields": ["gitleaks_report", "auth_bypass_check_log"]
+        "required_fields": [
+          "gitleaks_report",
+          "auth_bypass_check_log"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/security-leads",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/check-dev-auth-bypass.sh && python scripts/ci/check_hardcoded_credentials.py && python scripts/ci/check_manifest_secret_hygiene.py",
+        "artifact_path": "artifacts/release/gate-change-secret_scan.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      }
     },
     {
       "gate_id": "build.reproducible",
@@ -218,14 +267,25 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "artifact lifetime",
         "retention": "1y",
-        "required_fields": ["sbom", "build_metadata", "image_digest"]
+        "required_fields": [
+          "sbom",
+          "build_metadata",
+          "image_digest"
+        ]
       },
       "enforcement_point": "build",
       "failure_action": "block",
       "owner": "value-fabric/security-leads",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_hermetic_build_inputs.py && python scripts/ci/supply_chain_gate.py sbom",
+        "artifact_path": "artifacts/release/gate-build-reproducible.json",
+        "freshness": "artifact lifetime",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      }
     },
     {
       "gate_id": "build.vulnerability_policy",
@@ -258,14 +318,25 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "7d",
         "retention": "1y",
-        "required_fields": ["trivy_sarif", "pip_audit_report", "exceptions"]
+        "required_fields": [
+          "trivy_sarif",
+          "pip_audit_report",
+          "exceptions"
+        ]
       },
       "enforcement_point": "build",
       "failure_action": "block",
       "owner": "value-fabric/security-leads",
       "override_policy": "requires_ciso",
       "review_cadence": "weekly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm run audit:ci && pnpm run container:scan",
+        "artifact_path": "artifacts/release/gate-build-vulnerability_policy.json",
+        "freshness": "7d",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      }
     },
     {
       "gate_id": "pre_production.migration_safety",
@@ -300,14 +371,25 @@
         "artifact_binding": "migration-version",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["migration_status_json", "round_trip_report", "rollback_policy"]
+        "required_fields": [
+          "migration_status_json",
+          "round_trip_report",
+          "rollback_policy"
+        ]
       },
       "enforcement_point": "production-promotion",
       "failure_action": "block",
       "owner": "value-fabric/data-platform",
       "override_policy": "requires_release_manager",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "make gate-database-live",
+        "artifact_path": "artifacts/release/gate-pre_production-migration_safety.json",
+        "freshness": "24h",
+        "artifact_binding": "migration-version",
+        "owner": "value-fabric/data-platform"
+      }
     },
     {
       "gate_id": "pre_production.tenant_isolation",
@@ -342,15 +424,29 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["junit_xml", "tenant_isolation_bundle", "commit_sha"]
+        "required_fields": [
+          "junit_xml",
+          "tenant_isolation_bundle",
+          "commit_sha"
+        ]
       },
       "enforcement_point": "production-promotion",
       "failure_action": "block",
       "owner": "value-fabric/security-leads",
-      "approvers": ["value-fabric/security-leads", "value-fabric/ciso"],
+      "approvers": [
+        "value-fabric/security-leads",
+        "value-fabric/ciso"
+      ],
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/tenant_isolation_readiness_gate.sh",
+        "artifact_path": "artifacts/release/gate-pre_production-tenant_isolation.json",
+        "freshness": "24h",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      }
     },
     {
       "gate_id": "pre_production.contract_compatibility",
@@ -383,14 +479,24 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["openapi_breaking_report", "schema_index_report"]
+        "required_fields": [
+          "openapi_breaking_report",
+          "schema_index_report"
+        ]
       },
       "enforcement_point": "production-promotion",
       "failure_action": "block",
       "owner": "value-fabric/architects",
       "override_policy": "requires_architect",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm contract:breaking --base-ref origin/main",
+        "artifact_path": "artifacts/release/gate-pre_production-contract_compatibility.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/architects"
+      }
     },
     {
       "gate_id": "release_authorization.evidence_freshness",
@@ -424,14 +530,25 @@
         "artifact_binding": "artifact-digest",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["release_evidence_packet", "manifest_signature", "artifact_digest"]
+        "required_fields": [
+          "release_evidence_packet",
+          "manifest_signature",
+          "artifact_digest"
+        ]
       },
       "enforcement_point": "release-authorization",
       "failure_action": "block",
       "owner": "value-fabric/release-engineering",
       "override_policy": "prohibited",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/generate_release_evidence_packet.py",
+        "artifact_path": "artifacts/release/gate-release_authorization-evidence_freshness.json",
+        "freshness": "24h",
+        "artifact_binding": "artifact-digest",
+        "owner": "value-fabric/release-engineering"
+      }
     },
     {
       "gate_id": "deployment.artifact_integrity",
@@ -465,14 +582,24 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "deployment",
         "retention": "1y",
-        "required_fields": ["cosign_verification_log", "sbom_digest_match_log"]
+        "required_fields": [
+          "cosign_verification_log",
+          "sbom_digest_match_log"
+        ]
       },
       "enforcement_point": "deployment",
       "failure_action": "block",
       "owner": "value-fabric/release-engineering",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "cosign verify and SBOM digest check per deploy.yml preflight",
+        "artifact_path": "artifacts/release/gate-deployment-artifact_integrity.json",
+        "freshness": "deployment",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/release-engineering"
+      }
     },
     {
       "gate_id": "canary.critical_paths",
@@ -508,14 +635,25 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "canary window",
         "retention": "1y",
-        "required_fields": ["canary_metrics", "golden_path_results", "comparison_baseline"]
+        "required_fields": [
+          "canary_metrics",
+          "golden_path_results",
+          "comparison_baseline"
+        ]
       },
       "enforcement_point": "canary",
       "failure_action": "auto_rollback",
       "owner": "value-fabric/sre-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "Run J1/J2/J3/J4 behavior journeys and L1-L6 end-to-end workflows against canary traffic",
+        "artifact_path": "artifacts/release/gate-canary-critical_paths.json",
+        "freshness": "canary window",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/sre-leads"
+      }
     },
     {
       "gate_id": "post_deployment.synthetic_workflows",
@@ -547,14 +685,25 @@
         "artifact_binding": "container-image-digest",
         "maximum_age": "1h",
         "retention": "1y",
-        "required_fields": ["smoke_results", "lineage_query_result", "audit_event_count"]
+        "required_fields": [
+          "smoke_results",
+          "lineage_query_result",
+          "audit_event_count"
+        ]
       },
       "enforcement_point": "post-deploy",
       "failure_action": "auto_rollback",
       "owner": "value-fabric/sre-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/k8s_postdeploy_smoke.sh",
+        "artifact_path": "artifacts/release/gate-post_deployment-synthetic_workflows.json",
+        "freshness": "1h",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/sre-leads"
+      }
     },
     {
       "gate_id": "continuous_production.slo_budgets",
@@ -588,14 +737,24 @@
         "artifact_binding": "environment",
         "maximum_age": "5m",
         "retention": "1y",
-        "required_fields": ["slo_query_result", "alert_state"]
+        "required_fields": [
+          "slo_query_result",
+          "alert_state"
+        ]
       },
       "enforcement_point": "runtime",
       "failure_action": "release_freeze",
       "owner": "value-fabric/sre-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "continuous",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "Prometheus query for burn rate and error budget",
+        "artifact_path": "artifacts/release/gate-continuous_production-slo_budgets.json",
+        "freshness": "5m",
+        "artifact_binding": "environment",
+        "owner": "value-fabric/sre-leads"
+      }
     },
     {
       "gate_id": "rollback_recovery.rollback_path",
@@ -628,14 +787,25 @@
         "artifact_binding": "artifact-digest",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["rollback_verification_report", "previous_artifact_digest", "migration_compatibility"]
+        "required_fields": [
+          "rollback_verification_report",
+          "previous_artifact_digest",
+          "migration_compatibility"
+        ]
       },
       "enforcement_point": "release-authorization",
       "failure_action": "block",
       "owner": "value-fabric/sre-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm release:rollback:verify",
+        "artifact_path": "artifacts/release/gate-rollback_recovery-rollback_path.json",
+        "freshness": "24h",
+        "artifact_binding": "artifact-digest",
+        "owner": "value-fabric/sre-leads"
+      }
     },
     {
       "gate_id": "api.contract_lint",
@@ -665,14 +835,23 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "PR lifetime",
         "retention": "1y",
-        "required_fields": ["python_contract_lint_report"]
+        "required_fields": [
+          "python_contract_lint_report"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/backend-leads",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/python_contract_lint.py --strict",
+        "artifact_path": "artifacts/release/gate-api-contract_lint.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      }
     },
     {
       "gate_id": "ai_agent.structured_output",
@@ -707,14 +886,25 @@
         "artifact_binding": "model-version",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["eval_report", "prompt_version", "model_version"]
+        "required_fields": [
+          "eval_report",
+          "prompt_version",
+          "model_version"
+        ]
       },
       "enforcement_point": "production-promotion",
       "failure_action": "block",
       "owner": "value-fabric/agent-leads",
       "override_policy": "requires_architect",
       "review_cadence": "per-release",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "make evals && pytest tests/agents/",
+        "artifact_path": "artifacts/release/gate-ai_agent-structured_output.json",
+        "freshness": "24h",
+        "artifact_binding": "model-version",
+        "owner": "value-fabric/agent-leads"
+      }
     },
     {
       "gate_id": "security.p0_auth_boundaries",
@@ -744,14 +934,23 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "24h",
         "retention": "1y",
-        "required_fields": ["junit_xml"]
+        "required_fields": [
+          "junit_xml"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/security-leads",
       "override_policy": "prohibited",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python -m pytest -q tests/security/test_auth_boundaries.py --maxfail=1",
+        "artifact_path": "artifacts/release/gate-security-p0_auth_boundaries.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      }
     },
     {
       "gate_id": "operability.alert_metadata",
@@ -784,14 +983,508 @@
         "artifact_binding": "commit-sha",
         "maximum_age": "PR lifetime",
         "retention": "1y",
-        "required_fields": ["alert_metadata_report"]
+        "required_fields": [
+          "alert_metadata_report"
+        ]
       },
       "enforcement_point": "merge",
       "failure_action": "block",
       "owner": "value-fabric/sre-leads",
       "override_policy": "requires_release_manager",
       "review_cadence": "quarterly",
-      "deprecation_policy": "None."
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_production_alert_metadata.py",
+        "artifact_path": "artifacts/release/gate-operability-alert_metadata.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/sre-leads"
+      }
+    },
+    {
+      "gate_id": "contract.l1_target_schema",
+      "version": 1,
+      "name": "L1 OpenAPI target schemas include expected fields",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Layer 1 ingestion exposes target CRUD, stats, and batch operations with required fields.",
+      "applies_when": "Any change to Layer 1 routes or contracts/openapi/layer1-ingestion.json.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "openapi-l1-schema-check",
+        "query_or_command": "python scripts/ci/check_l1_target_schema.py",
+        "threshold": "Required paths and schemas present"
+      },
+      "pass_criteria": [
+        "/api/v1/ingestion/targets schema exists",
+        "/api/v1/ingestion/targets/stats schema exists",
+        "Required fields (id, domain, status, pages_crawled) are present"
+      ],
+      "fail_criteria": [
+        "Missing required path",
+        "Missing required field"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI spec not generated"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "l1_schema_check_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_l1_target_schema.py",
+        "artifact_path": "artifacts/release/gate-contract-l1_target_schema.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.ingestion"
+      ]
+    },
+    {
+      "gate_id": "contract.targets_stats_named_schema",
+      "version": 1,
+      "name": "/targets/stats exports a named schema",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "The target stats endpoint returns a named schema so generated clients are stable.",
+      "applies_when": "Any change to /api/v1/ingestion/targets/stats.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "openapi-target-stats-schema-check",
+        "query_or_command": "python scripts/ci/check_targets_stats_named_schema.py",
+        "threshold": "Response schema is a named component schema"
+      },
+      "pass_criteria": [
+        "Response uses $ref to a named schema",
+        "Named schema exists in components/schemas"
+      ],
+      "fail_criteria": [
+        "Response is inline object",
+        "Named schema missing"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI spec not generated"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "targets_stats_schema_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_targets_stats_named_schema.py",
+        "artifact_path": "artifacts/release/gate-contract-targets_stats_named_schema.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.ingestion"
+      ]
+    },
+    {
+      "gate_id": "contract.generated_clients_current",
+      "version": 1,
+      "name": "Frontend generated API clients are current",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Committed generated clients match the current OpenAPI specs.",
+      "applies_when": "Any change to OpenAPI specs or generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "generated-api-freshness",
+        "query_or_command": "pnpm run check:contract-compliance",
+        "threshold": "No drift after regeneration"
+      },
+      "pass_criteria": [
+        "Generated clients match regenerated output",
+        "No manual patches in generated files"
+      ],
+      "fail_criteria": [
+        "Generated clients drift from specs",
+        "Manual override marker in generated files"
+      ],
+      "inconclusive_criteria": [
+        "Generation command failed"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "generated_client_diff_report",
+          "client_hash"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm run check:contract-compliance",
+        "artifact_path": "artifacts/release/gate-contract-generated_clients_current.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.openapi"
+      ]
+    },
+    {
+      "gate_id": "contract.l4_jsonvalue_compiles",
+      "version": 1,
+      "name": "L4 generated JsonValue compiles without manual override",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Layer 4 generated TypeScript contains a valid JsonValue definition and compiles without hand-edited overrides.",
+      "applies_when": "Any change to Layer 4 schemas or generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "l4-generated-type-check",
+        "query_or_command": "python scripts/ci/check_l4_generated_jsonvalue.py",
+        "threshold": "l4/index.ts exists and compiles; no manual override markers"
+      },
+      "pass_criteria": [
+        "apps/web/src/api/generated/l4/index.ts exists",
+        "Generated TypeScript compiles without manual overrides",
+        "No manual override markers"
+      ],
+      "fail_criteria": [
+        "L4 generated client missing",
+        "TypeScript compile error",
+        "Manual override marker present"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI generation skipped"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "l4_generated_type_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_l4_generated_jsonvalue.py",
+        "artifact_path": "artifacts/release/gate-contract-l4_jsonvalue_compiles.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.agents",
+        "fabric.api.openapi"
+      ]
+    },
+    {
+      "gate_id": "contract.clerk_tenant_mapping_tested",
+      "version": 1,
+      "name": "Clerk org to Fabric tenant mapping is tested",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Clerk organization selection maps to a Fabric tenant and is covered by unit and/or E2E tests.",
+      "applies_when": "Any change to auth, tenant mapping, or organization selection.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "clerk-tenant-mapping-tests",
+        "query_or_command": "python -m pytest tests/security/test_clerk_tenant_mapping.py && pnpm exec playwright test apps/web/e2e/security/tenant-mapping.spec.ts",
+        "threshold": "All mapping tests pass"
+      },
+      "pass_criteria": [
+        "Clerk org selection maps to Fabric tenant",
+        "Denied mapping fails closed"
+      ],
+      "fail_criteria": [
+        "Mapping untested",
+        "Mapping test fails"
+      ],
+      "inconclusive_criteria": [
+        "Required test files not present"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "junit_xml",
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python -m pytest tests/security/test_clerk_tenant_mapping.py && pnpm exec playwright test apps/web/e2e/security/tenant-mapping.spec.ts",
+        "artifact_path": "artifacts/release/gate-contract-clerk_tenant_mapping_tested.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.security.auth"
+      ]
+    },
+    {
+      "gate_id": "build.generated_client_reproducible",
+      "version": 1,
+      "name": "Generated API clients are reproducible and unpatched",
+      "scope": "build",
+      "criticality": "blocking",
+      "protected_invariant": "Regenerating OpenAPI type artifacts produces the same committed output and contains no manual patches.",
+      "applies_when": "Every build that produces or consumes generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "generated-client-reproducibility",
+        "query_or_command": "node scripts/quality/assert-generated-api-types-current.mjs",
+        "threshold": "No diff and no manual override markers"
+      },
+      "pass_criteria": [
+        "pnpm run generate:api produces no diff",
+        "No manual override markers in generated files"
+      ],
+      "fail_criteria": [
+        "Generated files differ after regeneration",
+        "Manual override marker found"
+      ],
+      "inconclusive_criteria": [
+        "Generation command failed"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "generated_client_hash",
+          "diff_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "node scripts/quality/assert-generated-api-types-current.mjs",
+        "artifact_path": "artifacts/release/gate-build-generated_client_reproducible.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.openapi"
+      ]
+    },
+    {
+      "gate_id": "e2e.tenant_account_route",
+      "version": 1,
+      "name": "Tenant and account route journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "Authenticated users can access tenant/account routes and unauthorized users are denied.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-tenant-route-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/security/tenant-route-journey.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Tenant route accessible with valid tenant",
+        "Cross-tenant route denied"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/security/tenant-route-journey.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-tenant_account_route.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TICKET-3-TENANT-ROUTE",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the tenant/account route journey spec if not present."
+      },
+      "related_contracts": [
+        "fabric.security.tenant_isolation",
+        "fabric.security.auth"
+      ]
+    },
+    {
+      "gate_id": "e2e.notes_to_fabric_found_summary",
+      "version": 1,
+      "name": "Notes ingestion to Fabric Found Summary journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "A user can ingest notes and retrieve a generated Fabric Found Summary.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-notes-to-summary-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/journeys/notes-to-summary-journey.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Notes can be submitted",
+        "Summary is generated and visible"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/journeys/notes-to-summary-journey.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-notes_to_fabric_found_summary.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/qa-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/qa-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TICKET-3-NOTES-SUMMARY",
+        "owner": "value-fabric/qa-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage."
+      },
+      "related_contracts": [
+        "fabric.workflow.ingestion_to_summary"
+      ]
+    },
+    {
+      "gate_id": "e2e.unauthorized_account_denial",
+      "version": 1,
+      "name": "Unauthorized account denial journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "Unauthenticated or unauthorized users cannot access account-scoped resources.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-unauthorized-denial-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/security/unauthorized-account-denial.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Unauthenticated request redirects to sign-in",
+        "Unauthorized tenant request returns forbidden state"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/security/unauthorized-account-denial.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-unauthorized_account_denial.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TICKET-3-UNAUTH-DENIAL",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage."
+      },
+      "related_contracts": [
+        "fabric.security.auth"
+      ]
     }
   ]
 }

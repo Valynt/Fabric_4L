@@ -1186,8 +1186,7 @@ export const handlers = [
   }),
 
   // ── Layer 1 — Scraping Targets ────────────────────────────────────────────
-  // Response shapes match ApiTargetListResponse / ScrapingTargetDetail /
-  // TargetStatsResponse as defined in useTargets.ts.
+  // Response shapes match the generated L1 API types.
 
   http.get('/api/v1/ingest/targets', () => {
     return HttpResponse.json({

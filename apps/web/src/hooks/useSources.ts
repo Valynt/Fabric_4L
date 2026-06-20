@@ -117,15 +117,6 @@ export interface SourceListResponse {
   };
 }
 
-export interface SourceStats {
-  total: number;
-  connected: number;
-  disconnected: number;
-  error: number;
-  totalRecords: number;
-  averageHealthScore: number;
-}
-
 type ApiTargetStatsResponse = l1.components['schemas']['TargetStatsResponse'];
 
 export interface TestConnectionResult {
@@ -447,24 +438,14 @@ export function useSource(id: string | null) {
  * aggregation instead of fetching all sources client-side.
  */
 export function useSourceStats() {
-  return useQuery<SourceStats, BaseApiError>({
+  return useQuery<ApiTargetStatsResponse, BaseApiError>({
     queryKey: QK.sources.stats,
     queryFn: async () => {
       const response = await withApiError(
         apiGet<ApiTargetStatsResponse>('l1', '/targets/stats'),
         BaseApiError
       );
-
-      const data = response.data;
-
-      return {
-        total: data.total,
-        connected: data.connected,
-        disconnected: data.disconnected,
-        error: data.error,
-        totalRecords: data.total_records,
-        averageHealthScore: data.average_health_score,
-      };
+      return response.data;
     },
     staleTime: STALE_TIME.stats,
     retry: RETRY_CONFIG.maxRetries,

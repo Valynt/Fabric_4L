@@ -16,7 +16,7 @@
  *     can redirect to sign-in, /forbidden, or onboarding as appropriate.
  */
 import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { apiGet } from "@/api/typedClient";
@@ -49,7 +49,12 @@ interface TenantMappingResponse {
   permissions: string[];
 }
 
-const TENANT_QUERY_KEY = ["auth", "clerk", "tenant"];
+const TENANT_QUERY_KEY = (orgId: string | null | undefined): QueryKey => [
+  "auth",
+  "clerk",
+  "tenant",
+  orgId,
+];
 
 function normalizeTenant(response: TenantMappingResponse): ResolvedTenant {
   return {
@@ -74,23 +79,18 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   const clearSelectedAccountId = useAccountContextStore((s) => s.clearSelectedAccountId);
   const syncTenant = useAccountContextStore((s) => s.syncTenant);
 
-  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: orgLoaded, organization } = useOrganization();
 
   const clerkEnabled = isClerkAuthEnabled();
   const canFetch = clerkEnabled && authLoaded && isSignedIn && orgLoaded && organization != null;
+  const activeOrgId = organization?.id;
 
   const query = useQuery<ResolvedTenant, BaseApiError>({
-    queryKey: TENANT_QUERY_KEY,
+    queryKey: TENANT_QUERY_KEY(activeOrgId),
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) {
-        throw new BaseApiError("Authentication required", 401);
-      }
       const response = await withApiError(
-        apiGet<TenantMappingResponse>("api", "/auth/clerk/tenant", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiGet<TenantMappingResponse>("api", "/auth/clerk/tenant"),
         BaseApiError
       );
       return normalizeTenant(response.data);
@@ -101,9 +101,18 @@ export function useResolvedTenant(): UseResolvedTenantResult {
     refetchOnWindowFocus: false,
   });
 
-  // When the resolved tenant changes, clear the selected account and drop any
-  // tenant/account-scoped cache. This prevents stale data from one tenant
-  // being shown after an org switch.
+  // When the active Clerk org changes, clear the selected account and drop any
+  // account-scoped cache immediately. Do the same when the resolved tenant
+  // data changes, so stale data from one tenant/organization is never exposed
+  // after a switch.
+  useEffect(() => {
+    if (!activeOrgId) {
+      return;
+    }
+    clearSelectedAccountId();
+    queryClient.invalidateQueries({ queryKey: QK.accounts.all });
+  }, [activeOrgId, clearSelectedAccountId, queryClient]);
+
   useEffect(() => {
     if (!query.data) {
       return;

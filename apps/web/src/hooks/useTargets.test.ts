@@ -192,12 +192,14 @@ describe('useTarget', () => {
 // ── useTargetStats ────────────────────────────────────────────────────────────
 
 describe('useTargetStats', () => {
-  it('returns normalised stats', async () => {
+  it('returns the generated TargetStatsResponse shape', async () => {
     const { result } = renderHook(() => useTargetStats(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.total).toBe(5);
     expect(result.current.data?.connected).toBe(3);
     expect(result.current.data?.error).toBe(1);
+    expect(result.current.data?.total_records).toBe(100);
+    expect(result.current.data?.average_health_score).toBe(80);
   });
 });
 

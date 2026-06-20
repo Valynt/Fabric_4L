@@ -1,7 +1,7 @@
 {
-  "inventory_version": "1.0.0",
+  "inventory_version": "1.1.0",
   "schema": "https://valuefabric.ai/fabric/gate-engineering/contract-schema.json",
-  "generated_at": "2026-06-19T05:00:00Z",
+  "generated_at": "2026-06-20T16:00:00Z",
   "sources": [
     "contracts/schema-index.json",
     "contracts/behavior-contract.yaml",
@@ -31,7 +31,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -81,7 +83,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -128,7 +132,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -174,7 +180,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -222,7 +230,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -268,7 +278,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -314,7 +326,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -362,7 +376,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -410,7 +426,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -455,7 +473,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -503,7 +523,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -549,7 +571,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -595,7 +619,9 @@
       ],
       "compatibility": {
         "mode": "backward",
-        "supported_versions": ["1.0.x"],
+        "supported_versions": [
+          "1.0.x"
+        ],
         "deprecation_window_days": 90
       },
       "validation": {
@@ -620,6 +646,154 @@
       "migration_process": "SLO changes require burn-rate validation in staging.",
       "links": {
         "schema": "monitoring/alerting/layer-sli-rules-production.yml"
+      }
+    },
+    {
+      "contract_id": "fabric.api.openapi",
+      "version": "1.0.0",
+      "type": "api",
+      "owner": "value-fabric/architects",
+      "provider": "all services",
+      "consumers": [
+        "apps/web",
+        "packages/platform-contract"
+      ],
+      "syntax": "contracts/openapi/",
+      "semantics": "OpenAPI schema governance and generated client alignment.",
+      "invariants": [
+        "Every tracked OpenAPI spec is valid JSON",
+        "Generated clients are regenerated from specs",
+        "Drift between spec and generated client is not allowed"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": [
+          "1.0.x"
+        ],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "scripts/ci/contract_compliance_gate.py",
+          "scripts/ci/openapi_breaking_change_gate.py"
+        ],
+        "consumer_tests": [
+          "apps/web/src/api/__tests__/contract/openapi-drift.contract.test.ts"
+        ],
+        "runtime_validation": false
+      },
+      "runtime_enforcement": {
+        "enabled": false,
+        "enforcement_point": "ci",
+        "layer": "shared"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "OpenAPI changes follow the contract versioning policy.",
+      "links": {
+        "schema": "contracts/openapi/"
+      }
+    },
+    {
+      "contract_id": "fabric.security.auth",
+      "version": "1.0.0",
+      "type": "security",
+      "owner": "value-fabric/security-leads",
+      "provider": "packages/shared",
+      "consumers": [
+        "all layers",
+        "apps/web"
+      ],
+      "syntax": "packages/shared/src/value_fabric/shared/identity/middleware.py",
+      "semantics": "Authentication, token validation, and Clerk-to-Fabric tenant mapping.",
+      "invariants": [
+        "Bearer token is required for protected routes",
+        "Clerk organization maps to exactly one Fabric tenant",
+        "Unauthenticated requests fail closed"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": [
+          "1.0.x"
+        ],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "tests/security/test_auth_boundaries.py",
+          "tests/security/test_auth_default_deny.py"
+        ],
+        "consumer_tests": [
+          "apps/web/src/components/routing/RequireClerkAuth.test.tsx",
+          "apps/web/src/hooks/useAuth.behavior.test.ts"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "governance-middleware",
+        "layer": "shared"
+      },
+      "failure_behavior": {
+        "invalid_message": "reject",
+        "unknown_version": "reject_and_alert",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Auth changes require security review and behavior test updates.",
+      "links": {
+        "schema": "contracts/behavior-contract.yaml"
+      },
+      "classification": "tenant-boundary"
+    },
+    {
+      "contract_id": "fabric.workflow.ingestion_to_summary",
+      "version": "1.0.0",
+      "type": "workflow",
+      "owner": "value-fabric/backend-leads",
+      "provider": "services/layer1-ingestion through services/layer4-agents",
+      "consumers": [
+        "apps/web"
+      ],
+      "syntax": "contracts/behavior-contract.yaml",
+      "semantics": "End-to-end workflow from notes ingestion to Fabric Found Summary generation.",
+      "invariants": [
+        "Source is accepted and normalized",
+        "Signals are extracted and validated",
+        "Summary is generated and retrievable by the same tenant"
+      ],
+      "compatibility": {
+        "mode": "backward",
+        "supported_versions": [
+          "1.0.x"
+        ],
+        "deprecation_window_days": 90
+      },
+      "validation": {
+        "producer_tests": [
+          "apps/web/e2e/behaviors/j1-ingestion.behavior.spec.ts",
+          "apps/web/e2e/journeys/j17-crm-integration.spec.ts"
+        ],
+        "consumer_tests": [
+          "tests/contract/test_journey_contracts.py"
+        ],
+        "runtime_validation": true
+      },
+      "runtime_enforcement": {
+        "enabled": true,
+        "enforcement_point": "workflow-engine",
+        "layer": "layer1"
+      },
+      "failure_behavior": {
+        "invalid_message": "alert",
+        "unknown_version": "warn",
+        "semantic_violation": "block_release"
+      },
+      "migration_process": "Workflow changes require E2E journey update.",
+      "links": {
+        "schema": "contracts/behavior-contract.yaml"
       }
     }
   ]

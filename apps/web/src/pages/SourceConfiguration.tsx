@@ -542,7 +542,7 @@ function SourceConfigurationContent() {
             <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Records</span>
           </div>
           <p className="text-2xl font-extrabold text-primary">
-            {stats?.totalRecords ? `${(stats.totalRecords / 1000).toFixed(0)}K` : '—'}
+            {stats?.total_records ? `${(stats.total_records / 1000).toFixed(0)}K` : '—'}
           </p>
         </div>
       </div>

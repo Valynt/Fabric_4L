@@ -13,6 +13,7 @@ const WEB_APP_DIR = resolve(ROOT, 'apps', 'web');
 const WEB_OUTPUT_DIR = resolve(WEB_APP_DIR, 'src', 'api', 'generated');
 
 const SPECS = [
+  'fabric-4l-api.json',
   'layer1-ingestion.json',
   'layer2-extraction.json',
   'layer3-knowledge.json',
@@ -53,6 +54,7 @@ if (!existsSync(WEB_OUTPUT_DIR)) mkdirSync(WEB_OUTPUT_DIR, { recursive: true });
 
 
 const WEB_LAYER_DIRS = {
+  fabric_4l_api: 'fabric',
   layer1_ingestion: 'l1',
   layer2_extraction: 'l2',
   layer3_knowledge: 'l3',
@@ -61,6 +63,20 @@ const WEB_LAYER_DIRS = {
   layer6_benchmarks: 'l6',
   signals: 'signals',
 };
+
+/**
+ * Replace the opaque `JsonValue: unknown;` that openapi-typescript emits for an
+ * empty JSON schema with a stable, recursive JSON value type. This keeps the
+ * generated contract deterministic and prevents the broken self-referencing
+ * output that requires manual patching.
+ */
+function fixJsonValue(content) {
+  if (!content.includes('JsonValue: unknown;')) {
+    return content;
+  }
+  const alias = 'type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };';
+  return `${alias}\n${content.replace('JsonValue: unknown;', 'JsonValue: JsonValue;')}`;
+}
 
 const exports = [];
 const webExports = [];
@@ -72,7 +88,7 @@ for (const spec of SPECS) {
       cwd: WEB_APP_DIR,
       stdio: 'pipe',
     });
-    const content = readFileSync(out, 'utf8');
+    const content = fixJsonValue(readFileSync(out, 'utf8'));
     writeFileSync(out, `// @generated from contracts/openapi/${spec}\n` + content);
 
     const webDir = WEB_LAYER_DIRS[key];

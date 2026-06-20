@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -84,6 +84,30 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
         ));
         expect(allowed, `${specFile} path ${routePath} must match one of: ${allowedPrefixes.join(', ')}`).toBe(true);
       }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Generated type safety: JsonValue must not regress to opaque unknown
+// ---------------------------------------------------------------------------
+
+describe('Generated TypeScript: JsonValue safety', () => {
+  it('layer5 generated file uses a stable recursive JsonValue type', () => {
+    const l5 = readFileSync(resolve(GENERATED_DIR, 'l5/index.ts'), 'utf8');
+    expect(l5).not.toContain('JsonValue: unknown;');
+    expect(l5).toContain(
+      'type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };'
+    );
+  });
+
+  it('no generated layer contains a broken JsonValue: unknown definition', () => {
+    const layers = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'signals'];
+    for (const layer of layers) {
+      const path = resolve(GENERATED_DIR, `${layer}/index.ts`);
+      if (!existsSync(path)) continue;
+      const content = readFileSync(path, 'utf8');
+      expect(content, `${layer} generated file must not contain opaque JsonValue`).not.toContain('JsonValue: unknown;');
     }
   });
 });
@@ -316,6 +340,10 @@ const CONTRACTS_OPENAPI_DIR = resolve(
 const LAYER4_ROUTE_CONTRACT_MATRIX_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../../../../../contracts/layer4-route-contract-matrix.json'
+);
+const GENERATED_DIR = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../generated'
 );
 
 describe('OpenAPI drift: layer4 route contract matrix coverage', () => {

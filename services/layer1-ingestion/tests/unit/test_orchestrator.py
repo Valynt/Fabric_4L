@@ -222,7 +222,7 @@ class TestOutboxRelay:
 class _InMemoryStorageClient(ObjectStorageClient):
     """Fake object storage client that serves the fixed fixture URI."""
 
-    def download_bytes(self, storage_uri: str) -> bytes:
+    async def download_bytes(self, storage_uri: str) -> bytes:
         if storage_uri == "raw://test":
             return b"happy path content"
         raise FileNotFoundError(storage_uri)

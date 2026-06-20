@@ -6,15 +6,14 @@ These endpoints are part of the canonical ``layer1_ingestion.api.main`` app.
 from __future__ import annotations
 
 from enum import Enum as PyEnum
-
-import structlog
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request as _Request
+import structlog
+from fastapi import APIRouter, Depends
+from fastapi import Request as _Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-
 from value_fabric.shared.error_handling.exceptions import ValidationError
 
 from ..shared.database import get_db_from_context_sync

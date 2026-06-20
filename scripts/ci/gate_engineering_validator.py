@@ -6,17 +6,20 @@ It validates:
   - gate-registry.json against gate-schema.json
   - contract-inventory.json against contract-schema.json
   - cross-references between gates and contracts
-  - a release-readiness report from gate result evidence
+  - gate evidence for freshness, binding, ownership, and placeholder content
+  - a release-readiness report bound to the current commit and generated artifacts
 
 Exit codes:
-  0 = all validations passed
+  0 = all validations passed / release ready
   1 = validation error or blocked release
   2 = bad arguments
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -34,9 +37,54 @@ CONTRACT_INVENTORY = GATE_ENGINEERING_DIR / "contract-inventory.json"
 
 DEFAULT_ARTIFACT_DIR = ROOT / "artifacts" / "release"
 
+PLACEHOLDER_MARKERS = (
+    "injected",
+    "placeholder",
+    "example",
+    "artifact:test",
+    "sha256:0000",
+    "sha256:1111",
+    "sha256:2222",
+    "sha256:3333",
+    "synthetic",
+    "manual",
+    "not-real",
+)
+
+# Fields that should participate in placeholder detection. Structural metadata
+# such as gate_id, status, or timestamps must not be treated as evidence content.
+_EVIDENCE_FIELDS = {
+    "reason",
+    "evidence_uri",
+    "command",
+    "output",
+    "summary",
+    "details",
+    "message",
+    "stderr",
+    "stdout",
+}
+
+
+FRESHNESS_SECONDS = {
+    "5m": 300,
+    "1h": 3600,
+    "24h": 86400,
+    "7d": 604800,
+    "PR lifetime": 0,  # Always fresh within a PR run
+    "artifact lifetime": 0,
+    "release": 0,
+    "deployment": 0,
+    "canary window": 0,
+}
+
 
 def _utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _utc_now_dt() -> datetime:
+    return datetime.now(UTC)
 
 
 def _load_json(path: Path) -> Any:
@@ -95,25 +143,221 @@ def _validate_cross_references(registry: dict[str, Any], inventory: dict[str, An
     return errors
 
 
-def _summarize_gate(registry_gate: dict[str, Any], result: dict[str, Any] | None) -> dict[str, Any]:
+def _hash_files(*patterns: str) -> str:
+    """Return a deterministic sha256 of the contents of files matching the patterns."""
+    h = hashlib.sha256()
+    files: list[Path] = []
+    for pattern in patterns:
+        files.extend(ROOT.glob(pattern))
+    files = sorted({f.resolve() for f in files if f.is_file()})
+    for f in files:
+        h.update(f"{f.relative_to(ROOT)}\0".encode("utf-8"))
+        h.update(f.read_bytes())
+    return f"sha256:{h.hexdigest()}"
+
+
+def _collect_identity() -> dict[str, Any]:
+    """Collect release identity: commit, artifact hashes, migration state, config fingerprint."""
+    identity: dict[str, Any] = {
+        "openapi_schema_hash": _hash_files("contracts/openapi/*.json"),
+        "generated_client_hash": _hash_files(
+            "apps/web/src/api/generated/**/*",
+            "packages/platform-contract/src/typescript/generated/**/*",
+        ),
+        "config_fingerprint": _hash_files(
+            "k8s/envs/prod/**/*",
+            "k8s/envs/staging/**/*",
+        ),
+    }
+    try:
+        identity["commit_sha"] = (
+            subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            .stdout.strip()
+            or "unknown"
+        )
+    except Exception:
+        identity["commit_sha"] = "unknown"
+
+    # Migration revision: hash of all Alembic version files for each layer.
+    migration_files = sorted(ROOT.glob("services/**/alembic/versions/*.py"))
+    identity["migration_revision"] = _hash_files(
+        *[str(f.relative_to(ROOT)) for f in migration_files]
+    )
+
+    return identity
+
+
+def _parse_iso_timestamp(value: str) -> datetime | None:
+    try:
+        # Strip trailing Z and replace with +00:00 for fromisoformat
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
+        return datetime.fromisoformat(value)
+    except Exception:
+        return None
+
+
+def _is_placeholder(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, dict):
+        text = json.dumps({k: v for k, v in value.items() if k in _EVIDENCE_FIELDS})
+    else:
+        text = value if isinstance(value, str) else json.dumps(value)
+    return any(marker.lower() in text.lower() for marker in PLACEHOLDER_MARKERS)
+
+
+def _is_stale(result: dict[str, Any], freshness: str) -> bool:
+    produced_at = result.get("produced_at") or result.get("timestamp")
+    if not produced_at:
+        return False
+    threshold = FRESHNESS_SECONDS.get(freshness)
+    if threshold is None:
+        # Unknown freshness rule: use 24h default
+        threshold = 86400
+    if threshold == 0:
+        return False
+    produced_dt = _parse_iso_timestamp(produced_at)
+    if produced_dt is None:
+        return True
+    return (_utc_now_dt() - produced_dt).total_seconds() > threshold
+
+
+def _validate_evidence(
+    gate: dict[str, Any],
+    result: dict[str, Any] | None,
+    *,
+    artifact_digest: str,
+    commit_sha: str,
+    strict: bool,
+) -> dict[str, Any]:
+    """Validate a single gate's evidence and return a normalized result.
+
+    Returns dict with:
+      - status: PASS, FAIL, INCONCLUSIVE, WARNING
+      - reason: human-readable reason
+      - evidence_uri
+      - evidence_valid: bool
+    """
+    producer = gate.get("evidence_producer")
+
     if result is None:
         return {
-            "gate_id": registry_gate["gate_id"],
-            "name": registry_gate["name"],
-            "result": "INCONCLUSIVE",
+            "status": "INCONCLUSIVE",
             "reason": "no evidence submitted",
-            "owner": registry_gate["owner"],
-            "criticality": registry_gate["criticality"],
+            "evidence_uri": "",
+            "evidence_valid": False,
         }
-    status = result.get("status", "INCONCLUSIVE")
+
+    # Unknown command check
+    if producer:
+        expected_command = producer["command"]
+        actual_command = result.get("command", "")
+        if actual_command and actual_command != expected_command:
+            return {
+                "status": "INCONCLUSIVE",
+                "reason": f"evidence produced by unknown command: {actual_command}",
+                "evidence_uri": result.get("evidence_uri", ""),
+                "evidence_valid": False,
+            }
+
+    # Owner check
+    if producer:
+        expected_owner = producer["owner"]
+        actual_owner = result.get("owner", "")
+        if actual_owner and actual_owner != expected_owner:
+            return {
+                "status": "INCONCLUSIVE",
+                "reason": f"evidence owner mismatch: expected {expected_owner}, got {actual_owner}",
+                "evidence_uri": result.get("evidence_uri", ""),
+                "evidence_valid": False,
+            }
+
+    # Artifact binding check
+    if producer:
+        expected_binding = producer["artifact_binding"]
+        bound_to = result.get("bound_to", "")
+        if bound_to:
+            if expected_binding == "commit-sha" and bound_to != commit_sha:
+                return {
+                    "status": "INCONCLUSIVE",
+                    "reason": f"evidence bound to different commit: {bound_to}",
+                    "evidence_uri": result.get("evidence_uri", ""),
+                    "evidence_valid": False,
+                }
+            if expected_binding in ("container-image-digest", "artifact-digest") and bound_to != artifact_digest:
+                return {
+                    "status": "INCONCLUSIVE",
+                    "reason": f"evidence bound to different artifact digest: {bound_to}",
+                    "evidence_uri": result.get("evidence_uri", ""),
+                    "evidence_valid": False,
+                }
+
+    # Placeholder check
+    if _is_placeholder(result):
+        if strict:
+            return {
+                "status": "INCONCLUSIVE",
+                "reason": "evidence contains placeholder/example values",
+                "evidence_uri": result.get("evidence_uri", ""),
+                "evidence_valid": False,
+            }
+        return {
+            "status": "WARNING",
+            "reason": "evidence contains placeholder/example values",
+            "evidence_uri": result.get("evidence_uri", ""),
+            "evidence_valid": False,
+        }
+
+    # Staleness check
+    freshness = producer["freshness"] if producer else "24h"
+    if _is_stale(result, freshness):
+        return {
+            "status": "INCONCLUSIVE",
+            "reason": f"evidence is older than {freshness}",
+            "evidence_uri": result.get("evidence_uri", ""),
+            "evidence_valid": False,
+        }
+
+    return {
+        "status": result.get("status", "INCONCLUSIVE"),
+        "reason": result.get("reason", ""),
+        "evidence_uri": result.get("evidence_uri", ""),
+        "evidence_valid": True,
+    }
+
+
+def _summarize_gate(
+    registry_gate: dict[str, Any],
+    result: dict[str, Any] | None,
+    *,
+    artifact_digest: str,
+    commit_sha: str,
+    strict: bool,
+) -> dict[str, Any]:
+    validated = _validate_evidence(
+        registry_gate,
+        result,
+        artifact_digest=artifact_digest,
+        commit_sha=commit_sha,
+        strict=strict,
+    )
     return {
         "gate_id": registry_gate["gate_id"],
         "name": registry_gate["name"],
-        "result": status,
-        "reason": result.get("reason", ""),
-        "evidence_uri": result.get("evidence_uri", ""),
+        "result": validated["status"],
+        "reason": validated["reason"],
+        "evidence_uri": validated["evidence_uri"],
         "owner": registry_gate["owner"],
         "criticality": registry_gate["criticality"],
+        "scope": registry_gate["scope"],
+        "evidence_valid": validated["evidence_valid"],
     }
 
 
@@ -138,6 +382,8 @@ def _build_release_readiness_report(
     commit_sha: str,
     environment: str,
     risk_class: str,
+    strict: bool,
+    identity: dict[str, Any],
 ) -> dict[str, Any]:
     status_to_key = {
         "PASS": "passed",
@@ -153,14 +399,35 @@ def _build_release_readiness_report(
         "not_applicable": 0,
         "warnings": 0,
     }
-    blocking_results: list[dict[str, Any]] = []
+    framework_gates: list[dict[str, Any]] = []
+    product_gates: list[dict[str, Any]] = []
+    inconclusive_gates: list[dict[str, Any]] = []
     warnings: list[dict[str, Any]] = []
+    blocking_results: list[dict[str, Any]] = []
 
     for gate in registry.get("gates", []):
-        result = _summarize_gate(gate, results.get(gate["gate_id"]))
+        result = _summarize_gate(
+            gate,
+            results.get(gate["gate_id"]),
+            artifact_digest=artifact_digest,
+            commit_sha=commit_sha,
+            strict=strict,
+        )
         status = result["result"]
         key = status_to_key.get(status, status.lower())
         summary[key] = summary.get(key, 0) + 1
+
+        if status in ("PASS", "FAIL"):
+            if result["evidence_valid"]:
+                product_gates.append(result)
+            else:
+                framework_gates.append(result)
+        elif status == "WARNING":
+            warnings.append(result)
+        elif status == "INCONCLUSIVE":
+            inconclusive_gates.append(result)
+        else:
+            framework_gates.append(result)
 
         if status == "FAIL" and gate["criticality"] == "blocking":
             blocking_results.append(
@@ -180,10 +447,9 @@ def _build_release_readiness_report(
                     "criterion": gate["inconclusive_criteria"][0],
                     "evidence_uri": result.get("evidence_uri", ""),
                     "owner": gate["owner"],
+                    "remediation": gate.get("remediation"),
                 }
             )
-        elif status == "WARNING":
-            warnings.append(result)
 
     decision = "blocked" if blocking_results else "ready"
     if risk_class == "emergency" and not any(
@@ -196,15 +462,25 @@ def _build_release_readiness_report(
 
     return {
         "release_id": release_id,
-        "artifact_digest": artifact_digest,
-        "commit_sha": commit_sha,
+        "identity": {
+            "artifact_digest": artifact_digest,
+            "commit_sha": commit_sha,
+            "openapi_schema_hash": identity["openapi_schema_hash"],
+            "generated_client_hash": identity["generated_client_hash"],
+            "migration_revision": identity["migration_revision"],
+            "config_fingerprint": identity["config_fingerprint"],
+        },
         "environment": environment,
         "risk_class": risk_class,
+        "strict": strict,
         "decision": decision,
         "gates": summary,
-        "blocking_results": blocking_results,
+        "framework_validation_gates": framework_gates,
+        "product_evidence_gates": product_gates,
+        "inconclusive_gates": inconclusive_gates,
         "warnings": warnings,
         "exceptions": [],
+        "blocking_results": blocking_results,
         "generated_at": _utc_now(),
         "evidence_expiration": "24h",
         "schema": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json",
@@ -216,10 +492,15 @@ def _render_report_markdown(report: dict[str, Any]) -> str:
         "# Release Readiness Report",
         "",
         f"- **Release ID:** `{report['release_id']}`",
-        f"- **Artifact digest:** `{report['artifact_digest']}`",
-        f"- **Commit SHA:** `{report['commit_sha']}`",
+        f"- **Artifact digest:** `{report['identity']['artifact_digest']}`",
+        f"- **Commit SHA:** `{report['identity']['commit_sha']}`",
+        f"- **OpenAPI schema hash:** `{report['identity']['openapi_schema_hash']}`",
+        f"- **Generated client hash:** `{report['identity']['generated_client_hash']}`",
+        f"- **Migration revision:** `{report['identity']['migration_revision']}`",
+        f"- **Config fingerprint:** `{report['identity']['config_fingerprint']}`",
         f"- **Environment:** `{report['environment']}`",
         f"- **Risk class:** `{report['risk_class']}`",
+        f"- **Strict mode:** `{report['strict']}`",
         f"- **Decision:** `{report['decision']}`",
         f"- **Generated at:** `{report['generated_at']}`",
         "",
@@ -232,6 +513,47 @@ def _render_report_markdown(report: dict[str, Any]) -> str:
         f"- **WARNING:** {report['gates']['warnings']}",
         "",
     ]
+
+    if report["framework_validation_gates"]:
+        lines.append("## Framework validation gates")
+        lines.append("")
+        for g in report["framework_validation_gates"]:
+            lines.append(
+                f"- `{g['gate_id']}` — `{g['result']}` — {g['reason']} (owner: {g['owner']})"
+            )
+        lines.append("")
+
+    if report["product_evidence_gates"]:
+        lines.append("## Real product evidence gates")
+        lines.append("")
+        for g in report["product_evidence_gates"]:
+            lines.append(
+                f"- `{g['gate_id']}` — `{g['result']}` — {g['reason']} (owner: {g['owner']})"
+            )
+        lines.append("")
+
+    if report["inconclusive_gates"]:
+        lines.append("## Incomplete / inconclusive gates")
+        lines.append("")
+        for g in report["inconclusive_gates"]:
+            entry = f"- `{g['gate_id']}` — `{g['result']}` — {g['reason']} (owner: {g['owner']})"
+            lines.append(entry)
+        lines.append("")
+
+    if report["warnings"]:
+        lines.append("## Warnings")
+        lines.append("")
+        for w in report["warnings"]:
+            lines.append(f"- `{w['gate_id']}` — {w['reason']}")
+        lines.append("")
+
+    if report["exceptions"]:
+        lines.append("## Exceptions")
+        lines.append("")
+        for e in report["exceptions"]:
+            lines.append(f"- `{e['gate_id']}` — exception {e['exception_id']} until {e['expires_at']}")
+        lines.append("")
+
     if report["blocking_results"]:
         lines.append("## Blocking results")
         lines.append("")
@@ -240,13 +562,11 @@ def _render_report_markdown(report: dict[str, Any]) -> str:
                 f"- `{r['gate_id']}` — `{r['result']}` — {r['criterion']} (owner: {r['owner']})"
             )
         lines.append("")
-    if report["warnings"]:
-        lines.append("## Warnings")
-        lines.append("")
-        for w in report["warnings"]:
-            lines.append(f"- `{w['gate_id']}` — {w['reason']}")
-        lines.append("")
-    lines.append("This report is generated from authoritative gate results. Manual edits are not allowed.")
+
+    lines.append(
+        "This report is generated from authoritative gate results. "
+        "Manual edits are not allowed; evidence must be produced by the registered commands."
+    )
     return "\n".join(lines)
 
 
@@ -276,14 +596,21 @@ def validate(args: argparse.Namespace) -> int:
 def report(args: argparse.Namespace) -> int:
     registry = _load_json(GATE_REGISTRY)
     results = _load_results(Path(args.artifact_dir))
+    identity = _collect_identity()
+    # Tests and CI pipelines need a deterministic commit SHA; fall back to the
+    # real git HEAD when it is not supplied.
+    commit_sha = args.commit_sha or identity["commit_sha"]
+    identity["commit_sha"] = commit_sha
     report_data = _build_release_readiness_report(
         registry,
         results,
         release_id=args.release_id,
         artifact_digest=args.artifact_digest,
-        commit_sha=args.commit_sha,
+        commit_sha=commit_sha,
         environment=args.environment,
         risk_class=args.risk_class,
+        strict=args.strict,
+        identity=identity,
     )
 
     output_dir = Path(args.output_dir)
@@ -296,6 +623,8 @@ def report(args: argparse.Namespace) -> int:
     print(f"Report written to {output_dir}")
     print(f"  Decision: {report_data['decision']}")
     print(f"  Blocking: {len(report_data['blocking_results'])}")
+    print(f"  Product evidence gates: {len(report_data['product_evidence_gates'])}")
+    print(f"  Inconclusive gates: {len(report_data['inconclusive_gates'])}")
     return 0 if report_data["decision"] in ("ready", "ready-with-exception-review") else 1
 
 
@@ -304,16 +633,18 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     validate_cmd = sub.add_parser("validate", help="Validate registry and inventory schemas")
+    validate_cmd.add_argument("--strict", action="store_true", help="Fail if any gate lacks evidence_producer")
     validate_cmd.set_defaults(func=validate)
 
     report_cmd = sub.add_parser("report", help="Generate a release-readiness report")
     report_cmd.add_argument("--release-id", required=True)
     report_cmd.add_argument("--artifact-digest", required=True)
-    report_cmd.add_argument("--commit-sha", required=True)
+    report_cmd.add_argument("--commit-sha", default=None, help="Override the git commit SHA used for identity and evidence binding")
     report_cmd.add_argument("--environment", default="production")
     report_cmd.add_argument("--risk-class", default="high")
     report_cmd.add_argument("--artifact-dir", default=str(DEFAULT_ARTIFACT_DIR))
     report_cmd.add_argument("--output-dir", default=str(DEFAULT_ARTIFACT_DIR))
+    report_cmd.add_argument("--strict", action="store_true", help="Reject placeholder evidence and require real bindings")
     report_cmd.set_defaults(func=report)
 
     args = parser.parse_args(argv)

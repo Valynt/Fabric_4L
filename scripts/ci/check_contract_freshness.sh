@@ -11,6 +11,7 @@ OPENAPI_FILES=(
   "contracts/openapi/layer4-agents.json"
   "contracts/openapi/layer5-ground-truth.json"
   "contracts/openapi/layer6-benchmarks.json"
+  "contracts/openapi/fabric-4l-api.json"
 )
 
 GENERATED_TYPE_GLOBS=(
@@ -54,5 +55,11 @@ The committed OpenAPI JSON and frontend generated DTO types must remain determin
 EOF
   exit 1
 fi
+
+printf '\n== Contract shape integrity checks ==\n'
+python3 scripts/ci/check_l1_target_schema.py
+python3 scripts/ci/check_targets_stats_named_schema.py
+python3 scripts/ci/check_generated_jsonvalue_absent.py
+python3 scripts/ci/check_clerk_tenant_response_exported.py
 
 printf '\nContract freshness gate passed: OpenAPI contracts and generated frontend DTO types are current.\n'
