@@ -56,7 +56,7 @@ const VITE_PROXY_L5_URL =
 const VITE_PROXY_L6_URL =
   frontendEnv.VITE_PROXY_L6_URL || "http://localhost:8006";
 const VITE_PROXY_API_GATEWAY_URL =
-  frontendEnv.VITE_PROXY_API_GATEWAY_URL || "http://localhost:8000";
+  frontendEnv.VITE_PROXY_API_GATEWAY_URL || "http://localhost:8008";
 
 type LogSource = "browserConsole" | "networkRequests" | "sessionReplay";
 
