@@ -102,7 +102,7 @@ If a layer migration fails, revert only that layer's `value_fabric/layerX/__init
 | 3 | Compliant | `services/layer3-knowledge/src/` | Migrated 2026-05-13; legacy namespace `value_fabric.layer3_knowledge` removed 2026-05-14; empty stale subdirectories under `value_fabric/layer3/` cleaned; namespace package shim only |
 | 4 | Compliant | `services/layer4-agents/src/` | Implementation in service tree, but relative imports (``from ..models...``) depend on namespace package; direct service imports require restructuring ``src/*`` into ``src/layer4_agents/*`` |
 | 5 | Compliant | `services/layer5-ground-truth/src/` | Canonical imports enabled 2026-05-13 via pytest.ini pythonpath; shim remains for backward compat |
-| 6 | Compliant | `services/layer6-benchmarks/src/` | Migrated 2026-05-14; `value_fabric/layer6/` converted to path-appender shim; all implementation files removed from `value_fabric/layer6/`; service tree is canonical source of truth |
+| 6 | Compliant | `services/layer6-benchmarks/src/` | Migrated 2026-05-14; `value_fabric/layer6/` neutralized as a namespace placeholder; all implementation files removed from `value_fabric/layer6/`; service tree is canonical source of truth |
 
 ## Production Readiness Completion (2026-05-14)
 

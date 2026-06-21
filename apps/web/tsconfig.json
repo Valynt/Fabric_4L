@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*", "shared/**/*", "server/**/*"],
+  "include": ["src/**/*", "shared/**/*", "server/**/*", "../packages/platform-contract/src/clerk_defaults.json"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
   "compilerOptions": {
     "incremental": true,
@@ -15,11 +15,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "moduleResolution": "bundler",
     "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@contract/*": ["../packages/platform-contract/src/*"]
     }
   }
 }

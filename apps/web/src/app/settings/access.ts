@@ -2,14 +2,9 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { apiClient } from "@/api/client";
+import { type SettingsCapability, getCapabilitiesForRole } from "./schemas";
 
-export type SettingsCapability =
-  | "personal"
-  | "billing"
-  | "team"
-  | "integrations"
-  | "governance"
-  | "super_admin";
+export type { SettingsCapability };
 
 export type DenialReasonCode = "missing_role" | "scope_mismatch" | "feature_disabled" | "super_admin_only";
 
@@ -19,29 +14,14 @@ export interface CapabilityDecision {
   source: "server" | "fallback";
 }
 
-const ROLE_CAPABILITIES: Record<string, SettingsCapability[]> = {
-  super_admin: ["personal", "billing", "team", "integrations", "governance", "super_admin"],
-  tenant_admin: ["personal", "billing", "team", "integrations", "governance"],
-  content_admin: ["personal", "governance"],
-  analyst: ["personal"],
-  read_only: ["personal"],
-  admin: ["personal", "billing", "team", "integrations", "governance"],
-  advanced: ["personal"],
-  standard: ["personal"],
-  viewer: ["personal"],
-  user: ["personal"],
-};
-
 export interface EffectivePermissionsResponse {
   capabilities: Partial<Record<SettingsCapability, CapabilityDecision>>;
 }
 
-function normalizeRole(role: string | null | undefined): string {
-  return role?.trim().toLowerCase() || "user";
-}
+export { getCapabilitiesForRole };
 
-export function getCapabilitiesForRole(role: string | null | undefined): Set<SettingsCapability> {
-  return new Set(ROLE_CAPABILITIES[normalizeRole(role)] ?? ["personal"]);
+function normalizeRole(role: string | null | undefined): string {
+  return (role ?? "").trim().toLowerCase();
 }
 
 export async function fetchEffectivePermissions(): Promise<EffectivePermissionsResponse> {

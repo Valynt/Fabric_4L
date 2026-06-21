@@ -5,7 +5,6 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
-from collections import Counter
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
@@ -25,6 +24,11 @@ from value_fabric.shared.contracts.layer3_statuses import (
 )
 
 from ..services import compat_policy
+from ..services.compat_metrics import (
+    get_deprecated_field_usage_counters,
+    record_deprecated_field_usage,
+)
+from ..services.compat_policy import include_legacy_graph_aliases
 
 
 # Health Check
@@ -1002,35 +1006,9 @@ class BatchAnalyticsResponse(BaseModel):
 
 
 # Graph Models
-# Mapping of alias field names to their source property names
-GraphNodeAliasMap: dict[str, str] = {
-    "label": "name",
-    "type": "entity_type",
-    "confidence": "confidence_score",
-}
-GRAPH_FIELD_ALIAS_WARNING_VERSION = compat_policy.GRAPH_FIELD_ALIAS_WARNING_VERSION
-GRAPH_FIELD_ALIAS_REMOVAL_VERSION = compat_policy.GRAPH_FIELD_ALIAS_REMOVAL_VERSION
-
-_DEPRECATED_FIELD_USAGE_COUNTERS: Counter[str] = Counter()
-
-
-def _increment_deprecated_field_usage(metric: str) -> None:
-    _DEPRECATED_FIELD_USAGE_COUNTERS[metric] += 1
-
-
-def get_deprecated_field_usage_counters() -> dict[str, int]:
-    """Return cumulative legacy field usage counters for deprecation telemetry."""
-    return {
-        "graph_node_request_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_node_request_legacy_fields", 0),
-        "graph_edge_request_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_edge_request_legacy_fields", 0),
-        "graph_node_response_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_node_response_legacy_fields", 0),
-        "graph_edge_response_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_edge_response_legacy_fields", 0),
-    }
-
-
-def include_legacy_graph_aliases(api_version: str = "v2.3") -> bool:
-    """Return True while legacy graph aliases are still part of the contract."""
-    return compat_policy.include_legacy_graph_aliases(api_version)
+# Alias maps are defined by the central compatibility policy.
+GraphNodeAliasMap = compat_policy.GraphNodeAliasMap
+GraphEdgeAliasMap = compat_policy.GraphEdgeAliasMap
 
 
 class GraphNode(BaseModel):
@@ -1062,7 +1040,7 @@ class GraphNode(BaseModel):
                     f"Conflicting GraphNode fields: '{canonical}' and deprecated '{alias}' must match"
                 )
             if canonical not in data and alias in data:
-                _increment_deprecated_field_usage("graph_node_request_legacy_fields")
+                record_deprecated_field_usage("graph_node_request_legacy_fields")
                 data[canonical] = data[alias]
         return data
 
@@ -1094,7 +1072,7 @@ class GraphNode(BaseModel):
         data = super().model_dump(**kwargs)
         if include_legacy_graph_aliases(api_version):
             for _ in GraphNodeAliasMap:
-                _increment_deprecated_field_usage("graph_node_response_legacy_fields")
+                record_deprecated_field_usage("graph_node_response_legacy_fields")
             return data
         for alias in GraphNodeAliasMap:
             data.pop(alias, None)
@@ -1149,7 +1127,7 @@ class GraphEdge(BaseModel):
                     f"Conflicting GraphEdge fields: '{canonical}' and deprecated '{alias}' must match"
                 )
             if canonical not in data and alias in data:
-                _increment_deprecated_field_usage("graph_edge_request_legacy_fields")
+                record_deprecated_field_usage("graph_edge_request_legacy_fields")
                 data[canonical] = data[alias]
         return data
 
@@ -1165,7 +1143,7 @@ class GraphEdge(BaseModel):
         data = super().model_dump(**kwargs)
         if include_legacy_graph_aliases(api_version):
             for _ in GraphEdgeAliasMap:
-                _increment_deprecated_field_usage("graph_edge_response_legacy_fields")
+                record_deprecated_field_usage("graph_edge_response_legacy_fields")
             return data
         for alias in GraphEdgeAliasMap:
             data.pop(alias, None)

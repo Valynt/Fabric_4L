@@ -26,7 +26,7 @@ from enum import StrEnum
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     BadRequestError,
@@ -38,16 +38,16 @@ from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
-from app.core.clerk_config import get_auth_settings
+from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
 
 try:
-    _clerk_rate_limit = int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", "30"))
+    _clerk_rate_limit = int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", str(_DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE)))
 except ValueError:
-    _clerk_rate_limit = 30
+    _clerk_rate_limit = _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE
 _clerk_ip_limiter = IPRateLimitDependency(requests_per_minute=_clerk_rate_limit)
 
 

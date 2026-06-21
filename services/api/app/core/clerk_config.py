@@ -4,6 +4,9 @@ Provides a cached ``AuthSettings`` aggregate that is used by the API gateway
 when ``AUTH_PROVIDER=clerk`` is selected. The internal envelope is signed by
 a configured Ed25519 key pair so that Clerk-issued JWTs can be re-wrapped into
 a fabric-internal token that downstream layers trust.
+
+Canonical Clerk defaults are loaded from the platform-contract JSON file so
+frontend and backend cannot silently diverge.
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ import json
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
+from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -20,6 +25,29 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from value_fabric.shared.identity.fabric_auth import KeySet, SigningKey, VerificationKey
 from value_fabric.shared.identity.fabric_auth.context import DEFAULT_AUDIENCE, DEFAULT_ISSUER
+
+
+def _load_clerk_defaults() -> dict[str, Any]:
+    """Load the canonical Clerk defaults from the platform-contract JSON file."""
+    marker_names = {".git", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"}
+    start = Path(__file__).resolve()
+    for parent in (start, *start.parents):
+        if any((parent / marker).exists() for marker in marker_names):
+            candidate = parent / "packages" / "platform-contract" / "src" / "clerk_defaults.json"
+            if candidate.exists():
+                return json.loads(candidate.read_text(encoding="utf-8")).get("clerk", {})
+        candidate = parent / "packages" / "platform-contract" / "src" / "clerk_defaults.json"
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8")).get("clerk", {})
+    return {}
+
+
+_CLERK_DEFAULTS = _load_clerk_defaults()
+_DEFAULT_CLERK_JWT_AUDIENCE = _CLERK_DEFAULTS.get("jwtAudience", "fabric4l-api")
+_DEFAULT_CLERK_AUTHORIZED_PARTIES = tuple(_CLERK_DEFAULTS.get("authorizedParties", ["http://localhost:3001"]))
+_DEFAULT_FABRIC_AUTH_SIGNING_KID = _CLERK_DEFAULTS.get("authSigningKid", "gateway-k1")
+_DEFAULT_FABRIC_AUTH_ENVELOPE_TTL_SECONDS = int(_CLERK_DEFAULTS.get("authEnvelopeTtlSeconds", 300))
+_DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE = int(_CLERK_DEFAULTS.get("webhookRateLimitPerMinute", 30))
 
 
 @dataclass(frozen=True)
@@ -106,10 +134,10 @@ def get_auth_settings() -> AuthSettings:
     provider = os.getenv("AUTH_PROVIDER", "clerk").strip().lower()
     clerk_settings = ClerkSettings(
         issuer=os.getenv("CLERK_ISSUER") or None,
-        jwt_audience=os.getenv("CLERK_JWT_AUDIENCE") or None,
+        jwt_audience=os.getenv("CLERK_JWT_AUDIENCE") or _DEFAULT_CLERK_JWT_AUDIENCE,
         authorized_parties=_parse_authorized_parties(
             os.getenv("CLERK_AUTHORIZED_PARTIES", "")
-        ),
+        ) or _DEFAULT_CLERK_AUTHORIZED_PARTIES,
         jwks_url=os.getenv("CLERK_JWKS_URL") or None,
         pinned_jwt_pem=os.getenv("CLERK_PINNED_JWT_PEM") or None,
         webhook_secret=os.getenv("CLERK_WEBHOOK_SECRET") or None,
@@ -122,7 +150,7 @@ def get_auth_settings() -> AuthSettings:
         or os.getenv("FABRIC_AUTH_SIGNING_PRIVATE_KEY", "").strip()
         or None
     )
-    signing_kid = os.getenv("FABRIC_AUTH_SIGNING_KID", "").strip() or "gateway-k1"
+    signing_kid = os.getenv("FABRIC_AUTH_SIGNING_KID", "").strip() or _DEFAULT_FABRIC_AUTH_SIGNING_KID
     public_keys_raw = os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip() or None
     legacy_public_key = os.getenv("FABRIC_AUTH_VERIFYING_PUBLIC_KEY", "").strip()
     if not public_keys_raw and legacy_public_key:
@@ -155,7 +183,7 @@ def get_auth_settings() -> AuthSettings:
             verification_keys=_load_verification_keys(public_keys_raw),
             issuer=os.getenv("FABRIC_AUTH_ISSUER", DEFAULT_ISSUER),
             audience=os.getenv("FABRIC_AUTH_AUDIENCE", DEFAULT_AUDIENCE),
-            envelope_ttl_seconds=int(os.getenv("FABRIC_AUTH_ENVELOPE_TTL_SECONDS", "300")),
+            envelope_ttl_seconds=int(os.getenv("FABRIC_AUTH_ENVELOPE_TTL_SECONDS", str(_DEFAULT_FABRIC_AUTH_ENVELOPE_TTL_SECONDS))),
         )
 
     return AuthSettings(

@@ -193,7 +193,7 @@ c:Users*
 
 # Temporary diff/patch files in repo root
 /tmp_pr*.txt
-/tmp_pr*.*'
+/tmp_pr*.*
 /tmp_models_content.txt
 
 # Generated ZIP archives (Kimi, export artifacts, etc.)

@@ -1,36 +1,18 @@
 {
-  "version": 1,
-  "schema_version": "2026-06-04",
-  "last_audited": "2026-06-05",
-  "duplicate_groups": [],
+  "version": "1.0.0",
+  "description": "Machine-readable registry of GitHub Actions workflows for Fabric_4L.",
   "workflows": [
-    {
-      "path": ".github/workflows/public-docs.yml",
-      "name": "Public Docs",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "public_docs governs Public Docs via pull_request, push",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
     {
       "path": ".github/workflows/ai-evals-pipeline.yml",
       "name": "AI Evaluation Pipeline",
-      "owner": "@value-fabric/ai-ml-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "ai_evals_pipeline governs AI Evaluation Pipeline via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "INFISICAL_IDENTITY_ID"
       ],
@@ -45,12 +27,12 @@
     {
       "path": ".github/workflows/api-key-rotation.yml",
       "name": "API Key Rotation",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "api_key_rotation governs API Key Rotation via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
@@ -69,13 +51,13 @@
     {
       "path": ".github/workflows/audit-evidence.yml",
       "name": "Audit Evidence Collection",
-      "owner": "@value-fabric/compliance-team",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "schedule",
         "workflow_call",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "audit_evidence governs Audit Evidence Collection via schedule, workflow_call, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
@@ -99,7 +81,7 @@
       "trigger": [
         "workflow_dispatch"
       ],
-      "trigger_purpose": "backend_integrated_reproducibility governs Backend-Integrated Reproducibility Evidence via workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "INFISICAL_IDENTITY_ID"
@@ -119,7 +101,7 @@
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "branch_protection_validation governs Branch Protection Validation via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
@@ -137,8 +119,8 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "build_deploy governs Build and Deploy via push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -158,7 +140,7 @@
         "workflow_call",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "chaos_testing governs Chaos Engineering Tests via schedule, workflow_call, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
@@ -174,23 +156,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/codeql.yml",
-      "name": "CodeQL Advanced",
-      "owner": "@value-fabric/security-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "schedule"
-      ],
-      "trigger_purpose": "codeql governs CodeQL Advanced via pull_request, push, schedule",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/cleanup-repo.yml",
       "name": "Cleanup Repo",
       "owner": "@value-fabric/sre-leads",
@@ -198,7 +163,7 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "cleanup_repo governs repository cleanup automation via push, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
@@ -209,17 +174,34 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/codeql.yml",
+      "name": "CodeQL Advanced",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/contract-compliance.yml",
       "name": "Contract Compliance",
-      "owner": "@value-fabric/compliance-team",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "contract_compliance governs Contract Compliance via pull_request, push, schedule, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         ".pytest_cache/",
@@ -243,12 +225,12 @@
     {
       "path": ".github/workflows/contract-rfc-enforcer.yml",
       "name": "Contract RFC Enforcer",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request"
       ],
-      "trigger_purpose": "contract_rfc_enforcer governs Contract RFC Enforcer via pull_request",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -263,8 +245,8 @@
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "critical_gates governs Critical Gates via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/critical-gates/"
@@ -281,8 +263,8 @@
         "workflow_call",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "deploy governs Deploy via workflow_call, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "AWS_DEPLOY_ROLE_ARN",
         "GITHUB_TOKEN",
@@ -304,7 +286,7 @@
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "dr_drill governs dr-drill via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "DR_BACKUP_BUCKET",
@@ -319,13 +301,13 @@
     {
       "path": ".github/workflows/drift-check.yml",
       "name": "Contract Drift Check",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "drift_check governs Contract Drift Check via pull_request, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "contracts/openapi/*.json",
@@ -343,8 +325,8 @@
         "workflow_dispatch",
         "workflow_run"
       ],
-      "trigger_purpose": "environment_promotion governs Environment Promotion via workflow_dispatch, workflow_run",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
         "INFISICAL_IDENTITY_ID"
@@ -357,13 +339,13 @@
     {
       "path": ".github/workflows/frontend-route-audit-check.yml",
       "name": "Frontend Route Audit Check",
-      "owner": "@value-fabric/compliance-team",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "frontend_route_audit_check governs Frontend Route Audit Check via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/router-contract/"
@@ -375,14 +357,14 @@
     {
       "path": ".github/workflows/generated-api-freshness.yml",
       "name": "Generated API Freshness",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "generated_api_freshness governs Generated API Freshness via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 15,
@@ -392,13 +374,13 @@
     {
       "path": ".github/workflows/graph-module-tests.yml",
       "name": "Graph Module Tests",
-      "owner": "@value-fabric/qa-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "graph_module_tests governs Graph Module Tests via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "apps/web/coverage/"
@@ -416,8 +398,8 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "k8s_readiness governs K8s Readiness via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "/tmp/*.yaml"
@@ -429,14 +411,14 @@
     {
       "path": ".github/workflows/l4-frontend-contract-sync.yml",
       "name": "Layer 4 Frontend Contract Sync",
-      "owner": "@value-fabric/frontend-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "l4_frontend_contract_sync governs Layer 4 Frontend Contract Sync via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 15,
@@ -446,13 +428,13 @@
     {
       "path": ".github/workflows/layer3-wrapper-drift.yml",
       "name": "Layer3 Wrapper Drift Check",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "layer3_wrapper_drift governs Layer3 Wrapper Drift Check via pull_request, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -462,13 +444,13 @@
     {
       "path": ".github/workflows/layer4-route-contract-matrix-check.yml",
       "name": "layer4-route-contract-matrix-check",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "layer4_route_contract_matrix_check governs layer4-route-contract-matrix-check via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -478,13 +460,13 @@
     {
       "path": ".github/workflows/layer6-wrapper-drift.yml",
       "name": "Layer6 Wrapper Drift",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "layer6_wrapper_drift governs Layer6 Wrapper Drift via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -499,7 +481,7 @@
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "monthly_debt_burndown governs monthly-debt-burndown via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
@@ -512,13 +494,13 @@
     {
       "path": ".github/workflows/openapi-drift-check.yml",
       "name": "OpenAPI Drift Check",
-      "owner": "@value-fabric/architects",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "openapi_drift_check governs OpenAPI Drift Check via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -528,12 +510,12 @@
     {
       "path": ".github/workflows/penetration-testing.yml",
       "name": "Penetration Testing",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "penetration_testing governs Penetration Testing via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
@@ -548,21 +530,21 @@
     {
       "path": ".github/workflows/performance-load-tests.yml",
       "name": "Performance Load Tests",
-      "owner": "@value-fabric/qa-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "push",
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "performance_load_tests governs Performance Load Tests via push, schedule, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/performance/k6-summary.json",
         "artifacts/performance/logs/",
         "artifacts/performance/slo-evaluation.json",
-        "artifacts/performance/slo-window-history.json",
-        "artifacts/performance/slo-report.md"
+        "artifacts/performance/slo-report.md",
+        "artifacts/performance/slo-window-history.json"
       ],
       "runtime_budget_minutes": 40,
       "local_validation_command": "make check-workflow-references",
@@ -576,8 +558,8 @@
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "pr_checks governs PR Checks via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
         "INFISICAL_IDENTITY_ID"
@@ -612,12 +594,12 @@
         "artifacts/pytest-skip-governance.json",
         "artifacts/python-contract-lint.json",
         "artifacts/readiness/behavior-readiness-audit.json",
-        "artifacts/release_smoke/**",
         "artifacts/release-evidence/billing-entitlements-junit.xml",
         "artifacts/release-evidence/billing-entitlements-summary.json",
         "artifacts/release-evidence/billing-entitlements-summary.md",
         "artifacts/release/release-readiness-report.json",
         "artifacts/release/release-readiness-report.md",
+        "artifacts/release_smoke/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/shared-imports-runtime.json",
@@ -662,8 +644,8 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "prod_readiness governs Prod Readiness Gates via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/",
@@ -690,6 +672,22 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/public-docs.yml",
+      "name": "Public Docs",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/publish-sdk.yml",
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
@@ -697,8 +695,8 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "publish_sdk governs Publish SDK via push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -718,17 +716,17 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "release_evidence_bundle governs Release Evidence Bundle via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
       "produced_artifacts": [
+        "${{ steps.bundle.outputs.path }}",
         "artifacts/evidence/*.summary.json",
         "artifacts/release/release-safety.json",
         "attestation-${{ matrix.service }}-${{ github.sha }}.json",
         "bandit-report.*",
-        "${{ steps.bundle.outputs.path }}",
         "prompt-injection-tests.xml",
         "report_*.html",
         "report_*.json",
@@ -752,8 +750,8 @@
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "repo_hygiene governs Repository Hygiene via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -772,8 +770,8 @@
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "repro_seed_validation governs Repro Seed Validation via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -788,8 +786,8 @@
         "pull_request",
         "push"
       ],
-      "trigger_purpose": "runbook_validation governs Runbook Validation via pull_request, push",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -801,12 +799,12 @@
     {
       "path": ".github/workflows/secret-rotation.yml",
       "name": "Secret Rotation",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "secret_rotation governs Secret Rotation via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
@@ -822,14 +820,14 @@
     {
       "path": ".github/workflows/security-gates.yml",
       "name": "Security Gates",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "schedule"
       ],
-      "trigger_purpose": "security_gates governs Security Gates via pull_request, push, schedule",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -854,15 +852,15 @@
     {
       "path": ".github/workflows/supply-chain.yml",
       "name": "Supply Chain Integrity",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "workflow_call",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "supply_chain governs Supply Chain Integrity via pull_request, push, workflow_call, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -890,8 +888,8 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "terraform_cd governs Terraform CD via pull_request, push, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [
         "AWS_TERRAFORM_ROLE_ARN"
       ],
@@ -905,13 +903,13 @@
     {
       "path": ".github/workflows/test-reporting.yml",
       "name": "Unified Test Reporting",
-      "owner": "@value-fabric/qa-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "workflow_run"
       ],
-      "trigger_purpose": "test_reporting governs Unified Test Reporting via pull_request, workflow_run",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -925,7 +923,7 @@
       "trigger": [
         "workflow_call"
       ],
-      "trigger_purpose": "vault_integration governs Vault Integration via workflow_call",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [
         "VAULT_ADDR",
@@ -941,12 +939,12 @@
     {
       "path": ".github/workflows/weekly-acceptance-gates.yml",
       "name": "Weekly Acceptance Gates",
-      "owner": "@value-fabric/qa-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "weekly_acceptance_gates governs Weekly Acceptance Gates via schedule, workflow_dispatch",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
@@ -959,15 +957,15 @@
     {
       "path": ".github/workflows/zero-trust-validation.yml",
       "name": "Zero Trust Validation",
-      "owner": "@value-fabric/security-leads",
+      "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
         "push",
         "schedule",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "zero_trust_validation governs Zero Trust Validation via pull_request, push, schedule, workflow_dispatch",
-      "blocking": true,
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/zero-trust/"
@@ -976,5 +974,6 @@
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     }
-  ]
+  ],
+  "duplicate_groups": []
 }

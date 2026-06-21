@@ -12,8 +12,9 @@
     },
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/typescript/**/*.ts"],
+  "include": ["src/typescript/**/*.ts", "src/clerk_defaults.json"],
   "exclude": ["src/typescript/negative/**"]
 }

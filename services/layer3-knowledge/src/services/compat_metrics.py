@@ -14,6 +14,7 @@ except Exception:  # pragma: no cover
 
 _DEPRECATED_ROUTE_HITS: Counter[tuple[str, str, str]] = Counter()
 _DEPRECATED_LEGACY_FIELD_HITS: Counter[tuple[str, str, str]] = Counter()
+_DEPRECATED_FIELD_USAGE_COUNTERS: Counter[str] = Counter()
 DEPRECATION_ACCEPTANCE_THRESHOLDS = compat_policy.DEPRECATION_ACCEPTANCE_THRESHOLDS
 
 if PromCounter is not None:
@@ -57,6 +58,21 @@ def record_deprecated_legacy_field_usage(field: str, *, tenant_id: str, app_clie
     _DEPRECATED_LEGACY_FIELD_HITS[key] += 1
     if _FIELD_COUNTER is not None:
         _FIELD_COUNTER.labels(field=key[0], tenant_id=key[1], app_client=key[2]).inc()
+
+
+def record_deprecated_field_usage(metric: str) -> None:
+    """Increment a cumulative legacy field usage counter for deprecation telemetry."""
+    _DEPRECATED_FIELD_USAGE_COUNTERS[metric] += 1
+
+
+def get_deprecated_field_usage_counters() -> dict[str, int]:
+    """Return cumulative legacy field usage counters for deprecation telemetry."""
+    return {
+        "graph_node_request_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_node_request_legacy_fields", 0),
+        "graph_edge_request_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_edge_request_legacy_fields", 0),
+        "graph_node_response_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_node_response_legacy_fields", 0),
+        "graph_edge_response_legacy_fields": _DEPRECATED_FIELD_USAGE_COUNTERS.get("graph_edge_response_legacy_fields", 0),
+    }
 
 
 def get_compat_metrics_snapshot() -> dict[str, dict[str, int]]:

@@ -70,8 +70,8 @@ SENTINELS: tuple[CanonicalModuleSentinel, ...] = (
         compatibility_path="value_fabric/layer5/__init__.py",
     ),
     # Layer 6 migrated to service-first per ADR-027 (2026-05-14).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer6/__init__.py; no per-module shim files remain.
+    # value_fabric/layer6/__init__.py is a neutralized placeholder; no
+    # per-module shim files or namespace path appending remain.
     CanonicalModuleSentinel(
         name="layer6_api_main",
         canonical_path="services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
@@ -203,6 +203,8 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
                     continue
+                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
+                    continue
                 if "test_import_topology" in rel_path:
                     continue
 
@@ -266,6 +268,8 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                 if "test_check_layer6_shim" in rel_path:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
+                    continue
+                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
                     continue
                 if "test_import_topology" in rel_path:
                     continue

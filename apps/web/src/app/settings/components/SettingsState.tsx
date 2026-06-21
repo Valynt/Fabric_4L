@@ -54,7 +54,7 @@ export function SettingsQueryState<TData>({
   return <>{children(data)}</>;
 }
 
-interface SettingsMetric {
+export interface SettingsMetric {
   label: string;
   value: React.ReactNode;
 }

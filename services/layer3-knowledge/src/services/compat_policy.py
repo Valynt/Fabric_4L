@@ -17,6 +17,16 @@ DEPRECATION_ACCEPTANCE_THRESHOLDS: dict[str, int] = {
     "max_legacy_field_hits_7d": 0,
 }
 
+# Mapping of alias field names to their source property names for graph models.
+GraphNodeAliasMap: dict[str, str] = {
+    "label": "name",
+    "type": "entity_type",
+    "confidence": "confidence_score",
+}
+GraphEdgeAliasMap: dict[str, str] = {
+    "relationship_type": "type",
+}
+
 _FIELD_PHASE_ENV = "L3_GRAPH_ALIAS_DEPRECATION_PHASE"
 
 

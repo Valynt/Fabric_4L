@@ -108,6 +108,7 @@ check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps i
 	@$(PYTHON) -m pytest tests/ci/test_product_workflow_validation_matrix.py -n 0 -q -o cache_dir=.tmp/pytest-cache
 
 check-workflow-registry: ## Validate GitHub Actions workflow ownership and artifact registry
+	@$(PYTHON) scripts/ci/generate_workflow_registry.py --check
 	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 
 check-workflow-references: ## Validate GitHub Actions workflow command and artifact references

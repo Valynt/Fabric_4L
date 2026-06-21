@@ -1,6 +1,7 @@
 import os
 
-from src.api.models import GraphEdge, GraphNode, get_deprecated_field_usage_counters
+from src.api.models import GraphEdge, GraphNode
+from src.services.compat_metrics import get_deprecated_field_usage_counters
 from src.api.main import app
 
 

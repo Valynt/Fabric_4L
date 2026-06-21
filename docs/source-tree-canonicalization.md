@@ -9,7 +9,7 @@
 
 - **Layer 5 canonical runtime modules:** `services/layer5-ground-truth/src/layer5_ground_truth/**`
 - **Layer 6 canonical runtime modules:** `services/layer6-benchmarks/src/**`
-- **Shim packages:** `value_fabric/layer5/` and `value_fabric/layer6/` are path-appender shims that resolve `value_fabric.layer{5,6}.*` imports to the canonical service trees.
+- **Shim packages:** `value_fabric/layer5/` remains a compatibility shim; `value_fabric/layer6/` is a neutralized namespace placeholder. New code must import canonical service packages directly.
 - **Service tree ownership:** `services/layer5-ground-truth/` and `services/layer6-benchmarks/` own implementation, deployment wiring (Dockerfiles, service config, tests, manifests), and any remaining mirrored compatibility wrappers.
 
 ## Compatibility policy

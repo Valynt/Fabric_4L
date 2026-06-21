@@ -56,6 +56,7 @@ def test_clerk_provider_loads_with_signed_internal_envelope_config(
     monkeypatch.setenv("CLERK_ISSUER", "https://accounts.example.clerk.accounts.dev")
     monkeypatch.setenv("CLERK_JWT_AUDIENCE", "fabric4l-api")
     monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://www.valuepact.ai,https://app.valuepact.ai")
+    monkeypatch.setenv("CLERK_JWKS_URL", "https://accounts.example.clerk.accounts.dev/.well-known/jwks.json")
     monkeypatch.setenv("FABRIC_AUTH_SIGNING_KEY", private_pem)
     monkeypatch.setenv("FABRIC_AUTH_SIGNING_KID", "gateway-k1")
     monkeypatch.setenv(

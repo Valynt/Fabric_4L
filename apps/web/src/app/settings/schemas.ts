@@ -136,6 +136,14 @@ export const settingsAccessRules = {
       "Policy edits require elevated permissions.",
     ],
   },
+
+  superAdmin: {
+    scope: "admin" as const,
+    capability: "super_admin" as const,
+    allowedRoles: ["super_admin"],
+    rule: "Platform-level super-admin operations are restricted to the super admin role.",
+    restrictions: [],
+  },
 } as const;
 
 // ── Screen Schema ─────────────────────────────────────────────────────────────
@@ -426,6 +434,17 @@ export type SettingsCategoryKey = (typeof settingsCategories)[number]["key"];
 export type SettingsCapabilityKey =
   (typeof settingsAccessRules)[keyof typeof settingsAccessRules]["capability"];
 
+export type SettingsCapability = SettingsCapabilityKey;
+
+export const orderedCapabilities: SettingsCapability[] = [
+  "personal",
+  "billing",
+  "team",
+  "integrations",
+  "governance",
+  "super_admin",
+];
+
 export const settingsCapabilityRoutePrefixes: Array<{
   capability: SettingsCapabilityKey;
   prefixes: readonly string[];
@@ -463,6 +482,17 @@ export function getSettingsCapabilityForPath(
   return settingsCapabilityRoutePrefixes.find((group) =>
     group.prefixes.some((prefix) => path.startsWith(prefix))
   )?.capability;
+}
+
+export function getCapabilitiesForRole(role: string | null | undefined): Set<SettingsCapability> {
+  const normalized = (role ?? "").trim().toLowerCase();
+  const capabilities = new Set<SettingsCapability>();
+  for (const rule of Object.values(settingsAccessRules)) {
+    if ((rule.allowedRoles as readonly string[]).includes(normalized)) {
+      capabilities.add(rule.capability);
+    }
+  }
+  return capabilities.size > 0 ? capabilities : new Set<SettingsCapability>(["personal"]);
 }
 
 export const governanceAdminControlMetrics = [

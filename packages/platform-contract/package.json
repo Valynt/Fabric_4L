@@ -9,7 +9,8 @@
     "./stores": "./src/typescript/stores.ts",
     "./routing": "./src/typescript/routing.ts",
     "./agent-contracts": "./src/typescript/agent-contracts/index.ts",
-    "./generated": "./src/typescript/generated/index.ts"
+    "./generated": "./src/typescript/generated/index.ts",
+    "./clerk-defaults": "./src/typescript/clerkDefaults.ts"
   },
   "scripts": {
     "check": "corepack pnpm run contract:test:ts",

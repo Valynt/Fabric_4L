@@ -195,6 +195,9 @@ def _install_legacy_collection_import_aliases() -> None:
     setattr(src_module, "services", src_services_module)
     setattr(src_module, "tools", src_tools_module)
 
+    layer4_agents_module = _ensure_namespace_module("layer4_agents", [layer4_src])
+    _ = layer4_agents_module  # noqa: F841 - registered for canonical test imports
+
     services_module = _ensure_namespace_module("services", [_PROJECT_ROOT / "services"])
 
     layer4_alias = _ensure_namespace_module(

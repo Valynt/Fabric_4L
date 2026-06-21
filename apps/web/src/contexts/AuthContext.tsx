@@ -15,7 +15,14 @@ import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization, useC
 import { createFeatureLogger } from '@/lib/telemetry';
 import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 import { getClerkTenantRouteSlug } from '@/auth/clerkTenant';
-import { type UserInfo, UserInfoSchema } from '../schemas/auth';
+import { UserInfoSchema, type UserInfo } from '../schemas/auth';
+import {
+  type AuthContextType,
+  createLegacyAuthContextValue,
+  isMockAuthEnabled,
+  normalizeClerkRole,
+  safeNavigate,
+} from './AuthContextCompat';
 
 export type { UserInfo } from '../schemas/auth';
 
@@ -28,87 +35,20 @@ if (import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
   );
 }
 
-// Mock identity for dev/test mode (using valid UUID format to match production expectations)
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
-const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000001';
-const MOCK_TENANT_SLUG = 'demo';
-const MOCK_ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
-
-const MOCK_USER_INFO: UserInfo = {
-  id: MOCK_USER_ID,
-  email: 'demo@valuepact.ai',
-  role: 'admin',
-  tenantId: MOCK_TENANT_ID,
-  tenantSlug: MOCK_TENANT_SLUG,
-};
-
-interface AuthContextType {
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  user: UserInfo | null;
-  currentTenantSlug: string | null;
-  accessToken: null;
-  initiateLogin: () => Promise<void>;
-  handleCallback: () => Promise<boolean>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<boolean>;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<import('./AuthContextCompat').AuthContextType | undefined>(undefined);
 const log = createFeatureLogger('auth-context');
-
-function safeNavigate(path: string) {
-  if (typeof window !== 'undefined') {
-    window.location.href = path; // navigation-guardrail: ignore auth provider redirect fallback
-  }
-}
-
-function normalizeClerkRole(role: string | null | undefined): UserInfo['role'] {
-  switch (role?.trim().toLowerCase()) {
-    case 'admin':
-    case 'org:admin':
-      return 'tenant_admin';
-    case 'basic_member':
-    case 'org:member':
-    case 'member':
-      return 'analyst';
-    case 'guest_member':
-    case 'org:guest':
-    case 'guest':
-      return 'read_only';
-    default:
-      return 'analyst';
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Mock auth must never override Clerk auth state. If both are configured,
   // prefer Clerk and treat mock auth as disabled to avoid redirect loops.
   const clerkMode = isClerkAuthEnabled();
-  const mockAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' && !clerkMode;
+  const mockAuthEnabled = isMockAuthEnabled(clerkMode);
 
   // Legacy / mock-auth path: do not call any Clerk hooks, because <ClerkProvider>
   // is not mounted in legacy mode. Calling them here crashes the app with
   // "useAuth can only be used within the <ClerkProvider /> component".
   if (!clerkMode) {
-    const value: AuthContextType = {
-      isAuthenticated: mockAuthEnabled,
-      isLoading: false,
-      user: mockAuthEnabled ? MOCK_USER_INFO : null,
-      currentTenantSlug: mockAuthEnabled ? MOCK_TENANT_SLUG : null,
-      accessToken: null,
-      initiateLogin: async () => {
-        if (mockAuthEnabled) return;
-        safeNavigate('/login');
-      },
-      handleCallback: async () => true,
-      logout: async () => {
-        safeNavigate('/');
-      },
-      refreshToken: async () => true,
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={createLegacyAuthContextValue(mockAuthEnabled)}>{children}</AuthContext.Provider>;
   }
 
   return <ClerkAuthProvider>{children}</ClerkAuthProvider>;

@@ -37,6 +37,14 @@ SAFE_REQUIRED_ENV_DEFAULTS = {
     "MINIO_ROOT_USER": "composecontract",
     "MINIO_ROOT_PASSWORD": "compose-contract-minio-password",
     "JWT_SECRET": "compose-contract-jwt-secret-minimum-32-characters",
+    "SECRET_KEY": "compose-contract-secret-key-minimum-32-characters",
+    "CORS_ORIGINS": "http://localhost:3001",
+    "CLERK_ISSUER": "https://compose-contract.clerk.example.com",
+    "CLERK_AUTHORIZED_PARTIES": "http://localhost:3001",
+    "CLERK_JWKS_URL": "https://compose-contract.clerk.example.com/.well-known/jwks.json",
+    "CLERK_SECRET_KEY": "compose-contract-clerk-secret-key",
+    "FABRIC_AUTH_SIGNING_KEY": "compose-contract-fabric-auth-signing-key",
+    "FABRIC_AUTH_PUBLIC_KEYS": "compose-contract-fabric-auth-public-key",
     "FLOWER_PASSWORD": "compose-contract-flower-password",
     "GRAFANA_ADMIN_PASSWORD": "compose-contract-grafana-password",
     "REDIS_PASSWORD": "compose-contract-redis-password",
@@ -132,6 +140,55 @@ PLACEHOLDER_SECRET_PATTERNS = (
 )
 
 SENSITIVE_ENV_NAME_RE = re.compile(r"(SECRET|PASSWORD|TOKEN|PRIVATE|API_KEY|HMAC)", re.IGNORECASE)
+
+# Auth environment variables whose defaults must live in .env.generated, not in compose files.
+AUTH_ENV_KEYS = {
+    "AUTH_PROVIDER",
+    "VITE_AUTH_PROVIDER",
+    "CLERK_ISSUER",
+    "CLERK_JWT_AUDIENCE",
+    "CLERK_AUTHORIZED_PARTIES",
+    "CLERK_JWKS_URL",
+    "CLERK_PINNED_JWT_PEM",
+    "CLERK_SECRET_KEY",
+    "CLERK_WEBHOOK_SECRET",
+    "CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE",
+    "CLERK_PUBLISHABLE_KEY",
+    "VITE_CLERK_PUBLISHABLE_KEY",
+    "VITE_CLERK_SIGN_IN_URL",
+    "VITE_CLERK_SIGN_UP_URL",
+    "VITE_CLERK_AFTER_SIGN_IN_URL",
+    "VITE_CLERK_AFTER_SIGN_UP_URL",
+    "VITE_CLERK_JWT_TEMPLATE",
+    "JWT_ALGORITHM",
+    "ALGORITHM",
+    "CORS_ORIGINS",
+    "FABRIC_AUTH_SIGNING_KEY",
+    "FABRIC_AUTH_SIGNING_KID",
+    "FABRIC_AUTH_PUBLIC_KEYS",
+    "FABRIC_AUTH_VERIFYING_PUBLIC_KEY",
+    "FABRIC_AUTH_ISSUER",
+    "FABRIC_AUTH_AUDIENCE",
+    "FABRIC_AUTH_ENVELOPE_TTL_SECONDS",
+    "KEYCLOAK_URL",
+    "KEYCLOAK_REALM",
+    "KEYCLOAK_ADMIN_USER",
+    "KEYCLOAK_ADMIN_PASSWORD",
+    "KEYCLOAK_FRONTEND_CLIENT_SECRET",
+    "KEYCLOAK_API_CLIENT_SECRET",
+    "OIDC_ISSUER",
+    "OIDC_AUDIENCE",
+    "OIDC_JWKS_URL",
+    "OIDC_JWKS_JSON",
+    "JWT_SECRET",
+    "SERVICE_AUTH_SECRET",
+    "API_KEY_HMAC_SECRET",
+    "CREDENTIALS_MASTER_KEY",
+    "AUTH_BYPASS_ENABLED",
+    "ALLOW_DEV_AUTH_BYPASS",
+    "DEV_AUTH_BYPASS",
+    "ALLOW_INSECURE_DEV_AUTH_BYPASS",
+}
 
 
 @dataclass(frozen=True)
@@ -549,6 +606,28 @@ def validate_live_compose_security(compose_file: Path) -> list[ComposeFailure]:
     return failures
 
 
+def validate_auth_env_defaults(compose_file: Path, services: dict[str, Any]) -> list[ComposeFailure]:
+    """Ensure auth env variables do not redefine inline defaults in compose files.
+
+    The canonical auth contract lives in .env.generated; compose files may reference
+    variables but must not supply their own defaults.
+    """
+    failures: list[ComposeFailure] = []
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        for key, value in iter_environment_entries(service):
+            if key in AUTH_ENV_KEYS and has_optional_env_default(value):
+                failures.append(
+                    ComposeFailure(
+                        compose_file.name,
+                        service_name,
+                        f"{key} must not redefine an inline default in compose; use .env.generated as the auth contract",
+                    )
+                )
+    return failures
+
+
 def validate_pythonpath_mounts(
     compose_file: Path,
     services: dict[str, Any],
@@ -620,6 +699,7 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
     services = data["services"]
     failures.extend(validate_full_compose_hardening(compose_file, services))
     failures.extend(validate_live_compose_security(compose_file))
+    failures.extend(validate_auth_env_defaults(compose_file, services))
     failures.extend(validate_pythonpath_mounts(compose_file, services))
     failures.extend(validate_frontend_env_completeness(compose_file, services))
     for service_name, service in services.items():

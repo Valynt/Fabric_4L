@@ -33,9 +33,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
+import clerkDefaults from "@fabric/platform-contract/clerk-defaults";
 
 const FABRIC_AUTH_TEMPLATE_NAME =
-  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
+  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? clerkDefaults.clerk.jwtTemplate).toString().trim() || undefined;
 
 function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   // OrgSync is only rendered from <ClerkAuthBridge> after its isClerkAuthEnabled()
