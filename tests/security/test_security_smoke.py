@@ -293,9 +293,13 @@ class TestCriticalAccessControl:
             assert entity.get("role") != "admin", "Mass assignment: role was set"
             assert entity.get("is_admin") is not True, "Mass assignment: is_admin was set"
 
-    @pytest.mark.xfail(strict=True, reason='RBAC method enforcement returns 405 (method not allowed) not 403 in test client')
     def test_read_only_cannot_write(self, client: TestClient, jwt_encoder: Callable[[dict], str]):
-        """Read-only permission blocks write operations."""
+        """Read-only principal is forbidden from a mutating admin endpoint.
+
+        ``DELETE /api/v1/entities/{entity_id}`` requires ``TENANT_ADMIN`` or
+        ``SUPER_ADMIN``. A read-only user must receive 403 Forbidden, proving
+        RBAC enforcement rejects the write attempt before any business logic runs.
+        """
         read_token = jwt_encoder({
             "sub": "read-only",
             "tenant_id": "tenant-a",
@@ -303,14 +307,12 @@ class TestCriticalAccessControl:
             "permissions": ["read"],
         })
 
-        response = client.post(
-            "/api/v1/entities",
+        response = client.delete(
+            "/api/v1/entities/test-entity-id",
             headers={"Authorization": f"Bearer {read_token}"},
-            json={"name": "test-entity"},
         )
-        # 403/401 = explicitly rejected; 404 = endpoint not implemented (also blocks write)
-        assert response.status_code in [403, 401, 404], (
-            f"Read-only user allowed to write, got {response.status_code}"
+        assert response.status_code == 403, (
+            f"Read-only user must be forbidden from mutating endpoint, got {response.status_code}"
         )
 
 

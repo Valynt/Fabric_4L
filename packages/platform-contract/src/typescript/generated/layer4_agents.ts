@@ -13448,6 +13448,13 @@ export interface operations {
                     };
                 };
             };
+            /** @description Invalid webhook credentials or signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13487,6 +13494,13 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Invalid webhook credentials or signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -15324,6 +15338,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebhookProvisioningResponse"];
                 };
+            };
+            /** @description Invalid webhook signature or expired timestamp */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -17841,6 +17862,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["stripe_webhookResult"];
                 };
+            };
+            /** @description Invalid webhook payload — verify the payload body and Stripe-Signature timestamp */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

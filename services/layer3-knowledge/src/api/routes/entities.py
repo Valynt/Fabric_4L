@@ -43,6 +43,7 @@ from ...api.exceptions import (
     ValidationError,
 )
 from ...api.models import (
+    EntityContextResponse,
     EntityDetail,
     EntityFilterRequest,
     EntityListResponse,
@@ -383,4 +384,95 @@ async def traverse_value_tree(
     except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/traverse", "operation": "traverse_value_tree"}
         logger.error("Value tree traversal failed for %s", request.root_entity_id, extra={"context": context}, exc_info=True)
+        raise map_exception_to_http_error(exc, context=context)
+
+
+@router.get("/{entity_id}/context", response_model=EntityContextResponse)
+async def get_entity_context_route(
+    entity_id: str,
+    hops: int = Query(2, ge=1, le=3, description="Number of relationship hops to include"),
+    min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence for included entities"),
+    relationship_types: list[str] | None = Query(None, description="Optional relationship types to traverse"),
+    _ctx: RequestContext = Depends(require_authenticated),
+    neo4j: Neo4jTenantSession = Depends(get_neo4j_with_tenant),
+) -> EntityContextResponse:
+    """Get the N-hop context graph around an entity.
+
+    Returns the center entity, its neighbors, and the relationships connecting
+    them, scoped to the authenticated tenant.
+    """
+    try:
+        rel_filter = ""
+        params: dict[str, Any] = {
+            "entity_id": entity_id,
+            "min_confidence": min_confidence,
+        }
+        if relationship_types:
+            rel_filter = "AND ALL(r IN relationships(path) WHERE type(r) IN $relationship_types)"
+            params["relationship_types"] = relationship_types
+
+        query = f"""
+            MATCH path = (center {{id: $entity_id, tenant_id: $tenant_id}})-[*1..{hops}]-(connected {{tenant_id: $tenant_id}})
+            WHERE ALL(node IN nodes(path) WHERE node.confidence >= $min_confidence)
+            {rel_filter}
+            WITH center,
+                 collect(DISTINCT connected) AS neighbors,
+                 collect(DISTINCT relationships(path)) AS all_rels
+            RETURN center, neighbors, all_rels
+        """
+
+        result = await neo4j.execute_query(query, params)
+        if not result:
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
+
+        record = result[0]
+        center_node = record.get("center")
+        if not center_node:
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
+
+        def _serialize_node(node: Any) -> dict[str, Any]:
+            data = dict(node)
+            return {
+                "id": data.get("id"),
+                "name": data.get("name"),
+                "entity_type": data.get("entity_type"),
+                "confidence_score": data.get("confidence_score", data.get("confidence", 0.0)),
+                "description": data.get("description"),
+                "properties": data.get("properties", {}),
+            }
+
+        neighbor_nodes = record.get("neighbors", [])
+        serialized_neighbors = [_serialize_node(n) for n in neighbor_nodes]
+        center = _serialize_node(center_node)
+
+        relationships: list[dict[str, Any]] = []
+        for rel_group in record.get("all_rels", []):
+            group = rel_group if isinstance(rel_group, list) else [rel_group]
+            for rel in group:
+                rel_data = dict(rel)
+                start = rel.get("start_node", {})
+                end = rel.get("end_node", {})
+                relationships.append({
+                    "source": rel_data.get("source") or start.get("id"),
+                    "target": rel_data.get("target") or end.get("id"),
+                    "type": rel_data.get("type") or rel_data.get("relationship_type"),
+                    "confidence": rel_data.get("confidence", rel_data.get("confidence_score", 0.0)),
+                })
+
+        return EntityContextResponse(
+            entity_id=entity_id,
+            center=center,
+            neighbors=serialized_neighbors,
+            relationships=relationships,
+            entity_count=1 + len(serialized_neighbors),
+            relationship_count=len(relationships),
+        )
+
+    except (ValidationError, DatabaseError) as exc:
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}/context", "operation": "get_entity_context"}
+        logger.warning("Entity context mapped exception", extra={"context": context}, exc_info=True)
+        raise map_exception_to_http_error(exc, context=context)
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}/context", "operation": "get_entity_context"}
+        logger.error("Entity context retrieval failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
