@@ -13,6 +13,8 @@ from layer4_agents.interfaces import (
     ActivationRequest,
     BenchmarkDataset,
     ComparisonRequest,
+    ContextFinancialExtractionPort,
+    ContextIngestionPort,
     FormulaGovernance,
     FormulaStatus,
     GovernanceTransitionResult,
@@ -25,6 +27,9 @@ from layer4_agents.interfaces import (
     PackExecutionRequest,
     PackStatus,
     ResolutionContext,
+    SignalExtractionPort,
+    SignalKnowledgePort,
+    SignalReviewPort,
     ValuePack,
     Variable,
     VariableDataType,
@@ -58,6 +63,11 @@ def test_interfaces_module_exports_core_symbols():
     assert IFormulaApprovalWorkflow is not None
     assert IVariableRegistry is not None
     assert IGroundTruthVariableBridge is not None
+    assert ContextFinancialExtractionPort is not None
+    assert ContextIngestionPort is not None
+    assert SignalExtractionPort is not None
+    assert SignalKnowledgePort is not None
+    assert SignalReviewPort is not None
 
 
 def test_http_benchmark_client_normalizes_base_url():

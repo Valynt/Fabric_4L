@@ -126,34 +126,41 @@ def _read_jsonl(path: Path) -> str:
     return "\n".join(lines)
 
 
-def build_index() -> int:
-    """Build or rebuild the FTS5 index from all memory files."""
-    INDEX_DIR.mkdir(exist_ok=True)
-    conn = sqlite3.connect(INDEX_PATH)
+def _reset_index(conn) -> None:
     conn.execute("DROP TABLE IF EXISTS memories")
     conn.execute("""
         CREATE VIRTUAL TABLE memories
         USING fts5(filename, content, tokenize='porter unicode61')
     """)
-    indexed = 0
-    for f in _memory_files():
-        try:
-            if f.suffix == ".md":
-                content = f.read_text(encoding="utf-8")
-            elif f.suffix == ".jsonl":
-                content = _read_jsonl(f)
-            else:
-                continue
-            rel_path = f.relative_to(MEMORY_DIR)
-            conn.execute("INSERT INTO memories VALUES (?, ?)",
-                         (str(rel_path), content))
-            indexed += 1
-        except (OSError, UnicodeError, sqlite3.Error) as exc:
-            print(f"Skipping memory file {f}: {exc}", file=sys.stderr)
-            continue
-    conn.commit()
-    conn.close()
-    return indexed
+
+
+def _content_for_memory_file(path: Path) -> str | None:
+    if path.suffix == ".md":
+        return path.read_text(encoding="utf-8")
+    if path.suffix == ".jsonl":
+        return _read_jsonl(path)
+    return None
+
+
+def _insert_memory_file(conn, path: Path) -> bool:
+    try:
+        content = _content_for_memory_file(path)
+        if content is None:
+            return False
+        rel_path = path.relative_to(MEMORY_DIR)
+        conn.execute("INSERT INTO memories VALUES (?, ?)", (str(rel_path), content))
+        return True
+    except (OSError, UnicodeError, sqlite3.Error) as exc:
+        print(f"Skipping memory file {path}: {exc}", file=sys.stderr)
+        return False
+
+
+def build_index() -> int:
+    """Build or rebuild the FTS5 index from all memory files."""
+    INDEX_DIR.mkdir(exist_ok=True)
+    with sqlite3.connect(INDEX_PATH) as conn:
+        _reset_index(conn)
+        return sum(1 for path in _memory_files() if _insert_memory_file(conn, path))
 
 
 def search_fts5(query: str):

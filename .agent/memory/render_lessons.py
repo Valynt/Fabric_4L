@@ -43,6 +43,26 @@ except ImportError:
     )
 
 
+def _lock_file(f):
+    if _HAS_FLOCK:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+
+
+def _unlock_file(f):
+    if not _HAS_FLOCK:
+        return
+    try:
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        # Release-on-close is the kernel default; swallowing a late
+        # release failure doesn't leak the lock.
+        warnings.warn(
+            f"Failed to release lessons.jsonl lock before close: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+
 @contextmanager
 def _locked_jsonl(path):
     """Open lessons.jsonl with an advisory exclusive flock held for the scope.
@@ -63,21 +83,10 @@ def _locked_jsonl(path):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     f = open(path, "a+")
     try:
-        if _HAS_FLOCK:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        _lock_file(f)
         yield f
     finally:
-        if _HAS_FLOCK:
-            try:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-            except OSError as exc:
-                # Release-on-close is the kernel default; swallowing a late
-                # release failure doesn't leak the lock.
-                warnings.warn(
-                    f"Failed to release lessons.jsonl lock before close: {exc}",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
+        _unlock_file(f)
         f.close()
 
 

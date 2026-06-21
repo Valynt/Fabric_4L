@@ -33,13 +33,23 @@ def valuepact_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 class FakeClient:
     instances: list[FakeClient] = []
 
-    def __init__(self, *, api_url: str, token: str, request_id: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        api_url: str,
+        token: str,
+        request_id: str | None = None,
+        command_name: str | None = None,
+        cli_version: str | None = None,
+    ) -> None:
         self.api_url = api_url
         self.token = token
         self.request_id = request_id
+        self.command_name = command_name
+        self.cli_version = cli_version
         self.closed = False
         self.calls: list[tuple[str, object]] = []
-        FakeClient.instances.append(self)
+        type(self).instances.append(self)
 
     def close(self) -> None:
         self.closed = True
@@ -86,6 +96,14 @@ class FakeClient:
         return {"status": "ok"}
 
 
+class DenyingClient(FakeClient):
+    instances: list[DenyingClient] = []
+
+    def verify_tenant_access(self, tenant_id: str, *, scopes: set[str]) -> dict[str, object]:
+        self.calls.append(("verify_tenant_access", {"tenant_id": tenant_id, "scopes": scopes}))
+        return {"authorized": False, "scopes": []}
+
+
 def test_context_use_stores_non_secret_profile(valuepact_env: Path) -> None:
     result = runner.invoke(
         cli,
@@ -112,6 +130,25 @@ def test_context_use_stores_non_secret_profile(valuepact_env: Path) -> None:
     assert "api_key" not in config
 
 
+def test_auth_login_verifies_identity_and_stores_only_metadata(valuepact_env: Path) -> None:
+    FakeClient.instances = []
+    with patch("valuepact.cli.ValuePactApiClient", FakeClient):
+        result = runner.invoke(
+            cli,
+            ["auth", "login", "--api-url", "https://api.login.example", "--json"],
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["data"]["actor_id"] == "svc_123"
+    config = (valuepact_env / "config.toml").read_text(encoding="utf-8")
+    assert "svc_123" in config
+    assert "https://api.login.example" in config
+    assert "secret-token" not in config
+    assert FakeClient.instances[0].command_name == "valuepact auth login"
+    assert FakeClient.instances[0].cli_version is not None
+
+
 def test_workspace_list_verifies_tenant_and_cleans_context(valuepact_env: Path) -> None:
     FakeClient.instances = []
     with patch("valuepact.cli.ValuePactApiClient", FakeClient):
@@ -128,6 +165,49 @@ def test_workspace_list_verifies_tenant_and_cleans_context(valuepact_env: Path) 
     assert calls[1][0] == "verify_tenant_access"
     assert calls[2] == ("list_workspaces", "tenant_123")
     assert FakeClient.instances[0].closed is True
+    assert FakeClient.instances[0].command_name == "valuepact workspace list"
+    assert FakeClient.instances[0].cli_version is not None
+
+
+def test_command_local_json_and_context_options_override_environment(valuepact_env: Path) -> None:
+    FakeClient.instances = []
+    with patch("valuepact.cli.ValuePactApiClient", FakeClient):
+        result = runner.invoke(
+            cli,
+            [
+                "workspace",
+                "execute",
+                "--workspace-id",
+                "workspace_456",
+                "--yes",
+                "--json",
+                "--tenant-id",
+                "tenant_cli",
+                "--environment",
+                "production",
+            ],
+        )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["meta"]["tenant_id"] == "tenant_cli"
+    assert payload["meta"]["environment"] == "production"
+    assert payload["data"]["tenant_id"] == "tenant_cli"
+    assert FakeClient.instances[0].calls[1] == (
+        "verify_tenant_access",
+        {"tenant_id": "tenant_cli", "scopes": {"valuepact:workspace:execute"}},
+    )
+
+
+def test_authorization_denied_uses_stable_exit_and_cleans_context(valuepact_env: Path) -> None:
+    DenyingClient.instances = []
+    with patch("valuepact.cli.ValuePactApiClient", DenyingClient):
+        result = runner.invoke(cli, ["workspace", "list", "--json"])
+
+    assert result.exit_code == 4
+    payload = json.loads(result.stderr)
+    assert payload["error"]["code"] == "AUTHORIZATION_DENIED"
+    assert get_active_execution_context() is None
 
 
 def test_workspace_execute_requires_confirmation_for_mutation(valuepact_env: Path) -> None:

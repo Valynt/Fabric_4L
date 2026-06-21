@@ -36,30 +36,36 @@ def _find_prior(slug, candidates_dir):
     one place at a time; the caller is responsible for cleaning up the
     old location when moving the candidate back to staged.
     """
-    staged_path = os.path.join(candidates_dir, f"{slug}.json")
-    if os.path.isfile(staged_path):
-        try:
-            with open(staged_path) as f:
-                return json.load(f), "staged"
-        except (OSError, json.JSONDecodeError) as exc:
-            warnings.warn(
-                f"Skipping unreadable staged candidate {staged_path}: {exc}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-    for sub in ("rejected", "graduated"):
-        path = os.path.join(candidates_dir, sub, f"{slug}.json")
-        if os.path.isfile(path):
-            try:
-                with open(path) as f:
-                    return json.load(f), sub
-            except (OSError, json.JSONDecodeError) as exc:
-                warnings.warn(
-                    f"Skipping unreadable {sub} candidate {path}: {exc}",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
+    for location in _candidate_locations():
+        record = _read_prior_candidate(_candidate_path(candidates_dir, location, slug), location)
+        if record:
+            return record, location
     return {}, None
+
+
+def _candidate_locations():
+    return ("staged", "rejected", "graduated")
+
+
+def _candidate_path(candidates_dir, location, slug):
+    if location == "staged":
+        return os.path.join(candidates_dir, f"{slug}.json")
+    return os.path.join(candidates_dir, location, f"{slug}.json")
+
+
+def _read_prior_candidate(path, location):
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        warnings.warn(
+            f"Skipping unreadable {location} candidate {path}: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
 
 
 def _lessons_text_for_candidates(candidates_dir):

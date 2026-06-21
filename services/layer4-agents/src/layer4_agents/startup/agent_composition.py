@@ -8,6 +8,7 @@ from layer4_agents.adapters.context_clients import (
     create_context_financial_extraction_client,
     create_context_ingestion_client,
 )
+from layer4_agents.adapters.prospect_context import CrossLayerProspectContextAdapter
 from layer4_agents.adapters.signal_clients import (
     create_signal_extraction_client,
     create_signal_knowledge_client,
@@ -15,6 +16,7 @@ from layer4_agents.adapters.signal_clients import (
 from layer4_agents.adapters.signal_review import Layer3SignalReviewAdapter
 from layer4_agents.agents.signal_detection import SignalDetectionAgent
 from layer4_agents.agents.taxonomy import ContextExtractionAgent
+from layer4_agents.interfaces.prospect_context import ProspectContextPort
 from layer4_agents.interfaces.signal_review import SignalReviewPort
 
 
@@ -42,3 +44,20 @@ def create_signal_review_client(base_url: str) -> SignalReviewPort:
     """Create the production signal/evidence review adapter."""
 
     return Layer3SignalReviewAdapter(base_url=base_url)
+
+
+def create_prospect_context_client(
+    *,
+    layer1_url: str,
+    layer2_url: str,
+    layer3_url: str,
+    layer5_url: str,
+) -> ProspectContextPort:
+    """Create the production prospect context adapter."""
+
+    return CrossLayerProspectContextAdapter(
+        layer1_url=layer1_url,
+        layer2_url=layer2_url,
+        layer3_url=layer3_url,
+        layer5_url=layer5_url,
+    )

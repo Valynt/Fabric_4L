@@ -30,6 +30,7 @@ from .formula_governance import (
     IFormulaApprovalWorkflow,
     IFormulaGovernanceService,
 )
+from .prospect_context import ProspectContextPort, ProspectContextSources
 from .signal_clients import SignalExtractionPort, SignalKnowledgePort
 from .signal_review import SignalReviewPort
 from .value_pack_service import (
@@ -65,6 +66,8 @@ __all__ = [
     "RangeValidationResult",
     "ContextFinancialExtractionPort",
     "ContextIngestionPort",
+    "ProspectContextPort",
+    "ProspectContextSources",
     "SignalExtractionPort",
     "SignalKnowledgePort",
     "SignalReviewPort",

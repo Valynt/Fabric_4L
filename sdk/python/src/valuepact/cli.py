@@ -49,7 +49,56 @@ class GlobalOptions(dict[str, Any]):
     """Global command options attached to Click context."""
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+def _merge_command_option(ctx: click.Context, param: click.Parameter, value: Any) -> None:
+    if value in (None, False):
+        return
+    root = ctx.find_root()
+    if root.obj is None:
+        root.obj = GlobalOptions()
+    root.obj[param.name] = value
+
+
+def output_cli_options(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Allow output-control root options to be supplied after a command name."""
+
+    options = [
+        click.option("--verbose", is_flag=True, expose_value=False, callback=_merge_command_option),
+        click.option(
+            "--no-color",
+            "no_color",
+            is_flag=True,
+            expose_value=False,
+            callback=_merge_command_option,
+        ),
+        click.option("--quiet", is_flag=True, expose_value=False, callback=_merge_command_option),
+        click.option(
+            "--json",
+            "json_output",
+            is_flag=True,
+            expose_value=False,
+            callback=_merge_command_option,
+        ),
+    ]
+    for option in options:
+        func = option(func)
+    return func
+
+
+def common_cli_options(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Allow root context/output options to be supplied after a command name."""
+
+    options = [
+        click.option("--tenant-id", expose_value=False, callback=_merge_command_option),
+        click.option("--environment", expose_value=False, callback=_merge_command_option),
+        click.option("--profile", expose_value=False, callback=_merge_command_option),
+    ]
+    func = output_cli_options(func)
+    for option in options:
+        func = option(func)
+    return func
+
+
+@click.group(name="valuepact", context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--json", "json_output", is_flag=True, help="Emit stable JSON envelopes.")
 @click.option("--quiet", is_flag=True, help="Suppress non-essential human output.")
 @click.option("--no-color", is_flag=True, help="Reserved for color-aware output.")
@@ -131,6 +180,8 @@ def _client(ctx: click.Context, *, request_id: str) -> ValuePactApiClient:
         api_url=_resolve_api_url(ctx, profile),
         token=_load_token(),
         request_id=request_id,
+        command_name=ctx.command_path,
+        cli_version=__version__,
     )
 
 
@@ -236,6 +287,7 @@ def _emit_human(data: Any, context: ExecutionContext) -> None:
 
 
 @cli.command("version")
+@common_cli_options
 @click.pass_context
 def version(ctx: click.Context) -> None:
     """Show the ValuePact CLI version."""
@@ -248,6 +300,7 @@ def version(ctx: click.Context) -> None:
 
 
 @cli.command("doctor")
+@common_cli_options
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
     """Run local configuration and API diagnostics."""
@@ -291,6 +344,7 @@ def auth_group() -> None:
 @auth_group.command("login")
 @click.option("--api-url", help="ValuePact API URL to store in the active profile.")
 @click.option("--profile", "profile_name", default="default", show_default=True)
+@output_cli_options
 @click.pass_context
 def auth_login(ctx: click.Context, *, api_url: str | None, profile_name: str) -> None:
     """Verify VALUEPACT_SERVICE_TOKEN and store non-secret profile metadata."""
@@ -304,6 +358,8 @@ def auth_login(ctx: click.Context, *, api_url: str | None, profile_name: str) ->
             api_url=_resolve_api_url(ctx, profile),
             token=_load_token(),
             request_id=request_id,
+            command_name=ctx.command_path,
+            cli_version=__version__,
         )
         try:
             identity = client.identity()
@@ -328,6 +384,7 @@ def auth_login(ctx: click.Context, *, api_url: str | None, profile_name: str) ->
 
 
 @auth_group.command("status")
+@common_cli_options
 @click.pass_context
 def auth_status(ctx: click.Context) -> None:
     """Show authentication status without printing credentials."""
@@ -351,6 +408,7 @@ def auth_status(ctx: click.Context) -> None:
 
 @auth_group.command("logout")
 @click.option("--profile", "profile_name", default="default", show_default=True)
+@output_cli_options
 @click.pass_context
 def auth_logout(ctx: click.Context, *, profile_name: str) -> None:
     """Remove stored non-secret identity metadata for a profile."""
@@ -383,6 +441,7 @@ def context_group() -> None:
 @click.option("--environment", required=True)
 @click.option("--api-url")
 @click.option("--profile", "profile_name", default="default", show_default=True)
+@output_cli_options
 @click.pass_context
 def context_use(
     ctx: click.Context,
@@ -410,6 +469,7 @@ def context_use(
 
 
 @context_group.command("show")
+@common_cli_options
 @click.pass_context
 def context_show(ctx: click.Context) -> None:
     """Show the resolved non-secret context."""
@@ -431,6 +491,7 @@ def context_show(ctx: click.Context) -> None:
 
 
 @context_group.command("list")
+@common_cli_options
 @click.pass_context
 def context_list(ctx: click.Context) -> None:
     """List stored non-secret profiles."""
@@ -447,6 +508,7 @@ def context_list(ctx: click.Context) -> None:
 
 
 @context_group.command("clear")
+@common_cli_options
 @click.pass_context
 def context_clear(ctx: click.Context) -> None:
     """Clear the active profile marker."""
@@ -465,6 +527,7 @@ def tenant_group() -> None:
 
 
 @tenant_group.command("list")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def tenant_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:
     return api_client.list_tenants()
@@ -472,6 +535,7 @@ def tenant_list(*, api_client: ValuePactApiClient, execution_context: ExecutionC
 
 @tenant_group.command("show")
 @click.argument("tenant_id")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def tenant_show(
     tenant_id: str,
@@ -490,6 +554,7 @@ def workspace_group() -> None:
 
 
 @workspace_group.command("list")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def workspace_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:
     return api_client.list_workspaces(execution_context.tenant_id)
@@ -497,6 +562,7 @@ def workspace_list(*, api_client: ValuePactApiClient, execution_context: Executi
 
 @workspace_group.command("show")
 @click.argument("workspace_id")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def workspace_show(
     workspace_id: str,
@@ -512,6 +578,7 @@ def workspace_show(
 @click.option("--input", "input_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--yes", is_flag=True, help="Confirm execution for automation.")
 @click.option("--dry-run", is_flag=True, help="Preview execution without mutating where supported.")
+@common_cli_options
 @protected_command({EXECUTE_SCOPE})
 def workspace_execute(
     *,
@@ -556,6 +623,7 @@ def execution_group() -> None:
 
 
 @execution_group.command("list")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def execution_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:
     return api_client.list_executions(execution_context.tenant_id)
@@ -564,6 +632,7 @@ def execution_list(*, api_client: ValuePactApiClient, execution_context: Executi
 @execution_group.command("status")
 @click.argument("execution_id")
 @click.option("--watch", is_flag=True, help="Reserved for streaming status polling.")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def execution_status(
     execution_id: str,
@@ -580,6 +649,7 @@ def execution_status(
 
 @execution_group.command("logs")
 @click.argument("execution_id")
+@common_cli_options
 @protected_command({READ_SCOPE})
 def execution_logs(
     execution_id: str,
@@ -594,6 +664,7 @@ def execution_logs(
 @click.argument("execution_id")
 @click.option("--yes", is_flag=True, help="Confirm cancellation for automation.")
 @click.option("--dry-run", is_flag=True, help="Preview cancellation without mutating.")
+@common_cli_options
 @protected_command({EXECUTE_SCOPE})
 def execution_cancel(
     execution_id: str,
@@ -633,6 +704,7 @@ def audit_group() -> None:
 
 @audit_group.command("list")
 @click.option("--since")
+@common_cli_options
 @protected_command({AUDIT_SCOPE})
 def audit_list(
     *,

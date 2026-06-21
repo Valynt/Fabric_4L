@@ -19,7 +19,15 @@ from valuefabric.errors import (
 class ValuePactApiClient:
     """Small remote adapter; server-side APIs remain the security boundary."""
 
-    def __init__(self, *, api_url: str, token: str, request_id: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        api_url: str,
+        token: str,
+        request_id: str | None = None,
+        command_name: str | None = None,
+        cli_version: str | None = None,
+    ) -> None:
         if not api_url.startswith(("http://", "https://")):
             raise ValueError("VALUEPACT_API_URL must start with http:// or https://")
         self.api_url = api_url.rstrip("/")
@@ -29,6 +37,10 @@ class ValuePactApiClient:
         }
         if request_id:
             headers["X-Request-ID"] = request_id
+        if command_name:
+            headers["X-ValuePact-Command"] = command_name
+        if cli_version:
+            headers["X-ValuePact-CLI-Version"] = cli_version
         self._client = httpx.Client(base_url=self.api_url, headers=headers, timeout=30.0)
 
     def request(

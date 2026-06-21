@@ -525,6 +525,18 @@ _REFLECTIONS = {
 }
 
 
+def _reflection_parts(tool_name: str, tool_input: dict,
+                      tool_response: dict, success: bool) -> list[str]:
+    builder = _REFLECTIONS.get(tool_name)
+    if not builder:
+        return _fallback_reflection(tool_name, tool_input, success)
+    return builder(tool_input, tool_response, success)
+
+
+def _join_reflection(tool_name: str, parts: list[str]) -> str:
+    return ". ".join(parts) if parts else f"Tool {tool_name} ran"
+
+
 def _reflection(tool_name: str, tool_input: dict,
                 tool_response: dict, success: bool) -> str:
     """
@@ -532,12 +544,10 @@ def _reflection(tool_name: str, tool_input: dict,
     important field for the dream cycle — content_cluster() calls word_set()
     on it. An empty reflection means zero clustering signal.
     """
-    builder = _REFLECTIONS.get(tool_name)
-    if builder:
-        parts = builder(tool_input, tool_response, success)
-    else:
-        parts = _fallback_reflection(tool_name, tool_input, success)
-    return ". ".join(parts) if parts else f"Tool {tool_name} ran"
+    return _join_reflection(
+        tool_name,
+        _reflection_parts(tool_name, tool_input, tool_response, success),
+    )
 
 
 # ---------------------------------------------------------------------------
