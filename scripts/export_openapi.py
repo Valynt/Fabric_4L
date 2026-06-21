@@ -60,7 +60,7 @@ class OpenApiExportSpec:
 
 
 EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
-    OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "api/main.py", "layer1-ingestion.json"),
+    OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "layer1_ingestion/api/main.py", "layer1-ingestion.json"),
     OpenApiExportSpec("Layer 2", "layer2-extraction", "layer2_extraction", "layer2_extraction/api/main.py", "layer2-extraction.json"),
     OpenApiExportSpec("Layer 3", "layer3-knowledge", "layer3_knowledge", "api/main.py", "layer3-knowledge.json"),
     OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "layer4_agents/api/main.py", "layer4-agents.json"),

@@ -1708,7 +1708,7 @@
     "/api/v1/ingestion/source-corpora": {
       "get": {
         "summary": "List Source Corpora",
-        "description": "List SourceCorpus records for the authenticated tenant.\n\nReturns summary objects only — provenance arrays are excluded.\nTenant isolation is enforced from auth context; no cross-tenant query params accepted.",
+        "description": "List SourceCorpus records for the authenticated tenant.\n\nReturns summary objects only - provenance arrays are excluded.\nTenant isolation is enforced from auth context; no cross-tenant query params accepted.",
         "operationId": "list_source_corpora_api_v1_ingestion_source_corpora_get",
         "parameters": [
           {
@@ -1893,7 +1893,7 @@
     "/api/v1/ingestion/account-intelligence-packets": {
       "get": {
         "summary": "List Account Intelligence Packets",
-        "description": "List AccountIntelligencePacket records for the authenticated tenant.\n\nReturns summary objects only — source_references arrays are excluded.\nTenant isolation is enforced from auth context; no cross-tenant query params accepted.",
+        "description": "List AccountIntelligencePacket records for the authenticated tenant.\n\nReturns summary objects only - source_references arrays are excluded.\nTenant isolation is enforced from auth context; no cross-tenant query params accepted.",
         "operationId": "list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get",
         "parameters": [
           {

@@ -2743,7 +2743,7 @@ async def list_source_corpora(
 ):
     """List SourceCorpus records for the authenticated tenant.
 
-    Returns summary objects only — provenance arrays are excluded.
+    Returns summary objects only - provenance arrays are excluded.
     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
     """
 
@@ -2819,7 +2819,7 @@ async def list_account_intelligence_packets(
 ):
     """List AccountIntelligencePacket records for the authenticated tenant.
 
-    Returns summary objects only — source_references arrays are excluded.
+    Returns summary objects only - source_references arrays are excluded.
     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
     """
     q = db.query(AccountIntelligencePacket).filter(
@@ -3429,6 +3429,16 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
 
 # Adjacent route modules register cohesive endpoint groups without changing public paths.
 from . import _batch_and_stats
+
+# Public compatibility re-exports used by tests and external imports.
+# Do not remove unless import paths are migrated.
+from ._batch_and_stats import (
+    BatchOperationItemResult,  # noqa: F401
+    BatchOperationRequest,  # noqa: F401
+    BatchOperationResponse,  # noqa: F401
+    BatchOperationType,  # noqa: F401
+    TargetStatsResponse,  # noqa: F401
+)
 from .consent_routes import register_routes as register_consent_routes
 from .main_admin_routes import router as admin_routes
 from .main_compliance_routes import router as compliance_routes

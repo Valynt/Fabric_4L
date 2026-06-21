@@ -600,7 +600,7 @@ export interface paths {
          * List Source Corpora
          * @description List SourceCorpus records for the authenticated tenant.
          *
-         *     Returns summary objects only — provenance arrays are excluded.
+         *     Returns summary objects only - provenance arrays are excluded.
          *     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
          */
         get: operations["list_source_corpora_api_v1_ingestion_source_corpora_get"];
@@ -645,7 +645,7 @@ export interface paths {
          * List Account Intelligence Packets
          * @description List AccountIntelligencePacket records for the authenticated tenant.
          *
-         *     Returns summary objects only — source_references arrays are excluded.
+         *     Returns summary objects only - source_references arrays are excluded.
          *     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
          */
         get: operations["list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get"];
