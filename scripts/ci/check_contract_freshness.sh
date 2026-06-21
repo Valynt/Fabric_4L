@@ -53,13 +53,13 @@ printf '\n== Regenerating frontend generated DTO types ==\n'
 
 printf '\n== Checking for generated contract drift ==\n'
 if ! git diff --exit-code -- "${OPENAPI_FILES[@]}" "${GENERATED_TYPE_GLOBS[@]}"; then
-  cat >&2 <<'EOF'
+  cat >&2 <<EOF
 
 Contract freshness drift detected.
 
 Run the following commands from the repository root and commit the resulting generated artifacts:
 
-  python scripts/export_openapi.py
+  ${PYTHON_BIN} scripts/export_openapi.py
   cd apps/web && pnpm run generate:types
 
 The committed OpenAPI JSON and frontend generated DTO types must remain deterministic outputs of the current backend service sources.
