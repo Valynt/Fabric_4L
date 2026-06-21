@@ -19,8 +19,9 @@ On success, a ``RequestContext`` with an authenticated tenant is stored in the
 ``require_context()``.
 
 On failure / missing credentials for any non-public path, the middleware fails
-closed before route handlers run. Public probes and documentation endpoints are
-listed in ``PUBLIC_PATH_ALLOWLIST``.
+closed before route handlers run. Probes, documentation, and external-IdP
+bootstrap endpoints that perform their own authentication are listed in
+``EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST``.
 """
 
 from __future__ import annotations
@@ -144,8 +145,9 @@ TENANT_ID_HEADER = "X-Tenant-ID"
 SERVICE_AUTH_HEADER = "X-Service-Auth"
 MIN_SERVICE_SECRET_LENGTH = 32  # Minimum entropy for shared secrets
 
-# Paths that bypass all authentication checks
-PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
+# Paths that bypass the gateway identity middleware because they perform their
+# own authentication (e.g., health probes, external IdP bootstrap routes).
+EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST: frozenset[str] = frozenset(
     {
         "/health",
         "/health/detailed",
@@ -162,14 +164,19 @@ PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
         "/v1/auth/login",
         "/v1/auth/signup",
         "/v1/auth/accept-invite",
+        "/v1/auth/clerk/tenant",
         "/",
     }
 )
 
 
-def _is_public_path(path: str) -> bool:
-    """Return True if the path should bypass authentication."""
-    return path in PUBLIC_PATH_ALLOWLIST or path.startswith("/docs") or path.startswith("/redoc")
+def _is_external_auth_bootstrap_path(path: str) -> bool:
+    """Return True if the path bypasses the gateway middleware but has its own auth."""
+    return (
+        path in EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST
+        or path.startswith("/docs")
+        or path.startswith("/redoc")
+    )
 
 
 def audit_protected_routes(app: FastAPI) -> None:
@@ -186,7 +193,7 @@ def audit_protected_routes(app: FastAPI) -> None:
     for route in app.routes:
         if not isinstance(route, APIRoute):
             continue
-        if _is_public_path(route.path):
+        if _is_external_auth_bootstrap_path(route.path):
             continue
         methods = ",".join(sorted(route.methods or []))
         protected_routes.append(f"{methods} {route.path}")
@@ -479,7 +486,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         ctx: Optional[RequestContext] = None
 
         try:
-            if self._enforce_authentication and not _is_public_path(request.url.path):
+            if self._enforce_authentication and not _is_external_auth_bootstrap_path(request.url.path):
                 try:
                     ctx = await self._resolve_identity(request)
                 except HTTPException as exc:

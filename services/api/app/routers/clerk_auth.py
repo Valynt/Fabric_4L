@@ -8,9 +8,10 @@ frontend state for tenant context.
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from typing import Literal
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, get_auth_directory
@@ -79,7 +80,7 @@ async def get_clerk_tenant(
     """
     tenant = _resolve_directory_tenant(directory, auth.clerk_org_id)
     return ClerkTenantResponse(
-        fabric_tenant_id=auth.tenant_id,
+        fabric_tenant_id=tenant.id,
         tenant_slug=tenant.slug,
         clerk_org_id=auth.clerk_org_id or "",
         status=tenant.status,

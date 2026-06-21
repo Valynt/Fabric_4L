@@ -27,6 +27,8 @@ class ClerkSettings:
     issuer: str | None = None
     jwt_audience: str | None = None
     authorized_parties: tuple[str, ...] | None = None
+    jwks_url: str | None = None
+    pinned_jwt_pem: str | None = None
     webhook_secret: str | None = None
     secret_key: str | None = None
     publishable_key: str | None = None
@@ -121,6 +123,8 @@ def get_auth_settings() -> AuthSettings:
         authorized_parties=_parse_authorized_parties(
             os.getenv("CLERK_AUTHORIZED_PARTIES", "")
         ),
+        jwks_url=os.getenv("CLERK_JWKS_URL") or None,
+        pinned_jwt_pem=os.getenv("CLERK_PINNED_JWT_PEM") or None,
         webhook_secret=os.getenv("CLERK_WEBHOOK_SECRET") or None,
         secret_key=os.getenv("CLERK_SECRET_KEY") or None,
         publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY") or None,

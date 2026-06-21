@@ -14,7 +14,6 @@ from functools import lru_cache
 
 from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from .auth_context_builder import (
@@ -26,7 +25,6 @@ from .auth_context_builder import (
 from .auth_directory import get_auth_directory
 from .clerk_config import (
     AUTH_PROVIDER_CLERK,
-    AuthSettings,
     get_auth_settings,
 )
 from .clerk_verifier import (
@@ -40,12 +38,14 @@ logger = logging.getLogger(__name__)
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
+_CLERK_SETTINGS_MISSING = "Clerk verifier requested but Clerk settings are missing"
+
 
 @lru_cache
 def _get_verifier() -> ClerkVerifier:
     settings = get_auth_settings()
     if settings.clerk is None:
-        raise RuntimeError("Clerk verifier requested but Clerk settings are missing")
+        raise RuntimeError(_CLERK_SETTINGS_MISSING)
     return ClerkVerifier(settings.clerk)
 
 
@@ -120,7 +120,7 @@ async def require_clerk_authenticated(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
-                "code": exc.code,
+                "code": "auth.token_invalid",
                 "message": exc.public_message,
                 "request_id": request.headers.get("X-Request-ID"),
             },

@@ -9,6 +9,7 @@ the same.
 from __future__ import annotations
 
 import threading
+import uuid
 from dataclasses import dataclass
 
 _USER_NOT_FOUND = "user_not_found"
@@ -19,6 +20,7 @@ _TENANT_NOT_FOUND = "tenant_not_found"
 class DirectoryUser:
     """A user record derived from Clerk ``user.*`` events."""
 
+    id: str
     clerk_user_id: str
     email: str | None
     display_name: str | None
@@ -29,6 +31,7 @@ class DirectoryUser:
 class DirectoryTenant:
     """A tenant/organization record derived from Clerk ``organization.*`` events."""
 
+    id: str
     clerk_org_id: str
     name: str
     slug: str | None
@@ -62,13 +65,17 @@ class AuthDirectory:
     def upsert_user(
         self,
         *,
+        id: str | None = None,
         clerk_user_id: str,
         email: str | None,
         display_name: str | None,
         status: str,
     ) -> DirectoryUser:
         with self._lock:
+            existing = self._users.get(clerk_user_id)
+            user_id = id or (existing.id if existing else clerk_user_id)
             user = DirectoryUser(
+                id=user_id,
                 clerk_user_id=clerk_user_id,
                 email=email,
                 display_name=display_name,
@@ -97,13 +104,17 @@ class AuthDirectory:
     def upsert_tenant(
         self,
         *,
+        id: str | None = None,
         clerk_org_id: str,
         name: str,
         slug: str | None,
         status: str,
     ) -> DirectoryTenant:
         with self._lock:
+            existing = self._tenants.get(clerk_org_id)
+            tenant_id = id or (existing.id if existing else uuid.uuid4().hex)
             tenant = DirectoryTenant(
+                id=tenant_id,
                 clerk_org_id=clerk_org_id,
                 name=name,
                 slug=slug,

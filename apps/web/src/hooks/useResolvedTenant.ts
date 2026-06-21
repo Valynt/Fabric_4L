@@ -20,6 +20,7 @@ import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { apiGet } from "@/api/typedClient";
+import { fabric } from "@/api/generated";
 import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from "./useApiShared";
 import { QK } from "./queryKeys";
 import { useAccountContextStore } from "@/stores/accountContextStore";
@@ -40,14 +41,7 @@ export interface UseResolvedTenantResult {
   error: BaseApiError | null;
 }
 
-interface TenantMappingResponse {
-  fabric_tenant_id: string;
-  tenant_slug: string | null;
-  clerk_org_id: string;
-  status: string;
-  roles: string[];
-  permissions: string[];
-}
+type ClerkTenantResponse = fabric.components["schemas"]["ClerkTenantResponse"];
 
 const TENANT_QUERY_KEY = (orgId: string | null | undefined): QueryKey => [
   "auth",
@@ -56,7 +50,7 @@ const TENANT_QUERY_KEY = (orgId: string | null | undefined): QueryKey => [
   orgId,
 ];
 
-function normalizeTenant(response: TenantMappingResponse): ResolvedTenant {
+function normalizeTenant(response: ClerkTenantResponse): ResolvedTenant {
   return {
     fabricTenantId: response.fabric_tenant_id,
     tenantSlug: response.tenant_slug ?? null,
@@ -90,7 +84,7 @@ export function useResolvedTenant(): UseResolvedTenantResult {
     queryKey: TENANT_QUERY_KEY(activeOrgId),
     queryFn: async () => {
       const response = await withApiError(
-        apiGet<TenantMappingResponse>("api", "/auth/clerk/tenant"),
+        apiGet<ClerkTenantResponse>("api", "/auth/clerk/tenant"),
         BaseApiError
       );
       return normalizeTenant(response.data);

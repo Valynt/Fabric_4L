@@ -20,6 +20,16 @@ class ErrorCode(str, Enum):
     TENANT_CONTEXT_MISMATCH = "TENANT_CONTEXT_MISMATCH"
     TOKEN_EXPIRED = "TOKEN_EXPIRED"
     TOKEN_INVALID = "TOKEN_INVALID"
+    AUTH_TOKEN_MISSING = "auth.token_missing"
+    AUTH_TOKEN_INVALID = "auth.token_invalid"
+    AUTH_CLERK_TOKEN_INVALID = "auth.clerk_token_invalid"
+    AUTH_CLERK_TOKEN_EXPIRED = "auth.clerk_token_expired"
+    AUTH_CLERK_UNAUTHORIZED_PARTY = "auth.clerk_unauthorized_party"
+    AUTH_TENANT_UNRESOLVED = "auth.tenant_unresolved"
+    AUTH_USER_UNPROVISIONED = "auth.user_unprovisioned"
+    AUTH_MEMBERSHIP_INACTIVE = "auth.membership_inactive"
+    AUTH_MISCONFIGURED = "auth.misconfigured"
+    AUTH_ENVELOPE_MISCONFIGURED = "auth.envelope_misconfigured"
 
     # Validation errors (4xx)
     VALIDATION_ERROR = "VALIDATION_ERROR"

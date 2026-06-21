@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getActiveClerkOrgId } from "@/auth/clerkSession";
 
-interface AccountContextState {
+export interface AccountContextState {
   selectedAccountId: string | null;
   /** Tenant ID captured at last write — used to detect cross-tenant stale data. */
   _persistedTenantId: string | null;

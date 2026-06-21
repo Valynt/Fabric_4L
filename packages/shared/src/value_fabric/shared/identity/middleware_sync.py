@@ -234,7 +234,7 @@ def require_request_context_sync(request: Request) -> SyncRequestContext:
 class GovernanceMiddlewareSync:
     """Sync SQLAlchemy-compatible governance middleware."""
 
-    _PUBLIC_PATHS: frozenset[str] = frozenset({
+    _EXTERNAL_AUTH_BOOTSTRAP_PATHS: frozenset[str] = frozenset({
         "/health",
         "/health/detailed",
         "/metrics",
@@ -257,7 +257,7 @@ class GovernanceMiddlewareSync:
 
     def __call__(self, environ: dict, start_response: Callable) -> Any:
         request_path = environ.get("PATH_INFO", "")
-        if self._is_public_path(request_path):
+        if self._is_external_auth_bootstrap_path(request_path):
             return self.app(environ, start_response)
 
         ctx = self._resolve_identity_sync(
@@ -277,8 +277,12 @@ class GovernanceMiddlewareSync:
             _thread_local.request_context = None
             _thread_local.request_id = None
 
-    def _is_public_path(self, path: str) -> bool:
-        return path in self._PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc")
+    def _is_external_auth_bootstrap_path(self, path: str) -> bool:
+        return (
+            path in self._EXTERNAL_AUTH_BOOTSTRAP_PATHS
+            or path.startswith("/docs")
+            or path.startswith("/redoc")
+        )
 
     def _resolve_identity_sync(
         self,
