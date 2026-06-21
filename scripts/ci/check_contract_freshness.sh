@@ -12,6 +12,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
+PYTHON_BIN="${PYTHON:-python3}"
+
 OPENAPI_FILES=(
   "contracts/openapi/layer1-ingestion.json"
   "contracts/openapi/layer2-extraction.json"
@@ -31,7 +33,7 @@ printf '== Contract freshness gate ==\n'
 printf 'Repository: %s\n' "$ROOT_DIR"
 
 printf '\n== Regenerating OpenAPI source-of-truth files ==\n'
-python scripts/export_openapi.py
+${PYTHON_BIN} scripts/export_openapi.py
 
 printf '\n== Verifying required OpenAPI files exist ==\n'
 for spec in "${OPENAPI_FILES[@]}"; do
@@ -39,7 +41,7 @@ for spec in "${OPENAPI_FILES[@]}"; do
     printf 'Missing or empty OpenAPI contract: %s\n' "$spec" >&2
     exit 1
   fi
-  python -m json.tool "$spec" >/dev/null
+  ${PYTHON_BIN} -m json.tool "$spec" >/dev/null
   printf 'Verified %s\n' "$spec"
 done
 
@@ -66,9 +68,9 @@ EOF
 fi
 
 printf '\n== Contract shape integrity checks ==\n'
-python scripts/ci/check_l1_target_schema.py
-python scripts/ci/check_targets_stats_named_schema.py
-python scripts/ci/check_generated_jsonvalue_absent.py
-python scripts/ci/check_clerk_tenant_response_exported.py
+${PYTHON_BIN} scripts/ci/check_l1_target_schema.py
+${PYTHON_BIN} scripts/ci/check_targets_stats_named_schema.py
+${PYTHON_BIN} scripts/ci/check_generated_jsonvalue_absent.py
+${PYTHON_BIN} scripts/ci/check_clerk_tenant_response_exported.py
 
 printf '\nContract freshness gate passed: OpenAPI contracts and generated frontend DTO types are current.\n'
