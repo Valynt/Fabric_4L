@@ -114,7 +114,7 @@ async def make_live_l5_registry(
             downgraded to NEEDS_REVIEW.
         fallback_validator: Optional secondary validator when L5 is unavailable.
     """
-    from harness.live_l5_validator import LiveL5Validator
+    from layer4_agents.adapters.harness_l5_validation import create_live_l5_claim_validator
     from harness.sql_stores import (
         SqlCheckpointManager,
         SqlHarnessRegistry,
@@ -123,21 +123,13 @@ async def make_live_l5_registry(
         SqlToolContractRegistry,
     )
     from harness.validation_hooks import ValidationHook
-    from integration.layer5_client import Layer5GroundTruthClient
 
     base_url = l5_base_url or os.environ.get("LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005")
     service_token = l5_service_token or os.environ.get("LAYER5_SERVICE_TOKEN")
 
-    # Do not pass tenant_id to the client constructor — tenant scoping is
-    # applied per-request via organization_id in list_truths / submit_truth.
-    # A constructor-level fallback would silently use the wrong tenant if
-    # request.tenant_id were ever missing.
-    l5_client = Layer5GroundTruthClient(
+    primary_validator = create_live_l5_claim_validator(
         base_url=base_url,
         service_token=service_token,
-    )
-    primary_validator = LiveL5Validator(
-        client=l5_client,
         stale_threshold_hours=l5_stale_threshold_hours,
     )
 

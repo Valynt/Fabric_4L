@@ -23,7 +23,7 @@ import importlib
 import importlib.util
 import types
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional
+from typing import Any, Callable, Dict, Optional
 from uuid import UUID
 
 import jwt as pyjwt
@@ -195,7 +195,7 @@ def _install_legacy_collection_import_aliases() -> None:
     setattr(src_module, "services", src_services_module)
     setattr(src_module, "tools", src_tools_module)
 
-    layer4_agents_module = _ensure_namespace_module("layer4_agents", [layer4_src])
+    layer4_agents_module = _ensure_namespace_module("layer4_agents", [layer4_src / "layer4_agents"])
     _ = layer4_agents_module  # noqa: F841 - registered for canonical test imports
 
     services_module = _ensure_namespace_module("services", [_PROJECT_ROOT / "services"])
@@ -375,7 +375,7 @@ def jwt_token_malformed_tenant() -> str:
 def context_a():
     """RequestContext for Tenant A — use with RequestContextManager."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_A_ID,
@@ -390,7 +390,7 @@ def context_a():
 def context_b():
     """RequestContext for Tenant B — use with RequestContextManager."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_B_ID,
@@ -405,7 +405,7 @@ def context_b():
 def context_admin():
     """RequestContext for super_admin."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_A_ID,

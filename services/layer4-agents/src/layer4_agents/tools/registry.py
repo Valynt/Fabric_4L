@@ -20,6 +20,7 @@ from uuid import UUID, uuid4
 from value_fabric.shared.identity.context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
+    _current_context,
     get_request_context,
     set_request_context,
 )
@@ -660,6 +661,131 @@ class ToolRegistry:
             )
         return None
 
+    def _resolve_execution_tenant(
+        self,
+        *,
+        tool: BaseTool,
+        tool_name: str,
+        input_dict: dict[str, Any],
+        request_context: Any,
+        trace_id: str | None,
+    ) -> tuple[str | None, ToolResult | None]:
+        """Resolve the trusted tenant for a tool execution.
+
+        Authenticated request context wins over configured or raw input values.
+        Raw input tenant IDs are trusted only for internal workflow envelopes.
+        """
+        configured_tenant_id = tool.get_tenant_id()
+        input_tenant_id = input_dict.get("tenant_id")
+        context_tenant_id = (
+            str(request_context.tenant_id)
+            if request_context and request_context.tenant_id
+            else None
+        )
+
+        if context_tenant_id:
+            claimed_tenant_id = configured_tenant_id or input_tenant_id
+            if claimed_tenant_id and str(claimed_tenant_id) != context_tenant_id:
+                return None, ToolResult.failure(
+                    code="TENANT_CONTEXT_MISMATCH",
+                    message=f"Tool '{tool_name}' tenant_id does not match request context",
+                    recoverable=False,
+                    metadata=_safe_metadata(
+                        trace_id=trace_id,
+                        tenant_id=str(claimed_tenant_id),
+                    ),
+                )
+            return context_tenant_id, None
+
+        tenant_source = configured_tenant_id or input_tenant_id
+        tenant_id = _coerce_uuid_string(tenant_source)
+        if tenant_source and tenant_id is None:
+            return None, ToolResult.failure(
+                code="TENANT_CONTEXT_INVALID",
+                message=f"Tool '{tool_name}' received malformed tenant context",
+                recoverable=False,
+                metadata=_safe_metadata(trace_id=trace_id),
+            )
+        if tenant_id and not configured_tenant_id and not _has_internal_execution_envelope(input_dict):
+            return None, ToolResult.failure(
+                code="TENANT_CONTEXT_UNTRUSTED",
+                message=f"Tool '{tool_name}' tenant context requires approved request or workflow execution context",
+                recoverable=False,
+                metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
+            )
+        return tenant_id, None
+
+    @staticmethod
+    def _tool_lifecycle_context(
+        *,
+        tool: BaseTool,
+        tenant_id: str,
+        trace_id: str | None,
+        workflow_id: str | None,
+    ) -> Layer4EventContext:
+        request_id = str(trace_id or workflow_id or "tool")
+        return Layer4EventContext(
+            request_id=request_id,
+            trace_id=request_id,
+            tenant_id=str(tenant_id or "unknown"),
+            workflow_id=str(workflow_id or "unknown"),
+            run_id=str(workflow_id or "unknown"),
+            provider_name=str(type(tool).__name__),
+        )
+
+    async def _run_tool_with_context(
+        self,
+        *,
+        tool: BaseTool,
+        tool_name: str,
+        input_dict: dict[str, Any],
+        request_context: Any,
+        tenant_id: str,
+        trace_id: str | None,
+        workflow_id: str | None,
+    ) -> ToolResult:
+        """Run a tool with lifecycle logging and workflow RequestContext propagation."""
+        lifecycle_context = self._tool_lifecycle_context(
+            tool=tool,
+            tenant_id=tenant_id,
+            trace_id=trace_id,
+            workflow_id=workflow_id,
+        )
+        lifecycle_logger.emit(stage="tool-call", context=lifecycle_context)
+
+        internal_context_token: Token | None = None
+        if request_context is None:
+            internal_context_token = set_request_context(
+                RequestContext(
+                    tenant_id=tenant_id,
+                    user_id=input_dict.get("user_id") or "workflow-executor",
+                    roles=["service"],
+                    source=AUTH_SOURCE_SERVICE_ACCOUNT,
+                    auth_source=AUTH_SOURCE_SERVICE_ACCOUNT,
+                    request_id=str(trace_id or workflow_id or "tool"),
+                    trace_id=str(trace_id) if trace_id else None,
+                    service_account_id="layer4-tool-registry",
+                    service_account_scopes=[f"tool:{tool_name}"],
+                    raw={
+                        "workflow_id": workflow_id,
+                        "run_id": input_dict.get("run_id"),
+                        "tool_name": tool_name,
+                    },
+                )
+            )
+        try:
+            result = await tool.run(input_dict, trace_id=trace_id)
+        finally:
+            if internal_context_token is not None:
+                _current_context.reset(internal_context_token)
+
+        lifecycle_logger.emit(
+            stage="tool-result",
+            context=lifecycle_context,
+            tool_success=result.is_success(),
+        )
+        return result
+
     async def execute(
         self, tool_name: str, input_dict: dict[str, Any]
     ) -> ToolResult:
@@ -692,43 +818,22 @@ class ToolRegistry:
                 recoverable=False,
             )
 
-        configured_tenant_id = tool.get_tenant_id()
-        input_tenant_id = input_dict.get("tenant_id")
         trace_id = input_dict.get("trace_id")
         workflow_id = input_dict.get("workflow_id")
         idempotency_key = input_dict.get("idempotency_key")
         request_context = get_request_context()
-        context_tenant_id = str(request_context.tenant_id) if request_context and request_context.tenant_id else None
         user_id = str(request_context.user_id) if request_context and request_context.user_id else None
         tool_action = get_tool_action(tool_name)
 
-        if context_tenant_id:
-            tenant_id = context_tenant_id
-            claimed_tenant_id = configured_tenant_id or input_tenant_id
-            if claimed_tenant_id and str(claimed_tenant_id) != tenant_id:
-                return ToolResult.failure(
-                    code="TENANT_CONTEXT_MISMATCH",
-                    message=f"Tool '{tool_name}' tenant_id does not match request context",
-                    recoverable=False,
-                    metadata=_safe_metadata(trace_id=trace_id, tenant_id=str(claimed_tenant_id)),
-                )
-        else:
-            tenant_source = configured_tenant_id or input_tenant_id
-            tenant_id = _coerce_uuid_string(tenant_source)
-            if tenant_source and tenant_id is None:
-                return ToolResult.failure(
-                    code="TENANT_CONTEXT_INVALID",
-                    message=f"Tool '{tool_name}' received malformed tenant context",
-                    recoverable=False,
-                    metadata=_safe_metadata(trace_id=trace_id),
-                )
-            if tenant_id and not configured_tenant_id and not _has_internal_execution_envelope(input_dict):
-                return ToolResult.failure(
-                    code="TENANT_CONTEXT_UNTRUSTED",
-                    message=f"Tool '{tool_name}' tenant context requires approved request or workflow execution context",
-                    recoverable=False,
-                    metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
-                )
+        tenant_id, tenant_error = self._resolve_execution_tenant(
+            tool=tool,
+            tool_name=tool_name,
+            input_dict=input_dict,
+            request_context=request_context,
+            trace_id=trace_id,
+        )
+        if tenant_error is not None:
+            return tenant_error
 
         if tool_action:
             auth_result = await self._authorize_tool_or_fail(
@@ -807,35 +912,15 @@ class ToolRegistry:
 
         response_hash: str | None = None
 
-        lifecycle_logger.emit(stage="tool-call", context=Layer4EventContext(request_id=str(trace_id or workflow_id or "tool"), trace_id=str(trace_id or workflow_id or "tool"), tenant_id=str(tenant_id or "unknown"), workflow_id=str(workflow_id or "unknown"), run_id=str(workflow_id or "unknown"), provider_name=str(type(tool).__name__)))
-        internal_context_token: Token | None = None
-        if request_context is None:
-            internal_context_token = set_request_context(
-                RequestContext(
-                    tenant_id=tenant_id,
-                    user_id=input_dict.get("user_id") or "workflow-executor",
-                    roles=["service"],
-                    source=AUTH_SOURCE_SERVICE_ACCOUNT,
-                    auth_source=AUTH_SOURCE_SERVICE_ACCOUNT,
-                    request_id=str(trace_id or workflow_id or "tool"),
-                    trace_id=str(trace_id) if trace_id else None,
-                    service_account_id="layer4-tool-registry",
-                    service_account_scopes=[f"tool:{tool_name}"],
-                    raw={
-                        "workflow_id": workflow_id,
-                        "run_id": input_dict.get("run_id"),
-                        "tool_name": tool_name,
-                    },
-                )
-            )
-        try:
-            result = await tool.run(input_dict, trace_id=trace_id)
-        finally:
-            if internal_context_token is not None:
-                from value_fabric.shared.identity.context import _current_context
-
-                _current_context.reset(internal_context_token)
-        lifecycle_logger.emit(stage="tool-result", context=Layer4EventContext(request_id=str(trace_id or workflow_id or "tool"), trace_id=str(trace_id or workflow_id or "tool"), tenant_id=str(tenant_id or "unknown"), workflow_id=str(workflow_id or "unknown"), run_id=str(workflow_id or "unknown"), provider_name=str(type(tool).__name__)), tool_success=result.is_success())
+        result = await self._run_tool_with_context(
+            tool=tool,
+            tool_name=tool_name,
+            input_dict=input_dict,
+            request_context=request_context,
+            tenant_id=tenant_id,
+            trace_id=trace_id,
+            workflow_id=workflow_id,
+        )
         if idempotency_key:
             await self._set_cached_result(tenant_id, tool_name, str(idempotency_key), result)
 

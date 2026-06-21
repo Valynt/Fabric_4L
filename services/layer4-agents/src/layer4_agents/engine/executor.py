@@ -15,6 +15,7 @@ This implements the OrchestrationController agent type from the specification.
 
 import asyncio
 import logging
+from contextvars import Token
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
@@ -23,6 +24,11 @@ from uuid import UUID
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import NodeInterrupt
 from opentelemetry import trace
+from value_fabric.shared.identity.context import (
+    RequestContext,
+    _current_context,
+    set_request_context,
+)
 
 from ..models.agent_state import AgentState, WorkflowStatus
 
@@ -1483,6 +1489,34 @@ class OrchestrationController:
 
         return handler
 
+    @staticmethod
+    def _set_workflow_request_context(
+        *,
+        task: ScheduledTask,
+        workflow_id: str,
+        tenant_id: str,
+    ) -> Token | None:
+        """Propagate authenticated workflow context into background execution."""
+        try:
+            workflow_ctx = RequestContext(
+                tenant_id=tenant_id,
+                user_id=task.context.get("user_id") or "workflow_executor",
+                roles=["tenant_admin"],
+                auth_source="workflow_execution",
+                request_id=workflow_id,
+                trace_id=task.context.get("trace_id") or workflow_id,
+            )
+            return set_request_context(workflow_ctx)
+        except Exception as ctx_exc:
+            logger.warning("Failed to set workflow RequestContext: %s", ctx_exc)
+            return None
+
+    @staticmethod
+    def _reset_workflow_request_context(ctx_token: Token | None) -> None:
+        """Reset a workflow RequestContext token created for background execution."""
+        if ctx_token is not None:
+            _current_context.reset(ctx_token)
+
     async def _run_workflow_task(self, task: ScheduledTask) -> AgentState:
         """Execute a scheduled workflow task and persist state transitions."""
         workflow = task.parameters.get("workflow")
@@ -1535,25 +1569,11 @@ class OrchestrationController:
             wf_type = task.parameters.get("workflow_type", "unknown")
             tenant_id_for_trace = task.get_tenant_id() or "unknown"
 
-            # Propagate an authenticated RequestContext into the workflow task so
-            # tools and LLM clients that depend on governance context do not fail
-            # with "No RequestContext is set" when running outside the HTTP
-            # request handler (e.g. scheduled/background workflow execution).
-            ctx_token = None
-            try:
-                from value_fabric.shared.identity.context import RequestContext, set_request_context
-
-                workflow_ctx = RequestContext(
-                    tenant_id=tenant_id_for_trace,
-                    user_id=task.context.get("user_id") or "workflow_executor",
-                    roles=["tenant_admin"],
-                    auth_source="workflow_execution",
-                    request_id=workflow_id,
-                    trace_id=task.context.get("trace_id") or workflow_id,
-                )
-                ctx_token = set_request_context(workflow_ctx)
-            except Exception as ctx_exc:
-                logger.warning("Failed to set workflow RequestContext: %s", ctx_exc)
+            ctx_token = self._set_workflow_request_context(
+                task=task,
+                workflow_id=workflow_id,
+                tenant_id=tenant_id_for_trace,
+            )
 
             try:
                 with _tracer.start_as_current_span(
@@ -1570,10 +1590,7 @@ class OrchestrationController:
                     )
                     span.set_attribute("workflow.status", self._fmt_enum(result.status))
             finally:
-                if ctx_token is not None:
-                    from value_fabric.shared.identity.context import _current_context
-
-                    _current_context.reset(ctx_token)
+                self._reset_workflow_request_context(ctx_token)
 
             if result.status == WorkflowStatus.COMPLETED:
                 validation = validate_final_output(result)

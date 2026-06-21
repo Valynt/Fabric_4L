@@ -35,6 +35,11 @@ ROUTE_ADAPTER_BOUNDARY_PATHS = (
     LAYER4_ROOT / "api/routes/signals.py",
 )
 
+HARNESS_BOUNDARY_PATHS = (
+    LAYER4_ROOT / "harness/factory.py",
+    LAYER4_ROOT / "harness/live_l5_validator.py",
+)
+
 FORBIDDEN_INFRA_IMPORT_ROOTS = {
     "asyncpg",
     "boto3",
@@ -222,5 +227,31 @@ def test_route_modules_do_not_import_cross_layer_integration_clients() -> None:
 
     assert not violations, (
         "Route modules must depend on route ports/composition, not concrete "
+        "cross-layer integration clients:\n" + "\n".join(violations)
+    )
+
+
+def test_harness_modules_do_not_import_cross_layer_integration_clients() -> None:
+    forbidden_modules = {
+        "layer4_agents.integration.layer1_client",
+        "layer4_agents.integration.layer2_client",
+        "layer4_agents.integration.layer3_client",
+        "layer4_agents.integration.layer5_client",
+    }
+    forbidden_relative = {
+        "integration.layer1_client",
+        "integration.layer2_client",
+        "integration.layer3_client",
+        "integration.layer5_client",
+    }
+    violations: list[str] = []
+    for path in HARNESS_BOUNDARY_PATHS:
+        rel_path = path.relative_to(REPO_ROOT).as_posix()
+        for lineno, level, module_name in _imported_modules(path):
+            if module_name in forbidden_modules or (level and module_name in forbidden_relative):
+                violations.append(f"{rel_path}:{lineno} imports {module_name}")
+
+    assert not violations, (
+        "Harness modules must depend on validation contracts/adapters, not concrete "
         "cross-layer integration clients:\n" + "\n".join(violations)
     )
