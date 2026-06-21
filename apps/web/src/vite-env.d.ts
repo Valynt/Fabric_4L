@@ -20,6 +20,7 @@ interface ImportMetaEnv {
   readonly VITE_LAYER5_ROUTE_PREFIX?: string;
   readonly VITE_LAYER6_ROUTE_PREFIX?: string;
   readonly VITE_LAYER7_ROUTE_PREFIX?: string;
+  readonly VITE_PROXY_API_GATEWAY_URL?: string;
 }
 
 interface ImportMeta {
