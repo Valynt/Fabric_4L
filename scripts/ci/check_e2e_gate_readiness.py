@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_DIR = ROOT / "artifacts" / "e2e"
+OUTPUT_DIR = ROOT / "artifacts" / "release"
 
 JOURNEYS = {
     "e2e.tenant_account_route": {
@@ -51,7 +51,7 @@ def _get_commit_sha() -> str:
 
 
 def _artifact_path(gate_id: str) -> Path:
-    return OUTPUT_DIR / f"{gate_id.replace('.', '-')}-report.json"
+    return OUTPUT_DIR / f"gate-{gate_id.replace('.', '-')}.json"
 
 
 def main() -> int:

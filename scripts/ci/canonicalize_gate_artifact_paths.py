@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Set all gate evidence_producer artifact_path entries to canonical paths."""
+"""Validate or canonicalize gate evidence_producer artifact_path entries.
+
+Use --check in CI to fail on non-canonical paths without mutating the registry.
+"""
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -15,8 +19,35 @@ def _canonical_path(gate_id: str) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail if any artifact_path is not canonical; do not rewrite the registry.",
+    )
+    args = parser.parse_args()
+
     registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-    for gate in registry["gates"]:
+    violations: list[str] = []
+    for gate in registry.get("gates", []):
+        producer = gate.get("evidence_producer")
+        if not producer:
+            continue
+        expected = _canonical_path(gate["gate_id"])
+        actual = producer.get("artifact_path", "")
+        if actual != expected:
+            violations.append(f"{gate['gate_id']}: expected {expected}, got {actual}")
+
+    if args.check:
+        if violations:
+            print("Non-canonical artifact paths found:")
+            for v in violations:
+                print(f"  - {v}")
+            return 1
+        print("All artifact paths are canonical.")
+        return 0
+
+    for gate in registry.get("gates", []):
         producer = gate.get("evidence_producer")
         if producer:
             producer["artifact_path"] = _canonical_path(gate["gate_id"])

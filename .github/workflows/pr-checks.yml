@@ -2331,6 +2331,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check canonical gate artifact paths
+        run: |
+          python scripts/ci/canonicalize_gate_artifact_paths.py --check
+
       - name: Validate gate-engineering registry and contracts
         run: |
           corepack pnpm run gate-engineering:validate --strict

@@ -383,6 +383,7 @@ def _build_release_readiness_report(
     environment: str,
     risk_class: str,
     strict: bool,
+    mode: str,
     identity: dict[str, Any],
 ) -> dict[str, Any]:
     status_to_key = {
@@ -460,6 +461,10 @@ def _build_release_readiness_report(
         # Even emergency releases cannot bypass tenant isolation or auth.
         decision = "blocked" if blocking_results else "ready-with-exception-review"
 
+    # Fast mode is never release-eligible; release mode is eligible only when
+    # no blocking gates remain.
+    release_eligible = mode == "release" and decision in ("ready", "ready-with-exception-review")
+
     return {
         "release_id": release_id,
         "identity": {
@@ -472,8 +477,10 @@ def _build_release_readiness_report(
         },
         "environment": environment,
         "risk_class": risk_class,
+        "mode": f"{mode}_validation",
         "strict": strict,
         "decision": decision,
+        "release_eligible": release_eligible,
         "gates": summary,
         "framework_validation_gates": framework_gates,
         "product_evidence_gates": product_gates,
@@ -481,6 +488,18 @@ def _build_release_readiness_report(
         "warnings": warnings,
         "exceptions": [],
         "blocking_results": blocking_results,
+        "remediation": [
+            {
+                "gate_id": r["gate_id"],
+                "owner": r["owner"],
+                "result": r["result"],
+                "criterion": r.get("criterion", ""),
+                "target_checkpoint": r.get("remediation", {}).get("target_checkpoint", 5),
+                "reason": r.get("remediation", {}).get("description", "Resolve before release."),
+            }
+            for r in blocking_results
+            if r["result"] == "INCONCLUSIVE"
+        ],
         "generated_at": _utc_now(),
         "evidence_expiration": "24h",
         "schema": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json",
@@ -489,7 +508,7 @@ def _build_release_readiness_report(
 
 def _render_report_markdown(report: dict[str, Any]) -> str:
     lines = [
-        "# Release Readiness Report",
+        f"# Release Readiness Report — {report['release_id']}",
         "",
         f"- **Release ID:** `{report['release_id']}`",
         f"- **Artifact digest:** `{report['identity']['artifact_digest']}`",
@@ -500,7 +519,9 @@ def _render_report_markdown(report: dict[str, Any]) -> str:
         f"- **Config fingerprint:** `{report['identity']['config_fingerprint']}`",
         f"- **Environment:** `{report['environment']}`",
         f"- **Risk class:** `{report['risk_class']}`",
+        f"- **Mode:** `{report['mode']}`",
         f"- **Strict mode:** `{report['strict']}`",
+        f"- **Release eligible:** `{report['release_eligible']}`",
         f"- **Decision:** `{report['decision']}`",
         f"- **Generated at:** `{report['generated_at']}`",
         "",
@@ -552,6 +573,15 @@ def _render_report_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         for e in report["exceptions"]:
             lines.append(f"- `{e['gate_id']}` — exception {e['exception_id']} until {e['expires_at']}")
+        lines.append("")
+
+    if report["remediation"]:
+        lines.append("## Remediation list")
+        lines.append("")
+        for r in report["remediation"]:
+            lines.append(
+                f"- `{r['gate_id']}` — owner: {r['owner']}, target checkpoint: {r['target_checkpoint']} — {r['reason']}"
+            )
         lines.append("")
 
     if report["blocking_results"]:
@@ -610,6 +640,7 @@ def report(args: argparse.Namespace) -> int:
         environment=args.environment,
         risk_class=args.risk_class,
         strict=args.strict,
+        mode=args.mode,
         identity=identity,
     )
 
@@ -621,11 +652,13 @@ def report(args: argparse.Namespace) -> int:
     md_path.write_text(_render_report_markdown(report_data), encoding="utf-8")
 
     print(f"Report written to {output_dir}")
+    print(f"  Mode: {report_data['mode']}")
+    print(f"  Release eligible: {report_data['release_eligible']}")
     print(f"  Decision: {report_data['decision']}")
     print(f"  Blocking: {len(report_data['blocking_results'])}")
     print(f"  Product evidence gates: {len(report_data['product_evidence_gates'])}")
     print(f"  Inconclusive gates: {len(report_data['inconclusive_gates'])}")
-    return 0 if report_data["decision"] in ("ready", "ready-with-exception-review") else 1
+    return 0 if report_data["release_eligible"] else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -642,6 +675,7 @@ def main(argv: list[str] | None = None) -> int:
     report_cmd.add_argument("--commit-sha", default=None, help="Override the git commit SHA used for identity and evidence binding")
     report_cmd.add_argument("--environment", default="production")
     report_cmd.add_argument("--risk-class", default="high")
+    report_cmd.add_argument("--mode", choices=["fast", "release"], default="fast", help="Validation mode: fast (never release-eligible) or release (requires all blocking producers)")
     report_cmd.add_argument("--artifact-dir", default=str(DEFAULT_ARTIFACT_DIR))
     report_cmd.add_argument("--output-dir", default=str(DEFAULT_ARTIFACT_DIR))
     report_cmd.add_argument("--strict", action="store_true", help="Reject placeholder evidence and require real bindings")

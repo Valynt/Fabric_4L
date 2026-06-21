@@ -19,7 +19,7 @@ on:
       - 'scripts/ci/check_targets_stats_named_schema.py'
       - 'scripts/ci/check_generated_jsonvalue_absent.py'
       - 'scripts/ci/check_clerk_tenant_response_exported.py'
-      - 'scripts/ci/check_clerk_tenant_mapping_tested.py'
+      - 'scripts/ci/check_clerk_tenant_mapping_contract.py'
       - 'scripts/ci/check_generated_client_reproducibility.py'
       - '.github/workflows/generated-api-freshness.yml'
   push:
@@ -40,7 +40,7 @@ on:
       - 'scripts/ci/check_targets_stats_named_schema.py'
       - 'scripts/ci/check_generated_jsonvalue_absent.py'
       - 'scripts/ci/check_clerk_tenant_response_exported.py'
-      - 'scripts/ci/check_clerk_tenant_mapping_tested.py'
+      - 'scripts/ci/check_clerk_tenant_mapping_contract.py'
       - 'scripts/ci/check_generated_client_reproducibility.py'
       - '.github/workflows/generated-api-freshness.yml'
   workflow_dispatch:
@@ -93,7 +93,7 @@ jobs:
           python scripts/ci/check_targets_stats_named_schema.py
           python scripts/ci/check_generated_jsonvalue_absent.py
           python scripts/ci/check_clerk_tenant_response_exported.py
-          python scripts/ci/check_clerk_tenant_mapping_tested.py
+          python scripts/ci/check_clerk_tenant_mapping_contract.py
 
       - name: Run generated client reproducibility gate
         run: |

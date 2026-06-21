@@ -601,7 +601,16 @@ validate-openapi-contracts: ## Validate all tracked JSON OpenAPI specs in contra
 contract-drift: contracts validate-openapi-contracts ## Detect OpenAPI contract drift (exports + validates tracked JSON specs)
 	@echo "✅ Tracked OpenAPI specs are present and valid"
 
-contract-freshness: ## Regenerate OpenAPI and frontend DTO types, then fail on deterministic generated drift
+contract-freshness-fast: ## Hermetic contract-freshness lane: exports gateway spec only, validates shapes, no live services
+	$(PYTHON) scripts/ci/contract_compliance_gate.py --mode fast
+	$(PYTHON) scripts/ci/check_l1_target_schema.py
+	$(PYTHON) scripts/ci/check_targets_stats_named_schema.py
+	$(PYTHON) scripts/ci/check_generated_jsonvalue_absent.py
+	$(PYTHON) scripts/ci/check_clerk_tenant_response_exported.py
+	$(PYTHON) scripts/ci/check_clerk_tenant_mapping_contract.py
+	@echo "✅ Fast contract-freshness lane passed"
+
+contract-freshness: ## Full release contract-freshness lane: exports all OpenAPI specs, regenerates clients, fails on drift
 	bash scripts/ci/check_contract_freshness.sh
 
 sdk: ## Generate the Python SDK (manual typed client)

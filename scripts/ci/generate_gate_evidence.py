@@ -49,6 +49,8 @@ def _run_command(command: str) -> tuple[int, str, str]:
             capture_output=True,
             check=False,
             shell=True,
+            encoding="utf-8",
+            errors="replace",
         )
         return result.returncode, result.stdout, result.stderr
     except Exception as exc:
@@ -61,7 +63,7 @@ DEDICATED_PRODUCERS: dict[str, Path] = {
     "contract.l4_jsonvalue_compiles": ROOT / "scripts" / "ci" / "check_l4_generated_jsonvalue.py",
     "contract.generated_clients_current": ROOT / "scripts" / "ci" / "check_generated_client_reproducibility.py",
     "build.generated_client_reproducible": ROOT / "scripts" / "ci" / "check_generated_client_reproducibility.py",
-    "contract.clerk_tenant_mapping_tested": ROOT / "scripts" / "ci" / "check_clerk_tenant_mapping_tested.py",
+    "contract.clerk_tenant_mapping": ROOT / "scripts" / "ci" / "check_clerk_tenant_mapping_contract.py",
     "e2e.tenant_account_route": ROOT / "scripts" / "ci" / "check_e2e_gate_readiness.py",
     "e2e.notes_to_fabric_found_summary": ROOT / "scripts" / "ci" / "check_e2e_gate_readiness.py",
     "e2e.unauthorized_account_denial": ROOT / "scripts" / "ci" / "check_e2e_gate_readiness.py",
@@ -110,11 +112,18 @@ def _generate_for_gate(
                 text=True,
                 capture_output=True,
                 check=False,
+                encoding="utf-8",
+                errors="replace",
             ).returncode
             # Read the dedicated script's output file if it exists and merge.
             dedicated_output = _read_dedicated_output(gate_id)
             if dedicated_output:
+                # Preserve the canonical gate_id for this gate; the dedicated
+                # script may emit a related gate_id when it is shared by multiple
+                # registry entries.
+                canonical_gate_id = result["gate_id"]
                 result.update(dedicated_output)
+                result["gate_id"] = canonical_gate_id
                 return result
             result["status"] = "PASS" if code == 0 else "FAIL"
             result["reason"] = "dedicated producer returned" + (" success" if code == 0 else " failure")
@@ -131,16 +140,20 @@ def _generate_for_gate(
 
 
 def _read_dedicated_output(gate_id: str) -> dict[str, Any] | None:
+    """Read the JSON file emitted by a dedicated producer.
+
+    Paths are canonical: artifacts/release/gate-{gate_id}.json.
+    """
     mapping: dict[str, Path] = {
-        "contract.l1_target_schema": ROOT / "artifacts" / "contract" / "l1-target-schema-check.json",
-        "contract.targets_stats_named_schema": ROOT / "artifacts" / "contract" / "targets-stats-schema-check.json",
-        "contract.l4_jsonvalue_compiles": ROOT / "artifacts" / "contract" / "l4-jsonvalue-check.json",
-        "contract.generated_clients_current": ROOT / "artifacts" / "contract" / "generated-client-reproducibility.json",
-        "build.generated_client_reproducible": ROOT / "artifacts" / "contract" / "generated-client-reproducibility.json",
-        "contract.clerk_tenant_mapping_tested": ROOT / "artifacts" / "security" / "clerk-tenant-mapping-test-report.json",
-        "e2e.tenant_account_route": ROOT / "artifacts" / "e2e" / "e2e-tenant_account_route-report.json",
-        "e2e.notes_to_fabric_found_summary": ROOT / "artifacts" / "e2e" / "e2e-notes_to_fabric_found_summary-report.json",
-        "e2e.unauthorized_account_denial": ROOT / "artifacts" / "e2e" / "e2e-unauthorized_account_denial-report.json",
+        "contract.l1_target_schema": ROOT / "artifacts" / "release" / "gate-contract-l1_target_schema.json",
+        "contract.targets_stats_named_schema": ROOT / "artifacts" / "release" / "gate-contract-targets_stats_named_schema.json",
+        "contract.l4_jsonvalue_compiles": ROOT / "artifacts" / "release" / "gate-contract-l4_jsonvalue_compiles.json",
+        "contract.generated_clients_current": ROOT / "artifacts" / "release" / "gate-contract-generated_clients_current.json",
+        "build.generated_client_reproducible": ROOT / "artifacts" / "release" / "gate-build-generated_client_reproducible.json",
+        "contract.clerk_tenant_mapping": ROOT / "artifacts" / "release" / "gate-contract-clerk_tenant_mapping.json",
+        "e2e.tenant_account_route": ROOT / "artifacts" / "release" / "gate-e2e-tenant_account_route.json",
+        "e2e.notes_to_fabric_found_summary": ROOT / "artifacts" / "release" / "gate-e2e-notes_to_fabric_found_summary.json",
+        "e2e.unauthorized_account_denial": ROOT / "artifacts" / "release" / "gate-e2e-unauthorized_account_denial.json",
     }
     path = mapping.get(gate_id)
     if path and path.exists():

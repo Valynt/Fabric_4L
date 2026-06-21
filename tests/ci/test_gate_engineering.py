@@ -100,12 +100,15 @@ def test_report_passes_with_all_gate_results():
         "--artifact-digest", "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "--environment", "production",
         "--risk-class", "medium",
+        "--mode", "release",
         "--artifact-dir", artifact_dir.as_posix(),
         "--output-dir", output_dir.as_posix(),
     )
     assert result.returncode == 0, result.stderr
     report = json.loads((output_dir / "release-readiness-report.json").read_text())
     assert report["decision"] == "ready"
+    assert report["mode"] == "release_validation"
+    assert report["release_eligible"] is True
     assert report["gates"]["passed"] == len(registry["gates"])
 
 
@@ -199,12 +202,15 @@ def test_warning_is_non_blocking():
         "--artifact-digest", "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "--environment", "production",
         "--risk-class", "medium",
+        "--mode", "release",
         "--artifact-dir", artifact_dir.as_posix(),
         "--output-dir", output_dir.as_posix(),
     )
     assert result.returncode == 0, result.stderr
     report = json.loads((output_dir / "release-readiness-report.json").read_text())
     assert report["decision"] == "ready"
+    assert report["mode"] == "release_validation"
+    assert report["release_eligible"] is True
     assert report["gates"]["warnings"] == 1
 
 
@@ -214,6 +220,44 @@ def test_cross_reference_validation():
     result = run_validator("validate")
     assert result.returncode == 0, result.stderr
     assert "Validation passed" in result.stdout
+
+
+def test_fast_mode_is_never_release_eligible():
+    """Fast validation reports are explicitly not release eligible."""
+    artifact_dir = ROOT / "artifacts" / "test-gate-engineering" / "fast"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    _clear_artifact_dir(artifact_dir)
+    output_dir = ROOT / "artifacts" / "test-gate-engineering" / "report-fast"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    registry = json.loads((ROOT / ".fabric" / "gate-engineering" / "gate-registry.json").read_text())
+    for gate in registry["gates"]:
+        path = _artifact_path(artifact_dir, gate["gate_id"])
+        path.write_text(
+            json.dumps(
+                {
+                    "gate_id": gate["gate_id"],
+                    "status": "PASS",
+                    "reason": "real evidence from CI",
+                }
+            )
+        )
+
+    result = run_validator(
+        "report",
+        "--release-id", "rel_test_fast",
+        "--artifact-digest", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "--environment", "production",
+        "--risk-class", "medium",
+        "--mode", "fast",
+        "--artifact-dir", artifact_dir.as_posix(),
+        "--output-dir", output_dir.as_posix(),
+    )
+    assert result.returncode == 1, result.stderr
+    report = json.loads((output_dir / "release-readiness-report.json").read_text())
+    assert report["decision"] == "ready"
+    assert report["mode"] == "fast_validation"
+    assert report["release_eligible"] is False
 
 
 def test_placeholder_evidence_is_blocked_in_strict_mode():

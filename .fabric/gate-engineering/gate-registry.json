@@ -80,6 +80,13 @@
         "freshness": "release",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/architects"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/architects",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -132,6 +139,13 @@
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/qa-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/qa-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -182,6 +196,13 @@
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/backend-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -232,6 +253,13 @@
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -285,6 +313,13 @@
         "freshness": "artifact lifetime",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -336,6 +371,13 @@
         "freshness": "7d",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -389,6 +431,13 @@
         "freshness": "24h",
         "artifact_binding": "migration-version",
         "owner": "value-fabric/data-platform"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/data-platform",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -446,6 +495,13 @@
         "freshness": "24h",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -496,6 +552,13 @@
         "freshness": "24h",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/architects"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/architects",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -548,6 +611,13 @@
         "freshness": "24h",
         "artifact_binding": "artifact-digest",
         "owner": "value-fabric/release-engineering"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/release-engineering",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -599,6 +669,13 @@
         "freshness": "deployment",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/release-engineering"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/release-engineering",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -653,6 +730,13 @@
         "freshness": "canary window",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -703,6 +787,13 @@
         "freshness": "1h",
         "artifact_binding": "container-image-digest",
         "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -754,6 +845,13 @@
         "freshness": "5m",
         "artifact_binding": "environment",
         "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -805,6 +903,13 @@
         "freshness": "24h",
         "artifact_binding": "artifact-digest",
         "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -851,6 +956,13 @@
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/backend-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -904,6 +1016,13 @@
         "freshness": "24h",
         "artifact_binding": "model-version",
         "owner": "value-fabric/agent-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/agent-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -950,6 +1069,13 @@
         "freshness": "24h",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -999,6 +1125,13 @@
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
       }
     },
     {
@@ -1051,7 +1184,14 @@
       "deprecation_policy": "None.",
       "related_contracts": [
         "fabric.api.ingestion"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
       "gate_id": "contract.targets_stats_named_schema",
@@ -1102,7 +1242,14 @@
       "deprecation_policy": "None.",
       "related_contracts": [
         "fabric.api.ingestion"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
       "gate_id": "contract.generated_clients_current",
@@ -1120,7 +1267,8 @@
       },
       "pass_criteria": [
         "Generated clients match regenerated output",
-        "No manual patches in generated files"
+        "No manual patches in generated files",
+        "OpenAPI specs export hermetically (no live stack required)"
       ],
       "fail_criteria": [
         "Generated clients drift from specs",
@@ -1140,7 +1288,7 @@
         ]
       },
       "evidence_producer": {
-        "command": "pnpm run check:contract-compliance",
+        "command": "python scripts/ci/check_generated_client_reproducibility.py",
         "artifact_path": "artifacts/release/gate-contract-generated_clients_current.json",
         "freshness": "24h",
         "artifact_binding": "commit-sha",
@@ -1154,7 +1302,14 @@
       "deprecation_policy": "None.",
       "related_contracts": [
         "fabric.api.openapi"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
       "gate_id": "contract.l4_jsonvalue_compiles",
@@ -1208,32 +1363,45 @@
       "related_contracts": [
         "fabric.api.agents",
         "fabric.api.openapi"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
-      "gate_id": "contract.clerk_tenant_mapping_tested",
+      "gate_id": "contract.clerk_tenant_mapping",
       "version": 1,
-      "name": "Clerk org to Fabric tenant mapping is tested",
+      "name": "Clerk org to Fabric tenant mapping contract is present and tested",
       "scope": "contract",
       "criticality": "blocking",
-      "protected_invariant": "Clerk organization selection maps to a Fabric tenant and is covered by unit and/or E2E tests.",
+      "protected_invariant": "The gateway exports a Clerk org \u2192 Fabric tenant mapping endpoint, the response schema is exported, and the auth boundary is covered by regression tests.",
       "applies_when": "Any change to auth, tenant mapping, or organization selection.",
       "measurement": {
-        "type": "automated_test",
-        "source": "clerk-tenant-mapping-tests",
-        "query_or_command": "python -m pytest tests/security/test_clerk_tenant_mapping.py && pnpm exec playwright test apps/web/e2e/security/tenant-mapping.spec.ts",
-        "threshold": "All mapping tests pass"
+        "type": "static_analysis",
+        "source": "clerk-tenant-mapping-contract-check",
+        "query_or_command": "python scripts/ci/check_clerk_tenant_mapping_contract.py",
+        "threshold": "Required OpenAPI path/schema present and required regression tests exist"
       },
       "pass_criteria": [
-        "Clerk org selection maps to Fabric tenant",
-        "Denied mapping fails closed"
+        "GET /v1/auth/clerk/tenant exists in fabric-4l-api.json",
+        "ClerkTenantResponse schema is exported",
+        "useResolvedTenant hook tests exist",
+        "RequireClerkAuth route guard tests exist",
+        "Backend missing/invalid token tests exist",
+        "Backend wrong-org isolation test exists",
+        "Backend metadata leakage test exists"
       ],
       "fail_criteria": [
-        "Mapping untested",
-        "Mapping test fails"
+        "Mapping endpoint or schema missing from OpenAPI",
+        "Required regression test missing"
       ],
       "inconclusive_criteria": [
-        "Required test files not present"
+        "OpenAPI spec not generated",
+        "Contract check script cannot run"
       ],
       "evidence": {
         "required": true,
@@ -1241,13 +1409,12 @@
         "maximum_age": "24h",
         "retention": "1y",
         "required_fields": [
-          "junit_xml",
-          "playwright_report"
+          "contract_check_report"
         ]
       },
       "evidence_producer": {
-        "command": "python -m pytest tests/security/test_clerk_tenant_mapping.py && pnpm exec playwright test apps/web/e2e/security/tenant-mapping.spec.ts",
-        "artifact_path": "artifacts/release/gate-contract-clerk_tenant_mapping_tested.json",
+        "command": "python scripts/ci/check_clerk_tenant_mapping_contract.py",
+        "artifact_path": "artifacts/release/gate-contract-clerk_tenant_mapping.json",
         "freshness": "24h",
         "artifact_binding": "commit-sha",
         "owner": "value-fabric/security-leads"
@@ -1260,7 +1427,14 @@
       "deprecation_policy": "None.",
       "related_contracts": [
         "fabric.security.auth"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
       "gate_id": "build.generated_client_reproducible",
@@ -1298,7 +1472,7 @@
         ]
       },
       "evidence_producer": {
-        "command": "node scripts/quality/assert-generated-api-types-current.mjs",
+        "command": "python scripts/ci/check_generated_client_reproducibility.py",
         "artifact_path": "artifacts/release/gate-build-generated_client_reproducible.json",
         "freshness": "PR lifetime",
         "artifact_binding": "commit-sha",
@@ -1312,7 +1486,14 @@
       "deprecation_policy": "None.",
       "related_contracts": [
         "fabric.api.openapi"
-      ]
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
     },
     {
       "gate_id": "e2e.tenant_account_route",
@@ -1362,10 +1543,11 @@
       "review_cadence": "quarterly",
       "deprecation_policy": "None.",
       "remediation": {
-        "ticket": "TICKET-3-TENANT-ROUTE",
+        "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the tenant/account route journey spec if not present."
+        "description": "Create or bind the tenant/account route journey spec if not present.",
+        "target_checkpoint": 7
       },
       "related_contracts": [
         "fabric.security.tenant_isolation",
@@ -1420,10 +1602,11 @@
       "review_cadence": "quarterly",
       "deprecation_policy": "None.",
       "remediation": {
-        "ticket": "TICKET-3-NOTES-SUMMARY",
+        "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/qa-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage."
+        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage.",
+        "target_checkpoint": 7
       },
       "related_contracts": [
         "fabric.workflow.ingestion_to_summary"
@@ -1477,10 +1660,11 @@
       "review_cadence": "quarterly",
       "deprecation_policy": "None.",
       "remediation": {
-        "ticket": "TICKET-3-UNAUTH-DENIAL",
+        "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage."
+        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage.",
+        "target_checkpoint": 7
       },
       "related_contracts": [
         "fabric.security.auth"

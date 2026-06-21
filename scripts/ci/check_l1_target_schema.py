@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = ROOT / "contracts" / "openapi" / "layer1-ingestion.json"
-OUTPUT_PATH = ROOT / "artifacts" / "contract" / "l1-target-schema-check.json"
+OUTPUT_PATH = ROOT / "artifacts" / "release" / "gate-contract-l1_target_schema.json"
 
 REQUIRED_PATHS = (
     "/api/v1/ingestion/targets",

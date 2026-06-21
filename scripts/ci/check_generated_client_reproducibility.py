@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_PATH = ROOT / "artifacts" / "contract" / "generated-client-reproducibility.json"
+OUTPUT_PATH = ROOT / "artifacts" / "release" / "gate-build-generated_client_reproducible.json"
 ASSERT_SCRIPT = ROOT / "apps" / "web" / "scripts" / "quality" / "assert-generated-api-types-current.mjs"
 
 
@@ -58,7 +58,7 @@ def main() -> int:
 
     result = {
         "gate_id": "build.generated_client_reproducible",
-        "command": "node scripts/quality/assert-generated-api-types-current.mjs",
+        "command": "python scripts/ci/check_generated_client_reproducibility.py",
         "owner": "value-fabric/frontend-leads",
         "produced_at": _utc_now(),
         "bound_to": _get_commit_sha(),

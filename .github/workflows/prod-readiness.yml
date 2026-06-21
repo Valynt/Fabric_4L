@@ -309,16 +309,20 @@ jobs:
         uses: pnpm/action-setup@v2.4.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check canonical gate artifact paths
+        run: |
+          python scripts/ci/canonicalize_gate_artifact_paths.py --check
       - name: Generate gate-engineering evidence
         run: |
-          python scripts/ci/generate_gate_evidence.py --run-real-producers --fast
+          python scripts/ci/generate_gate_evidence.py --run-real-producers
       - name: Validate release readiness report
         run: |
           python scripts/ci/gate_engineering_validator.py report \
-            --release-id "${GITHUB_SHA}" \
+            --release-id "checkpoint-5" \
             --artifact-digest "sha256:${GITHUB_SHA}" \
             --environment production \
             --risk-class release-candidate \
+            --mode release \
             --strict
       - name: Upload gate-engineering artifacts
         if: always()

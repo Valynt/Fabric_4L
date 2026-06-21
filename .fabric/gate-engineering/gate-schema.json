@@ -227,6 +227,7 @@
         "ticket": { "type": "string" },
         "owner": { "type": "string" },
         "target_date": { "type": "string" },
+        "target_checkpoint": { "type": "integer" },
         "description": { "type": "string" }
       },
       "additionalProperties": false
