@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Generate per-layer quality scorecard and enforce regression threshold policy."""
 from __future__ import annotations
-import argparse, json
+import argparse
+import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,6 +53,11 @@ CHECKS = [
 ]
 LOWERED_CHECK_PATTERNS = {check.key: [pattern.lower() for pattern in check.patterns] for check in CHECKS}
 
+ATTENTION_SECTIONS = ("ungoverned_hotspots", "stale_decisions", "knowledge_silos")
+NORMALIZED_PATHS = {
+    ".agent/harness/hooks/init.py": ".agent/harness/hooks/__init__.py",
+}
+
 
 def _find_any_text(paths: list[str], snippets: list[str]) -> bool:
     for rel in paths:
@@ -90,7 +96,114 @@ def _find_scoped_support_text(scope_tokens: list[str], snippets: list[str]) -> b
     return False
 
 
-def compute(policy: dict) -> dict:
+def _path_exists(rel_path: str | None) -> bool:
+    return bool(rel_path) and (ROOT / str(rel_path)).exists()
+
+
+def _parse_iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _attention_item_status(section: str, item: dict, *, today: date) -> tuple[str, list[str]]:
+    failures: list[str] = []
+    original_path = item.get("path")
+    normalized_path = NORMALIZED_PATHS.get(str(original_path), original_path)
+
+    if not item.get("owner"):
+        failures.append("missing owner")
+    if not _path_exists(normalized_path):
+        failures.append(f"missing governed path: {normalized_path}")
+    if not _path_exists(item.get("evidence_path")):
+        failures.append(f"missing evidence path: {item.get('evidence_path')}")
+    if not item.get("remediation_state"):
+        failures.append("missing remediation_state")
+
+    review_due = _parse_iso_date(item.get("review_due") or item.get("due_date"))
+    if not review_due:
+        failures.append("missing or invalid review_due/due_date")
+    elif review_due < today:
+        failures.append(f"review_due is stale: {review_due.isoformat()}")
+
+    if section == "ungoverned_hotspots":
+        if not item.get("governing_decision"):
+            failures.append("missing governing_decision")
+        if item.get("generated") is True:
+            if not _path_exists(item.get("source_contract")):
+                failures.append(f"missing source_contract: {item.get('source_contract')}")
+            if not item.get("generation_command"):
+                failures.append("missing generation_command")
+    elif section == "stale_decisions":
+        decision_date = _parse_iso_date(item.get("decision_date"))
+        if not decision_date:
+            failures.append("missing or invalid decision_date")
+        elif decision_date > today:
+            failures.append(f"decision_date is in the future: {decision_date.isoformat()}")
+        if not item.get("decision"):
+            failures.append("missing decision")
+        if not _path_exists(item.get("runbook_path")):
+            failures.append(f"missing runbook_path: {item.get('runbook_path')}")
+    elif section == "knowledge_silos":
+        if not (item.get("secondary_owner") or item.get("backup_owner")):
+            failures.append("missing secondary_owner or backup_owner")
+
+    return ("pass" if not failures else "fail"), failures
+
+
+def compute_attention(registry_path: str | None, *, today: date | None = None) -> dict:
+    if not registry_path:
+        return {"status": "pass", "sections": {section: [] for section in ATTENTION_SECTIONS}}
+
+    registry_file = ROOT / registry_path
+    if not registry_file.exists():
+        return {
+            "status": "fail",
+            "registry": registry_path,
+            "sections": {section: [] for section in ATTENTION_SECTIONS},
+            "failures": [f"missing attention registry: {registry_path}"],
+        }
+
+    payload = json.loads(registry_file.read_text(encoding="utf-8"))
+    current_day = today or datetime.now(UTC).date()
+    sections: dict[str, list[dict]] = {}
+    failed_items = 0
+
+    for section in ATTENTION_SECTIONS:
+        section_items = []
+        for item in payload.get(section, []):
+            status, failures = _attention_item_status(section, item, today=current_day)
+            failed_items += int(status == "fail")
+            original_path = item.get("path")
+            normalized_path = NORMALIZED_PATHS.get(str(original_path), original_path)
+            section_items.append(
+                {
+                    "id": item.get("id"),
+                    "status": status,
+                    "owner": item.get("owner"),
+                    "secondary_owner": item.get("secondary_owner") or item.get("backup_owner"),
+                    "path": normalized_path,
+                    "reported_path": original_path,
+                    "evidence_path": item.get("evidence_path"),
+                    "review_due": item.get("review_due") or item.get("due_date"),
+                    "remediation_state": item.get("remediation_state"),
+                    "failures": failures,
+                }
+            )
+        sections[section] = section_items
+
+    return {
+        "status": "pass" if failed_items == 0 else "fail",
+        "registry": registry_path,
+        "failed_items": failed_items,
+        "sections": sections,
+    }
+
+
+def compute(policy: dict, *, attention_registry: str | None = None) -> dict:
     per_layer = {}
     for layer, scope in LAYER_SCOPES.items():
         paths = scope["paths"]
@@ -114,14 +227,17 @@ def compute(policy: dict) -> dict:
     overall = round(sum(v["score"] for v in per_layer.values()) / len(per_layer), 1)
     max_fail = policy["thresholds"]["max_failed_layers"]
     failed_layers = sorted([k for k, v in per_layer.items() if v["status"] == "fail"])
+    attention = compute_attention(attention_registry)
+    layer_status = "pass" if len(failed_layers) <= max_fail else "fail"
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "policy_version": policy["version"],
         "thresholds": policy["thresholds"],
         "overall_score": overall,
         "failed_layers": failed_layers,
-        "status": "pass" if len(failed_layers) <= max_fail else "fail",
+        "status": "pass" if layer_status == "pass" and attention["status"] == "pass" else "fail",
         "layers": per_layer,
+        "attention": attention,
     }
 
 
@@ -130,6 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--policy", default="config/baselines/layer-quality-threshold-policy.json")
     ap.add_argument("--output", default="config/baselines/layer-quality-scorecard.json")
     ap.add_argument("--summary", default="artifacts/layer-quality-scorecard.md")
+    ap.add_argument("--attention-registry", default="config/baselines/layer-quality-attention-registry.json")
     return ap
 
 
@@ -137,7 +254,7 @@ def main() -> int:
     ap = build_parser()
     args = ap.parse_args()
     policy = json.loads((ROOT / args.policy).read_text(encoding="utf-8"))
-    report = compute(policy)
+    report = compute(policy, attention_registry=args.attention_registry)
     out = ROOT / args.output
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -156,6 +273,35 @@ def main() -> int:
         lines.append(
             f"| {layer} | {data['score']} | {data['passed_checks']}/{data['total_checks']} | {emoji} {data['status']} |"
         )
+    lines.extend(
+        [
+            "",
+            "## Attention Findings",
+            "",
+            f"Status: **{report['attention']['status']}**",
+            "",
+            "| Category | ID | Path | Owner | Review Due | State | Status |",
+            "|---|---|---|---|---|---|---|",
+        ]
+    )
+    for section, items in report["attention"]["sections"].items():
+        for item in items:
+            label = section.replace("_", " ")
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        label,
+                        str(item.get("id") or ""),
+                        str(item.get("path") or ""),
+                        str(item.get("owner") or ""),
+                        str(item.get("review_due") or ""),
+                        str(item.get("remediation_state") or ""),
+                        str(item.get("status") or ""),
+                    ]
+                )
+                + " |"
+            )
     summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
     return 0 if report["status"] == "pass" else 1

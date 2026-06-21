@@ -173,13 +173,54 @@ class TestQueryGraphToolTenantEnforcement:
         
         # Verify the actual tenant_id in the executed query
         call_args = mock_neo4j_session.run.call_args
-        actual_params = call_args[1].get("parameters", {}) if len(call_args) > 1 else {}
-        
+        actual_params = call_args.kwargs.get("parameters") or call_args.args[1]
+
         # The tool should override spoofed tenant_id with context tenant_id
-        assert actual_params.get("tenant_id") != str(TENANT_B_ID), (
+        assert actual_params.get("tenant_id") == str(TENANT_A_ID), (
             "Tool must reject tenant_id spoofing in query parameters. "
             "Input attempted Tenant B but Tenant A context should override."
         )
+
+    @pytest.mark.asyncio
+    async def test_query_graph_rejects_input_tenant_without_context(self, mock_neo4j_session):
+        """NEGATIVE: Raw input tenant_id is not an approved execution context."""
+        QueryGraphTool, _, QueryGraphInput, _ = _get_knowledge_tools()
+
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+        mock_driver = MagicMock()
+        mock_driver.session = MagicMock(return_value=mock_neo4j_session)
+        tool._driver = mock_driver
+
+        result = await tool.execute(
+            QueryGraphInput(
+                cypher_query="MATCH (n:Account) RETURN n LIMIT 10",
+                parameters={},
+                tenant_id=str(TENANT_A_ID),
+            )
+        )
+
+        assert result.error is not None
+        assert "tenant context required" in result.error.lower()
+        mock_neo4j_session.run.assert_not_called()
+
+    def test_tenant_filter_detects_path_alias_node_alias(self):
+        QueryGraphTool, _, _, _ = _get_knowledge_tools()
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+
+        scoped_query, alias = tool._inject_tenant_filter(
+            "MATCH path = (start:Account)-[:OWNS]->(child:UseCase) RETURN path",
+            TENANT_A_ID,
+        )
+
+        assert alias == "start"
+        assert "WHERE start.tenant_id = $tenant_id" in scoped_query
+
+    def test_tenant_filter_rejects_query_without_node_alias(self):
+        QueryGraphTool, _, _, _ = _get_knowledge_tools()
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+
+        with pytest.raises(ValueError, match="unable to parse node alias"):
+            tool._inject_tenant_filter("RETURN 1 AS ok", TENANT_A_ID)
 
 
 class TestSemanticSearchToolTenantIsolation:

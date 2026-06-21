@@ -135,8 +135,11 @@ class Layer5GroundTruthClient:
             headers[TENANT_ID_HEADER] = tenant_id
             # F-1 P0 fix: Include service auth secret for mutual authentication
             service_auth = os.getenv("SERVICE_AUTH_SECRET")
-            if service_auth:
-                headers[SERVICE_AUTH_HEADER] = service_auth
+            if not service_auth:
+                raise ValueError(
+                    "SERVICE_AUTH_SECRET is required when Layer 5 client uses X-Tenant-ID fallback authentication"
+                )
+            headers[SERVICE_AUTH_HEADER] = service_auth
 
         # Connection pooling with explicit limits for boundary resilience
         limits = httpx.Limits(max_connections=20, max_keepalive_connections=10)

@@ -25,6 +25,10 @@ APPLICATION_SERVICE_PATHS = (
     LAYER4_ROOT / "services/company_knowledge_service.py",
 )
 
+APPLICATION_WORKFLOW_PATHS = (
+    LAYER4_ROOT / "workflows/business_case.py",
+)
+
 ROUTE_ADAPTER_BOUNDARY_PATHS = (
     LAYER4_ROOT / "api/routes/ground_truth_proxy.py",
     LAYER4_ROOT / "api/routes/prospects.py",
@@ -150,6 +154,32 @@ def test_application_services_do_not_import_cross_layer_integration_clients() ->
 
     assert not violations, (
         "Application services must depend on cross-layer ports, not concrete "
+        "integration clients:\n" + "\n".join(violations)
+    )
+
+
+def test_application_workflows_do_not_import_cross_layer_integration_clients() -> None:
+    forbidden_modules = {
+        "layer4_agents.integration.layer1_client",
+        "layer4_agents.integration.layer2_client",
+        "layer4_agents.integration.layer3_client",
+        "layer4_agents.integration.layer5_client",
+    }
+    forbidden_relative = {
+        "integration.layer1_client",
+        "integration.layer2_client",
+        "integration.layer3_client",
+        "integration.layer5_client",
+    }
+    violations: list[str] = []
+    for path in APPLICATION_WORKFLOW_PATHS:
+        rel_path = path.relative_to(REPO_ROOT).as_posix()
+        for lineno, level, module_name in _imported_modules(path):
+            if module_name in forbidden_modules or (level and module_name in forbidden_relative):
+                violations.append(f"{rel_path}:{lineno} imports {module_name}")
+
+    assert not violations, (
+        "Application workflows must depend on cross-layer ports, not concrete "
         "integration clients:\n" + "\n".join(violations)
     )
 

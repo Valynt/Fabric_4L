@@ -613,25 +613,26 @@ class TestBusinessCaseGeneratorWorkflow:
         assert "organization_id" in result
 
     @pytest.mark.asyncio
-    @patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient")
-    async def test_sync_ground_truths_normalizes_success_result(self, mock_client_cls) -> None:
+    async def test_sync_ground_truths_normalizes_success_result(self) -> None:
         """_sync_ground_truths_to_kg must return a dict matching the result model even when Layer 5 omits fields."""
         registry = _make_mock_tool_registry()
-        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
         input_data = {
             "account_id": "550e8400-e29b-41d4-a716-446655440000",
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
-        state.metadata = {"authenticated_tenant_id": "tenant-456"}
 
         # Mock Layer5 client to return a dict missing `error` (common success shape)
         mock_client = AsyncMock()
         mock_client.sync_validated_truths = AsyncMock(return_value={"synced": 5, "failed": 1})
         mock_client.close = AsyncMock()
-        mock_client_cls.return_value = mock_client
+        workflow = BusinessCaseGeneratorWorkflow(
+            tool_registry=registry,
+            ground_truth_client_factory=lambda _organization_id: mock_client,
+        )
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
+        state.metadata = {"authenticated_tenant_id": "tenant-456"}
 
         result = await workflow._sync_ground_truths_to_kg(state)
 

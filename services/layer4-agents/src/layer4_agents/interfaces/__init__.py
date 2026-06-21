@@ -18,6 +18,10 @@ from .benchmark_client import (
     RangeValidationRequest,
     RangeValidationResult,
 )
+from .business_case_ground_truth import (
+    BusinessCaseGroundTruthClientFactory,
+    BusinessCaseGroundTruthPort,
+)
 from .company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from .context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .formula_governance import (
@@ -62,6 +66,8 @@ __all__ = [
     # Benchmark Client
     "IBenchmarkClient",
     "BenchmarkDataset",
+    "BusinessCaseGroundTruthClientFactory",
+    "BusinessCaseGroundTruthPort",
     "ComparisonRequest",
     "ComparisonResult",
     "RangeValidationRequest",

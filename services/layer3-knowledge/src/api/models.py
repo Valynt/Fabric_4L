@@ -27,6 +27,8 @@ from ..services import compat_policy
 from ..services.compat_metrics import record_deprecated_field_usage
 from ..services.compat_policy import include_legacy_graph_aliases
 
+GRAPH_FIELD_ALIAS_REMOVAL_VERSION = compat_policy.GRAPH_FIELD_ALIAS_REMOVAL_VERSION
+
 
 # Health Check
 class DependencyStatus(BaseModel):

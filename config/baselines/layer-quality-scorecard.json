@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-21T21:52:43.379227+00:00",
+  "generated_at": "2026-06-21T21:56:42.742188+00:00",
   "policy_version": "1.0.0",
   "thresholds": {
     "per_layer_min_score": 80,
@@ -176,6 +176,115 @@
           "present": true
         }
       }
+    }
+  },
+  "attention": {
+    "status": "pass",
+    "registry": "config/baselines/layer-quality-attention-registry.json",
+    "failed_items": 0,
+    "sections": {
+      "ungoverned_hotspots": [
+        {
+          "id": "LQ-HOTSPOT-L4-GENERATED-CONTRACT",
+          "status": "pass",
+          "owner": "@platform-contracts",
+          "secondary_owner": null,
+          "path": "packages/platform-contract/src/typescript/generated/layer4_agents.ts",
+          "reported_path": "packages/platform-contract/src/typescript/generated/layer4_agents.ts",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "governed",
+          "failures": []
+        },
+        {
+          "id": "LQ-HOTSPOT-L3-API-MODELS",
+          "status": "pass",
+          "owner": "@layer3-knowledge",
+          "secondary_owner": null,
+          "path": "services/layer3-knowledge/src/api/models.py",
+          "reported_path": "services/layer3-knowledge/src/api/models.py",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "governed",
+          "failures": []
+        },
+        {
+          "id": "LQ-HOTSPOT-WEB-L4-GENERATED-API",
+          "status": "pass",
+          "owner": "@frontend-platform",
+          "secondary_owner": null,
+          "path": "apps/web/src/api/generated/l4/index.ts",
+          "reported_path": "apps/web/src/api/generated/l4/index.ts",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "governed",
+          "failures": []
+        }
+      ],
+      "stale_decisions": [
+        {
+          "id": "LQ-DECISION-DB-POOL-EXHAUSTION",
+          "status": "pass",
+          "owner": "@platform-sre",
+          "secondary_owner": null,
+          "path": "monitoring/alerting/rules-production.yml",
+          "reported_path": "monitoring/alerting/rules-production.yml",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "fresh",
+          "failures": []
+        },
+        {
+          "id": "LQ-DECISION-CRITICAL-LLM-COST",
+          "status": "pass",
+          "owner": "@finops",
+          "secondary_owner": null,
+          "path": "monitoring/alerting/rules-production.yml",
+          "reported_path": "monitoring/alerting/rules-production.yml",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "fresh",
+          "failures": []
+        },
+        {
+          "id": "LQ-DECISION-CRASHLOOP-RESTARTS",
+          "status": "pass",
+          "owner": "@platform-sre",
+          "secondary_owner": null,
+          "path": "monitoring/alerting/rules-production.yml",
+          "reported_path": "monitoring/alerting/rules-production.yml",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "fresh",
+          "failures": []
+        }
+      ],
+      "knowledge_silos": [
+        {
+          "id": "LQ-SILO-AGENT-CONDUCTOR",
+          "status": "pass",
+          "owner": "Brian",
+          "secondary_owner": "@platform-agent-runtime",
+          "path": ".agent/harness/conductor.py",
+          "reported_path": ".agent/harness/conductor.py",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "backup-owner-assigned",
+          "failures": []
+        },
+        {
+          "id": "LQ-SILO-AGENT-HOOKS-INIT",
+          "status": "pass",
+          "owner": "Brian",
+          "secondary_owner": "@platform-agent-runtime",
+          "path": ".agent/harness/hooks/__init__.py",
+          "reported_path": ".agent/harness/hooks/init.py",
+          "evidence_path": "docs/governance/layer-quality-attention-records.md",
+          "review_due": "2026-09-30",
+          "remediation_state": "normalized-to-__init__-with-backup-owner",
+          "failures": []
+        }
+      ]
     }
   }
 }

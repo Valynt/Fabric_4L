@@ -20,7 +20,10 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
-from ..integration.layer5_client import Layer5GroundTruthClient
+from ..interfaces.business_case_ground_truth import (
+    BusinessCaseGroundTruthClientFactory,
+    BusinessCaseGroundTruthPort,
+)
 from ..models.agent_state import (
     BusinessCaseAgentState,
     BusinessCaseInputData,
@@ -148,7 +151,12 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         result = await workflow.run(initial_state)
     """
 
-    def __init__(self, tool_registry: ToolRegistry, checkpoint_saver=None):
+    def __init__(
+        self,
+        tool_registry: ToolRegistry,
+        checkpoint_saver=None,
+        ground_truth_client_factory: BusinessCaseGroundTruthClientFactory | None = None,
+    ):
         """Initialize Business Case Generator workflow."""
         super().__init__(
             config=BUSINESS_CASE_WORKFLOW_CONFIG,
@@ -156,10 +164,17 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             checkpoint_saver=checkpoint_saver,
         )
         self.roi_workflow = ROICalculatorWorkflow(tool_registry, checkpoint_saver)
+        self._ground_truth_client_factory = ground_truth_client_factory
 
     def _get_state_type(self):
         """Return Business Case-specific state type."""
         return BusinessCaseAgentState
+
+    def _get_ground_truth_client(self, organization_id: str) -> BusinessCaseGroundTruthPort | None:
+        """Create a Ground Truth port for the authenticated organization."""
+        if self._ground_truth_client_factory is None:
+            return None
+        return self._ground_truth_client_factory(organization_id)
 
     def create_initial_state(
         self,
@@ -617,10 +632,6 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             })
 
         organization_id = self._resolve_organization_id(state)
-        service_token: str | None = os.getenv("LAYER5_SERVICE_TOKEN")
-        layer5_url: str | None = os.getenv(
-            "LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005"
-        )
         min_maturity = min(
             [int(req.get("min_maturity", 0)) for req in requirements if req.get("min_maturity") is not None],
             default=0,
@@ -630,11 +641,20 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             default=0.0,
         )
 
-        client = Layer5GroundTruthClient(
-            base_url=layer5_url,
-            service_token=service_token,
-            tenant_id=organization_id if not service_token else None,
-        )
+        client = self._get_ground_truth_client(organization_id)
+        if client is None:
+            return BusinessCaseGeneratorWorkflow__execute_verify_truth_requirementsResult.model_validate({
+                "passed": False,
+                "requirements": [],
+                "truth_references": [],
+                "remediation_items": [
+                    {
+                        "type": "ground_truth_unavailable",
+                        "message": "Layer 5 Ground Truth client is not configured.",
+                    }
+                ],
+                "organization_id": organization_id,
+            })
 
         status_rank = {
             "proposed": 0,
@@ -1013,15 +1033,18 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         roi_results = state.output_data.get("run_roi", {}).get("roi_results", {})
         candidates = self._extract_candidate_claims(sections_data, roi_results, source_refs)
 
-        service_token: str | None = os.getenv("LAYER5_SERVICE_TOKEN")
-        layer5_url: str | None = os.getenv(
-            "LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005"
-        )
-        client = Layer5GroundTruthClient(
-            base_url=layer5_url,
-            service_token=service_token,
-            tenant_id=organization_id if not service_token else None,
-        )
+        client = self._get_ground_truth_client(organization_id)
+        if client is None:
+            return BusinessCaseGeneratorWorkflow__promote_case_claims_to_truth_objectsResult.model_validate({
+                "truth_object_ids": [],
+                "claim_traceability": [],
+                "threshold_decisions": [
+                    {
+                        "decision": "skipped",
+                        "reason": "Layer 5 Ground Truth client is not configured.",
+                    }
+                ],
+            })
 
         truth_object_ids: list[str] = []
         claim_traceability: list[dict[str, Any]] = []
@@ -1212,21 +1235,14 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             parsed = parse_llm_json(llm_result.content)
             extracted_claims = parsed.get("claims", [])
 
-            # Build one Layer 5 client and validator for the entire validation run.
-            from ..harness.live_l5_validator import LiveL5Validator
-
-            layer5_url: str | None = os.getenv(
-                "LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005"
-            )
-            service_token: str | None = os.getenv("LAYER5_SERVICE_TOKEN")
-
             # Validate each claim against Layer 5 (best-effort)
             validated: list[dict] = []
             unverified: list[dict] = []
+            ground_truth_client = self._get_ground_truth_client(organization_id)
 
-            if not layer5_url:
+            if ground_truth_client is None:
                 # L5 unavailable due to missing config — mark all claims as unavailable.
-                logger.warning("LAYER5_GROUND_TRUTH_URL not set; skipping L5 claim validation")
+                logger.warning("Layer 5 Ground Truth client not configured; skipping L5 claim validation")
                 for claim in extracted_claims[:20]:
                     claim_text = claim.get("claim_text", "")
                     if claim_text:
@@ -1236,40 +1252,32 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                             "reason": "Layer 5 validator unavailable: missing configuration",
                         })
             else:
-                l5_client = Layer5GroundTruthClient(
-                    base_url=layer5_url,
-                    service_token=service_token,
-                    tenant_id=organization_id if not service_token else None,
-                )
-                validator = LiveL5Validator(client=l5_client)
                 try:
-                    from ..harness.validation_hooks import ClaimValidationRequest
                     for claim in extracted_claims[:20]:  # cap at 20 claims per run
                         claim_text = claim.get("claim_text", "")
                         if not claim_text:
                             continue
                         try:
-                            result = await validator.validate(
-                                ClaimValidationRequest(
-                                    tenant_id=organization_id,
-                                    claim_id=claim.get("claim_id", claim_text[:64]),
-                                    claim_text=claim_text,
-                                    evidence_refs=claim.get("evidence_refs", []),
-                                    account_id=str(state.case_input.opportunity_id) if state.case_input else None,
-                                    value_pack_id="business_case",
-                                )
+                            result = await ground_truth_client.validate_claim(
+                                tenant_id=organization_id,
+                                claim_id=claim.get("claim_id", claim_text[:64]),
+                                claim_text=claim_text,
+                                evidence_refs=claim.get("evidence_refs", []),
+                                account_id=str(state.case_input.opportunity_id) if state.case_input else None,
+                                value_pack_id="business_case",
                             )
-                            if result.validation_state.value == "passed":
-                                validated.append({**claim, "l5_status": "validated", "evidence": result.evidence_refs})
+                            validation_status = str(result.get("status", "unavailable"))
+                            if validation_status == "passed":
+                                validated.append({**claim, "l5_status": "validated", "evidence": result.get("evidence_refs", [])})
                             else:
-                                unverified.append({**claim, "l5_status": result.validation_state.value, "reason": result.reason})
+                                unverified.append({**claim, "l5_status": validation_status, "reason": result.get("reason")})
                         except asyncio.CancelledError:
                             raise
                         except Exception as val_exc:
                             logger.debug("L5 validation unavailable for claim: %s", val_exc)
                             unverified.append({**claim, "l5_status": "unavailable"})
                 finally:
-                    await l5_client.close()
+                    await ground_truth_client.close()
 
             has_unverified = len(unverified) > 0
             confidence = (
@@ -1362,17 +1370,14 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         """
         organization_id = self._resolve_organization_id(state)
 
-        # Resolve service token for Layer 5 auth
-        service_token: str | None = os.getenv("LAYER5_SERVICE_TOKEN")
-        layer5_url: str | None = os.getenv(
-            "LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005"
-        )
-
-        client = Layer5GroundTruthClient(
-            base_url=layer5_url,
-            service_token=service_token,
-            tenant_id=organization_id if not service_token else None,
-        )
+        client = self._get_ground_truth_client(organization_id)
+        if client is None:
+            return BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult.model_validate({
+                "error": "Ground-truth sync unavailable",
+                "error_code": "GROUND_TRUTH_SYNC_UNAVAILABLE",
+                "synced": 0,
+                "failed": 0,
+            })
 
         try:
             sync_result = await client.sync_validated_truths(organization_id=organization_id)

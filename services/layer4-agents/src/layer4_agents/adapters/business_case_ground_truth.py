@@ -3,7 +3,7 @@ from __future__ import annotations
 """Business-case Ground Truth adapter backed by the Layer 5 client."""
 
 import os
-from typing import Any
+from typing import Any, cast
 
 from layer4_agents.harness.live_l5_validator import LiveL5Validator
 from layer4_agents.harness.validation_hooks import ClaimValidationRequest
@@ -28,14 +28,17 @@ class Layer5BusinessCaseGroundTruthAdapter(BusinessCaseGroundTruthPort):
         limit: int = 50,
         offset: int = 0,
     ) -> dict[str, Any]:
-        return await self._client.list_truths(
-            organization_id=organization_id,
-            claim_type=claim_type,
-            min_maturity=min_maturity,
-            min_confidence=min_confidence,
-            applies_to_opportunity=applies_to_opportunity,
-            limit=limit,
-            offset=offset,
+        return cast(
+            dict[str, Any],
+            await self._client.list_truths(
+                organization_id=organization_id,
+                claim_type=claim_type,
+                min_maturity=min_maturity,
+                min_confidence=min_confidence,
+                applies_to_opportunity=applies_to_opportunity,
+                limit=limit,
+                offset=offset,
+            ),
         )
 
     async def submit_truth(
@@ -49,14 +52,17 @@ class Layer5BusinessCaseGroundTruthAdapter(BusinessCaseGroundTruthPort):
         sources: list[dict[str, Any]] | None = None,
         raw_extraction_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return await self._client.submit_truth(
-            claim=claim,
-            claim_type=claim_type,
-            confidence=confidence,
-            organization_id=organization_id,
-            applies_to=applies_to,
-            sources=sources,
-            raw_extraction_data=raw_extraction_data,
+        return cast(
+            dict[str, Any],
+            await self._client.submit_truth(
+                claim=claim,
+                claim_type=claim_type,
+                confidence=confidence,
+                organization_id=organization_id,
+                applies_to=applies_to,
+                sources=sources,
+                raw_extraction_data=raw_extraction_data,
+            ),
         )
 
     async def validate_claim(
@@ -87,7 +93,10 @@ class Layer5BusinessCaseGroundTruthAdapter(BusinessCaseGroundTruthPort):
         }
 
     async def sync_validated_truths(self, *, organization_id: str) -> dict[str, Any]:
-        return await self._client.sync_validated_truths(organization_id=organization_id)
+        return cast(
+            dict[str, Any],
+            await self._client.sync_validated_truths(organization_id=organization_id),
+        )
 
     async def close(self) -> None:
         await self._client.close()

@@ -77,6 +77,16 @@ class QueryGraphTool(BaseTool):
         re.IGNORECASE,
     )
 
+    _FIRST_NODE_ALIAS_PATTERN = re.compile(
+        r"\b(?:MATCH|OPTIONAL\s+MATCH)\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?\(\s*([A-Za-z_][A-Za-z0-9_]*)\b",
+        re.IGNORECASE,
+    )
+
+    _MATCH_PATTERN_PATTERN = re.compile(
+        r"\b(MATCH|OPTIONAL\s+MATCH)\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?\([^)]*\)",
+        re.IGNORECASE,
+    )
+
     def _inject_tenant_filter(self, query: str, tenant_id: UUID) -> tuple[str, str]:
         """Inject tenant_id filter into Cypher query with proper alias detection.
         
@@ -98,45 +108,40 @@ class QueryGraphTool(BaseTool):
         Raises:
             ValueError: If node alias cannot be extracted from MATCH clause
         """
-        # Extract node alias from MATCH clause - handles MATCH (alias:Label) or MATCH (alias)
-        # Pattern captures: MATCH (alias:... or MATCH (alias) or MATCH (alias {...
-        alias_match = re.search(
-            r'\bMATCH\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)',
-            query,
-            re.IGNORECASE
-        )
+        alias_match = self._FIRST_NODE_ALIAS_PATTERN.search(query)
         if not alias_match:
             raise ValueError(
                 "Cannot inject tenant filter: unable to parse node alias from MATCH clause. "
-                "Query must follow pattern: MATCH (alias:Label) or MATCH (alias)"
+                "Query must follow pattern: MATCH (alias:Label), OPTIONAL MATCH (alias), or MATCH path = (alias)"
             )
-        
+
         node_alias = alias_match.group(1)
         tenant_filter = f"{node_alias}.tenant_id = $tenant_id"
-        
-        # Pattern to find WHERE clause (case insensitive)
-        where_pattern = re.compile(r'\bWHERE\b(?!\s*\()', re.IGNORECASE)
-        
-        if where_pattern.search(query):
-            # Add AND condition to existing WHERE (but not inside subqueries)
-            modified_query = re.sub(
-                r'(\bWHERE\b)(?!\s*\()',
-                rf'\1 {tenant_filter} AND ',
-                query,
-                count=1,
-                flags=re.IGNORECASE
+
+        where_match = re.search(
+            r"\bWHERE\b",
+            query,
+            re.IGNORECASE,
+        )
+
+        if where_match:
+            modified_query = (
+                query[: where_match.end()]
+                + f" {tenant_filter} AND"
+                + query[where_match.end() :]
             )
         else:
-            # Add WHERE clause after first MATCH pattern
-            # Pattern handles nested parentheses in node properties: MATCH (n {prop: "(val)"})
-            modified_query = re.sub(
-                rf'(\bMATCH\s*\(\s*{re.escape(node_alias)}(?:[^()]*|\([^()]*\))*\))',
-                rf'\1 WHERE {tenant_filter}',
-                query,
-                count=1,
-                flags=re.IGNORECASE
+            match_pattern = self._MATCH_PATTERN_PATTERN.search(query)
+            if not match_pattern:
+                raise ValueError(
+                    "Cannot inject tenant filter: unable to identify MATCH pattern boundary"
+                )
+            modified_query = (
+                query[: match_pattern.end()]
+                + f" WHERE {tenant_filter}"
+                + query[match_pattern.end() :]
             )
-        
+
         logger.debug(f"Injected tenant filter: alias={node_alias}, original={query[:50]}..., modified={modified_query[:50]}...")
         return modified_query, node_alias
     
@@ -181,23 +186,14 @@ class QueryGraphTool(BaseTool):
             tenant_ctx.assert_valid()
             effective_tenant_id = tenant_ctx.tenant_id
         except TenantContextError as e:
-            # Workflow engine calls tools outside an HTTP request context.  Fall
-            # back to the tenant_id provided in the tool input or tool config.
-            fallback_tenant_id = getattr(input_data, "tenant_id", None) or (
-                self.config.get("tenant_id") if self.config else None
+            logger.warning(f"Tenant context error in query_graph: {e}")
+            return QueryGraphOutput(
+                results=[],
+                columns=[],
+                row_count=0,
+                execution_time_ms=0,
+                error=f"Tenant context required: {e}. Authentication required."
             )
-            if fallback_tenant_id:
-                effective_tenant_id = UUID(str(fallback_tenant_id))
-                logger.debug("Using fallback tenant_id for query_graph: %s", fallback_tenant_id)
-            else:
-                logger.warning(f"Tenant context error in query_graph: {e}")
-                return QueryGraphOutput(
-                    results=[],
-                    columns=[],
-                    row_count=0,
-                    execution_time_ms=0,
-                    error=f"Tenant context required: {e}. Authentication required."
-                )
         
         # P1-11 FIX: Validate query is read-only before execution
         validation_error = self._validate_read_only(input_data.cypher_query)

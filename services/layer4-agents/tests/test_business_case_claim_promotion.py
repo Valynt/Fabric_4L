@@ -51,6 +51,10 @@ class _FakeLayer5Client:
         self.validations.append(kwargs)
         return {"ok": True}
 
+    async def validate_claim(self, **kwargs):
+        self.validations.append(kwargs)
+        return {"status": "passed", "reason": None, "evidence_refs": []}
+
     async def sync_validated_truths(self, **kwargs):
         return {"synced": 0, "failed": 0}
 
@@ -58,11 +62,19 @@ class _FakeLayer5Client:
         return None
 
 
+def _fake_ground_truth_factory(_organization_id: str) -> _FakeLayer5Client:
+    return _FakeLayer5Client()
+
+
 @pytest.mark.asyncio
 async def test_promotes_claims_and_persists_traceability(monkeypatch):
     registry = AsyncMock()
     registry.execute = AsyncMock(return_value={"document_url": "https://example/doc.pdf"})
-    workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+    _FakeLayer5Client.last_instance = None
+    workflow = BusinessCaseGeneratorWorkflow(
+        tool_registry=registry,
+        ground_truth_client_factory=_fake_ground_truth_factory,
+    )
     state = workflow.create_initial_state(
         {
             "account_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -99,7 +111,6 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     }
 
     state.metadata["authenticated_tenant_id"] = "test-tenant"
-    monkeypatch.setattr("layer4_agents.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
     result = await workflow._execute_assemble_document(state)
@@ -126,7 +137,11 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
 async def test_skips_claims_below_threshold(monkeypatch):
     registry = AsyncMock()
     registry.execute = AsyncMock(return_value={"document_url": "https://example/doc.pdf"})
-    workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+    _FakeLayer5Client.last_instance = None
+    workflow = BusinessCaseGeneratorWorkflow(
+        tool_registry=registry,
+        ground_truth_client_factory=_fake_ground_truth_factory,
+    )
     state = workflow.create_initial_state(
         {
             "account_id": "550e8400-e29b-41d4-a716-446655440002",
@@ -155,7 +170,6 @@ async def test_skips_claims_below_threshold(monkeypatch):
         "run_roi": {"roi_results": {}},
     }
 
-    monkeypatch.setattr("layer4_agents.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     state.metadata["authenticated_tenant_id"] = "test-tenant"
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 

@@ -237,22 +237,25 @@ def _make_workflow_state(
     return state
 
 
-def _make_bc_workflow():
+def _make_bc_workflow(ground_truth_client_factory=None):
     """Build a BusinessCaseGeneratorWorkflow with mocked dependencies."""
     from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
 
     tool_registry = MagicMock()
     with patch("layer4_agents.workflows.business_case.get_llm_provider"), \
          patch("layer4_agents.workflows.business_case.get_prompt_registry"):
-        wf = BusinessCaseGeneratorWorkflow(tool_registry=tool_registry)
+        wf = BusinessCaseGeneratorWorkflow(
+            tool_registry=tool_registry,
+            ground_truth_client_factory=ground_truth_client_factory,
+        )
     return wf
 
 
 class TestL5ClientLifecycle:
-    """Group B — Layer5GroundTruthClient constructed once per validate_claims call."""
+    """Group B — Ground Truth client lifecycle for validate_claims."""
 
     async def test_l5_client_constructed_once(self, monkeypatch):
-        """Layer5GroundTruthClient constructor is called once regardless of claim count."""
+        """Ground Truth client factory is called once regardless of claim count."""
         monkeypatch.setenv("LAYER5_GROUND_TRUTH_URL", "http://l5:8005")
         monkeypatch.setenv("LAYER5_SERVICE_TOKEN", "tok")
 
@@ -260,13 +263,13 @@ class TestL5ClientLifecycle:
 
         fake_client = AsyncMock()
         fake_client.close = AsyncMock()
+        fake_client.validate_claim = AsyncMock(
+            return_value={"status": "passed", "reason": None, "evidence_refs": []}
+        )
 
-        def _fake_constructor(**kwargs):
-            constructor_calls.append(kwargs)
+        def _fake_factory(organization_id):
+            constructor_calls.append({"organization_id": organization_id})
             return fake_client
-
-        fake_validator = MagicMock()
-        fake_validator.validate_claim = AsyncMock(return_value={"validated": True, "evidence": []})
 
         # LLM returns 3 claims
         fake_llm_result = MagicMock()
@@ -279,9 +282,7 @@ class TestL5ClientLifecycle:
 
         with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
              patch("layer4_agents.workflows.business_case.get_llm_provider"), \
-             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient", side_effect=_fake_constructor), \
-             patch("layer4_agents.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator) as MockValidator:
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM:
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -292,10 +293,10 @@ class TestL5ClientLifecycle:
                 return_value={"claims": [{"claim_text": "A"}, {"claim_text": "B"}, {"claim_text": "C"}]}
             )
 
-            wf = _make_bc_workflow()
+            wf = _make_bc_workflow(ground_truth_client_factory=_fake_factory)
             await wf._execute_validate_claims(state)
 
-        assert len(constructor_calls) == 1, "Layer5GroundTruthClient must be constructed exactly once"
+        assert len(constructor_calls) == 1, "Ground Truth client factory must be called exactly once"
 
     async def test_l5_client_closed_in_finally(self, monkeypatch):
         """l5_client.close() is called even when a claim raises."""
@@ -304,9 +305,7 @@ class TestL5ClientLifecycle:
 
         fake_client = AsyncMock()
         fake_client.close = AsyncMock()
-
-        fake_validator = MagicMock()
-        fake_validator.validate_claim = AsyncMock(side_effect=RuntimeError("l5 down"))
+        fake_client.validate_claim = AsyncMock(side_effect=RuntimeError("l5 down"))
 
         fake_llm_result = MagicMock()
         fake_llm_result.content = '{"claims": [{"claim_text": "A"}]}'
@@ -318,9 +317,7 @@ class TestL5ClientLifecycle:
 
         with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
              patch("layer4_agents.workflows.business_case.get_llm_provider"), \
-             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient", return_value=fake_client), \
-             patch("layer4_agents.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator):
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM:
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -331,7 +328,7 @@ class TestL5ClientLifecycle:
                 return_value={"claims": [{"claim_text": "A"}]}
             )
 
-            wf = _make_bc_workflow()
+            wf = _make_bc_workflow(ground_truth_client_factory=lambda _organization_id: fake_client)
             result = await wf._execute_validate_claims(state)
 
         # close() must have been called despite the per-claim exception
@@ -354,8 +351,7 @@ class TestL5ClientLifecycle:
 
         with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
              patch("layer4_agents.workflows.business_case.get_llm_provider"), \
-             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient") as MockL5:
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM:
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -369,8 +365,6 @@ class TestL5ClientLifecycle:
             wf = _make_bc_workflow()
             result = await wf._execute_validate_claims(state)
 
-        # Layer5GroundTruthClient must not be constructed
-        MockL5.assert_not_called()
         # All claims must be unverified with unavailable status
         unverified = result["payload"]["unverified_claims"]
         assert all(c["l5_status"] == "unavailable" for c in unverified)

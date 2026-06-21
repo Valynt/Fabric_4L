@@ -187,3 +187,19 @@ def test_fetch_interaction_history_rejects_invalid_or_malicious_ids(prospect_id)
     tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
     with pytest.raises(ValueError, match="Invalid prospect_id format"):
         tool._soql_safe_id(prospect_id)
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "",
+        None,
+        "001TEST123456789",
+        "001TEST12345' OR Name != ''",
+        "001TEST12345;DROP",
+    ],
+)
+def test_get_prospect_data_rejects_invalid_or_malicious_ids(prospect_id):
+    tool = GetProspectDataTool(config={"crm_type": "salesforce"})
+    with pytest.raises(ValueError, match="Invalid prospect_id format"):
+        tool._soql_safe_id(prospect_id)

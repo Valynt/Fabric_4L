@@ -62,6 +62,16 @@ def create_workflow(workflow_type: str, tool_registry, checkpoint_saver=None) ->
         raise ValueError(f"Unknown workflow type: {workflow_type}")
 
     workflow_class = WORKFLOW_TYPES[workflow_type]
+    if workflow_type == "business_case":
+        from layer4_agents.adapters.business_case_ground_truth import (
+            create_layer5_business_case_ground_truth_client,
+        )
+
+        return workflow_class(
+            tool_registry,
+            checkpoint_saver,
+            ground_truth_client_factory=create_layer5_business_case_ground_truth_client,
+        )
     return workflow_class(tool_registry, checkpoint_saver)
 
 
