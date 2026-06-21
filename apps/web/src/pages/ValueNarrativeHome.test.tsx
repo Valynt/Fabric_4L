@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import userEvent from "@testing-library/user-event";
 import ValueNarrativeHome from "./ValueNarrativeHome";
 
@@ -118,15 +119,80 @@ describe("ValueNarrativeHome intake workspace", () => {
     expect(screen.getAllByText(/Baseline ready/i).length).toBeGreaterThan(0);
   });
 
-  it("tracks unavailable connectors as local setup states", async () => {
+  it("does not add source records when clicking unavailable connector buttons", async () => {
     const user = userEvent.setup();
     render(<ValueNarrativeHome />);
 
+    await user.click(screen.getByRole("button", { name: /audio/i }));
     await user.click(screen.getByRole("button", { name: /crm link/i }));
     await user.click(screen.getByRole("button", { name: /pdf file/i }));
+    await user.click(screen.getByRole("button", { name: /meeting/i }));
 
-    expect(screen.getAllByText("Connector not configured").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Queued for connector setup").length).toBeGreaterThan(0);
+    const sourcesSection = screen.getByRole("heading", { name: /sources added/i });
+    const sourcesPanel = within(sourcesSection.parentElement!.parentElement!);
+
+    // Connector message is shown in the input area, but it is not a source record
+    expect(
+      screen.getByText(
+        "Connector not configured yet. This source type will only appear in Sources added once the upload or import flow is connected."
+      )
+    ).toBeInTheDocument();
+
+    // Sources added section remains empty
+    expect(
+      sourcesPanel.getByText("Add source context to start extraction and evidence scoring.")
+    ).toBeInTheDocument();
+
+    // No fake pending source records were added for unavailable connectors
+    expect(sourcesPanel.queryByText("Audio")).not.toBeInTheDocument();
+    expect(sourcesPanel.queryByText("CRM Link")).not.toBeInTheDocument();
+    expect(sourcesPanel.queryByText("PDF File")).not.toBeInTheDocument();
+    expect(sourcesPanel.queryByText("Meeting")).not.toBeInTheDocument();
+    expect(sourcesPanel.queryByText("Pending")).not.toBeInTheDocument();
+
+    // Source count stays at 0 / 10 in both the badge and progress label
+    expect(screen.getByText("0 / 10 sources")).toBeInTheDocument();
+    expect(screen.getByText("0 / 10")).toBeInTheDocument();
+  });
+
+  it("creates a real Notes source when the user enters note content", async () => {
+    render(<ValueNarrativeHome />);
+
+    fireEvent.change(screen.getByLabelText(/copied discovery text/i), {
+      target: { value: "Acme discovery notes" },
+    });
+    fireEvent.blur(screen.getByLabelText(/copied discovery text/i));
+
+    const sourcesSection = screen.getByRole("heading", { name: /sources added/i });
+    const sourcesPanel = within(sourcesSection.parentElement!.parentElement!);
+
+    expect(sourcesPanel.getByText("Notes")).toBeInTheDocument();
+    expect(sourcesPanel.getByText("Extracted 3 words")).toBeInTheDocument();
+    expect(sourcesPanel.getByText("Processed")).toBeInTheDocument();
+
+    expect(screen.getByText("1 / 10 sources")).toBeInTheDocument();
+    expect(screen.getByText("1 / 10")).toBeInTheDocument();
+  });
+
+  it("creates a real Web/Search source when the user submits a URL", async () => {
+    const user = userEvent.setup();
+    render(<ValueNarrativeHome />);
+
+    await user.click(screen.getByRole("button", { name: /web\/search/i }));
+    fireEvent.change(screen.getByLabelText(/url or research query/i), {
+      target: { value: "https://acme.com/pricing" },
+    });
+    await user.click(screen.getByRole("button", { name: /add url or search/i }));
+
+    const sourcesSection = screen.getByRole("heading", { name: /sources added/i });
+    const sourcesPanel = within(sourcesSection.parentElement!.parentElement!);
+
+    expect(sourcesPanel.getByText("Known URL")).toBeInTheDocument();
+    expect(sourcesPanel.getByText("https://acme.com/pricing")).toBeInTheDocument();
+    expect(sourcesPanel.getByText("Processed")).toBeInTheDocument();
+
+    expect(screen.getByText("1 / 10 sources")).toBeInTheDocument();
+    expect(screen.getByText("1 / 10")).toBeInTheDocument();
   });
 
   it("launches with the extracted account payload and routes to account intelligence", async () => {
