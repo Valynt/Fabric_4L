@@ -2,7 +2,8 @@ from __future__ import annotations
 
 """Concrete signal-detection client factories for Layer 2 and Layer 3."""
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from layer4_agents.integration.layer2_client import Layer2ExtractionClient
 from layer4_agents.integration.layer3_client import Layer3Client

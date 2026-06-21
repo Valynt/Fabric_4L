@@ -17,6 +17,7 @@ from layer4_agents.interfaces import (
     ContextIngestionPort,
     FormulaGovernance,
     FormulaStatus,
+    GroundTruthProxyPort,
     GovernanceTransitionResult,
     IBenchmarkClient,
     IFormulaApprovalWorkflow,
@@ -65,6 +66,7 @@ def test_interfaces_module_exports_core_symbols():
     assert IGroundTruthVariableBridge is not None
     assert ContextFinancialExtractionPort is not None
     assert ContextIngestionPort is not None
+    assert GroundTruthProxyPort is not None
     assert SignalExtractionPort is not None
     assert SignalKnowledgePort is not None
     assert SignalReviewPort is not None

@@ -7,7 +7,6 @@ extraction records, and ICP profiles.
 """
 import asyncio
 import logging
-import os
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -16,9 +15,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..integration.layer1_client import Layer1IngestionClient
-from ..integration.layer2_client import Layer2ExtractionClient
-from ..integration.layer3_client import Layer3Client
+from ..interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from ..models.company_knowledge import (
     CompanyKnowledgeProfile,
     CrawlStatus,
@@ -31,11 +28,6 @@ from ..models.company_knowledge import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Environment-based client configuration
-LAYER1_BASE_URL = os.getenv("LAYER4_LAYER1_API_URL", "http://layer1-ingestion:8000")
-LAYER2_BASE_URL = os.getenv("LAYER4_LAYER2_API_URL", "http://layer2-extraction:8000")
-LAYER3_BASE_URL = os.getenv("LAYER4_LAYER3_API_URL", "http://layer3-knowledge:8000")
 
 
 class Layer3IngestRequest(BaseModel):
@@ -60,38 +52,19 @@ class Layer3IngestResponse(BaseModel):
 class CompanyKnowledgeService:
     """Service for company knowledge onboarding operations."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(
+        self,
+        db: AsyncSession,
+        pipeline_client: CompanyKnowledgePipelinePort | None = None,
+    ):
         self.db = db
-        self._layer1_client: Layer1IngestionClient | None = None
-        self._layer2_client: Layer2ExtractionClient | None = None
-        self._layer3_client: Layer3Client | None = None
+        self._pipeline_client = pipeline_client
 
-    def _get_layer1_client(self, tenant_id: str) -> Layer1IngestionClient:
-        """Get or create Layer 1 client for tenant."""
-        if self._layer1_client is None:
-            self._layer1_client = Layer1IngestionClient(
-                base_url=LAYER1_BASE_URL,
-                tenant_id=tenant_id,
-            )
-        return self._layer1_client
-
-    def _get_layer2_client(self, tenant_id: str) -> Layer2ExtractionClient:
-        """Get or create Layer 2 client for tenant."""
-        if self._layer2_client is None:
-            self._layer2_client = Layer2ExtractionClient(
-                base_url=LAYER2_BASE_URL,
-                tenant_id=tenant_id,
-            )
-        return self._layer2_client
-
-    def _get_layer3_client(self, tenant_id: str) -> Layer3Client:
-        """Get or create Layer 3 client for tenant."""
-        if self._layer3_client is None:
-            self._layer3_client = Layer3Client(
-                base_url=LAYER3_BASE_URL,
-                tenant_id=tenant_id,
-            )
-        return self._layer3_client
+    def _require_pipeline_client(self) -> CompanyKnowledgePipelinePort:
+        """Return the configured pipeline port or fail before cross-layer work."""
+        if self._pipeline_client is None:
+            raise RuntimeError("Company knowledge pipeline client is not configured")
+        return self._pipeline_client
 
     # ========================================================================
     # Company Knowledge Profile
@@ -803,11 +776,11 @@ class CompanyKnowledgeService:
         if not source.source_url:
             raise ValueError(f"Source {source_id} has no URL")
 
-        client = self._get_layer1_client(tenant_id)
+        pipeline_client = self._require_pipeline_client()
         try:
-            result = await client.crawl_website(
-                url=source.source_url,
+            result = await pipeline_client.crawl_website(
                 tenant_id=tenant_id,
+                url=source.source_url,
                 name=f"Company knowledge crawl: {source.source_url}",
             )
             # Update source with crawl tracking
@@ -860,13 +833,13 @@ class CompanyKnowledgeService:
         if not source:
             raise ValueError(f"Source {source_id} not found")
 
-        client = self._get_layer2_client(tenant_id)
+        pipeline_client = self._require_pipeline_client()
         try:
-            result = await client.extract_value_attributes(
+            result = await pipeline_client.extract_value_attributes(
+                tenant_id=tenant_id,
                 content_id=content_id,
                 source_url=source.source_url or "",
                 markdown_content=markdown_content,
-                tenant_id=tenant_id,
             )
 
             # Store extraction as a ValueExtractionRecord
@@ -931,8 +904,6 @@ class CompanyKnowledgeService:
         if profile.status != ProfileStatus.APPROVED.value:
             raise ValueError("Only approved profiles can be synced to Layer 3")
 
-        client = self._get_layer3_client(tenant_id)
-
         # Build entity payload from profile sections
         entities: list[dict[str, Any]] = []
         if profile.identity:
@@ -983,9 +954,10 @@ class CompanyKnowledgeService:
             content_hash=None,
             tenant_id=tenant_id,
         )
-        ingest_result = await client.ingest(
-            ingestion_payload=ingest_request.model_dump(),
+        pipeline_client = self._require_pipeline_client()
+        ingest_result = await pipeline_client.ingest_profile(
             tenant_id=tenant_id,
+            ingestion_payload=ingest_request.model_dump(),
             passthrough_headers=auth_headers,
         )
         try:

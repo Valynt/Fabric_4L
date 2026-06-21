@@ -30,6 +30,7 @@ from .formula_governance import (
     IFormulaApprovalWorkflow,
     IFormulaGovernanceService,
 )
+from .ground_truth_proxy import GroundTruthProxyPort
 from .prospect_context import ProspectContextPort, ProspectContextSources
 from .signal_clients import SignalExtractionPort, SignalKnowledgePort
 from .signal_review import SignalReviewPort
@@ -66,6 +67,7 @@ __all__ = [
     "RangeValidationResult",
     "ContextFinancialExtractionPort",
     "ContextIngestionPort",
+    "GroundTruthProxyPort",
     "ProspectContextPort",
     "ProspectContextSources",
     "SignalExtractionPort",

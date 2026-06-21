@@ -24,10 +24,7 @@ from value_fabric.shared.contracts.layer3_statuses import (
 )
 
 from ..services import compat_policy
-from ..services.compat_metrics import (
-    get_deprecated_field_usage_counters,
-    record_deprecated_field_usage,
-)
+from ..services.compat_metrics import record_deprecated_field_usage
 from ..services.compat_policy import include_legacy_graph_aliases
 
 

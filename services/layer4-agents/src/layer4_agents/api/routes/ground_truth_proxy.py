@@ -3,7 +3,7 @@ from __future__ import annotations
 """L4 Ground Truth Proxy Routes
 
 Exposes L5 Ground Truth endpoints via L4 for frontend consumption.
-All routes forward requests to L5 using Layer5GroundTruthClient.
+All routes forward requests through a tenant-scoped GroundTruthProxyPort.
 
 Endpoints:
   GET    /v1/ground-truth/truths                    -> L5 GET /truths
@@ -22,11 +22,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    ServiceUnavailableError,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from ...integration.layer5_client import Layer5GroundTruthClient, get_layer5_client
+from ...interfaces.ground_truth_proxy import GroundTruthProxyPort
+from ...startup.agent_composition import create_ground_truth_proxy_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/ground-truth", tags=["ground-truth-proxy"])
@@ -63,9 +67,16 @@ class ValidateTruthRequest(BaseModel):
 # -----------------------------------------------------------------------------
 
 
-async def get_l5_client() -> Layer5GroundTruthClient:
-    """Get Layer5GroundTruthClient with default config."""
-    return get_layer5_client()
+async def get_ground_truth_proxy_client() -> GroundTruthProxyPort:
+    """Return the Ground Truth proxy adapter for route operations."""
+    return create_ground_truth_proxy_client()
+
+
+def _tenant_id_from_context(ctx: RequestContext) -> str:
+    """Return validated tenant id or fail closed before outbound proxy calls."""
+    if not ctx.tenant_id:
+        raise AuthenticationError(message="Tenant context required for Ground Truth proxy")
+    return str(ctx.tenant_id)
 
 
 # -----------------------------------------------------------------------------
@@ -82,11 +93,11 @@ async def list_truths(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """List TruthObjects with optional filtering."""
-    result = await l5_client.list_truths(
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+    result = await ground_truth_client.list_truths(
+        tenant_id=_tenant_id_from_context(ctx),
         status=status,
         claim_type=claim_type,
         min_maturity=min_maturity,
@@ -101,12 +112,12 @@ async def list_truths(
 async def get_truth(
     truth_id: UUID,
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """Get a single TruthObject with full detail."""
-    result = await l5_client.get_truth(
+    result = await ground_truth_client.get_truth(
         truth_id=str(truth_id),
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+        tenant_id=_tenant_id_from_context(ctx),
     )
     return _handle_l5_result(result)
 
@@ -115,12 +126,12 @@ async def get_truth(
 async def get_truth_audit(
     truth_id: UUID,
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> list[dict[str, Any]]:
     """Get validation event log for a TruthObject."""
-    result = await l5_client.get_truth_audit(
+    result = await ground_truth_client.get_truth_audit(
         truth_id=str(truth_id),
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+        tenant_id=_tenant_id_from_context(ctx),
     )
 
     _handle_l5_result(result)
@@ -132,15 +143,15 @@ async def validate_truth(
     truth_id: UUID,
     request: ValidateTruthRequest,
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """Apply a named validation action to a TruthObject."""
-    result = await l5_client.validate_truth(
+    result = await ground_truth_client.validate_truth(
         truth_id=str(truth_id),
         action=request.action,
         actor=request.actor,
         actor_type=request.actor_type,
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+        tenant_id=_tenant_id_from_context(ctx),
         notes=request.notes,
     )
     return _handle_l5_result(result)
@@ -149,11 +160,11 @@ async def validate_truth(
 @router.get("/truths/freshness-summary", summary="Get freshness summary")
 async def get_freshness_summary(
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """Get freshness summary across all TruthObjects."""
-    result = await l5_client.get_freshness_summary(
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+    result = await ground_truth_client.get_freshness_summary(
+        tenant_id=_tenant_id_from_context(ctx),
     )
     return _handle_l5_result(result)
 
@@ -163,11 +174,11 @@ async def get_stale_truths(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """Get TruthObjects that have become stale and need revalidation."""
-    result = await l5_client.get_stale_truths(
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+    result = await ground_truth_client.get_stale_truths(
+        tenant_id=_tenant_id_from_context(ctx),
         limit=limit,
         offset=offset,
     )
@@ -177,10 +188,10 @@ async def get_stale_truths(
 @router.get("/maturity-ladder", summary="Get maturity ladder definition")
 async def get_maturity_ladder(
     ctx: RequestContext = Depends(require_authenticated),
-    l5_client: Layer5GroundTruthClient = Depends(get_l5_client),
+    ground_truth_client: GroundTruthProxyPort = Depends(get_ground_truth_proxy_client),
 ) -> dict[str, Any]:
     """Get the full maturity ladder definition for reference."""
-    result = await l5_client.get_maturity_ladder(
-        organization_id=str(ctx.tenant_id) if ctx.tenant_id else None,
+    result = await ground_truth_client.get_maturity_ladder(
+        tenant_id=_tenant_id_from_context(ctx),
     )
     return _handle_l5_result(result)

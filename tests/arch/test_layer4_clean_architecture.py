@@ -22,6 +22,7 @@ APPLICATION_AGENT_PATHS = (
 )
 
 ROUTE_ADAPTER_BOUNDARY_PATHS = (
+    LAYER4_ROOT / "api/routes/ground_truth_proxy.py",
     LAYER4_ROOT / "api/routes/prospects.py",
     LAYER4_ROOT / "api/routes/signals.py",
 )

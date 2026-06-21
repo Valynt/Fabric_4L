@@ -42,6 +42,7 @@ class ValuePactApiClient:
         if cli_version:
             headers["X-ValuePact-CLI-Version"] = cli_version
         self._client = httpx.Client(base_url=self.api_url, headers=headers, timeout=30.0)
+        self._identity_cache: dict[str, Any] | None = None
 
     def request(
         self,
@@ -83,17 +84,24 @@ class ValuePactApiClient:
         raise APIError(message, status_code=response.status_code, response_body=body) from exc
 
     def identity(self) -> dict[str, Any]:
-        return dict(self.request("GET", "/v1/auth/cli/whoami"))
+        if self._identity_cache is None:
+            payload = dict(self.request("GET", "/v1/users/me"))
+            actor_id = payload.get("actor_id") or payload.get("id") or payload.get("user_id")
+            payload["actor_id"] = str(actor_id) if actor_id is not None else ""
+            payload.setdefault("actor_type", "user")
+            if "tenant_id" in payload and payload["tenant_id"] is not None:
+                payload["tenant_id"] = str(payload["tenant_id"])
+            self._identity_cache = payload
+        return dict(self._identity_cache)
 
     def verify_tenant_access(self, tenant_id: str, *, scopes: set[str]) -> dict[str, Any]:
-        payload = self.request(
-            "POST",
-            "/v1/auth/cli/tenant-access",
-            json={"tenant_id": tenant_id, "required_scopes": sorted(scopes)},
-        )
-        if not payload.get("authorized", False):
+        identity = self.identity()
+        role = str(identity.get("role") or "")
+        authorized = str(identity.get("tenant_id") or "") == tenant_id or role == "super_admin"
+        if not authorized:
             raise PermissionError("The current identity is not authorized for this tenant.")
-        return dict(payload)
+        identity_scopes = set(identity.get("scopes") or [])
+        return {"authorized": True, "scopes": sorted(identity_scopes | scopes)}
 
     def health(self) -> dict[str, Any]:
         return dict(self.request("GET", "/health"))
@@ -102,17 +110,22 @@ class ValuePactApiClient:
         return self.request("GET", "/v1/tenants")
 
     def get_tenant(self, tenant_id: str) -> Any:
+        identity = self.identity()
+        if str(identity.get("tenant_id") or "") == tenant_id:
+            return self.request("GET", "/v1/tenants/current/settings")
         return self.request("GET", f"/v1/tenants/{tenant_id}")
 
     def list_workspaces(self, tenant_id: str) -> Any:
-        return self.request("GET", "/v1/workspaces", params={"tenant_id": tenant_id})
+        return self.request("GET", "/v1/workflows/types")
 
     def get_workspace(self, tenant_id: str, workspace_id: str) -> Any:
-        return self.request(
-            "GET",
-            f"/v1/workspaces/{workspace_id}",
-            params={"tenant_id": tenant_id},
-        )
+        payload = self.list_workspaces(tenant_id)
+        workspaces = payload.get("workflows", payload) if isinstance(payload, dict) else payload
+        if isinstance(workspaces, list):
+            for workspace in workspaces:
+                if isinstance(workspace, dict) and workspace.get("type") == workspace_id:
+                    return workspace
+        raise NotFoundError(f"Workspace workflow type not found: {workspace_id}")
 
     def execute_workspace(
         self,
@@ -120,49 +133,58 @@ class ValuePactApiClient:
         tenant_id: str,
         workspace_id: str,
         request_id: str,
+        actor_id: str,
         input_payload: dict[str, Any],
         dry_run: bool,
     ) -> Any:
+        if dry_run:
+            return {
+                "tenant_id": tenant_id,
+                "workspace_id": workspace_id,
+                "status": "dry_run",
+                "request_id": request_id,
+                "input": input_payload,
+            }
         return self.request(
             "POST",
-            f"/v1/workspaces/{workspace_id}/executions",
+            "/v1/workflows",
             json={
+                "workflow_type": workspace_id,
                 "tenant_id": tenant_id,
+                "user_id": actor_id,
+                "inputs": input_payload,
+                "priority": "NORMAL",
                 "input": input_payload,
+                "workflow_id": request_id,
                 "request_id": request_id,
-                "dry_run": dry_run,
             },
         )
 
     def list_executions(self, tenant_id: str) -> Any:
-        return self.request("GET", "/v1/executions", params={"tenant_id": tenant_id})
+        return self.request("GET", "/v1/workflows/active")
 
     def get_execution(self, tenant_id: str, execution_id: str) -> Any:
-        return self.request(
-            "GET",
-            f"/v1/executions/{execution_id}",
-            params={"tenant_id": tenant_id},
-        )
+        return self.request("GET", f"/v1/workflows/{execution_id}")
 
     def execution_logs(self, tenant_id: str, execution_id: str) -> Any:
-        return self.request(
-            "GET",
-            f"/v1/executions/{execution_id}/logs",
-            params={"tenant_id": tenant_id},
-        )
+        return self.request("GET", f"/v1/workflows/{execution_id}/events")
 
     def cancel_execution(self, tenant_id: str, execution_id: str, request_id: str) -> Any:
         return self.request(
             "POST",
-            f"/v1/executions/{execution_id}/cancel",
-            json={"tenant_id": tenant_id, "request_id": request_id},
+            f"/v1/workflows/{execution_id}/pause",
+            json={
+                "tenant_id": tenant_id,
+                "request_id": request_id,
+                "reason": "Cancelled from ValuePact CLI",
+            },
         )
 
     def list_audit_events(self, tenant_id: str, since: str | None) -> Any:
-        params = {"tenant_id": tenant_id}
+        params: dict[str, Any] = {}
         if since:
             params["since"] = since
-        return self.request("GET", "/v1/audit/events", params=params)
+        return self.request("GET", f"/v1/tenants/{tenant_id}/audit-log", params=params)
 
     def close(self) -> None:
         self._client.close()

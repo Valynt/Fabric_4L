@@ -40,7 +40,7 @@ class CliError(Exception):
         self.retryable = retryable
 
 
-def map_exception(exc: Exception) -> CliError:
+def map_exception(exc: BaseException) -> CliError:
     """Translate application and infrastructure exceptions to CLI errors."""
 
     if isinstance(exc, CliError):

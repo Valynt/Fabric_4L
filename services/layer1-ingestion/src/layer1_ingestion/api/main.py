@@ -68,7 +68,12 @@ from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
-from ..shared.database import engine, get_db_from_context, get_db_from_context_sync, redis_client_async
+from ..shared.database import (
+    engine,
+    get_db_from_context,
+    get_db_from_context_sync,
+    redis_client_async,
+)
 from ..shared.models import (
     AccountIntelligencePacket,
     AuthenticationType,

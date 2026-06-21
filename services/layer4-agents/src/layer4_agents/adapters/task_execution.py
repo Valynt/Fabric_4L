@@ -15,13 +15,13 @@ class LegacyTaskExecutionAdapter:
         self._scheduler = scheduler
 
     async def submit(self, task: TaskExecutionRequest) -> str:
-        return await self._scheduler.schedule_task(cast(ScheduledTask, task))
+        return cast(str, await self._scheduler.schedule_task(cast(ScheduledTask, task)))
 
     async def cancel(self, task_id: str) -> bool:
-        return await self._scheduler.cancel_task(task_id)
+        return cast(bool, await self._scheduler.cancel_task(task_id))
 
     async def get_status(self, task_id: str) -> dict[str, Any] | None:
-        return await self._scheduler.get_task_status(task_id)
+        return cast(dict[str, Any] | None, await self._scheduler.get_task_status(task_id))
 
     async def list_pending(
         self,
@@ -39,10 +39,10 @@ class LegacyTaskExecutionAdapter:
         return pending
 
     async def list_running(self) -> list[dict[str, Any]]:
-        return await self._scheduler.list_running_tasks()
+        return cast(list[dict[str, Any]], await self._scheduler.list_running_tasks())
 
     def get_stats(self) -> dict[str, Any]:
-        return self._scheduler.get_stats()
+        return cast(dict[str, Any], self._scheduler.get_stats())
 
 
 def as_task_execution_port(scheduler: TaskScheduler) -> TaskExecutionPort:

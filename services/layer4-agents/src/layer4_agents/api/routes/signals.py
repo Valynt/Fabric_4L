@@ -28,8 +28,8 @@ from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.jwt import decode_jwt
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
-from ...database import db_session_for_context
 from ...config.settings import get_settings
+from ...database import db_session_for_context
 from ...interfaces.signal_review import SignalReviewPort
 from ...models.account import Account
 from ...startup.agent_composition import create_signal_detection_agent, create_signal_review_client

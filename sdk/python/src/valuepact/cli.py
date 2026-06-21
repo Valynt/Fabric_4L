@@ -192,7 +192,7 @@ def _emit_error(ctx: click.Context, error: CliError, *, request_id: str | None =
         click.echo(f"{error.code}: {error.message}", err=True)
 
 
-def _handle_failure(ctx: click.Context, exc: Exception, *, request_id: str | None = None) -> None:
+def _handle_failure(ctx: click.Context, exc: BaseException, *, request_id: str | None = None) -> None:
     error = map_exception(exc)
     _emit_error(ctx, error, request_id=request_id)
     raise click.exceptions.Exit(error.exit_code)
@@ -262,6 +262,8 @@ def protected_command(required_scopes: set[str]) -> Callable[[Callable[..., Any]
                     emit_json(success_envelope(_as_payload(data), context=execution_context))
                 elif not _global(ctx, "quiet") and data is not None:
                     _emit_human(data, execution_context)
+            except KeyboardInterrupt as exc:
+                _handle_failure(ctx, exc, request_id=request_id)
             except Exception as exc:
                 _handle_failure(ctx, exc, request_id=request_id)
             finally:
@@ -614,6 +616,7 @@ def workspace_execute(
         tenant_id=execution_context.tenant_id,
         workspace_id=workspace_id,
         request_id=execution_context.request_id,
+        actor_id=execution_context.actor_id,
         input_payload=payload,
         dry_run=dry_run,
     )

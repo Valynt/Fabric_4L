@@ -2,7 +2,8 @@ from __future__ import annotations
 
 """Concrete context-extraction client factories for Layer 1 and Layer 2."""
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from layer4_agents.interfaces.context_clients import (
     ContextFinancialExtractionPort,

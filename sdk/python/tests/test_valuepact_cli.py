@@ -8,14 +8,19 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import respx
 from click.testing import CliRunner
+from httpx import Response
 
+from valuefabric.errors import ConnectionError, NotFoundError, ValueFabricError
 from valuepact.cli import cli
+from valuepact.client import ValuePactApiClient
 from valuepact.context import (
     ExecutionContext,
     bind_execution_context,
     get_active_execution_context,
 )
+from valuepact.errors import map_exception
 
 runner = CliRunner()
 
@@ -77,6 +82,7 @@ class FakeClient:
         tenant_id: str,
         workspace_id: str,
         request_id: str,
+        actor_id: str,
         input_payload: dict[str, object],
         dry_run: bool,
     ) -> dict[str, object]:
@@ -88,6 +94,7 @@ class FakeClient:
             "execution_id": "exec_789",
             "status": "started",
             "request_id": request_id,
+            "actor_id": actor_id,
             "dry_run": dry_run,
             "input": input_payload,
         }
@@ -102,6 +109,14 @@ class DenyingClient(FakeClient):
     def verify_tenant_access(self, tenant_id: str, *, scopes: set[str]) -> dict[str, object]:
         self.calls.append(("verify_tenant_access", {"tenant_id": tenant_id, "scopes": scopes}))
         return {"authorized": False, "scopes": []}
+
+
+class InterruptingClient(FakeClient):
+    instances: list[InterruptingClient] = []
+
+    def list_workspaces(self, tenant_id: str) -> list[dict[str, str]]:
+        assert get_active_execution_context() is not None
+        raise KeyboardInterrupt
 
 
 def test_context_use_stores_non_secret_profile(valuepact_env: Path) -> None:
@@ -210,6 +225,17 @@ def test_authorization_denied_uses_stable_exit_and_cleans_context(valuepact_env:
     assert get_active_execution_context() is None
 
 
+def test_interruption_uses_stable_exit_and_cleans_context(valuepact_env: Path) -> None:
+    InterruptingClient.instances = []
+    with patch("valuepact.cli.ValuePactApiClient", InterruptingClient):
+        result = runner.invoke(cli, ["workspace", "list", "--json"])
+
+    assert result.exit_code == 130
+    payload = json.loads(result.stderr)
+    assert payload["error"]["code"] == "INTERRUPTED"
+    assert get_active_execution_context() is None
+
+
 def test_workspace_execute_requires_confirmation_for_mutation(valuepact_env: Path) -> None:
     FakeClient.instances = []
     with patch("valuepact.cli.ValuePactApiClient", FakeClient):
@@ -251,6 +277,7 @@ def test_workspace_execute_json_success_with_yes_and_input(
     payload = json.loads(result.output)
     assert payload["data"]["execution_id"] == "exec_789"
     assert payload["data"]["input"] == {"answer": 42}
+    assert payload["data"]["actor_id"] == "svc_123"
     assert payload["meta"]["actor_id"] == "svc_123"
     assert get_active_execution_context() is None
 
@@ -264,6 +291,91 @@ def test_missing_token_uses_stable_authentication_exit(valuepact_env: Path, monk
     payload = json.loads(result.stderr)
     assert payload["error"]["code"] == "AUTHENTICATION_REQUIRED"
     assert "secret-token" not in result.stderr
+
+
+def test_error_mapping_keeps_stable_exit_codes() -> None:
+    assert map_exception(PermissionError("denied")).exit_code == 4
+    assert map_exception(NotFoundError("missing")).exit_code == 6
+    retryable = map_exception(ConnectionError("network down"))
+    assert retryable.exit_code == 7
+    assert retryable.retryable is True
+    assert map_exception(ValueFabricError("domain rule")).exit_code == 5
+
+
+@respx.mock
+def test_api_adapter_uses_existing_identity_and_workflow_contracts() -> None:
+    identity_route = respx.get("https://api.example.test/v1/users/me").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "user_123",
+                "tenant_id": "tenant_123",
+                "role": "operator",
+                "scopes": ["valuepact:read"],
+            },
+        )
+    )
+    execute_route = respx.post("https://api.example.test/v1/workflows").mock(
+        return_value=Response(200, json={"workflow_instance_id": "wf_123", "status": "scheduled"})
+    )
+
+    client = ValuePactApiClient(
+        api_url="https://api.example.test",
+        token="secret-token",
+        request_id="req_123",
+        command_name="valuepact workspace execute",
+        cli_version="0.1.0",
+    )
+    try:
+        identity = client.identity()
+        verification = client.verify_tenant_access("tenant_123", scopes={"valuepact:workspace:execute"})
+        result = client.execute_workspace(
+            tenant_id="tenant_123",
+            workspace_id="roi_calculator",
+            request_id="req_123",
+            actor_id=identity["actor_id"],
+            input_payload={"answer": 42},
+            dry_run=False,
+        )
+    finally:
+        client.close()
+
+    assert identity_route.called
+    assert execute_route.called
+    assert identity["actor_id"] == "user_123"
+    assert verification["authorized"] is True
+    request = execute_route.calls.last.request
+    assert request.headers["x-request-id"] == "req_123"
+    assert request.headers["x-valuepact-command"] == "valuepact workspace execute"
+    assert request.headers["x-valuepact-cli-version"] == "0.1.0"
+    assert json.loads(request.content) == {
+        "workflow_type": "roi_calculator",
+        "tenant_id": "tenant_123",
+        "user_id": "user_123",
+        "inputs": {"answer": 42},
+        "priority": "NORMAL",
+        "input": {"answer": 42},
+        "workflow_id": "req_123",
+        "request_id": "req_123",
+    }
+    assert result["workflow_instance_id"] == "wf_123"
+
+
+@respx.mock
+def test_api_adapter_denies_mismatched_tenant_before_workflow_execution() -> None:
+    respx.get("https://api.example.test/v1/users/me").mock(
+        return_value=Response(
+            200,
+            json={"id": "user_123", "tenant_id": "tenant_123", "role": "operator"},
+        )
+    )
+
+    client = ValuePactApiClient(api_url="https://api.example.test", token="secret-token")
+    try:
+        with pytest.raises(PermissionError):
+            client.verify_tenant_access("tenant_other", scopes={"valuepact:workspace:execute"})
+    finally:
+        client.close()
 
 
 def test_context_manager_restores_nested_and_failed_contexts() -> None:

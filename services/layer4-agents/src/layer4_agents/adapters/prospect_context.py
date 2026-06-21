@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Cross-layer prospect context adapter."""
 
-from typing import Any
+from typing import Any, cast
 
 from layer4_agents.integration.layer1_client import Layer1IngestionClient
 from layer4_agents.integration.layer2_client import Layer2ExtractionClient
@@ -60,7 +60,7 @@ class CrossLayerProspectContextAdapter(ProspectContextPort):
         tenant_id: str,
     ) -> dict[str, Any] | None:
         try:
-            return await layer3.get_entity(prospect_id, tenant_id=tenant_id)
+            return cast(dict[str, Any] | None, await layer3.get_entity(prospect_id, tenant_id=tenant_id))
         except Layer3ClientError:
             return None
 
