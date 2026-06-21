@@ -27,12 +27,14 @@ See DEPRECATION_MAP.md for migration timeline.
 
 
 import logging
+from collections.abc import Callable, Mapping
 from enum import Enum
 from typing import Any
 
 from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..interfaces.context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .base import AgentCapability, AgentResult, BaseAgent
 
 
@@ -267,31 +269,33 @@ class ContextExtractionAgent(BaseAgent):
 
     agent_type = AgentType.CONTEXT_EXTRACTION
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *,
+        layer1_client: ContextIngestionPort | None = None,
+        layer2_client: ContextFinancialExtractionPort | None = None,
+        layer1_client_factory: Callable[[Mapping[str, Any]], ContextIngestionPort] | None = None,
+        layer2_client_factory: Callable[[Mapping[str, Any]], ContextFinancialExtractionPort] | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
-        self.layer1_client = None
-        self.layer2_client = None
+        self.layer1_client = layer1_client
+        self.layer2_client = layer2_client
+        self._layer1_client_factory = layer1_client_factory
+        self._layer2_client_factory = layer2_client_factory
 
     async def _initialize_resources(self) -> None:
         """Initialize Layer 1 ingestion and Layer 2 extraction clients."""
-        try:
-            from ..integration.layer1_client import Layer1IngestionClient
-
-            self.layer1_client = Layer1IngestionClient(
-                base_url=self.config.get("layer1_url", "http://layer1-ingestion:8000"),
-                api_key=self.config.get("layer1_api_key"),
-            )
-        except ImportError:
-            logger.info("Layer1IngestionClient not available — document parsing disabled")
-
-        try:
-            from ..integration.layer2_client import Layer2ExtractionClient
-
-            self.layer2_client = Layer2ExtractionClient(
-                base_url=self.config.get("layer2_url", "http://layer2-extraction:8000"),
-            )
-        except ImportError:
-            logger.info("Layer2ExtractionClient not available — financial extraction disabled")
+        if self.layer1_client is None and self._layer1_client_factory is not None:
+            try:
+                self.layer1_client = self._layer1_client_factory(self.config)
+            except ImportError:
+                logger.info("Layer1IngestionClient not available — document parsing disabled")
+        if self.layer2_client is None and self._layer2_client_factory is not None:
+            try:
+                self.layer2_client = self._layer2_client_factory(self.config)
+            except ImportError:
+                logger.info("Layer2ExtractionClient not available — financial extraction disabled")
 
     def get_capabilities(self) -> list[AgentCapability]:
         return [

@@ -12,6 +12,7 @@ Orchestrates the complete signal detection pipeline:
 import asyncio
 import json
 import logging
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,6 +20,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..harness.prompt_registry import get_prompt_registry
+from ..interfaces.signal_clients import SignalExtractionPort, SignalKnowledgePort
 from ..messaging.signal_events import (
     ErrorCategory,
     SignalCompletedEvent,
@@ -65,40 +67,42 @@ class SignalDetectionAgent(BaseAgent):
     # Supported signal categories (operational only for Phase 3 vertical slice)
     SUPPORTED_CATEGORIES: set[str] = {"Operational"}
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        layer2_client: SignalExtractionPort | None = None,
+        layer3_client: SignalKnowledgePort | None = None,
+        layer2_client_factory: Callable[[Mapping[str, Any]], SignalExtractionPort] | None = None,
+        layer3_client_factory: Callable[[Mapping[str, Any]], SignalKnowledgePort] | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(**kwargs)
-        self.layer2_client = None
-        self.layer3_client = None
+        self.layer2_client = layer2_client
+        self.layer3_client = layer3_client
+        self._layer2_client_factory = layer2_client_factory
+        self._layer3_client_factory = layer3_client_factory
         self.stream_callback = None
         self.max_signals = self.config.get("max_signals_per_request", 3)
         self.evidence_match_limit = self.config.get("evidence_match_limit", 5)
 
     async def _initialize_resources(self) -> None:
         """Initialize Layer 2 and Layer 3 API clients."""
-        # These will be initialized lazily when needed
-        self.layer2_client = None
-        self.layer3_client = None
+        # Cross-layer clients are initialized lazily through injectable factories.
 
-    def _get_layer2_client(self):
+    def _get_layer2_client(self) -> SignalExtractionPort:
         """Get or create Layer 2 extraction client."""
         if self.layer2_client is None:
-            from ..integration.layer2_client import Layer2ExtractionClient
-
-            self.layer2_client = Layer2ExtractionClient(
-                base_url=self.config.get("layer2_url", "http://layer2-extraction:8000"),
-                api_key=self.config.get("layer2_api_key"),
-            )
+            if self._layer2_client_factory is None:
+                raise RuntimeError("SignalDetectionAgent requires a Layer 2 signal extraction client factory")
+            self.layer2_client = self._layer2_client_factory(self.config)
         return self.layer2_client
 
-    def _get_layer3_client(self):
+    def _get_layer3_client(self) -> SignalKnowledgePort:
         """Get or create Layer 3 knowledge client."""
         if self.layer3_client is None:
-            from ..integration.layer3_client import Layer3Client as Layer3KnowledgeClient
-
-            self.layer3_client = Layer3KnowledgeClient(
-                base_url=self.config.get("layer3_url", "http://layer3-knowledge:8000"),
-                api_key=self.config.get("layer3_api_key"),
-            )
+            if self._layer3_client_factory is None:
+                raise RuntimeError("SignalDetectionAgent requires a Layer 3 signal knowledge client factory")
+            self.layer3_client = self._layer3_client_factory(self.config)
         return self.layer3_client
 
     def get_capabilities(self) -> list[AgentCapability]:
@@ -412,7 +416,6 @@ class SignalDetectionAgent(BaseAgent):
         try:
             result = await client.extract_operational_signals(
                 prospect_data=prospect_data,
-                tenant_id=ctx.tenant_id,
                 trace_id=ctx.trace_id,
             )
             return result

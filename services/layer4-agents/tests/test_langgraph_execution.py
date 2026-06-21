@@ -1238,14 +1238,10 @@ class TestSignalDetectionAgent:
     """Regression tests for SignalDetectionAgent result model completeness."""
 
     @pytest.mark.asyncio
-    @patch("layer4_agents.integration.layer3_client.Layer3Client")
-    @patch("layer4_agents.integration.layer2_client.Layer2ExtractionClient")
-    async def test_detect_signals_returns_complete_result(self, mock_l2, mock_l3) -> None:
+    async def test_detect_signals_returns_complete_result(self) -> None:
         """_detect_signals success path must include all required fields (message, signals, processing_metadata)."""
         from layer4_agents.agents.signal_detection import SignalDetectionAgent
         from value_fabric.shared.identity.context import RequestContext
-
-        agent = SignalDetectionAgent(config={})
 
         # Mock Layer 2 to return signals
         mock_l2_instance = Mock()
@@ -1262,14 +1258,18 @@ class TestSignalDetectionAgent:
                 "duration_ms": 120,
             }
         )
-        mock_l2.return_value = mock_l2_instance
 
         # Mock Layer 3 evidence/quantify to no-op
         mock_l3_instance = Mock()
         mock_l3_instance.find_matching_evidence = AsyncMock(return_value=[])
-        mock_l3_instance.quantify_impact = AsyncMock(return_value=None)
+        mock_l3_instance.quantify_signal = AsyncMock(return_value=None)
         mock_l3_instance.persist_signal = AsyncMock(return_value=None)
-        mock_l3.return_value = mock_l3_instance
+
+        agent = SignalDetectionAgent(
+            config={},
+            layer2_client=mock_l2_instance,
+            layer3_client=mock_l3_instance,
+        )
 
         parameters = {
             "prospect_data": {

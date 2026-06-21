@@ -14,9 +14,8 @@ Provides REST API endpoints for:
 
 
 import logging
-import os
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -29,10 +28,14 @@ from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.jwt import decode_jwt
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
-from ...agents.signal_detection import SignalDetectionAgent
 from ...database import db_session_for_context
-from ...integration.layer3_client import Layer3Client
+from ...config.settings import get_settings
+from ...interfaces.signal_review import SignalReviewPort
 from ...models.account import Account
+from ...startup.agent_composition import create_signal_detection_agent, create_signal_review_client
+
+if TYPE_CHECKING:
+    from ...agents.signal_detection import SignalDetectionAgent
 
 logger = logging.getLogger(__name__)
 
@@ -176,12 +179,19 @@ def get_signal_agent() -> SignalDetectionAgent:
     """Get or create signal detection agent instance."""
     # In production, this would be a dependency injection or singleton
     # For now, create fresh instance per request
-    return SignalDetectionAgent(
-        config={
+    return create_signal_detection_agent(
+        {
             "max_signals_per_request": 3,
             "evidence_match_limit": 5,
         }
     )
+
+
+def get_signal_review_client() -> SignalReviewPort:
+    """Return the signal/evidence review adapter for route operations."""
+
+    settings = get_settings()
+    return create_signal_review_client(str(settings.layer3_api_url))
 
 
 @router.post("/prospects/setup", response_model=ProspectSetupResponse)
@@ -356,22 +366,21 @@ async def review_signal(
     signal_id: str,
     request: SignalReviewRequest,
     ctx: RequestContext = Depends(require_authenticated),
+    review_client: SignalReviewPort = Depends(get_signal_review_client),
 ) -> SignalReviewResponse:
     """Review a signal and persist reviewer metadata/timestamp."""
     if request.review_status not in {"approved", "rejected"}:
         raise ValidationError(message = "review_status must be approved or rejected")
 
     reviewed_at = datetime.now(UTC).isoformat()
-    _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
-    async with Layer3Client(base_url=_l3_url) as client:
-        response = await client.review_signal(
-            signal_id=signal_id,
-            account_id=request.account_id,
-            review_status=request.review_status,
-            reviewer_id=ctx.user_id,
-            decision_note=request.decision_note,
-            tenant_id=str(ctx.tenant_id),
-        )
+    response = await review_client.review_signal(
+        signal_id=signal_id,
+        account_id=request.account_id,
+        review_status=request.review_status,
+        reviewer_id=ctx.user_id,
+        decision_note=request.decision_note,
+        tenant_id=str(ctx.tenant_id),
+    )
     return SignalReviewResponse(
         signal_id=signal_id,
         account_id=request.account_id,
@@ -598,21 +607,20 @@ async def decide_evidence(
     evidence_id: str,
     request: EvidenceDecisionRequest,
     ctx: RequestContext = Depends(require_authenticated),
+    review_client: SignalReviewPort = Depends(get_signal_review_client),
 ) -> EvidenceDecisionResponse:
     if request.decision not in {"accepted", "rejected"}:
         raise ValidationError(message = "decision must be accepted or rejected")
     now = datetime.now(UTC).isoformat()
-    _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
-    async with Layer3Client(base_url=_l3_url) as client:
-        response = await client.decide_evidence(
-            evidence_id=evidence_id,
-            account_id=request.account_id,
-            case_id=request.case_id,
-            decision=request.decision,
-            reviewer_id=ctx.user_id,
-            decision_note=request.decision_note,
-            tenant_id=str(ctx.tenant_id),
-        )
+    response = await review_client.decide_evidence(
+        evidence_id=evidence_id,
+        account_id=request.account_id,
+        case_id=request.case_id,
+        decision=request.decision,
+        reviewer_id=ctx.user_id,
+        decision_note=request.decision_note,
+        tenant_id=str(ctx.tenant_id),
+    )
     return EvidenceDecisionResponse(
         evidence_id=evidence_id,
         account_id=request.account_id,
@@ -631,14 +639,13 @@ async def link_evidence_driver(
     driver_id: str,
     request: EvidenceDriverLinkRequest,
     ctx: RequestContext = Depends(require_authenticated),
+    review_client: SignalReviewPort = Depends(get_signal_review_client),
 ) -> dict[str, Any]:
-    _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
-    async with Layer3Client(base_url=_l3_url) as client:
-        response = await client.link_evidence_driver(
-            evidence_id=evidence_id,
-            driver_id=driver_id,
-            account_id=request.account_id,
-            case_id=request.case_id,
-            tenant_id=str(ctx.tenant_id),
-        )
+    response = await review_client.link_evidence_driver(
+        evidence_id=evidence_id,
+        driver_id=driver_id,
+        account_id=request.account_id,
+        case_id=request.case_id,
+        tenant_id=str(ctx.tenant_id),
+    )
     return {"evidence_id": evidence_id, "driver_id": driver_id, **(response or {})}

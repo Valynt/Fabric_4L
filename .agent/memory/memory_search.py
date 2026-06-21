@@ -68,7 +68,7 @@ def check_fts5() -> bool:
         conn.execute("CREATE VIRTUAL TABLE _t USING fts5(c)")
         conn.close()
         return True
-    except Exception:
+    except sqlite3.Error:
         return False
 
 
@@ -94,10 +94,9 @@ def needs_rebuild() -> bool:
         current_rel.add(str(f.relative_to(MEMORY_DIR)))
 
     try:
-        conn = sqlite3.connect(INDEX_PATH)
-        indexed_rel = {row[0] for row in conn.execute("SELECT filename FROM memories")}
-        conn.close()
-    except sqlite3.OperationalError:
+        with sqlite3.connect(INDEX_PATH) as conn:
+            indexed_rel = {row[0] for row in conn.execute("SELECT filename FROM memories")}
+    except sqlite3.Error:
         return True  # corrupt schema / unreadable — rebuild from scratch
 
     # Any previously-indexed file no longer present? Rebuild to flush it.
@@ -149,8 +148,9 @@ def build_index() -> int:
             conn.execute("INSERT INTO memories VALUES (?, ?)",
                          (str(rel_path), content))
             indexed += 1
-        except Exception:
-            pass
+        except (OSError, UnicodeError, sqlite3.Error) as exc:
+            print(f"Skipping memory file {f}: {exc}", file=sys.stderr)
+            continue
     conn.commit()
     conn.close()
     return indexed
@@ -286,47 +286,50 @@ def _refuse_disabled():
     sys.exit(2)
 
 
-def main():
-    args = sys.argv[1:]
+def _print_usage():
+    print("Usage [BETA, opt-in]:")
+    print("  memory_search.py <query>     Search memories by keyword")
+    print("  memory_search.py --rebuild   Force rebuild index")
+    print("  memory_search.py --status    Show index status")
 
-    if not args or args[0] in ("-h", "--help"):
-        print("Usage [BETA, opt-in]:")
-        print("  memory_search.py <query>     Search memories by keyword")
-        print("  memory_search.py --rebuild   Force rebuild index")
-        print("  memory_search.py --status    Show index status")
-        sys.exit(0)
 
-    # --status always works (lets the user see whether the feature is on).
-    # All other commands require the opt-in flag.
-    if args[0] == "--status":
-        cmd_status()
-        return
-
-    if not feature_enabled():
-        _refuse_disabled()
-
-    if args[0] == "--rebuild":
-        cmd_rebuild()
-        return
-
-    query = " ".join(args)
+def _search_mode_and_results(query: str):
     use_fts5 = check_fts5()
-
     if use_fts5:
-        results = search_fts5(query)
-        mode = "FTS5"
-    else:
-        results = search_fallback(query)
-        mode = fallback_tool()
+        return "FTS5", search_fts5(query)
+    return fallback_tool(), search_fallback(query)
 
+
+def _print_results(query: str, mode: str, results) -> None:
     if not results:
         print(f"No results for: '{query}'  [mode: {mode}]")
         return
-
     print(f"Results for: '{query}'  [mode: {mode}]\n")
     for filename, snippet in results:
         print(f"  {filename}")
         print(f"  {snippet}\n")
+
+
+def _run_command(args):
+    if not args or args[0] in ("-h", "--help"):
+        _print_usage()
+        return 0
+    if args[0] == "--status":
+        cmd_status()
+        return 0
+    if not feature_enabled():
+        _refuse_disabled()
+    if args[0] == "--rebuild":
+        cmd_rebuild()
+        return 0
+    query = " ".join(args)
+    mode, results = _search_mode_and_results(query)
+    _print_results(query, mode, results)
+    return 0
+
+
+def main():
+    sys.exit(_run_command(sys.argv[1:]))
 
 
 if __name__ == "__main__":

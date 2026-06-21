@@ -957,6 +957,39 @@ class TestTaxonomySupplemental:
                  "parameters": {"filing_url": "http://x", "filing_type": "10-K"}}, ctx)
         assert "human_review_required" in result
 
+    async def test_context_agent_extract_financials_uses_injected_layer2_port(self):
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
+
+        layer2_client = MagicMock()
+        layer2_client.extract_filing = AsyncMock(
+            return_value={"financial_data": {"revenue": 100}, "period": "FY2026"}
+        )
+        agent = ContextExtractionAgent(config={}, layer2_client=layer2_client)
+        ctx = _make_taxonomy_context()
+
+        async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
+            return {}
+
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
+            result = await agent.execute(
+                {
+                    "capability": "extract_financials",
+                    "parameters": {
+                        "filing_url": "http://filing.test/10k",
+                        "filing_type": "10-K",
+                        "ticker": "ACME",
+                    },
+                },
+                ctx,
+            )
+
+        layer2_client.extract_filing.assert_awaited_once_with(
+            url="http://filing.test/10k",
+            filing_type="10-K",
+            ticker="ACME",
+        )
+        assert result["payload"]["financial_data"] == {"revenue": 100}
+
     async def test_context_agent_extract_risk_factors(self):
         from layer4_agents.agents.taxonomy import ContextExtractionAgent
         agent = ContextExtractionAgent(config={})

@@ -88,6 +88,50 @@ def _lines_up_to_budget(lines, char_budget):
     return "".join(out)
 
 
+def _lesson_status_allowed(line):
+    if "<!--" not in line:
+        return True
+    ann = line.split("<!--", 1)[1]
+    match = _STATUS_RE.search(ann)
+    return not match or match.group(1) == "accepted"
+
+
+def _lesson_text_from_line(line):
+    s = line.strip()
+    if not s.startswith("- ") or len(s) <= 2:
+        return ""
+    if not _lesson_status_allowed(s):
+        return ""
+    text = s[2:].split("<!--")[0].strip()
+    if text.startswith("[PROVISIONAL]"):
+        return ""
+    if text.startswith("~~") and text.endswith("~~"):
+        return ""
+    return text
+
+
+def _accepted_lesson_lines(lessons_md):
+    return [
+        text for text in (
+            _lesson_text_from_line(line)
+            for line in (lessons_md or "").splitlines()
+        )
+        if text
+    ]
+
+
+def _rank_lessons(lines, query):
+    query_words = word_set(query)
+    if not query_words:
+        return lines
+    scored = [(len(query_words & word_set(line)), i, line)
+              for i, line in enumerate(lines)]
+    relevant = [item for item in scored if item[0] > 0]
+    if not relevant:
+        return lines
+    return [line for _, _, line in sorted(relevant, key=lambda item: (-item[0], item[1]))]
+
+
 def _top_lessons(query, lessons_md, char_budget=8000):
     """Rank accepted lesson bullets by query overlap; fall back to original order.
 
@@ -96,46 +140,22 @@ def _top_lessons(query, lessons_md, char_budget=8000):
     for audit but must not be injected into the system prompt — they'd let the
     agent act on probationary or stale memory.
     """
-    lines = []
-    for line in (lessons_md or "").splitlines():
-        s = line.strip()
-        if not s.startswith("- ") or len(s) <= 2:
-            continue
-        # Primary status filter: HTML annotation
-        if "<!--" in s:
-            ann = s.split("<!--", 1)[1]
-            m = _STATUS_RE.search(ann)
-            if m and m.group(1) != "accepted":
-                continue
-        text = s[2:].split("<!--")[0].strip()
-        # Fallback: visual markers
-        if text.startswith("[PROVISIONAL]"):
-            continue
-        if text.startswith("~~") and text.endswith("~~"):
-            continue
-        if text:
-            lines.append(text)
+    lines = _accepted_lesson_lines(lessons_md)
     if not lines:
         # No accepted lessons → return empty. Returning raw markdown would
         # leak the non-terminal content the filter is designed to block.
         return ""
-
-    query_words = word_set(query)
-    if not query_words:
-        return _lines_up_to_budget(lines, char_budget)
-
-    scored = [(len(query_words & word_set(l)), i, l) for i, l in enumerate(lines)]
-    relevant = sorted([s for s in scored if s[0] > 0], key=lambda s: (-s[0], s[1]))
-
-    if not relevant:
-        return _lines_up_to_budget(lines, char_budget)
-    return _lines_up_to_budget([l for _, _, l in relevant], char_budget)
+    return _lines_up_to_budget(_rank_lessons(lines, query), char_budget)
 
 
-def build_context(user_input: str, budget: int = 88000):
-    """Returns (context_string, tokens_used). Lean and query-aware."""
-    parts, used = [], 0
+def _append_part(parts, used, header, text):
+    if not text:
+        return used
+    parts.append(f"{header}\n{text}")
+    return used + _token_estimate(text)
 
+
+def _append_always_on(parts, used):
     # always load: personal preferences + live workspace + AGENTS map + DECISIONS
     # AGENTS.md and DECISIONS.md were missing despite AGENTS.md specifying the
     # read order — the standalone path was not faithful to its own contract.
@@ -146,43 +166,51 @@ def build_context(user_input: str, budget: int = 88000):
         "memory/working/REVIEW_QUEUE.md",
         "memory/semantic/DECISIONS.md",
     ):
-        text = _read(rel)
-        if text:
-            parts.append(f"# {rel}\n{text}")
-            used += _token_estimate(text)
+        used = _append_part(parts, used, f"# {rel}", _read(rel))
+    return used
 
-    # query-aware lessons
-    lessons_raw = _read("memory/semantic/LESSONS.md")
-    if lessons_raw:
-        lessons = _top_lessons(user_input, lessons_raw, char_budget=8000)
-        if lessons:
-            parts.append(f"# LESSONS (query-relevant)\n{lessons}")
-            used += _token_estimate(lessons)
 
-    # query-aware top episodes
+def _append_lessons(parts, used, user_input):
+    lessons = _top_lessons(user_input, _read("memory/semantic/LESSONS.md"), char_budget=8000)
+    return _append_part(parts, used, "# LESSONS (query-relevant)", lessons)
+
+
+def _append_episodes(parts, used, user_input):
     episodes = _top_episodes(user_input, k=5)
-    if episodes:
-        parts.append(f"# RECENT EPISODES (salience x relevance)\n{episodes}")
-        used += _token_estimate(episodes)
+    return _append_part(parts, used, "# RECENT EPISODES (salience x relevance)", episodes)
 
+
+def _load_skills(user_input):
     # matched skills only (progressive_load is already input-matched).
     # Lazy import so a missing skill_loader doesn't kill context assembly.
     try:
         from skill_loader import progressive_load
-        skills = progressive_load(user_input)
-    except Exception:
-        skills = []
-    for s in skills:
-        block = f"## Skill: {s['name']}\n{s['content']}"
-        t = _token_estimate(block)
-        if used + t < budget:
+        return progressive_load(user_input)
+    except (ImportError, OSError, json.JSONDecodeError):
+        return []
+
+
+def _append_skills(parts, used, user_input, budget):
+    for skill in _load_skills(user_input):
+        block = f"## Skill: {skill['name']}\n{skill['content']}"
+        tokens = _token_estimate(block)
+        if used + tokens < budget:
             parts.append(block)
-            used += t
+            used += tokens
+    return used
 
+
+def _append_permissions(parts, used):
     # permissions always last, small, safety-critical
-    perms = _read("protocols/permissions.md")
-    if perms:
-        parts.append(f"# PERMISSIONS\n{perms}")
-        used += _token_estimate(perms)
+    return _append_part(parts, used, "# PERMISSIONS", _read("protocols/permissions.md"))
 
+
+def build_context(user_input: str, budget: int = 88000):
+    """Returns (context_string, tokens_used). Lean and query-aware."""
+    parts, used = [], 0
+    used = _append_always_on(parts, used)
+    used = _append_lessons(parts, used, user_input)
+    used = _append_episodes(parts, used, user_input)
+    used = _append_skills(parts, used, user_input, budget)
+    used = _append_permissions(parts, used)
     return "\n\n---\n\n".join(parts), used

@@ -14,11 +14,11 @@ from .benchmark_client import (
     BenchmarkDataset,
     ComparisonRequest,
     ComparisonResult,
-    HTTPBenchmarkClient,
     IBenchmarkClient,
     RangeValidationRequest,
     RangeValidationResult,
 )
+from .context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .formula_governance import (
     ActivationRequest,
     DeprecationRequest,
@@ -30,6 +30,8 @@ from .formula_governance import (
     IFormulaApprovalWorkflow,
     IFormulaGovernanceService,
 )
+from .signal_clients import SignalExtractionPort, SignalKnowledgePort
+from .signal_review import SignalReviewPort
 from .value_pack_service import (
     BenchmarkRef,
     FormulaRef,
@@ -56,12 +58,16 @@ from .variable_registry import (
 __all__ = [
     # Benchmark Client
     "IBenchmarkClient",
-    "HTTPBenchmarkClient",
     "BenchmarkDataset",
     "ComparisonRequest",
     "ComparisonResult",
     "RangeValidationRequest",
     "RangeValidationResult",
+    "ContextFinancialExtractionPort",
+    "ContextIngestionPort",
+    "SignalExtractionPort",
+    "SignalKnowledgePort",
+    "SignalReviewPort",
     # Value Pack Service
     "IValuePackService",
     "ValuePack",

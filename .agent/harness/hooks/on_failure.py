@@ -13,26 +13,44 @@ def _count_recent_failures(skill_name):
     if not os.path.exists(EPISODIC):
         return 0
     cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=WINDOW_DAYS)
-    count = 0
+    return sum(
+        1 for entry in _episodic_entries()
+        if _is_recent_failure(entry, skill_name, cutoff)
+    )
+
+
+def _episodic_entries():
     for line in open(EPISODIC):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            e = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if e.get("skill") != skill_name or e.get("result") != "failure":
-            continue
-        try:
-            ts = datetime.datetime.fromisoformat(e["timestamp"])
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=datetime.timezone.utc)
-            if ts > cutoff:
-                count += 1
-        except (KeyError, ValueError):
-            continue
-    return count
+        entry = _parse_entry(line)
+        if entry:
+            yield entry
+
+
+def _parse_entry(line):
+    line = line.strip()
+    if not line:
+        return None
+    try:
+        return json.loads(line)
+    except json.JSONDecodeError:
+        return None
+
+
+def _entry_timestamp(entry):
+    try:
+        ts = datetime.datetime.fromisoformat(entry["timestamp"])
+    except (KeyError, ValueError):
+        return None
+    if ts.tzinfo is None:
+        return ts.replace(tzinfo=datetime.timezone.utc)
+    return ts
+
+
+def _is_recent_failure(entry, skill_name, cutoff):
+    if entry.get("skill") != skill_name or entry.get("result") != "failure":
+        return False
+    ts = _entry_timestamp(entry)
+    return bool(ts and ts > cutoff)
 
 
 def on_failure(skill_name, action, error, context="", confidence=0.9,

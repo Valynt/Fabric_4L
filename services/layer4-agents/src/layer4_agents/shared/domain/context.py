@@ -63,8 +63,11 @@ class TenantContext:
                     "No request context available. Ensure GovernanceMiddleware is installed."
                 )
 
+            tenant_id = ctx.tenant_id
+            if isinstance(tenant_id, str):
+                tenant_id = UUID(tenant_id)
             return cls(
-                tenant_id=ctx.tenant_id,
+                tenant_id=tenant_id,
                 user_id=ctx.user_id,
                 roles=list(ctx.roles) if hasattr(ctx, 'roles') else [],
                 source=ctx.source,

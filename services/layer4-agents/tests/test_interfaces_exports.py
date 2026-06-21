@@ -8,6 +8,7 @@ Uses src.* imports with pytest pythonpath configuration.
 
 import pytest
 
+from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
 from layer4_agents.interfaces import (
     ActivationRequest,
     BenchmarkDataset,
@@ -15,7 +16,6 @@ from layer4_agents.interfaces import (
     FormulaGovernance,
     FormulaStatus,
     GovernanceTransitionResult,
-    HTTPBenchmarkClient,
     IBenchmarkClient,
     IFormulaApprovalWorkflow,
     IFormulaGovernanceService,
@@ -53,7 +53,6 @@ def sample_formula_id():
 def test_interfaces_module_exports_core_symbols():
     """Verify all core interface symbols are exported from the interfaces module."""
     assert IBenchmarkClient is not None
-    assert HTTPBenchmarkClient is not None
     assert IValuePackService is not None
     assert IFormulaGovernanceService is not None
     assert IFormulaApprovalWorkflow is not None
