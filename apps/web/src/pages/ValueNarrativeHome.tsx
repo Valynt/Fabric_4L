@@ -88,6 +88,9 @@ const SOURCE_ACTIONS: SourceAction[] = [
   },
 ];
 
+const isImplementedSourceMode = (mode: SourceMode) =>
+  mode === "notes" || mode === "url";
+
 function sourceStatusLabel(status: IntakeSource["status"]): string {
   if (status === "processed") return "Processed";
   if (status === "pending") return "Pending";
@@ -121,7 +124,7 @@ function createLocalSource(mode: SourceMode, detail?: string): IntakeSource {
     mode,
     label: action?.label ?? mode,
     detail,
-    status: isConnectedMode ? "processed" : mode === "crm" ? "not_connected" : "pending",
+    status: isConnectedMode ? "processed" : "pending",
   };
 }
 
@@ -204,10 +207,6 @@ export default function ValueNarrativeHome() {
     }
   };
 
-  const handleUnavailableSource = (mode: SourceMode) => {
-    addOrReplaceSource(mode, mode === "crm" ? "Connector not configured" : "Queued for connector setup");
-  };
-
   const handleMetricChange = (metricId: string, value: string) => {
     setMetricOverrides(current => ({ ...current, [metricId]: value }));
   };
@@ -285,9 +284,6 @@ export default function ValueNarrativeHome() {
                         type="button"
                         onClick={() => {
                           setActiveMode(action.mode);
-                          if (action.mode !== "notes" && action.mode !== "url" && !source) {
-                            handleUnavailableSource(action.mode);
-                          }
                         }}
                         className={`rounded-md border px-2 py-2 text-center transition-colors ${
                           isActive ? "border-border bg-background text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
@@ -382,11 +378,11 @@ export default function ValueNarrativeHome() {
                           {SOURCE_ACTIONS.find(action => action.mode === activeMode)?.label}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Backend import is not connected in this pass. This control adds a local source record so the intake brief can show pending provenance.
+                          Connector not configured yet. This source type will only appear in Sources added once the upload or import flow is connected.
                         </p>
                       </div>
-                      <Button type="button" variant="secondary" size="sm" onClick={() => handleUnavailableSource(activeMode)}>
-                        Add pending source record
+                      <Button type="button" variant="secondary" size="sm" disabled>
+                        Connector not configured yet
                       </Button>
                     </div>
                   )}

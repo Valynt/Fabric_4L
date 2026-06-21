@@ -68,7 +68,7 @@ from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
-from ..shared.database import engine, get_db_from_context_sync, redis_client_async
+from ..shared.database import engine, get_db_from_context, get_db_from_context_sync, redis_client_async
 from ..shared.models import (
     AccountIntelligencePacket,
     AuthenticationType,
@@ -2893,7 +2893,7 @@ async def get_raw_content(
     include_screenshot: bool = Query(default=False),
     include_har: bool = Query(default=False),
     org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
+    db: Session = Depends(get_db_from_context),
 ):
     """Retrieve raw content by ID."""
     content = (
@@ -2945,7 +2945,7 @@ async def get_extracted_data(
     extracted_data_id: UUID,
     format: str = Query(default="json", regex="^(json|markdown|flattened)$"),
     org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
+    db: Session = Depends(get_db_from_context),
 ):
     """Retrieve extracted data by ID."""
     data = (
@@ -2996,7 +2996,7 @@ async def list_content(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
+    db: Session = Depends(get_db_from_context),
 ):
     """List raw content with filtering."""
     query = db.query(RawContent).filter(RawContent.tenant_id == org_id)

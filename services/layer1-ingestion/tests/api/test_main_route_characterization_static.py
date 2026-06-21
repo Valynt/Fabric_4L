@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
 API_DIR = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "api"
 
 
@@ -25,6 +27,28 @@ def _add_api_routes(path: Path) -> set[tuple[str, str, str]]:
     return routes
 
 
+def _route_metadata(path: Path) -> dict[tuple[str, str], dict[str, str | list[str]]]:
+    """Extract per-route OpenAPI metadata from add_api_route calls."""
+    tree = ast.parse(path.read_text())
+    metadata: dict[tuple[str, str], dict[str, str | list[str]]] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Attribute) or node.func.attr != "add_api_route":
+            continue
+        route_path = ast.literal_eval(node.args[0])
+        endpoint = ast.unparse(node.args[1]).split(".")[-1]
+        methods_kw = next(kw for kw in node.keywords if kw.arg == "methods")
+        method = next(ast.literal_eval(n) for n in methods_kw.value.elts)
+        route_key = (method, route_path)
+        metadata[route_key] = {"endpoint": endpoint}
+        for kw in node.keywords:
+            if kw.arg in {"operation_id", "summary", "tags"}:
+                metadata[route_key][kw.arg] = ast.literal_eval(kw.value)
+    return metadata
+
+
+@pytest.mark.contract_static
 def test_layer1_split_route_groups_preserve_public_paths() -> None:
     routes = set()
     for filename in [
@@ -80,4 +104,29 @@ def test_layer1_split_route_groups_preserve_public_paths() -> None:
         ("GET", "/metrics", "metrics_endpoint"),
         ("POST", "/admin/cleanup", "trigger_cleanup"),
         ("POST", "/proxy-pools", "create_proxy_pool_endpoint"),
+    }
+
+
+@pytest.mark.contract_static
+def test_content_routes_have_openapi_metadata() -> None:
+    metadata = _route_metadata(API_DIR / "main_content_routes.py")
+    assert metadata == {
+        ("GET", "/content/raw/{content_id}"): {
+            "endpoint": "get_raw_content",
+            "operation_id": "get_raw_content",
+            "summary": "Retrieve raw content by ID",
+            "tags": ["Content"],
+        },
+        ("GET", "/content/extracted/{extracted_data_id}"): {
+            "endpoint": "get_extracted_data",
+            "operation_id": "get_extracted_data",
+            "summary": "Retrieve extracted data by ID",
+            "tags": ["Content"],
+        },
+        ("GET", "/content"): {
+            "endpoint": "list_content",
+            "operation_id": "list_content",
+            "summary": "List raw content with filtering",
+            "tags": ["Content"],
+        },
     }

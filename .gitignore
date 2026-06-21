@@ -66,6 +66,9 @@ artifacts/**/*
 !artifacts/*/
 !artifacts/*/.gitkeep
 
+# Locked/permission-denied CI scratch directory; cannot be deleted, so ignore it
+artifacts/pytest-check-alembic/
+
 # Node.js (if used at root)
 node_modules/
 .pnpm-store/
@@ -181,9 +184,11 @@ tmp_gen_migration_baseline.py
 /nul
 /NUL
 
-# Windows path artifacts (CUsers* filenames from shell redirection on Windows)
+# Windows path artifacts (CUsers* / C:Users* filenames from shell redirection on Windows)
 CUsers*
 cUsers*
+C:Users*
+c:Users*
 *Users*Fabric_4L.env
 
 # Temporary diff/patch files in repo root
@@ -226,4 +231,12 @@ skip_debug.txt
 /tmp_*.txt
 /C*Users*tmp_*
 /c*Users*tmp_*
+/pytest_output.txt
+/pytest_*.txt
+/pytest_*.xml
+/images.txt
+/live-ps.txt
+/marker_test.txt
+/tmp_compare_exports_output.txt
+/_tmp_working_diff.txt
 

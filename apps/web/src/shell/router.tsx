@@ -7,7 +7,7 @@ import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import { EmptyState } from "@/components/states/EmptyState";
 import CommandCenter from "@/pages/CommandCenter";
@@ -148,12 +148,16 @@ function ExternalRootRedirect() {
     if (import.meta.env.MODE === "test") {
       return;
     }
+    if (isClerkAuthEnabled()) {
+      window.location.assign(getClerkUrls().signInUrl);
+      return;
+    }
     window.location.assign(VALUEPACT_PUBLIC_SITE_URL);
   }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <a className="text-sm text-primary underline-offset-4 hover:underline" href={VALUEPACT_PUBLIC_SITE_URL}>
+      <a className="text-sm text-primary underline-offset-4 hover:underline" href={isClerkAuthEnabled() ? getClerkUrls().signInUrl : VALUEPACT_PUBLIC_SITE_URL}>
         Continue to ValuePact
       </a>
     </div>

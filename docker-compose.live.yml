@@ -518,6 +518,7 @@ services:
       VITE_PROXY_L4_URL: http://layer4:8000
       VITE_PROXY_L5_URL: http://layer5:8005
       VITE_PROXY_L6_URL: http://layer6:8006
+      VITE_PROXY_API_GATEWAY_URL: http://api-gateway:8000
     deploy:
       resources:
         limits:

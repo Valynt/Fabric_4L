@@ -223,6 +223,7 @@ markers = [
     "slow: Tests that take >1 second or require optional heavy deps",
     "unit: Unit tests that do not require PostgreSQL",
     "integration: Integration tests requiring PostgreSQL",
+    "contract_static: Static contract tests that do not require live services",
 ]
 
 [tool.coverage.run]

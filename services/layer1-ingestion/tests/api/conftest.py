@@ -186,8 +186,15 @@ def make_target(db: Session, user_id: UUID):
 
 
 @pytest.fixture(autouse=True)
-def _mock_process_scraping_job(monkeypatch):
-    """Mock Celery task delay/apply_async so API tests don't need a broker."""
+def _mock_process_scraping_job(monkeypatch, request):
+    """Mock Celery task delay/apply_async so API tests don't need a broker.
+
+    Static contract tests (``@pytest.mark.contract_static``) that parse
+    source code without importing the app skip this fixture to avoid paying
+    the heavy import cost of the full L1 app and SQLAlchemy stack.
+    """
+    if request.node.get_closest_marker("contract_static"):
+        return
     import layer1_ingestion.api._batch_and_stats as _batch_mod
     import layer1_ingestion.api.main as _main_mod
     _MockTask = type("_MockTask", (), {

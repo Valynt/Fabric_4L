@@ -4,7 +4,13 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from "vite";
+import {
+  defineConfig,
+  loadEnv,
+  type Plugin,
+  type ProxyOptions,
+  type ViteDevServer,
+} from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { visualizer } from "rollup-plugin-visualizer";
 import { assertFrontendApiEnv } from "./scripts/frontend-api-env.mjs";
@@ -49,6 +55,8 @@ const VITE_PROXY_L5_URL =
   frontendEnv.VITE_PROXY_L5_URL || "http://localhost:8005";
 const VITE_PROXY_L6_URL =
   frontendEnv.VITE_PROXY_L6_URL || "http://localhost:8006";
+const VITE_PROXY_API_GATEWAY_URL =
+  frontendEnv.VITE_PROXY_API_GATEWAY_URL || "http://localhost:8000";
 
 type LogSource = "browserConsole" | "networkRequests" | "sessionReplay";
 
@@ -178,14 +186,17 @@ function vitePluginManusDebugCollector(): Plugin {
 
         const handlePayload = (payload: ManusLogPayload) => {
           // Write logs directly to files
-          if (payload.consoleLogs?.length > 0) {
-            writeToLogFile("browserConsole", payload.consoleLogs);
+          const consoleLogs = payload.consoleLogs;
+          if (consoleLogs && consoleLogs.length > 0) {
+            writeToLogFile("browserConsole", consoleLogs);
           }
-          if (payload.networkRequests?.length > 0) {
-            writeToLogFile("networkRequests", payload.networkRequests);
+          const networkRequests = payload.networkRequests;
+          if (networkRequests && networkRequests.length > 0) {
+            writeToLogFile("networkRequests", networkRequests);
           }
-          if (payload.sessionEvents?.length > 0) {
-            writeToLogFile("sessionReplay", payload.sessionEvents);
+          const sessionEvents = payload.sessionEvents;
+          if (sessionEvents && sessionEvents.length > 0) {
+            writeToLogFile("sessionReplay", sessionEvents);
           }
 
           res.writeHead(200, { "Content-Type": "application/json" });
@@ -309,47 +320,67 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
-    // Proxy configuration for multi-layer API routing
-    // Each layer runs on a different port; unified under /api/v1 for future gateway compatibility
-    proxy: {
-      "/api/v1/ingest": {
-        target: VITE_PROXY_L1_URL,
+    // Proxy configuration for multi-layer API routing.
+    // Canonical rule: browser calls only /api/v1/*, which terminates at the API
+    // gateway. The gateway is mounted at /v1 internally, so /api/v1 is rewritten
+    // to /v1. Direct L1-L6 proxies are quarantined behind the explicit
+    // VITE_PROXY_DEBUG_DIRECT_LAYERS flag and must not be used in normal app flows.
+    // See canonical-paths-policy.md.
+    proxy: (() => {
+      const debugDirectLayers =
+        frontendEnv.VITE_PROXY_DEBUG_DIRECT_LAYERS === "true";
+      const rules: Record<string, ProxyOptions> = {};
+
+      if (debugDirectLayers) {
+        rules["/api/v1/ingest"] = {
+          target: VITE_PROXY_L1_URL,
+          changeOrigin: true,
+          rewrite: (path: string) =>
+            path.replace(/^\/api\/v1\/ingest/, "/api/v1/ingestion"),
+        };
+        rules["/api/v1/extract"] = {
+          target: VITE_PROXY_L2_URL,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/v1\/extract/, ""),
+        };
+        rules["/api/v1/graph"] = {
+          target: VITE_PROXY_L3_URL,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/v1\/graph/, "/v1"),
+        };
+        rules["/api/v1/audit"] = {
+          target: VITE_PROXY_L4_URL,
+          changeOrigin: true,
+          rewrite: (path: string) =>
+            path.replace(/^\/api\/v1\/audit/, "/v1/audit"),
+        };
+        rules["/api/v1/agents"] = {
+          target: VITE_PROXY_L4_URL,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/v1\/agents/, "/v1"),
+        };
+        rules["/api/v1/truths"] = {
+          target: VITE_PROXY_L5_URL,
+          changeOrigin: true,
+          rewrite: (path: string) =>
+            path.replace(/^\/api\/v1\/truths/, "/api/v1"),
+        };
+        rules["/api/v1/benchmarks"] = {
+          target: VITE_PROXY_L6_URL,
+          changeOrigin: true,
+          rewrite: (path: string) =>
+            path.replace(/^\/api\/v1\/benchmarks/, "/v1/benchmarks"),
+        };
+      }
+
+      rules["/api/v1"] = {
+        target: VITE_PROXY_API_GATEWAY_URL,
         changeOrigin: true,
-        rewrite: path =>
-          path.replace(/^\/api\/v1\/ingest/, "/api/v1/ingestion"),
-      },
-      "/api/v1/extract": {
-        target: VITE_PROXY_L2_URL,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/api\/v1\/extract/, ""),
-      },
-      "/api/v1/graph": {
-        target: VITE_PROXY_L3_URL,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/api\/v1\/graph/, "/v1"),
-      },
-      "/api/v1/audit": {
-        target: VITE_PROXY_L4_URL,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/api\/v1\/audit/, "/v1/audit"),
-      },
-      "/api/v1/agents": {
-        target: VITE_PROXY_L4_URL,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/api\/v1\/agents/, "/v1"),
-      },
-      "/api/v1/truths": {
-        target: VITE_PROXY_L5_URL,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/api\/v1\/truths/, "/api/v1"),
-      },
-      "/api/v1/benchmarks": {
-        target: VITE_PROXY_L6_URL,
-        changeOrigin: true,
-        rewrite: path =>
-          path.replace(/^\/api\/v1\/benchmarks/, "/v1/benchmarks"),
-      },
-    },
+        rewrite: (path: string) => path.replace(/^\/api\/v1/, "/v1"),
+      };
+
+      return rules;
+    })(),
   },
   test: {
     environment: "jsdom",
