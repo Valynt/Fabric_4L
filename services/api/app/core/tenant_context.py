@@ -1,17 +1,20 @@
-from contextvars import ContextVar
-
 from fastapi import Depends, HTTPException, Request
 
 from app.core.security import TokenPayload, require_authenticated
-
-TenantContext: ContextVar[str | None] = ContextVar("tenant_id", default=None)
+from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_JWT,
+    RequestContext,
+    get_request_context,
+    set_request_context,
+)
 
 
 def get_tenant_id() -> str:
-    tenant_id = TenantContext.get()
+    ctx = get_request_context()
+    tenant_id = ctx.tenant_id if ctx is not None else None
     if not tenant_id:
         raise HTTPException(status_code=400, detail="Tenant context required")
-    return tenant_id
+    return str(tenant_id)
 
 
 class TenantRequired:
@@ -28,7 +31,10 @@ class TenantRequired:
         request: Request,
         auth: TokenPayload = Depends(require_authenticated),
     ) -> str:
-        jwt_tenant = auth.tenant_id
+        set_request_context(None)
+        jwt_tenant = auth.tenant_id.strip() if auth.tenant_id else ""
+        if not jwt_tenant:
+            raise HTTPException(status_code=401, detail="Tenant context required")
 
         # Optional header — must match the JWT claim if provided
         header_tenant = request.headers["X-Tenant-ID"] if "X-Tenant-ID" in request.headers else None
@@ -38,7 +44,19 @@ class TenantRequired:
                 detail="X-Tenant-ID does not match authenticated tenant",
             )
 
-        TenantContext.set(jwt_tenant)
+        set_request_context(
+            RequestContext(
+                tenant_id=jwt_tenant,
+                user_id=auth.sub,
+                source=AUTH_SOURCE_JWT,
+                auth_source=AUTH_SOURCE_JWT,
+                raw={
+                    "jti": auth.jti,
+                    "account_id": auth.account_id,
+                    "account_ids": auth.account_ids,
+                },
+            )
+        )
         return jwt_tenant
 
 

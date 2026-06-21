@@ -25,7 +25,12 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
 from .context import AuthContext, DEFAULT_AUDIENCE, DEFAULT_ISSUER
-from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
+from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_JWT,
+    RequestContext,
+    get_request_context,
+    set_request_context,
+)
 from .errors import (
     EnvelopeMissingError,
     FabricAuthError,
@@ -169,14 +174,18 @@ class FabricAuthMiddleware(BaseHTTPMiddleware):
         assert auth is not None  # for type checkers
         token_var = _AUTH_CONTEXT.set(auth)
         previous_governance_context = getattr(request.state, "governance_context", None)
+        previous_request_context = get_request_context()
+        governance_context = previous_governance_context or request_context_from_auth(auth)
+        set_request_context(governance_context)
         try:
             request.state.auth = auth
             if previous_governance_context is None:
-                request.state.governance_context = request_context_from_auth(auth)
+                request.state.governance_context = governance_context
             response: Response = await call_next(request)
         finally:
             if previous_governance_context is None:
                 request.state.governance_context = None
+            set_request_context(previous_request_context)
             _AUTH_CONTEXT.reset(token_var)
 
         if REQUEST_ID_HEADER not in response.headers and auth.request_id:

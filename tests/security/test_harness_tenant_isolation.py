@@ -275,12 +275,17 @@ class TestFrontendTenantHeaderSpoof:
 
         pytest.fail("TenantRequired.__call__ not found in tenant_context.py")
 
-    def test_tenant_required_sets_context_from_jwt(self) -> None:
-        """TenantRequired sets TenantContext from JWT tenant_id, not header."""
+    def test_tenant_required_sets_shared_context_from_jwt(self) -> None:
+        """TenantRequired sets the shared RequestContext from JWT tenant_id, not header."""
         source = pathlib.Path(
             "services/api/app/core/tenant_context.py"
         ).read_text()
-        # Must set context from jwt_tenant, not header_tenant
-        assert "TenantContext.set(jwt_tenant)" in source, (
-            "TenantRequired must set TenantContext from jwt_tenant (JWT-derived), not header"
+        assert "RequestContext(" in source, (
+            "TenantRequired must populate the shared RequestContext"
+        )
+        assert "tenant_id=jwt_tenant" in source, (
+            "TenantRequired must set tenant_id from jwt_tenant (JWT-derived), not header"
+        )
+        assert "set_request_context(" in source, (
+            "TenantRequired must use the shared identity context store"
         )

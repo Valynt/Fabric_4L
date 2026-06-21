@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-"""Tenant context management for multi-tenancy.
+"""Compatibility tenant context API backed by shared RequestContext storage.
 
-Provides thread-safe tenant context storage and retrieval.
+This module preserves the historical ``layer4_agents.tenant`` API without
+creating a second tenant ContextVar. The canonical request context store lives
+in ``value_fabric.shared.identity.context``.
 """
 
-
-from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
+from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_JWT,
+    RequestContext,
+    get_request_context,
+    set_request_context,
+)
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -63,20 +69,21 @@ class TenantContext:
         )
 
 
-# Context variable for current tenant
-_current_tenant: ContextVar[TenantContext | None] = ContextVar(
-    "current_tenant",
-    default=None,
-)
-
-
 def get_current_tenant() -> TenantContext | None:
     """Get the current tenant context.
 
     Returns:
         Current tenant context or None
     """
-    return _current_tenant.get()
+    ctx = get_request_context()
+    if ctx is None or not ctx.tenant_id:
+        return None
+    return TenantContext(
+        tenant_id=str(ctx.tenant_id),
+        user_id=str(ctx.user_id) if ctx.user_id is not None else None,
+        roles=list(ctx.roles),
+        metadata=dict(ctx.raw),
+    )
 
 
 def set_current_tenant(tenant: TenantContext | None) -> None:
@@ -85,7 +92,19 @@ def set_current_tenant(tenant: TenantContext | None) -> None:
     Args:
         tenant: Tenant context to set
     """
-    _current_tenant.set(tenant)
+    if tenant is None:
+        set_request_context(None)
+        return
+    set_request_context(
+        RequestContext(
+            tenant_id=tenant.tenant_id,
+            user_id=tenant.user_id,
+            roles=[str(role) for role in tenant.roles],
+            source=AUTH_SOURCE_JWT,
+            auth_source=AUTH_SOURCE_JWT,
+            raw=dict(tenant.metadata),
+        )
+    )
 
 
 def require_tenant() -> TenantContext:
@@ -120,13 +139,14 @@ class TenantContextManager:
             tenant: Tenant context to set
         """
         self.tenant = tenant
-        self.token = None
+        self.previous_context = None
 
     def __enter__(self):
         """Enter context."""
-        self.token = _current_tenant.set(self.tenant)
+        self.previous_context = get_request_context()
+        set_current_tenant(self.tenant)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit context."""
-        _current_tenant.reset(self.token)
+        set_request_context(self.previous_context)

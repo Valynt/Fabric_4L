@@ -6,23 +6,16 @@ This module provides the canonical TenantContext model used across Layer 4
 to enforce tenant isolation at the tool and service level.
 """
 
-import os
-import sys
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
+from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class TenantContext_to_metadata_filterResult(TypedDictModel):
     tenant_id: Any
-
-# Add shared identity to path for get_request_context
-_repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_shared_path = os.path.join(os.path.dirname(_repo_root), "..")
-if _shared_path not in sys.path:
-    sys.path.insert(0, _shared_path)
 
 
 class TenantContextError(Exception):
@@ -63,25 +56,19 @@ class TenantContext:
             TenantContextError: If no request context is available
         """
         try:
-            from value_fabric.shared.identity.context import get_request_context
             ctx = get_request_context()
-            
+
             if ctx is None:
                 raise TenantContextError(
                     "No request context available. Ensure GovernanceMiddleware is installed."
                 )
-            
+
             return cls(
                 tenant_id=ctx.tenant_id,
                 user_id=ctx.user_id,
                 roles=list(ctx.roles) if hasattr(ctx, 'roles') else [],
                 source=ctx.source,
             )
-        except ImportError as e:
-            raise TenantContextError(
-                f"Could not import value_fabric.shared.identity.context: {e}. "
-                "Ensure shared package is in PYTHONPATH."
-            ) from e
         except AttributeError as e:
             raise TenantContextError(
                 f"Request context missing required attributes: {e}"
