@@ -20,7 +20,7 @@ MIGRATION_DRIFT_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postg
 Generate the read-only schema and migration drift report:
 
 ```bash
-pnpm db:schema:diff
+make db-migrate-check
 ```
 
 ## Policy Coverage

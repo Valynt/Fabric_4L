@@ -28,6 +28,7 @@ ENTRYPOINT_SIZE_EXCEPTIONS = {
 }
 APP_ROUTE_HANDLER_EXCEPTIONS = {
     "services/layer1-ingestion/src/layer1_ingestion/api/main.py:legacy_health_check": "Existing Layer 1 compatibility health route; planned follow-up extraction tracked with the entrypoint split.",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py:legacy_metrics": "Existing Layer 1 compatibility metrics route; planned follow-up extraction tracked with the entrypoint split.",
 }
 HTTP_DECORATORS = {"get", "post", "put", "patch", "delete", "options", "head"}
 

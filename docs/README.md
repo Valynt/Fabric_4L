@@ -19,6 +19,7 @@
 | Solve a specific problem | [`/how-to-guides/`](./how-to-guides/) |
 | Run / operate the platform | [`how-to-guides/operators.md`](./how-to-guides/operators.md) |
 | Respond to incidents and runbooks | [`operations/runbooks/README.md`](./operations/runbooks/README.md) |
+| Versioning and release policy | [`VERSIONING.md`](./VERSIONING.md) |
 | Look up API/config details | [`/reference/`](./reference/) |
 | Frontend query / state rules | [`reference/frontend-query-patterns.md`](./reference/frontend-query-patterns.md) |
 | Testing strategy | [`reference/testing-strategy.md`](./reference/testing-strategy.md) |
@@ -28,6 +29,7 @@
 | Review governance policy | [`governance.md`](./governance.md) |
 | Review repository discoverability coverage | [`governance/repository-discoverability-audit.md`](./governance/repository-discoverability-audit.md) |
 | Review security policy | [`security/multi-tenancy.md`](./security/multi-tenancy.md) |
+| Security triage rubric | [`SECURITY_TRIAGE_RUBRIC.md`](./SECURITY_TRIAGE_RUBRIC.md) |
 | Review supply chain policy | [`supply-chain/SUPPLY_CHAIN_SECURITY.md`](./supply-chain/SUPPLY_CHAIN_SECURITY.md) |
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |
 | Understand design decisions | [`/explanations/adr/`](./explanations/adr/) |
@@ -80,7 +82,7 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| `architecture.md` | 6-layer pipeline architecture | All users |
+| `architecture.md` | 6-layer pipeline architecture plus L2.5 and L7 sub-layers | All users |
 | `security-model.md` | Authentication, authorization, audit | Developers |
 | `ontology-system.md` | Entity types, relationships, extraction | Data scientists |
 

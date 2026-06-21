@@ -10,7 +10,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from prometheus_client import Counter, Histogram
+from prometheus_client import Histogram
 
 from app.core.config import get_settings as _get_settings
 from app.core.database import db
@@ -31,13 +31,6 @@ DSAR_QUERY_LATENCY_SECONDS = Histogram(
     registry=registry,
 )
 
-DSAR_EVENT_LOOP_BLOCKING_RISK_TOTAL = Counter(
-    "fabric_api_dsar_event_loop_blocking_risk_total",
-    "Count of DSAR sync repository operations offloaded to an executor as interim mitigation.",
-    ("operation",),
-    registry=registry,
-)
-
 logger = structlog.get_logger(__name__)
 
 
@@ -47,27 +40,6 @@ def _get_signing_key() -> bytes:
 
 def _now() -> datetime:
     return datetime.now(UTC)
-
-
-async def _run_blocking_repo_call(operation: str, fn, /, *args, **kwargs):
-    """Run sync repo/database calls off the event loop until async repositories are available.
-
-    TODO: Remove executor offloading once DSAR repositories expose native async APIs.
-    """
-
-    execution_mode = "threaded_fallback"
-    DSAR_EVENT_LOOP_BLOCKING_RISK_TOTAL.labels(operation).inc()
-    start = time.perf_counter()
-    result = await asyncio.to_thread(fn, *args, **kwargs)
-    duration_seconds = time.perf_counter() - start
-    DSAR_QUERY_LATENCY_SECONDS.labels(operation).observe(duration_seconds)
-    logger.info(
-        "DSAR repository call completed",
-        operation=operation,
-        db_call_duration_seconds=round(duration_seconds, 6),
-        db_call_execution_mode=execution_mode,
-    )
-    return result
 
 
 async def register_request(payload: DSARRequestCreate, *, tenant_id: str, requester_user_id: str) -> DSARRequestRecord:
@@ -91,9 +63,30 @@ async def register_request(payload: DSARRequestCreate, *, tenant_id: str, reques
 
 
 async def _tenant_export_payload(*, tenant_id: str) -> dict:
-    accounts = await _run_blocking_repo_call("accounts.list", db.accounts.list, tenant_id=tenant_id)
-    evidence = await _run_blocking_repo_call("evidence.list", db.evidence.list, tenant_id=tenant_id)
-    hypotheses = await _run_blocking_repo_call("hypotheses.list", db.hypotheses.list, tenant_id=tenant_id)
+    """Build the DSAR export payload from the three tenant-scoped tables.
+
+    The underlying tables are still sync-style repositories; run them concurrently
+    off the event loop via ``asyncio.to_thread`` until they expose native async APIs.
+    """
+    start = time.perf_counter()
+
+    accounts, evidence, hypotheses = await asyncio.gather(
+        asyncio.to_thread(db.accounts.list, tenant_id=tenant_id),
+        asyncio.to_thread(db.evidence.list, tenant_id=tenant_id),
+        asyncio.to_thread(db.hypotheses.list, tenant_id=tenant_id),
+    )
+
+    duration_seconds = time.perf_counter() - start
+    DSAR_QUERY_LATENCY_SECONDS.labels("tenant_export_payload").observe(duration_seconds)
+    logger.info(
+        "DSAR export payload assembled",
+        tenant_id=tenant_id,
+        db_call_duration_seconds=round(duration_seconds, 6),
+        accounts_count=len(accounts),
+        evidence_count=len(evidence),
+        hypotheses_count=len(hypotheses),
+    )
+
     return {
         "accounts": [a.model_dump(mode="json") for a in accounts],
         "evidence": [e.model_dump(mode="json") for e in evidence],

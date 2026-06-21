@@ -29,3 +29,4 @@ The review must confirm that every P0/P1 blocker in [scorecard.md](scorecard.md)
 - [P2 governance and commercialization](../docs/governance/production-readiness-p2-governance-commercialization.md)
 - [Launch drift prevention SOP](../docs/governance/launch-drift-prevention-sop.md)
 - [Launch evidence bundle generator](../scripts/ci/generate_launch_evidence_bundle.py)
+- [Detailed production-readiness checklist](../docs/PRODUCTION_READINESS_CHECKLIST.md) — pass/fail criteria for production deployments

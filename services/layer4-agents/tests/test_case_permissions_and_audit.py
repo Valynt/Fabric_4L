@@ -168,6 +168,7 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
     get_settings.cache_clear()
     analysis.settings = get_settings()
     monkeypatch.setattr(analysis.settings, "export_storage_endpoint", "https://storage.local")
+    monkeypatch.setattr(analysis, "get_settings", lambda: analysis.settings)
 
     class _DbWithCase(_FakeDb):
         async def get(self, model, key):

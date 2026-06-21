@@ -145,8 +145,34 @@ class CrawlerConfig:
         return CrawlerConfig_viewportResult.model_validate({"width": self.viewport_width, "height": self.viewport_height}).model_dump()
 
 
+# In-memory cache keyed by ``path|mtime`` so repeated calls avoid re-reading the file.
+_config_cache: dict[str, CrawlerConfig] = {}
+
+
+_DEFAULT_CONFIG_PATHS = [
+    Path("crawler.config.yml"),
+    Path("config/crawler.yml"),
+    Path.home() / ".config/value-fabric/crawler.yml",
+]
+
+
+def _resolve_config_path(path: Path | str | None) -> Path | None:
+    """Return the config file path to load, or None if no file is found."""
+    if path:
+        return Path(path)
+
+    for config_path in _DEFAULT_CONFIG_PATHS:
+        if config_path.exists():
+            return config_path
+
+    return None
+
+
 def load_config(path: Path | str | None = None) -> CrawlerConfig:
     """Load crawler configuration from file or return defaults.
+
+    Results are cached by resolved path and file modification time so repeated
+    calls do not re-read and re-parse the YAML file.
 
     Args:
         path: Optional path to YAML config. If None, checks common locations.
@@ -154,18 +180,18 @@ def load_config(path: Path | str | None = None) -> CrawlerConfig:
     Returns:
         CrawlerConfig instance
     """
-    if path:
-        return CrawlerConfig.from_yaml(path)
+    resolved = _resolve_config_path(path)
 
-    # Check common config locations
-    search_paths = [
-        Path("crawler.config.yml"),
-        Path("config/crawler.yml"),
-        Path.home() / ".config/value-fabric/crawler.yml",
-    ]
+    if resolved is None:
+        return CrawlerConfig()
 
-    for config_path in search_paths:
-        if config_path.exists():
-            return CrawlerConfig.from_yaml(config_path)
+    mtime = resolved.stat().st_mtime
+    cache_key = f"{resolved}|{mtime}"
 
-    return CrawlerConfig()
+    cached = _config_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    config = CrawlerConfig.from_yaml(resolved)
+    _config_cache[cache_key] = config
+    return config

@@ -19,7 +19,7 @@ Use this table as the maintained path from a test-related issue to the canonical
 | Layer 5 ground truth | `services/layer5-ground-truth/tests` | `make test-layer5` |
 | Layer 6 benchmarks | `services/layer6-benchmarks/tests` | `make test-layer6` |
 | Cross-layer contracts | `tests/contract` | `make contract-tests` |
-| Security and tenant isolation | `tests/security`, `tests/tenancy` | `pnpm test:security` |
+| Security and tenant isolation | `tests/security`, `tests/tenancy` | `make gate-security` |
 | Production readiness | `tests/security`, `tests/reliability`, `tests/observability`, `tests/recovery`, `tests/release`, `tests/tenancy`, `tests/billing`, `tests/abuse`, `tests/config`, `tests/audit` | `pnpm test:production-readiness` |
 | Frontend verification | `apps/web/src`, `apps/web/e2e` | `pnpm run verify:frontend` |
 | Documentation and discovery | `tests/docs`, `docs/development`, `docs/testing` | `pnpm docs:check` |
@@ -346,9 +346,9 @@ pytest -m contract --timeout=60
 pytest -m security --timeout=60
 
 # Frontend tests
-pnpm test -- --coverage
-pnpm run lint
-pnpm tsc --noEmit
+pnpm --dir apps/web run test -- --coverage
+pnpm --dir apps/web run lint
+pnpm --dir apps/web run typecheck
 
 # E2E tests
 pnpm exec playwright test

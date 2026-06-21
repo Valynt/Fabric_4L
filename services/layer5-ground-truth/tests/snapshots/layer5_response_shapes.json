@@ -1,8 +1,13 @@
 {
   "health": {
     "database": "str",
-    "layer3_connected": "NoneType",
-    "layer3_url": "NoneType",
+    "dependencies": [],
+    "dependency_status": [],
+    "liveness": "str",
+    "readiness": {
+      "is_ready": "bool",
+      "reason": "str"
+    },
     "service": "str",
     "status": "str",
     "timestamp": "str",

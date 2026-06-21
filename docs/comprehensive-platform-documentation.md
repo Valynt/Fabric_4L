@@ -948,9 +948,9 @@ make evals    # golden-trace agent evaluations
 
 # Frontend verification
 cd apps/web
-pnpm test -- --coverage
+pnpm run test -- --coverage
 pnpm run lint
-pnpm tsc --noEmit
+pnpm run typecheck
 ```
 
 ## 13. Deployment and Infrastructure Notes

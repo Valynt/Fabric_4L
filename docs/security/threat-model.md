@@ -127,3 +127,7 @@ sequenceDiagram
 1. Dynamic/behavioral tenant-escape tests should run in an ephemeral cluster with live traffic policies.
 2. Service-to-service mTLS attestation should be added to evidence once mesh-level cert rotation checks are available.
 3. Release branch protection must mark **Zero Trust Validation / zero-trust-gate** as required before production promotion.
+
+## See Also
+
+- **[Security Triage Rubric](../SECURITY_TRIAGE_RUBRIC.md)** — classification criteria and priority handling for security findings.

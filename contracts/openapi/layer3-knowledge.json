@@ -11135,7 +11135,10 @@
               }
             ],
             "title": "Formula Id",
-            "description": "Alias for id (frontend compatibility)"
+            "description": "Deprecated alias of id. Removal target: v2.5 (2026-10-01).",
+            "deprecated": true,
+            "x-deprecation-target-version": "v2.5",
+            "x-deprecation-target-date": "2026-10-01"
           },
           "name": {
             "type": "string",

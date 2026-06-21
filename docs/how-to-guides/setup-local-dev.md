@@ -369,17 +369,17 @@ find . -type f -name "*.pyc" -delete
 
 | Goal | Next Document |
 |------|---------------|
-| Learn testing patterns | [Testing Guide](../contributing/testing.md) |
-| Set up pre-commit hooks | [Contributing Guidelines](../contributing/guidelines.md) |
+| Learn testing patterns | [Testing Strategy](../reference/testing-strategy.md) |
+| Set up pre-commit hooks | [Contributing Guidelines](../../CONTRIBUTING.md) |
 | Understand the codebase | [Architecture Overview](../core-concepts/architecture.md) |
-| Submit your first PR | [PR Process](../contributing/pr-process.md) |
+| Submit your first PR | [PR Process](../../CONTRIBUTING.md) |
 
 ---
 
 ## Related Documentation
 
 - [Quickstart Guide](../getting-started/quickstart.md) — Get running in 15 minutes
-- [Contributing Guidelines](../contributing/guidelines.md) — Code and documentation standards
+- [Contributing Guidelines](../../CONTRIBUTING.md) — Code and documentation standards
 - [Architecture Overview](../core-concepts/architecture.md) — Understanding the 6-layer system
 - [Troubleshooting Index](../troubleshooting/index.md) — Common development issues
 

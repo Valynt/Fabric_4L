@@ -11,7 +11,7 @@ Covers P0 security requirements:
 
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from layer4_agents.models.billing import BillingUsageEvent, UsageEventStatus
 from layer4_agents.services.usage_service import UsageService, UsageValidationError
-
 
 # =============================================================================
 # Fixtures
@@ -33,6 +32,7 @@ def mock_db():
     session.execute = AsyncMock()
     session.commit = AsyncMock()
     session.add = MagicMock()
+    session.add_all = MagicMock()
     session.flush = AsyncMock()
     session.refresh = AsyncMock()
     session.rollback = AsyncMock()
@@ -352,42 +352,40 @@ async def test_usage_event_null_event_id_rejected(mock_db):
 @pytest.mark.asyncio
 async def test_usage_batch_partial_duplicate_handling(mock_db):
     """P1: Batch ingestion must handle partial duplicates gracefully.
-    
+
     If 3 of 5 events are duplicates, the 2 new events should still be created.
     """
     service = UsageService(mock_db, tenant_id="tenant_123")
-    
-    # First call - all events new
-    mock_db.execute.return_value.scalar_one_or_none.return_value = None
-    
+
     events = [
-        {"event_id": f"evt_batch_{i}", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests", "quantity": float(i+1)}
+        {"event_id": f"evt_batch_{i}", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests", "quantity": float(i + 1)}
         for i in range(3)
     ]
-    
-    result1 = await service.ingest_batch(events)
-    assert result1["created"] == 3
-    assert result1["duplicates"] == 0
-    
-    # Second call with same events + 2 new ones
-    # Simulate DB finding duplicates
-    def side_effect(*args, **kwargs):
-        result = MagicMock()
-        # This is a simplified simulation - real implementation would check per event
-        result.scalar_one_or_none.return_value = None  # All pass check (bug if not checking properly)
-        return result
-    
-    mock_db.execute.side_effect = side_effect
-    
+
     events_mixed = events + [
         {"event_id": "evt_new_4", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests", "quantity": 4.0},
         {"event_id": "evt_new_5", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests", "quantity": 5.0},
     ]
-    
-    # The result should show 2 created, 3 duplicates
-    # If implementation doesn't track this correctly, it's a P2 finding
+
+    # First call - all events new: bulk lookup returns empty set
+    mock_db.execute.return_value = MagicMock(all=MagicMock(return_value=[]))
+
+    result1 = await service.ingest_batch(events)
+    assert result1["created"] == 3
+    assert result1["duplicates"] == 0
+    mock_db.add_all.assert_called_once()
+    mock_db.flush.assert_awaited_once()
+
+    # Second call with same events + 2 new ones: bulk lookup returns the 3 existing ids
+    mock_db.reset_mock()
+    existing_rows = [(event["event_id"],) for event in events]
+    mock_db.execute.return_value = MagicMock(all=MagicMock(return_value=existing_rows))
+
     result2 = await service.ingest_batch(events_mixed)
-    # Note: Exact behavior depends on implementation - this documents current state
+    assert result2["created"] == 2
+    assert result2["duplicates"] == 3
+    mock_db.add_all.assert_called_once()
+    mock_db.flush.assert_awaited_once()
 
 
 # =============================================================================
@@ -415,10 +413,10 @@ async def test_list_customer_usage_enforces_tenant_filter(mock_db):
     call_args = mock_db.execute.call_args
     query = call_args[0][0] if call_args[0] else call_args[1].get('statement', '')
     
-    # The query should reference tenant_id
-    query_str = str(query)
-    # Note: This is a heuristic check - exact assertion depends on query construction
-    # If tenant_id is not in query, it's a security finding
+    # The query should reference tenant_id (heuristic check - exact assertion
+    # depends on query construction). If tenant_id is not in query, it's a
+    # security finding.
+    assert "tenant_id" in str(query)
 
 
 @pytest.mark.skip(reason="DEFERRED: Pydantic schema validation error - event_count expects bool but got int")
@@ -454,7 +452,7 @@ async def test_usage_event_db_failure_rolls_back(mock_db):
     mock_db.execute.return_value.scalar_one_or_none.return_value = None
     mock_db.flush.side_effect = Exception("Database connection lost")
     
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         await service.ingest_event(
             event_id="evt_db_fail",
             customer_id="user_123",
@@ -480,8 +478,8 @@ async def test_usage_batch_db_failure_partial_rollback(mock_db):
         for i in range(5)
     ]
     
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         await service.ingest_batch(events)
-    
+
     # Verify rollback was called
     mock_db.rollback.assert_called()

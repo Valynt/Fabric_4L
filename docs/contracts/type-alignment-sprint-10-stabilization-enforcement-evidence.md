@@ -4,6 +4,8 @@ Author: **Manus AI**
 Date: 2026-05-05
 Repository: `bmsull560/Fabric_4L`
 
+> Historical note: the root `pnpm test` command was removed from `package.json` after this sprint. Frontend tests are now run from `apps/web` (e.g., `pnpm --dir apps/web run test`). The references below are preserved as a record of the 2026-05-05 stabilization run.
+
 ## Summary
 
 Sprint 10 stabilized the type-alignment work completed across Sprints 1–9 by adding an automated **trust-boundary regression guard**. The guard prevents migrated frontend boundaries from reintroducing unsafe `response.data as ...` assertions and prevents selected migrated stream handlers from reintroducing direct `JSON.parse(...)` calls inside hook/client files.

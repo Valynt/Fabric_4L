@@ -97,28 +97,42 @@ def test_dsar_reconciliation_error_mapping_contract(monkeypatch):
     assert response.json()["error"]["message"] == "Invalid DSAR request"
 
 
-def test_blocking_repo_calls_are_offloaded_for_parallelism():
-    async def _run_parallel():
+def test_tenant_export_payload_runs_table_queries_concurrently():
+    """Verify _tenant_export_payload calls the three tenant-scoped tables concurrently."""
+    calls: dict[str, bool] = {}
+
+    def _slow_list(tenant_id: str, table_name: str):
+        calls[table_name] = True
+        __import__("time").sleep(0.05)
+        return []
+
+    monkeypatch_targets = {
+        "accounts": dsar_service.db.accounts,
+        "evidence": dsar_service.db.evidence,
+        "hypotheses": dsar_service.db.hypotheses,
+    }
+    for name, table in monkeypatch_targets.items():
+        table.list = lambda tenant_id, name=name: _slow_list(tenant_id, name)
+
+    async def _run():
         start = asyncio.get_running_loop().time()
-        await asyncio.gather(
-            dsar_service._run_blocking_repo_call("test.sleep.1", lambda: __import__("time").sleep(0.12)),
-            dsar_service._run_blocking_repo_call("test.sleep.2", lambda: __import__("time").sleep(0.12)),
-            dsar_service._run_blocking_repo_call("test.sleep.3", lambda: __import__("time").sleep(0.12)),
-        )
+        await dsar_service._tenant_export_payload(tenant_id=TENANT_ALPHA)
         return asyncio.get_running_loop().time() - start
 
-    elapsed = asyncio.run(_run_parallel())
-    assert elapsed < 0.28
+    elapsed = asyncio.run(_run())
+    assert "accounts" in calls
+    assert "evidence" in calls
+    assert "hypotheses" in calls
+    # Three ~50ms blocking calls run concurrently; sequential would be >150ms.
+    assert elapsed < 0.15
 
 
 def test_dsar_service_responsive_under_moderate_parallel_load(monkeypatch):
-    original = dsar_service._run_blocking_repo_call
-
-    async def _slow_bridge(operation, fn, /, *args, **kwargs):
+    async def _slow_export(*, tenant_id: str):
         await asyncio.sleep(0.01)
-        return await original(operation, fn, *args, **kwargs)
+        return {"accounts": [], "evidence": [], "hypotheses": []}
 
-    monkeypatch.setattr(dsar_service, "_run_blocking_repo_call", _slow_bridge)
+    monkeypatch.setattr(dsar_service, "_tenant_export_payload", _slow_export)
 
     async def _submit():
         loop = asyncio.get_running_loop()

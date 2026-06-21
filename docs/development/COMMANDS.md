@@ -27,8 +27,6 @@ Every root `package.json` script is a stable public npm-script interface.
 | `docs:check` | `python -m pytest tests/docs/` | Documentation validation |
 | `ops:runbooks:lint` | `python scripts/ci/check_incident_runbooks.py --mode runbooks-lint` | Incident runbook validation |
 | `ops:incident:check` | `python scripts/ci/check_incident_runbooks.py --mode incident-check` | Incident workflow validation |
-| `lint` | `python scripts/ci/run_root_aggregate_checks.py lint` | Root aggregate CI runner |
-| `test` | `python scripts/ci/run_root_aggregate_checks.py test` | Root aggregate CI runner |
 | `test:observability` | `python -m pytest tests/observability/ -v --tb=short` | Observability tests |
 | `test:reliability` | `python -m pytest tests/reliability/ -v --tb=short` | Reliability tests |
 | `test:recovery` | `python -m pytest tests/recovery/ -v --tb=short` | Recovery tests |
@@ -49,7 +47,6 @@ Every root `package.json` script is a stable public npm-script interface.
 | `lint:logs` | `python scripts/ci/check_observability_coverage.py` | Observability coverage lint |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
 | `readiness:behavior-audit` | `python scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json` | Behavior readiness audit |
-| `test:security` | `python -m pytest tests/security/ -v --tb=short` | Centralized security readiness suite |
 | `test:security:hostile` | `python -m pytest tests/security/test_hostile_tenant_e2e_matrix.py tests/security/test_hostile_tenant_journey_contracts.py -v --tb=short` | Hostile tenant security contract suite |
 | `test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Tenant isolation alias |
 | `test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` | Schema/index alias |
@@ -60,10 +57,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `test:agents` | `python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py` | Agent regression tests |
 | `db:extensions:check` | `python scripts/ci/run_root_aggregate_checks.py db-extensions-check` | Database extension policy |
 | `db:migrate:status` | `python scripts/ci/run_root_aggregate_checks.py db-migrate-status` | Read-only migration status |
-| `db:migrate:check` | `python scripts/ci/migration_status_report.py --mode check` | Read-only migration drift gate |
 | `db:migrate:test` | `python scripts/ci/check_migration_drift.py --round-trip` | Migration round-trip drift test |
-| `db:schema:diff` | `python scripts/ci/migration_status_report.py --mode check` | Database schema drift check |
-| `typecheck` | `python scripts/ci/run_root_aggregate_checks.py typecheck` | Root aggregate CI runner |
 | `check:default-scope` | `node scripts/ci/check_default_scope.mjs` | Workspace policy |
 | `preinstall` | `node scripts/enforce-package-manager.cjs` | Package-manager guard |
 | `check:package-manager-policy` | `node scripts/ci/check_package_manager_policy.mjs` | Package-manager policy |
@@ -92,6 +86,8 @@ Every root `package.json` script is a stable public npm-script interface.
 | `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
 | `ops:walg:gate` | `python scripts/ci/check_walg_enablement_gate.py` | WAL-G physical backup enablement evidence gate |
 | `ops:quota:check` | `python scripts/ci/check_quota_policy.py` | Quota policy validation |
+| `gate-engineering:validate` | `python scripts/ci/gate_engineering_validator.py validate` | Validate gate-engineering registry |
+| `gate-engineering:test` | `python -m pytest tests/ci/test_gate_engineering.py -v --tb=short` | Run gate-engineering registry tests |
 
 ## Public Makefile Targets
 
@@ -232,6 +228,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `validate-openapi-contracts` | Validate tracked OpenAPI specs. |
 | `contract-drift` | Export and validate OpenAPI drift. |
 | `contract-freshness` | Regenerate OpenAPI and frontend DTOs and fail on drift. |
+| `contract-freshness-fast` | Fast contract-freshness lane: validates committed specs and shapes, no live services. |
 | `contract-lint` | Run ESLint contract rules. |
 | `platform-contract-lint` | Run platform contract lint. |
 | `check-tool-contracts` | Validate tool error structure. |
@@ -360,7 +357,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 | `.github/workflows/contract-compliance.yml` / contract compliance | `pnpm run check:contract-compliance` | Full contract compliance gate. |
 | Generated API freshness and frontend type drift | `pnpm run generate:api` then `pnpm run check:api-types` | Detects generated client drift. |
 | Frontend PR checks | `pnpm run verify:frontend` or `pnpm --dir apps/web run <script>` | Use package-level scripts for focused frontend checks. |
-| Migration status/drift checks | `pnpm db:migrate:status`, `pnpm db:migrate:check`, or `make gate-database` | `db:migrate:*` are read-only. |
+| Migration status/drift checks | `pnpm db:migrate:status`, `make db-migrate-check`, or `make gate-database` | Read-only migration status and drift checks. |
 | Database readiness | `make gate-database` | Local static/read-only gate; live checks require explicit DB environment. |
 | Production readiness gate | `make production-readiness-gate` | Canonical CI-required production-readiness gate. `make gate-production` is a compatibility alias. |
 | Release evidence | `make release-evidence-packet` | Generates canonical release evidence. |

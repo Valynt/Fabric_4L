@@ -123,6 +123,18 @@ SECTION_ORDER = [
 ]
 
 # Tone-specific section templates
+_ALLOWED_TONES = frozenset({t.value for t in NarrativeTone})
+
+
+def _sanitize_tone(tone: str) -> str:
+    """Return an allowed tone, falling back to 'executive' for unknown values."""
+    normalized = tone.strip().lower()
+    if normalized in _ALLOWED_TONES:
+        return normalized
+    logger.warning("invalid_tone_received", raw_tone=tone, fallback="executive")
+    return "executive"
+
+
 TONE_TEMPLATES: dict[str, dict[str, str]] = {
     "executive": {
         "executive_summary": "Based on our analysis of {company_name}, we have identified {hypothesis_count} value opportunities with a combined estimated impact of ${total_impact:,.0f} over {timeframe}.",
@@ -218,6 +230,9 @@ class NarrativeBuilderService:
         narrative_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
+        # Sanitize tone to an allowlisted value before rendering or persistence
+        safe_tone = _sanitize_tone(request.tone)
+
         # Build context for template rendering
         context = self._build_context(
             request=request,
@@ -234,7 +249,7 @@ class NarrativeBuilderService:
         for section_key in request.include_sections:
             if section_key in SECTION_ORDER:
                 sections[section_key] = self._render_section(
-                    section_key, request.tone, context
+                    section_key, safe_tone, context
                 )
 
         # Assemble the narrative
@@ -244,7 +259,7 @@ class NarrativeBuilderService:
             "account_id": request.account_id,
             "title": request.title,
             "audience": request.audience,
-            "tone": request.tone,
+            "tone": safe_tone,
             "sections": sections,
             "metadata": {
                 "hypothesis_count": context.get("hypothesis_count", 0),
@@ -462,6 +477,8 @@ class NarrativeBuilderService:
         if not trusted_tenant_id:
             raise ValueError("tenant_id must be provided from trusted auth context")
 
+        # Defensive: subclasses or future schema extensions may include a
+        # payload tenant_id. The base NarrativeRequest dataclass does not.
         payload_tenant_id = getattr(request, "tenant_id", None)
         if payload_tenant_id is not None and str(payload_tenant_id) != trusted_tenant_id:
             raise ValueError("request tenant_id does not match trusted tenant context")

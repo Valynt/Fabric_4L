@@ -131,3 +131,7 @@ Two infrastructure P0 partials remain:
 
 These are operational/infrastructure gaps, not code defects. Capture ArgoCD sync/rollback evidence and
 extend `supply-chain.yml` provenance trigger to clear for full production sign-off.
+
+## See Also
+
+- **[Launch readiness scorecard and review process](../production-readiness/README.md)** — living launch-readiness roll-up with scorecard, risk register, and ownership matrix.

@@ -21,7 +21,7 @@ The category manifests aggregate the detailed security coverage listed in the ma
 
 ```bash
 pytest tests/security/      # centralized aggregation manifests
-pnpm test:security          # delegates to pytest tests/security/
+make gate-security          # canonical security readiness gate
 pnpm test:security:hostile  # root hostile tenant tests, cross-platform
 pnpm test:isolation         # tenant-isolation focused gate
 ```
@@ -46,7 +46,7 @@ pnpm test:isolation         # tenant-isolation focused gate
 
 ```bash
 pytest tests/security/      # centralized aggregation manifests
-pnpm test:security          # delegates to pytest tests/security/
+make gate-security          # canonical security readiness gate
 pnpm test:security:hostile  # avoids shell-dependent test_hostile_*.py glob expansion
 pnpm test:isolation         # tenant-isolation focused gate
 ```

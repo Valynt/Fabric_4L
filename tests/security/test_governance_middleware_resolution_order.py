@@ -18,12 +18,9 @@ from uuid import uuid4
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
     decode_jwt,
-    _is_public_path,
-    TENANT_ID_HEADER,
-    SERVICE_AUTH_HEADER,
+    _is_external_auth_bootstrap_path,
     extract_context_from_jwt,
 )
-from value_fabric.shared.identity.context import RequestContext, set_current_context
 
 
 class TestGovernanceMiddlewareResolutionOrder:
@@ -60,32 +57,32 @@ class TestGovernanceMiddlewareResolutionOrder:
         assert middleware._api_key_resolver is resolver
 
 
-class TestPublicPathBypass:
-    """Test that public paths bypass authentication correctly."""
+class TestExternalAuthBootstrapPathBypass:
+    """Test that external-auth-bootstrap paths bypass central authentication."""
 
-    def test_health_path_is_public(self):
-        """POSITIVE: /health path should bypass authentication."""
-        assert _is_public_path("/health") is True
+    def test_health_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /health path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/health") is True
 
-    def test_metrics_path_is_public(self):
-        """POSITIVE: /metrics path should bypass authentication."""
-        assert _is_public_path("/metrics") is True
+    def test_metrics_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /metrics path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/metrics") is True
 
-    def test_docs_path_is_public(self):
-        """POSITIVE: /docs path should bypass authentication."""
-        assert _is_public_path("/docs") is True
+    def test_docs_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /docs path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/docs") is True
 
-    def test_openapi_json_is_public(self):
-        """POSITIVE: /openapi.json should bypass authentication."""
-        assert _is_public_path("/openapi.json") is True
+    def test_openapi_json_is_external_auth_bootstrap(self):
+        """POSITIVE: /openapi.json should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/openapi.json") is True
 
     def test_api_path_requires_auth(self):
         """NEGATIVE: /api/v1/* paths should require authentication."""
-        assert _is_public_path("/api/v1/test") is False
+        assert _is_external_auth_bootstrap_path("/api/v1/test") is False
 
-    def test_root_path_is_public(self):
-        """POSITIVE: / root path should bypass authentication."""
-        assert _is_public_path("/") is True
+    def test_root_path_is_external_auth_bootstrap(self):
+        """POSITIVE: / root path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/") is True
 
 
 class TestJWTDecodingSecurity:

@@ -22,12 +22,14 @@ import pytest
 # ---------------------------------------------------------------------------
 spec = importlib.util.spec_from_file_location(
     "_test_files",
-    os.path.join(os.path.dirname(__file__), "../../src/tools/files.py"),
+    os.path.join(os.path.dirname(__file__), "../../src/layer4_agents/tools/files.py"),
 )
 _test_files = importlib.util.module_from_spec(spec)
 
 # Minimal mocks for value_fabric.shared.identity.context
 import types
+
+sys.modules.setdefault("_test_files", _test_files)
 
 _vf = types.ModuleType("value_fabric")
 _vf.shared = types.ModuleType("value_fabric.shared")

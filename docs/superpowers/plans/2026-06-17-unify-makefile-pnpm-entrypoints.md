@@ -18,7 +18,7 @@
 1. Audit `package.json` scripts and delete any that duplicate Makefile targets (e.g., `test:security`, `db:migrate:check`, `typecheck` if it dispatches Python).
 2. Rename ambiguous targets:
    - `make lint` → keep for Python; add `make lint-frontend` or rely on `pnpm --dir apps/web run lint`.
-   - `pnpm lint` → keep for frontend; remove or rename Python-dispatching scripts.
+   - `pnpm lint` → removed from root; use `pnpm --dir apps/web run lint` for frontend.
 3. Replace explicit per-layer Makefile targets (`lint-layer1`…`lint-layer6`, `typecheck-layer1`…`typecheck-layer6`) with pattern rules over a `LAYERS` variable.
 4. Move per-layer mypy flags to `config/ci/mypy-layer-config.yaml`.
 5. Create a single root `pnpm` script `verify:frontend` that calls the frontend verification suite.

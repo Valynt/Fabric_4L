@@ -1,9 +1,11 @@
 """Comprehensive backup and disaster recovery system."""
 
+import asyncio
 import gzip
 import hashlib
 import json
 import os
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -368,8 +370,18 @@ class LocalStorage(BackupStorage):
         self.backup_dir = Path(config.backup_directory)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
+    def _write_bytes(self, file_path: Path, data: bytes) -> None:
+        """Synchronous helper: write backup bytes to disk."""
+        with open(file_path, "wb") as f:
+            f.write(data)
+
+    def _read_bytes(self, file_path: Path) -> bytes:
+        """Synchronous helper: read backup bytes from disk."""
+        with open(file_path, "rb") as f:
+            return f.read()
+
     async def store_backup(self, backup_id: str, data: bytes) -> str:
-        """Store backup data locally.
+        """Store backup data locally without blocking the event loop.
 
         Args:
             backup_id: Backup ID
@@ -379,16 +391,12 @@ class LocalStorage(BackupStorage):
             File path
         """
         file_path = self.backup_dir / f"{backup_id}.backup"
-
-        # Write data to file
-        with open(file_path, "wb") as f:
-            f.write(data)
-
+        await asyncio.to_thread(self._write_bytes, file_path, data)
         logger.info(f"Stored backup locally: {file_path}")
         return str(file_path)
 
     async def retrieve_backup(self, backup_id: str) -> bytes:
-        """Retrieve backup data from local storage.
+        """Retrieve backup data from local storage without blocking the event loop.
 
         Args:
             backup_id: Backup ID
@@ -398,17 +406,15 @@ class LocalStorage(BackupStorage):
         """
         file_path = self.backup_dir / f"{backup_id}.backup"
 
-        if not file_path.exists():
+        if not await asyncio.to_thread(file_path.exists):
             raise FileNotFoundError(f"Backup file not found: {file_path}")
 
-        with open(file_path, "rb") as f:
-            data = f.read()
-
+        data = await asyncio.to_thread(self._read_bytes, file_path)
         logger.info(f"Retrieved backup from local storage: {file_path}")
         return data
 
     async def delete_backup(self, backup_id: str) -> bool:
-        """Delete backup from local storage.
+        """Delete backup from local storage without blocking the event loop.
 
         Args:
             backup_id: Backup ID
@@ -419,8 +425,8 @@ class LocalStorage(BackupStorage):
         file_path = self.backup_dir / f"{backup_id}.backup"
 
         try:
-            if file_path.exists():
-                file_path.unlink()
+            if await asyncio.to_thread(file_path.exists):
+                await asyncio.to_thread(file_path.unlink)
                 logger.info(f"Deleted local backup: {file_path}")
                 return True
             return False
@@ -429,21 +435,22 @@ class LocalStorage(BackupStorage):
             return False
 
     async def list_backups(self) -> list[str]:
-        """List local backups.
+        """List local backups without blocking the event loop.
 
         Returns:
             List of backup IDs
         """
+        files = await asyncio.to_thread(list, self.backup_dir.glob("*.backup"))
         backup_ids = []
 
-        for file_path in self.backup_dir.glob("*.backup"):
+        for file_path in files:
             backup_id = file_path.stem
             backup_ids.append(backup_id)
 
         return sorted(backup_ids)
 
     async def get_backup_info(self, backup_id: str) -> dict[str, Any]:
-        """Get local backup information.
+        """Get local backup information without blocking the event loop.
 
         Args:
             backup_id: Backup ID
@@ -453,10 +460,10 @@ class LocalStorage(BackupStorage):
         """
         file_path = self.backup_dir / f"{backup_id}.backup"
 
-        if not file_path.exists():
+        if not await asyncio.to_thread(file_path.exists):
             raise FileNotFoundError(f"Backup file not found: {file_path}")
 
-        stat = file_path.stat()
+        stat = await asyncio.to_thread(file_path.stat)
 
         return LocalStorage_get_backup_infoResult.model_validate({
             "backup_id": backup_id,
@@ -579,7 +586,7 @@ class BackupManager:
             Backup response
         """
         start_time = datetime.utcnow()
-        backup_id = f"backup_{int(start_time.timestamp())}_{hashlib.md5(str(start_time).encode(), usedforsecurity=False).hexdigest()[:8]}"
+        backup_id = f"backup_{int(start_time.timestamp())}_{uuid.uuid4().hex[:8]}"
 
         # Create backup metadata
         metadata = BackupMetadata(

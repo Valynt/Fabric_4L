@@ -13,9 +13,8 @@ Uses mock Neo4j driver to avoid external dependencies.
 
 import json
 import sys
-from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -34,22 +33,26 @@ sys.modules.setdefault("src.models.pain_signal", _pain_signal_mock)
 # Now safe to import
 # ---------------------------------------------------------------------------
 
+from value_fabric.shared.identity.context import (
+    RequestContext,
+    clear_current_context,
+    set_current_context,
+)
+
+from layer4_agents.services.intelligence_orchestrator import (
+    READINESS_WEIGHTS,
+    IntelligenceOrchestrator,
+    _readiness_label,
+)
 from layer4_agents.services.narrative_builder_service import (
     SECTION_ORDER,
     TONE_TEMPLATES,
+    NarrativeAudience,
     NarrativeBuilderService,
     NarrativeRequest,
     NarrativeStatus,
     NarrativeTone,
-    NarrativeAudience,
 )
-from layer4_agents.services.intelligence_orchestrator import (
-    READINESS_WEIGHTS,
-    READINESS_THRESHOLDS,
-    IntelligenceOrchestrator,
-    _readiness_label,
-)
-
 
 # ---------------------------------------------------------------------------
 # Test Constants
@@ -57,6 +60,14 @@ from layer4_agents.services.intelligence_orchestrator import (
 
 TENANT_ID = "tenant-test-001"
 ACCOUNT_ID = "acct-test-001"
+
+
+@pytest.fixture(autouse=True)
+def _set_tenant_context():
+    """Provide a tenant context for intelligence orchestrator tests."""
+    set_current_context(RequestContext(tenant_id=TENANT_ID, user_id="user-test"))
+    yield
+    clear_current_context()
 
 
 # ---------------------------------------------------------------------------

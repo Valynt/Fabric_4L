@@ -29,6 +29,15 @@ from ..interfaces.formula_governance import (
 )
 from ..metrics import get_metrics
 
+_ACTIVATABLE_STATUSES = frozenset({FormulaStatus.APPROVED, FormulaStatus.DRAFT})
+"""Statuses from which a formula may be activated."""
+
+_FINAL_STATUSES = frozenset({FormulaStatus.DEPRECATED, FormulaStatus.RETIRED})
+"""Statuses that mark a formula as no longer active."""
+
+_DIRECTION_OUTGOING = frozenset({"outgoing", "both"})
+_DIRECTION_INCOMING = frozenset({"incoming", "both"})
+
 
 class Neo4jFormulaGovernanceService_validate_activationResult(TypedDictModel):
     can_activate: bool
@@ -311,7 +320,6 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
             )
 
         old_status = FormulaStatus(record["status"] or "draft")
-        record["current_version"]
 
         # Validate transition
         if old_status == FormulaStatus.ACTIVE:
@@ -323,7 +331,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                 error_message="Formula is already active",
             )
 
-        if old_status not in [FormulaStatus.APPROVED, FormulaStatus.DRAFT]:
+        if old_status not in _ACTIVATABLE_STATUSES:
             return GovernanceTransitionResult(
                 success=False,
                 formula_id=request.formula_id,
@@ -386,8 +394,6 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         tenant_id: str,
     ) -> GovernanceTransitionResult:
         """Deprecate a formula in Neo4j."""
-        datetime.now(UTC).isoformat()
-
         # Get current status
         check_query = """
         MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})
@@ -414,7 +420,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
 
         old_status = FormulaStatus(record["status"] or "draft")
 
-        if old_status in [FormulaStatus.DEPRECATED, FormulaStatus.RETIRED]:
+        if old_status in _FINAL_STATUSES:
             return GovernanceTransitionResult(
                     success=False,
                     formula_id=request.formula_id,
@@ -465,9 +471,9 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
         """Get formula dependencies from Neo4j."""
         deps = []
 
-        if direction in ["outgoing", "both"]:
+        if direction in _DIRECTION_OUTGOING:
             outgoing_query = """
-            MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})-[:DEPENDS_ON]->(dep:Formula)
+            MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})-[:DEPENDS_ON]->(dep:Formula {tenant_id: $tenant_id})
             RETURN dep.id as dep_id
             """
             records = await fetch_tenant_validated_records(
@@ -486,7 +492,7 @@ class Neo4jFormulaGovernanceService(IFormulaGovernanceService, IFormulaApprovalW
                     )
                 )
 
-        if direction in ["incoming", "both"]:
+        if direction in _DIRECTION_INCOMING:
             incoming_query = """
             MATCH (other:Formula {tenant_id: $tenant_id})-[:DEPENDS_ON]->(f:Formula {id: $formula_id, tenant_id: $tenant_id})
             RETURN other.id as other_id

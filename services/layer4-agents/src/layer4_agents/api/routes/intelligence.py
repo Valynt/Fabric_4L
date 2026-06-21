@@ -52,8 +52,8 @@ async def get_account_briefing(
     orchestrator = IntelligenceOrchestrator(driver)
 
     result = await orchestrator.get_account_briefing(
-        tenant_id,
         account_id,
+        tenant_id=tenant_id,
         include_narrative=include_narrative,
         top_n_hypotheses=top_n,
         roi_scenario=roi_scenario,
@@ -79,7 +79,7 @@ async def get_deal_readiness(
     driver = _get_neo4j_driver(request)
     orchestrator = IntelligenceOrchestrator(driver)
 
-    return await orchestrator.get_deal_readiness(tenant_id, account_id)
+    return await orchestrator.get_deal_readiness(account_id, tenant_id=tenant_id)
 
 
 @router.get("/pipeline-summary")

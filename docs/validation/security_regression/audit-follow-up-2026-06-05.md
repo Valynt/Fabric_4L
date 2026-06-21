@@ -2,6 +2,8 @@
 
 This note records the repeatable validation for the fresh-audit follow-up backlog. It is scoped to L1 metrics access, L1 SSRF guard behavior, frontend console cleanup, production JWT safety, root security aggregation, and root hostile tenant coverage.
 
+> Historical note: the `corepack pnpm test:security` command was removed from `package.json` after this run. The current canonical security gate is `make gate-security`; hostile tenant tests are run via `corepack pnpm test:security:hostile`. The command table below is preserved as a record of the 2026-06-05 run.
+
 ## Commands Run
 
 | Area | Command | Result |
@@ -19,8 +21,8 @@ This note records the repeatable validation for the fresh-audit follow-up backlo
 
 ## Evidence Notes
 
-- `corepack pnpm test:security` remains the canonical root command for the centralized security aggregation suite. It intentionally selects the six category-manifest tests and deselects detailed behavioral tests during directory-level aggregation.
 - `corepack pnpm test:security:hostile` is the cross-platform root hostile tenant command. It avoids shell-dependent expansion of `tests/security/test_hostile_*.py` on Windows.
+- `make gate-security` is the current canonical security readiness gate. The historical `corepack pnpm test:security` entrypoint above ran the same six category-manifest tests that are now exercised by the gate.
 - L1 `/metrics` focused coverage proves the registered L1 metrics path is inventoried, unauthenticated access fails closed, and valid metrics scrape tokens preserve Prometheus text output.
 - L1 SSRF focused coverage proves cloud metadata IPs and hostnames are blocked through `layer1_ingestion.compliance.url_safety.validate_url_safety` using monkeypatched DNS resolution where hostnames are involved.
 - Production JWT safety is verified directly against `validate_production_safety()` for `JWT_SECRET=changeme` in production-like environments.

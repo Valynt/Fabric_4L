@@ -8,7 +8,7 @@ Tests validation logic, edge cases, and error handling.
 
 
 import pytest
-from layer4_agents.models.account import CRMProvider
+
 from layer4_agents.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
 from layer4_agents.services.integration_service import (
     IntegrationService,
@@ -20,7 +20,9 @@ from layer4_agents.services.integration_service import (
 def clear_encryption_cache(monkeypatch):
     """Clear encryption cache between tests to prevent pollution."""
     from collections import OrderedDict
-    # Set environment variable to allow ephemeral encryption
+    # Set a deterministic 32-byte Fernet key (43 chars url-safe base64) and
+    # allow ephemeral fallback so the invalid key in pytest.ini is overridden.
+    monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "vhN2bTnQwWeI5p6A2o61XSxF_3lZ7U4WY6_unrOSwEA")
     monkeypatch.setenv("ALLOW_EPHEMERAL_ENCRYPTION", "true")
     EncryptionService._MASTER_KEY = None
     EncryptionService._key_cache = OrderedDict()

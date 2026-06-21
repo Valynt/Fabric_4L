@@ -72,11 +72,12 @@ class EncryptionService:
     @classmethod
     def _validate_and_set_master_key(cls, key_b64: str) -> bytes:
         """Validate and set the master key from environment variable."""
-        # Fernet keys are 32 bytes url-safe base64 encoded = 43 chars
-        if len(key_b64) != 43:
+        # Fernet keys are 32 bytes url-safe base64 encoded. Without padding that is 43 chars;
+        # the cryptography library also accepts the 44-char padded form.
+        if len(key_b64) not in (43, 44):
             raise ValueError(
-                f"CREDENTIALS_MASTER_KEY has invalid length: {len(key_b64)}, expected 43. "
-                "Key must be 32 bytes base64-encoded."
+                f"CREDENTIALS_MASTER_KEY has invalid length: {len(key_b64)}, expected 43 or 44. "
+                "Key must be 32 bytes url-safe base64-encoded."
             )
         try:
             cls._MASTER_KEY = key_b64.encode()

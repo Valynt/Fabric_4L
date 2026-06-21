@@ -128,7 +128,7 @@ CI uses Infisical machine identities — never human user tokens.
   run: |
     infisical run --env=staging \
       --path=/fabric-4l/value-fabric/staging \
-      -- pnpm test
+      -- sh -c 'cd apps/web && pnpm run test'
   env:
     INFISICAL_TOKEN: ${{ secrets.INFISICAL_MACHINE_TOKEN }}
 ```

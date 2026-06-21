@@ -84,3 +84,21 @@ def test_required_root_script_parity_includes_readiness_10() -> None:
     gate = load_module()
 
     assert gate.REQUIRED_ROOT_SCRIPTS["readiness:10"] == "python scripts/ci/readiness_10_gate.py"
+
+
+def test_removed_security_script_not_required() -> None:
+    gate = load_module()
+
+    assert "test:security" not in gate.REQUIRED_ROOT_SCRIPTS
+
+
+def test_security_suite_uses_canonical_make_gate() -> None:
+    gate = load_module()
+
+    security_dimension = next(
+        dimension for dimension in gate.READINESS_DIMENSIONS if dimension.key == "security_suite"
+    )
+    assert len(security_dimension.commands) == 1
+    command, label = security_dimension.commands[0].command, security_dimension.commands[0].label
+    assert command == ("make", "gate-security")
+    assert label == "make gate-security"

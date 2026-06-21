@@ -321,8 +321,8 @@ pytest -m integration --timeout=120
 pytest -m contract --timeout=60
 pytest -m security --timeout=60
 
-# Frontend
-pnpm test -- --coverage
+# Frontend (apps/web)
+pnpm run test -- --coverage
 
 # E2E
 pnpm exec playwright test

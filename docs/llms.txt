@@ -27,7 +27,7 @@
 - [System architecture](../ARCHITECTURE.md): High-level system architecture
 - [Frontend governance contract (DESIGN.md)](../DESIGN.md): Required reading before modifying `apps/web/`
 - [Platform contract](contract.md): Canonical platform contract (tenant context, middleware, agent output shape)
-- [Architecture overview](architecture_overview.md): Layered architecture explanation
+- [Architecture overview](core-concepts/architecture.md): Layered architecture explanation
 - [Data model](data-model.md): Core data structures and entities
 - [API reference](API_REFERENCE.md): Public API surface
 - [Agent architecture](agent-architecture.md): Layer 4 agent design and orchestration
@@ -41,7 +41,7 @@
 - [Discovery map](development/DISCOVERY_MAP.md): Routes issue types to source-of-truth files, drift checks, validation, and evidence
 - [Development guide](DEVELOPMENT.md): Local development workflow
 - [Environment variables](ENVIRONMENT.md): Required environment configuration
-- [Testing](testing.md): Test strategy, markers, and behavior-first requirements
+- [Testing](reference/testing-strategy.md): Test strategy, markers, and behavior-first requirements
 - [Secrets management](secrets-management.md): Infisical-based secret handling
 
 ## Contracts & governance
@@ -49,12 +49,12 @@
 - [API contract](api-contract.md): API contract definitions
 - [API versioning policy](api-versioning-policy.md): API version management
 - [API contract stability](api-contract-stability.md): Backward-compatibility rules
-- [Production readiness](production-readiness.md): Production-readiness gate and checklist
+- [Production readiness](../production-readiness/README.md): Production-readiness scorecard, launch checklist, and risk register
 - [Security](../SECURITY.md): Security policy, dev auth bypass flags, and OWASP coverage
 
 ## Optional
 
-- [Roadmap](roadmap.md): Planned features and direction
+- [Roadmap](../ROADMAP.md): Planned features and direction
 - [Product brief](product-brief.md): Product positioning and goals
 - [Value packs](value-packs.md): Domain extension packs (ontologies, formulas, benchmarks)
 - [Pack authoring guide](pack_authoring_guide.md): How to build domain packs

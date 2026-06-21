@@ -102,7 +102,7 @@ ruff check .
 black --check .
 
 # Frontend
-pnpm lint
+pnpm --dir apps/web run lint
 ```
 
 ## Useful Make Targets

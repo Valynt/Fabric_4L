@@ -254,11 +254,29 @@ class UsageService:
             logger.error("Usage ingest database failure", extra={"tenant_id": self.tenant_id, "event_id": event_id, "error_type": type(exc).__name__}, exc_info=True)
             raise
 
+    async def _get_existing_event_ids(
+        self,
+        event_ids: list[str],
+    ) -> set[str]:
+        """Return the set of idempotency keys that already exist for this tenant."""
+        if not event_ids or not self.tenant_id:
+            return set()
+
+        query = select(BillingUsageEvent.event_id).where(
+            BillingUsageEvent.tenant_id == self.tenant_id,
+            BillingUsageEvent.event_id.in_(event_ids),
+        )
+        result = await self.db.execute(query)
+        return {row[0] for row in result.all() if row[0]}
+
     async def ingest_batch(
         self,
         events: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Ingest multiple usage events in a batch.
+
+        Uses bulk database inserts and a single idempotency lookup to avoid
+        the N+1 flush pattern of inserting events one at a time.
 
         Args:
             events: List of event dictionaries with keys:
@@ -289,39 +307,133 @@ class UsageService:
                 field="tenant_id"
             )
 
-        created = 0
-        duplicates = 0
         errors = 0
         error_details: list[dict] = []
+        valid_events: list[dict[str, Any]] = []
 
+        # Phase 1: validate every event locally
         for idx, event_data in enumerate(events):
-            try:
-                await self.ingest_event(
-                    event_id=event_data["event_id"],
-                    customer_id=event_data["customer_id"],
-                    event_name=event_data["event_name"],
-                    metric_name=event_data["metric_name"],
-                    quantity=event_data.get("quantity", 1.0),
-                    unit=event_data.get("unit"),
-                    timestamp=event_data.get("timestamp"),
-                    metadata=event_data.get("metadata"),
-                )
-                created += 1
+            event_id = event_data.get("event_id")
+            customer_id = event_data.get("customer_id")
+            event_name = event_data.get("event_name")
+            metric_name = event_data.get("metric_name")
+            quantity = event_data.get("quantity", 1.0)
 
+            try:
+                if not event_id or len(event_id) > 255:
+                    raise UsageValidationError("event_id is required and must be <= 255 chars", field="event_id")
+                if not customer_id or len(customer_id) > 100:
+                    raise UsageValidationError("customer_id is required and must be <= 100 chars", field="customer_id")
+                if not event_name or len(event_name) > 100:
+                    raise UsageValidationError("event_name is required and must be <= 100 chars", field="event_name")
+                if not metric_name or len(metric_name) > 100:
+                    raise UsageValidationError("metric_name is required and must be <= 100 chars", field="metric_name")
+                if quantity < 0:
+                    raise UsageValidationError("quantity must be non-negative", field="quantity")
+
+                valid_events.append(event_data)
             except UsageValidationError as e:
                 errors += 1
                 error_details.append({
                     "index": idx,
-                    "event_id": event_data.get("event_id", "unknown"),
+                    "event_id": event_id or "unknown",
                     "error": e.message,
                     "field": e.field,
                 })
                 logger.warning(f"Validation error for event at index {idx}: {e.message}")
 
-            except IntegrityError:
-                # Duplicate within batch or race condition
+        if not valid_events:
+            return UsageService_ingest_batchResult.model_validate({
+                "created": 0,
+                "duplicates": 0,
+                "errors": errors,
+                "error_details": error_details,
+            })
+
+        # Phase 2: single idempotency lookup for the whole batch
+        candidate_ids = [e["event_id"] for e in valid_events]
+        existing_ids = await self._get_existing_event_ids(candidate_ids)
+
+        # Phase 3: bulk insert new events
+        new_events: list[BillingUsageEvent] = []
+        duplicates = 0
+        now = datetime.now(UTC)
+        for event_data in valid_events:
+            event_id = event_data["event_id"]
+            if event_id in existing_ids:
                 duplicates += 1
-                logger.debug(f"Duplicate event in batch: {event_data.get('event_id')}")
+                continue
+
+            event_ts = event_data.get("timestamp") or now
+            new_events.append(
+                BillingUsageEvent(
+                    id=str(uuid.uuid4()),
+                    tenant_id=self.tenant_id,
+                    customer_id=event_data["customer_id"],
+                    event_id=event_id,
+                    event_name=event_data["event_name"],
+                    metric_name=event_data["metric_name"],
+                    quantity=float(event_data.get("quantity", 1.0)),
+                    unit=event_data.get("unit"),
+                    timestamp=event_ts,
+                    status=UsageEventStatus.PENDING,
+                    event_metadata=event_data.get("metadata") or {},
+                    created_at=now,
+                )
+            )
+
+        created = 0
+        if new_events:
+            self.db.add_all(new_events)
+            try:
+                await self.db.flush()
+                created = len(new_events)
+
+                # Optional real-time Stripe reporting per event
+                if AUTO_REPORT_TO_STRIPE:
+                    await asyncio.gather(
+                        *[
+                            self._report_to_stripe(
+                                customer_id=event.customer_id,
+                                metric_name=event.metric_name,
+                                quantity=event.quantity,
+                                event_id=event.event_id,
+                            )
+                            for event in new_events
+                        ],
+                        return_exceptions=True,
+                    )
+            except IntegrityError:
+                # A concurrent batch may have inserted some of the same
+                # (tenant_id, event_id) pairs. Roll back and fall back to the
+                # single-event path, which already handles duplicates gracefully.
+                await self.db.rollback()
+                logger.warning(
+                    "Batch usage ingest hit duplicate key; falling back to per-event idempotency",
+                    extra={"tenant_id": self.tenant_id, "batch_size": len(new_events)},
+                )
+                for event_data in valid_events:
+                    event_id = event_data["event_id"]
+                    if event_id in existing_ids:
+                        continue
+                    try:
+                        await self.ingest_event(
+                            event_id=event_id,
+                            customer_id=event_data["customer_id"],
+                            event_name=event_data["event_name"],
+                            metric_name=event_data["metric_name"],
+                            quantity=float(event_data.get("quantity", 1.0)),
+                            unit=event_data.get("unit"),
+                            timestamp=event_data.get("timestamp"),
+                            metadata=event_data.get("metadata"),
+                        )
+                        created += 1
+                    except IntegrityError:
+                        duplicates += 1
+                        logger.debug(
+                            "Duplicate usage event detected in batch fallback",
+                            extra={"tenant_id": self.tenant_id, "event_id": event_id},
+                        )
 
         return UsageService_ingest_batchResult.model_validate({
             "created": created,
