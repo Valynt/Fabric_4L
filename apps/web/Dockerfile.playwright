@@ -27,11 +27,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
-COPY scripts ./scripts
+COPY apps/web/scripts ./scripts
 RUN md5sum package.json > /baked/package-json.md5
 
 # Install from workspace root
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Persist node_modules for runtime seeding
 RUN cp -a /baked/node_modules /baked-node_modules
@@ -44,7 +44,7 @@ RUN date +%s > /baked/image-build.timestamp
 # -----------------------------------------------------------------------------
 WORKDIR /app
 
-COPY scripts/playwright-docker-entrypoint.sh /entrypoint.sh
+COPY apps/web/scripts/playwright-docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
