@@ -17,7 +17,6 @@ Provides endpoints for:
 """
 
 
-import os
 import uuid
 from datetime import UTC, datetime
 from enum import Enum

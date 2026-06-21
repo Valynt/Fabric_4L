@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.routes import prospects
+from layer4_agents.interfaces.prospect_context import ProspectContextSources
 from layer4_agents.models.account import Account
 
 
@@ -66,6 +67,38 @@ class FakeExecutor:
 # =============================================================================
 # Tenant Context Tests
 # =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_context_uses_context_port(prospects_app: FastAPI) -> None:
+    class FakeProspectContextClient:
+        async def load_context_sources(self, *, prospect_id: str, tenant_id: str) -> ProspectContextSources:
+            assert prospect_id == "prospect-123"
+            assert tenant_id == "tenant-123"
+            return ProspectContextSources(
+                profile_data={"title": "VP Finance", "crm_id": "crm-1"},
+                role_value=None,
+                truth_items=[{"id": "truth-1"}],
+            )
+
+    prospects_app.dependency_overrides[prospects.get_verified_tenant_id] = lambda: "tenant-123"
+    prospects_app.dependency_overrides[prospects.get_prospect_context_client] = (
+        lambda: FakeProspectContextClient()
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=prospects_app), base_url="http://test") as client:
+        response = await client.get("/v1/prospects/prospect-123/context")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["company_profile"]["source"] == "layer3_knowledge_graph"
+    assert payload["contact_role"]["value"] == "VP Finance"
+    assert payload["contact_role"]["needs_confirmation"] is False
+    assert payload["crm_match"]["value"] == {"matched": True, "record_id": "crm-1"}
+    ground_truth_flag = next(
+        item for item in payload["confidence_flags"] if item["name"] == "ground_truth_available"
+    )
+    assert ground_truth_flag["needs_confirmation"] is False
 
 
 @pytest.mark.asyncio

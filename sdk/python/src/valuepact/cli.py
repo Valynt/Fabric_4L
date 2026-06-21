@@ -216,6 +216,8 @@ def _protected_context(
     api_client = _client(ctx, request_id=request_id)
     identity = api_client.identity()
     verification = api_client.verify_tenant_access(tenant_id, scopes=required_scopes)
+    if verification.get("authorized") is not True:
+        raise PermissionError("The current identity is not authorized for this tenant.")
     granted_scopes = set(identity.get("scopes") or []) | set(verification.get("scopes") or [])
     actor_id = identity.get("actor_id") or identity.get("id")
     if not actor_id:

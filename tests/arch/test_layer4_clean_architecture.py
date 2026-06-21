@@ -22,6 +22,7 @@ APPLICATION_AGENT_PATHS = (
 )
 
 ROUTE_ADAPTER_BOUNDARY_PATHS = (
+    LAYER4_ROOT / "api/routes/prospects.py",
     LAYER4_ROOT / "api/routes/signals.py",
 )
 
@@ -138,7 +139,7 @@ def test_application_agents_do_not_import_adapter_factories() -> None:
     )
 
 
-def test_signal_routes_do_not_import_cross_layer_integration_clients() -> None:
+def test_route_modules_do_not_import_cross_layer_integration_clients() -> None:
     forbidden_modules = {
         "layer4_agents.integration.layer1_client",
         "layer4_agents.integration.layer2_client",
@@ -159,6 +160,6 @@ def test_signal_routes_do_not_import_cross_layer_integration_clients() -> None:
                 violations.append(f"{rel_path}:{lineno} imports {module_name}")
 
     assert not violations, (
-        "Signal routes must depend on route ports/composition, not concrete "
+        "Route modules must depend on route ports/composition, not concrete "
         "cross-layer integration clients:\n" + "\n".join(violations)
     )
