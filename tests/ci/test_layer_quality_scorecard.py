@@ -54,3 +54,14 @@ def test_compute_scopes_support_files_to_matching_layer(tmp_path: Path, monkeypa
     assert report["layers"]["layer1"]["checks"]["contract_tests"]["present"] is False
     assert report["layers"]["layer1"]["checks"]["security_negative_paths"]["present"] is False
     assert report["layers"]["layer1"]["checks"]["docs_contract_freshness"]["present"] is False
+
+
+def test_cli_defaults_use_canonical_baseline_paths() -> None:
+    module = _load_module()
+    parser = module.build_parser()
+
+    args = parser.parse_args([])
+
+    assert args.policy == "config/baselines/layer-quality-threshold-policy.json"
+    assert args.output == "config/baselines/layer-quality-scorecard.json"
+    assert args.summary == "artifacts/layer-quality-scorecard.md"

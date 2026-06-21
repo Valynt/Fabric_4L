@@ -2,8 +2,8 @@
 
 This scorecard is a machine-readable governance artifact for release gating.
 
-- Policy source: `docs/governance/layer-quality-threshold-policy.json`
-- Generated artifact: `docs/governance/layer-quality-scorecard.json`
+- Policy source: `config/baselines/layer-quality-threshold-policy.json`
+- Generated artifact: `config/baselines/layer-quality-scorecard.json`
 - CI markdown summary: `artifacts/layer-quality-scorecard.md`
 - Generator: `scripts/ci/layer_quality_scorecard.py`
 

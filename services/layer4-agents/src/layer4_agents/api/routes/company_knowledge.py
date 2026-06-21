@@ -21,11 +21,13 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
 from ...database import get_db_from_context
+from ...interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from ...models.company_knowledge import (
     ReviewStatus,
     SourceType,
 )
 from ...services.company_knowledge_service import CompanyKnowledgeService
+from ...startup.agent_composition import create_company_knowledge_pipeline_client
 from ..schemas.company_knowledge import (
     CompanyKnowledgeProfileCreateRequest,
     CompanyKnowledgeProfileResponse,
@@ -50,6 +52,11 @@ router = APIRouter(prefix="/company-knowledge", tags=["Company Knowledge"])
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+
+def get_company_knowledge_pipeline_client() -> CompanyKnowledgePipelinePort:
+    """Return the company knowledge pipeline adapter for route operations."""
+    return create_company_knowledge_pipeline_client()
 
 
 def _require_profile(
@@ -143,13 +150,14 @@ async def approve_profile(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_from_context),
     ctx: RequestContext = Depends(require_authenticated),
+    pipeline_client: CompanyKnowledgePipelinePort = Depends(get_company_knowledge_pipeline_client),
 ) -> CompanyKnowledgeProfileResponse:
     """Approve a draft company knowledge profile.
 
     After approval, syncs the profile entities to Layer 3 Knowledge Graph
     as a background task.
     """
-    service = CompanyKnowledgeService(db)
+    service = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
     profile = await service.approve_profile(
         profile_id, str(ctx.tenant_id), request.approved_by
     )
@@ -186,12 +194,13 @@ async def add_knowledge_source(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_from_context),
     ctx: RequestContext = Depends(require_authenticated),
+    pipeline_client: CompanyKnowledgePipelinePort = Depends(get_company_knowledge_pipeline_client),
 ) -> KnowledgeSourceResponse:
     """Add a knowledge source to a profile.
 
     For website sources, triggers a background crawl via Layer 1.
     """
-    service = CompanyKnowledgeService(db)
+    service = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
     source = await service.add_knowledge_source(
         tenant_id=str(ctx.tenant_id),
         profile_id=request.profile_id,

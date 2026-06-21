@@ -14,9 +14,15 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Literal
+from contextvars import Token
 from uuid import UUID, uuid4
 
-from value_fabric.shared.identity.context import RequestContext, get_request_context
+from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_SERVICE_ACCOUNT,
+    RequestContext,
+    get_request_context,
+    set_request_context,
+)
 from value_fabric.shared.identity.policy_registry import authorize_action, get_tool_action
 from value_fabric.shared.identity.tool_contract import (
     ToolError as CanonicalToolError,
@@ -180,6 +186,19 @@ def _safe_input_keys(input_dict: dict[str, Any]) -> list[str]:
         key if not _SENSITIVE_KEY_PATTERN.search(str(key)) else "[redacted]"
         for key in input_dict.keys()
     ]
+
+
+def _coerce_uuid_string(value: Any) -> str | None:
+    """Return a normalized UUID string, or None for malformed tenant values."""
+    try:
+        return str(UUID(str(value)))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _has_internal_execution_envelope(input_dict: dict[str, Any]) -> bool:
+    """Validate the minimum workflow envelope required for internal tenant context."""
+    return all(input_dict.get(key) for key in ("workflow_id", "run_id", "trace_id"))
 
 
 class ToolError(Exception):

@@ -48,7 +48,13 @@ def _parse_toml_value(raw: str) -> Any:
         if not items:
             return []
         return [_parse_toml_value(item.strip()) for item in items.split(",")]
-    return value
+    try:
+        return int(value)
+    except ValueError:
+        try:
+            return float(value)
+        except ValueError:
+            return value
 
 
 def _load_profile_toml(text: str) -> dict[str, Any]:

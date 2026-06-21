@@ -18,6 +18,7 @@ from .benchmark_client import (
     RangeValidationRequest,
     RangeValidationResult,
 )
+from .company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from .context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .formula_governance import (
     ActivationRequest,
@@ -65,6 +66,7 @@ __all__ = [
     "ComparisonResult",
     "RangeValidationRequest",
     "RangeValidationResult",
+    "CompanyKnowledgePipelinePort",
     "ContextFinancialExtractionPort",
     "ContextIngestionPort",
     "GroundTruthProxyPort",

@@ -641,6 +641,13 @@ class TestCompanyKnowledgeServiceUnit:
         result_mock.scalar.return_value = scalar
         db.execute.return_value = result_mock
 
+    def _make_mock_pipeline_client(self):
+        pipeline_client = MagicMock()
+        pipeline_client.crawl_website = AsyncMock()
+        pipeline_client.extract_value_attributes = AsyncMock()
+        pipeline_client.ingest_profile = AsyncMock()
+        return pipeline_client
+
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_create_profile(self):
@@ -761,7 +768,9 @@ class TestCompanyKnowledgeServiceUnit:
     async def test_trigger_layer1_crawl(self):
         """Triggering Layer 1 crawl calls client and updates source status."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.crawl_website.return_value = {"target_id": "tgt-1", "job_id": "job-1"}
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
 
         source = KnowledgeSource(
             id=uuid4(),
@@ -778,28 +787,28 @@ class TestCompanyKnowledgeServiceUnit:
         svc.get_knowledge_source = AsyncMock(return_value=source)
         svc.update_crawl_status = AsyncMock(return_value=source)
 
-        with patch.object(
-            svc, "_get_layer1_client", return_value=MagicMock()
-        ) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.crawl_website = AsyncMock(
-                return_value={"target_id": "tgt-1", "job_id": "job-1"}
-            )
-
-            result = await svc.trigger_layer1_crawl(source.id, "t-123")
-            assert result["target_id"] == "tgt-1"
-            mock_client.crawl_website.assert_awaited_once_with(
-                url="https://example.com",
-                tenant_id="t-123",
-                name="Company knowledge crawl: https://example.com",
-            )
+        result = await svc.trigger_layer1_crawl(source.id, "t-123")
+        assert result["target_id"] == "tgt-1"
+        pipeline_client.crawl_website.assert_awaited_once_with(
+            tenant_id="t-123",
+            url="https://example.com",
+            name="Company knowledge crawl: https://example.com",
+        )
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3(self):
         """Syncing approved profile pushes canonical ingest payload to Layer 3."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.return_value = {
+            "status": "success",
+            "source_id": None,
+            "entities_loaded": 5,
+            "relationships_loaded": 0,
+            "triples_processed": 10,
+        }
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
 
         profile = CompanyKnowledgeProfile(
             id=uuid4(),
@@ -817,62 +826,50 @@ class TestCompanyKnowledgeServiceUnit:
 
         svc.get_profile = AsyncMock(return_value=profile)
 
-        with patch.object(
-            svc, "_get_layer3_client", return_value=MagicMock()
-        ) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(return_value={
-                "status": "success",
-                "source_id": f"company-profile:{profile.id}",
-                "entities_loaded": 5,
-                "relationships_loaded": 0,
-                "triples_processed": 10,
-            })
+        pipeline_client.ingest_profile.return_value["source_id"] = f"company-profile:{profile.id}"
 
-            result = await svc.sync_profile_to_layer3(
-                profile.id,
-                "t-123",
-                auth_headers={"Authorization": "Bearer test-token", "X-Tenant-ID": "t-123"},
-            )
-            assert result["profile_id"] == str(profile.id)
-            assert result["ingest_status"] == "success"
-            assert result["entities_loaded"] == 5
-            mock_client.ingest.assert_awaited_once()
-            call_kwargs = mock_client.ingest.await_args.kwargs
-            assert call_kwargs["tenant_id"] == "t-123"
-            assert call_kwargs["passthrough_headers"]["Authorization"] == "Bearer test-token"
+        result = await svc.sync_profile_to_layer3(
+            profile.id,
+            "t-123",
+            auth_headers={"Authorization": "Bearer test-token", "X-Tenant-ID": "t-123"},
+        )
+        assert result["profile_id"] == str(profile.id)
+        assert result["ingest_status"] == "success"
+        assert result["entities_loaded"] == 5
+        pipeline_client.ingest_profile.assert_awaited_once()
+        call_kwargs = pipeline_client.ingest_profile.await_args.kwargs
+        assert call_kwargs["tenant_id"] == "t-123"
+        assert call_kwargs["passthrough_headers"]["Authorization"] == "Bearer test-token"
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3_ingest_failure(self):
         """Syncing raises if canonical ingest call fails."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.side_effect = RuntimeError("layer3 unavailable")
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
         profile = CompanyKnowledgeProfile(
             id=uuid4(), tenant_id="t-123", company_name="SyncCo", status=ProfileStatus.APPROVED.value, version=2, active_source_ids=[]
         )
         svc.get_profile = AsyncMock(return_value=profile)
-        with patch.object(svc, "_get_layer3_client", return_value=MagicMock()) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(side_effect=RuntimeError("layer3 unavailable"))
-            with pytest.raises(RuntimeError, match="layer3 unavailable"):
-                await svc.sync_profile_to_layer3(profile.id, "t-123")
+        with pytest.raises(RuntimeError, match="layer3 unavailable"):
+            await svc.sync_profile_to_layer3(profile.id, "t-123")
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3_contract_mismatch(self):
         """Syncing raises on Layer 3 response contract mismatch."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.return_value = {"status": "success", "source_id": "x"}
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
         profile = CompanyKnowledgeProfile(
             id=uuid4(), tenant_id="t-123", company_name="SyncCo", status=ProfileStatus.APPROVED.value, version=2, active_source_ids=[]
         )
         svc.get_profile = AsyncMock(return_value=profile)
-        with patch.object(svc, "_get_layer3_client", return_value=MagicMock()) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(return_value={"status": "success", "source_id": "x"})
-            with pytest.raises(ValueError, match="contract mismatch"):
-                await svc.sync_profile_to_layer3(profile.id, "t-123")
+        with pytest.raises(ValueError, match="contract mismatch"):
+            await svc.sync_profile_to_layer3(profile.id, "t-123")
 
     @pytest.mark.unit
     @pytest.mark.asyncio

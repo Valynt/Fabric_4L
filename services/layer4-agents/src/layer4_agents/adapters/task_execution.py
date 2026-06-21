@@ -36,7 +36,7 @@ class LegacyTaskExecutionAdapter:
         if capability is not None:
             pending = [task for task in pending if task.get("capability") == capability]
 
-        return pending
+        return cast(list[dict[str, Any]], pending)
 
     async def list_running(self) -> list[dict[str, Any]]:
         return cast(list[dict[str, Any]], await self._scheduler.list_running_tasks())

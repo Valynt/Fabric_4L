@@ -125,11 +125,16 @@ def compute(policy: dict) -> dict:
     }
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--policy", default="docs/governance/layer-quality-threshold-policy.json")
-    ap.add_argument("--output", default="docs/governance/layer-quality-scorecard.json")
+    ap.add_argument("--policy", default="config/baselines/layer-quality-threshold-policy.json")
+    ap.add_argument("--output", default="config/baselines/layer-quality-scorecard.json")
     ap.add_argument("--summary", default="artifacts/layer-quality-scorecard.md")
+    return ap
+
+
+def main() -> int:
+    ap = build_parser()
     args = ap.parse_args()
     policy = json.loads((ROOT / args.policy).read_text(encoding="utf-8"))
     report = compute(policy)

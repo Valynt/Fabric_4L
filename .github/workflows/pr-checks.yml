@@ -316,7 +316,6 @@ jobs:
         run: |
           mkdir -p artifacts
           python scripts/ci/layer_quality_scorecard.py \
-            --output docs/governance/layer-quality-scorecard.json \
             --summary artifacts/layer-quality-scorecard.md
 
       - name: Build PR diff violation summary artifact

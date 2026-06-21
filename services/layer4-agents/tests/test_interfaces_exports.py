@@ -12,6 +12,7 @@ from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
 from layer4_agents.interfaces import (
     ActivationRequest,
     BenchmarkDataset,
+    CompanyKnowledgePipelinePort,
     ComparisonRequest,
     ContextFinancialExtractionPort,
     ContextIngestionPort,
@@ -64,6 +65,7 @@ def test_interfaces_module_exports_core_symbols():
     assert IFormulaApprovalWorkflow is not None
     assert IVariableRegistry is not None
     assert IGroundTruthVariableBridge is not None
+    assert CompanyKnowledgePipelinePort is not None
     assert ContextFinancialExtractionPort is not None
     assert ContextIngestionPort is not None
     assert GroundTruthProxyPort is not None

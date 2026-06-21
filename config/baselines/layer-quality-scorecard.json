@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-19T12:48:10.610185+00:00",
+  "generated_at": "2026-06-21T21:52:43.379227+00:00",
   "policy_version": "1.0.0",
   "thresholds": {
     "per_layer_min_score": 80,

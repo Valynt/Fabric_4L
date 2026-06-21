@@ -43,6 +43,42 @@ def mock_config(tmp_path):
 
 
 class TestConfigCommands:
+    def test_token_expiration_warns_for_expired_timestamp(self):
+        from valuefabric.cli.config import _check_token_expiration
+
+        with patch("valuefabric.cli.config.rich_print") as mock_print:
+            _check_token_expiration({"jwt_expires_at": "0"}, "default")
+
+        mock_print.assert_called_once()
+        warning = mock_print.call_args.args[0]
+        assert "JWT token for profile 'default' has expired" in warning
+        assert "vf auth login" in warning
+
+    def test_token_expiration_does_not_warn_for_future_timestamp(self):
+        from valuefabric.cli.config import _check_token_expiration
+
+        with patch("valuefabric.cli.config.rich_print") as mock_print:
+            _check_token_expiration({"jwt_expires_at": "99999999999"}, "default")
+
+        mock_print.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "profile_config",
+        [
+            {},
+            {"jwt_expires_at": None},
+            {"jwt_expires_at": ""},
+            {"jwt_expires_at": "not-a-timestamp"},
+        ],
+    )
+    def test_token_expiration_ignores_missing_or_invalid_timestamp(self, profile_config):
+        from valuefabric.cli.config import _check_token_expiration
+
+        with patch("valuefabric.cli.config.rich_print") as mock_print:
+            _check_token_expiration(profile_config, "default")
+
+        mock_print.assert_not_called()
+
     def test_show_config(self, mock_config):
         result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0

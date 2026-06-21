@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Company knowledge pipeline adapter backed by L1, L2, and L3 clients."""
 
-from typing import Any
+from typing import Any, cast
 
 from layer4_agents.integration.layer1_client import Layer1IngestionClient
 from layer4_agents.integration.layer2_client import Layer2ExtractionClient
@@ -33,10 +33,13 @@ class CrossLayerCompanyKnowledgePipelineAdapter(CompanyKnowledgePipelinePort):
     ) -> dict[str, Any]:
         client = Layer1IngestionClient(base_url=self._layer1_url, tenant_id=tenant_id)
         try:
-            return await client.crawl_website(
-                url=url,
-                tenant_id=tenant_id,
-                name=name,
+            return cast(
+                dict[str, Any],
+                await client.crawl_website(
+                    url=url,
+                    tenant_id=tenant_id,
+                    name=name,
+                ),
             )
         finally:
             await client.close()
@@ -51,11 +54,14 @@ class CrossLayerCompanyKnowledgePipelineAdapter(CompanyKnowledgePipelinePort):
     ) -> dict[str, Any]:
         client = Layer2ExtractionClient(base_url=self._layer2_url, tenant_id=tenant_id)
         try:
-            return await client.extract_value_attributes(
-                content_id=content_id,
-                source_url=source_url,
-                markdown_content=markdown_content,
-                tenant_id=tenant_id,
+            return cast(
+                dict[str, Any],
+                await client.extract_value_attributes(
+                    content_id=content_id,
+                    source_url=source_url,
+                    markdown_content=markdown_content,
+                    tenant_id=tenant_id,
+                ),
             )
         finally:
             await client.close()
@@ -69,10 +75,13 @@ class CrossLayerCompanyKnowledgePipelineAdapter(CompanyKnowledgePipelinePort):
     ) -> dict[str, Any]:
         client = Layer3Client(base_url=self._layer3_url, tenant_id=tenant_id)
         try:
-            return await client.ingest(
-                ingestion_payload=ingestion_payload,
-                tenant_id=tenant_id,
-                passthrough_headers=passthrough_headers,
+            return cast(
+                dict[str, Any],
+                await client.ingest(
+                    ingestion_payload=ingestion_payload,
+                    tenant_id=tenant_id,
+                    passthrough_headers=passthrough_headers,
+                ),
             )
         finally:
             await client.close()

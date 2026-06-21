@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from layer4_agents.adapters.company_knowledge_pipeline import CrossLayerCompanyKnowledgePipelineAdapter
+from layer4_agents.adapters.company_knowledge_pipeline import (
+    CrossLayerCompanyKnowledgePipelineAdapter,
+)
 from layer4_agents.adapters.context_clients import (
     create_context_financial_extraction_client,
     create_context_ingestion_client,
@@ -20,8 +22,8 @@ from layer4_agents.adapters.signal_review import Layer3SignalReviewAdapter
 from layer4_agents.agents.signal_detection import SignalDetectionAgent
 from layer4_agents.agents.taxonomy import ContextExtractionAgent
 from layer4_agents.config.settings import get_settings
-from layer4_agents.interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from layer4_agents.integration.layer5_client import get_layer5_client
+from layer4_agents.interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from layer4_agents.interfaces.ground_truth_proxy import GroundTruthProxyPort
 from layer4_agents.interfaces.prospect_context import ProspectContextPort
 from layer4_agents.interfaces.signal_review import SignalReviewPort
