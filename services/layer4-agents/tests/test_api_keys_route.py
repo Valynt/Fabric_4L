@@ -53,6 +53,12 @@ TENANT_B = UUID("abcdefab-1234-1234-1234-abcdefabcdef")
 USER_A = UUID("11111111-1111-1111-1111-111111111111")
 USER_B = UUID("22222222-2222-2222-2222-222222222222")
 
+# These are API route integration tests that require a PostgreSQL testcontainer.
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.postgres,
+]
+
 
 @pytest.fixture(name="engine")
 async def _engine(postgres_container):

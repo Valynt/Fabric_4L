@@ -71,6 +71,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status="degraded",
                     response_time_ms=None,
                     error="Neo4j not initialized",
+                    failure_reason="neo4j_not_initialized",
                     details={
                         "uri": settings.neo4j_uri,
                         "database": settings.neo4j_database,
@@ -95,6 +96,11 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status=neo4j_health["status"],
                     response_time_ms=response_time,
                     error=neo4j_health.get("error"),
+                    failure_reason=(
+                        "neo4j_unhealthy"
+                        if neo4j_health["status"] != "healthy"
+                        else None
+                    ),
                     details={
                         "uri": settings.neo4j_uri,
                         "database": settings.neo4j_database,
@@ -108,6 +114,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 status="unhealthy",
                 response_time_ms=None,
                 error="dependency_unhealthy",
+                failure_reason="neo4j_connection_error",
                 details={"uri": settings.neo4j_uri},
             )
         )
@@ -122,6 +129,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status="healthy",
                     response_time_ms=response_time,
                     error=None,
+                    failure_reason=None,
                     details={"index": settings.pinecone_index},
                 )
             )
@@ -132,6 +140,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status="unhealthy",
                     response_time_ms=None,
                     error="dependency_unhealthy",
+                    failure_reason="pinecone_connection_error",
                 )
             )
 

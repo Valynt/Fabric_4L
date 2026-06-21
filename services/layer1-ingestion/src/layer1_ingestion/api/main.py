@@ -3446,6 +3446,7 @@ from .main_content_routes import router as content_routes
 from .main_job_routes import router as job_routes
 from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
+from .routes import compatibility as compatibility_routes
 from .source_routes import register_routes as register_source_routes
 
 register_source_routes(router)
@@ -3459,6 +3460,7 @@ router.include_router(admin_routes)
 router.include_router(_batch_and_stats.router)
 
 app.include_router(router)
+app.include_router(compatibility_routes.router)
 
 
 # Legacy compatibility routes (redirect to new endpoints)

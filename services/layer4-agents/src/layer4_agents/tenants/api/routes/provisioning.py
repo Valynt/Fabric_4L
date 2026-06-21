@@ -291,6 +291,11 @@ async def retry_provisioning(
     "/webhook",
     response_model=WebhookProvisioningResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        401: {
+            "description": "Invalid webhook signature or expired timestamp"
+        },
+    },
 )
 async def webhook_provisioning(
     tenant_id: UUID,

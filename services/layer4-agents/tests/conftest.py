@@ -72,19 +72,48 @@ except ImportError:
     POSTGRES_AVAILABLE = False
 
 
+def _docker_available() -> bool:
+    """Check whether a Docker daemon is reachable from the test environment."""
+    try:
+        import docker
+
+        docker.from_env().version()
+        return True
+    except Exception:
+        return False
+
+
+DOCKER_AVAILABLE = _docker_available()
+
+
 def pytest_configure(config):
     """Register custom pytest markers."""
     config.addinivalue_line("markers", "postgres: Tests requiring PostgreSQL (JSONB, RLS, etc.)")
     config.addinivalue_line("markers", "integration: Integration tests requiring external services")
+    config.addinivalue_line("markers", "docker: Tests requiring a Docker daemon")
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip postgres tests if testcontainers is not available."""
+    """Skip postgres/docker tests when their runtime dependencies are unavailable.
+
+    This keeps local ``make test-layer4`` deterministic when Docker is not running
+    while still allowing CI to run the full Docker/PostgreSQL integration lane via
+    ``make test-layer4-live``.
+    """
     if not POSTGRES_AVAILABLE:
         skip_postgres = pytest.mark.skip(reason="testcontainers.postgres not installed - run: pip install testcontainers")
         for item in items:
             if "postgres" in item.keywords:
                 item.add_marker(skip_postgres)
+        return
+
+    if not DOCKER_AVAILABLE:
+        skip_docker = pytest.mark.skip(
+            reason="Docker daemon not available locally; run Docker or use CI for postgres/docker tests"
+        )
+        for item in items:
+            if "postgres" in item.keywords or "docker" in item.keywords:
+                item.add_marker(skip_docker)
 
 
 @pytest.fixture(scope="session")
@@ -92,7 +121,9 @@ def postgres_container():
     """Shared PostgreSQL container for all postgres-marked tests."""
     if not POSTGRES_AVAILABLE:
         pytest.skip("testcontainers.postgres not installed")
-    
+    if not DOCKER_AVAILABLE:
+        pytest.skip("Docker daemon not available; cannot start PostgreSQL testcontainer")
+
     with PostgresContainer("postgres:16-alpine") as postgres:
         yield postgres
 

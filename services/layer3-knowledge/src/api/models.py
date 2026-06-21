@@ -14,6 +14,7 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     BaseModel,
     Field,
+    computed_field,
     field_validator,
     model_validator,
 )
@@ -40,6 +41,11 @@ class DependencyStatus(BaseModel):
     )
     error: str | None = Field(
         None, max_length=500, description="Error message if unhealthy"
+    )
+    failure_reason: str | None = Field(
+        None,
+        max_length=500,
+        description="Machine-readable reason for dependency failure (RED/health contract)",
     )
     details: dict[str, Any] = Field(
         default_factory=dict, description="Additional status details"
@@ -1066,49 +1072,34 @@ class GraphNode(BaseModel):
     # Backward-compatible alias fields for frontend contract alignment
     # ═════════════════════════════════════════════════════════════════════════
 
+    @computed_field
     @property
     def label(self) -> str:
         """Deprecated alias for 'name'."""
-        import warnings
-        warnings.warn(
-            "GraphNode.label is deprecated; use GraphNode.name instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.name
 
+    @computed_field
     @property
     def type(self) -> str:
         """Deprecated alias for 'entity_type'."""
-        import warnings
-        warnings.warn(
-            "GraphNode.type is deprecated; use GraphNode.entity_type instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.entity_type
 
+    @computed_field
     @property
     def confidence(self) -> float:
         """Deprecated alias for 'confidence_score'."""
-        import warnings
-        warnings.warn(
-            "GraphNode.confidence is deprecated; use GraphNode.confidence_score instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.confidence_score
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
-        """Override to include computed alias fields in serialization."""
+        """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)
-        if not include_legacy_graph_aliases(api_version):
+        if include_legacy_graph_aliases(api_version):
+            for _ in GraphNodeAliasMap:
+                _increment_deprecated_field_usage("graph_node_response_legacy_fields")
             return data
-        # Dynamically add alias fields using the mapping
         for alias in GraphNodeAliasMap:
-            _increment_deprecated_field_usage("graph_node_response_legacy_fields")
-            data[alias] = getattr(self, alias)
+            data.pop(alias, None)
         return data
 
 
@@ -1143,7 +1134,7 @@ class GraphEdge(BaseModel):
 
     source: str = Field(..., description="Source node ID")
     target: str = Field(..., description="Target node ID")
-    type: str = Field(..., description="Relationship type/label (legacy: use 'relationship_type')")
+    type: str = Field(..., description="Relationship type/label")
     weight: float = Field(default=1.0, ge=0.0, description="Edge weight/strength")
     properties: dict[str, Any] = Field(
         default_factory=dict, description="Additional edge properties"
@@ -1164,31 +1155,22 @@ class GraphEdge(BaseModel):
                 data[canonical] = data[alias]
         return data
 
-    # ═════════════════════════════════════════════════════════════════════════
-    # Backward-compatible alias fields
-    # ═════════════════════════════════════════════════════════════════════════
-
+    @computed_field
     @property
     def relationship_type(self) -> str:
-        """Frontend-compatible alias for 'type'."""
-        import warnings
-        warnings.warn(
-            "GraphEdge.relationship_type is deprecated; use GraphEdge.type instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        """Deprecated alias for 'type'."""
         return self.type
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
-        """Override to include computed alias fields in serialization."""
+        """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)
-        if not include_legacy_graph_aliases(api_version):
+        if include_legacy_graph_aliases(api_version):
+            for _ in GraphEdgeAliasMap:
+                _increment_deprecated_field_usage("graph_edge_response_legacy_fields")
             return data
-        # Dynamically add alias fields using the mapping
         for alias in GraphEdgeAliasMap:
-            _increment_deprecated_field_usage("graph_edge_response_legacy_fields")
-            data[alias] = getattr(self, alias)
+            data.pop(alias, None)
         return data
 
 

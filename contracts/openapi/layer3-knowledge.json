@@ -3231,6 +3231,98 @@
         }
       }
     },
+    "/v1/entities/{entity_id}/context": {
+      "get": {
+        "tags": [
+          "Entities"
+        ],
+        "summary": "Get Entity Context Route",
+        "description": "Get the N-hop context graph around an entity.\n\nReturns the center entity, its neighbors, and the relationships connecting\nthem, scoped to the authenticated tenant.",
+        "operationId": "get_entity_context_route_v1_entities__entity_id__context_get",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entity Id"
+            }
+          },
+          {
+            "name": "hops",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 3,
+              "minimum": 1,
+              "description": "Number of relationship hops to include",
+              "default": 2,
+              "title": "Hops"
+            },
+            "description": "Number of relationship hops to include"
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "description": "Minimum confidence for included entities",
+              "default": 0.0,
+              "title": "Min Confidence"
+            },
+            "description": "Minimum confidence for included entities"
+          },
+          {
+            "name": "relationship_types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional relationship types to traverse",
+              "title": "Relationship Types"
+            },
+            "description": "Optional relationship types to traverse"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/products": {
       "post": {
         "tags": [
@@ -9542,6 +9634,19 @@
             "title": "Error",
             "description": "Error message if unhealthy"
           },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason",
+            "description": "Machine-readable reason for dependency failure (RED/health contract)"
+          },
           "details": {
             "additionalProperties": true,
             "type": "object",
@@ -10058,6 +10163,66 @@
           "path_info"
         ],
         "title": "EntityComparisonResponse"
+      },
+      "EntityContextResponse": {
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "center": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Center"
+          },
+          "neighbors": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Neighbors"
+          },
+          "relationships": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Relationships"
+          },
+          "entity_count": {
+            "type": "integer",
+            "title": "Entity Count"
+          },
+          "relationship_count": {
+            "type": "integer",
+            "title": "Relationship Count"
+          },
+          "pagination": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pagination",
+            "description": "Pagination info: {has_more, next_cursor, returned_count}"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity_id",
+          "center",
+          "neighbors",
+          "relationships",
+          "entity_count",
+          "relationship_count"
+        ],
+        "title": "EntityContextResponse"
       },
       "EntityDetail": {
         "properties": {
@@ -11137,8 +11302,8 @@
             "title": "Formula Id",
             "description": "Deprecated alias of id. Removal target: v2.5 (2026-10-01).",
             "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "x-deprecation-target-date": "2026-10-01",
+            "x-deprecation-target-version": "v2.5"
           },
           "name": {
             "type": "string",
@@ -11375,7 +11540,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Relationship type/label (legacy: use 'relationship_type')"
+            "description": "Relationship type/label"
           },
           "weight": {
             "type": "number",
@@ -11389,13 +11554,20 @@
             "type": "object",
             "title": "Properties",
             "description": "Additional edge properties"
+          },
+          "relationship_type": {
+            "type": "string",
+            "title": "Relationship Type",
+            "description": "Deprecated alias for 'type'.",
+            "readOnly": true
           }
         },
         "type": "object",
         "required": [
           "source",
           "target",
-          "type"
+          "type",
+          "relationship_type"
         ],
         "title": "GraphEdge",
         "description": "Edge/relationship in the knowledge graph.\n\nVersioned policy:\n- v2.3 and earlier: emit canonical 'type' plus deprecated alias 'relationship_type'.\n- v2.4 warning window: alias remains deprecated and monitored.\n- v2.5 and later: remove 'relationship_type' alias and keep only 'type'."
@@ -11430,13 +11602,34 @@
             "type": "object",
             "title": "Properties",
             "description": "Additional node properties"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Deprecated alias for 'name'.",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Deprecated alias for 'entity_type'.",
+            "readOnly": true
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "Deprecated alias for 'confidence_score'.",
+            "readOnly": true
           }
         },
         "type": "object",
         "required": [
           "id",
           "name",
-          "entity_type"
+          "entity_type",
+          "label",
+          "type",
+          "confidence"
         ],
         "title": "GraphNode",
         "description": "Node in the knowledge graph.\n\nCanonical fields are name/entity_type/confidence_score.\nLegacy aliases label/type/confidence are emitted for one deprecation window."
@@ -11507,13 +11700,34 @@
             ],
             "title": "R",
             "description": "Radius for visualization"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Deprecated alias for 'name'.",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Deprecated alias for 'entity_type'.",
+            "readOnly": true
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "Deprecated alias for 'confidence_score'.",
+            "readOnly": true
           }
         },
         "type": "object",
         "required": [
           "id",
           "name",
-          "entity_type"
+          "entity_type",
+          "label",
+          "type",
+          "confidence"
         ],
         "title": "GraphNodeWithLayout",
         "description": "Graph node with visualization layout coordinates.\n\nUse this model only for endpoints that intentionally return\npre-computed layout positions (e.g., full graph export).\nFor subgraph and query responses, use plain GraphNode and\ncompute layout client-side."

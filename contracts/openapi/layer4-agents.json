@@ -3429,6 +3429,9 @@
               }
             }
           },
+          "401": {
+            "description": "Invalid webhook credentials or signature"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -3548,6 +3551,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Invalid webhook credentials or signature"
           },
           "422": {
             "description": "Validation Error",
@@ -6267,6 +6273,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Invalid webhook signature or expired timestamp"
           },
           "422": {
             "description": "Validation Error",
@@ -10232,6 +10241,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid webhook payload \u2014 verify the payload body and Stripe-Signature timestamp"
           },
           "422": {
             "description": "Validation Error",

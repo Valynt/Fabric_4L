@@ -239,7 +239,7 @@ class FormulaMetadata(BaseModel):
 
     id: str = Field(..., description="Formula identifier")
     formula_id: str | None = Field(
-        default=None, description="Alias for id (frontend compatibility)"
+        default=None, description="Deprecated alias of id. Removal target: v2.5 (2026-10-01).", deprecated=True, json_schema_extra={"x-deprecation-target-version": "v2.5", "x-deprecation-target-date": "2026-10-01"}
     )
     name: str = Field(..., description="Formula name")
     description: str = Field(..., description="Formula description")

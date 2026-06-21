@@ -448,7 +448,13 @@ def _validate_webhook_metadata(
 # ============================================================================
 
 
-@router.post("/salesforce", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/salesforce",
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        401: {"description": "Invalid webhook credentials or signature"},
+    },
+)
 async def salesforce_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -693,7 +699,13 @@ def _handle_webhook_error(
 # ============================================================================
 
 
-@router.post("/hubspot", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/hubspot",
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        401: {"description": "Invalid webhook credentials or signature"},
+    },
+)
 async def hubspot_webhook(
     request: Request,
     background_tasks: BackgroundTasks,

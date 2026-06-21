@@ -946,6 +946,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Context Route
+         * @description Get the N-hop context graph around an entity.
+         *
+         *     Returns the center entity, its neighbors, and the relationships connecting
+         *     them, scoped to the authenticated tenant.
+         */
+        get: operations["get_entity_context_route_v1_entities__entity_id__context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/products": {
         parameters: {
             query?: never;
@@ -3348,6 +3371,11 @@ export interface components {
              */
             error?: string | null;
             /**
+             * Failure Reason
+             * @description Machine-readable reason for dependency failure (RED/health contract)
+             */
+            failure_reason?: string | null;
+            /**
              * Details
              * @description Additional status details
              */
@@ -3667,6 +3695,34 @@ export interface components {
             path_info: {
                 [key: string]: unknown;
             };
+        };
+        /** EntityContextResponse */
+        EntityContextResponse: {
+            /** Entity Id */
+            entity_id: string;
+            /** Center */
+            center: {
+                [key: string]: unknown;
+            };
+            /** Neighbors */
+            neighbors: {
+                [key: string]: unknown;
+            }[];
+            /** Relationships */
+            relationships: {
+                [key: string]: unknown;
+            }[];
+            /** Entity Count */
+            entity_count: number;
+            /** Relationship Count */
+            relationship_count: number;
+            /**
+             * Pagination
+             * @description Pagination info: {has_more, next_cursor, returned_count}
+             */
+            pagination?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * EntityDetail
@@ -4365,7 +4421,7 @@ export interface components {
             target: string;
             /**
              * Type
-             * @description Relationship type/label (legacy: use 'relationship_type')
+             * @description Relationship type/label
              */
             type: string;
             /**
@@ -4381,6 +4437,11 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             };
+            /**
+             * Relationship Type
+             * @description Deprecated alias for 'type'.
+             */
+            readonly relationship_type: string;
         };
         /**
          * GraphNode
@@ -4418,6 +4479,21 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             };
+            /**
+             * Label
+             * @description Deprecated alias for 'name'.
+             */
+            readonly label: string;
+            /**
+             * Type
+             * @description Deprecated alias for 'entity_type'.
+             */
+            readonly type: string;
+            /**
+             * Confidence
+             * @description Deprecated alias for 'confidence_score'.
+             */
+            readonly confidence: number;
         };
         /**
          * GraphNodeWithLayout
@@ -4472,6 +4548,21 @@ export interface components {
              * @description Radius for visualization
              */
             r?: number | null;
+            /**
+             * Label
+             * @description Deprecated alias for 'name'.
+             */
+            readonly label: string;
+            /**
+             * Type
+             * @description Deprecated alias for 'entity_type'.
+             */
+            readonly type: string;
+            /**
+             * Confidence
+             * @description Deprecated alias for 'confidence_score'.
+             */
+            readonly confidence: number;
         };
         /**
          * GraphRAGQuery
@@ -9873,6 +9964,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["layer3_knowledge__api__models__ValueTreeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entity_context_route_v1_entities__entity_id__context_get: {
+        parameters: {
+            query?: {
+                /** @description Number of relationship hops to include */
+                hops?: number;
+                /** @description Minimum confidence for included entities */
+                min_confidence?: number;
+                /** @description Optional relationship types to traverse */
+                relationship_types?: string[] | null;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityContextResponse"];
                 };
             };
             /** @description Validation Error */

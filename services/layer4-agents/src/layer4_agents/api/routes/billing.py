@@ -752,7 +752,14 @@ async def sync_customer(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/webhook")
+@router.post(
+    "/webhook",
+    responses={
+        400: {
+            "description": "Invalid webhook payload — verify the payload body and Stripe-Signature timestamp"
+        },
+    },
+)
 async def stripe_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
