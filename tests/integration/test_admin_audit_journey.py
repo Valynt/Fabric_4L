@@ -55,7 +55,7 @@ class TestAdminAuditJourney:
 
     async def test_tenant_overview_returns_paginated_response(self):
         """GET /tenant-overview returns paginated TenantOverviewResponse."""
-        from services.layer4_agents.src.tenants.api.routes.admin_console import (
+        from layer4_agents.tenants.api.routes.admin_console import (
             TenantOverviewResponse,
             get_tenant_overview,
         )

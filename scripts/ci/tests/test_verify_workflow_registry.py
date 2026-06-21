@@ -62,8 +62,15 @@ class WorkflowRegistryVerifierTests(unittest.TestCase):
             "print('ok')\n",
             encoding="utf-8",
         )
-        (self.root / "package.json").write_text('{"scripts": {}}\n', encoding="utf-8")
-        (self.root / "Makefile").write_text("noop:\n\t@echo ok\n", encoding="utf-8")
+        (self.root / "package.json").write_text(
+            '{"scripts": {"ci:workflow-references": "python scripts/ci/check_workflow_targets_and_artifacts.py"}}\n',
+            encoding="utf-8",
+        )
+        (self.root / "Makefile").write_text(
+            "check-workflow-references: ## Validate workflow references\n\t@echo ok\n"
+            "private-workflow-helper:\n\t@echo ok\n",
+            encoding="utf-8",
+        )
         self.registry_path = self.workflows_dir / "workflow-registry.json"
 
     def tearDown(self) -> None:
@@ -99,7 +106,7 @@ class WorkflowRegistryVerifierTests(unittest.TestCase):
             "required_secrets": [],
             "produced_artifacts": [],
             "runtime_budget_minutes": 30,
-            "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py",
+            "local_validation_command": "pnpm ci:workflow-references",
             "deprecation_status": "active",
         }
         data.update(overrides)
@@ -149,6 +156,11 @@ class WorkflowRegistryVerifierTests(unittest.TestCase):
         self.write_registry([self.entry("a.yml")])
         self.assertTrue(any("required_secrets" in error and "TEST_TOKEN" in error for error in self.errors()))
 
+    def test_dynamic_secret_metadata_is_detected(self) -> None:
+        self.write_workflow("a.yml", extra="      - run: echo ${{ secrets[format('{0}', 'TEST_TOKEN')] }}")
+        self.write_registry([self.entry("a.yml")])
+        self.assertTrue(any("required_secrets" in error and "TEST_TOKEN" in error for error in self.errors()))
+
     def test_missing_artifact_metadata_fails(self) -> None:
         self.write_workflow(
             "a.yml",
@@ -179,6 +191,33 @@ class WorkflowRegistryVerifierTests(unittest.TestCase):
         self.write_workflow("a.yml")
         self.write_registry([self.entry("a.yml", deprecation_status="deprecated")])
         self.assertTrue(any("non-active workflow must declare" in error for error in self.errors()))
+
+    def test_bare_pnpm_script_local_validation_command_is_recognized(self) -> None:
+        self.write_workflow("a.yml")
+        self.write_registry([self.entry("a.yml")])
+        self.assertEqual(self.errors(), [])
+
+    def test_public_make_local_validation_command_is_recognized(self) -> None:
+        self.write_workflow("a.yml")
+        self.write_registry([self.entry("a.yml", local_validation_command="make check-workflow-references")])
+        self.assertEqual(self.errors(), [])
+
+    def test_private_make_local_validation_command_fails(self) -> None:
+        self.write_workflow("a.yml")
+        self.write_registry([self.entry("a.yml", local_validation_command="make private-workflow-helper")])
+        self.assertTrue(any("not recognized" in error for error in self.errors()))
+
+    def test_local_validation_command_must_use_public_command_map_interface(self) -> None:
+        self.write_workflow("a.yml")
+        self.write_registry(
+            [
+                self.entry(
+                    "a.yml",
+                    local_validation_command="python scripts/ci/check_workflow_targets_and_artifacts.py",
+                )
+            ]
+        )
+        self.assertTrue(any("documented public command-map interface" in error for error in self.errors()))
 
 
 class WorkflowRegistryDocumentationTests(unittest.TestCase):

@@ -34,11 +34,21 @@ spec:
           ports:
             - containerPort: 8000
               name: http
+          envFrom:
+            - configMapRef:
+                name: api-gateway-auth-config
+            - secretRef:
+                name: api-gateway-auth
           env:
             - name: DEBUG
               value: "false"
             - name: TESTING
               value: "false"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
           readinessProbe:
             httpGet:
               path: /ready

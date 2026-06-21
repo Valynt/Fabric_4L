@@ -208,6 +208,16 @@ export const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
   "/settings/governance/benchmarks": "/t/{tenantSlug}/settings/governance/benchmarks",
 };
 
+const LEGACY_FLAT_ROUTE_REGISTRATIONS = [
+  "/discover/*",
+  "/accounts",
+  "/library/*",
+  "/context/*",
+  "/model/*",
+  "/governance/*",
+  "/settings/governance/*",
+] as const;
+
 export function LegacyFlatRedirect() {
   const { currentTenantSlug, isLoading } = useAuthContext();
   const { pathname } = useLocation();
@@ -358,34 +368,10 @@ export const router = createBrowserRouter([
         path: "/intelligence/:accountId/:tabId",
         element: <LegacyIntelligenceRedirect />,
       },
-      {
-        path: "/discover/*",
+      ...LEGACY_FLAT_ROUTE_REGISTRATIONS.map((path) => ({
+        path,
         element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/accounts",
-        element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/library/*",
-        element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/context/*",
-        element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/model/*",
-        element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/governance/*",
-        element: <LegacyFlatRedirect />,
-      },
-      {
-        path: "/settings/governance/*",
-        element: <LegacyFlatRedirect />,
-      },
+      })),
       {
         path: "/home",
         element: (

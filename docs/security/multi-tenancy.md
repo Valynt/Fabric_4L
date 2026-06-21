@@ -243,7 +243,7 @@ Each tenant gets a dedicated PostgreSQL database (possibly on separate instances
 When changing tiers, use the dedicated service function:
 
 ```python
-from value_fabric.layer4_agents.src.tenants.service import update_tenant_isolation_tier
+from layer4_agents.tenants.service import update_tenant_isolation_tier
 
 await update_tenant_isolation_tier(
     db,

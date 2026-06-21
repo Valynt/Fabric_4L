@@ -45,7 +45,7 @@
 
 **Before**:
 ```python
-with patch("value_fabric.layer4_agents.src.tenants.provisioning.TenantSecretManager"):
+with patch("layer4_agents.tenants.provisioning.TenantSecretManager"):
     ...
 
 assert tenant.status == "active"
@@ -54,7 +54,7 @@ assert tenant.status == "active"
 **After**:
 ```python
 MOCK_TARGET_TENANT_SECRET_MANAGER = (
-    "value_fabric.layer4_agents.src.tenants.provisioning.TenantSecretManager"
+    "layer4_agents.tenants.provisioning.TenantSecretManager"
 )
 
 with patch(MOCK_TARGET_TENANT_SECRET_MANAGER):

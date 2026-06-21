@@ -496,5 +496,13 @@ export function isItemVisible(
 }
 
 export function isRouteActive(location: string, resolvedPath: string): boolean {
-  return location === resolvedPath || location.startsWith(resolvedPath + "/");
+  const normalize = (value: string) => value.replace(/\/+$/, "") || "/";
+  const current = normalize(location);
+  const route = normalize(resolvedPath.replace(/\/\*$/, ""));
+
+  if (route === "/") {
+    return current === "/";
+  }
+
+  return current === route || current.startsWith(route + "/");
 }

@@ -34,7 +34,6 @@
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |
 | Understand design decisions | [`/explanations/adr/`](./explanations/adr/) |
 | Contribute to the project | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
-| Find a historical report | [`archive/INDEX.md`](./archive/INDEX.md) |
 
 ---
 
@@ -246,8 +245,6 @@ Outdated documentation moves to `/archive/YYYY-MM/`:
 - Abandoned drafts (>6 months)
 
 See [Archive Registry](./archive/archive-registry.md) for complete history.
-
-Historical root-level quality reports are archived under [`/archive/quality-reports/`](./archive/quality-reports/).
 
 ---
 

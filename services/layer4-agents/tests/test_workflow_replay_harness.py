@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from src.models.agent_state import WorkflowStatus, WorkflowType
-from src.workflows.replay import (
+from layer4_agents.workflows.replay import (
     Layer4WorkflowReplayHarness,
     ReplayAuthorizationContext,
     ReplayEventEnvelopeV1,

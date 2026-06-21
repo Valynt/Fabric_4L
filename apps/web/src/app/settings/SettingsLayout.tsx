@@ -4,13 +4,14 @@
  * React Router-native layout. Renders child routes via <Outlet />.
  */
 import { useMemo } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   settingsCategories,
   settingsNavigation,
   settingsAccessRules,
   settingsScreens,
+  getSettingsCapabilityForPath,
   type SettingsCategoryKey,
 } from "./schemas";
 import { useSettingsAccess } from "./access";
@@ -33,13 +34,27 @@ const CATEGORY_ICONS: Record<SettingsCategoryKey, React.ReactNode> = {
   governance: <Shield className="h-4 w-4" />,
 };
 
+function stripTenantSettingsPrefix(pathname: string): string {
+  return pathname.replace(/^\/t\/[^/]+(?=\/settings(?:\/|$))/, "");
+}
+
+function useSettingsPathBuilder(tenantSlug: string | undefined) {
+  return (path: string) => {
+    if (path.startsWith("/personal")) {
+      return path;
+    }
+    return tenantSlug ? `/t/${tenantSlug}${path}` : path;
+  };
+}
+
 function useActiveCategory(pathname: string) {
   return useMemo(() => {
-    if (pathname.startsWith("/settings/workspace") || pathname.startsWith("/settings/billing")) {
+    const settingsPath = stripTenantSettingsPrefix(pathname);
+    if (settingsPath.startsWith("/settings/workspace") || settingsPath.startsWith("/settings/billing")) {
       return settingsCategories.find((cat) => cat.key === "billing") ?? settingsCategories[0];
     }
     for (const cat of settingsCategories) {
-      if (pathname.startsWith(cat.basePath)) return cat;
+      if (settingsPath.startsWith(cat.basePath)) return cat;
     }
     return settingsCategories[0];
   }, [pathname]);
@@ -56,9 +71,10 @@ function useActiveSubnav(categoryBasePath: string) {
 
 function useScreenMeta(pathname: string) {
   return useMemo(() => {
-    const screen = settingsScreens.find((s) => pathname.startsWith(s.route));
+    const settingsPath = stripTenantSettingsPrefix(pathname);
+    const screen = settingsScreens.find((s) => settingsPath.startsWith(s.route));
     const category = settingsCategories.find((c) =>
-      pathname.startsWith(c.basePath)
+      settingsPath.startsWith(c.basePath)
     );
     const access = category
       ? settingsAccessRules[category.key as keyof typeof settingsAccessRules]
@@ -69,6 +85,9 @@ function useScreenMeta(pathname: string) {
 
 export function SettingsLayout() {
   const { pathname } = useLocation();
+  const { tenantSlug } = useParams();
+  const buildSettingsPath = useSettingsPathBuilder(tenantSlug);
+  const settingsPath = stripTenantSettingsPrefix(pathname);
   const { hasCapability } = useSettingsAccess();
   const activeCategory = useActiveCategory(pathname);
   const visibleCategories = settingsCategories.filter((category) => {
@@ -76,12 +95,8 @@ export function SettingsLayout() {
     return hasCapability(accessRule.capability);
   });
   const subnavItems = useActiveSubnav(activeCategory.basePath).filter((item) => {
-    if (item.path.startsWith("/personal")) return hasCapability("personal");
-    if (item.path.startsWith("/settings/workspace") || item.path.startsWith("/settings/billing")) return hasCapability("billing");
-    if (item.path.startsWith("/settings/team")) return hasCapability("team");
-    if (item.path.startsWith("/settings/data")) return hasCapability("integrations");
-    if (item.path.startsWith("/settings/governance")) return hasCapability("governance");
-    return true;
+    const capability = getSettingsCapabilityForPath(item.path);
+    return capability ? hasCapability(capability) : true;
   });
   const { screen, access } = useScreenMeta(pathname);
 
@@ -101,7 +116,7 @@ export function SettingsLayout() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              to="/settings/governance/audit-trail"
+              to={buildSettingsPath("/settings/governance/audit")}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium hover:bg-accent"
             >
               <FileText className="h-3.5 w-3.5" />
@@ -117,12 +132,12 @@ export function SettingsLayout() {
           {visibleCategories.map((cat) => {
             const isActive =
               cat.key === "billing"
-                ? pathname.startsWith("/settings/workspace") || pathname.startsWith(cat.basePath)
-                : pathname.startsWith(cat.basePath);
+                ? settingsPath.startsWith("/settings/workspace") || settingsPath.startsWith(cat.basePath)
+                : settingsPath.startsWith(cat.basePath);
             return (
               <Link
                 key={cat.key}
-                to={cat.basePath}
+                to={buildSettingsPath(cat.basePath)}
                 prefetch="intent"
                 className={cn(
                   "inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors",
@@ -145,11 +160,11 @@ export function SettingsLayout() {
         <aside className="hidden w-56 shrink-0 border-r bg-muted/30 md:block">
           <div className="py-4 px-3 space-y-0.5">
             {subnavItems.map((item) => {
-              const isActive = pathname === item.path;
+              const isActive = settingsPath === item.path;
               return (
                 <Link
                   key={item.path}
-                  to={item.path}
+                  to={buildSettingsPath(item.path)}
                   prefetch="intent"
                   className={cn(
                     "flex items-center rounded-md px-3 py-2 text-sm transition-colors",

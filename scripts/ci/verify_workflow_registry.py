@@ -40,6 +40,7 @@ DEPRECATION_STATES = {
     "candidate-for-consolidation",
 }
 SECRET_RE = re.compile(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)")
+DYNAMIC_SECRET_RE = re.compile(r"secrets\[[^\]]*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"][^\]]*\]")
 MAKE_CMD_RE = re.compile(r"^make\s+(.+)$")
 PNPM_CMD_RE = re.compile(r"^pnpm\s+(.+)$")
 PYTHON_SCRIPT_RE = re.compile(r"^python\s+([^\s]+\.py)(?:\s|$)")
@@ -132,7 +133,7 @@ def workflow_artifact_paths(data: dict[str, Any]) -> list[str]:
 
 def workflow_secrets(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
-    return sorted(set(SECRET_RE.findall(text)))
+    return sorted(set(SECRET_RE.findall(text)) | set(DYNAMIC_SECRET_RE.findall(text)))
 
 
 def workflow_runtime_budget(data: dict[str, Any]) -> int:
@@ -161,7 +162,7 @@ def load_make_targets(root: Path) -> set[str]:
         return set()
     targets: set[str] = set()
     for line in makefile.read_text(encoding="utf-8").splitlines():
-        if line.startswith(("\t", " ")) or ":" not in line:
+        if line.startswith(("\t", " ")) or ":" not in line or "##" not in line:
             continue
         head = line.split(":", 1)[0].strip()
         if not head or head.startswith(".") or "=" in head:
@@ -198,6 +199,8 @@ def command_exists(command: str, root: Path) -> bool:
             return False
         if tokens[0] == "run" and len(tokens) >= 2:
             return tokens[1] in load_pnpm_scripts(root / "package.json")
+        if tokens[0] in load_pnpm_scripts(root / "package.json"):
+            return True
         if tokens[0] == "--dir" and len(tokens) >= 4 and tokens[2] == "run":
             package_json = root / tokens[1] / "package.json"
             return tokens[3] in load_pnpm_scripts(package_json)
@@ -220,6 +223,11 @@ def command_exists(command: str, root: Path) -> bool:
         return not targets or all((root / target).exists() for target in targets)
 
     return False
+
+
+def command_uses_public_interface(command: str) -> bool:
+    command = command.strip()
+    return bool(MAKE_CMD_RE.match(command) or PNPM_CMD_RE.match(command))
 
 
 def entry_key(entry: dict[str, Any]) -> str:
@@ -398,6 +406,10 @@ def validate_registry(
         command = str(entry.get("local_validation_command", ""))
         if not command_exists(command, root):
             errors.append(f"{path}: local validation command is not recognized: {command}")
+        elif not command_uses_public_interface(command):
+            errors.append(
+                f"{path}: local validation command must use a documented public command-map interface: {command}"
+            )
 
     validate_duplicate_groups(registry, set(by_path), errors)
     return errors

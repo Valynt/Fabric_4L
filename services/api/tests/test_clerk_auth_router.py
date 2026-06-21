@@ -89,7 +89,7 @@ def _build_auth_context(tenant_id: str = "ten_1", org_id: str = "org_1") -> Auth
         clerk_org_id=org_id,
         user_id="u1",
         tenant_id=tenant_id,
-        roles=frozenset(["org:admin"]),
+        roles=frozenset(["tenant_admin"]),
         permissions=frozenset(["tenant:read"]),
         request_id="req_1",
         iat=1_700_000_000,
@@ -122,7 +122,7 @@ async def test_clerk_tenant_resolves_active_org() -> None:
     assert response.tenant_slug == "acme"
     assert response.clerk_org_id == "org_1"
     assert response.status == "active"
-    assert response.roles == ["org:admin"]
+    assert response.roles == ["tenant_admin"]
     assert response.permissions == ["tenant:read"]
 
 

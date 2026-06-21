@@ -535,7 +535,6 @@ The following directories are held open by running processes (likely pytest) and
 - `.tmp/pytest-temp-evidence/`
 - `.tmp/pytest-temp-launch-readiness-combined/`
 - `.tmp/pytest-tmp/pytest-of-BBB/`
-- `artifacts/pytest-check-alembic/`
 - `services/layer2-extraction/.pytest_cache/`
 - `services/layer3-knowledge/.pytest_cache/`
 - `services/layer4-agents/.tmp/pytest-cache/`

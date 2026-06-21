@@ -17,7 +17,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob public-docs.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -39,7 +39,7 @@
         "eval-summary.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob ai-evals-pipeline.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -63,7 +63,7 @@
         "rotation_audit_thesys.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob api-key-rotation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -89,7 +89,7 @@
         "audit-evidence/security-operations/"
       ],
       "runtime_budget_minutes": 20,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob audit-evidence.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -108,7 +108,7 @@
         "artifacts/live-workflow-validation/**"
       ],
       "runtime_budget_minutes": 75,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob backend-integrated-reproducibility.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -126,7 +126,7 @@
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob branch-protection-validation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -146,7 +146,7 @@
         "/tmp/build-metadata/build-metadata-${{ matrix.layer }}.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob build-deploy.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -170,7 +170,7 @@
         "chaos-results/pre-chaos-health.json"
       ],
       "runtime_budget_minutes": 25,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob chaos-testing.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -187,7 +187,25 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob codeql.yml",
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/cleanup-repo.yml",
+      "name": "Cleanup Repo",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "cleanup_repo governs repository cleanup automation via push, workflow_dispatch",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -219,7 +237,7 @@
         "test-results.xml"
       ],
       "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob contract-compliance.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -234,7 +252,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob contract-rfc-enforcer.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -252,7 +270,7 @@
         "artifacts/critical-gates/"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob critical-gates.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -275,7 +293,7 @@
         "deployment-record.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob deploy.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -295,7 +313,7 @@
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob dr-drill.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -314,7 +332,7 @@
         "scripts/export_openapi.py"
       ],
       "runtime_budget_minutes": 10,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob drift-check.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -333,7 +351,7 @@
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob environment-promotion.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -351,7 +369,7 @@
         "artifacts/router-contract/"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob frontend-route-audit-check.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -368,7 +386,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob generated-api-freshness.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -386,7 +404,7 @@
         "apps/web/coverage/"
       ],
       "runtime_budget_minutes": 10,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob graph-module-tests.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -405,7 +423,7 @@
         "/tmp/*.yaml"
       ],
       "runtime_budget_minutes": 20,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob k8s-readiness.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -422,7 +440,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob l4-frontend-contract-sync.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -438,7 +456,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob layer3-wrapper-drift.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -454,7 +472,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob layer4-route-contract-matrix-check.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -470,7 +488,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob layer6-wrapper-drift.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -488,7 +506,7 @@
         "artifacts/debt-burndown"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob monthly-debt-burndown.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -504,7 +522,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob openapi-drift-check.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -524,7 +542,7 @@
         "zap-results/"
       ],
       "runtime_budget_minutes": 45,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob penetration-testing.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -547,7 +565,7 @@
         "artifacts/performance/slo-report.md"
       ],
       "runtime_budget_minutes": 40,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob performance-load-tests.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -570,8 +588,11 @@
         "apps/web/coverage/",
         "apps/web/dist/public/",
         "apps/web/dist/stats.html",
+        "apps/web/e2e-results/**",
         "apps/web/frontend-junit.xml",
+        "apps/web/playwright-report/**",
         "artifacts/compatibility-debt/",
+        "artifacts/critical-behaviors-gate/result.json",
         "artifacts/docker-compose-config/**",
         "artifacts/docs-validation/docs-validation-evidence.json",
         "artifacts/docs-validation/docs-validation-summary.md",
@@ -590,17 +611,16 @@
         "artifacts/pytest-collection.txt",
         "artifacts/pytest-skip-governance.json",
         "artifacts/python-contract-lint.json",
+        "artifacts/readiness/behavior-readiness-audit.json",
+        "artifacts/release_smoke/**",
         "artifacts/release-evidence/billing-entitlements-junit.xml",
         "artifacts/release-evidence/billing-entitlements-summary.json",
         "artifacts/release-evidence/billing-entitlements-summary.md",
-        "artifacts/critical-behaviors-gate/result.json",
-        "artifacts/readiness/behavior-readiness-audit.json",
-        "apps/web/e2e-results/**",
-        "apps/web/playwright-report/**",
+        "artifacts/release/release-readiness-report.json",
+        "artifacts/release/release-readiness-report.md",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/shared-imports-runtime.json",
-        "artifacts/release_smoke/**",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
         "artifacts/test-skip-governance.json",
@@ -630,7 +650,7 @@
         "services/layer6-benchmarks/layer6-results.json"
       ],
       "runtime_budget_minutes": 45,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob pr-checks.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -655,7 +675,10 @@
         "artifacts/readiness-10/**",
         "artifacts/readiness/",
         "artifacts/release/",
+        "artifacts/release/gate-*.json",
         "artifacts/release/junit/",
+        "artifacts/release/release-readiness-report.json",
+        "artifacts/release/release-readiness-report.md",
         "artifacts/security/",
         "artifacts/smoke/",
         "artifacts/state/",
@@ -663,7 +686,7 @@
         "reports/scorecards/repo-maturity.schema.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob prod-readiness.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -683,7 +706,7 @@
         "sdk/python/dist/"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob publish-sdk.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -716,7 +739,7 @@
         "trivy-${{ matrix.service }}.*"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob release-evidence-bundle.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -726,6 +749,7 @@
       "trigger": [
         "pull_request",
         "push",
+        "schedule",
         "workflow_dispatch"
       ],
       "trigger_purpose": "repo_hygiene governs Repository Hygiene via pull_request, push, workflow_dispatch",
@@ -737,7 +761,7 @@
         "artifacts/repo-hygiene.json"
       ],
       "runtime_budget_minutes": 5,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repo-hygiene.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -753,7 +777,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repro-seed-validation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -771,7 +795,7 @@
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob runbook-validation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -792,7 +816,7 @@
         "rotation-audit.log"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob secret-rotation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -824,7 +848,7 @@
         "zap-reports/"
       ],
       "runtime_budget_minutes": 45,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob security-gates.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -854,7 +878,7 @@
         "supply-chain-report.md"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob supply-chain.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -875,7 +899,7 @@
         "infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}"
       ],
       "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob terraform-cd.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -891,7 +915,7 @@
       "required_secrets": [],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob test-reporting.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -911,7 +935,7 @@
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob vault-integration.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -929,7 +953,7 @@
         "artifacts/weekly-gates/weekly-gate-status.json"
       ],
       "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob weekly-acceptance-gates.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
     {
@@ -949,7 +973,7 @@
         "artifacts/zero-trust/"
       ],
       "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob zero-trust-validation.yml",
+      "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     }
   ]

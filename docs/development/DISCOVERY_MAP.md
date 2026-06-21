@@ -25,7 +25,7 @@ The command hierarchy remains defined by [BUILD_SYSTEM.md](./BUILD_SYSTEM.md). T
 | Tenant isolation or auth | `packages/shared/src/value_fabric/shared/`, service auth middleware, repository methods, `docs/security/`, `tests/security/`, `tests/tenancy/` | Authenticated tenant context, repository filters, write ownership, hostile cross-tenant tests | `pnpm test:isolation`, `pnpm test:security:hostile` | `make gate-security`, `make verify` |
 | Supply chain, dependency, or container change | `package.json`, `pnpm-lock.yaml`, service dependency manifests, `.github/dependabot.yml`, `docs/supply-chain/SUPPLY_CHAIN_SECURITY.md`, `docs/reference/contributor-dependency-workflows.md` | Package-manager policy, lockfile churn, SBOM output, dependency audit, container image scan, license policy | `pnpm check:package-manager-policy`, `pnpm audit:ci`, `pnpm sbom`, `pnpm container:scan` when containers are affected | `make verify` |
 | Database model or migration | Service model path, service Alembic directory, `docs/reference/layer-runtime-path-governance.md` | Model, migration, downgrade policy, tenant fields, deployed head count | `make check-migration-heads`, `make check-migration-rollback-policy` | `make gate-database`, `make verify` |
-| CI workflow or root command | `.github/workflows/`, `Makefile`, `package.json`, `scripts/ci/`, [COMMANDS.md](./COMMANDS.md) | Workflow job name, local command mapping, artifact paths, public target/script docs | `pnpm docs:check`, `make check-workflow-registry` | `make verify` |
+| CI workflow or root command | `.github/workflows/`, `Makefile`, `package.json`, `scripts/ci/`, [COMMANDS.md](./COMMANDS.md) | Workflow job name, local command mapping, artifact paths, public target/script docs | `pnpm docs:check`, `make check-workflow-references`, `pnpm ci:workflow-references`, `make check-workflow-registry` | `make verify` |
 | Test suite or coverage inventory | `tests/`, `docs/testing/test-inventory.md`, `docs/testing/TEST_CATALOG.md`, `pytest.ini` | Suite entrypoint, markers, source path ownership, skip governance, public command mapping | `pnpm docs:check`, `make test` | `make verify` |
 | Observability/SLO change | `monitoring/`, service observability modules, `docs/operations/layer6/observability.md`, `tests/observability/` | Metrics contract, log coverage, alert/runbook linkage, SLO evidence | `pnpm lint:logs`, `pnpm test:observability` | `make gate-obs`, `make verify` |
 | Release/readiness gate | `Makefile`, `.github/workflows/pr-checks.yml`, `.fabric/prod-gates.policy.yaml`, `docs/governance/weekly-acceptance-gates.md`, `docs/validation/` | Canonical production-readiness target, rollback criteria, evidence artifact, release policy profile | `make gate-release-policy`, `pnpm test:release` | `make production-readiness-gate`, `make verify` |
@@ -75,11 +75,11 @@ The completion audit in [repository-discoverability-audit.md](../governance/repo
 
 | Evidence need | Preferred location |
 | --- | --- |
-| Test inventory and coverage posture | `docs/testing/`, `reports/testing/`, `reports/autonomous-test-assurance/` |
-| Contract and API alignment | `docs/contracts/`, `contracts/`, `docs/archive/evidence/reports/2026-06-18/api-contract-stability-audit.md` |
-| Production readiness and release gates | `docs/validation/`, `reports/production-readiness-gap-analysis.md`, `reports/production-launch-readiness-audit.md` |
+| Test inventory and coverage posture | `docs/testing/`, `tests/`, `artifacts/` |
+| Contract and API alignment | `docs/contracts/`, `contracts/`, `contracts/openapi/`, `contracts/jsonschema/` |
+| Production readiness and release gates | `docs/validation/`, `docs/launch/`, `.fabric/prod-gates.policy.yaml`, `artifacts/release/` |
 | Repository discoverability completion | `docs/governance/repository-discoverability-audit.md`, `docs/development/DISCOVERY_MAP.md`, `docs/development/COMMANDS.md` |
-| Security and tenant isolation | `docs/security/`, `docs/validation/tenant-isolation-evidence-summary.md`, `reports/security/`, `tests/security/` |
+| Security and tenant isolation | `docs/security/`, `docs/validation/tenant-isolation-evidence-summary.md`, `tests/security/` |
 | Supply chain and dependency posture | `docs/supply-chain/`, `docs/security/secure-software-supply-chain.md`, `license-reports/`, `artifacts/supply-chain/` |
 | Operational runbooks and incident response | `docs/operations/`, `docs/troubleshooting/`, `ops/incident/` |
 | Architecture decisions | `docs/decisions/`, `docs/explanations/adr/`, `docs/governance.md` |

@@ -7,7 +7,7 @@
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
-	check-workflow-matrix check-workflow-registry \
+	check-workflow-matrix check-workflow-registry check-workflow-references \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gate-policy gate-lint gate-sign-manifest gate-summary \
@@ -109,6 +109,9 @@ check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps i
 
 check-workflow-registry: ## Validate GitHub Actions workflow ownership and artifact registry
 	@$(PYTHON) scripts/ci/verify_workflow_registry.py
+
+check-workflow-references: ## Validate GitHub Actions workflow command and artifact references
+	@$(PYTHON) scripts/ci/check_workflow_targets_and_artifacts.py
 
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
 	@$(PYTHON) scripts/ci/check_conflict_markers.py

@@ -324,6 +324,9 @@ jobs:
             --risk-class release-candidate \
             --mode release \
             --strict
+          test -n "$(find artifacts/release -name 'gate-*.json' -print -quit)"
+          test -s artifacts/release/release-readiness-report.json
+          test -s artifacts/release/release-readiness-report.md
       - name: Upload gate-engineering artifacts
         if: always()
         uses: actions/upload-artifact@v4

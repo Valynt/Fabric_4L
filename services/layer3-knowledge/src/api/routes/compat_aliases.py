@@ -9,7 +9,6 @@ Reason: Compatibility alias endpoints delegating to canonical route implementati
 
 
 from fastapi import APIRouter, Depends, Request
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity import RequestContext, require_authenticated
 
 from ...api.dependencies import get_graph_rag, get_hybrid_search
@@ -18,6 +17,7 @@ from ...services.compat_metrics import (
     record_deprecated_legacy_field_usage,
     record_deprecated_route_hit,
 )
+from ...services.compat_policy import assert_legacy_route_alias_enabled
 from . import query_search
 
 router = APIRouter(prefix="/v1", tags=["compatibility"], dependencies=[Depends(require_authenticated)])
@@ -28,13 +28,7 @@ def _app_client(request: Request) -> str:
 
 
 def _assert_legacy_alias_enabled(request: Request, alias_name: str) -> None:
-    phase = getattr(request.app.state, "layer3_compat_deprecation_phase", "warning_only")
-    if phase == "disable_non_prod":
-        env = getattr(request.app.state, "environment", "dev")
-        if env.lower() != "prod":
-            raise ServiceUnavailableError(message=f"Legacy alias '{alias_name}' disabled in non-production")
-    elif phase == "removed":
-        raise ServiceUnavailableError(message=f"Legacy alias '{alias_name}' has been removed")
+    assert_legacy_route_alias_enabled(request.app.state, alias_name)
 
 
 def _record_route_hit(request: Request, route: str, tenant_id: str) -> None:

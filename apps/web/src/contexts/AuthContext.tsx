@@ -63,6 +63,24 @@ function safeNavigate(path: string) {
   }
 }
 
+function normalizeClerkRole(role: string | null | undefined): UserInfo['role'] {
+  switch (role?.trim().toLowerCase()) {
+    case 'admin':
+    case 'org:admin':
+      return 'tenant_admin';
+    case 'basic_member':
+    case 'org:member':
+    case 'member':
+      return 'analyst';
+    case 'guest_member':
+    case 'org:guest':
+    case 'guest':
+      return 'read_only';
+    default:
+      return 'analyst';
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Mock auth must never override Clerk auth state. If both are configured,
   // prefer Clerk and treat mock auth as disabled to avoid redirect loops.
@@ -183,18 +201,10 @@ function SignedInClerkAuthProvider({
 
     const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress ?? '';
 
-    // Map Clerk organization role to frontend tier
-    // Clerk roles: 'admin', 'basic_member', 'guest_member'
-    // Frontend tiers: 'standard', 'advanced', 'admin'
-    let role: 'standard' | 'advanced' | 'admin' = 'standard';
     const orgMembership = clerkUser.organizationMemberships?.find(
       (m) => m.organization.id === organization.id
     );
-    if (orgMembership?.role === 'admin') {
-      role = 'admin';
-    } else if (orgMembership?.role === 'basic_member') {
-      role = 'standard';
-    }
+    const role = normalizeClerkRole(orgMembership?.role);
 
     const mapped: UserInfo = {
       id: clerkUser.id,

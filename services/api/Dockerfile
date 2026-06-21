@@ -11,11 +11,12 @@ RUN pip install --no-cache-dir uv==0.11.6
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY services/api/pyproject.toml .
 RUN uv sync --frozen --no-install-project
 
-COPY app/ ./app/
-COPY migrations/ ./migrations/
+COPY services/api/app/ ./app/
+COPY services/api/migrations/ ./migrations/
+COPY packages/shared/src/value_fabric/ ./value_fabric/
 
 FROM python:3.11.13-slim-bookworm AS runtime
 
@@ -32,8 +33,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-COPY app/ ./app/
-COPY migrations/ ./migrations/
+COPY services/api/app/ ./app/
+COPY services/api/migrations/ ./migrations/
+COPY packages/shared/src/value_fabric/ ./value_fabric/
 
 RUN chown -R appuser:appgroup /app
 USER appuser

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-auth-config
+  namespace: value-fabric
+data:
+  AUTH_PROVIDER: "clerk"
+  JWT_ALGORITHM: "RS256"
+  ALGORITHM: "RS256"
+  LLM_PROVIDER: "layer4"
+  LAYER4_API_BASE_URL: "http://layer4-agents:8000"
+  FABRIC_AUTH_ISSUER: "fabric4l-gateway"
+  FABRIC_AUTH_AUDIENCE: "fabric4l-internal"
+  FABRIC_AUTH_ENVELOPE_TTL_SECONDS: "300"

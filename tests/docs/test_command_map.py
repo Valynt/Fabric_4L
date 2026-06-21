@@ -610,6 +610,30 @@ def test_development_discovery_map_routes_issue_to_validation() -> None:
     assert not missing, f"Development discovery map missing required routing coverage: {missing}"
 
 
+def test_discovery_map_evidence_locations_use_canonical_active_paths() -> None:
+    discovery_map = _read(REPO_ROOT / "docs" / "development" / "DISCOVERY_MAP.md")
+    start = discovery_map.index("## Evidence Locations")
+    end = discovery_map.index("\nIf a needed source of truth is missing", start)
+    section = discovery_map[start:end]
+
+    stale_patterns = {
+        "reports/": r"(?<![A-Za-z0-9_-])reports/",
+        "docs/archive/": r"docs/archive/",
+        "../archive/": r"\.\./archive/",
+        "archive/": r"(?<![A-Za-z0-9_-])archive/",
+    }
+    found = [
+        location
+        for location, pattern in stale_patterns.items()
+        if re.search(pattern, section)
+    ]
+
+    assert not found, (
+        "Discovery map evidence locations must point at canonical active docs, "
+        f"tests, contracts, or artifacts, not reports/archive paths: {found}"
+    )
+
+
 def test_discovery_map_validation_commands_are_public_interfaces() -> None:
     discovery_map = _read(REPO_ROOT / "docs" / "development" / "DISCOVERY_MAP.md")
     commands = _read(COMMANDS_DOC)
@@ -631,6 +655,8 @@ def test_discovery_map_validation_commands_are_public_interfaces() -> None:
         ("make check-migration-heads", "check-migration-heads", make_targets),
         ("make gate-database", "gate-database", make_targets),
         ("pnpm docs:check", "docs:check", root_scripts),
+        ("make check-workflow-references", "check-workflow-references", make_targets),
+        ("pnpm ci:workflow-references", "ci:workflow-references", root_scripts),
         ("pnpm ops:runbooks:lint", "ops:runbooks:lint", root_scripts),
         ("pnpm ops:incident:check", "ops:incident:check", root_scripts),
         ("make evals", "evals", make_targets),

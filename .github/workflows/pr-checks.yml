@@ -61,10 +61,10 @@ jobs:
           python .github/scripts/enforce_secret_store_security.py
 
       - name: Validate workflow target/artifact references
-        run: python scripts/ci/check_workflow_targets_and_artifacts.py
+        run: make check-workflow-references
 
       - name: Validate workflow ownership registry
-        run: python scripts/ci/verify_workflow_registry.py
+        run: make check-workflow-registry
 
       - name: Validate .devin/workflows specification compliance
         run: |

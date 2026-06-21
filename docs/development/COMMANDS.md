@@ -82,6 +82,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `production:scorecard` | `python scripts/ci/check_production_readiness_scorecard.py --scorecard-only` | Production readiness scorecard |
 | `production:check` | `python scripts/ci/check_production_readiness_scorecard.py && python scripts/ci/validate_production_readiness_plan.py` | Production readiness validation |
 | `ci:workflow-registry` | `python scripts/ci/verify_workflow_registry.py` | Workflow registry validation |
+| `ci:workflow-references` | `python scripts/ci/check_workflow_targets_and_artifacts.py` | Workflow command and artifact reference validation |
 | `ops:backup:verify` | `python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py` | Backup recovery validation |
 | `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
 | `ops:walg:gate` | `python scripts/ci/check_walg_enablement_gate.py` | WAL-G physical backup enablement evidence gate |
@@ -119,6 +120,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-readiness-consistency` | Check readiness percentage and archive consistency. |
 | `check-workflow-matrix` | Validate workflow traceability matrices. |
 | `check-workflow-registry` | Validate GitHub Actions workflow ownership and artifact registry. |
+| `check-workflow-references` | Validate GitHub Actions workflow command and artifact references. |
 | `check-keycloak-realm-seed-security` | Fail when Keycloak realm seeds embed secrets or default credentials. |
 | `check-manifest-secret-hygiene` | Enforce secret-only references and denylisted sensitive patterns in manifests. |
 | `check-path-env-hygiene` | Fail on suspicious path artifacts and unapproved tracked env files. |
@@ -361,6 +363,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 | Database readiness | `make gate-database` | Local static/read-only gate; live checks require explicit DB environment. |
 | Production readiness gate | `make production-readiness-gate` | Canonical CI-required production-readiness gate. `make gate-production` is a compatibility alias. |
 | Release evidence | `make release-evidence-packet` | Generates canonical release evidence. |
+| Workflow registry and command/artifact references | `make check-workflow-registry`, `make check-workflow-references`, `pnpm ci:workflow-registry`, or `pnpm ci:workflow-references` | Public command-map interfaces for workflow ownership metadata and workflow command/artifact checks. |
 | Incident response docs | `pnpm ops:runbooks:lint` and `pnpm ops:incident:check` | Validates `ops/incident/` runbooks, severity, escalation, communications, postmortem, and workflow links. |
 | Docs command-map validation | `pnpm docs:check` | Runs `python -m pytest tests/docs/`. |
 

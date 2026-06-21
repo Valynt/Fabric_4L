@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from .auth_directory import AuthDirectory
-from .clerk_config import InternalEnvelope
-from .clerk_verifier import ClerkAuthorizedPartyError, ClerkClaims, ClerkTokenError
+from .clerk_config import InternalEnvelopeSettings
+from .clerk_verifier import ClerkClaims
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +39,29 @@ class UserNotProvisionedError(TenantResolutionError):
     code = "auth.user_unprovisioned"
 
 
+def normalize_clerk_role(role: str | None) -> str | None:
+    """Map Clerk organization roles to Fabric RBAC role names."""
+    if role is None:
+        return None
+    normalized = role.strip().lower()
+    role_map = {
+        "admin": "tenant_admin",
+        "org:admin": "tenant_admin",
+        "basic_member": "analyst",
+        "org:member": "analyst",
+        "member": "analyst",
+        "guest_member": "read_only",
+        "org:guest": "read_only",
+        "guest": "read_only",
+    }
+    return role_map.get(normalized, normalized)
+
+
 def build_auth_context(
     *,
     claims: ClerkClaims,
     directory: AuthDirectory,
-    envelope_settings: InternalEnvelope,
+    envelope_settings: InternalEnvelopeSettings,
     request_id: str | None = None,
     now: int | None = None,
 ) -> AuthContext:
@@ -84,21 +102,29 @@ def build_auth_context(
             )
         )
 
-    iat = now if now is not None else int(datetime.now(timezone.utc).timestamp())
+    iat = now if now is not None else int(datetime.now(UTC).timestamp())
     exp = iat + envelope_settings.envelope_ttl_seconds
     rid = request_id or f"req_{uuid.uuid4().hex[:16]}"
 
     if envelope_settings.signing_key is None:
-        raise RuntimeError(
-            "envelope_settings.signing_key must be configured at the gateway"
+        msg = "envelope_settings.signing_key must be configured at the gateway"
+        raise RuntimeError(msg)
+
+    normalized_roles = {
+        role
+        for role in (
+            normalize_clerk_role(membership.role),
+            normalize_clerk_role(claims.org_role),
         )
+        if role
+    }
 
     return AuthContext(
         clerk_user_id=claims.sub,
         clerk_org_id=claims.org_id,
         user_id=user.id,
         tenant_id=tenant.id,
-        roles=frozenset({membership.role} | ({claims.org_role} if claims.org_role else set())),
+        roles=frozenset(normalized_roles),
         permissions=frozenset(claims.org_permissions),
         request_id=rid,
         iat=iat,

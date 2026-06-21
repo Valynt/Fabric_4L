@@ -70,6 +70,7 @@
     "production:scorecard": "python scripts/ci/check_production_readiness_scorecard.py --scorecard-only",
     "production:check": "python scripts/ci/check_production_readiness_scorecard.py && python scripts/ci/validate_production_readiness_plan.py",
     "ci:workflow-registry": "python scripts/ci/verify_workflow_registry.py",
+    "ci:workflow-references": "python scripts/ci/check_workflow_targets_and_artifacts.py",
     "ops:backup:verify": "python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py",
     "ops:restore:dry-run": "python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery",
     "ops:walg:gate": "python scripts/ci/check_walg_enablement_gate.py",

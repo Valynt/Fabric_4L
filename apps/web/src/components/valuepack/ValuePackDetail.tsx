@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ValuePackFrameworkData } from "@/hooks/useValuePacks";
+import type { ValuePackFrameworkData } from "@/api/valuePackFramework";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Btn } from "@/components/ui/fabric";
 

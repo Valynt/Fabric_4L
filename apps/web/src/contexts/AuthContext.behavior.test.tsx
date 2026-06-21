@@ -34,12 +34,13 @@ vi.mock("@clerk/react", () => ({
 }));
 
 function Probe() {
-  const { isAuthenticated, isLoading, currentTenantSlug, logout } = useAuthContext();
+  const { isAuthenticated, isLoading, currentTenantSlug, logout, user } = useAuthContext();
   return (
     <div>
       <div data-testid="auth">{isAuthenticated ? "yes" : "no"}</div>
       <div data-testid="loading">{isLoading ? "yes" : "no"}</div>
       <div data-testid="tenant">{currentTenantSlug ?? "none"}</div>
+      <div data-testid="role">{user?.role ?? "none"}</div>
       <button type="button" onClick={() => void logout()}>
         logout
       </button>
@@ -116,7 +117,7 @@ describe("Auth behavior invariants", () => {
       id: "user_1",
       primaryEmailAddress: { emailAddress: "alice@example.com" },
       organizationMemberships: [
-        { organization: { id: "org_1" }, role: "admin" },
+        { organization: { id: "org_1" }, role: "org:admin" },
       ],
     };
 
@@ -125,6 +126,7 @@ describe("Auth behavior invariants", () => {
     await userEvent.click(screen.getByRole("button", { name: "logout" }));
 
     expect(mockClerkState.signOut).toHaveBeenCalledWith({ redirectUrl: "/" });
+    expect(screen.getByTestId("role").textContent).toBe("tenant_admin");
   });
 
   it("keeps signed-in Clerk auth loading until active organization state resolves", () => {
@@ -157,7 +159,7 @@ describe("Auth behavior invariants", () => {
       id: "user_1",
       primaryEmailAddress: { emailAddress: "alice@example.com" },
       organizationMemberships: [
-        { organization: { id: "org_without_slug" }, role: "admin" },
+        { organization: { id: "org_without_slug" }, role: "org:member" },
       ],
     };
 
@@ -166,5 +168,6 @@ describe("Auth behavior invariants", () => {
     expect(screen.getByTestId("loading").textContent).toBe("no");
     expect(screen.getByTestId("auth").textContent).toBe("yes");
     expect(screen.getByTestId("tenant").textContent).toBe("org_without_slug");
+    expect(screen.getByTestId("role").textContent).toBe("analyst");
   });
 });

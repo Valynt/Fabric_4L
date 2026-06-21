@@ -18,7 +18,9 @@ Infisical stores:
   Clerk keys, webhook secrets, JWT verification config, per-env auth config
 ```
 
-Clerk session tokens are JWTs sent to the backend. Backend verification uses JWKS/public keys or `verifyToken()` with `CLERK_JWT_KEY` and `authorizedParties`. See [Clerk docs](https://clerk.com/docs/guides/sessions/session-tokens).
+Clerk session tokens are JWTs sent to the backend. The API gateway verifies
+them with `CLERK_JWKS_URL` or a local/testing-only `CLERK_PINNED_JWT_PEM`, then
+re-wraps the identity into Fabric's signed internal auth envelope.
 
 ---
 
@@ -128,6 +130,8 @@ Recommended Clerk org roles:
 ```txt
 org:owner
 org:admin
+org:member
+org:guest
 org:value_engineer
 org:sales_leader
 org:account_executive
@@ -172,6 +176,15 @@ org:agents:approve_actions
 org:admin:manage_users
 org:admin:manage_integrations
 org:admin:manage_api_keys
+```
+
+The gateway normalizes Clerk's built-in organization roles before creating the
+Fabric internal auth context:
+
+```txt
+org:admin / admin              -> tenant_admin
+org:member / basic_member      -> analyst
+org:guest / guest_member       -> read_only
 ```
 
 Important boundary:
@@ -240,7 +253,6 @@ Never put this in `/apps/web`:
 ```env
 VITE_CLERK_SECRET_KEY=
 VITE_CLERK_WEBHOOK_SECRET=
-VITE_CLERK_JWT_KEY=
 ```
 
 ### `/shared/auth`
@@ -260,9 +272,13 @@ Gateway-only secrets:
 
 ```env
 CLERK_SECRET_KEY=
-CLERK_JWT_KEY=
-FABRIC_AUTH_SIGNING_PRIVATE_KEY=
-FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
+CLERK_WEBHOOK_SECRET=
+FABRIC_AUTH_SIGNING_KEY=
+FABRIC_AUTH_SIGNING_KID=gateway-k1
+FABRIC_AUTH_PUBLIC_KEYS=[{"kid":"gateway-k1","public_pem":"-----BEGIN PUBLIC KEY-----..."}]
+FABRIC_AUTH_ISSUER=fabric4l-gateway
+FABRIC_AUTH_AUDIENCE=fabric4l-internal
+FABRIC_AUTH_ENVELOPE_TTL_SECONDS=300
 ```
 
 ### `/layer1-ingestion` through `/layer6-benchmarks`
@@ -272,9 +288,9 @@ Downstream services should not need Clerk secrets if you choose **gateway-only C
 They need only the Fabric4L internal auth verification key:
 
 ```env
-FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
-FABRIC_AUTH_ISSUER=fabric4l-api-gateway
-FABRIC_AUTH_AUDIENCE=fabric4l-internal-services
+FABRIC_AUTH_PUBLIC_KEYS=[{"kid":"gateway-k1","public_pem":"-----BEGIN PUBLIC KEY-----..."}]
+FABRIC_AUTH_ISSUER=fabric4l-gateway
+FABRIC_AUTH_AUDIENCE=fabric4l-internal
 ```
 
 ### `/webhooks`

@@ -13,7 +13,7 @@ This document summarizes the implementation of the database standardization and 
 **Deliverables**:
 - `reports/database-comparison-matrix.md` - Detailed comparison of database implementations across L1, L4, L5, and L6
 - `reports/httpexception-inventory.md` - Categorized inventory of ~200+ HTTPException raise sites
-- `reports/production-readiness-gap-analysis.md` - Critical gaps and recommendations
+- `docs/archive/evidence/reports/2026-06-21/production-readiness-gap-analysis.md` - Historical critical gaps and recommendations
 
 **Key Findings**:
 - L1 uses sync SQLAlchemy, L4/L5 use async
@@ -162,7 +162,7 @@ raise NotFoundError(resource_type="User", resource_id=user_id)
 ### Reports Created
 - `reports/database-comparison-matrix.md` - Database implementation comparison
 - `reports/httpexception-inventory.md` - HTTPException site inventory
-- `reports/production-readiness-gap-analysis.md` - Production readiness gaps
+- `docs/archive/evidence/reports/2026-06-21/production-readiness-gap-analysis.md` - Historical production readiness gaps
 - `reports/postgresql-helper-extraction-analysis.md` - Helper extraction analysis
 
 ### Test Files Modified
@@ -238,6 +238,6 @@ Located in `packages/shared/src/value_fabric/shared/error_handling/models.py`:
 ## Contact
 
 For questions about this implementation, refer to:
-- `reports/production-readiness-gap-analysis.md` for gap analysis
+- `docs/archive/evidence/reports/2026-06-21/production-readiness-gap-analysis.md` for historical gap analysis
 - `reports/database-comparison-matrix.md` for database patterns
 - `reports/httpexception-inventory.md` for HTTPException sites

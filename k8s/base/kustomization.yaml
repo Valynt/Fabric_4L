@@ -9,6 +9,7 @@ images: []
 resources:
   - namespace.yml
   - configmap-global.yml
+  - configmap-api-gateway-auth.yaml
   # External Secrets Operator for Vault integration
   # - external-secrets-operator.yml
   # NOTE: The operator is installed cluster-wide in the external-secrets namespace

@@ -45,7 +45,9 @@ jobs:
           pip install build twine
 
       - name: Build wheel and sdist
-        run: python -m build
+        run: |
+          python -m build
+          test -d dist
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

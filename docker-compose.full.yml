@@ -32,17 +32,38 @@ x-build-args: &build-args
 services:
   api-gateway:
     build:
-      context: ./services/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/api/Dockerfile
     container_name: value-fabric-api-gateway
     <<: *app-hardening
     expose:
       - "8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - DEBUG=false
       - ENVIRONMENT=production
       - TESTING=false
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-RS256}
+      - ALGORITHM=${JWT_ALGORITHM:-RS256}
+      - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS is required}
+      - LAYER4_API_BASE_URL=http://layer4-agents:8000
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-clerk}
+      - CLERK_ISSUER=${CLERK_ISSUER:?CLERK_ISSUER is required}
+      - CLERK_JWT_AUDIENCE=${CLERK_JWT_AUDIENCE:-fabric4l-api}
+      - CLERK_AUTHORIZED_PARTIES=${CLERK_AUTHORIZED_PARTIES:?CLERK_AUTHORIZED_PARTIES is required}
+      - CLERK_JWKS_URL=${CLERK_JWKS_URL:?CLERK_JWKS_URL is required}
+      - CLERK_PINNED_JWT_PEM=${CLERK_PINNED_JWT_PEM:-}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:?CLERK_SECRET_KEY is required}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET:-}
+      - CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE=${CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE:-30}
+      - FABRIC_AUTH_SIGNING_KEY=${FABRIC_AUTH_SIGNING_KEY:?FABRIC_AUTH_SIGNING_KEY is required}
+      - FABRIC_AUTH_SIGNING_KID=${FABRIC_AUTH_SIGNING_KID:-gateway-k1}
+      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS:?FABRIC_AUTH_PUBLIC_KEYS is required}
+      - FABRIC_AUTH_ISSUER=${FABRIC_AUTH_ISSUER:-fabric4l-gateway}
+      - FABRIC_AUTH_AUDIENCE=${FABRIC_AUTH_AUDIENCE:-fabric4l-internal}
+      - FABRIC_AUTH_ENVELOPE_TTL_SECONDS=${FABRIC_AUTH_ENVELOPE_TTL_SECONDS:-300}
       - PYTHONPATH=/app
     depends_on:
       postgres:

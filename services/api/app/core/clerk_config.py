@@ -18,6 +18,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+from value_fabric.shared.identity.fabric_auth import KeySet, SigningKey, VerificationKey
+from value_fabric.shared.identity.fabric_auth.context import DEFAULT_AUDIENCE, DEFAULT_ISSUER
 
 
 @dataclass(frozen=True)
@@ -35,31 +37,14 @@ class ClerkSettings:
 
 
 @dataclass(frozen=True)
-class SigningKey:
-    """Configured internal-envelope signing key."""
-
-    kid: str
-    private_key: Ed25519PrivateKey
-    public_key: Ed25519PublicKey
-
-
-@dataclass(frozen=True)
-class VerificationKeys:
-    """Public keys used to verify internal-envelope tokens."""
-
-    keys: dict[str, Ed25519PublicKey]
-
-    def kids(self) -> list[str]:
-        """Return the configured key IDs."""
-        return list(self.keys.keys())
-
-
-@dataclass(frozen=True)
-class InternalEnvelope:
+class InternalEnvelopeSettings:
     """Internal JWT envelope configuration."""
 
     signing_key: SigningKey | None = None
-    verification_keys: VerificationKeys | None = None
+    verification_keys: KeySet | None = None
+    issuer: str = DEFAULT_ISSUER
+    audience: str = DEFAULT_AUDIENCE
+    envelope_ttl_seconds: int = 300
 
 
 @dataclass(frozen=True)
@@ -68,7 +53,7 @@ class AuthSettings:
 
     provider: str
     clerk: ClerkSettings | None = None
-    envelope: InternalEnvelope | None = None
+    envelope: InternalEnvelopeSettings | None = None
 
 
 # Canonical provider identifiers for the auth layer.
@@ -78,39 +63,41 @@ AUTH_PROVIDER_CLERK = "clerk"
 def _load_signing_key(pem: str, kid: str) -> SigningKey:
     private_key = serialization.load_pem_private_key(pem.encode(), password=None)
     if not isinstance(private_key, Ed25519PrivateKey):
-        raise ValueError("FABRIC_AUTH_SIGNING_KEY must be an Ed25519 private key")
-    return SigningKey(
-        kid=kid,
-        private_key=private_key,
-        public_key=private_key.public_key(),
-    )
+        msg = "FABRIC_AUTH_SIGNING_KEY must be an Ed25519 private key"
+        raise TypeError(msg)
+    return SigningKey(kid=kid, private_pem=pem)
 
 
-def _load_verification_keys(raw: str) -> VerificationKeys:
+def _load_verification_keys(raw: str) -> KeySet:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError("FABRIC_AUTH_PUBLIC_KEYS must be valid JSON") from exc
+        msg = "FABRIC_AUTH_PUBLIC_KEYS must be valid JSON"
+        raise ValueError(msg) from exc
 
     if isinstance(data, dict):
         data = [data]
     if not isinstance(data, list):
-        raise ValueError("FABRIC_AUTH_PUBLIC_KEYS must be a JSON list or object")
+        msg = "FABRIC_AUTH_PUBLIC_KEYS must be a JSON list or object"
+        raise TypeError(msg)
 
-    keys: dict[str, Ed25519PublicKey] = {}
+    keys: list[VerificationKey] = []
     for entry in data:
         if not isinstance(entry, dict):
-            raise ValueError("Each FABRIC_AUTH_PUBLIC_KEYS entry must be an object")
+            msg = "Each FABRIC_AUTH_PUBLIC_KEYS entry must be an object"
+            raise TypeError(msg)
         kid = entry.get("kid")
         public_pem = entry.get("public_pem")
         if not kid or not public_pem:
-            raise ValueError("FABRIC_AUTH_PUBLIC_KEYS entries must include 'kid' and 'public_pem'")
+            msg = "FABRIC_AUTH_PUBLIC_KEYS entries must include 'kid' and 'public_pem'"
+            raise ValueError(msg)
         public_key = serialization.load_pem_public_key(public_pem.encode())
         if not isinstance(public_key, Ed25519PublicKey):
-            raise ValueError("FABRIC_AUTH_PUBLIC_KEYS must contain Ed25519 public keys")
-        keys[kid] = public_key
+            msg = "FABRIC_AUTH_PUBLIC_KEYS must contain Ed25519 public keys"
+            raise TypeError(msg)
+        keys.append(VerificationKey(kid=str(kid), public_pem=str(public_pem)))
 
-    return VerificationKeys(keys=keys)
+    return KeySet(keys)
 
 
 @lru_cache(maxsize=1)
@@ -130,22 +117,45 @@ def get_auth_settings() -> AuthSettings:
         publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY") or None,
     )
 
-    signing_key_pem = os.getenv("FABRIC_AUTH_SIGNING_KEY", "").strip() or None
-    signing_kid = os.getenv("FABRIC_AUTH_SIGNING_KID", "").strip() or None
+    signing_key_pem = (
+        os.getenv("FABRIC_AUTH_SIGNING_KEY", "").strip()
+        or os.getenv("FABRIC_AUTH_SIGNING_PRIVATE_KEY", "").strip()
+        or None
+    )
+    signing_kid = os.getenv("FABRIC_AUTH_SIGNING_KID", "").strip() or "gateway-k1"
     public_keys_raw = os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip() or None
+    legacy_public_key = os.getenv("FABRIC_AUTH_VERIFYING_PUBLIC_KEY", "").strip()
+    if not public_keys_raw and legacy_public_key:
+        public_keys_raw = json.dumps([{"kid": signing_kid, "public_pem": legacy_public_key}])
 
     if provider == "clerk":
-        if not signing_key_pem or not signing_kid or not public_keys_raw:
+        missing_clerk = []
+        if not clerk_settings.issuer:
+            missing_clerk.append("CLERK_ISSUER")
+        if not clerk_settings.jwt_audience:
+            missing_clerk.append("CLERK_JWT_AUDIENCE")
+        if not (clerk_settings.jwks_url or clerk_settings.pinned_jwt_pem):
+            missing_clerk.append("CLERK_JWKS_URL or CLERK_PINNED_JWT_PEM")
+        if missing_clerk:
             raise ValueError(
-                "AUTH_PROVIDER=clerk requires FABRIC_AUTH_SIGNING_KEY, "
-                "FABRIC_AUTH_SIGNING_KID, and FABRIC_AUTH_PUBLIC_KEYS to be set."
+                "AUTH_PROVIDER=clerk requires " + ", ".join(missing_clerk) + " to be set."
             )
+        if not signing_key_pem or not public_keys_raw:
+            msg = (
+                "AUTH_PROVIDER=clerk requires FABRIC_AUTH_SIGNING_KEY, "
+                "FABRIC_AUTH_PUBLIC_KEYS, and optionally FABRIC_AUTH_SIGNING_KID "
+                "to be set."
+            )
+            raise ValueError(msg)
 
-    envelope: InternalEnvelope | None = None
+    envelope: InternalEnvelopeSettings | None = None
     if signing_key_pem and signing_kid and public_keys_raw:
-        envelope = InternalEnvelope(
+        envelope = InternalEnvelopeSettings(
             signing_key=_load_signing_key(signing_key_pem, signing_kid),
             verification_keys=_load_verification_keys(public_keys_raw),
+            issuer=os.getenv("FABRIC_AUTH_ISSUER", DEFAULT_ISSUER),
+            audience=os.getenv("FABRIC_AUTH_AUDIENCE", DEFAULT_AUDIENCE),
+            envelope_ttl_seconds=int(os.getenv("FABRIC_AUTH_ENVELOPE_TTL_SECONDS", "300")),
         )
 
     return AuthSettings(

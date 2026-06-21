@@ -510,7 +510,7 @@ class TestF13SuperAdminMethodCall:
         import uuid as _uuid
         from fastapi import HTTPException
         try:
-            from tenants.api.routes.admin import _verify_tenant_access
+            from layer4_agents.tenants.api.routes.admin import _verify_tenant_access
         except Exception as exc:
             pytest.skip(f"Layer 4 admin routes not importable in this environment: {exc}")
 
@@ -532,7 +532,7 @@ class TestF13SuperAdminMethodCall:
         """_verify_tenant_access must not raise when the caller is super_admin."""
         import uuid as _uuid
         try:
-            from tenants.api.routes.admin import _verify_tenant_access
+            from layer4_agents.tenants.api.routes.admin import _verify_tenant_access
         except Exception as exc:
             pytest.skip(f"Layer 4 admin routes not importable in this environment: {exc}")
 

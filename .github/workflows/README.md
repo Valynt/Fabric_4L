@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **43** GitHub Actions workflow files.
+This directory currently contains **44** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -44,6 +44,7 @@ to an existing canonical workflow.
 | Workflow | Purpose | Trigger |
 |----------|---------|---------|
 | `build-deploy.yml` | Build and deploy pipeline | `push`, `workflow_dispatch` |
+| `cleanup-repo.yml` | Repository cleanup automation | `push`, `workflow_dispatch` |
 | `deploy.yml` | Deployment workflow | `workflow_call`, `workflow_dispatch` |
 | `environment-promotion.yml` | Environment promotion gates | `workflow_dispatch`, `workflow_run` |
 | `vault-integration.yml` | Reusable Vault/OIDC secret injection workflow | `workflow_call` |
@@ -58,10 +59,13 @@ to an existing canonical workflow.
 
 ## Drift Guard
 
-To prevent README/workflow filename drift and missing ownership metadata, CI validates
-the workflow registry against every workflow file in `.github/workflows/`.
+To prevent README/workflow filename drift, stale workflow command references, and
+missing ownership metadata, CI validates the workflow registry against every
+workflow file in `.github/workflows/`.
 
-- Guard script: `scripts/ci/verify_workflow_registry.py`
+- Public guards: `make check-workflow-registry` and `make check-workflow-references`
+- Package aliases: `pnpm ci:workflow-registry` and `pnpm ci:workflow-references`
+- Command source of truth: `docs/development/COMMANDS.md`
 - Count limit: fewer than 50 workflow YAML files
 
 ## Maintenance

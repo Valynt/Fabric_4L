@@ -122,7 +122,10 @@ CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 **Path: /api-gateway**
 ```
 CLERK_SECRET_KEY=<your-clerk-secret-key>
-CLERK_JWT_KEY=<your-clerk-jwt-key>
+CLERK_WEBHOOK_SECRET=<your-clerk-webhook-secret>
+FABRIC_AUTH_SIGNING_KEY=<ed25519-private-pem>
+FABRIC_AUTH_SIGNING_KID=gateway-k1
+FABRIC_AUTH_PUBLIC_KEYS=<json-public-key-set>
 ```
 
 **Path: /apps/web**

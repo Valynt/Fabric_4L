@@ -5,7 +5,6 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
-import os
 from collections import Counter
 from datetime import datetime
 from enum import Enum
@@ -24,6 +23,8 @@ from value_fabric.shared.contracts.layer3_statuses import (
     IngestStatus,
     SyncStatus,
 )
+
+from ..services import compat_policy
 
 
 # Health Check
@@ -1007,8 +1008,8 @@ GraphNodeAliasMap: dict[str, str] = {
     "type": "entity_type",
     "confidence": "confidence_score",
 }
-GRAPH_FIELD_ALIAS_WARNING_VERSION = "v2.4"
-GRAPH_FIELD_ALIAS_REMOVAL_VERSION = "v2.5"
+GRAPH_FIELD_ALIAS_WARNING_VERSION = compat_policy.GRAPH_FIELD_ALIAS_WARNING_VERSION
+GRAPH_FIELD_ALIAS_REMOVAL_VERSION = compat_policy.GRAPH_FIELD_ALIAS_REMOVAL_VERSION
 
 _DEPRECATED_FIELD_USAGE_COUNTERS: Counter[str] = Counter()
 
@@ -1029,10 +1030,7 @@ def get_deprecated_field_usage_counters() -> dict[str, int]:
 
 def include_legacy_graph_aliases(api_version: str = "v2.3") -> bool:
     """Return True while legacy graph aliases are still part of the contract."""
-    phase = os.getenv("L3_GRAPH_ALIAS_DEPRECATION_PHASE", "warning_only").lower()
-    if phase == "removed":
-        return False
-    return api_version < GRAPH_FIELD_ALIAS_REMOVAL_VERSION
+    return compat_policy.include_legacy_graph_aliases(api_version)
 
 
 class GraphNode(BaseModel):

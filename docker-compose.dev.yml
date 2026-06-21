@@ -383,6 +383,63 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
+  # API Gateway — Clerk token verification and tenant resolution
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./services/api/Dockerfile
+    container_name: vf-dev-api-gateway
+    ports:
+      - "8008:8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - DEBUG=false
+      - ENVIRONMENT=development
+      - TESTING=false
+      - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET:-dev-local-secret-do-not-use-in-production-minimum-32-chars}}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-RS256}
+      - ALGORITHM=${JWT_ALGORITHM:-RS256}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - LAYER4_API_BASE_URL=http://layer4:8000
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-clerk}
+      - CLERK_ISSUER=${CLERK_ISSUER}
+      - CLERK_JWT_AUDIENCE=${CLERK_JWT_AUDIENCE:-fabric4l-api}
+      - CLERK_AUTHORIZED_PARTIES=${CLERK_AUTHORIZED_PARTIES:-http://localhost:3001}
+      - CLERK_JWKS_URL=${CLERK_JWKS_URL}
+      - CLERK_PINNED_JWT_PEM=${CLERK_PINNED_JWT_PEM:-}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET:-}
+      - CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE=${CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE:-30}
+      - FABRIC_AUTH_SIGNING_KEY=${FABRIC_AUTH_SIGNING_KEY:-${FABRIC_AUTH_SIGNING_PRIVATE_KEY}}
+      - FABRIC_AUTH_SIGNING_KID=${FABRIC_AUTH_SIGNING_KID:-gateway-k1}
+      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS:-}
+      - FABRIC_AUTH_VERIFYING_PUBLIC_KEY=${FABRIC_AUTH_VERIFYING_PUBLIC_KEY:-}
+      - FABRIC_AUTH_ISSUER=${FABRIC_AUTH_ISSUER:-fabric4l-gateway}
+      - FABRIC_AUTH_AUDIENCE=${FABRIC_AUTH_AUDIENCE:-fabric4l-internal}
+      - FABRIC_AUTH_ENVELOPE_TTL_SECONDS=${FABRIC_AUTH_ENVELOPE_TTL_SECONDS:-300}
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      layer4:
+        condition: service_healthy
+    networks:
+      - dev-network
+    volumes:
+      - ./services/api/app:/app/app:ro
+      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
   # Frontend — Vite Dev Server
   # ---------------------------------------------------------------------------
   frontend:
@@ -414,7 +471,7 @@ services:
       - VITE_API_LOG_LEVEL=debug
       - VITE_ENABLE_MOCK_AUTH=true
       - VITE_AUTH_PROVIDER=${VITE_AUTH_PROVIDER:-clerk}
-      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
+      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY:-${CLERK_PUBLISHABLE_KEY}}
       - VITE_CLERK_SIGN_IN_URL=${VITE_CLERK_SIGN_IN_URL:-/sign-in}
       - VITE_CLERK_SIGN_UP_URL=${VITE_CLERK_SIGN_UP_URL:-/sign-up}
       - VITE_CLERK_AFTER_SIGN_IN_URL=${VITE_CLERK_AFTER_SIGN_IN_URL:-/home}
@@ -425,12 +482,15 @@ services:
       # are defined in this partial stack; missing layers rely on mock fallback.
       - VITE_PROXY_L2_URL=http://layer2:8000
       - VITE_PROXY_L4_URL=http://layer4:8000
+      - VITE_PROXY_API_GATEWAY_URL=http://api-gateway:8000
     volumes:
       - ./apps/web:/workspace/apps/web
       - /workspace/apps/web/node_modules
     networks:
       - dev-network
     depends_on:
+      api-gateway:
+        condition: service_healthy
       layer4:
         condition: service_healthy
     healthcheck:

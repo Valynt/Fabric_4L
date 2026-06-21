@@ -7,7 +7,7 @@
 import { Building2, TrendingUp, Users, Clock, Database, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { ValuePackFrameworkData } from "@/hooks/useValuePacks";
+import type { ValuePackFrameworkData } from "@/api/valuePackFramework";
 
 interface ValuePackCardProps {
   valuepack: ValuePackFrameworkData;

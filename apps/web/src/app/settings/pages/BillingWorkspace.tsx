@@ -3,6 +3,11 @@ import { toast } from "sonner";
 import { usePlatformSettings, useUpdatePlatformSettings } from "@/hooks/usePlatformSettings";
 import { CapabilityGate } from "../components/CapabilityGate";
 import { safeAsync } from '@/lib/async';
+import {
+  SettingsMetricGrid,
+  SettingsQueryState,
+  SettingsSaveButton,
+} from "../components/SettingsState";
 
 export function BillingWorkspace() {
   const { data: settings, isLoading, error } = usePlatformSettings();
@@ -54,77 +59,76 @@ export function BillingWorkspace() {
                 Live tenant metadata and branding settings backed by Layer 4 tenant configuration.
               </p>
             </div>
-            <button
-              type="button"
+            <SettingsSaveButton
               onClick={() => safeAsync(handleSave(), "billing.save")}
-              disabled={updateSettings.isPending}
-              className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              isPending={updateSettings.isPending}
             >
-              {updateSettings.isPending ? "Saving..." : "Save workspace"}
-            </button>
+              Save workspace
+            </SettingsSaveButton>
           </div>
 
-          {isLoading ? (
-            <div className="mt-4 rounded-md border p-4 text-sm text-muted-foreground">
-              Loading workspace settings...
-            </div>
-          ) : error ? (
-            <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
-              {error.message}
-            </div>
-          ) : settings ? (
-            <div className="mt-4 space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-md border p-4">
-                  <p className="text-xs text-muted-foreground">Workspace name</p>
-                  <p className="mt-1 text-sm font-medium">{settings.tenant_name}</p>
-                </div>
-                <div className="rounded-md border p-4">
-                  <p className="text-xs text-muted-foreground">Tenant slug</p>
-                  <p className="mt-1 text-sm font-medium">{settings.tenant_slug ?? "n/a"}</p>
-                </div>
-                <div className="rounded-md border p-4">
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <p className="mt-1 text-sm font-medium capitalize">{settings.tenant_status ?? "active"}</p>
-                </div>
-              </div>
+          <SettingsQueryState
+            data={settings}
+            isLoading={isLoading}
+            error={error}
+            loadingLabel="Loading workspace settings..."
+            errorTitle="Failed to load workspace settings"
+          >
+            {(currentSettings) => (
+              <div className="mt-4 space-y-6">
+                <SettingsMetricGrid
+                  className="md:grid-cols-3"
+                  metrics={[
+                    { label: "Workspace name", value: currentSettings.tenant_name },
+                    { label: "Tenant slug", value: currentSettings.tenant_slug ?? "n/a" },
+                    {
+                      label: "Status",
+                      value: (
+                        <span className="capitalize">
+                          {currentSettings.tenant_status ?? "active"}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-1 text-sm">
-                  <span className="text-xs text-muted-foreground">Logo URL</span>
-                  <input
-                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                    value={brandingDraft.logo_url}
-                    onChange={(event) => setBrandingDraft((current) => ({ ...current, logo_url: event.target.value }))}
-                  />
-                </label>
-                <label className="space-y-1 text-sm">
-                  <span className="text-xs text-muted-foreground">Primary color</span>
-                  <input
-                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                    value={brandingDraft.primary_color}
-                    onChange={(event) => setBrandingDraft((current) => ({ ...current, primary_color: event.target.value }))}
-                  />
-                </label>
-                <label className="space-y-1 text-sm">
-                  <span className="text-xs text-muted-foreground">Custom domain</span>
-                  <input
-                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                    value={brandingDraft.custom_domain}
-                    onChange={(event) => setBrandingDraft((current) => ({ ...current, custom_domain: event.target.value }))}
-                  />
-                </label>
-                <label className="space-y-1 text-sm">
-                  <span className="text-xs text-muted-foreground">Incident webhook</span>
-                  <input
-                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                    value={webhookDraft}
-                    onChange={(event) => setWebhookDraft(event.target.value)}
-                  />
-                </label>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-xs text-muted-foreground">Logo URL</span>
+                    <input
+                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                      value={brandingDraft.logo_url}
+                      onChange={(event) => setBrandingDraft((current) => ({ ...current, logo_url: event.target.value }))}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-xs text-muted-foreground">Primary color</span>
+                    <input
+                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                      value={brandingDraft.primary_color}
+                      onChange={(event) => setBrandingDraft((current) => ({ ...current, primary_color: event.target.value }))}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-xs text-muted-foreground">Custom domain</span>
+                    <input
+                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                      value={brandingDraft.custom_domain}
+                      onChange={(event) => setBrandingDraft((current) => ({ ...current, custom_domain: event.target.value }))}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-xs text-muted-foreground">Incident webhook</span>
+                    <input
+                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                      value={webhookDraft}
+                      onChange={(event) => setWebhookDraft(event.target.value)}
+                    />
+                  </label>
+                </div>
               </div>
-            </div>
-          ) : null}
+            )}
+          </SettingsQueryState>
         </section>
       </div>
     </CapabilityGate>

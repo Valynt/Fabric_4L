@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from collections import Counter
 
+from . import compat_policy
+
 try:
     from prometheus_client import Counter as PromCounter
 except Exception:  # pragma: no cover
@@ -12,10 +14,7 @@ except Exception:  # pragma: no cover
 
 _DEPRECATED_ROUTE_HITS: Counter[tuple[str, str, str]] = Counter()
 _DEPRECATED_LEGACY_FIELD_HITS: Counter[tuple[str, str, str]] = Counter()
-DEPRECATION_ACCEPTANCE_THRESHOLDS: dict[str, int] = {
-    "max_legacy_route_hits_7d": 0,
-    "max_legacy_field_hits_7d": 0,
-}
+DEPRECATION_ACCEPTANCE_THRESHOLDS = compat_policy.DEPRECATION_ACCEPTANCE_THRESHOLDS
 
 if PromCounter is not None:
     from prometheus_client import REGISTRY
@@ -74,10 +73,4 @@ def deprecation_ready_for_removal(
 ) -> bool:
     """Return whether compatibility usage is below hard-removal thresholds."""
     snapshot = snapshot or get_compat_metrics_snapshot()
-    thresholds = thresholds or DEPRECATION_ACCEPTANCE_THRESHOLDS
-    route_total = sum(snapshot.get("route_hits", {}).values())
-    field_total = sum(snapshot.get("legacy_field_hits", {}).values())
-    return (
-        route_total <= thresholds["max_legacy_route_hits_7d"]
-        and field_total <= thresholds["max_legacy_field_hits_7d"]
-    )
+    return compat_policy.deprecation_ready_for_removal(snapshot, thresholds=thresholds)

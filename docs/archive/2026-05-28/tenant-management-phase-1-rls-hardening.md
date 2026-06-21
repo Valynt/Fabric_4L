@@ -286,7 +286,7 @@ Add after tenant resolution:
 
 ```python
 from fastapi import HTTPException, status
-from layer4_agents.src.tenants.constants import TenantStatus
+from layer4_agents.tenants.constants import TenantStatus
 
 async def check_tenant_status(db_session, tenant_id: UUID) -> None:
     """Check if tenant is active, raise 403 if suspended."""

@@ -290,8 +290,8 @@ Add middleware to enforce tier limits.
 
 ```python
 from fastapi import HTTPException, status
-from layer4_agents.src.tenants.tiers import get_tier_config, check_limit
-from layer4_agents.src.tenants.service import TenantService
+from layer4_agents.tenants.tiers import get_tier_config, check_limit
+from layer4_agents.tenants.service import TenantService
 
 class TierEnforcementMiddleware:
     """Middleware to enforce tenant tier limits."""

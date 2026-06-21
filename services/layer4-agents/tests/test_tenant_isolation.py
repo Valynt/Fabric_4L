@@ -388,13 +388,13 @@ class TestIsolationTierSupport:
         # Future: This will need schema-aware DB session handling
 
 
-@pytest.mark.skip(reason="DEFERRED: Relative import error - 'tenants.service' module does not exist at expected path. This test references a service module that needs to be located or created.")
+@pytest.mark.skip(reason="DEFERRED: service behavior still needs a dedicated non-DB unit seam.")
 class TestTierChangeValidation:
     """Test validation in tier change audit logging (Task 4.1 refinement)."""
 
     def test_valid_change_sources_defined(self):
         """VALID_CHANGE_SOURCES should include all expected sources."""
-        from tenants.service import VALID_CHANGE_SOURCES
+        from layer4_agents.tenants.service import VALID_CHANGE_SOURCES
 
         assert "system" in VALID_CHANGE_SOURCES
         assert "migration" in VALID_CHANGE_SOURCES
@@ -406,8 +406,8 @@ class TestTierChangeValidation:
     def test_log_isolation_tier_change_validates_change_source(self):
         """log_isolation_tier_change should reject invalid change_source."""
         import pytest
-        from tenants.service import log_isolation_tier_change
-        from tenants.models import IsolationTier
+        from layer4_agents.tenants.service import log_isolation_tier_change
+        from layer4_agents.tenants.models import IsolationTier
 
         # This test validates the function logic without needing a DB session
         # by checking that invalid sources raise ValueError
