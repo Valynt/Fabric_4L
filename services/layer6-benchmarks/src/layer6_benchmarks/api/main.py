@@ -2,20 +2,11 @@
 """Layer 6 Benchmark Service FastAPI application."""
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import (
-    AuthenticationError,
-    AuthorizationError,
-    NotFoundError,
-    ServiceUnavailableError,
-    ValidationError,
-)
-
-
+import decimal
 import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-import decimal
 from decimal import Decimal
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -23,6 +14,13 @@ from urllib.parse import parse_qs, urlparse
 import structlog
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import Response
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel

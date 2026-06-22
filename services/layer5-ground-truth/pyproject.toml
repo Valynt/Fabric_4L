@@ -87,6 +87,14 @@ ignore = [
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
     "UP007",  # Use `X | Y` for union types
     "SIM101", # Multiple `isinstance()` calls, merge into a single call
+    "SIM102", # Use a single `if` statement instead of nested `if` statements
+    "SIM105", # Use `contextlib.suppress(...)` instead of `try`-`except`-`pass`
+    "SIM117", # Use a single `with` statement with multiple contexts
+    "SIM118", # Use `key in dict` instead of `key in dict.keys()`
+    "C401",   # Unnecessary generator (use a set comprehension)
+    "C405",   # Unnecessary `set` literal
+    "C414",   # Unnecessary `list` or `tuple` call within `list()`
+    "C416",   # Unnecessary `list` comprehension
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -98,15 +106,6 @@ ignore = [
 "value_fabric.layer4" = { msg = "value_fabric.layer4 is deprecated. Use layer4_agents.* instead. This namespace will be removed before 2026-09-30." }
 "value_fabric.layer5" = { msg = "value_fabric.layer5 is deprecated. Use layer5_ground_truth.* instead. This namespace will be removed before 2026-09-30." }
 "value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
-    "SIM102", # Use a single `if` statement instead of nested `if` statements
-    "SIM105", # Use `contextlib.suppress(...)` instead of `try`-`except`-`pass`
-    "SIM117", # Use a single `with` statement with multiple contexts
-    "SIM118", # Use `key in dict` instead of `key in dict.keys()`
-    "C401",   # Unnecessary generator (use a set comprehension)
-    "C405",   # Unnecessary `set` literal
-    "C414",   # Unnecessary `list` or `tuple` call within `list()`
-    "C416",   # Unnecessary `list` comprehension
-]
 
 [tool.mypy]
 python_version = "3.11"

@@ -2061,9 +2061,12 @@
     },
     "/api/v1/ingestion/content/raw/{content_id}": {
       "get": {
-        "summary": "Get Raw Content",
+        "tags": [
+          "Content"
+        ],
+        "summary": "Retrieve raw content by ID",
         "description": "Retrieve raw content by ID.",
-        "operationId": "get_raw_content_api_v1_ingestion_content_raw__content_id__get",
+        "operationId": "get_raw_content",
         "parameters": [
           {
             "name": "content_id",
@@ -2132,9 +2135,12 @@
     },
     "/api/v1/ingestion/content/extracted/{extracted_data_id}": {
       "get": {
-        "summary": "Get Extracted Data",
+        "tags": [
+          "Content"
+        ],
+        "summary": "Retrieve extracted data by ID",
         "description": "Retrieve extracted data by ID.",
-        "operationId": "get_extracted_data_api_v1_ingestion_content_extracted__extracted_data_id__get",
+        "operationId": "get_extracted_data",
         "parameters": [
           {
             "name": "extracted_data_id",
@@ -2184,9 +2190,12 @@
     },
     "/api/v1/ingestion/content": {
       "get": {
-        "summary": "List Content",
+        "tags": [
+          "Content"
+        ],
+        "summary": "List raw content with filtering",
         "description": "List raw content with filtering.",
-        "operationId": "list_content_api_v1_ingestion_content_get",
+        "operationId": "list_content",
         "parameters": [
           {
             "name": "job_id",
@@ -2655,6 +2664,274 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ingest": {
+      "post": {
+        "tags": [
+          "Compatibility"
+        ],
+        "summary": "Short Ingest Compatibility Boundary",
+        "operationId": "short_ingest_compatibility_boundary_v1_ingest_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Short Ingest Compatibility Boundary V1 Ingest Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/entities": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Entity Security Boundary",
+        "operationId": "entity_security_boundary_api_v1_entities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {},
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response Entity Security Boundary Api V1 Entities Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/entities/{entity_id}": {
+      "delete": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Entity Delete Security Boundary",
+        "operationId": "entity_delete_security_boundary_api_v1_entities__entity_id__delete",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Entity Delete Security Boundary Api V1 Entities  Entity Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/user/profile": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "User Profile Security Boundary",
+        "operationId": "user_profile_security_boundary_api_v1_user_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response User Profile Security Boundary Api V1 User Profile Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/user/{user_id}/private-data": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "User Private Data Security Boundary",
+        "operationId": "user_private_data_security_boundary_api_v1_user__user_id__private_data_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response User Private Data Security Boundary Api V1 User  User Id  Private Data Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Admin Read Security Boundary",
+        "operationId": "admin_read_security_boundary_api_admin_tenants_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Admin Read Security Boundary Api Admin Tenants Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit-logs": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Admin Read Security Boundary",
+        "operationId": "admin_read_security_boundary_api_admin_audit_logs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Admin Read Security Boundary Api Admin Audit Logs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/config": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Admin Read Security Boundary",
+        "operationId": "admin_read_security_boundary_api_admin_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Admin Read Security Boundary Api Admin Config Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Admin Read Security Boundary",
+        "operationId": "admin_read_security_boundary_api_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Admin Read Security Boundary Api Admin Users Get"
                 }
               }
             }
