@@ -111,9 +111,17 @@ For most endpoints, use `get_db_from_context()` which:
 2. Validates the tenant context is present
 3. Sets `SET LOCAL app.tenant_id` for RLS
 
+> **Import-path warning:** The shared identity modules own the process-wide
+> ``ContextVar`` that carries ``tenant_id`` to PostgreSQL RLS. Importing them
+> through multiple namespace paths (e.g. ``value_fabric.shared.identity.context``
+> and ``packages.shared.src.value_fabric.shared.identity.context``) can create
+> independent module objects and silently break tenant isolation. Always use the
+> canonical paths shown below; CI rejects direct imports of the deep package
+> path.
+
 ```python
-from value_fabric.layer4_agents.src.database import get_db_from_context
-from shared.identity.dependencies import get_request_context
+from layer4_agents.database import get_db_from_context
+from value_fabric.shared.identity.dependencies import get_request_context
 
 @router.get("/accounts/{id}")
 async def get_account(
@@ -131,7 +139,7 @@ async def get_account(
 Require explicit tenant context for sensitive operations:
 
 ```python
-from shared.identity.dependencies import require_tenant_context
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 @router.post("/sensitive-operation")
 async def sensitive_op(
@@ -147,8 +155,8 @@ async def sensitive_op(
 For cross-tenant administrative operations:
 
 ```python
-from shared.identity.dependencies import require_privileged_access
-from value_fabric.layer4_agents.src.database import get_db_with_optional_tenant
+from value_fabric.shared.identity.dependencies import require_privileged_access
+from layer4_agents.database import get_db_with_optional_tenant
 
 @router.get("/admin/all-tenants")
 async def get_all_tenants(

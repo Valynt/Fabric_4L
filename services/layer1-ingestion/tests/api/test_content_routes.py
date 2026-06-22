@@ -233,7 +233,7 @@ class TestContentAsyncDBDependency:
         raw = _make_raw_content(org_id, job, db)
         extracted = _make_extracted_data(org_id, job, raw, db)
 
-        response = client_content.get(f"/api/v1/tracted/{extracted.id}")
+        response = client_content.get(f"/api/v1/ingestion/content/extracted/{extracted.id}")
 
         assert response.status_code == 200
         data = response.json()
