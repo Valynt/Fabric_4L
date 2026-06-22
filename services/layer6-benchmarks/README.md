@@ -1,7 +1,7 @@
 # Layer 6: Benchmark Service
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. `value_fabric/layer6/` is a neutralized namespace placeholder only. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. The legacy `value_fabric/layer6/` namespace placeholder has been removed. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Standalone service for comparative intelligence and peer benchmarking.
 
@@ -48,7 +48,7 @@ Layer 6 integrates with Layer 4 Agents via the `IBenchmarkClient` interface (see
 
 Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)).
 
-`value_fabric/layer6/` is a **neutralized namespace placeholder**. It must not resolve `value_fabric.layer6.*` imports to the service tree, append paths, or contain implementation files. CI gates (`scripts/ci/check_layer6_imports.py`, `scripts/ci/check_stale_namespace_dirs.py`) reject regressions.
+`value_fabric/layer6/` has been removed. It must not be restored, resolve `value_fabric.layer6.*` imports to the service tree, append paths, or contain implementation files. CI gates (`scripts/ci/check_layer6_imports.py`, `scripts/ci/check_stale_namespace_dirs.py`) reject regressions.
 
 Where wrapper files still exist under `services/layer6-benchmarks/src/` to preserve historical import paths, they must remain byte-aligned thin re-exports declared in `scripts/mirrored_files.json` and enforced by:
 

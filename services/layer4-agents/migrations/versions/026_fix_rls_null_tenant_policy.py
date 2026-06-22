@@ -37,7 +37,6 @@ depends_on: Union[str, Sequence[str], None] = None
 # Tables from migration 007 with unsafe NULL pattern
 MIGRATION_007_TABLES = [
     "accounts",
-    "account_contacts",
     "account_notes",
     "crm_sync_states",
     "feature_flags",
@@ -63,7 +62,6 @@ ALL_TABLES = MIGRATION_007_TABLES + MIGRATION_013_TABLES
 # test scanner in test_rls_enforcement.py can parse it.
 RLS_TABLES = [
     "accounts",
-    "account_contacts",
     "account_notes",
     "crm_sync_states",
     "feature_flags",

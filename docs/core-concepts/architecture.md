@@ -684,7 +684,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 
 | Concern | Canonical Path |
 | ------- | --------------- |
-| Runtime Python packages | `services/layer{1-6}-*/src/`, adjacent service packages, `value_fabric/shared/` |
+| Runtime Python packages | `services/layer{1-6}-*/src/`, adjacent service packages, `packages/shared/src/value_fabric/shared/` |
 | Frontend | `apps/web/src` |
 | API contracts | `contracts/openapi/*.json`, `contracts/jsonschema/*.json` |
 | Kubernetes manifests | `k8s/` |

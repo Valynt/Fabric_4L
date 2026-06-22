@@ -2,6 +2,10 @@
 
 **Goal:** Delete the `value_fabric/` root shim and layer-specific re-exports, replacing all internal imports with canonical paths.
 
+**Status:** Completed 2026-06-22 for the root `value_fabric/` compatibility
+package and `value_fabric/layer*` shims. Shared imports continue through
+`packages/shared/src/value_fabric/shared/`.
+
 **Canonical paths**
 - Shared code: `packages/shared/src/value_fabric/shared/`
 - Layer runtime code: `services/layerN-*/src/<layerN_*/>`

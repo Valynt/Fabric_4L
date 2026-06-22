@@ -32,14 +32,14 @@ For full details, see:
 - **Tenant isolation** — Every data read/write is scoped by `tenant_id` via GovernanceMiddleware and PostgreSQL RLS.
 - **Contract-first** — Tool schemas, agent outputs, and API response shapes are declared in `contracts/` and enforced by CI.
 - **Provider-agnostic agents** — Core orchestration in `services/layer4-agents/src/engine/` is decoupled from specific LLM vendors.
-- **Runtime packages** — `value_fabric/layer*/` are shim packages that delegate to canonical service implementations in `services/layer*/src/`. Adjacent services use their service-local packages and contracted HTTP/client boundaries.
+- **Runtime packages** — Layer runtime packages live in `services/layer*/src/`; shared runtime modules live in `packages/shared/src/value_fabric/shared/`. The legacy root `value_fabric/` compatibility tree has been removed. Adjacent services use their service-local packages and contracted HTTP/client boundaries.
 - **Packs** — Domain-specific ontologies, formulas, and benchmarks live in `packs/` and extend the platform without modifying core logic.
 
 ## Source of Truth Paths
 
 | Concern | Path |
 | --- | --- |
-| Runtime Python packages | `value_fabric/layer{1–6}/`, `value_fabric/shared/`, service-local adjacent packages |
+| Runtime Python packages | `services/layer{1–6}-*/src/`, `packages/shared/src/value_fabric/shared/`, service-local adjacent packages |
 | Service implementations | `services/layer{1–6}-*/src/`, `services/layer2-5-signal-refinery/`, `services/layer7-billing/` |
 | Frontend | `apps/web/` |
 | API contracts | `contracts/` |

@@ -41,15 +41,14 @@ ALLOWED_PATH_FRAGMENTS = (
     "/migrations/",
     "/scripts/",
     "/alembic/",
-    "value_fabric/shared/database/runtime_adapter.py",
-    "value_fabric/shared/database/async_engine.py",  # uses create_async_engine; safe regex below
-    "value_fabric/shared/database/postgresql.py",  # canonical async builder
+    "packages/shared/src/value_fabric/shared/database/runtime_adapter.py",
+    "packages/shared/src/value_fabric/shared/database/async_engine.py",  # uses create_async_engine; safe regex below
+    "packages/shared/src/value_fabric/shared/database/postgresql.py",  # canonical async builder
 )
 
 SERVICE_ROOTS = (
     REPO_ROOT / "services",
     REPO_ROOT / "packages" / "shared" / "src",
-    REPO_ROOT / "value_fabric",
 )
 
 EXCLUDED_DIR_NAMES = frozenset(

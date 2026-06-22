@@ -11,7 +11,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CANONICAL_ROOTS = ("value_fabric", "services", "apps/web")
+CANONICAL_ROOTS = ("packages/shared/src", "services", "apps/web")
 EXCLUDED_DIR_NAMES = {"docs", "examples", "example", "node_modules", ".git", ".venv", "venv", "dist", "build", "__pycache__"}
 EXCEPTIONS_REGISTER = REPO_ROOT / "docs" / "governance" / "deprecations.json"
 
@@ -31,7 +31,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-001",
         deprecated_pattern="request.state.context",
         canonical_replacement="request.state.governance_context",
-        replacement_module_path="value_fabric/shared/identity/",
+        replacement_module_path="packages/shared/src/value_fabric/shared/identity/",
         deadline=date(2026, 5, 15),
         file_globs=("*.py",),
     ),
@@ -39,7 +39,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-002",
         deprecated_pattern="get_db_with_tenant(",
         canonical_replacement="get_db_from_context()",
-        replacement_module_path="value_fabric/shared/db/",
+        replacement_module_path="packages/shared/src/value_fabric/shared/db/",
         deadline=date(2026, 6, 1),
         file_globs=("*.py",),
     ),
@@ -47,7 +47,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-003",
         deprecated_pattern="datetime.utcnow()",
         canonical_replacement="datetime.now(timezone.utc)",
-        replacement_module_path="value_fabric/ and services/ Python runtime modules",
+        replacement_module_path="packages/shared/src/value_fabric/shared/ and services/ Python runtime modules",
         deadline=date(2026, 6, 1),
         file_globs=("*.py",),
     ),

@@ -179,73 +179,56 @@ def check_secret_file_risk(
 
 
 def check_import_namespace_mismatch(repo_root: Path) -> list[Finding]:
-    """Detect value_fabric vs value-fabric divergence."""
+    """Detect legacy value_fabric root-package drift."""
     findings = []
 
-    hyphen_dir = repo_root / "value-fabric"
     underscore_dir = repo_root / "value_fabric"
 
-    # Check what tests expect
-    test_imports = []
-    tests_dir = repo_root / "tests"
-    if tests_dir.exists():
-        for py_file in tests_dir.rglob("*.py"):
-            try:
-                content = py_file.read_text(encoding="utf-8", errors="ignore")
-                if "from value_fabric" in content or "import value_fabric" in content:
-                    test_imports.append(str(py_file.relative_to(repo_root)))
-            except Exception:
-                pass
-
-    if test_imports and not underscore_dir.exists():
+    if underscore_dir.exists():
         findings.append(Finding(
             check_id="import_namespace_mismatch",
-            severity="critical",
-            path="tests/",
-            finding_type="missing_value_fabric_package",
-            message=f"Tests import value_fabric but package doesn't exist. Files: {len(test_imports)}",
-            recommendation="Create value_fabric/ compatibility package with forwarding imports",
+            severity="high",
+            path="value_fabric/",
+            finding_type="legacy_value_fabric_root_remains",
+            message="Root value_fabric/ compatibility package still exists",
+            recommendation="Delete value_fabric/ and resolve value_fabric.shared from packages/shared/src",
         ))
-
-    if hyphen_dir.exists() and underscore_dir.exists():
-        # Check if underscore is a junction/pointer
-        underscore_init = underscore_dir / "__init__.py"
-        if underscore_init.exists():
-            init_content = underscore_init.read_text(encoding="utf-8", errors="ignore")
-            if not init_content.strip():
-                findings.append(Finding(
-                    check_id="import_namespace_mismatch",
-                    severity="high",
-                    path="value_fabric/__init__.py",
-                    finding_type="empty_compatibility_package",
-                    message="value_fabric/__init__.py is empty - needs forwarding imports",
-                    recommendation="Add explicit imports to forward to value-fabric modules",
-                ))
 
     # Test actual import
     exit_code, _, stderr = run_command(
-        [sys.executable, "-c", "import value_fabric; print(value_fabric.__file__)"],
+        [sys.executable, "-c", "import value_fabric.shared; print(value_fabric.shared.__file__)"],
         cwd=repo_root
     )
     if exit_code != 0:
         findings.append(Finding(
             check_id="import_namespace_mismatch",
             severity="critical",
-            path="value_fabric/",
+            path="packages/shared/src/value_fabric/shared/",
             finding_type="import_resolution_failure",
-            message="Cannot import value_fabric package",
-            recommendation="Fix import path in pytest.ini or create proper package junctions",
+            message="Cannot import value_fabric.shared package",
+            recommendation="Fix import path in pytest.ini so packages/shared/src exposes the namespace package",
         ))
 
     return findings
 
 
 def check_namespace_shadowing(repo_root: Path) -> list[Finding]:
-    """Detect legacy root value_fabric/shared/ that should have been removed."""
+    """Detect legacy root value_fabric/ content that should have been removed."""
     findings = []
 
+    root_pkg = repo_root / "value_fabric"
     root_shared = repo_root / "value_fabric" / "shared"
     pkg_shared = repo_root / "packages" / "shared" / "src" / "value_fabric" / "shared"
+
+    if root_pkg.exists():
+        findings.append(Finding(
+            check_id="namespace_shadowing",
+            severity="high",
+            path="value_fabric/",
+            finding_type="legacy_root_namespace_remains",
+            message="Root value_fabric/ still exists",
+            recommendation="Delete value_fabric/ so value_fabric.shared resolves only from packages/shared/src",
+        ))
 
     if root_shared.exists():
         findings.append(Finding(

@@ -111,11 +111,17 @@ The codebase shows **critical health risks** in specific hotspots despite an ove
 - `apps/web/src/pages/value-case/ValueCasePage.tsx` (276 lines)
 - `apps/web/src/pages/realization/RealizationPage.tsx` (235 lines)
 
+**Execution notes**:
+- The raw dead-code list contains **false positives** for default exports and dynamic imports. Deleting the first batch (`NarrativeTab`, `InteractiveBusinessCase`, `ROITab`, etc.) broke the build because the symbols are imported via default import paths (e.g., `import("@/pages/studio/ActionPlanTab")`). These files were restored.
+- Verified safe-to-delete: 3 unused re-export wrappers under `src/features/intelligence-workspace/tabs/` (`calculator/ROITab.tsx`, `value-case/NarrativeTab.tsx`, `value-realization/ActionPlanTab.tsx`). These were removed.
+- Frontend typecheck is now clean except for an unrelated pre-existing error in `src/hooks/usePersistFn.ts`.
+
 **Remediation**:
-1. Use `/dead-code-sweeper` workflow for automated removal
-2. Verify no dynamic imports or route references
-3. Update routing config if needed
-4. Run frontend tests after removal
+1. Verify each candidate with import/reference search before deleting
+2. Treat default exports and dynamic imports as live unless the import path is unreferenced
+3. Treat API route handlers as live if they are registered in a router (used via HTTP, not imports)
+4. Run frontend typecheck after removal
+5. Run backend tests after removal
 
 **Timeline**: 1 sprint
 
@@ -123,15 +129,18 @@ The codebase shows **critical health risks** in specific hotspots despite an ove
 **Total**: 191 medium-confidence unused exports (6,043 lines)
 
 **Notable deletions**:
-- `services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py::create_source` (250 lines)
-- `services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py::ExecutionMetrics` (169 lines)
-- `services/layer2-extraction/src/layer2_extraction/models/ontology.py::OntologySchema` (104 lines)
-- `services/layer4-agents/src/layer4_agents/api/routes/state_inspector.py::get_performance_metrics` (96 lines)
+- `services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py::ExecutionMetrics` (169 lines) — **removed and verified** via `test_crawler_telemetry.py` and ruff.
+
+**False positives / needs deeper review**:
+- `create_source` is referenced in tests and generated API contracts
+- `OntologySchema` is referenced in frontend hooks, tests, and pages
+- `get_performance_metrics` is referenced in generated API contracts
+- API routes (`compare_checkpoints`, `resume_from_checkpoint`, etc.) are used via HTTP, not imports
 
 **Remediation**:
-1. Review medium-confidence exports for dynamic usage
-2. Remove confirmed unused exports
-3. Update OpenAPI specs if endpoints were exposed
+1. Verify each candidate with codebase-wide search before deleting
+2. Treat API route handlers as live unless their route registration is removed
+3. Do not remove symbols referenced in generated contracts/tests
 4. Run backend tests after removal
 
 **Timeline**: 1 sprint

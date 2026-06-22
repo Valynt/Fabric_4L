@@ -4,13 +4,17 @@
 
 Accepted — 2026-06-04
 
+Implemented — 2026-06-22: root `value_fabric/` and `value_fabric/layer{N}/`
+compatibility shims were removed. Shared imports continue to resolve through
+the PEP 420 namespace at `packages/shared/src/value_fabric/shared/`.
+
 Supersedes: ADR-021 (canonical path direction)
 
 ---
 
 ## Context
 
-Per ADR-021, all implementation logic was moved to `services/` trees and `value_fabric/layer{N}/` directories were converted to thin namespace shims for backward compatibility. These shim packages exist at:
+Per ADR-021, all implementation logic was moved to `services/` trees and `value_fabric/layer{N}/` directories were converted to thin namespace shims for backward compatibility. These shim packages existed at:
 
 - `value_fabric/layer1/` — Layer 1 ingestion compatibility
 - `value_fabric/layer2/` — Layer 2 extraction compatibility
@@ -31,7 +35,7 @@ The CI gates added in ADR-021 (`adr027-duplicate-source-trees`, `adr027-deprecat
 
 ## Decision
 
-**All `value_fabric/layer{N}/` namespace shims will be removed by 2026-09-30.**
+**All `value_fabric/layer{N}/` namespace shims are removed as of 2026-06-22.**
 
 ### Removal Schedule
 
@@ -41,7 +45,7 @@ The CI gates added in ADR-021 (`adr027-duplicate-source-trees`, `adr027-deprecat
 | 2 | 2026-07-15 | Migrate all cross-layer imports to service packages |
 | 3 | 2026-08-15 | Update CI gates to emit warnings for shim imports |
 | 4 | 2026-09-15 | Final notification period for external consumers |
-| 5 | 2026-09-30 | Remove all shim directories; archive migration guide |
+| 5 | 2026-06-22 | Remove all shim directories; archive migration guide |
 
 ### Migration Rule
 
@@ -79,12 +83,12 @@ This date aligns with:
 
 - Any external consumers using `value_fabric.layer{N}` imports will break
 - Internal test fixtures and notebooks may need updates
-- The `value_fabric` namespace package itself may become empty and require reconsideration
+- The root `value_fabric/` compatibility package was deleted; `value_fabric.shared.*` remains available through `packages/shared/src`
 
 ### Neutral
 
-- `value_fabric/shared/` remains unchanged (shared models, schemas, utilities)
-- `value_fabric/__init__.py` path appending logic will be removed
+- `packages/shared/src/value_fabric/shared/` remains unchanged (shared models, schemas, utilities)
+- `value_fabric/__init__.py` path appending logic was removed with the root compatibility package
 - Archive documentation will retain the historical context
 
 ---

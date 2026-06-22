@@ -64,13 +64,8 @@ The cleanup must be phased to avoid breaking imports, CI, Docker, docs, or launc
 
 | Path | Status |
 |---|---|
-| `value_fabric/layer1/` | Shim only |
-| `value_fabric/layer2/` | Shim only |
-| `value_fabric/layer3/` | Shim only |
-| `value_fabric/layer4/` | Shim with billing sub-shim |
-| `value_fabric/layer5/` | Shim with api/services |
-| `value_fabric/layer6/` | Shim with smoke test |
-| `value_fabric/shared/` | Canonical active |
+| `value_fabric/` | Removed 2026-06-22 |
+| `packages/shared/src/value_fabric/shared/` | Canonical active |
 
 ---
 
@@ -250,7 +245,7 @@ These are **ignored or clearly accidental** and can be removed without breaking 
 |---|---|---|---|
 | `services/billing/` | Possible duplicate of `services/layer7-billing/` | High | Owner confirms whether legacy or separate canonical service |
 | `services/layer7-billing/` | Active service; verify before touching | High | Keep unless owner confirms billing/ is canonical |
-| `value_fabric/` | Compatibility shim with removal review date 2026-09-30 | High | Keep until import topology tests pass without it |
+| `value_fabric/` | Compatibility shim removal completed 2026-06-22 | Closed | Do not restore; import topology tests now cover namespace resolution |
 | `.agent/` | Active agent brain | High | Do not delete unless owner confirms no harness dependency |
 | `.agents/` | Possibly legacy skills | High | Owner confirms whether superseded by `.agent/skills/` |
 | `.claude/` | Legacy harness config | High | Owner confirms before deleting |
@@ -370,7 +365,7 @@ These are **ignored or clearly accidental** and can be removed without breaking 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Delete launch evidence | Low | Critical | Phase 1 excludes `docs/launch/`, `docs/evidence/`, `docs/readiness/`, `signoff-evidence/`, `production-readiness/` |
-| Break imports by removing shims | Low | High | Keep `value_fabric/` until import topology tests pass without it |
+| Break imports by removing shims | Low | High | Keep import topology tests passing against `packages/shared/src/value_fabric/shared/` |
 | Move docs without updating links | Medium | Medium | Use `git mv`, run `rg` for old paths, update `docs/_redirects` |
 | Delete active service | Low | High | Treat `services/billing/` as owner decision |
 | Delete CI script or fixture | Low | High | Only archive scripts after `rg` reference checks and CI validation |
@@ -448,7 +443,7 @@ make contract-tests
 5. **Phase 5 — Source-tree cleanup**
    - Remove confirmed dead code after import validation.
    - Resolve `services/billing/` vs `services/layer7-billing/` with owner.
-   - Evaluate `value_fabric/` shim removal against 2026-09-30 review date.
+   - Keep `value_fabric/` shim removal closed; reject reintroduction via namespace guards.
 
 ---
 

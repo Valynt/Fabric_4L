@@ -300,9 +300,8 @@ services/
   layer5-ground-truth/       L5: TruthObject validation, maturity ladder (port 8005)
   layer6-benchmarks/         L6: Peer comparison, statistical validation (port 8006)
   api/                       Shared API gateway / auth enforcement
-value_fabric/                Neutralized namespace shim (layers 1–6 redirected; value_fabric.shared.* still active via packages/shared/src)
 packages/
-  shared/                    Shared Python library (tenant context, base models)
+  shared/                    Shared Python library (tenant context, base models; exposes value_fabric.shared.*)
   platform-contract/         Cross-layer contract definitions and test harness
 contracts/
   openapi/                   OpenAPI specs (source of truth for API contracts)

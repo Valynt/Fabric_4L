@@ -114,18 +114,18 @@ def _postgres_sync_url(raw_url: str) -> str:
         drivername = "postgresql+psycopg2"
     else:
         raise MigrationDriftError(f"Expected a PostgreSQL URL, got driver {url.drivername!r}")
-    return str(url.set(drivername=drivername))
+    return url.set(drivername=drivername).render_as_string(hide_password=False)
 
 
 def _postgres_async_url(raw_url: str) -> str:
     url = _make_url(raw_url)
     if not url.drivername.startswith("postgresql"):
         raise MigrationDriftError(f"Expected a PostgreSQL URL, got driver {url.drivername!r}")
-    return str(url.set(drivername="postgresql+asyncpg"))
+    return url.set(drivername="postgresql+asyncpg").render_as_string(hide_password=False)
 
 
 def _url_for_database(raw_url: str, database: str) -> str:
-    return str(_make_url(raw_url).set(database=database))
+    return _make_url(raw_url).set(database=database).render_as_string(hide_password=False)
 
 
 def _database_name(raw_url: str) -> str:

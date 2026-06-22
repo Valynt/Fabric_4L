@@ -19,7 +19,6 @@ depends_on: Union[str, Sequence[str], None] = None
 # Tables that have tenant_id and need RLS policies
 RLS_TABLES = [
     "accounts",
-    "account_contacts",
     "account_notes",
     "crm_sync_states",
     "feature_flags",

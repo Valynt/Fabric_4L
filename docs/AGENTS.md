@@ -29,15 +29,6 @@ When working in this repo:
 ## Repository structure at a glance
 
 ```
-value_fabric/                 # Canonical runtime package root
-  layer1/                     # Data ingestion runtime modules
-  layer2/                     # Ontology-guided extraction runtime modules
-  layer3/                     # Knowledge/retrieval runtime modules
-  layer4/                     # Agent orchestration runtime modules
-  layer5/                     # Ground-truth runtime modules
-  layer6/                     # Benchmark runtime modules
-  shared/                     # Shared runtime packages (identity, security, models)
-
 services/                     # Maintained service deployment layer (apps, migrations, manifests)
   layer1-ingestion/           # Layer 1 service entrypoint + infra wrapper
   layer2-extraction/          # Layer 2 service entrypoint + infra wrapper
@@ -45,6 +36,9 @@ services/                     # Maintained service deployment layer (apps, migra
   layer4-agents/              # Layer 4 service entrypoint + agent artifacts
   layer5-ground-truth/        # Layer 5 service entrypoint + infra wrapper
   layer6-benchmarks/          # Layer 6 service entrypoint + infra wrapper
+
+packages/shared/src/value_fabric/shared/
+                              # Shared runtime packages exposed as value_fabric.shared.*
 
 contracts/             # Source of truth for all interfaces
   tool-manifests/      # JSON Schema for every agent tool/skill
@@ -69,7 +63,7 @@ emerges from interactions between agents, tools, and the knowledge graph.
 ### P0 — Never do these
 
 1. **Do not commit secrets.** No API keys, passwords, or tokens in any file. Use `.env` (gitignored).
-2. **Do not modify `value_fabric/shared/identity/` without a security review.** This is the
+2. **Do not modify `packages/shared/src/value_fabric/shared/identity/` without a security review.** This is the
    cross-layer authentication and authorization library. Bugs here affect every service.
 3. **Do not modify `services/layer4-agents/migrations/` by hand.** Use Alembic to generate
    new migration files: `alembic revision --autogenerate -m "description"`.
@@ -80,7 +74,7 @@ emerges from interactions between agents, tools, and the knowledge graph.
 
 ### P1 — Be careful with these
 
-- **Provider changes** (`services/layer*/src/ (service code) and/or value_fabric/layer*/ (runtime package code)`) — These affect live data flows. Changing
+- **Provider changes** (`services/layer*/src/`) — These affect live data flows. Changing
   extraction logic can alter the shape of the knowledge graph, breaking downstream agents.
 - **Ontology changes** (`packs/*/ontology.json`) — Entity type and relationship changes are
   effectively schema migrations for the knowledge graph.
@@ -253,10 +247,9 @@ For production traces, see `monitoring/` for Grafana dashboards.
 
 ## Runtime request limiting canonical module
 
-- Canonical implementation: `value_fabric/shared/rate_limiting/tenant_rate_limiter.py`.
+- Canonical implementation: `packages/shared/src/value_fabric/shared/rate_limiting/tenant_rate_limiter.py`.
 - Non-canonical adapters (for compatibility only):
-  - `value_fabric/shared/identity/rate_limiter.py`
-  - `value_fabric/layer3/api/rate_limiter.py`
+  - `packages/shared/src/value_fabric/shared/identity/rate_limiter.py`
 - Rule: adapter modules must delegate through a narrow interface and must not duplicate
   sliding-window state math or Redis counter semantics.
 - Contract: HTTP adapters return `X-RateLimit-Limit`, `X-RateLimit-Remaining`,

@@ -77,14 +77,14 @@ Use these companion governance references during onboarding and before opening a
 
 Per **[ADR-027](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree for every layer is
-`services/layer{N}-*/src/`. The matching `value_fabric/layer{N}/` package is a
-**namespace shim only** — do not add new logic there. Concretely:
+`services/layer{N}-*/src/`. The legacy root `value_fabric/` package and
+`value_fabric/layer{N}/` shims have been removed — do not restore them.
+Concretely:
 
 - New runtime modules → `services/layer{N}-*/src/`.
 - New API routes → `services/layer{N}-*/src/api/routes/`.
 - New cross-layer imports → import from the service package
-  (`layer{N}_{name}.*`) or the shim (`value_fabric.layer{N}.*`); both resolve
-  to the same module.
+  (`layer{N}_{name}.*`) or use contracted HTTP/client boundaries.
 - Layer 6 wrappers under `services/layer6-benchmarks/src/` (if present) must
   remain thin re-exports — see [`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py).
 
@@ -124,7 +124,7 @@ Per [ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md) a
 [layer runtime path governance matrix](docs/reference/layer-runtime-path-governance.md):
 
 - Canonical runtime code for every layer belongs in `services/layer{N}-*/src/`.
-- `value_fabric/layer{N}/` packages are **path-appender shims** only — do not add business logic there.
+- Do not restore `value_fabric/layer{N}/` path-appender shims or add business logic there.
 - Any compatibility wrappers still present under `services/layer6-benchmarks/src/` must remain thin re-exports registered in `scripts/mirrored_files.json` and validated by:
 
 ```bash

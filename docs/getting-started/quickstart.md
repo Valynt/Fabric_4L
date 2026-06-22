@@ -81,7 +81,7 @@ graph TB
 
 ## Runtime path placement (contributors)
 
-Per **ADR-021**, all implementation logic lives in `services/` trees. The `value_fabric/` namespace is a **backward-compatibility shim only** — no new code should be added there.
+Per **ADR-021**, all implementation logic lives in `services/` trees. The legacy root `value_fabric/` compatibility namespace has been removed; shared modules resolve from `packages/shared/src/value_fabric/shared/`.
 
 When you add or change service code, place it under the canonical service path:
 
@@ -95,8 +95,7 @@ Authoritative policy references:
 Required guardrails when adding a new layer module:
 
 - Implement it under the service's `src/<package>/` tree
-- Do **not** add implementation files to `value_fabric/layerX/` (shim-only)
-- Keep `value_fabric/layerX/__init__.py` to path-appender shims only
+- Do **not** restore `value_fabric/layerX/` implementation files or path-appender shims
 - Run contract tests after changes: `pytest tests/arch/test_canonical_module_sentinels.py`
 
 ---

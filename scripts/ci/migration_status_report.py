@@ -251,16 +251,16 @@ def _make_url(raw_url: str):
 def _sync_url(raw_url: str) -> str:
     url = _make_url(raw_url)
     if url.drivername.startswith("postgresql+"):
-        return str(url.set(drivername="postgresql+psycopg2"))
+        return url.set(drivername="postgresql+psycopg2").render_as_string(hide_password=False)
     if url.drivername in {"postgresql", "postgres"}:
-        return str(url.set(drivername="postgresql+psycopg2"))
+        return url.set(drivername="postgresql+psycopg2").render_as_string(hide_password=False)
     return raw_url
 
 
 def _url_for_database(raw_url: str, database: str | None) -> str:
     if not database:
         return raw_url
-    return str(_make_url(raw_url).set(database=database))
+    return _make_url(raw_url).set(database=database).render_as_string(hide_password=False)
 
 
 def _service_database_url(service: MigrationService, base_url: str) -> str:

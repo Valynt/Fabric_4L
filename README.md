@@ -130,11 +130,12 @@ open http://localhost:5173
 ## Repository map
 
 Per **[ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
-canonical implementation tree is `services/`. The `value_fabric/layer*/`
-packages are **namespace shims only** that re-export from the matching service
-package. See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
+canonical implementation tree is `services/`. The legacy root `value_fabric/`
+compatibility package and `value_fabric/layer*/` namespace shims have been
+removed; shared runtime modules resolve from `packages/shared/src/value_fabric/shared/`.
+See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
 for the full matrix (canonical paths, allowed new-development targets, and
-shim-removal review dates).
+removed compatibility paths).
 
 | Path | Status | Purpose |
 |------|--------|---------|
@@ -145,8 +146,7 @@ shim-removal review dates).
 | `services/layer5-ground-truth/src/layer5_ground_truth/` | **Canonical** | Layer 5 ground-truth runtime |
 | `services/layer6-benchmarks/src/` | **Canonical** | Layer 6 benchmark runtime |
 | `services/api/` | **Maintained** | Cross-layer API service |
-| `value_fabric/layer1/` … `value_fabric/layer6/` | **Shim only (per ADR-027)** | Namespace facades; no net-new logic. Shim-removal review by 2026-09-30. |
-| `value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
+| `packages/shared/src/value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
 | `apps/web/` | **Canonical** | React + TypeScript UI |
 | `contracts/` | **Canonical** | Versioned tool manifests, JSON Schemas, OpenAPI specs |
 | `k8s/` | **Canonical** | Kubernetes manifests |
@@ -159,16 +159,16 @@ shim-removal review dates).
 ### Source of truth paths
 
 All net-new runtime code lands under `services/layer{N}-*/src/`. Cross-layer
-imports may use either the service package (`layer{N}_{name}.*`) or the
-`value_fabric.layer{N}.*` shim during transition — the shim resolves to the
-same module objects. See the path governance matrix for layer-specific notes.
+imports must use the service package (`layer{N}_{name}.*`) or contracted
+HTTP/client boundaries. Shared imports continue to use `value_fabric.shared.*`
+from `packages/shared/src`.
 
 ### Per-layer contributor rule
 
 For every layer 1–6: place all runtime implementation changes under
 `services/layer{N}-*/src/`. Do **not** add new logic under
-`value_fabric/layer{N}/` — those packages are namespace shims (per ADR-027)
-and CI enforces this via
+`value_fabric/layer{N}/` or restore the root `value_fabric/` compatibility tree.
+CI enforces this via
 [`scripts/ci/check_layer6_wrapper_drift.py`](scripts/ci/check_layer6_wrapper_drift.py),
 [`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py), and the
 import-topology tests under [`tests/arch/`](tests/arch/) and
