@@ -1,5 +1,4 @@
 from fastapi.routing import APIRoute
-
 from layer6_benchmarks.api.main import app
 
 
@@ -23,9 +22,7 @@ def _collect_paths(routes, prefix: str = "") -> set[str]:
                 )
             )
         elif hasattr(route, "routes"):
-            paths.update(
-                _collect_paths(route.routes, prefix + _get_route_prefix(route))
-            )
+            paths.update(_collect_paths(route.routes, prefix + _get_route_prefix(route)))
     return paths
 
 

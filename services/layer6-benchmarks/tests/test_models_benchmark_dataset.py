@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
-
 from layer6_benchmarks.models.benchmark_dataset import (
     FINANCIAL_SERVICES_BENCHMARK_SEED,
     HEALTHCARE_BENCHMARK_SEED,

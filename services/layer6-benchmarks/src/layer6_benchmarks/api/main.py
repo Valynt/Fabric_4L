@@ -1,4 +1,5 @@
 # mypy: disallow-untyped-decorators=False, disable-error-code="no-untyped-def,arg-type"
+"""Layer 6 Benchmark Service FastAPI application."""
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import (
@@ -8,8 +9,6 @@ from value_fabric.shared.error_handling.exceptions import (
     ServiceUnavailableError,
     ValidationError,
 )
-
-"""Layer 6 Benchmark Service FastAPI application."""
 
 
 import logging
@@ -96,7 +95,7 @@ _benchmark_repo: BenchmarkRepository | None = None
 _neo4j_startup_error: str | None = None
 
 
-class health_checkResult(TypedDictModel):
+class HealthCheckResult(TypedDictModel):
     response_time_ms: Any
     service: str
     status: str
@@ -104,11 +103,11 @@ class health_checkResult(TypedDictModel):
     version: str
 
 
-class list_industriesResult(TypedDictModel):
+class ListIndustriesResult(TypedDictModel):
     industries: Any
 
 
-class readiness_checkResult(TypedDictModel):
+class ReadinessCheckResult(TypedDictModel):
     checks: dict[str, Any]
     service: str
     status: str
@@ -160,12 +159,16 @@ def _build_dataset_from_seed(seed: dict[str, Any]) -> BenchmarkDataset:
             unit=metric_data["unit"],
             description=metric_data["description"],
             profile=profile,
-            lower_bound=Decimal(metric_data.get("lower_bound", "0"))
-            if "lower_bound" in metric_data
-            else None,
-            upper_bound=Decimal(metric_data.get("upper_bound", "0"))
-            if "upper_bound" in metric_data
-            else None,
+            lower_bound=(
+                Decimal(metric_data.get("lower_bound", "0"))
+                if "lower_bound" in metric_data
+                else None
+            ),
+            upper_bound=(
+                Decimal(metric_data.get("upper_bound", "0"))
+                if "upper_bound" in metric_data
+                else None
+            ),
             is_higher_better=metric_data.get("is_higher_better", True),
         )
         dataset.add_metric(metric)
@@ -269,6 +272,7 @@ add_security_middleware(app, config=_security_config_l6)
 # Register global exception handlers to prevent stack traces and sensitive data leaks
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
+
     register_exception_handlers(app)
 except ImportError:
     logger.warning("Shared error handling not available - exception handlers not registered")
@@ -288,7 +292,7 @@ except ImportError as _gov_import_err:
 @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
 async def metrics_endpoint(request: Request):
     if not verify_metrics_access(request):
-        raise AuthorizationError(message = "Metrics endpoint requires internal access")
+        raise AuthorizationError(message="Metrics endpoint requires internal access")
 
     metrics = get_metrics()
     if metrics is None:
@@ -306,7 +310,7 @@ async def metrics_endpoint(request: Request):
     except Exception as exc:  # pragma: no cover - defensive only
         logger.error("Error generating metrics: %s", exc)
         return Response(
-            content=f"# Error: {exc}",
+            content="# Error generating metrics exposition"
             status_code=500,
             media_type="text/plain",
         )
@@ -314,19 +318,20 @@ async def metrics_endpoint(request: Request):
 
 def _require_tenant_id(ctx: RequestContext | None) -> str:
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(message = "Tenant context required")
+        raise AuthenticationError(message="Tenant context required")
     return str(ctx.tenant_id)
 
 
 def _assert_global_benchmark_admin(ctx: RequestContext) -> None:
     if not (ctx.is_super_admin() or ctx.has_role("system")):
-        raise AuthorizationError(message = "Global benchmark baselines require privileged admin role")
+        raise AuthorizationError(message="Global benchmark baselines require privileged admin role")
 
 
 async def health_check(request: Request):
-    if request.app.state.metrics:
-        request.app.state.metrics.set_health_status(True, service=SERVICE_NAME)
-    return health_checkResult.model_validate(
+    metrics = getattr(request.app.state, "metrics", None)
+    if metrics is not None:
+        metrics.set_health_status(True, service=SERVICE_NAME)
+    return HealthCheckResult.model_validate(
         build_health_response(
             service_name=SERVICE_NAME,
             status="healthy",
@@ -337,7 +342,7 @@ async def health_check(request: Request):
     )
 
 
-async def readiness_check() -> readiness_checkResult:
+async def readiness_check() -> ReadinessCheckResult:
     checks: dict[str, dict[str, Any]] = {}
 
     try:
@@ -372,14 +377,17 @@ async def readiness_check() -> readiness_checkResult:
             }
         except Exception as exc:
             logger.error("Benchmark store check failed: %s", exc)
-            checks["benchmark_store"] = {"status": "failed", "detail": "Benchmark store check failed"}
+            checks["benchmark_store"] = {
+                "status": "failed",
+                "detail": "Benchmark store check failed",
+            }
 
     checks["startup"] = {
         "status": "ok" if _neo4j_startup_error is None else "failed",
         "detail": None if _neo4j_startup_error is None else "Neo4j benchmark store unavailable",
     }
     status = "ready" if all(check["status"] == "ok" for check in checks.values()) else "not_ready"
-    return readiness_checkResult.model_validate(
+    return ReadinessCheckResult.model_validate(
         {
             "status": status,
             "service": SERVICE_NAME,
@@ -397,7 +405,7 @@ async def list_datasets(
 ):
     authorize_action("layer6.benchmarks.list", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(
         industry=industry,
@@ -424,11 +432,11 @@ async def list_datasets(
 async def get_dataset(dataset_id: str, ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.read", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(dataset_id, tenant_id=tenant_id)
     if not dataset:
-        raise NotFoundError(message = "Dataset not found")
+        raise NotFoundError(message="Dataset not found")
 
     return DatasetDetail(
         dataset_id=dataset.dataset_id,
@@ -451,26 +459,28 @@ async def get_dataset(dataset_id: str, ctx: RequestContext = Depends(get_request
     )
 
 
-async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depends(get_request_context)):
+async def compare(
+    payload: ComparisonRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
     authorize_action("layer6.benchmarks.compare", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(payload.dataset_id, tenant_id=tenant_id)
     if not dataset:
         _record_compare_metric(industry=payload.industry, outcome="dataset_not_found")
-        raise NotFoundError(message = "Dataset not found")
+        raise NotFoundError(message="Dataset not found")
 
     metric = dataset.get_metric(payload.metric)
     if not metric:
         _record_compare_metric(industry=dataset.industry, outcome="metric_not_found")
-        raise NotFoundError(message = str(f"Metric '{payload.metric}' not found"))
+        raise NotFoundError(message=str(f"Metric '{payload.metric}' not found"))
 
     try:
         company_value = Decimal(payload.company_value)
     except Exception:
         _record_compare_metric(industry=dataset.industry, outcome="invalid_input")
-        raise ValidationError(message = "Invalid company_value format")
+        raise ValidationError(message="Invalid company_value format")
 
     profile = metric.profile
     if company_value <= profile.p10:
@@ -516,6 +526,7 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
     # Audit: benchmark comparison
     try:
         from value_fabric.shared.audit import AuditAction, emit_audit_event
+
         emit_audit_event(
             AuditAction.BENCHMARK_COMPARED,
             tenant_id=ctx.tenant_id,
@@ -544,23 +555,25 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
     )
 
 
-async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depends(get_request_context)):
+async def validate(
+    payload: ValidationRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
     authorize_action("layer6.benchmarks.validate", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(payload.dataset_id, tenant_id=tenant_id)
     if not dataset:
-        raise NotFoundError(message = "Dataset not found")
+        raise NotFoundError(message="Dataset not found")
 
     metric = dataset.get_metric(payload.metric)
     if not metric:
-        raise NotFoundError(message = str(f"Metric '{payload.metric}' not found"))
+        raise NotFoundError(message=str(f"Metric '{payload.metric}' not found"))
 
     try:
         value = Decimal(payload.value)
     except Exception:
-        raise ValidationError(message = "Invalid value format")
+        raise ValidationError(message="Invalid value format")
 
     profile = metric.profile
     tolerance_factor = Decimal(payload.tolerance_percent) / Decimal(100)
@@ -588,6 +601,7 @@ async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depe
     # Audit: benchmark validation
     try:
         from value_fabric.shared.audit import AuditAction, emit_audit_event
+
         emit_audit_event(
             AuditAction.BENCHMARK_VALIDATED,
             tenant_id=ctx.tenant_id,
@@ -620,19 +634,23 @@ async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depe
 async def list_industries(ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.industries", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(tenant_id=tenant_id)
-    return list_industriesResult.model_validate({"industries": sorted({d.industry for d in datasets})})
+    return list_industriesResult.model_validate(
+        {"industries": sorted({d.industry for d in datasets})}
+    )
 
 
-async def upsert_dataset(payload: DatasetUpsertPayload, ctx: RequestContext = Depends(get_request_context)):
+async def upsert_dataset(
+    payload: DatasetUpsertPayload, ctx: RequestContext = Depends(get_request_context)
+):
     authorize_action("layer6.benchmarks.write", ctx)
     if _benchmark_repo is None:
-        raise ServiceUnavailableError(message = "Benchmark store not initialized")
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     if payload.ownership_mode not in {"tenant", "global_system"}:
-        raise ValidationError(message = "ownership_mode must be one of: tenant, global_system")
+        raise ValidationError(message="ownership_mode must be one of: tenant, global_system")
 
     dataset_tenant_id = tenant_id
     if payload.ownership_mode == "global_system":

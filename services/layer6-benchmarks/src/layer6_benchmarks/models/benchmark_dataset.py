@@ -36,17 +36,18 @@ class StatisticalProfile:
     sample_size: int
 
     def to_dict(self) -> Dict[str, Any]:
-        return StatisticalProfile_to_dictResult.model_validate({
-            "p10": str(self.p10),
-            "p25": str(self.p25),
-            "p50": str(self.p50),
-            "p75": str(self.p75),
-            "p90": str(self.p90),
-            "mean": str(self.mean),
-            "std_dev": str(self.std_dev),
-            "sample_size": self.sample_size,
-        })
-
+        return StatisticalProfile_to_dictResult.model_validate(
+            {
+                "p10": str(self.p10),
+                "p25": str(self.p25),
+                "p50": str(self.p50),
+                "p75": str(self.p75),
+                "p90": str(self.p90),
+                "mean": str(self.mean),
+                "std_dev": str(self.std_dev),
+                "sample_size": self.sample_size,
+            }
+        )
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatisticalProfile":
@@ -106,7 +107,7 @@ class BenchmarkDataset:
     # Provenance
     provenance_id: Optional[str] = None  # Links to L4 provenance tracking
     is_public: bool = False
-    
+
     # Isolation
     tenant_id: str = "system"
     ownership_mode: Literal["tenant", "global_system"] = "tenant"

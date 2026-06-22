@@ -3,17 +3,17 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
-import pytest
 import layer6_benchmarks.api.main as main_module
+import pytest
 from httpx import ASGITransport, AsyncClient
-from layer6_benchmarks.api.main import app
 from layer6_benchmarks.api.deps import get_request_context
-from value_fabric.shared.identity.context import RequestContext
+from layer6_benchmarks.api.main import app
 from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
 )
+from value_fabric.shared.identity.context import RequestContext
 
 
 @pytest.fixture(autouse=True)
@@ -215,7 +215,9 @@ async def test_returns_503_when_repo_is_unavailable(
 
 
 @pytest.mark.asyncio
-async def test_ready_returns_503_when_dependency_health_check_fails(client: AsyncClient, monkeypatch):
+async def test_ready_returns_503_when_dependency_health_check_fails(
+    client: AsyncClient, monkeypatch
+):
     async def failing_health(*args, **kwargs):
         return {"status": "unhealthy", "error": "neo4j down"}
 
@@ -241,7 +243,9 @@ async def test_ready_returns_503_when_dependency_health_check_fails(client: Asyn
 
 
 @pytest.mark.asyncio
-async def test_health_remains_liveness_only_when_dependency_degraded(client: AsyncClient, monkeypatch):
+async def test_health_remains_liveness_only_when_dependency_degraded(
+    client: AsyncClient, monkeypatch
+):
     async def failing_health(*args, **kwargs):
         return {"status": "unhealthy", "error": "neo4j down"}
 
@@ -267,7 +271,16 @@ async def test_tenant_user_cannot_create_global_benchmark(client: AsyncClient):
             "m1": {
                 "unit": "percent",
                 "description": "desc",
-                "profile": {"p10": "1", "p25": "2", "p50": "3", "p75": "4", "p90": "5", "mean": "3", "std_dev": "1", "sample_size": 10},
+                "profile": {
+                    "p10": "1",
+                    "p25": "2",
+                    "p50": "3",
+                    "p75": "4",
+                    "p90": "5",
+                    "mean": "3",
+                    "std_dev": "1",
+                    "sample_size": 10,
+                },
             }
         },
         "ownership_mode": "global_system",
@@ -278,10 +291,12 @@ async def test_tenant_user_cannot_create_global_benchmark(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_super_admin_can_create_global_benchmark(client: AsyncClient, setup_mock_repo: AsyncMock, monkeypatch):
+async def test_super_admin_can_create_global_benchmark(
+    client: AsyncClient, setup_mock_repo: AsyncMock, monkeypatch
+):
     # Mock the global admin check to allow super_admin role
     monkeypatch.setattr(main_module, "_assert_global_benchmark_admin", lambda ctx: None)
-    
+
     app.dependency_overrides[get_request_context] = lambda: RequestContext(
         tenant_id="tenant-a",
         roles=["super_admin"],
@@ -296,7 +311,16 @@ async def test_super_admin_can_create_global_benchmark(client: AsyncClient, setu
             "m1": {
                 "unit": "percent",
                 "description": "desc",
-                "profile": {"p10": "1", "p25": "2", "p50": "3", "p75": "4", "p90": "5", "mean": "3", "std_dev": "1", "sample_size": 10},
+                "profile": {
+                    "p10": "1",
+                    "p25": "2",
+                    "p50": "3",
+                    "p75": "4",
+                    "p90": "5",
+                    "mean": "3",
+                    "std_dev": "1",
+                    "sample_size": 10,
+                },
             }
         },
         "ownership_mode": "global_system",
@@ -310,7 +334,9 @@ async def test_super_admin_can_create_global_benchmark(client: AsyncClient, setu
 
 
 @pytest.mark.asyncio
-async def test_tenant_user_cannot_update_existing_global_benchmark(client: AsyncClient, setup_mock_repo: AsyncMock):
+async def test_tenant_user_cannot_update_existing_global_benchmark(
+    client: AsyncClient, setup_mock_repo: AsyncMock
+):
     global_ds = BenchmarkDataset(
         dataset_id="global-baseline-1",
         tenant_id="system",
@@ -321,6 +347,9 @@ async def test_tenant_user_cannot_update_existing_global_benchmark(client: Async
         segment=None,
         geography="global",
     )
+    # Ensure the mocked repository returns the existing global dataset for any tenant,
+    # matching the real repository behavior where global_system datasets are visible across tenants.
+    setup_mock_repo.get_dataset.side_effect = None
     setup_mock_repo.get_dataset.return_value = global_ds
     app.dependency_overrides[get_request_context] = lambda: RequestContext(
         tenant_id="tenant-b",
@@ -330,20 +359,29 @@ async def test_tenant_user_cannot_update_existing_global_benchmark(client: Async
     payload = {
         "dataset_id": "global-baseline-1",
         "name": "Global Baseline",
-        "description": "global update",
+        "description": "revised global baseline",
         "industry": "manufacturing",
         "metrics": {
             "m1": {
                 "unit": "percent",
                 "description": "desc",
-                "profile": {"p10": "1", "p25": "2", "p50": "3", "p75": "4", "p90": "5", "mean": "3", "std_dev": "1", "sample_size": 10},
+                "profile": {
+                    "p10": "1",
+                    "p25": "2",
+                    "p50": "3",
+                    "p75": "4",
+                    "p90": "5",
+                    "mean": "3",
+                    "std_dev": "1",
+                    "sample_size": 10,
+                },
             }
         },
         "ownership_mode": "tenant",
     }
     response = await client.put("/v1/benchmarks/datasets/global-baseline-1", json=payload)
-    # Returns 400 because ownership_mode mismatch: existing is global_system, payload is tenant
-    assert response.status_code == 400
+    # Only global admins may modify existing global_system datasets.
+    assert response.status_code == 403
     app.dependency_overrides.clear()
 
 
@@ -376,7 +414,9 @@ async def test_ready_returns_503_when_config_validation_fails(client: AsyncClien
     def failing_settings_validation():
         raise RuntimeError("missing required setting")
 
-    monkeypatch.setattr(main_module, "validate_layer6_startup_settings", failing_settings_validation)
+    monkeypatch.setattr(
+        main_module, "validate_layer6_startup_settings", failing_settings_validation
+    )
 
     response = await client.get("/ready")
 

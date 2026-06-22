@@ -165,8 +165,7 @@ class TestContextExtraction:
             calls.append(labels)
 
         monkeypatch.setattr(
-            middleware,
-            "record_inconsistent_tenant_context_access",
+            "value_fabric.shared.identity.middleware.record_inconsistent_tenant_context_access",
             record_metric,
         )
 

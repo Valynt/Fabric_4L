@@ -42,12 +42,15 @@ async def create_driver(settings: Settings | None = None) -> AsyncDriver:
         except (ServiceUnavailable, TransientError) as exc:
             if attempt == max_attempts:
                 logger.error("Neo4j unreachable after %d attempts", max_attempts)
-                raise ServiceUnavailable(f"Neo4j unreachable after {max_attempts} attempts") from exc
+                raise ServiceUnavailable(
+                    f"Neo4j unreachable after {max_attempts} attempts"
+                ) from exc
             delay = base_delay * (2 ** (attempt - 1))
             logger.warning("Neo4j connection attempt %d failed, retrying in %.1fs", attempt, delay)
             await asyncio.sleep(delay)
 
     raise ServiceUnavailable("Neo4j driver could not be created")
+
 
 async def get_driver(settings: Settings | None = None) -> AsyncDriver:
     """Return singleton Neo4j driver, creating if necessary."""
@@ -56,6 +59,7 @@ async def get_driver(settings: Settings | None = None) -> AsyncDriver:
         _driver = await create_driver(settings)
     return _driver
 
+
 async def close_driver() -> None:
     """Close the singleton driver."""
     global _driver
@@ -63,6 +67,7 @@ async def close_driver() -> None:
         await _driver.close()
         _driver = None
         logger.info("Neo4j driver closed")
+
 
 async def health_check(settings: Settings | None = None) -> dict[str, str]:
     """Check Neo4j connectivity without raising.

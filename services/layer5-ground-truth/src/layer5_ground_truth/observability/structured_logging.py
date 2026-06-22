@@ -11,7 +11,10 @@ from typing import Any
 
 import structlog
 from fastapi import Request
-from value_fabric.shared.security.redaction import install_redaction_filter, redaction_processor
+from value_fabric.shared.security.redaction import (
+    install_redaction_filter,
+    redaction_processor,
+)
 
 _tenant_id_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar("tenant_id", default=None)
 _request_id_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)

@@ -16,7 +16,9 @@ def config_fingerprint(config: dict[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-def emit_startup_metadata(*, service: str, version: str, build_sha: str, config: dict[str, Any]) -> None:
+def emit_startup_metadata(
+    *, service: str, version: str, build_sha: str, config: dict[str, Any]
+) -> None:
     LOGGER.info(
         "layer6_startup",
         extra={
@@ -39,9 +41,6 @@ def runtime_metadata_from_env(default_version: str = "dev") -> dict[str, str]:
             or default_version
         ),
         "build_sha": (
-            settings.layer6_build_sha
-            or os.getenv("BUILD_SHA")
-            or os.getenv("GIT_SHA")
-            or "unknown"
+            settings.layer6_build_sha or os.getenv("BUILD_SHA") or os.getenv("GIT_SHA") or "unknown"
         ),
     }

@@ -5,7 +5,9 @@ from pathlib import Path
 
 def _code() -> str:
     canonical_root = Path(__file__).resolve().parents[3] / "services" / "layer6-benchmarks" / "src"
-    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in canonical_root.rglob("*.py"))
+    return "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore") for p in canonical_root.rglob("*.py")
+    )
 
 
 def test_tenant_a_cannot_read_tenant_b_patterns_present():

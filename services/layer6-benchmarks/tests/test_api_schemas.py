@@ -1,8 +1,6 @@
 """Unit tests for Layer 6 API Pydantic schemas."""
 
 import pytest
-from pydantic import ValidationError
-
 from layer6_benchmarks.api.schemas import (
     ComparisonRequestPayload,
     ComparisonResponse,
@@ -10,6 +8,7 @@ from layer6_benchmarks.api.schemas import (
     ValidationRequestPayload,
     ValidationResponse,
 )
+from pydantic import ValidationError
 
 
 class TestComparisonRequestPayload:
@@ -25,9 +24,7 @@ class TestComparisonRequestPayload:
 
     def test_rejects_missing_required_fields(self) -> None:
         with pytest.raises(ValidationError):
-            ComparisonRequestPayload(
-                metric="m1", company_value="123.45", industry="manufacturing"
-            )
+            ComparisonRequestPayload(metric="m1", company_value="123.45", industry="manufacturing")
 
 
 class TestValidationRequestPayload:

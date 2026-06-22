@@ -74,7 +74,9 @@ class Layer6Settings(BaseSettings):
     layer5_api_key: SecretStr = Field(alias="LAYER5_API_KEY", min_length=16)
 
     # Canonical auth bypass flag — use this in all new code.
-    allow_insecure_dev_auth_bypass: bool = Field(default=False, alias="ALLOW_INSECURE_DEV_AUTH_BYPASS")
+    allow_insecure_dev_auth_bypass: bool = Field(
+        default=False, alias="ALLOW_INSECURE_DEV_AUTH_BYPASS"
+    )
 
     # Deprecated aliases — kept for backward compatibility with existing deployments.
     # These emit DeprecationWarning at startup if set. Migrate to ALLOW_INSECURE_DEV_AUTH_BYPASS.
@@ -92,7 +94,9 @@ class Layer6Settings(BaseSettings):
         default="INFO",
         alias="LOG_LEVEL",
     )
-    layer6_service_name: str = Field(default="layer6-benchmarks", alias="LAYER6_SERVICE_NAME", min_length=1)
+    layer6_service_name: str = Field(
+        default="layer6-benchmarks", alias="LAYER6_SERVICE_NAME", min_length=1
+    )
     layer6_version: str = Field(default="dev", alias="LAYER6_VERSION", min_length=1)
     layer6_build_sha: str = Field(default="unknown", alias="LAYER6_BUILD_SHA", min_length=1)
 
@@ -128,7 +132,13 @@ class Layer6Settings(BaseSettings):
                 raise ValueError(f"{env_var} sslmode must be require, verify-ca, or verify-full")
         return value
 
-    @field_validator("jwt_secret", "api_key_hmac_secret", "service_auth_secret", "layer3_api_key", "layer5_api_key")
+    @field_validator(
+        "jwt_secret",
+        "api_key_hmac_secret",
+        "service_auth_secret",
+        "layer3_api_key",
+        "layer5_api_key",
+    )
     @classmethod
     def _reject_weak_secrets(cls, value: SecretStr, info: ValidationInfo) -> SecretStr:
         raw_value = value.get_secret_value().strip()

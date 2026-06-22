@@ -91,6 +91,6 @@
       "evidence": "artifacts/mandatory_security/layer5_fail_closed.xml"
     }
   ],
-  "status": "PASS",
-  "exit_code": 0
+  "status": "FAIL",
+  "exit_code": 1
 }

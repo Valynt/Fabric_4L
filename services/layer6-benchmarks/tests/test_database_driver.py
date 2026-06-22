@@ -2,11 +2,10 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-from neo4j.exceptions import AuthError, ServiceUnavailable, TransientError
-
 import layer6_benchmarks.database as db_module
+import pytest
 from layer6_benchmarks.database import close_driver, create_driver, get_driver, health_check
+from neo4j.exceptions import AuthError, ServiceUnavailable, TransientError
 
 # Capture the real health_check before conftest's autouse mock_neo4j_health fixture patches it.
 _real_health_check = health_check

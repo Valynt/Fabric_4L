@@ -29,3 +29,9 @@
 **Status**: PASS
 **Exit Code**: 0
 **Recommendation**: PASS
+
+## Final Result
+
+**Status**: FAIL
+**Exit Code**: 1
+**Recommendation**: FAIL

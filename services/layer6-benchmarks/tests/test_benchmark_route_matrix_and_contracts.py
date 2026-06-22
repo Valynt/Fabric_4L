@@ -5,12 +5,16 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-import pytest
 import layer6_benchmarks.api.main as main_module
+import pytest
 from httpx import ASGITransport, AsyncClient
-from layer6_benchmarks.api.main import app
 from layer6_benchmarks.api.deps import get_request_context
-from layer6_benchmarks.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
+from layer6_benchmarks.api.main import app
+from layer6_benchmarks.models.benchmark_dataset import (
+    BenchmarkDataset,
+    BenchmarkMetric,
+    StatisticalProfile,
+)
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -101,13 +105,23 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
         (
             "POST",
             "/v1/benchmarks/compare",
-            {"dataset_id": "tenant-a-throughput", "metric": "throughput", "company_value": "22", "industry": "manufacturing"},
+            {
+                "dataset_id": "tenant-a-throughput",
+                "metric": "throughput",
+                "company_value": "22",
+                "industry": "manufacturing",
+            },
             200,
         ),
         (
             "POST",
             "/v1/benchmarks/validate",
-            {"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": "22", "tolerance_percent": 10},
+            {
+                "dataset_id": "tenant-a-throughput",
+                "metric": "throughput",
+                "value": "22",
+                "tolerance_percent": 10,
+            },
             200,
         ),
         ("GET", "/v1/benchmarks/industries", None, 200),
@@ -119,7 +133,22 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
                 "name": "Tenant A Dataset",
                 "description": "desc",
                 "industry": "manufacturing",
-                "metrics": {"throughput": {"unit": "units/hour", "description": "line speed", "profile": {"p10": "10", "p25": "15", "p50": "20", "p75": "25", "p90": "30", "mean": "20", "std_dev": "2", "sample_size": 40}}},
+                "metrics": {
+                    "throughput": {
+                        "unit": "units/hour",
+                        "description": "line speed",
+                        "profile": {
+                            "p10": "10",
+                            "p25": "15",
+                            "p50": "20",
+                            "p75": "25",
+                            "p90": "30",
+                            "mean": "20",
+                            "std_dev": "2",
+                            "sample_size": 40,
+                        },
+                    }
+                },
                 "ownership_mode": "tenant",
             },
             200,
@@ -132,7 +161,22 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
                 "name": "Tenant A Dataset Updated",
                 "description": "desc",
                 "industry": "manufacturing",
-                "metrics": {"throughput": {"unit": "units/hour", "description": "line speed", "profile": {"p10": "10", "p25": "15", "p50": "20", "p75": "25", "p90": "30", "mean": "20", "std_dev": "2", "sample_size": 40}}},
+                "metrics": {
+                    "throughput": {
+                        "unit": "units/hour",
+                        "description": "line speed",
+                        "profile": {
+                            "p10": "10",
+                            "p25": "15",
+                            "p50": "20",
+                            "p75": "25",
+                            "p90": "30",
+                            "mean": "20",
+                            "std_dev": "2",
+                            "sample_size": 40,
+                        },
+                    }
+                },
                 "ownership_mode": "tenant",
             },
             200,
@@ -148,14 +192,33 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
         (
             "POST",
             "/v1/benchmarks/compare",
-            {"dataset_id": "global-throughput", "metric": "throughput", "company_value": "22", "industry": "manufacturing"},
+            {
+                "dataset_id": "global-throughput",
+                "metric": "throughput",
+                "company_value": "22",
+                "industry": "manufacturing",
+            },
             404,
         ),
-        ("POST", "/v1/benchmarks/compare", {"dataset_id": "tenant-a-throughput", "metric": "throughput", "industry": "manufacturing"}, 422),
+        (
+            "POST",
+            "/v1/benchmarks/compare",
+            {
+                "dataset_id": "tenant-a-throughput",
+                "metric": "throughput",
+                "industry": "manufacturing",
+            },
+            422,
+        ),
         (
             "POST",
             "/v1/benchmarks/validate",
-            {"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": "bad", "tolerance_percent": 10},
+            {
+                "dataset_id": "tenant-a-throughput",
+                "metric": "throughput",
+                "value": "bad",
+                "tolerance_percent": 10,
+            },
             422,
         ),
     ]
@@ -168,7 +231,9 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_dataset_lineage_preserved_through_list_get_compare_validate(client: AsyncClient):
-    app.dependency_overrides[get_request_context] = lambda: RequestContext(tenant_id="tenant-a", roles=["tenant_admin"], tenant_role="tenant_admin")
+    app.dependency_overrides[get_request_context] = lambda: RequestContext(
+        tenant_id="tenant-a", roles=["tenant_admin"], tenant_role="tenant_admin"
+    )
 
     list_resp = await client.get("/v1/benchmarks/datasets")
     item = list_resp.json()[0]
@@ -184,7 +249,12 @@ async def test_dataset_lineage_preserved_through_list_get_compare_validate(clien
 
     compare_resp = await client.post(
         "/v1/benchmarks/compare",
-        json={"dataset_id": "tenant-a-throughput", "metric": "throughput", "company_value": "28", "industry": "manufacturing"},
+        json={
+            "dataset_id": "tenant-a-throughput",
+            "metric": "throughput",
+            "company_value": "28",
+            "industry": "manufacturing",
+        },
     )
     # Dataset may not be found in mock repository
     assert compare_resp.status_code in {200, 404}
@@ -193,7 +263,12 @@ async def test_dataset_lineage_preserved_through_list_get_compare_validate(clien
 
     validate_resp = await client.post(
         "/v1/benchmarks/validate",
-        json={"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": "28", "tolerance_percent": 10},
+        json={
+            "dataset_id": "tenant-a-throughput",
+            "metric": "throughput",
+            "value": "28",
+            "tolerance_percent": 10,
+        },
     )
     # Dataset may not be found in mock repository
     assert validate_resp.status_code in {200, 404}
@@ -205,12 +280,19 @@ async def test_dataset_lineage_preserved_through_list_get_compare_validate(clien
 
 @pytest.mark.asyncio
 async def test_statistical_edge_cases_small_sample_and_percentile_boundaries(client: AsyncClient):
-    app.dependency_overrides[get_request_context] = lambda: RequestContext(tenant_id="tenant-a", roles=["tenant_admin"], tenant_role="tenant_admin")
+    app.dependency_overrides[get_request_context] = lambda: RequestContext(
+        tenant_id="tenant-a", roles=["tenant_admin"], tenant_role="tenant_admin"
+    )
 
     # Boundary at p10 should remain in first band and low confidence for small sample.
     resp = await client.post(
         "/v1/benchmarks/compare",
-        json={"dataset_id": "tenant-a-throughput", "metric": "throughput", "company_value": "10", "industry": "manufacturing"},
+        json={
+            "dataset_id": "tenant-a-throughput",
+            "metric": "throughput",
+            "company_value": "10",
+            "industry": "manufacturing",
+        },
     )
     # Dataset may not be found in mock repository
     assert resp.status_code in {200, 404}
@@ -222,7 +304,12 @@ async def test_statistical_edge_cases_small_sample_and_percentile_boundaries(cli
     # Outlier and malformed/null handling.
     outlier = await client.post(
         "/v1/benchmarks/validate",
-        json={"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": "1000", "tolerance_percent": 10},
+        json={
+            "dataset_id": "tenant-a-throughput",
+            "metric": "throughput",
+            "value": "1000",
+            "tolerance_percent": 10,
+        },
     )
     # Dataset may not be found in mock repository
     assert outlier.status_code in {200, 404}
@@ -231,7 +318,12 @@ async def test_statistical_edge_cases_small_sample_and_percentile_boundaries(cli
 
     null_value = await client.post(
         "/v1/benchmarks/validate",
-        json={"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": None, "tolerance_percent": 10},
+        json={
+            "dataset_id": "tenant-a-throughput",
+            "metric": "throughput",
+            "value": None,
+            "tolerance_percent": 10,
+        },
     )
     # Dataset may not be found in mock repository
     assert null_value.status_code in {422, 404}
@@ -247,20 +339,47 @@ async def test_authorization_negative_path_returns_403(client: AsyncClient, monk
         raise HTTPException(status_code=403, detail="forbidden")
 
     monkeypatch.setattr(main_module, "authorize_action", deny)
-    app.dependency_overrides[get_request_context] = lambda: RequestContext(tenant_id="tenant-a", roles=["viewer"], tenant_role="viewer")
+    app.dependency_overrides[get_request_context] = lambda: RequestContext(
+        tenant_id="tenant-a", roles=["viewer"], tenant_role="viewer"
+    )
     response = await client.get("/v1/benchmarks/datasets")
     assert response.status_code == 403
     app.dependency_overrides.clear()
 
 
 def test_openapi_contract_shape_regression_for_benchmark_responses():
-    contract_path = Path(__file__).parent.parent.parent.parent / "contracts" / "openapi" / "layer6-benchmarks.json"
+    contract_path = (
+        Path(__file__).parent.parent.parent.parent
+        / "contracts"
+        / "openapi"
+        / "layer6-benchmarks.json"
+    )
     contract = json.loads(contract_path.read_text())
 
     compare_schema = contract["components"]["schemas"]["ComparisonResponse"]
     validate_schema = contract["components"]["schemas"]["ValidationResponse"]
     dataset_summary_schema = contract["components"]["schemas"]["DatasetSummary"]
 
-    assert set(compare_schema["required"]) >= {"percentile", "peer_median", "peer_range", "sample_size", "confidence", "assessment"}
-    assert set(validate_schema["required"]) >= {"is_valid", "expected_range", "actual_value", "deviation_percent", "severity", "message"}
-    assert set(dataset_summary_schema["required"]) >= {"dataset_id", "version", "data_source", "metrics", "metric_count"}
+    assert set(compare_schema["required"]) >= {
+        "percentile",
+        "peer_median",
+        "peer_range",
+        "sample_size",
+        "confidence",
+        "assessment",
+    }
+    assert set(validate_schema["required"]) >= {
+        "is_valid",
+        "expected_range",
+        "actual_value",
+        "deviation_percent",
+        "severity",
+        "message",
+    }
+    assert set(dataset_summary_schema["required"]) >= {
+        "dataset_id",
+        "version",
+        "data_source",
+        "metrics",
+        "metric_count",
+    }

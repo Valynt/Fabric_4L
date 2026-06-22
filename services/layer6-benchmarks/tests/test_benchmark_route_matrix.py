@@ -1,12 +1,16 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
-import pytest
 import layer6_benchmarks.api.main as main_module
+import pytest
 from httpx import ASGITransport, AsyncClient
-from layer6_benchmarks.api.main import app
-from layer6_benchmarks.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
 from layer6_benchmarks.api.deps import get_request_context
+from layer6_benchmarks.api.main import app
+from layer6_benchmarks.models.benchmark_dataset import (
+    BenchmarkDataset,
+    BenchmarkMetric,
+    StatisticalProfile,
+)
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -32,8 +36,14 @@ def setup_repo(monkeypatch):
             unit="percent",
             description="Margin",
             profile=StatisticalProfile(
-                p10=Decimal("2"), p25=Decimal("4"), p50=Decimal("8"), p75=Decimal("12"),
-                p90=Decimal("14"), mean=Decimal("8"), std_dev=Decimal("2"), sample_size=3,
+                p10=Decimal("2"),
+                p25=Decimal("4"),
+                p50=Decimal("8"),
+                p75=Decimal("12"),
+                p90=Decimal("14"),
+                mean=Decimal("8"),
+                std_dev=Decimal("2"),
+                sample_size=3,
             ),
         )
     )
@@ -81,7 +91,12 @@ async def test_route_matrix_happy_and_hostile(client: AsyncClient, setup_repo: A
     # /compare happy + malformed payload hostile
     compare_ok = await client.post(
         "/v1/benchmarks/compare",
-        json={"dataset_id": "tenant-benchmark-1", "metric": "margin_percent", "company_value": "9", "industry": "manufacturing"},
+        json={
+            "dataset_id": "tenant-benchmark-1",
+            "metric": "margin_percent",
+            "company_value": "9",
+            "industry": "manufacturing",
+        },
     )
     compare_bad = await client.post(
         "/v1/benchmarks/compare",
@@ -93,7 +108,12 @@ async def test_route_matrix_happy_and_hostile(client: AsyncClient, setup_repo: A
     # /validate happy + malformed payload hostile
     validate_ok = await client.post(
         "/v1/benchmarks/validate",
-        json={"dataset_id": "tenant-benchmark-1", "metric": "margin_percent", "value": "8", "tolerance_percent": 10},
+        json={
+            "dataset_id": "tenant-benchmark-1",
+            "metric": "margin_percent",
+            "value": "8",
+            "tolerance_percent": 10,
+        },
     )
     validate_bad = await client.post(
         "/v1/benchmarks/validate",
@@ -114,12 +134,34 @@ async def test_route_matrix_happy_and_hostile(client: AsyncClient, setup_repo: A
 
     # /datasets POST happy + forbidden hostile (global ownership)
     tenant_payload = {
-        "dataset_id": "tenant-created", "name": "Tenant Created", "description": "ok", "industry": "manufacturing",
-        "metrics": {"margin_percent": {"unit": "percent", "description": "Margin", "profile": {"p10": "1", "p25": "2", "p50": "3", "p75": "4", "p90": "5", "mean": "3", "std_dev": "1", "sample_size": 2}}},
+        "dataset_id": "tenant-created",
+        "name": "Tenant Created",
+        "description": "ok",
+        "industry": "manufacturing",
+        "metrics": {
+            "margin_percent": {
+                "unit": "percent",
+                "description": "Margin",
+                "profile": {
+                    "p10": "1",
+                    "p25": "2",
+                    "p50": "3",
+                    "p75": "4",
+                    "p90": "5",
+                    "mean": "3",
+                    "std_dev": "1",
+                    "sample_size": 2,
+                },
+            }
+        },
         "ownership_mode": "tenant",
     }
     create_ok = await client.post("/v1/benchmarks/datasets", json=tenant_payload)
-    global_payload = {**tenant_payload, "dataset_id": "global-created", "ownership_mode": "global_system"}
+    global_payload = {
+        **tenant_payload,
+        "dataset_id": "global-created",
+        "ownership_mode": "global_system",
+    }
     create_forbidden = await client.post("/v1/benchmarks/datasets", json=global_payload)
     assert create_ok.status_code == 200
     assert create_forbidden.status_code == 403
@@ -135,7 +177,12 @@ async def test_route_matrix_happy_and_hostile(client: AsyncClient, setup_repo: A
 async def test_compare_and_validate_preserve_dataset_lineage_and_stats_edges(client: AsyncClient):
     compare = await client.post(
         "/v1/benchmarks/compare",
-        json={"dataset_id": "tenant-benchmark-1", "metric": "margin_percent", "company_value": "12", "industry": "manufacturing"},
+        json={
+            "dataset_id": "tenant-benchmark-1",
+            "metric": "margin_percent",
+            "company_value": "12",
+            "industry": "manufacturing",
+        },
     )
     assert compare.status_code == 200
     compare_body = compare.json()
@@ -144,7 +191,12 @@ async def test_compare_and_validate_preserve_dataset_lineage_and_stats_edges(cli
 
     validate_nullish = await client.post(
         "/v1/benchmarks/validate",
-        json={"dataset_id": "tenant-benchmark-1", "metric": "margin_percent", "value": "1000", "tolerance_percent": 0},
+        json={
+            "dataset_id": "tenant-benchmark-1",
+            "metric": "margin_percent",
+            "value": "1000",
+            "tolerance_percent": 0,
+        },
     )
     assert validate_nullish.status_code == 200
     vbody = validate_nullish.json()
@@ -157,7 +209,12 @@ def test_openapi_contract_includes_benchmark_routes_and_shapes():
     import json
     from pathlib import Path
 
-    contract_path = Path(__file__).parent.parent.parent.parent / "contracts" / "openapi" / "layer6-benchmarks.json"
+    contract_path = (
+        Path(__file__).parent.parent.parent.parent
+        / "contracts"
+        / "openapi"
+        / "layer6-benchmarks.json"
+    )
     with open(contract_path, "r", encoding="utf-8") as f:
         spec = json.load(f)
 

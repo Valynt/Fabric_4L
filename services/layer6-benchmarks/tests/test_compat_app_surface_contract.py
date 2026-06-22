@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
-
 from layer6_benchmarks.api.main import app
 
 
@@ -28,9 +27,7 @@ def _collect_routes(routes, prefix: str = "") -> list:
                 )
             )
         elif hasattr(route, "routes"):
-            result.extend(
-                _collect_routes(route.routes, prefix + _get_route_prefix(route))
-            )
+            result.extend(_collect_routes(route.routes, prefix + _get_route_prefix(route)))
     return result
 
 
@@ -45,7 +42,9 @@ def test_l6_middleware_registration_and_effective_wrapping_order():
 
 
 def test_l6_skip_validation_paths_contract():
-    security_middleware = next(mw for mw in app.user_middleware if mw.cls.__name__ == "SecurityMiddleware")
+    security_middleware = next(
+        mw for mw in app.user_middleware if mw.cls.__name__ == "SecurityMiddleware"
+    )
     skip_paths = security_middleware.kwargs["config"].skip_validation_paths
     assert skip_paths == frozenset({"/health", "/ready", "/metrics"})
 

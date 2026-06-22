@@ -1,13 +1,12 @@
 """Unit tests for Prometheus metrics collection."""
 
 import pytest
-from prometheus_client import CollectorRegistry
-
 from layer6_benchmarks.metrics.prometheus_metrics import (
     MetricsConfig,
     MetricsMiddleware,
     PrometheusMetrics,
 )
+from prometheus_client import CollectorRegistry
 
 
 class TestMetricsConfig:
@@ -32,9 +31,7 @@ class TestPrometheusMetrics:
         assert PrometheusMetrics._status_class("418") == "4xx"
 
     def test_disabled_metrics_noop(self) -> None:
-        disabled = PrometheusMetrics(
-            MetricsConfig(enabled=False, registry=CollectorRegistry())
-        )
+        disabled = PrometheusMetrics(MetricsConfig(enabled=False, registry=CollectorRegistry()))
         # Should not raise.
         disabled.increment_requests_total(method="GET", route="/", status_code=200)
         disabled.observe_request_duration(duration=0.1, method="GET", route="/")
@@ -55,9 +52,7 @@ class TestPrometheusMetrics:
         assert "1.2.3" in text
         assert "deadbeef" in text
 
-    def test_increment_requests_total_increments_counter(
-        self, metrics: PrometheusMetrics
-    ) -> None:
+    def test_increment_requests_total_increments_counter(self, metrics: PrometheusMetrics) -> None:
         metrics.increment_requests_total(method="GET", route="/health", status_code=200)
         text = metrics.get_metrics()
         assert "layer6_requests_total{" in text
@@ -65,9 +60,7 @@ class TestPrometheusMetrics:
         assert 'route="/health"' in text
         assert 'status_class="2xx"' in text
 
-    def test_observe_request_duration_records_histogram(
-        self, metrics: PrometheusMetrics
-    ) -> None:
+    def test_observe_request_duration_records_histogram(self, metrics: PrometheusMetrics) -> None:
         metrics.observe_request_duration(duration=0.25, method="POST", route="/compare")
         text = metrics.get_metrics()
         assert "layer6_request_duration_seconds_bucket" in text

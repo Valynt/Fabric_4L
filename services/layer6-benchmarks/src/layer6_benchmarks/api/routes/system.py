@@ -6,6 +6,7 @@ from value_fabric.shared.probes import normalize_probe_response
 
 router = APIRouter(tags=["system"])
 
+
 @router.get("/health", response_model=None, include_in_schema=False)
 async def health_check(request: Request):
     """Service-local health adapter using the shared probe contract."""

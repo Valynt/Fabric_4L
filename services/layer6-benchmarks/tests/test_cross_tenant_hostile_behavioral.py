@@ -17,7 +17,9 @@ class TestCrossTenantParameterIsolation:
 
     def test_tenant_a_parameters_dont_leak_to_tenant_b(self):
         """Tenant A's parameters should not affect Tenant B's queries."""
-        pytest.skip("L6 conftest.py has import infrastructure issues - covered by test_repository_tenant_isolation.py")
+        pytest.skip(
+            "L6 conftest.py has import infrastructure issues - covered by test_repository_tenant_isolation.py"
+        )
 
 
 class TestTenantContextIsolation:
@@ -25,4 +27,6 @@ class TestTenantContextIsolation:
 
     def test_concurrent_requests_have_isolated_contexts(self):
         """Concurrent requests should have separate tenant contexts."""
-        pytest.skip("L6 conftest.py has import infrastructure issues - covered by test_repository_tenant_isolation.py")
+        pytest.skip(
+            "L6 conftest.py has import infrastructure issues - covered by test_repository_tenant_isolation.py"
+        )

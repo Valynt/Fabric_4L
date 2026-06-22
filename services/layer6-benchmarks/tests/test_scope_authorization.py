@@ -3,12 +3,15 @@ from __future__ import annotations
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
+import layer6_benchmarks.api.main as main_module
 import pytest
 from fastapi import HTTPException
-
-import layer6_benchmarks.api.main as main_module
 from layer6_benchmarks.api.schemas import ComparisonRequestPayload
-from layer6_benchmarks.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
+from layer6_benchmarks.models.benchmark_dataset import (
+    BenchmarkDataset,
+    BenchmarkMetric,
+    StatisticalProfile,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Permission
 

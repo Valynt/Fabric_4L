@@ -1,6 +1,5 @@
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
-
 from layer6_benchmarks.adapters.value_fabric_api import map_exception_to_contract_detail
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 
 
 def test_layer6_adapter_maps_shared_exception_to_canonical_error_envelope() -> None:

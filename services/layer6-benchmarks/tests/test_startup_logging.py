@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 import layer6_benchmarks.api.main as main_module
+import pytest
 from layer6_benchmarks.api.startup_logging import config_fingerprint, emit_startup_metadata
 
 
@@ -35,7 +35,9 @@ def test_emit_startup_metadata_logs_version_and_build(caplog) -> None:
 async def test_lifespan_emits_startup_metadata(monkeypatch) -> None:
     emit_mock = MagicMock()
     monkeypatch.setattr(main_module, "emit_startup_metadata", emit_mock)
-    monkeypatch.setattr(main_module, "get_driver", AsyncMock(side_effect=RuntimeError("neo4j unavailable")))
+    monkeypatch.setattr(
+        main_module, "get_driver", AsyncMock(side_effect=RuntimeError("neo4j unavailable"))
+    )
     monkeypatch.setattr(main_module, "close_driver", AsyncMock())
     original_startup_error = main_module._neo4j_startup_error
 
@@ -53,7 +55,11 @@ async def test_lifespan_emits_startup_metadata(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_lifespan_does_not_leak_raw_exception_to_health_check(monkeypatch) -> None:
-    monkeypatch.setattr(main_module, "get_driver", AsyncMock(side_effect=RuntimeError("connection refused: neo4j://secret-host:7687")))
+    monkeypatch.setattr(
+        main_module,
+        "get_driver",
+        AsyncMock(side_effect=RuntimeError("connection refused: neo4j://secret-host:7687")),
+    )
     monkeypatch.setattr(main_module, "close_driver", AsyncMock())
     monkeypatch.setattr(main_module, "_init_seed_data", AsyncMock())
     original_startup_error = main_module._neo4j_startup_error
