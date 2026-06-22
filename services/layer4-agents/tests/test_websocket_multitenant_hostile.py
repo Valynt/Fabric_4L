@@ -635,13 +635,9 @@ class TestCrossTenantMatrix:
                 return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
             ):
                 with patch(
-                    "layer4_agents.api.routes.signals.Layer3Client"
-                ) as mock_l3_cls:
-                    mock_l3 = AsyncMock()
-                    mock_l3.get_entity = AsyncMock(return_value=None)
-                    mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                    mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                    "layer4_agents.api.routes.signals._tenant_owns_prospect",
+                    new=AsyncMock(return_value=False),
+                ):
                     await signal_stream_websocket(
                         websocket=ws, prospect_id=workflow_or_prospect
                     )

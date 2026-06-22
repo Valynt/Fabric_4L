@@ -8,25 +8,26 @@ Follows the test pyramid: fast, isolated, deterministic.
 """
 
 
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import Mock, AsyncMock, patch
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.models.agent_state import (
     BaseAgentState,
+    BusinessCaseAgentState,
+    BusinessCaseInputData,
+    ROIAgentState,
+    ROIInputData,
+    WhitespaceAgentState,
+    WhitespaceInputData,
     WorkflowStatus,
     WorkflowType,
-    ROIAgentState,
-    WhitespaceAgentState,
-    BusinessCaseAgentState,
-    ROIInputData,
-    WhitespaceInputData,
-    BusinessCaseInputData,
 )
-from layer4_agents.workflows.base import BaseWorkflow, WorkflowError, NodeExecutionError
-from layer4_agents.models.workflow_config import WorkflowConfig, NodeConfig, NodeType, EdgeConfig
+from layer4_agents.models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
 from layer4_agents.tools.registry import ToolRegistry
-from value_fabric.shared.models.typed_dict import TypedDictModel
+from layer4_agents.workflows.base import BaseWorkflow, NodeExecutionError, WorkflowError
 
 
 class ConcreteTestWorkflow_create_initial_stateResult(TypedDictModel):
@@ -50,7 +51,7 @@ class TestWorkflowStatusTransitions:
         """Workflow can transition from PENDING to RUNNING."""
         state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
-        state.started_at = datetime.now(timezone.utc)
+        state.started_at = datetime.now(UTC)
         
         assert state.status == WorkflowStatus.RUNNING
         assert state.started_at is not None
@@ -60,10 +61,10 @@ class TestWorkflowStatusTransitions:
         """Workflow can transition from RUNNING to COMPLETED."""
         state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
-        state.started_at = datetime.now(timezone.utc)
+        state.started_at = datetime.now(UTC)
         
         state.status = WorkflowStatus.COMPLETED
-        state.completed_at = datetime.now(timezone.utc)
+        state.completed_at = datetime.now(UTC)
         
         assert state.status == WorkflowStatus.COMPLETED
         assert state.completed_at is not None
@@ -73,10 +74,10 @@ class TestWorkflowStatusTransitions:
         """Workflow can transition from RUNNING to FAILED."""
         state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
-        state.started_at = datetime.now(timezone.utc)
+        state.started_at = datetime.now(UTC)
         
         state.status = WorkflowStatus.FAILED
-        state.completed_at = datetime.now(timezone.utc)
+        state.completed_at = datetime.now(UTC)
         state.errors.append("Something went wrong")
         
         assert state.status == WorkflowStatus.FAILED
@@ -97,7 +98,7 @@ class TestWorkflowStatusTransitions:
             "required_inputs": [{"name": "approval", "type": "boolean"}],
         }
         state.paused_by = "user-123"
-        state.paused_at = datetime.now(timezone.utc)
+        state.paused_at = datetime.now(UTC)
         state.pause_count = 1
         
         assert state.status == WorkflowStatus.PAUSED
@@ -109,12 +110,12 @@ class TestWorkflowStatusTransitions:
         """Workflow can resume from PAUSED to RUNNING."""
         state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.PAUSED
-        state.paused_at = datetime.now(timezone.utc)
+        state.paused_at = datetime.now(UTC)
         state.pause_count = 1
         
         state.status = WorkflowStatus.RUNNING
         state.resumed_by = "user-456"
-        state.resumed_at = datetime.now(timezone.utc)
+        state.resumed_at = datetime.now(UTC)
         
         assert state.status == WorkflowStatus.RUNNING
         assert not state.is_paused()
@@ -163,7 +164,7 @@ class TestWorkflowStatusTransitions:
                 {"name": "notes", "type": "string"},
             ],
         }
-        state.paused_at = datetime.now(timezone.utc)
+        state.paused_at = datetime.now(UTC)
         state.paused_by = "user-789"
         
         summary = state.get_pause_summary()
@@ -406,6 +407,21 @@ class TestBaseWorkflow:
         error = NodeExecutionError("Test")
         assert isinstance(error, WorkflowError)
 
+    @pytest.mark.unit
+    async def test_node_failure_preserves_root_cause(self, mock_config, mock_tool_registry):
+        workflow = ConcreteTestWorkflow(mock_config, mock_tool_registry)
+        state = BaseAgentState(
+            tenant_id="test-tenant",
+            workflow_type=WorkflowType.ROI_CALCULATOR,
+            input_data={"test": "input"},
+        )
+        mock_tool_registry.execute = AsyncMock(side_effect=ValueError("tool crashed"))
+        mock_config.nodes[0].retry_policy = {"max_retries": 0}
+        node_func = workflow._create_node_function(mock_config.nodes[0])
+
+        with pytest.raises(NodeExecutionError, match="tool crashed"):
+            await node_func(state)
+
 
 class TestStateSerialization:
     """Test state serialization for checkpoints."""
@@ -413,7 +429,7 @@ class TestStateSerialization:
     @pytest.mark.unit
     def test_datetime_serialization_to_isoformat(self):
         """Datetime fields are serialized to ISO format."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         state = BaseAgentState(tenant_id="test-tenant", 
             workflow_type=WorkflowType.ROI_CALCULATOR,
             started_at=now,
@@ -445,7 +461,6 @@ class TestStateSerialization:
         state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         # Initial state
-        initial_output = state.output_data.copy()
         
         # Simulate update through reducer pattern
         state.output_data = {**state.output_data, "new_key": "new_value"}
@@ -466,11 +481,11 @@ class TestWorkflowStateEdgeCases:
             # Pause
             state.status = WorkflowStatus.PAUSED
             state.pause_count += 1
-            state.paused_at = datetime.now(timezone.utc)
+            state.paused_at = datetime.now(UTC)
             
             # Resume
             state.status = WorkflowStatus.RUNNING
-            state.resumed_at = datetime.now(timezone.utc)
+            state.resumed_at = datetime.now(UTC)
         
         assert state.pause_count == 3
         assert state.status == WorkflowStatus.RUNNING

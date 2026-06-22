@@ -327,6 +327,329 @@ updates:
     npm-dependencies:
       patterns:
       - '*'
+- package-ecosystem: npm
+  directory: /services/value-studio
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - service-value-studio
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-astro-patterns/templates/astro-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-expo-patterns/templates/expo-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-nextjs-patterns/templates/nextjs-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-nuxt-patterns/templates/nuxt-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-react-patterns/templates/react-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-react-router-patterns/templates/react-router-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-tanstack-patterns/templates/tanstack-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-vue-patterns/templates/vue-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-astro-patterns/templates/astro-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-expo-patterns/templates/expo-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-nextjs-patterns/templates/nextjs-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-nuxt-patterns/templates/nuxt-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-react-patterns/templates/react-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-react-router-patterns/templates/react-router-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-tanstack-patterns/templates/tanstack-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-vue-patterns/templates/vue-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
 - package-ecosystem: docker
   directory: /apps/web
   open-pull-requests-limit: 0

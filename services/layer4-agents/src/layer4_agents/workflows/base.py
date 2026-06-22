@@ -9,6 +9,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -262,18 +263,27 @@ class BaseWorkflow(ABC):
                 raise
             except asyncio.CancelledError:
                 raise
-            except Exception:
+            except Exception as exc:
                 # Handle error
-                error_msg = f"Node {node_config.id} failed: NODE_EXECUTION_ERROR"
+                error_msg = f"Node {node_config.id} failed (NODE_EXECUTION_ERROR): {exc}"
                 updates["errors"] = state.errors + [error_msg]
                 updates["status"] = WorkflowStatus.FAILED
+                logger.exception(
+                    "Node execution failed",
+                    extra={
+                        "node_id": node_config.id,
+                        "workflow_id": getattr(state, "workflow_id", None),
+                        "tenant_id": getattr(state, "tenant_id", None),
+                        "run_id": getattr(state, "run_id", None),
+                    },
+                )
 
                 # Check retry policy
                 if self._should_retry(node_config, state):
                     # Return to same node for retry
                     return updates
 
-                raise NodeExecutionError(error_msg)
+                raise NodeExecutionError(error_msg) from exc
 
         return node_function
 
@@ -377,8 +387,6 @@ class BaseWorkflow(ABC):
 
     def _now(self):
         """Get current timestamp."""
-        from datetime import UTC, datetime
-
         return datetime.now(UTC)
 
     def compile(self) -> Any:
@@ -490,12 +498,12 @@ class BaseWorkflow(ABC):
 
             # Detect native LangGraph interrupt (e.g. from interrupt() or interrupt_before/after)
             if isinstance(result, dict) and "__interrupt__" in result:
-                logger.info(f"Workflow interrupted: {workflow_id}")
+                logger.info("Workflow interrupted: %s", workflow_id)
                 interrupted_state = self._state_from_dict(result)
                 interrupted_state.status = WorkflowStatus.INTERRUPTED
                 return interrupted_state
 
-            logger.info(f"Workflow execution completed: {workflow_id}")
+            logger.info("Workflow execution completed: %s", workflow_id)
             final_state = self._state_from_dict(result)
             # Ensure run_envelope is preserved if it was set on initial_state
             if initial_state.run_envelope is not None and final_state.run_envelope is None:
@@ -504,7 +512,7 @@ class BaseWorkflow(ABC):
                 final_state.metadata["approval_decision"] = approval_decision
             return final_state
         except NodeInterrupt:
-            logger.info(f"Workflow interrupted by NodeInterrupt: {workflow_id}")
+            logger.info("Workflow interrupted by NodeInterrupt: %s", workflow_id)
             # Checkpoint already persisted by LangGraph; return structured INTERRUPTED state
             interrupted_state = initial_state.model_copy()
             interrupted_state.status = WorkflowStatus.INTERRUPTED
@@ -512,7 +520,7 @@ class BaseWorkflow(ABC):
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            logger.error(f"Workflow execution failed: {workflow_id}: {e}", exc_info=True)
+            logger.error("Workflow execution failed: %s: %s", workflow_id, e, exc_info=True)
             raise
 
     def _state_from_dict(self, data: dict[str, Any]) -> AgentState:

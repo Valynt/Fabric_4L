@@ -4,17 +4,20 @@
 - **Generated From CI:** `make verify` (lint, type-check, tests, contract tests, build gates) and release-gate evidence scripts.
 - **Snapshot Date (UTC):** 2026-06-15
 - **Last Updated:** 2026-06-15
-- **Launch Readiness:** **GO WITH ACCEPTED RISKS for Core GA** — all repository-owned code gates pass; the remaining P0/P1 items are environment-dependent and are formally tracked as accepted risks pending owner countersignature.
+- **Launch Readiness:** **BLOCKED** — launch-gate drift and stale/missing evidence detected on 2026-06-21. The repository cannot currently claim GO or GO WITH ACCEPTED RISKS. Remediation is tracked in `.windsurf/plans/launch-readiness-2026-06-21.md`.
 
 ## Current Status
 
-> ✅ **Repository-owned gates are green.** The platform is a defensible **Core GA candidate** with accepted-risk waivers required for the environment-dependent P0/P1 items below.
+> ❌ **Verified posture is BLOCKED as of 2026-06-21.** Canonical claims of GO WITH ACCEPTED RISKS are not supported by the newest local evidence. See `.windsurf/plans/launch-readiness-2026-06-21.md` for the full assessment.
 >
-> 1. **`make verify` passes** — lint, typecheck, per-layer tests, contract tests (420 passed / 33 skipped / 1 xfailed), security smoke (13 passed / 1 xfailed), behavior-readiness YELLOW (0 blocking skips), structural preflight (0 findings), docs-harness, and frontend checks all pass.
-> 2. **`make production-readiness-gate` passes** — billing 17/17, abuse 8/8, config 206/206, audit 6/6.
-> 3. **Pre-existing test-suite blockers `R-2026-06-13-01` and `R-2026-06-13-02` are closed.** The contract-static failures and Layer 1/3 collection issues were fixed in the 2026-06-15 sweep.
-> 4. **Environment-dependent P0 items (P0-001 Playwright journeys, P0-002 rollback rehearsal, P0-003 enterprise SSO/OIDC) are re-testable on the local surrogate** but require a configured staging/production-like environment for full closure. They are formally accepted risks pending signed waivers.
-> 5. **P1 operational evidence** (billing provider integration, alert receivers, live LLM validation, full telemetry dashboards/SLO reports) remains deferred/partial and is also covered by accepted-risk waivers.
+> Verified blockers include:
+> 1. **Release gate artifacts are stale or failing** — `artifacts/release/gate-result.json` is dated 2026-05-02 and reports FAIL; `artifacts/release/release-readiness-report.md` (2026-06-21) reports `Release eligible: False`.
+> 2. **Tenant-isolation regression** — `artifacts/security/tenant-isolation-summary.md` (2026-06-21) reports cross-layer matrix exit 1.
+> 3. **Contract drift** — `artifacts/arch/summary.md` (2026-04-23) reports 1 contract drift violation.
+> 4. **Launch-gate drift** — `.github/workflows/smoke-gate.yml` and `scripts/smoke/production_smoke.py` are missing; `.github/workflows/prod-readiness.yml` resolves release-policy artifacts that do not exist locally.
+> 5. **Missing/smoke/obs/agent/state artifacts** — `artifacts/smoke/`, `artifacts/obs/`, `artifacts/agent/` are empty; `artifacts/state/` contains only `gate-state.xml`.
+>
+> The 2026-06-15 claims of `make verify` pass and `make production-readiness-gate` pass are superseded by the newer evidence above and must be re-verified after remediation.
 
 | ID | Area | Status | Evidence |
 |---|---|---|---|
@@ -58,15 +61,22 @@ See `docs/launch/runtime-dependency-report-2026-06-15.md` for the full environme
 
 ## Final Launch Decision
 
-**Recommendation:** **GO WITH ACCEPTED RISKS for Core GA** on the current repository state.
+**Recommendation:** **BLOCKED** on the current repository state.
 
 **Rationale:**
-- ✅ All repository-owned gates pass: `make verify`, `make production-readiness-gate`, security smoke, contract-static tests, architecture tests, behavior-readiness audit, structural preflight, and docs-harness.
-- ✅ Pre-existing test-suite blockers `R-2026-06-13-01` and `R-2026-06-13-02` are closed.
-- ✅ Local Docker live stack is healthy; critical-path smoke passes 12/0.
-- ✅ Static DR and release-safety evidence passes (backup verify 13/13, restore dry-run, release dry-run, rollback verifier 8/8).
-- ⚠️ P0-001, P0-002, and P0-003 are environment-dependent; local surrogate evidence is attached, but full staging/production evidence is missing. These are formally accepted risks pending owner countersignature.
-- ⚠️ P1 operational evidence is incomplete; accepted-risk waivers are required for billing provider integration, alert receivers, live LLM validation, and full telemetry dashboards/SLO reports.
+- ❌ Release gate evidence is stale/failing: `artifacts/release/gate-result.json` (2026-05-02) reports FAIL; `artifacts/release/release-readiness-report.md` (2026-06-21) reports `Release eligible: False`.
+- ❌ Tenant-isolation regression: `artifacts/security/tenant-isolation-summary.md` (2026-06-21) reports cross-layer matrix exit 1.
+- ❌ Contract drift: `artifacts/arch/summary.md` reports 1 contract drift violation.
+- ❌ Launch-gate path drift: missing `smoke-gate.yml`, `scripts/smoke/production_smoke.py`, and required release-policy artifacts.
+- ❌ Smoke / obs / agent / state artifact directories are empty or stale.
+- ⚠️ P0-001, P0-002, and P0-003 remain environment-dependent; they cannot be accepted as risks until the repository-owned blockers above are resolved.
+
+**Path back to GO / GO WITH ACCEPTED RISKS:**
+1. Resolve launch-gate drift (Sprint 1).
+2. Fix tenant-isolation regression and contract drift (Sprint 2).
+3. Populate obs / agent / smoke / state evidence (Sprint 3).
+4. Align P0 Playwright routes and verify L1 hardening (Sprint 4).
+5. Run full `make release-gate PROFILE=release-candidate` and collect countersigned waivers for P0/P1 environment-dependent items (Sprint 5).
 
 **Required before removing accepted-risk status (path to unconditional GO):**
 1. Execute P0 Playwright launch journeys in a Clerk-configured staging environment and attach retained JUnit/trace evidence (or sign a scope-reduction waiver).

@@ -30,7 +30,6 @@ from value_fabric.shared.observability.trace_context import resolve_trace_contex
 
 from ...config.settings import get_settings
 from ...database import db_session_for_context
-from ...integration.layer3_client import Layer3Client  # noqa: F401
 from ...interfaces.signal_review import SignalReviewPort
 from ...models.account import Account
 from ...startup.agent_composition import create_signal_detection_agent, create_signal_review_client

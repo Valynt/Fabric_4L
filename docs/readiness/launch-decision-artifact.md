@@ -5,7 +5,7 @@
 - **Scope:** Production launch go/no-go decision package for Value Fabric.
 - **Aligned Runbook:** `docs/runbooks/deployment-rollout-and-rollback.md`
 - **Primary Readiness Criteria Source:** `docs/readiness/current.md`
-- **Current Posture:** **GO WITH ACCEPTED RISKS for Core GA** on the current repository state. All repository-owned gates pass and the local Docker live stack is healthy. The remaining P0/P1 items are environment-dependent and are formally tracked as accepted risks pending owner countersignature.
+- **Current Posture:** **BLOCKED** on the current repository state as of 2026-06-21. Newer local evidence shows launch-gate drift, tenant-isolation regression, contract drift, and stale/failing release artifacts. The repository cannot claim GO or GO WITH ACCEPTED RISKS until these are remediated. See `.windsurf/plans/launch-readiness-2026-06-21.md` for the verified assessment and remediation plan.
 
 ## 1) Consolidated Evidence Ledger
 
@@ -42,16 +42,22 @@ Evidence collected against the local Docker staging surrogate for candidate `rc-
 
 ## 1c) Final Recommendation
 
-**Decision:** **GO WITH ACCEPTED RISKS for Core GA** on the current repository state.
+**Decision:** **BLOCKED** on the current repository state.
 
 **Evidence summary:**
-- ✅ `make verify` passes end-to-end (lint, typecheck, per-layer tests, contract-static 420/33/1 xfail, security smoke 13/1 xfail, behavior-readiness YELLOW with 0 blocking skips, structural preflight 0 findings, docs-harness).
-- ✅ `make production-readiness-gate` passes (billing 17/17, abuse 8/8, config 206/206, audit 6/6).
-- ✅ Pre-existing test-suite blockers `R-2026-06-13-01` and `R-2026-06-13-02` are closed.
-- ✅ Local Docker live stack is healthy; critical-path smoke passes 12/0 (`signoff-evidence/e2e/e2e-critical-path-20260614.json`).
-- ✅ Static DR and release-safety evidence passes: backup verify 13/13, restore dry-run, release dry-run, rollback verifier 8/8.
-- ⚠️ P0-001 Playwright launch journeys, P0-002 rollback rehearsal, and P0-003 enterprise SSO/OIDC are environment-dependent; local surrogate evidence is attached, but staging/production evidence is missing. These are formally accepted risks pending owner countersignature.
-- ⚠️ P1 operational evidence (billing provider integration, alert receivers, live LLM validation, full telemetry dashboards/SLO reports) is incomplete and covered by accepted-risk waivers.
+- ❌ `artifacts/release/gate-result.json` is stale (2026-05-02) and reports FAIL; `artifacts/release/release-readiness-report.md` (2026-06-21) reports `Release eligible: False`, `Decision: blocked`.
+- ❌ `artifacts/security/tenant-isolation-summary.md` (2026-06-21) reports cross-layer tenant isolation matrix exit 1.
+- ❌ `artifacts/arch/summary.md` reports 1 contract drift violation.
+- ❌ Launch-gate path drift: `.github/workflows/smoke-gate.yml` and `scripts/smoke/production_smoke.py` are missing; `.github/workflows/prod-readiness.yml` resolves required artifacts (`tenant-isolation-results.json`, `auth-endpoint-coverage.json`, `migration-rollback-test-output.txt`, `red-dashboard-snapshot-metadata.json`) that do not exist locally.
+- ❌ `artifacts/smoke/`, `artifacts/obs/`, `artifacts/agent/` are empty; `artifacts/state/` contains only `gate-state.xml`.
+- ⚠️ P0-001 Playwright launch journeys, P0-002 rollback rehearsal, and P0-003 enterprise SSO/OIDC remain environment-dependent, but they cannot be accepted as risks while repository-owned blockers above remain unresolved.
+- ⚠️ P1 operational evidence remains incomplete and will require waivers after repository-owned gates are green.
+
+**Required before reconsidering GO / GO WITH ACCEPTED RISKS:**
+1. Resolve all items in `.windsurf/plans/launch-readiness-2026-06-21.md` Section 5 (top 5 blockers).
+2. Re-run `make verify`, `make production-readiness-gate`, and `make release-gate PROFILE=release-candidate` successfully.
+3. Collect fresh retained artifacts for arch, security, state, agent, obs, and smoke gates.
+4. Collect countersigned waivers for environment-dependent P0/P1 items.
 
 **Required before removing accepted-risk status (path to unconditional GO):**
 1. Execute P0 Playwright launch journeys in a Clerk-configured staging environment and attach retained JUnit/trace evidence (or sign a scope-reduction waiver).
