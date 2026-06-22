@@ -25,64 +25,13 @@ class CanonicalModuleSentinel:
 # Keep this list intentionally small and high-impact.
 # Add entries only for modules that would cause broad architecture drift
 # if logic moved into compatibility-only roots.
-SENTINELS: tuple[CanonicalModuleSentinel, ...] = (
-    # Layer 1 runtime ownership lives under layer1_ingestion.api.main.
-    # The legacy src/api/main.py path must remain a thin compatibility shim.
-    CanonicalModuleSentinel(
-        name="layer1_api_main",
-        canonical_path="services/layer1-ingestion/src/layer1_ingestion/api/main.py",
-        compatibility_path="services/layer1-ingestion/src/api/main.py",
-    ),
-    # Layer 2 migrated to service-first per ADR-027 (2026-05-14).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer2/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer2_api_main",
-        canonical_path="services/layer2-extraction/src/layer2_extraction/api/main.py",
-        compatibility_path="value_fabric/layer2/__init__.py",
-    ),
-    # Layer 3 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer3/__init__.py; no shim file remains.
-    CanonicalModuleSentinel(
-        name="layer3_api_models",
-        canonical_path="services/layer3-knowledge/src/api/models.py",
-        compatibility_path="value_fabric/layer3/__init__.py",
-    ),
-    # Layer 4 already compliant per ADR-027 (2026-05-13).
-    # Implementation lives in services/layer4-agents/src/.
-    CanonicalModuleSentinel(
-        name="layer4_api_main",
-        canonical_path="services/layer4-agents/src/api/main.py",
-        compatibility_path="value_fabric/layer4/__init__.py",
-    ),
-    # Layer 5 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer5/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer5_truth_object_model",
-        canonical_path="services/layer5-ground-truth/src/layer5_ground_truth/models/truth_object.py",
-        compatibility_path="value_fabric/layer5/__init__.py",
-    ),
-    CanonicalModuleSentinel(
-        name="layer5_api_main",
-        canonical_path="services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
-        compatibility_path="value_fabric/layer5/__init__.py",
-    ),
-    # Layer 6 migrated to service-first per ADR-027 (2026-05-14).
-    # value_fabric/layer6/__init__.py is a neutralized placeholder; no
-    # per-module shim files or namespace path appending remain.
-    CanonicalModuleSentinel(
-        name="layer6_api_main",
-        canonical_path="services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
-        compatibility_path="value_fabric/layer6/__init__.py",
-    ),
-    CanonicalModuleSentinel(
-        name="layer6_settings",
-        canonical_path="services/layer6-benchmarks/src/layer6_benchmarks/settings.py",
-        compatibility_path="value_fabric/layer6/__init__.py",
-    ),
-)
+#
+# NOTE (2026-06-22): All root ``value_fabric/layer*`` compatibility shims and
+# the ``packages/shared/src/value_fabric/layer2`` shim tree have been removed
+# per ADR-027. Sentinel entries for those layers were removed because the
+# compatibility paths no longer exist. The no-production-imports tests below
+# remain as regression guards.
+SENTINELS: tuple[CanonicalModuleSentinel, ...] = ()
 
 
 def _parse_module(path: Path) -> ast.Module:

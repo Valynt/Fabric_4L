@@ -76,11 +76,6 @@ jobs:
             owner: "@value-fabric/architects"
             escalation: "@value-fabric/maintainers"
             command: "python scripts/ci/check_layer1_api_main_shim_drift.py"
-          - id: adr027-layer2-imports
-            service: layer2
-            owner: "@value-fabric/architects"
-            escalation: "@value-fabric/maintainers"
-            command: "python scripts/ci/check_layer2_imports.py --strict"
           - id: adr027-layer3-imports
             service: layer3
             owner: "@value-fabric/architects"
