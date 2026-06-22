@@ -37,6 +37,37 @@ to the current canonical replacement.
 
 ---
 
+## 2026-06-22 Documentation Cleanup
+
+Archived duplicate environment configuration files:
+
+| File | Date | Replaced by |
+| ---- | ---- | ----------- |
+| [.env.dev.example](../../.env.dev.example) | 2026-06-22 | [.env.example](../../.env.example) with environment profile documentation in [docs/getting-started/environment.md](../getting-started/environment.md) |
+| [.env.production-compose.template](../../.env.production-compose.template) | 2026-06-22 | [.env.example](../../.env.example) with environment profile documentation in [docs/getting-started/environment.md](../getting-started/environment.md) |
+| [.env.smoke.template](../../.env.smoke.template) | 2026-06-22 | [.env.example](../../.env.example) with environment profile documentation in [docs/getting-started/environment.md](../getting-started/environment.md) |
+
+**Note:** These files were physically moved to `docs/archive/root/` to reduce root-level duplication.
+
+Archived duplicate security documentation:
+
+| File | Date | Replaced by |
+| ---- | ---- | ----------- |
+| [docs/tenant-isolation.md](../tenant-isolation.md) | 2026-06-22 | [docs/security/multi-tenancy.md](../security/multi-tenancy.md) (testing content merged as new section) |
+| [docs/SECRETS.md](../SECRETS.md) | 2026-06-22 | [docs/security/secrets-management.md](../security/secrets-management.md) (inventory, rotation procedures, access control merged) |
+
+**Note:** These files were physically moved to `docs/archive/docs/`.
+
+Archived duplicate development documentation:
+
+| File | Date | Replaced by |
+| ---- | ---- | ----------- |
+| [docs/DEVELOPMENT.md](../DEVELOPMENT.md) | 2026-06-22 | [docs/getting-started/quickstart.md](../getting-started/quickstart.md), [docs/development/](../development/), and [docs/security/secrets-management.md](../security/secrets-management.md) (Vault dev mode) |
+
+**Note:** This file was physically moved to `docs/archive/docs/`.
+
+---
+
 ## 2026-05-28 Documentation Cleanup
 
 Archived temporal reports, redirect-only files, and outdated documentation:

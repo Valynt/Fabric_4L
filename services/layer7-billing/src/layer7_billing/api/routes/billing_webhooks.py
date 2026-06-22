@@ -6,6 +6,7 @@ these endpoints via thin HTTP client stubs.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from typing import Any
@@ -16,11 +17,19 @@ from value_fabric.shared.error_handling.exceptions import (
     ServiceUnavailableError,
     ValidationError,
 )
+from value_fabric.shared.idempotency import (
+    IdempotencyRecord,
+    IdempotencyRequest,
+    IdempotencyService,
+    RedisIdempotencyStore,
+    build_request_fingerprint,
+)
 
 from ...webhook_security import (
     DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
     verify_stripe_webhook_signature,
 )
+from ..database import redis_client_async
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Billing — Webhooks"])

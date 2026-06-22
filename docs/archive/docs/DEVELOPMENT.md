@@ -1,3 +1,14 @@
+# =============================================================================
+# ARCHIVED 2026-06-22
+# =============================================================================
+# This file has been consolidated. Most content is covered by
+# [docs/getting-started/quickstart.md](../getting-started/quickstart.md) and
+# [docs/development/](../development/). The unique Vault dev mode content has been
+# merged into [docs/security/secrets-management.md](../security/secrets-management.md).
+#
+# Original content retained below for reference:
+# =============================================================================
+
 # Development Setup Guide
 
 This guide covers local development environment setup for the Value Fabric platform.

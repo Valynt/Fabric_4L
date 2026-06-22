@@ -1,3 +1,13 @@
+# =============================================================================
+# ARCHIVED 2026-06-22
+# =============================================================================
+# This file has been consolidated. Unique content (secrets inventory, detailed
+# rotation procedures, Infisical access control) has been merged into
+# [docs/security/secrets-management.md](../security/secrets-management.md).
+#
+# Original content retained below for reference:
+# =============================================================================
+
 # Secrets Management
 
 > **Governing rule:** Infisical stores real secrets. Git stores env contracts.

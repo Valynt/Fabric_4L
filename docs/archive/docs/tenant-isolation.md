@@ -1,3 +1,13 @@
+# =============================================================================
+# ARCHIVED 2026-06-22
+# =============================================================================
+# This file has been consolidated. The tenant isolation testing content has been
+# merged into [docs/security/multi-tenancy.md](../security/multi-tenancy.md) as a
+# new "Tenant Isolation Testing" section.
+#
+# Original content retained below for reference:
+# =============================================================================
+
 # Tenant Isolation
 
 Tenant isolation is a first-class security gate for Fabric 4L. The gate covers
