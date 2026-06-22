@@ -10,17 +10,17 @@
 # Services included: frontend + Layer 2 (extraction) + Layer 2.5 (signal refinery)
 # + Layer 4 (agents) + infrastructure (postgres, neo4j, redis, minio, keycloak).
 # Layers 1, 3, 5, 6, and 7 are NOT defined here. For the full platform, use
-# docker-compose.full.yml.
+# infra/compose/docker-compose.full.yml.
 #
 # Dev auth bypass has been permanently removed (P0-008).
 # Local development uses Keycloak OIDC or test JWT tokens.
 #
 # Usage (with Infisical — recommended):
 #   pnpm env:dev                    # generates .env.generated
-#   docker compose -f docker-compose.dev.yml --env-file .env.generated up --build
+#   docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up --build
 #
 # Usage (legacy manual .env):
-#   docker compose -f docker-compose.dev.yml up --build
+#   docker compose -f infra/compose/docker-compose.dev.yml up --build
 #
 # Services:
 #   - frontend:    Vite dev server (http://localhost:3001)
@@ -45,7 +45,7 @@ services:
   # ---------------------------------------------------------------------------
   postgres:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: postgres-base
     container_name: vf-dev-postgres
     environment:
@@ -58,8 +58,8 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - dev-postgres-data:/var/lib/postgresql/data
-      - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
-      - ./k8s/base/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - ../../k8s/base/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     ports:
       - "5432:5432"
     networks:
@@ -80,7 +80,7 @@ services:
       - DATABASES_USER=postgres
       - DATABASES_PASSWORD=postgres
     volumes:
-      - ./k8s/base/userlist.example.txt:/etc/pgbouncer/userlist.txt:ro
+      - ../../k8s/base/userlist.example.txt:/etc/pgbouncer/userlist.txt:ro
     ports:
       - "6432:6432"
     networks:
@@ -97,7 +97,7 @@ services:
   # MinIO S3-compatible object storage (local development)
   minio:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: minio-base
     container_name: vf-dev-minio
     ports:
@@ -114,7 +114,7 @@ services:
 
   redis:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: redis-base
     container_name: vf-dev-redis
     ports:
@@ -127,7 +127,7 @@ services:
 
   neo4j:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: neo4j-base
     container_name: vf-dev-neo4j
     environment:
@@ -172,8 +172,8 @@ services:
       - "8080:8080"
     volumes:
       - dev-keycloak-data:/opt/keycloak/data
-      - ./infra/keycloak/fabric-realm.json:/opt/keycloak/data/import/fabric-realm.json:ro
-      - ./infra/keycloak/validate-realm-seed.py:/opt/keycloak/bin/validate-realm-seed.py:ro
+      - ../../infra/keycloak/fabric-realm.json:/opt/keycloak/data/import/fabric-realm.json:ro
+      - ../../infra/keycloak/validate-realm-seed.py:/opt/keycloak/bin/validate-realm-seed.py:ro
     networks:
       - dev-network
     healthcheck:
@@ -188,7 +188,7 @@ services:
   # ---------------------------------------------------------------------------
   layer2:
     build:
-      context: ./services/layer2-extraction
+      context: ../../services/layer2-extraction
       dockerfile: ./Dockerfile
     container_name: vf-dev-layer2
     ports:
@@ -211,9 +211,9 @@ services:
     networks:
       - dev-network
     volumes:
-      - ./services/layer2-extraction/src:/app/src:ro
-      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
-      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
+      - ../../services/layer2-extraction/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric:/app/value_fabric:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     command: >
       uvicorn src.layer2_extraction.api.main:app
       --host 0.0.0.0
@@ -231,7 +231,7 @@ services:
   # Layer 2 Celery Worker
   layer2-worker:
     build:
-      context: ./services/layer2-extraction
+      context: ../../services/layer2-extraction
       dockerfile: ./Dockerfile
     container_name: vf-dev-layer2-worker
     environment:
@@ -250,9 +250,9 @@ services:
     networks:
       - dev-network
     volumes:
-      - ./services/layer2-extraction/src:/app/src:ro
-      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
-      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
+      - ../../services/layer2-extraction/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric:/app/value_fabric:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     command: >
       celery -A layer2_extraction.shared.tasks worker
       --loglevel=info
@@ -263,7 +263,7 @@ services:
   # ---------------------------------------------------------------------------
   layer2-5:
     build:
-      context: ./services/layer2-5-signal-refinery
+      context: ../../services/layer2-5-signal-refinery
       dockerfile: ./Dockerfile
     container_name: vf-dev-layer2-5
     ports:
@@ -286,8 +286,8 @@ services:
     networks:
       - dev-network
     volumes:
-      - ./services/layer2-5-signal-refinery/src:/app/src:ro
-      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
+      - ../../services/layer2-5-signal-refinery/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric:/app/value_fabric:ro
     command: >
       uvicorn layer2_5_signal_refinery.api.main:app
       --host 0.0.0.0
@@ -301,7 +301,7 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
+      context: ../../services/layer4-agents
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-dev-layer4
@@ -365,9 +365,9 @@ services:
       - dev-network
     volumes:
       # Mount source for hot-reload (optional — remove for production-like testing)
-      - ./packages/shared/src/value_fabric:/app/value_fabric
-      - ./packages/platform-contract/src/python/canonical:/app/canonical
-      - ./services/layer4-agents/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric:/app/value_fabric
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical
+      - ../../services/layer4-agents/src:/app/src:ro
     command: >
       uvicorn src.api.main:app
       --host 0.0.0.0
@@ -387,7 +387,7 @@ services:
   # ---------------------------------------------------------------------------
   api-gateway:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/api/Dockerfile
     container_name: vf-dev-api-gateway
     ports:
@@ -430,8 +430,8 @@ services:
     networks:
       - dev-network
     volumes:
-      - ./services/api/app:/app/app:ro
-      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
+      - ../../services/api/app:/app/app:ro
+      - ../../packages/shared/src/value_fabric:/app/value_fabric:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
@@ -444,7 +444,7 @@ services:
   # ---------------------------------------------------------------------------
   frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: ./apps/web/Dockerfile.dev
     container_name: vf-dev-frontend
     ports:
@@ -484,7 +484,7 @@ services:
       - VITE_PROXY_L4_URL=http://layer4:8000
       - VITE_PROXY_API_GATEWAY_URL=http://api-gateway:8000
     volumes:
-      - ./apps/web:/workspace/apps/web
+      - ../../apps/web:/workspace/apps/web
       - /workspace/apps/web/node_modules
     networks:
       - dev-network

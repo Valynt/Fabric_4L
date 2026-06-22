@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 WEB_DIR = REPO_ROOT / "apps" / "web"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "artifacts" / "live-workflow-validation"
 DEFAULT_COMPOSE_FILES = [
-    REPO_ROOT / "docker-compose.live.yml",
+    REPO_ROOT / "infra" / "compose" / "docker-compose.live.yml",
     REPO_ROOT / ".tmp" / "docker-compose.j11.override.yml",
 ]
 REQUIRED_SERVICES = ["postgres", "redis", "neo4j", "minio", "layer1", "layer4", "frontend"]

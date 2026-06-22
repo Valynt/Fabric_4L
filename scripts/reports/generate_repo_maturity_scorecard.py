@@ -82,8 +82,8 @@ DIMENSIONS: tuple[Dimension, ...] = (
               ".github/workflows/prod-readiness.yml", "gate-release-policy"),
     )),
     Dimension("docker_containerization", "Docker/containerization", (
-        Check("dev_compose", "Development compose stack exists.", "docker-compose.dev.yml"),
-        Check("full_compose", "Full-stack compose definition exists.", "docker-compose.full.yml"),
+        Check("dev_compose", "Development compose stack exists.", "infra/compose/docker-compose.dev.yml"),
+        Check("full_compose", "Full-stack compose definition exists.", "infra/compose/docker-compose.full.yml"),
         Check("service_dockerfiles", "Service Dockerfiles are present.", "services/**/Dockerfile*", glob=True),
         Check("k8s_manifests", "Kubernetes manifests are present.", "k8s"),
     )),

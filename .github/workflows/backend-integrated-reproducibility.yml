@@ -159,7 +159,7 @@ jobs:
             python scripts/ci/run_backend_integrated_reproducibility.py
             --environment ci
             --release-candidate-sha "$RELEASE_CANDIDATE_SHA"
-            --compose-file docker-compose.live.yml
+            --compose-file infra/compose/docker-compose.live.yml
             --compose-file .tmp/docker-compose.backend-integrated-ci.override.yml
           )
           if [ -n "${RETRY_CLASSIFICATION:-}" ]; then
@@ -174,11 +174,11 @@ jobs:
           set +e
           mkdir -p artifacts/live-workflow-validation/logs
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             ps > artifacts/live-workflow-validation/logs/docker-compose-ps.txt 2>&1
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             logs --no-color > artifacts/live-workflow-validation/logs/docker-compose.log 2>&1
 
@@ -195,6 +195,6 @@ jobs:
         if: always()
         run: |
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             down -v

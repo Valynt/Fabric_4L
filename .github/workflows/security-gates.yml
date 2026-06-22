@@ -232,7 +232,7 @@ jobs:
           JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           NEO4J_PASSWORD=valuefabric
           EOF
-          docker compose -f docker-compose.full.yml up -d --build
+          docker compose -f infra/compose/docker-compose.full.yml up -d --build
 
       - name: Wait for public API health endpoints
         run: |
@@ -285,7 +285,7 @@ jobs:
 
       - name: Collect compose logs for evidence
         if: always()
-        run: docker compose -f docker-compose.full.yml logs --no-color > zap-reports/ephemeral-stack.log
+        run: docker compose -f infra/compose/docker-compose.full.yml logs --no-color > zap-reports/ephemeral-stack.log
 
       - name: Upload DAST evidence artifacts
         if: always()
@@ -297,7 +297,7 @@ jobs:
 
       - name: Stop ephemeral stack
         if: always()
-        run: docker compose -f docker-compose.full.yml down -v
+        run: docker compose -f infra/compose/docker-compose.full.yml down -v
 
   # Python security linting with bandit
   bandit-scan:

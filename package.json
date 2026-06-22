@@ -60,7 +60,7 @@
     "dev:layer5": "infisical run --env=dev --path=/shared --path=/infra --path=/layer5-ground-truth -- uvicorn services.layer5-ground-truth.src.api.main:app --reload",
     "dev:layer6": "infisical run --env=dev --path=/shared --path=/infra --path=/layer6-benchmarks -- uvicorn services.layer6-benchmarks.src.api.main:app --reload",
     "env:dev": "infisical export --env=dev --path=/shared --path=/infra --path=/layer1-ingestion --path=/layer2-extraction --path=/layer2-5-signal-refinery --path=/layer3-knowledge --path=/layer4-agents --path=/layer5-ground-truth --path=/layer6-benchmarks --path=/apps/web --format=dotenv --output-file=.env.generated",
-    "compose:dev": "corepack pnpm env:dev && docker compose --env-file .env.generated up",
+    "compose:dev": "corepack pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up",
     "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py",
     "evidence:bundle": "python scripts/ci/generate_evidence_bundle.py",
     "evidence:build": "node --experimental-strip-types scripts/collect_evidence.ts build",

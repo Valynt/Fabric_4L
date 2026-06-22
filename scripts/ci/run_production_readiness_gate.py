@@ -8,10 +8,12 @@ POSIX CI. Keep orchestration here so the gate does not depend on shell loops.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -32,6 +34,21 @@ DEFAULT_SUITES = (
 )
 BOOL_STRINGS = {"0", "1", "false", "true", "no", "yes", "off", "on"}
 DEFAULT_TEMP_DIR = REPO_ROOT / ".tmp" / "production-readiness-pytest"
+MANIFEST_FILENAME = "manifest.json"
+SUMMARY_FILENAME = "summary.md"
+JUNIT_FILENAME = "junit.xml"
+SUITE_REGRESSION_DOMAINS = {
+    "security": ("security", "tenant-isolation"),
+    "reliability": ("operational-behavior",),
+    "observability": ("operational-behavior",),
+    "recovery": ("operational-behavior",),
+    "release": ("operational-behavior", "architecture"),
+    "tenancy": ("security", "tenant-isolation"),
+    "billing": ("contracts", "tenant-isolation"),
+    "abuse": ("security",),
+    "config": ("security", "architecture"),
+    "audit": ("security", "operational-behavior"),
+}
 
 
 @dataclass(frozen=True)
@@ -52,6 +69,17 @@ def gate_env() -> dict[str, str]:
     env["TMP"] = str(DEFAULT_TEMP_DIR)
     env["TEMP"] = str(DEFAULT_TEMP_DIR)
     return env
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def write_summary(
@@ -88,8 +116,8 @@ def write_summary(
 def run_suite(suite: str, artifact_dir: Path, pytest_args: Sequence[str]) -> SuiteResult:
     suite_artifact_dir = artifact_dir / suite
     suite_artifact_dir.mkdir(parents=True, exist_ok=True)
-    summary_path = suite_artifact_dir / "summary.md"
-    junit_path = suite_artifact_dir / "junit.xml"
+    summary_path = suite_artifact_dir / SUMMARY_FILENAME
+    junit_path = suite_artifact_dir / JUNIT_FILENAME
 
     write_summary(
         suite=suite,
@@ -127,22 +155,110 @@ def run_suite(suite: str, artifact_dir: Path, pytest_args: Sequence[str]) -> Sui
     )
 
 
+def write_manifest(
+    *,
+    artifact_dir: Path,
+    suites: Sequence[str],
+    results: Sequence[SuiteResult],
+    stopped_on_failure: bool,
+) -> Path:
+    result_by_suite = {result.suite: result for result in results}
+    suite_entries = []
+    for suite in suites:
+        result = result_by_suite.get(suite)
+        status = "not_run"
+        returncode = None
+        junit_path = artifact_dir / suite / JUNIT_FILENAME
+        summary_path = artifact_dir / suite / SUMMARY_FILENAME
+        if result is not None:
+            status = "passed" if result.returncode == 0 else "failed"
+            returncode = result.returncode
+            junit_path = result.junit_path
+            summary_path = result.summary_path
+
+        suite_entries.append(
+            {
+                "suite": suite,
+                "status": status,
+                "returncode": returncode,
+                "command": [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "-v",
+                    "--tb=short",
+                    f"tests/{suite}/",
+                ],
+                "junit_artifact": _display_path(junit_path),
+                "summary_artifact": _display_path(summary_path),
+                "regression_domains": list(SUITE_REGRESSION_DOMAINS[suite]),
+                "blocking": True,
+            }
+        )
+
+    executed = [entry for entry in suite_entries if entry["status"] != "not_run"]
+    overall_status = "passed" if len(executed) == len(suite_entries) and all(
+        entry["status"] == "passed" for entry in suite_entries
+    ) else "failed"
+    covered_domains = sorted(
+        {
+            domain
+            for entry in suite_entries
+            if entry["status"] != "not_run"
+            for domain in entry["regression_domains"]
+        }
+    )
+    required_domains = ["architecture", "contracts", "operational-behavior", "security", "tenant-isolation"]
+    payload = {
+        "schema_version": 1,
+        "generated_at_utc": _utc_now(),
+        "gate": "production-readiness-gate",
+        "command": "make production-readiness-gate",
+        "overall_status": overall_status,
+        "stopped_on_failure": stopped_on_failure,
+        "artifact_dir": _display_path(artifact_dir),
+        "required_regression_domains": required_domains,
+        "covered_regression_domains": covered_domains,
+        "blocks_release_on_failure": True,
+        "suites": suite_entries,
+    }
+    manifest_path = artifact_dir / MANIFEST_FILENAME
+    manifest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return manifest_path
+
+
 def run_gate(
     suites: Iterable[str],
     artifact_dir: Path,
     pytest_args: Sequence[str] = (),
 ) -> int:
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    for suite in suites:
+    suite_list = tuple(suites)
+    results: list[SuiteResult] = []
+    for suite in suite_list:
         print(f"-> Production readiness suite: {suite}", flush=True)
         result = run_suite(suite, artifact_dir, pytest_args)
+        results.append(result)
         if result.returncode != 0:
+            manifest_path = write_manifest(
+                artifact_dir=artifact_dir,
+                suites=suite_list,
+                results=results,
+                stopped_on_failure=True,
+            )
             print(
                 f"FAIL: production readiness suite {suite} failed "
-                f"(junit: {result.junit_path.as_posix()})",
+                f"(junit: {result.junit_path.as_posix()}, manifest: {manifest_path.as_posix()})",
                 file=sys.stderr,
             )
             return result.returncode
+    manifest_path = write_manifest(
+        artifact_dir=artifact_dir,
+        suites=suite_list,
+        results=results,
+        stopped_on_failure=False,
+    )
+    print(f"Evidence manifest: {manifest_path.as_posix()}")
     print("PASS: production-readiness-gate passed")
     return 0
 

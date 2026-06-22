@@ -107,7 +107,7 @@ pyenv local 3.11
 
 ### 3. Start infrastructure
 ```bash
-docker compose -f docker-compose.full.yml up -d
+docker compose -f infra/compose/docker-compose.full.yml up -d
 ```
 
 ### 4. Run migrations

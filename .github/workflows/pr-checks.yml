@@ -399,11 +399,13 @@ jobs:
         run: |
           set -euo pipefail
           make production-readiness-gate
+          test -s artifacts/production-readiness/manifest.json
           {
             echo "## Production Readiness Gate"
             echo
             echo "- Command: make production-readiness-gate"
             echo "- Artifacts: artifacts/production-readiness/**"
+            echo "- Manifest: artifacts/production-readiness/manifest.json"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload production-readiness artifacts
@@ -1875,7 +1877,7 @@ jobs:
               break
             fi
           done
-          docker compose -f docker-compose.full.yml ps
+          docker compose -f infra/compose/docker-compose.full.yml ps
         timeout-minutes: 3
 
       - name: Run integration test suite

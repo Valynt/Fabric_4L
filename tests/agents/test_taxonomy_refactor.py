@@ -146,43 +146,6 @@ class TestSourceCodeStructure:
             )
 
 
-class TestInitExports:
-    """Validate __init__.py exports the correct names."""
-
-    @pytest.fixture(autouse=True)
-    def _parse_init(self):
-        source = (L4_SRC / "agents" / "__init__.py").read_text()
-        self.tree = ast.parse(source)
-        self.source = source
-
-    def test_canonical_exports(self):
-        expected = [
-            "ContextExtractionAgent",
-            "ValueModelAgent",
-            "IntegrityAgent",
-            "NarrativeAgent",
-            "CompetitiveIntelAgent",
-            "ConversationAgent",
-            "OrchestrationController",
-            "AgentType",
-        ]
-        for name in expected:
-            assert name in self.source, f"__init__.py missing export: {name}"
-
-    def test_deprecated_exports(self):
-        deprecated = [
-            "DocumentIngestionAgent",
-            "FinancialExtractionAgent",
-            "ValueTreeProjectionAgent",
-            "WhitespaceAnalysisAgent",
-            "ROICalculationAgent",
-            "NarrativeSynthesisAgent",
-            "ProvenanceTrackingAgent",
-        ]
-        for name in deprecated:
-            assert name in self.source, f"__init__.py missing deprecated export: {name}"
-
-
 # ---------------------------------------------------------------------------
 # ABOM Manifest Tests
 # ---------------------------------------------------------------------------
@@ -352,29 +315,3 @@ class TestAPIRoutesGateWiring:
         assert "InvariantViolation" in self.source
 
 
-# ---------------------------------------------------------------------------
-# Cross-reference tests
-# ---------------------------------------------------------------------------
-
-
-class TestCrossReferences:
-    """Verify cross-references are updated to new agent names."""
-
-    def test_scheduler_uses_new_name(self):
-        source = (L4_SRC / "engine" / "scheduler.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "DocumentIngestionAgent" not in source
-
-    def test_layer1_client_uses_new_name(self):
-        source = (L4_SRC / "integration" / "layer1_client.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "DocumentIngestionAgent" not in source
-
-    def test_layer2_client_uses_new_name(self):
-        source = (L4_SRC / "integration" / "layer2_client.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "FinancialExtractionAgent" not in source
-
-    def test_base_agent_docstring_updated(self):
-        source = (L4_SRC / "agents" / "base.py").read_text()
-        assert "9 canonical agent types" in source

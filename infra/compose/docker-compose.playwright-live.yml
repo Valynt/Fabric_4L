@@ -4,13 +4,13 @@
 #
 # Purpose:
 #   Run Playwright E2E tests inside Docker against the *already-running* live
-#   frontend service from docker-compose.live.yml. This does NOT start its own
+#   frontend service from infra/compose/docker-compose.live.yml. This does NOT start its own
 #   frontend; it expects the vf-live-frontend container to be healthy on the
 #   live-network.
 #
 # Prerequisites:
 #   1. The live stack must be running:
-#      docker compose -f docker-compose.live.yml up -d --wait
+#      docker compose -f infra/compose/docker-compose.live.yml up -d --wait
 #   2. The live-network must exist (created automatically by the live stack).
 #
 # Quick start:

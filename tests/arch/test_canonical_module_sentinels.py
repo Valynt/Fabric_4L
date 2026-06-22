@@ -121,8 +121,8 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
     """Regression: no production code should import value_fabric.layer5.*.
 
     Layer 5 is fully migrated to service-first. Consumers must use
-    layer5_ground_truth.* directly. The value_fabric/layer5/ shim
-    remains for backward compatibility only.
+    layer5_ground_truth.* directly. The value_fabric/layer5/ shim was
+    removed per ADR-027 and must not be restored.
     """
     import re
     import os
@@ -188,7 +188,7 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
 
     Layer 6 is fully migrated to service-first. Consumers should use
     direct service-path imports where possible. The value_fabric/layer6/
-    shim remains for backward compatibility only.
+    shim was removed per ADR-027 and must not be restored.
     """
     import re
     import os

@@ -32,6 +32,74 @@ async def _pass_through(request: Request) -> PlainTextResponse:
     return PlainTextResponse(f"passed:{request.method}:{request.url.path}")
 
 
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        ("", None),
+        ("Basic abc", None),
+        ("Bearer ", None),
+        ("Bearer valid", "valid"),
+        ("Bearer   padded-token  ", "padded-token"),
+    ],
+)
+def test_extract_bearer_token_is_strict(header: str, expected: str | None) -> None:
+    assert s2s_auth._extract_bearer_token(header) == expected
+
+
+def test_validate_s2s_request_reports_missing_bearer_token() -> None:
+    failure = s2s_auth.validate_s2s_request(_request("/v1/extract"))
+
+    assert failure == s2s_auth.S2SAuthFailure(
+        401,
+        "S2S Bearer token required for internal extraction routes",
+        "s2s_token_required",
+    )
+
+
+def test_validate_s2s_request_reports_invalid_token() -> None:
+    failure = s2s_auth.validate_s2s_request(
+        _request("/v1/extract", headers={"Authorization": "Bearer invalid"})
+    )
+
+    assert failure == s2s_auth.S2SAuthFailure(
+        401,
+        "Invalid or expired S2S token for internal extraction route",
+        "s2s_token_invalid",
+    )
+
+
+def test_validate_s2s_request_reports_unexpected_service_caller(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "value_fabric.shared.identity.jwt.decode_service_jwt",
+        lambda token, expected_audience: SimpleNamespace(sub="layer3-knowledge"),
+    )
+
+    failure = s2s_auth.validate_s2s_request(
+        _request("/v1/extract", headers={"Authorization": "Bearer valid"})
+    )
+
+    assert failure == s2s_auth.S2SAuthFailure(
+        403,
+        "Unexpected service caller: 'layer3-knowledge'",
+        "s2s_caller_forbidden",
+    )
+
+
+def test_validate_s2s_request_accepts_expected_service_caller(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "value_fabric.shared.identity.jwt.decode_service_jwt",
+        lambda token, expected_audience: SimpleNamespace(sub=s2s_auth.S2S_EXPECTED_SUB),
+    )
+
+    failure = s2s_auth.validate_s2s_request(
+        _request("/v1/extract", headers={"Authorization": "Bearer valid"})
+    )
+
+    assert failure is None
+
+
 @pytest.mark.asyncio
 async def test_non_internal_route_bypasses_s2s_guard(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SERVICE_AUTH_SECRET", "x" * 64)

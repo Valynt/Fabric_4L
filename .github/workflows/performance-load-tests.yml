@@ -84,21 +84,21 @@ jobs:
               env_file:
                 - .env
           EOF
-          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml up -d neo4j redis postgres layer2-extraction layer3-knowledge layer4-agents
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml up -d neo4j redis postgres layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for services to become healthy
         run: |
           echo "Waiting for service health checks..."
           for i in {1..30}; do
             sleep 10
-            healthy=$(docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml ps --format json 2>/dev/null | grep -c '"Health":"healthy"' || echo "0")
+            healthy=$(docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml ps --format json 2>/dev/null | grep -c '"Health":"healthy"' || echo "0")
             echo "Check $i/30: $healthy healthy containers"
             if [ "$healthy" -ge "6" ]; then
               echo "Core stack is healthy"
               break
             fi
           done
-          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml ps
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml ps
 
       - name: Generate CI auth tokens
         run: |
@@ -211,7 +211,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/performance/logs
-          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml logs > artifacts/performance/logs/docker-compose.log
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml logs > artifacts/performance/logs/docker-compose.log
 
       - name: Upload failure logs
         if: failure()
@@ -223,4 +223,4 @@ jobs:
 
       - name: Tear down ephemeral stack
         if: always()
-        run: docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml down -v
+        run: docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml down -v

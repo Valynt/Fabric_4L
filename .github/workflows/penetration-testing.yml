@@ -56,7 +56,7 @@ jobs:
       - name: Start test stack
         run: |
           # Start services if needed for testing
-          docker compose -f docker-compose.full.yml up -d || true
+          docker compose -f infra/compose/docker-compose.full.yml up -d || true
           sleep 30
 
       - name: Run ZAP Full Scan (Docker)
@@ -131,7 +131,7 @@ jobs:
 
       - name: Start test stack
         run: |
-          docker compose -f docker-compose.full.yml up -d || true
+          docker compose -f infra/compose/docker-compose.full.yml up -d || true
           sleep 30
 
       - name: Run Nikto Scan

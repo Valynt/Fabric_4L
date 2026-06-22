@@ -14,11 +14,11 @@ PROD_COMPOSE_FILES=(
   "infra/compose/docker-compose.prod.yml"
   "docker-compose.staging.yml"
   "docker-compose.preprod.yml"
-  "docker-compose.full.yml"
+  "infra/compose/docker-compose.full.yml"
 )
 
 # Check if we're in the repo root
-if [ ! -f "docker-compose.dev.yml" ]; then
+if [ ! -f "infra/compose/docker-compose.dev.yml" ]; then
   echo "ERROR: This script must be run from the repository root"
   exit 1
 fi

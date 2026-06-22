@@ -420,7 +420,7 @@ bootstrap: ## One-command first-time setup: Infisical → corepack → pnpm → 
 	$(MAKE) migrate
 	@echo ""
 	@echo "✅  Bootstrap complete!"
-	@echo "    Next: pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d"
+	@echo "    Next: pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d"
 
 setup: ## Install all service dev dependencies into the pytest Python environment
 	$(PYTHON) scripts/ci/setup_python_dev_deps.py
@@ -626,13 +626,13 @@ preflight: ## Run pre-flight checks (Docker, env, ports)
 	@bash scripts/dev/dev-preflight.sh
 
 up: preflight ## Start all services with Docker Compose (runs preflight first)
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f infra/compose/docker-compose.dev.yml up -d
 
 down: ## Stop all services
-	docker compose -f docker-compose.dev.yml down
+	docker compose -f infra/compose/docker-compose.dev.yml down
 
 logs: ## Tail logs for all services
-	docker compose -f docker-compose.dev.yml logs -f
+	docker compose -f infra/compose/docker-compose.dev.yml logs -f
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 

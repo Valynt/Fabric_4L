@@ -8,7 +8,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.live.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-infra/compose/docker-compose.live.yml}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-fabric4l_live_validation}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/live-workflow-validation}"
 FRONTEND_URL="${PLAYWRIGHT_LIVE_FRONTEND_URL:-http://localhost:3001}"
@@ -86,7 +86,7 @@ usage() {
 Usage: scripts/ci/run_live_workflow_validation.sh [options]
 
 Options:
-  --config-only       Validate docker-compose.live.yml and frontend guardrails only.
+  --config-only       Validate infra/compose/docker-compose.live.yml and frontend guardrails only.
   --smoke             Start the live stack, probe all layer health endpoints, write a
                       timestamped evidence artifact, then tear down. Completes in ~5 min.
                       Used for automatic CI validation on release/** and main branches.
@@ -97,7 +97,7 @@ Options:
   --help              Show this help text.
 
 Environment overrides:
-  COMPOSE_FILE=docker-compose.live.yml
+  COMPOSE_FILE=infra/compose/docker-compose.live.yml
   COMPOSE_PROJECT_NAME=fabric4l_live_validation
   ARTIFACT_DIR=artifacts/live-workflow-validation
   PLAYWRIGHT_LIVE_FRONTEND_URL=http://localhost:3001

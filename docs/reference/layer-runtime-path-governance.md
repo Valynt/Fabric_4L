@@ -145,6 +145,6 @@ Avoid adding low-value or highly volatile modules to keep this guardrail low-noi
 
 ## Layer 4 namespace policy
 
-- **Authoritative import namespace:** `value_fabric.layer4.*`.
-- **Deprecated compatibility namespace:** `layer4_agents.*` (shims only; no net-new imports).
+- **Authoritative import namespace:** `layer4_agents.*`.
+- **Removed compatibility namespace:** `value_fabric.layer4.*` (do not restore; no net-new imports).
 - **CI guardrail:** `scripts/ci/check_layer4_canonical_imports.py` with test coverage in `tests/ci/test_check_layer4_canonical_imports.py`.

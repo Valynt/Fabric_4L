@@ -3,10 +3,10 @@
 # =============================================================================
 # Usage (with Infisical — recommended):
 #   pnpm env:dev                    # generates .env.generated
-#   docker compose -f docker-compose.full.yml --env-file .env.generated up --build
+#   docker compose -f infra/compose/docker-compose.full.yml --env-file .env.generated up --build
 #
 # Usage (legacy manual .env):
-#   docker compose -f docker-compose.full.yml up --build
+#   docker compose -f infra/compose/docker-compose.full.yml up --build
 # =============================================================================
 # Migrated from value-fabric/docker-compose.yml during legacy path cleanup.
 version: "3.8"
@@ -32,7 +32,7 @@ x-build-args: &build-args
 services:
   api-gateway:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/api/Dockerfile
     container_name: value-fabric-api-gateway
     <<: *app-hardening
@@ -82,7 +82,7 @@ services:
   # Layer 1: Data Ingestion Service
   layer1-ingestion:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args: *build-args
     container_name: value-fabric-layer1
@@ -108,7 +108,7 @@ services:
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
     volumes:
-      - ./raw-content:/app/raw-content
+      - ../../raw-content:/app/raw-content
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,7 +126,7 @@ services:
   # Layer 2: Extraction Pipeline
   layer2-extraction:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer2-extraction/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer2
@@ -172,7 +172,7 @@ services:
   # Layer 2.5: Signal Refinery Service
   layer2-5-signal-refinery:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer2-5-signal-refinery/Dockerfile
       args: *build-args
     container_name: value-fabric-layer2-5
@@ -201,7 +201,7 @@ services:
   # Layer 3: Neo4j Knowledge Graph
   neo4j:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: neo4j-base
     container_name: value-fabric-neo4j
     expose:
@@ -228,7 +228,7 @@ services:
   # Layer 3 Knowledge Graph API
   layer3-knowledge:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer3-knowledge/Dockerfile.full
       args:
         <<: *build-args
@@ -269,7 +269,7 @@ services:
   # Layer 4: Agentic Workflow Engine
   layer4-agents:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer4-agents/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer4
@@ -327,7 +327,7 @@ services:
   # Layer 5: Ground Truth Service
   layer5-ground-truth:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer5
@@ -377,7 +377,7 @@ services:
   # Lock ID is derived from database name to avoid conflicts between services
   layer5-migrate:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer5-migrate
@@ -408,7 +408,7 @@ services:
   # Layer 6: Benchmark Service
   layer6-benchmarks:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer6-benchmarks/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer6
@@ -452,7 +452,7 @@ services:
   # Layer 7: Billing Service
   layer7-billing:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer7-billing/Dockerfile
       args: *build-args
     container_name: value-fabric-layer7
@@ -501,8 +501,8 @@ services:
     expose:
       - "9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
     networks:
       - value-fabric-network
     restart: unless-stopped
@@ -515,7 +515,7 @@ services:
   # Celery Worker for Layer 1
   layer1-celery-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args: *build-args
     container_name: value-fabric-layer1-celery-worker
@@ -545,7 +545,7 @@ services:
   # Celery Beat for Scheduled Tasks
   layer1-celery-beat:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args: *build-args
     container_name: value-fabric-layer1-celery-beat
@@ -577,7 +577,7 @@ services:
   # Flower - Celery Monitoring UI
   flower:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args: *build-args
     container_name: value-fabric-flower
@@ -617,7 +617,7 @@ services:
     expose:
       - "9093"
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
     networks:
       - value-fabric-network
@@ -639,9 +639,9 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
-      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ../../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     depends_on:
       prometheus:
@@ -748,7 +748,7 @@ services:
   # Redis (shared across all layers)
   redis:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: redis-base
     container_name: value-fabric-redis
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -780,7 +780,7 @@ services:
     expose:
       - "8200"
     volumes:
-      - ./scripts/vault-dev-init.sh:/vault-dev-init.sh:ro
+      - ../../scripts/vault-dev-init.sh:/vault-dev-init.sh:ro
     networks:
       - value-fabric-network
     restart: "no"
@@ -796,7 +796,7 @@ services:
   # PostgreSQL (for Layer 1 crawl state + Layer 5 Ground Truth)
   postgres:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: postgres-base
     container_name: value-fabric-postgres
     expose:
@@ -809,7 +809,7 @@ services:
       - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
       - postgres-backups:/backups
     networks:
       - value-fabric-network
@@ -824,7 +824,7 @@ services:
   # NOTE: This is a one-shot backup container. For scheduled backups, use:
   # - Kubernetes CronJob in production (see k8s/base/postgres-backup-cronjob.yaml)
   # - External scheduler (cron, systemd timer) for Docker Compose
-  # Run with: docker compose -f docker-compose.full.yml --profile backup run postgres-backup
+  # Run with: docker compose -f infra/compose/docker-compose.full.yml --profile backup run postgres-backup
   postgres-backup:
     image: postgres:15-alpine
     container_name: value-fabric-postgres-backup
@@ -890,7 +890,7 @@ services:
   # NOTE: This is a one-shot backup container. For scheduled backups, use:
   # - Kubernetes CronJob in production (see k8s/base/neo4j-backup-cronjob.yaml)
   # - External scheduler (cron, systemd timer) for Docker Compose
-  # Run with: docker compose -f docker-compose.full.yml --profile backup run neo4j-backup
+  # Run with: docker compose -f infra/compose/docker-compose.full.yml --profile backup run neo4j-backup
   neo4j-backup:
     image: neo4j:5-community
     container_name: value-fabric-neo4j-backup

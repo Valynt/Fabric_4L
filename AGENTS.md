@@ -46,9 +46,9 @@ make setup
 
 # 6. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
 #    Using Infisical-generated env (recommended):
-pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 #    Or legacy manual .env:
-#    cp .env.example .env && docker compose -f docker-compose.dev.yml up -d
+#    cp .env.example .env && docker compose -f infra/compose/docker-compose.dev.yml up -d
 
 # 7. Run database migrations
 make migrate
@@ -62,11 +62,11 @@ make verify
 ## Dev Server
 
 ```bash
-# Local Docker Compose stack (frontend + supporting backend services defined in docker-compose.dev.yml)
+# Local Docker Compose stack (frontend + supporting backend services defined in infra/compose/docker-compose.dev.yml)
 # With Infisical (recommended):
-pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up
 # Legacy manual .env:
-# docker compose -f docker-compose.dev.yml up
+# docker compose -f infra/compose/docker-compose.dev.yml up
 
 # Frontend only (Vite, port 3001, with mock API)
 pnpm dev:web

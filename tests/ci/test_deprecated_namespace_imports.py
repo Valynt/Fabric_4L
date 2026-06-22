@@ -64,6 +64,18 @@ def test_namespace_scanner_enforce_ratchet_blocks_growth(tmp_path: Path) -> None
 
 
 def test_deleted_namespaces_no_longer_importable() -> None:
-    for dead in ("value_fabric.layer1_ingestion", "value_fabric.src"):
+    for dead in (
+        "value_fabric.src",
+        "value_fabric.layer1",
+        "value_fabric.layer2",
+        "value_fabric.layer3",
+        "value_fabric.layer4",
+        "value_fabric.layer5",
+        "value_fabric.layer6",
+        "value_fabric.layer1_ingestion",
+        "value_fabric.layer2_extraction",
+        "value_fabric.layer3_knowledge",
+        "value_fabric.layer6_benchmarks",
+    ):
         spec = importlib.util.find_spec(dead)
         assert spec is None, f"Expected {dead} to be unimportable after cleanup"

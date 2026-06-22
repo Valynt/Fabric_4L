@@ -280,6 +280,8 @@ def request_payload() -> dict:
 @pytest.fixture(autouse=True)
 def reset_pipeline_state(monkeypatch: pytest.MonkeyPatch) -> None:
     from layer2_extraction.integration.job_store import InMemoryJobStore
+
+    monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
     test_job_store = InMemoryJobStore()
     monkeypatch.setattr(api_main, "job_store", test_job_store)
     yield
@@ -297,6 +299,7 @@ def jwt_token() -> str:
     """Generate a signed JWT for test requests."""
     import os
     import time
+
     import jwt as pyjwt
 
     secret = os.environ.get("JWT_SECRET", "test-secret-key-for-layer2-tests-32b")

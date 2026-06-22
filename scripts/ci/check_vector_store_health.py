@@ -28,9 +28,9 @@ REQUIRED_VECTOR_INDEXES: dict[str, tuple[str, str]] = {
 }
 
 COMPOSE_FILES = (
-    Path("docker-compose.dev.yml"),
+    Path("infra/compose/docker-compose.dev.yml"),
     Path("infra/compose/docker-compose.backend-integrated.yml"),
-    Path("docker-compose.full.yml"),
+    Path("infra/compose/docker-compose.full.yml"),
     Path("services/layer3-knowledge/docker-compose.yml"),
 )
 

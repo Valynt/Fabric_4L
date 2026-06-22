@@ -37,7 +37,7 @@ def dockerfile_backed_service_dirs() -> set[str]:
 
 
 def compose_defined_services() -> set[str]:
-    compose = yaml.safe_load((ROOT / "docker-compose.full.yml").read_text(encoding="utf-8")) or {}
+    compose = yaml.safe_load((ROOT / "infra/compose/docker-compose.full.yml").read_text(encoding="utf-8")) or {}
     service_defs = compose.get("services", {}) if isinstance(compose, dict) else {}
     found = set()
     for svc in service_defs.values():

@@ -10,8 +10,8 @@ DEFAULT_TARGETS = [
     ROOT / 'k8s' / 'base' / 'postgres-backup-cronjob.yaml',
     ROOT / 'k8s' / 'base' / 'layer4-agents.yml',
     ROOT / 'k8s' / 'base' / 'redis.yml',
-    ROOT / 'docker-compose.full.yml',
-    ROOT / 'docker-compose.dev.yml',
+    ROOT / 'infra' / 'compose' / 'docker-compose.full.yml',
+    ROOT / 'infra' / 'compose' / 'docker-compose.dev.yml',
     ROOT / '.env.example',
 ]
 

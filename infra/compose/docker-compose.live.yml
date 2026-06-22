@@ -259,7 +259,7 @@ services:
   # ---------------------------------------------------------------------------
   layer3:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer3-knowledge/Dockerfile.full
       args:
         BASE_IMAGE: ${BASE_IMAGE:-}
@@ -273,7 +273,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       LOG_LEVEL: info
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:
@@ -293,7 +293,7 @@ services:
 
   layer3-neo4j-migrate:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer3-knowledge/Dockerfile.full
       args:
         BASE_IMAGE: ${BASE_IMAGE:-}
@@ -325,7 +325,7 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer4-agents/Dockerfile.full
       args: *id001
     container_name: vf-live-layer4
@@ -359,7 +359,7 @@ services:
       CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES}
       CLERK_JWKS_URL: ${CLERK_JWKS_URL}
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:
@@ -382,7 +382,7 @@ services:
   # ---------------------------------------------------------------------------
   layer5:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *id001
     container_name: vf-live-layer5
@@ -399,7 +399,7 @@ services:
       API_PORT: 8005
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:
@@ -419,7 +419,7 @@ services:
 
   layer5-migrate:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *id001
     container_name: vf-live-layer5-migrate
@@ -435,7 +435,7 @@ services:
       MIGRATION_CONNECT_ATTEMPTS: 12
       MIGRATION_CONNECT_DELAY_SECONDS: 5
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     deploy:
@@ -449,7 +449,7 @@ services:
   # ---------------------------------------------------------------------------
   layer6:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer6-benchmarks/Dockerfile.full
       args: *id001
     container_name: vf-live-layer6
@@ -469,8 +469,8 @@ services:
       LAYER3_API_KEY: ${LAYER3_API_KEY:-dev-layer3-api-key-placeholder-min-16-chars}
       LAYER5_API_KEY: ${LAYER5_API_KEY:-dev-layer5-api-key-placeholder-min-16-chars}
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    - ./contracts:/contracts:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../contracts:/contracts:ro
     networks:
     - live-network
     healthcheck:
@@ -490,7 +490,7 @@ services:
 
   api-gateway:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/api/Dockerfile
     container_name: vf-live-api-gateway
     ports:
@@ -524,8 +524,8 @@ services:
       FABRIC_AUTH_ENVELOPE_TTL_SECONDS: ${FABRIC_AUTH_ENVELOPE_TTL_SECONDS}
       PYTHONPATH: /app
     volumes:
-    - ./packages/shared/src/value_fabric:/app/value_fabric:ro
-    - ./services/api/app:/app/app:ro
+    - ../../packages/shared/src/value_fabric:/app/value_fabric:ro
+    - ../../services/api/app:/app/app:ro
     networks:
     - live-network
     depends_on:
@@ -555,7 +555,7 @@ services:
   # ---------------------------------------------------------------------------
   frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: ./apps/web/Dockerfile.dev
     container_name: vf-live-frontend
     ports:
@@ -587,7 +587,7 @@ services:
           cpus: '0.25'
           memory: '512MiB'
     volumes:
-    - ./apps/web:/workspace/apps/web
+    - ../../apps/web:/workspace/apps/web
     - /workspace/apps/web/node_modules
     networks:
     - live-network
@@ -605,7 +605,7 @@ services:
     profiles:
     - seed
     build:
-      context: .
+      context: ../..
       dockerfile: ./apps/web/Dockerfile.dev
     container_name: vf-live-seed
     command:
@@ -617,7 +617,7 @@ services:
       PLAYWRIGHT_LIVE_MODE: 'true'
       PLAYWRIGHT_BACKEND_URL: http://layer4:8000
     volumes:
-    - ./apps/web:/app
+    - ../../apps/web:/app
     - /app/node_modules
     networks:
     - live-network

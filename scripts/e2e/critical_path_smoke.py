@@ -5,7 +5,7 @@ Runs the minimum viable end-to-end sequence required for Phase 1 sign-off.
 Captures per-layer health status, request/response summaries, and timestamps
 into a JSON artifact committed under signoff-evidence/.
 
-Port / network notes (docker-compose.live.yml)
+Port / network notes (infra/compose/docker-compose.live.yml)
 -----------------------------------------------
 Only L4 (8004) and the frontend (3001) are bound to the host. All other
 layers run on internal Docker network ports:
@@ -37,7 +37,7 @@ Run modes:
 
 Usage:
     # Inside the compose network (recommended)
-    docker compose -f docker-compose.live.yml exec layer4 \\
+    docker compose -f infra/compose/docker-compose.live.yml exec layer4 \\
         python /app/scripts/e2e/critical_path_smoke.py --network
 
     # From host (L4 only reachable directly; others need tunnels)
@@ -92,7 +92,7 @@ _NETWORK_DEFAULTS: dict[str, str] = {
     "L6": "http://layer6:8006",
 }
 
-# Host-accessible URLs (only L4 is bound to the host in docker-compose.live.yml)
+# Host-accessible URLs (only L4 is bound to the host in infra/compose/docker-compose.live.yml)
 # L1/L2/L3/L5/L6 are not host-exposed; set *_URL env vars to override.
 _HOST_DEFAULTS: dict[str, str] = {
     "L1": "http://localhost:8001",   # not host-bound — override via L1_URL

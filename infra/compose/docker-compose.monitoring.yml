@@ -1,7 +1,7 @@
 name: fabric4l-monitoring
 
 x-from-full: &from-full
-  file: ../../docker-compose.full.yml
+  file: ./docker-compose.full.yml
 
 services:
   prometheus:

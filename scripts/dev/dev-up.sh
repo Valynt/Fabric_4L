@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
+COMPOSE_FILE="$PROJECT_ROOT/infra/compose/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_ROOT/.env.dev"
 
 # Health check configuration

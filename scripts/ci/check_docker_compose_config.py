@@ -26,10 +26,10 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 TARGET_COMPOSE_FILES = (
-    "docker-compose.dev.yml",
-    "docker-compose.live.yml",
+    "infra/compose/docker-compose.dev.yml",
+    "infra/compose/docker-compose.live.yml",
     "infra/compose/docker-compose.release-smoke.yml",
-    "docker-compose.full.yml",
+    "infra/compose/docker-compose.full.yml",
 )
 
 SAFE_REQUIRED_ENV_DEFAULTS = {
@@ -52,6 +52,7 @@ SAFE_REQUIRED_ENV_DEFAULTS = {
     "POSTGRES_PASSWORD": "compose-contract-postgres-password",
     "API_KEY_HMAC_SECRET": "compose-contract-api-key-hmac-secret-32chars",
     "SERVICE_AUTH_SECRET": "compose-contract-service-auth-secret-32chars",
+    "LAYER4_DATABASE_URL": "postgresql+asyncpg://compose_contract_user:compose-contract-postgres-password@postgres:5432/layer4_agents",
 }
 
 ONE_SHOT_SERVICE_PATTERNS = (
@@ -279,7 +280,11 @@ def looks_like_path(source: str) -> bool:
     )
 
 
-def resolve_repo_path(source: str, repo_root: Path = REPO_ROOT) -> Path | None:
+def resolve_repo_path(
+    source: str,
+    repo_root: Path = REPO_ROOT,
+    base_dir: Path | None = None,
+) -> Path | None:
     if has_unresolved_env_reference(source):
         return None
     if source in SKIPPED_BIND_SOURCES:
@@ -287,7 +292,7 @@ def resolve_repo_path(source: str, repo_root: Path = REPO_ROOT) -> Path | None:
     source_path = Path(source)
     if source_path.is_absolute():
         return source_path
-    return (repo_root / source_path).resolve()
+    return ((base_dir or repo_root) / source_path).resolve()
 
 
 def split_short_volume(volume: str) -> tuple[str | None, str | None]:
@@ -351,7 +356,9 @@ def target_covers_path(target: str, path: str) -> bool:
 
 
 def resolve_build_paths(
-    service: dict[str, Any], repo_root: Path = REPO_ROOT
+    service: dict[str, Any],
+    repo_root: Path = REPO_ROOT,
+    base_dir: Path | None = None,
 ) -> tuple[Path, Path] | None:
     build = service.get("build")
     if not build:
@@ -367,7 +374,7 @@ def resolve_build_paths(
 
     context_path = Path(context_value)
     if not context_path.is_absolute():
-        context_path = repo_root / context_path
+        context_path = (base_dir or repo_root) / context_path
     context_path = context_path.resolve()
 
     dockerfile_path = Path(dockerfile_value)
@@ -694,6 +701,7 @@ def validate_frontend_env_completeness(
 def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -> list[ComposeFailure]:
     data = load_compose(compose_file)
     declared_volumes = set((data.get("volumes") or {}).keys())
+    compose_base_dir = compose_file.parent
     failures: list[ComposeFailure] = []
 
     services = data["services"]
@@ -709,7 +717,7 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
             )
             continue
 
-        build_paths = resolve_build_paths(service, repo_root)
+        build_paths = resolve_build_paths(service, repo_root, compose_base_dir)
         dockerfile_path: Path | None = None
         if build_paths:
             context_path, dockerfile_path = build_paths
@@ -731,7 +739,7 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
                 )
 
         for source in iter_bind_sources(service, declared_volumes):
-            resolved = resolve_repo_path(source, repo_root)
+            resolved = resolve_repo_path(source, repo_root, compose_base_dir)
             if resolved is None:
                 continue
             if not resolved.exists():

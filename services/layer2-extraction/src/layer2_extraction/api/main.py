@@ -43,7 +43,6 @@ from value_fabric.shared.environment import (
     get_service_environment,
     is_production_like_environment,
 )
-from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.security.config import is_strict_environment
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
@@ -90,6 +89,13 @@ from layer2_extraction.api.extraction_config import (
 from layer2_extraction.api.extraction_config import (
     validated_extraction_config as _validated_extraction_config,
 )
+from layer2_extraction.api.retry_queue import (
+    ExtractionArtifactsPayload,
+    deserialize_artifacts,
+    next_retry_at,
+    serialize_artifacts,
+)
+from layer2_extraction.api.routes import health as health_routes
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
@@ -207,20 +213,12 @@ except Exception:
 
 async def _pending_ingestion_probe() -> ProbeResult:
     """Readiness probe for the pending-ingestion store."""
-    try:
-        await pending_ingestion_store.get_due(datetime.now(UTC))
-    except Exception as exc:
-        return ProbeResult(name="pending_ingestion_store", healthy=False, detail=str(exc))
-    return ProbeResult(name="pending_ingestion_store", healthy=True)
+    return await health_routes.pending_ingestion_probe(pending_ingestion_store)
 
 
 async def _quarantine_probe() -> ProbeResult:
     """Readiness probe for the quarantine store."""
-    try:
-        await quarantine_store.list(tenant_id="__health_probe__")
-    except Exception as exc:
-        return ProbeResult(name="quarantine_store", healthy=False, detail=str(exc))
-    return ProbeResult(name="quarantine_store", healthy=True)
+    return await health_routes.quarantine_probe(quarantine_store)
 
 
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
@@ -722,15 +720,17 @@ def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
 
 
 def _serialize_artifacts(artifacts: ExtractionArtifacts) -> tuple[str, str]:
-    result_json = json.dumps(artifacts.result.model_dump(mode="json"))
-    relationships_json = json.dumps([r.model_dump(mode="json") for r in artifacts.relationships])
-    return result_json, relationships_json
+    return serialize_artifacts(
+        ExtractionArtifactsPayload(
+            result=artifacts.result,
+            relationships=artifacts.relationships,
+        )
+    )
 
 
 def _deserialize_artifacts(result_json: str, relationships_json: str) -> ExtractionArtifacts:
-    result = ExtractionResult(**json.loads(result_json))
-    relationships = [Relationship(**item) for item in json.loads(relationships_json)]
-    return ExtractionArtifacts(result=result, relationships=relationships)
+    artifacts = deserialize_artifacts(result_json, relationships_json)
+    return ExtractionArtifacts(result=artifacts.result, relationships=artifacts.relationships)
 
 
 async def _queue_for_retry(
@@ -740,9 +740,12 @@ async def _queue_for_retry(
     last_error: str,
     retry_count: int,
 ) -> None:
-    delay_seconds = RETRY_BASE_SECONDS * max(1, 2 ** max(retry_count - 1, 0))
-    next_retry_ts = datetime.now(UTC).timestamp() + delay_seconds
-    next_retry_dt = datetime.fromtimestamp(next_retry_ts, tz=UTC)
+    next_retry_dt = next_retry_at(
+        now=datetime.now(UTC),
+        retry_base_seconds=RETRY_BASE_SECONDS,
+        retry_count=retry_count,
+        fromtimestamp=datetime.fromtimestamp,
+    )
     result_json, relationships_json = _serialize_artifacts(artifacts)
 
     await pending_ingestion_store.enqueue(
@@ -1628,113 +1631,11 @@ async def run_extract_and_ingest(
 @app.get("/health")
 async def health_check():
     """Health check endpoint with real metrics and dependency status."""
-    start_time = time.time()
-    uptime = time.time() - _app_start_time
-
-    metrics = get_metrics()
-    total_requests = 0
-    active_connections = 0
-
-    if metrics and metrics.config.enabled:
-        try:
-            requests_counter = metrics._metrics.get("requests_total", {})
-            total_requests = (
-                sum(
-                    v._value.get() if hasattr(v._value, "get") else v._value
-                    for method_dict in requests_counter._metrics.values()
-                    for endpoint_dict in method_dict.values()
-                    for v in endpoint_dict.values()
-                )
-                if hasattr(requests_counter, "_metrics")
-                else 0
-            )
-        except (AttributeError, TypeError):
-            total_requests = 0
-
-        try:
-            active_connections = int(
-                metrics._metrics.get("active_connections", {}).get("total", {}).get("_value", 0)
-            )
-        except (AttributeError, TypeError):
-            active_connections = 0
-
-    # Check Layer 3 dependency
-    dependencies: list[dict[str, Any]] = []
-    overall_status = "healthy"
-
-    if os.getenv("LAYER2_HEALTH_SKIP_LAYER3", "").lower() in {"1", "true", "yes"}:
-        dependencies.append(
-            {
-                "name": "layer3_knowledge",
-                "status": "degraded",
-                "response_time_ms": None,
-                "error": "Release-smoke readiness skips downstream Layer 3 probe; live smoke tests validate cross-service contracts after startup",
-                "failure_reason": "layer3_probe_skipped",
-            }
-        )
-        overall_status = "degraded"
-    else:
-        try:
-            from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
-
-            l3_start = time.time()
-            l3_client = Layer3KnowledgeClient()
-            l3_healthy = await l3_client.health_check()
-            l3_response_ms = round((time.time() - l3_start) * 1000, 2)
-            await l3_client.close()
-
-            dependencies.append(
-                {
-                    "name": "layer3_knowledge",
-                    "status": "healthy" if l3_healthy else "unhealthy",
-                    "response_time_ms": l3_response_ms,
-                    "error": None if l3_healthy else "Layer 3 returned unhealthy status",
-                    "failure_reason": None if l3_healthy else "dependency_unhealthy",
-                }
-            )
-
-            if not l3_healthy:
-                overall_status = "degraded"
-        except Exception:
-            dependencies.append(
-                {
-                    "name": "layer3_knowledge",
-                    "status": "unhealthy",
-                    "response_time_ms": None,
-                    "error": "Layer 3 health check failed",
-                    "error_code": "L3_HEALTH_CHECK_ERROR",
-                }
-            )
-            overall_status = "degraded"
-
-    total_response_ms = round((time.time() - start_time) * 1000, 2)
-
-    # Update health metrics if available
-    if metrics:
-        metrics.set_health_status(overall_status == "healthy", component="api")
-        l3_dep_healthy = any(
-            d["name"] == "layer3_knowledge" and d["status"] == "healthy" for d in dependencies
-        )
-        metrics.set_health_status(l3_dep_healthy, component="layer3")
-
-    # Build system metrics if psutil is available
-    system_metrics: dict[str, Any] = {"active_connections": active_connections, "total_requests": total_requests}
-    if psutil:
-        memory_info = psutil.virtual_memory()
-        system_metrics["memory_usage_mb"] = memory_info.used / (1024 * 1024)
-        system_metrics["cpu_percent"] = psutil.cpu_percent()
-
-    payload = normalize_probe_payload(
-        status=overall_status,
-        service="layer2-extraction",
-        dependencies=dependencies,
-        extra={
-            "version": "1.0.0",
-            "timestamp": datetime.now(UTC).isoformat(),
-            "uptime_seconds": uptime,
-            "response_time_ms": total_response_ms,
-            "metrics": system_metrics,
-        },
+    payload = await health_routes.build_health_payload(
+        app_start_time=_app_start_time,
+        metrics=get_metrics(),
+        layer3_client_factory=Layer3KnowledgeClient,
+        psutil_module=psutil,
     )
     return health_checkResult.model_validate(payload)
 

@@ -2,83 +2,83 @@
 # Fabric_4L Compatibility Entrypoint
 # =============================================================================
 # This file intentionally stays thin and delegates all runtime service definitions
-# to docker-compose.live.yml. Keep using `docker compose up` from repo root.
+# to infra/compose/docker-compose.live.yml. Keep using `docker compose up` from repo root.
 # =============================================================================
 
 services:
   postgres:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: postgres
 
   redis:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: redis
 
   neo4j:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: neo4j
 
   minio:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: minio
 
   minio-init:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: minio-init
 
   layer1:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer1
 
   layer1-worker:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer1-worker
 
   layer2:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer2
 
   layer3:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer3
 
   layer3-neo4j-migrate:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer3-neo4j-migrate
 
   layer4:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer4
 
   layer5:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer5
 
   layer5-migrate:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer5-migrate
 
   layer6:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: layer6
 
   frontend:
     extends:
-      file: ./docker-compose.live.yml
+      file: ./infra/compose/docker-compose.live.yml
       service: frontend
 
 volumes:
