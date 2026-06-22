@@ -34,10 +34,20 @@ const CATEGORY_ICONS: Record<SettingsCategoryKey, React.ReactNode> = {
   governance: <Shield className="h-4 w-4" />,
 };
 
+/**
+ * Strip tenant slug prefix from settings pathname
+ * @param pathname - Full pathname including tenant slug
+ * @returns Pathname with tenant prefix removed
+ */
 function stripTenantSettingsPrefix(pathname: string): string {
   return pathname.replace(/^\/t\/[^/]+(?=\/settings(?:\/|$))/, "");
 }
 
+/**
+ * Build settings path with optional tenant slug prefix
+ * @param tenantSlug - Optional tenant slug for multi-tenant routing
+ * @returns Path builder function that prefixes tenant slug when needed
+ */
 function useSettingsPathBuilder(tenantSlug: string | undefined) {
   return (path: string) => {
     if (path.startsWith("/personal")) {
@@ -47,6 +57,11 @@ function useSettingsPathBuilder(tenantSlug: string | undefined) {
   };
 }
 
+/**
+ * Determine active settings category from pathname
+ * @param pathname - Current route pathname
+ * @returns Active category object or first category as fallback
+ */
 function useActiveCategory(pathname: string) {
   return useMemo(() => {
     const settingsPath = stripTenantSettingsPrefix(pathname);

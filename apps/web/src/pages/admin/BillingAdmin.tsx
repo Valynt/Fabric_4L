@@ -10,7 +10,7 @@
  */
 
 import { EmptyState } from "@/components/states";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   CreditCard, Receipt, Activity, Calendar, Shield, AlertCircle,
   CheckCircle2, Clock, ExternalLink, Download, FileText,
@@ -40,16 +40,12 @@ import { InvoiceStatusBadge } from "@/components/billing/InvoiceStatusBadge";
 import { InvoiceDetailDrawer } from "@/components/billing/InvoiceDetailDrawer";
 import { safeAsync } from "@/lib/async";
 import { cn } from "@/lib/utils";
+import { formatCurrencyFromCents, formatDate } from "@/lib/formatters";
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString();
-}
+const WARNING_THRESHOLD_PERCENT = 80;
+const DANGER_THRESHOLD_PERCENT = 100;
 
 function getStatusConfig(status: string) {
   switch (status) {
@@ -256,8 +252,8 @@ function UsageMetricsPanel({
   return (
     <div className="space-y-3">
       {metrics.map((metric) => {
-        const isWarning = metric.percentage >= (metric.warning_threshold || 80);
-        const isDanger = metric.percentage >= 100;
+        const isWarning = metric.percentage >= (metric.warning_threshold || WARNING_THRESHOLD_PERCENT);
+        const isDanger = metric.percentage >= DANGER_THRESHOLD_PERCENT;
         const barColor = isDanger ? "bg-destructive" : isWarning ? "bg-warning" : "bg-primary";
 
         return (
@@ -337,13 +333,15 @@ function BillingAdminContent() {
     setSelectedInvoice(invoice);
   };
 
-  const filteredInvoices = search
-    ? invoices.filter(
-        (i) =>
-          i.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-          i.status.toLowerCase().includes(search.toLowerCase())
-      )
-    : invoices;
+  const filteredInvoices = useMemo(() => {
+    return search
+      ? invoices.filter(
+          (i) =>
+            i.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
+            i.status.toLowerCase().includes(search.toLowerCase())
+        )
+      : invoices;
+  }, [invoices, search]);
 
   const invoiceColumns: AdminDataTableColumn<Invoice>[] = [
     {
@@ -362,7 +360,7 @@ function BillingAdminContent() {
     {
       key: "total",
       header: "Total",
-      render: (i) => <span className="font-medium text-foreground">{formatCurrency(i.total_cents)}</span>},
+      render: (i) => <span className="font-medium text-foreground">{formatCurrencyFromCents(i.total_cents)}</span>},
     {
       key: "period",
       header: "Period",
@@ -399,7 +397,7 @@ function BillingAdminContent() {
       )},
   ];
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       label: "Plan",
       value: subscription?.plan_id ? (
@@ -430,7 +428,7 @@ function BillingAdminContent() {
       value: invoices.length,
       icon: <Receipt size={14} />,
       color: "default" as const},
-  ];
+  ], [subscription, invoices]);
 
   return (
     <AdminShell

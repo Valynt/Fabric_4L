@@ -60,6 +60,10 @@ import {
   type AdminDataTableColumn,
 } from "@/components/admin";
 
+// ── Constants ───────────────────────────────────────────────────────────────────
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const ROLE_STYLES: Record<string, string> = {
@@ -170,13 +174,16 @@ function PermissionsContent() {
       setInviteEmail("");
       setInviteRole("member");
       refetchUsers();
-    } catch (e) { /* error shown via mutation state */ }
+    } catch (e) {
+      // Error is shown via mutation state in the dialog
+      console.error('Failed to invite user:', e);
+    }
   };
 
   const handleCreateKey = async () => {
     if (!newKeyName.trim()) return;
     const expiresAt = newKeyExpiryDays
-      ? new Date(Date.now() + parseInt(newKeyExpiryDays, 10) * 24 * 60 * 60 * 1000).toISOString()
+      ? new Date(Date.now() + parseInt(newKeyExpiryDays, 10) * MS_PER_DAY).toISOString()
       : undefined;
     try {
       const response = await createKeyMutation.mutateAsync({
@@ -188,7 +195,10 @@ function PermissionsContent() {
       setNewKeyName("");
       setNewKeyExpiryDays("");
       refetchKeys();
-    } catch (e) { /* error shown via mutation state */ }
+    } catch (e) {
+      // Error is shown via mutation state in the dialog
+      console.error('Failed to create API key:', e);
+    }
   };
 
   const closeCreateKey = () => {

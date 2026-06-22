@@ -13,12 +13,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { AdminShell, AdminDataTable, AdminStatCard, AdminStatsRow } from "@/components/admin";
 import type { AdminDataTableColumn } from "@/components/admin";
 import { StatusBadge } from "@/components/ui/fabric";
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString();
-}
+import { formatDate } from "@/lib/formatters";
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 

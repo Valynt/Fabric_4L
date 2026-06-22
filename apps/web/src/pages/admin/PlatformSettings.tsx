@@ -44,6 +44,13 @@ const log = createFeatureLogger('PlatformSettings');
 
 type TabType = "features" | "notifications" | "security" | "branding";
 
+// ── Constants ────────────────────────────────────────────────────────────────────
+
+const SAVE_SUCCESS_TIMEOUT_MS = 3000;
+const SESSION_TIMEOUT_MIN = 15;
+const SESSION_TIMEOUT_MAX = 480;
+const SESSION_TIMEOUT_STEP = 15;
+
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const FEATURE_DESCRIPTIONS: Record<keyof TenantSettings['features'], string> = {
@@ -244,9 +251,9 @@ function SecurityPanel({
         <div className="flex items-center gap-4">
           <Input
             type="range"
-            min={15}
-            max={480}
-            step={15}
+            min={SESSION_TIMEOUT_MIN}
+            max={SESSION_TIMEOUT_MAX}
+            step={SESSION_TIMEOUT_STEP}
             value={localTimeout}
             onChange={(e) => setLocalTimeout(parseInt(e.target.value))}
             className="flex-1"
@@ -416,7 +423,7 @@ function PlatformSettingsContent() {
     try {
       await updateMutation.mutateAsync(payload);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), SAVE_SUCCESS_TIMEOUT_MS);
     } catch (err) {
       log.error('Failed to update settings', { errorCode: String(err) });
     }
@@ -434,7 +441,8 @@ function PlatformSettingsContent() {
     return {
       enabledCount,
       totalCount,
-      utilizationPercent: Math.round((settings.limits.max_users / 100) * 100)};
+      maxUsers: settings.limits.max_users
+    };
   }, [settings]);
 
   if (isLoading) {
@@ -519,7 +527,7 @@ function PlatformSettingsContent() {
       {stats && (
         <AdminStatsRow columns={4}>
           <AdminStatCard label="Features Enabled" value={`${stats.enabledCount}/${stats.totalCount}`} icon={<Zap size={14} />} />
-          <AdminStatCard label="Max Users" value={formatNumber(settings.limits.max_users)} icon={<Users size={14} />} />
+          <AdminStatCard label="Max Users" value={formatNumber(stats.maxUsers)} icon={<Users size={14} />} />
           <AdminStatCard label="Daily API Limit" value={formatNumber(settings.limits.max_api_calls_per_day)} icon={<Database size={14} />} />
           <AdminStatCard label="Storage" value={`${settings.limits.storage_gb} GB`} icon={<Database size={14} />} />
         </AdminStatsRow>
