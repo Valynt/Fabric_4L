@@ -17,7 +17,8 @@ export function usePersistFn<T extends PersistableFunction>(fn: T): T {
   fnRef.current = fn;
 
   const persistFn = useRef<T>(
-    ((...args: Parameters<T>): ReturnType<T> => fnRef.current(...args)) as T
+    ((...args: Parameters<T>): ReturnType<T> =>
+      fnRef.current(...args) as ReturnType<T>) as T
   );
 
   return persistFn.current;
