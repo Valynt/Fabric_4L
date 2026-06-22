@@ -1,3 +1,0 @@
-# Shim neutralized — billing models live in services/layer4-agents/src/layer4_agents/models/billing.py
-# Use canonical imports: from layer4_agents.models.billing import ...
-

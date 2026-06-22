@@ -87,6 +87,17 @@ ignore = [
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
     "UP007",  # Use `X | Y` for union types
     "SIM101", # Multiple `isinstance()` calls, merge into a single call
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Phase 4 remediation: Block all deprecated value_fabric.layer* imports
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"value_fabric.layer1" = { msg = "value_fabric.layer1 is deprecated. Use layer1_ingestion.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer2" = { msg = "value_fabric.layer2 is deprecated. Use layer2_extraction.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer3" = { msg = "value_fabric.layer3 is deprecated. Use services/layer3-knowledge/src/ modules instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer4" = { msg = "value_fabric.layer4 is deprecated. Use layer4_agents.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer5" = { msg = "value_fabric.layer5 is deprecated. Use layer5_ground_truth.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
     "SIM102", # Use a single `if` statement instead of nested `if` statements
     "SIM105", # Use `contextlib.suppress(...)` instead of `try`-`except`-`pass`
     "SIM117", # Use a single `with` statement with multiple contexts

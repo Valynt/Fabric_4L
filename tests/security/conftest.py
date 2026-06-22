@@ -2,50 +2,12 @@
 
 import os
 import sys
-import types
-from importlib.machinery import ModuleSpec
 from pathlib import Path
 from typing import Callable, Generator
 
 import pytest
 import jwt
 from unittest.mock import MagicMock, AsyncMock
-
-# Layer 3 source root is needed by tests that import src.*
-# (e.g. test_neo4j_cross_tenant_write_isolation.py).  The value_fabric.layer3
-# shim appends services/layer3-knowledge/src to its __path__, but bare
-# intra-package imports inside that tree (e.g. ``from api.dependencies import
-# ...``) still require the src root to be on sys.path directly.
-# Scoped here rather than in the root conftest to avoid the ``src`` namespace
-# collision documented in conftest.py.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-_L3_SRC = str(_REPO_ROOT / "services" / "layer3-knowledge" / "src")
-if _L3_SRC not in sys.path:
-    sys.path.append(_L3_SRC)
-
-for _module_name in list(sys.modules):
-    if _module_name == "src" or _module_name.startswith("src."):
-        del sys.modules[_module_name]
-
-_src_module = types.ModuleType("src")
-_src_module.__spec__ = ModuleSpec("src", loader=None, is_package=True)
-_src_module.__path__ = [_L3_SRC]
-sys.modules["src"] = _src_module
-
-_SERVICES_ROOT = str(_REPO_ROOT / "services")
-_L3_SERVICES = str(_REPO_ROOT / "services" / "layer3-knowledge" / "src" / "services")
-_services_module = sys.modules.get("services")
-if _services_module is None or not hasattr(_services_module, "__path__"):
-    _services_module = types.ModuleType("services")
-    _services_module.__spec__ = ModuleSpec("services", loader=None, is_package=True)
-    _services_module.__path__ = [_SERVICES_ROOT, _L3_SERVICES]
-    sys.modules["services"] = _services_module
-else:
-    paths = list(_services_module.__path__)
-    for path in (_SERVICES_ROOT, _L3_SERVICES):
-        if path not in paths:
-            paths.append(path)
-    _services_module.__path__ = paths
 
 # Lazy imports for optional dependencies
 def _get_psycopg2():
@@ -70,6 +32,8 @@ def _get_testclient():
         return None
 
 # Test configuration constants
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 # JWT_SECRET is the canonical env var name used across CI and all layers
 # SECURITY: Use a 32+ byte secret so PyJWT HS256 does not emit InsecureKeyLengthWarning.
 TEST_JWT_SECRET = os.getenv(

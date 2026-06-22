@@ -403,35 +403,6 @@ export function validateStateParams(
   return { valid: missing.length === 0, missing };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reverse lookup
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function pathToState(path: string): {
-  state: RouteState | null;
-  params: NavigationParams;
-} {
-  for (const [state, config] of Object.entries(ROUTE_MAP)) {
-    const paramNames = config.params ?? [];
-
-    let pattern = config.path.replace(/:[^/]+/g, "([^/]+)");
-    pattern = "^" + pattern + "$";
-
-    const regex = new RegExp(pattern);
-    const match = path.match(regex);
-
-    if (match) {
-      const params: NavigationParams = {};
-      paramNames.forEach((name, i) => {
-        params[name] = match[i + 1];
-      });
-      return { state: state as RouteState, params };
-    }
-  }
-
-  return { state: null, params: {} };
-}
-
 // ── Legacy compatibility helpers ─────────────────────────────────────────────
 
 const WORKSPACE_PREFIXES = [

@@ -388,6 +388,30 @@ jobs:
           cat artifacts/canonical-import-drift.txt >> $GITHUB_STEP_SUMMARY
         # Strict mode is a blocking contract gate for non-canonical value_fabric.layer* imports in service code.
 
+      - name: Capture namespace shim deprecation warnings
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/shim-deprecation
+          python scripts/ci/capture_shim_deprecation_warnings.py --update-baseline
+          echo "## Namespace shim deprecation warnings" >> $GITHUB_STEP_SUMMARY
+          cat artifacts/shim-deprecation/deprecation-report.md >> $GITHUB_STEP_SUMMARY
+        # Phase 1 remediation tracking: capture shim usage for migration planning
+
+      - name: Enforce banned deprecated namespace imports (Ruff)
+        run: |
+          set -o pipefail
+          echo "Checking for banned deprecated value_fabric.layer* imports..."
+          # Run Ruff on all services to enforce banned-api rules
+          cd services/layer1-ingestion && ruff check src/ || exit 1
+          cd ../layer2-extraction && ruff check src/ || exit 1
+          cd ../layer3-knowledge && ruff check src/ || exit 1
+          cd ../layer4-agents && ruff check src/ || exit 1
+          cd ../layer5-ground-truth && ruff check src/ || exit 1
+          cd ../layer6-benchmarks && ruff check src/ || exit 1
+          cd ../..
+          echo "✅ No banned deprecated namespace imports found"
+        # Phase 4 remediation: Ruff linting enforcement for deprecated imports
+
       - name: Contract scan - Tenant context violations
         run: |
           echo "Scanning for tenantId parameter violations (CONTRACT.md §2.1)..."

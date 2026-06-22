@@ -6,15 +6,7 @@ Covers:
 - validate_production_safety raises RuntimeError for short secrets, missing CORS, etc.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SHARED_SRC = REPO_ROOT / "packages" / "shared" / "src"
-if str(SHARED_SRC) not in sys.path:
-    sys.path.insert(0, str(SHARED_SRC))
 
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.security.config import validate_production_safety

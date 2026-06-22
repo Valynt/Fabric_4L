@@ -7,16 +7,12 @@ Verifies:
 - RBAC is enforced via canonical RequestContext
 """
 
-import sys
-from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[2] / "services/layer7-billing/src"))
 
 from layer7_billing.api.main import app
 from value_fabric.shared.identity.context import RequestContext

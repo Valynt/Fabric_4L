@@ -1,10 +1,9 @@
 # DEPRECATED: `value_fabric/` Runtime Compatibility Facades
 
-The top-level `value_fabric/` tree is now a compatibility namespace and is **not** a canonical runtime source of truth.
+**REMEDIATION COMPLETE 2026-06-22**
 
-## Canonical Runtime Paths
-
-All runtime code has been migrated to:
+The `value_fabric/layer*` namespace shims have been successfully removed as part of
+the strategic remediation plan. All canonical runtime code now lives under:
 
 - `services/layer1-ingestion/`
 - `services/layer2-extraction/`
@@ -14,28 +13,43 @@ All runtime code has been migrated to:
 - `services/layer6-benchmarks/`
 - `packages/shared/src/value_fabric/shared/`
 
-`value_fabric/shared/` has already been removed. Shared code now lives exclusively in `packages/shared/src/value_fabric/shared/`.
+## Remediation Summary
 
-## Deprecation Timeline
+**Phase 1 (Completed):**
+- Added runtime deprecation warnings to all shim `__init__.py` files
+- Configured CI to capture and archive deprecation warnings
+- Generated baseline usage report: 0 shim consumers found
 
-- **2026-05-13:** `value_fabric/shared/` removed.
-- **2026-05-18:** runtime import guard added at `scripts/ci/check_runtime_canonical_imports.py` to report new non-canonical imports.
-- **2026-06-30 (target):** enforce `--strict` mode in CI for runtime package imports once active import count is below threshold.
-- **2026-07-31 (target):** remove remaining `value_fabric.layer{1,2,3,4,6}` facade entry points after release-note callout and migration completion.
+**Phase 2 (Completed):**
+- Removed sys.path manipulations from conftest files and test bootstraps
+- Refactored build system for PEP 420 implicit namespace packaging
+- Updated `value_fabric/__init__.py` for simplified namespace resolution
 
-## Facade Removal Conditions
+**Phase 4 (Completed):**
+- Extended Ruff config with banned-api rules for deprecated namespace imports across all layers
+- Added CI workflow step for Ruff linting enforcement
 
-Facade entry points under `value_fabric/` can be removed when all of the following are true:
+**Phase 5 (Completed):**
+- Verified all non-shim content in layer4/billing and layer5 were neutralized
+- Deleted `value_fabric/layer1` through `value_fabric/layer6` directories
+- Canonical code already exists in service directories
 
-1. **Adoption threshold met:** non-canonical runtime imports reported by `scripts/ci/check_runtime_canonical_imports.py` are zero for two consecutive release branches.
-2. **Contract safety:** contract tests and service integration tests pass without any import fallback to `value_fabric.layer*` facades.
-3. **Migration hygiene:** migration PRs are completed in layer-scoped batches with no API shape changes.
-4. **Release communication:** release notes include a compatibility-removal callout with migration guidance.
+## Enforcement
+
+PRs attempting to import from `value_fabric.layer*` will now fail:
+- At edit-time via Ruff banned-api rules
+- At CI-time via runtime canonical import checks
+- At lint-time via dedicated CI workflow step
 
 ## Migration Guidance
 
-- Prefer direct imports from service/runtime packages (for example `layer2_extraction...`) instead of `value_fabric.layer*`.
-- Migrate by layer-scoped batches and validate targeted test suites before broadening validation.
-- If a shim import is intentionally temporary (tests, docs, or compatibility checks), annotate and keep it in explicit allowlists only.
+All code must use canonical imports:
+- Layer 1: `layer1_ingestion.*`
+- Layer 2: `layer2_extraction.*`
+- Layer 3: `services/layer3-knowledge/src/ modules`
+- Layer 4: `layer4_agents.*`
+- Layer 5: `layer5_ground_truth.*`
+- Layer 6: `layer6_benchmarks.*`
+- Shared: `value_fabric.shared.*` (from `packages/shared/src/value_fabric/shared/`)
 
-Last updated: 2026-05-18
+Last updated: 2026-06-22

@@ -1,3 +1,0 @@
-# Shim neutralized — billing schemas live in services/layer4-agents/src/layer4_agents/api/schemas/billing.py
-# Use canonical imports: from layer4_agents.api.schemas.billing import ...
-

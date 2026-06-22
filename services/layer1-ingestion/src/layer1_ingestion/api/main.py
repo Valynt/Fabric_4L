@@ -62,6 +62,7 @@ try:
         add_security_middleware,
         install_redaction_filter,
         redaction_processor,
+        validate_production_safety,
     )
     from value_fabric.shared.startup import reject_insecure_bypass_in_production
 except ImportError as e:
@@ -279,7 +280,9 @@ _VAULT_UNREACHABLE_ERROR = (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Verify Vault connectivity in production before accepting traffic."""
+    """Verify production safety and Vault connectivity before accepting traffic."""
+    validate_production_safety()
+
     if is_production_like_environment():
         vault_addr = os.getenv("VAULT_ADDR")
         if vault_addr and is_vault_healthy:

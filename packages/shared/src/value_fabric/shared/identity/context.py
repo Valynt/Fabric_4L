@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
+import sys
 from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set
 from uuid import UUID
 
@@ -327,3 +328,20 @@ class RequestContextManager:
     def __exit__(self, *args: Any) -> None:
         if self._token is not None:
             _current_context.reset(self._token)
+
+
+# ---------------------------------------------------------------------------
+# Namespace-shim singleton guard
+# ---------------------------------------------------------------------------
+# This module owns process-wide tenant-identity state (the ``_current_context``
+# ``ContextVar``). The monorepo namespace shim can load it under multiple
+# import paths (e.g. ``value_fabric.shared.identity.context`` and
+# ``packages.shared.src.value_fabric.shared.identity.context``), which would
+# create independent copies of that state and silently break tenant isolation.
+# Force every logical import path to resolve to the same module object.
+# ---------------------------------------------------------------------------
+
+_CANONICAL_CONTEXT_MODULE = "packages.shared.src.value_fabric.shared.identity.context"
+if __name__ != _CANONICAL_CONTEXT_MODULE:
+    sys.modules.setdefault(_CANONICAL_CONTEXT_MODULE, sys.modules[__name__])
+    sys.modules[__name__] = sys.modules[_CANONICAL_CONTEXT_MODULE]

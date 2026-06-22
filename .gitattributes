@@ -5,3 +5,7 @@
 *.sh text eol=lf
 *.bash text eol=lf
 *.zsh text eol=lf
+
+# Generated OpenAPI TypeScript contracts — do not edit manually
+packages/platform-contract/src/typescript/generated/*.ts linguist-generated=true
+apps/web/src/api/generated/**/*.ts linguist-generated=true

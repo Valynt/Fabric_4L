@@ -22,12 +22,6 @@ import pytest
 
 pytestmark = [pytest.mark.performance, pytest.mark.slow, pytest.mark.requires_infra]
 
-# Add canonical Layer 3 path to sys.path for type checker resolution
-_repo_root = Path(__file__).resolve().parent.parent.parent
-_l3_canonical = _repo_root / "services" / "layer3-knowledge"
-if str(_l3_canonical) not in sys.path:
-    sys.path.insert(0, str(_l3_canonical))
-
 # Timing threshold constants (configurable for different CI environments)
 PARALLEL_EXECUTION_MAX_TIME_MS = 150  # Maximum time for parallel execution (150ms)
 PARALLEL_SEARCH_DELAYS = {"bm25": 0.05, "vector": 0.08, "graph": 0.03}  # Simulated delays in seconds

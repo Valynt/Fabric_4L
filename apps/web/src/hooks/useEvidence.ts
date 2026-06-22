@@ -363,12 +363,6 @@ export interface LinkEvidenceResponse {
   linked_at: string;
 }
 
-export interface UnlinkEvidenceResponse {
-  evidence_id: string;
-  driver_id: string;
-  deleted: number;
-}
-
 export interface EvidenceLinkListResponse {
   driver_id: string;
   links: Array<{
@@ -390,27 +384,6 @@ export function useLinkEvidence() {
     },
     onError: (error) => {
       log.error('LinkEvidence failed', { error: error instanceof Error ? error.message : String(error) });
-    },
-  });
-}
-
-export function useUnlinkEvidence() {
-  const queryClient = useQueryClient();
-  return useMutation<UnlinkEvidenceResponse, EvidenceApiError, { evidence_id: string; driver_id: string }>({
-    mutationFn: async params => {
-      const response = await apiDelete<UnlinkEvidenceResponse>("l3", "/v1/evidence/links", {
-        params: {
-          evidence_id: params.evidence_id,
-          driver_id: params.driver_id,
-        },
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.evidence.all });
-    },
-    onError: (error) => {
-      log.error('UnlinkEvidence failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

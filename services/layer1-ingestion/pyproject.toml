@@ -131,6 +131,13 @@ ignore = [
 "value_fabric.layer4_agents" = { msg = "Use value_fabric.layer4 instead." }
 "value_fabric.layer1_ingestion" = { msg = "This namespace is deprecated. Use service-local imports." }
 "value_fabric.layer3_knowledge" = { msg = "This namespace is deprecated. Use service-local imports." }
+# Phase 4 remediation: Block all deprecated value_fabric.layer* imports
+"value_fabric.layer1" = { msg = "value_fabric.layer1 is deprecated. Use layer1_ingestion.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer2" = { msg = "value_fabric.layer2 is deprecated. Use layer2_extraction.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer3" = { msg = "value_fabric.layer3 is deprecated. Use services/layer3-knowledge/src/ modules instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer4" = { msg = "value_fabric.layer4 is deprecated. Use layer4_agents.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer5" = { msg = "value_fabric.layer5 is deprecated. Use layer5_ground_truth.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
 
 [tool.mypy]
 python_version = "3.11"

@@ -213,31 +213,6 @@ export function useEvidenceDecisionMutation() {
   });
 }
 
-export function useAttachEvidenceToDriverMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      evidenceId,
-      driverId,
-      accountId,
-      caseId,
-    }: { evidenceId: string; driverId: string; accountId: string; caseId: string }) => {
-      const response = await apiPost<unknown>('l4', `/v1/evidence/${evidenceId}/drivers/${driverId}`, {
-        account_id: accountId,
-        case_id: caseId,
-      });
-      return response.data;
-    },
-    onSuccess: async (_result, vars) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: QK.workspace.evidenceDriverLinks(vars.caseId, vars.accountId) }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'tab', vars.caseId, 'drivers'] }),
-        queryClient.invalidateQueries({ queryKey: QK.calculators.all }),
-      ]);
-    },
-  });
-}
-
 // ── Generic workspace page action dispatcher ──────────────────────────────────
 
 export interface WorkspacePageActionContract {

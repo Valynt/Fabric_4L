@@ -28,12 +28,6 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary, pytest.mark.ten
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ARTIFACT_PATH = REPO_ROOT / "artifacts" / "mandatory_security" / "cross_layer_tenant_isolation_matrix.json"
 
-for extra_path in (
-    REPO_ROOT / "services" / "layer5-ground-truth" / "src",
-    REPO_ROOT / "services" / "layer4-agents" / "src",
-):
-    if str(extra_path) not in sys.path:
-        sys.path.insert(0, str(extra_path))
 
 os.environ.setdefault("LAYER5_API_URL", "http://layer5-ground-truth:8005")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://layer5-ground-truth:8005")

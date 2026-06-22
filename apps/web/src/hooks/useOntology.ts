@@ -175,43 +175,6 @@ export function useOntologySchema() {
   });
 }
 
-// Fetch single type with details
-export function useOntologyType(typeId: string | null) {
-  // MANDATE 4: Validate at hook entry
-  const validatedTypeId = validateTypeId(typeId);
-
-  return useQuery<OntologyType | null, Error>({
-    queryKey: QK.ontology.type(validatedTypeId ?? ''),
-    queryFn: async (): Promise<OntologyType | null> => {
-      if (validatedTypeId === null) return null;
-      
-      try {
-        const response = await apiGet<OntologyType>(LAYER2, `/v1/ontology/schema/types/${validatedTypeId}`);
-        
-        // MANDATE 2: Runtime validation instead of blind trust
-        const result = OntologyTypeSchema.safeParse(response.data);
-        if (!result.success) {
-          log.error('Failed to parse ontology type', { 
-            typeId: validatedTypeId, 
-            error: result.error.message 
-          });
-          throw new Error(`Invalid type data received for ${validatedTypeId}`);
-        }
-        
-        return result.data;
-      } catch (error) {
-        log.error('Failed to fetch ontology type', { 
-          typeId: validatedTypeId, 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-        throw error;
-      }
-    },
-    enabled: validatedTypeId !== null,
-    staleTime: STALE_TIME.detail,
-  });
-}
-
 // Create new type
 export function useCreateOntologyType() {
   const queryClient = useQueryClient();
@@ -346,52 +309,6 @@ export function useAddOntologyProperty() {
       log.error('Failed to add ontology property', { 
         typeId: variables.typeId, 
         propertyName: variables.property.name,
-        error: error.message 
-      });
-    },
-  });
-}
-
-// Update property
-export function useUpdateOntologyProperty() {
-  const queryClient = useQueryClient();
-
-  return useMutation<OntologyProperty, Error, { typeId: string; property: OntologyProperty }>({
-    mutationFn: async ({ typeId, property }): Promise<OntologyProperty> => {
-      // MANDATE 4: Validate IDs
-      const validatedTypeId = validateTypeId(typeId);
-      if (validatedTypeId === null) {
-        throw new Error('Invalid typeId: cannot update property');
-      }
-      const validatedPropertyId = validatePropertyId(property.id);
-
-      const response = await apiPut<OntologyType>(
-        LAYER2, 
-        `/v1/ontology/schema/types/${validatedTypeId}/properties/${validatedPropertyId}`, 
-        property
-      );
-      
-      // MANDATE 2: Runtime validation of response
-      const result = OntologyPropertySchema.safeParse(response.data);
-      if (!result.success) {
-        // If server doesn't return the property, return our input as fallback
-        log.warn('Server did not return updated property, using input', { 
-          typeId: validatedTypeId, 
-          propertyId: validatedPropertyId 
-        });
-        return property;
-      }
-      
-      return result.data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QK.ontology.type(variables.typeId) });
-      queryClient.invalidateQueries({ queryKey: QK.ontology.schema() });
-    },
-    onError: (error, variables) => {
-      log.error('Failed to update ontology property', { 
-        typeId: variables.typeId, 
-        propertyId: variables.property.id,
         error: error.message 
       });
     },

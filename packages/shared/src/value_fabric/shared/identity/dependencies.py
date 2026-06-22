@@ -614,3 +614,21 @@ def __getattr__(name: str) -> Any:
         globals()[name] = _validate_jwt_config
         return _validate_jwt_config
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# ---------------------------------------------------------------------------
+# Namespace-shim singleton guard
+# ---------------------------------------------------------------------------
+# This module owns tenant-context dependency helpers used by every layer. The
+# monorepo namespace shim can load it under multiple import paths (e.g.
+# ``value_fabric.shared.identity.dependencies`` and
+# ``packages.shared.src.value_fabric.shared.identity.dependencies``), which
+# would create independent copies of compatibility state and silently break
+# tenant isolation. Force every logical import path to resolve to the same
+# module object.
+# ---------------------------------------------------------------------------
+
+_CANONICAL_DEPENDENCIES_MODULE = "packages.shared.src.value_fabric.shared.identity.dependencies"
+if __name__ != _CANONICAL_DEPENDENCIES_MODULE:
+    sys.modules.setdefault(_CANONICAL_DEPENDENCIES_MODULE, sys.modules[__name__])
+    sys.modules[__name__] = sys.modules[_CANONICAL_DEPENDENCIES_MODULE]
