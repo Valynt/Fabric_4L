@@ -154,6 +154,9 @@ jobs:
           pip install pytest pyyaml
           pytest tests/contract/test_import_topology.py -v --tb=short
 
+      - name: Verify tenant context singleton guard
+        run: python scripts/ci/check_tenant_context_singleton.py
+
       - name: Enforce Layer 4 end-state audit implemented-coverage integrity
         run: |
           pip install pyyaml
