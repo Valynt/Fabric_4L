@@ -299,7 +299,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `gate-local` | Minimal local security gate; not production readiness. |
 | `gate-local-production-subset` | Local-only production-readiness subset. |
 | `gate-all` | Compatibility alias for `gate-local-production-subset`. |
-| `production-readiness-gate` | Canonical production-readiness gate required by CI. Writes per-suite JUnit/summary artifacts and `artifacts/production-readiness/manifest.json`. |
+| `production-readiness-gate` | Canonical production-readiness gate required by CI. Writes and validates per-suite JUnit/summary artifacts plus `artifacts/production-readiness/manifest.json`. |
 | `gate-production` | Compatibility alias for `production-readiness-gate`. |
 | `gate-production-core` | Policy-driven production-core gate profile. |
 | `gate-behavior-readiness` | Executable, skip-controlled behavior readiness audit. |
@@ -361,7 +361,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 | Frontend PR checks | `pnpm run verify:frontend` or `pnpm --dir apps/web run <script>` | Use package-level scripts for focused frontend checks. |
 | Migration status/drift checks | `pnpm db:migrate:status`, `make db-migrate-check`, or `make gate-database` | Read-only migration status and drift checks. |
 | Database readiness | `make gate-database` | Local static/read-only gate; live checks require explicit DB environment. |
-| Production readiness gate | `make production-readiness-gate` | Canonical CI-required production-readiness gate. `make gate-production` is a compatibility alias. Evidence includes per-suite JUnit/summary files and `artifacts/production-readiness/manifest.json`. |
+| Production readiness gate | `make production-readiness-gate` | Canonical CI-required production-readiness gate. `make gate-production` is a compatibility alias. Evidence includes validated per-suite JUnit/summary files and `artifacts/production-readiness/manifest.json`. |
 | Release evidence | `make release-evidence-packet` | Generates canonical release evidence. |
 | Workflow registry and command/artifact references | `make check-workflow-registry`, `make check-workflow-references`, `pnpm ci:workflow-registry`, or `pnpm ci:workflow-references` | Public command-map interfaces for workflow ownership metadata and workflow command/artifact checks. |
 | Incident response docs | `pnpm ops:runbooks:lint` and `pnpm ops:incident:check` | Validates `ops/incident/` runbooks, severity, escalation, communications, postmortem, and workflow links. |

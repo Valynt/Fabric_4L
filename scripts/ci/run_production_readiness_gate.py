@@ -200,6 +200,7 @@ def write_manifest(
     overall_status = "passed" if len(executed) == len(suite_entries) and all(
         entry["status"] == "passed" for entry in suite_entries
     ) else "failed"
+    gate_scope = "full" if tuple(suites) == DEFAULT_SUITES else "subset"
     covered_domains = sorted(
         {
             domain
@@ -214,12 +215,14 @@ def write_manifest(
         "generated_at_utc": _utc_now(),
         "gate": "production-readiness-gate",
         "command": "make production-readiness-gate",
+        "gate_scope": gate_scope,
         "overall_status": overall_status,
         "stopped_on_failure": stopped_on_failure,
         "artifact_dir": _display_path(artifact_dir),
         "required_regression_domains": required_domains,
         "covered_regression_domains": covered_domains,
         "blocks_release_on_failure": True,
+        "release_authorizing": gate_scope == "full" and overall_status == "passed",
         "suites": suite_entries,
     }
     manifest_path = artifact_dir / MANIFEST_FILENAME

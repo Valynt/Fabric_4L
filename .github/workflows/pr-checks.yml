@@ -400,6 +400,7 @@ jobs:
           set -euo pipefail
           make production-readiness-gate
           test -s artifacts/production-readiness/manifest.json
+          python scripts/ci/validate_production_readiness_manifest.py artifacts/production-readiness/manifest.json
           {
             echo "## Production Readiness Gate"
             echo

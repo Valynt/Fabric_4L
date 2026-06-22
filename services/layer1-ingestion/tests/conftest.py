@@ -95,6 +95,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
@@ -166,6 +167,7 @@ def engine():
     eng = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     base = _get_base()
     base.metadata.create_all(eng)
@@ -274,4 +276,3 @@ def pytest_runtest_setup(item):
                 conn.execute(text("SELECT 1"))
         except Exception:
             pytest.skip("PostgreSQL not available; skipping postgres test")
-

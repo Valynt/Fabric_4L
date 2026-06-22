@@ -740,6 +740,7 @@ gate-all: gate-local-production-subset ## Compatibility alias for the local-only
 production-readiness-gate: ## Canonical production-readiness gate required by CI
 	@echo "→ Gate: Production Readiness — centralized suites"
 	$(PYTHON) scripts/ci/run_production_readiness_gate.py --artifact-dir $(PRODUCTION_READINESS_ARTIFACT_DIR)
+	$(PYTHON) scripts/ci/validate_production_readiness_manifest.py $(PRODUCTION_READINESS_ARTIFACT_DIR)/manifest.json
 	@echo "✅  production-readiness-gate passed"
 
 gate-production: production-readiness-gate ## Compatibility alias for the canonical production-readiness gate

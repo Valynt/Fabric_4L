@@ -9,6 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "run_production_readiness_gate.py"
 PR_CHECKS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pr-checks.yml"
+MAKEFILE = REPO_ROOT / "Makefile"
 
 
 def load_runner_module():
@@ -119,4 +120,15 @@ def test_pr_checks_requires_production_readiness_manifest() -> None:
 
     assert "make production-readiness-gate" in workflow
     assert "test -s artifacts/production-readiness/manifest.json" in workflow
+    assert "python scripts/ci/validate_production_readiness_manifest.py artifacts/production-readiness/manifest.json" in workflow
     assert "Manifest: artifacts/production-readiness/manifest.json" in workflow
+
+
+def test_make_target_validates_production_readiness_manifest() -> None:
+    makefile = MAKEFILE.read_text(encoding="utf-8")
+
+    assert "scripts/ci/run_production_readiness_gate.py --artifact-dir $(PRODUCTION_READINESS_ARTIFACT_DIR)" in makefile
+    assert (
+        "scripts/ci/validate_production_readiness_manifest.py "
+        "$(PRODUCTION_READINESS_ARTIFACT_DIR)/manifest.json"
+    ) in makefile

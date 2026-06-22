@@ -577,6 +577,62 @@ async def test_retry_success_marks_completed_and_clears_queue(
     assert job_id not in fake_store.records
 
 
+@pytest.mark.asyncio
+async def test_pending_retry_reschedules_with_exponential_backoff(
+    async_client,
+    fake_store: FakePendingIngestionStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = FrozenClock(real_datetime(2026, 1, 1, 0, 0, 0))
+    monkeypatch.setattr(api_main, "datetime", clock.datetime_class())
+
+    async def fake_run_extraction(
+        job_id: str,
+        source_url: str,
+        content: str,
+        config: dict,
+        mark_pipeline_complete: bool = True,
+    ) -> api_main.ExtractionArtifacts:
+        await api_main._set_pipeline_job(
+            job_id,
+            extraction_status="completed",
+            entities_extracted=2,
+            relationships_extracted=1,
+            completed_at=None,
+        )
+        return build_artifacts(job_id, source_url)
+
+    monkeypatch.setattr(api_main, "run_extraction", fake_run_extraction)
+    monkeypatch.setattr(
+        api_main,
+        "Layer3KnowledgeClient",
+        build_layer3_client_class(healthy=False, success=False),
+    )
+
+    kickoff = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    job_id = kickoff.json()["job_id"]
+    first_due_at = fake_store.records[job_id].next_retry_at
+
+    clock.advance(int((first_due_at - clock.current).total_seconds()) + 1)
+    retry_started_at = clock.current
+
+    await api_main._process_pending_ingestions()
+
+    record = fake_store.records[job_id]
+    expected_next_retry = naive_utc_from_timestamp(
+        retry_started_at.timestamp() + (api_main.RETRY_BASE_SECONDS * 2)
+    )
+    assert record.retry_count == 2
+    assert record.last_error == "Layer 3 unavailable"
+    assert record.next_retry_at == expected_next_retry
+
+    status = await async_client.get(f"/v1/extract/status/{job_id}")
+    body = status.json()
+    assert body["ingestion_status"] == "queued"
+    assert body["retry_count"] == 2
+    assert body["next_retry_at"] == expected_next_retry.isoformat()
+
+
 def build_layer3_full_double_class():
     """Build a Layer3 client double that simulates full ingest + status flow."""
 

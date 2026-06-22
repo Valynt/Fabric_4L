@@ -93,6 +93,8 @@ from layer2_extraction.api.retry_queue import (
     ExtractionArtifactsPayload,
     deserialize_artifacts,
     next_retry_at,
+    pending_retry_state,
+    pipeline_job_kwargs_for_pending_record,
     serialize_artifacts,
 )
 from layer2_extraction.api.routes import health as health_routes
@@ -869,16 +871,10 @@ async def _process_pending_ingestions() -> None:
         if not await job_store.exists(record.job_id):
             await job_store.set(
                 PipelineJob(
-                    job_id=record.job_id,
-                    extraction_status="completed",
-                    ingestion_status="queued",
-                    created_at=datetime.now(UTC).isoformat(),
-                    entities_extracted=0,
-                    relationships_extracted=0,
-                    retry_count=record.retry_count,
-                    last_error=record.last_error,
-                    next_retry_at=record.next_retry_at.isoformat() if record.next_retry_at else None,
-                    completed_at=None,
+                    **pipeline_job_kwargs_for_pending_record(
+                        record,
+                        created_at=datetime.now(UTC),
+                    )
                 )
             )
 
@@ -902,21 +898,24 @@ async def _process_pending_ingestions() -> None:
                     completed_at=datetime.now(UTC),
                 )
             else:
-                delay_seconds = RETRY_BASE_SECONDS * (2 ** max(record.retry_count, 0))
-                next_retry_ts = datetime.now(UTC).timestamp() + delay_seconds
-                next_retry_at = datetime.fromtimestamp(next_retry_ts, tz=UTC)
+                retry_state = pending_retry_state(
+                    now=datetime.now(UTC),
+                    current_retry_count=record.retry_count,
+                    retry_base_seconds=RETRY_BASE_SECONDS,
+                    fromtimestamp=datetime.fromtimestamp,
+                )
                 await pending_ingestion_store.reschedule(
                     job_id=record.job_id,
-                    retry_count=retry_count,
-                    last_error="Layer 3 unavailable",
-                    next_retry_at=next_retry_at,
+                    retry_count=retry_state.retry_count,
+                    last_error=retry_state.last_error,
+                    next_retry_at=retry_state.next_retry_at,
                 )
                 await _set_pipeline_job(
                     record.job_id,
                     ingestion_status="queued",
-                    retry_count=retry_count,
-                    last_error="Layer 3 unavailable",
-                    next_retry_at=next_retry_at,
+                    retry_count=retry_state.retry_count,
+                    last_error=retry_state.last_error,
+                    next_retry_at=retry_state.next_retry_at,
                 )
             continue
 

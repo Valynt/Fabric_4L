@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-06-22T18:51:12Z",
-  "git_sha": "f5332d70f",
+  "timestamp": "2026-06-22T19:05:05Z",
+  "git_sha": "6f63e2710",
   "branch": "main",
   "os": "MINGW64_NT-10.0-26200",
   "gate_version": "1.2.0",
@@ -12,85 +12,7 @@
       "required": "Yes",
       "result": "PASS",
       "evidence": "artifacts/mandatory_security/standalone_api_security.xml"
-    },
-    {
-      "name": "Tenant/Auth Security Regression",
-      "command": "pytest tests/security/*",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/tenant_security.xml"
-    },
-    {
-      "name": "Cross-Layer Tenant Isolation Matrix",
-      "command": "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/cross_layer_tenant_isolation_matrix.json"
-    },
-    {
-      "name": "Layer 4 C-06 Security Regression",
-      "command": "pytest services/layer4-agents/tests/test_tenant_rate_limits.py services/layer4-agents/tests/test_security_fixes.py",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/layer4_c06_security.xml"
-    },
-    {
-      "name": "Tenant Context Contract",
-      "command": "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/shared_contracts.xml"
-    },
-    {
-      "name": "OpenAPI Contract Drift",
-      "command": "make contract-drift",
-      "required": "Yes",
-      "result": "SKIPPED_TEST_MODE",
-      "evidence": "⊘"
-    },
-    {
-      "name": "Deprecation Marker Standardization",
-      "command": "standardize_deprecation_markers.py --check",
-      "required": "Yes",
-      "result": "SKIPPED_TEST_MODE",
-      "evidence": "⊘"
-    },
-    {
-      "name": "Frontend Contract Tests",
-      "command": "vitest + placeholder guard",
-      "required": "Yes",
-      "result": "SKIPPED_TEST_MODE",
-      "evidence": "⊘"
-    },
-    {
-      "name": "Critical E2E Skip-Valve",
-      "command": "assert-no-skipped-critical-e2e.mjs",
-      "required": "Yes",
-      "result": "SKIPPED_TEST_MODE",
-      "evidence": "⊘"
-    },
-    {
-      "name": "Kubernetes Hardening",
-      "command": "pytest tests/k8s/*",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/k8s_security.xml"
-    },
-    {
-      "name": "I-02 Layer 2 Production Fail-Closed",
-      "command": "pytest tests/test_production_fail_closed_i02.py",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/layer2_fail_closed.xml"
-    },
-    {
-      "name": "I-02 Layer 5 Production Fail-Closed",
-      "command": "pytest tests/test_production_fail_closed_i02.py",
-      "required": "Yes",
-      "result": "PASS",
-      "evidence": "artifacts/mandatory_security/layer5_fail_closed.xml"
     }
   ],
-  "status": "PASS",
-  "exit_code": 0
+  "status": "in_progress"
 }
