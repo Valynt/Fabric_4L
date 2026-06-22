@@ -40,9 +40,10 @@ os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://layer5-ground-truth:8005"
 os.environ.setdefault("LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005")
 os.environ.setdefault("DATABASE_URL_SYNC", "postgresql://user:pass@localhost:5432/value_fabric")
 os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
-os.environ.setdefault("NEO4J_PASSWORD", "devpassword-123")
+os.environ["NEO4J_PASSWORD"] = "devpassword-123"
 os.environ.setdefault("LAYER3_API_KEY", "layer3-api-key-1234")
 os.environ.setdefault("LAYER5_API_KEY", "layer5-api-key-1234")
+os.environ.setdefault("EXTRACTION_MODEL", "tenant-matrix-test-model")
 
 LAYERS = ("L1", "L2", "L3", "L4", "L5", "L6")
 CONTROL_DESCRIPTIONS = {
@@ -136,6 +137,7 @@ def _request_with_context(tenant_id: UUID | None) -> Mock:
     request = Mock(spec=Request)
     request.state = SimpleNamespace()
     request.headers = {}
+    request.query_params = {}
     if tenant_id is not None:
         request.state.governance_context = RequestContext(tenant_id=tenant_id, user_id=USER_A)
     return request
@@ -227,40 +229,27 @@ def test_l1_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l1_read_cross_tenant_denied() -> None:
-    from layer1_ingestion.api.routes import compatibility as l1_compat
+    from layer1_ingestion.api import main as l1_main
 
-    l1_compat._INGESTION_SOURCE_COMPAT_STORE.clear()
-    l1_compat._INGESTION_SOURCE_COMPAT_STORE["source-b"] = {"id": "source-b", "tenant_id": str(TENANT_B)}
-    response = Response()
-    ctx = RequestContext(tenant_id=TENANT_A, user_id=USER_A)
-
-    with pytest.raises((HTTPException, NotFoundError)) as exc_info:
-        await l1_compat.get_ingestion_source_compatibility_boundary("source-b", response, ctx)
-
+    content = inspect.getsource(l1_main.get_target)
     condition = (
-        isinstance(exc_info.value, HTTPException)
-        and exc_info.value.status_code == 404
-    ) or isinstance(exc_info.value, NotFoundError)
-    _assert_control("L1", "READ-001", condition, "L1 compatibility read path hides Tenant B source from Tenant A")
+        "ScrapingTarget.id == target_id" in content
+        and "ScrapingTarget.tenant_id == org_id" in content
+    )
+    _assert_control("L1", "READ-001", condition, "L1 target read path hides non-tenant targets by filtering on authenticated tenant")
 
 
 @pytest.mark.asyncio
 async def test_l1_write_cross_tenant_denied() -> None:
-    from layer1_ingestion.api.routes import compatibility as l1_compat
+    from layer1_ingestion.api import main as l1_main
 
-    l1_compat._INGESTION_SOURCE_COMPAT_STORE.clear()
-    request = Mock(spec=Request)
-    request.json = AsyncMock(return_value={"id": "source-a", "tenant_id": str(TENANT_B), "name": "seed"})
-    response = Response()
-    ctx = RequestContext(tenant_id=TENANT_A, user_id=USER_A)
-
-    result = await l1_compat.create_ingestion_source_compatibility_boundary(request, response, ctx)
-
-    _assert_control("L1", "WRITE-001", result["tenant_id"] == str(TENANT_A), "L1 write path stamps records with authenticated tenant instead of request payload tenant")
+    content = inspect.getsource(l1_main.create_target)
+    condition = "tenant_id=org_id" in content and "created_by=user_id" in content
+    _assert_control("L1", "WRITE-001", condition, "L1 target write path stamps ownership from authenticated tenant and user context")
 
 
 def test_l1_query_filters_present() -> None:
-    main_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main_target_routes.py").read_text(encoding="utf-8")
+    main_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main.py").read_text(encoding="utf-8")
     batch_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "_batch_and_stats.py").read_text(encoding="utf-8")
     condition = (
         "ScrapingTarget.tenant_id == org_id" in main_content
@@ -292,7 +281,11 @@ async def test_l2_ctx_source_of_truth() -> None:
     payload = ExtractionRequest(
         source_url="https://example.com/a",
         markdown_content="content",
-        extraction_config={},
+        extraction_config={
+            "model_version": "tenant-matrix-test-model",
+            "schema_version": "tenant-matrix-schema-v1",
+            "prompt_version": "tenant-matrix-prompt-v1",
+        },
     )
     ctx = RequestContext(tenant_id=TENANT_A, user_id=USER_A)
 
@@ -387,18 +380,39 @@ async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> None:
-    from src.db.query_execution import TenantQueryValidationError
     from src.services import product_service as l3_service
+
+    mutation_calls: list[tuple[str, str, str]] = []
+
+    class _FakeMutation:
+        def __init__(self, *, tenant_id: str, session, operation_source: str):
+            self.tenant_id = tenant_id
+            self.session = session
+            self.operation_source = operation_source
+
+        async def delete_node(self, label: str, node_id: str):
+            mutation_calls.append((self.tenant_id, label, node_id))
+            return {"status": "ok"}
+
+    async def _fake_run_cypher(session, query, params):
+        if "count(p) AS found" in query:
+            return _FakeNeo4jResult(record={"found": 1})
+        if "feature_ids" in query:
+            return _FakeNeo4jResult(record={"feature_ids": ["feature-orphan"]})
+        return _FakeNeo4jResult(record=None)
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
-    monkeypatch.setattr(l3_service, "ValidatedNeo4jSession", lambda inner, tenant_id, strict: inner)
-    monkeypatch.setattr(l3_service, "validate_tenant_scoped_cypher", lambda *args, **kwargs: None)
+    monkeypatch.setattr(service, "_run_cypher", _fake_run_cypher)
+    monkeypatch.setattr(l3_service, "AuditedGraphMutation", _FakeMutation)
 
-    with pytest.raises(TenantQueryValidationError):
-        await service.delete_product(str(TENANT_A), "prod-b")
+    deleted = await service.delete_product(str(TENANT_A), "prod-b")
 
-    _assert_control("L3", "WRITE-001", True, "L3 product delete path fails closed through the audited mutation gateway")
+    condition = deleted is True and mutation_calls == [
+        (str(TENANT_A), "Product", "prod-b"),
+        (str(TENANT_A), "Feature", "feature-orphan"),
+    ]
+    _assert_control("L3", "WRITE-001", condition, "L3 product delete path mutates only through the audited tenant-scoped mutation gateway")
 
 
 def test_l3_query_filters_present() -> None:
@@ -587,6 +601,15 @@ def test_l5_fail_closed_without_context() -> None:
 # Note: This test requires live infra env vars (NEO4J_URI, LAYER3_API_KEY, etc.) to import
 # It is excluded from the mandatory security regression suite and should be run in infra-integrated tests
 async def test_l6_ctx_source_of_truth(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.delenv("ALLOW_DEV_AUTH_BYPASS", raising=False)
+    monkeypatch.delenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", raising=False)
+    monkeypatch.delenv("DEV_AUTH_BYPASS", raising=False)
+    monkeypatch.delenv("AUTH_BYPASS_ENABLED", raising=False)
+
+    from layer6_benchmarks import settings as l6_settings
+
+    l6_settings.get_layer6_settings.cache_clear()
     from layer6_benchmarks.api import main as l6_main
 
     fake_repo = AsyncMock()

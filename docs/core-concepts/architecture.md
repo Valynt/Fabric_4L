@@ -10,7 +10,7 @@ related: ["../getting-started/quickstart", "../getting-started/environment", "..
 # Value Fabric System Architecture
 
 > **In this guide, you will:**
-> - Understand the 6-layer pipeline architecture plus sub-layers
+> - Understand the 6-layer core pipeline plus adjacent deployable capabilities
 > - Learn how data flows through the system
 > - Explore container and component-level designs
 > - See deployment topology for production
@@ -70,7 +70,7 @@ graph TB
 
 ## Container Architecture (C4 Level 2)
 
-The system follows a 6-layer pipeline architecture with clear separation of concerns:
+The system follows a 6-layer core pipeline architecture with clear separation of concerns. Signal Refinery and Billing are deployable adjacent capabilities; they are invoked through contracted service boundaries instead of being additional horizontal pipeline layers.
 
 ```mermaid
 graph TB
@@ -83,15 +83,18 @@ graph TB
         GW[API Gateway<br/>Authentication<br/>Rate Limiting]
     end
     
-    subgraph "Service Layer"
+    subgraph "Core Service Layer"
         L1[Layer 1: Ingestion<br/>FastAPI + Playwright<br/>Port 8001]
         L2[Layer 2: Extraction<br/>FastAPI + LLM<br/>Port 8002]
-        L2_5[Layer 2.5: Signal Refinery<br/>FastAPI<br/>Port 8007]
         L3[Layer 3: Knowledge<br/>FastAPI + Neo4j<br/>Port 8003]
         L4[Layer 4: Agents<br/>FastAPI + LangGraph<br/>Port 8004]
         L5[Layer 5: Ground Truth<br/>FastAPI + PostgreSQL<br/>Port 8005]
         L6[Layer 6: Benchmarks<br/>FastAPI + Statistical Libraries<br/>Port 8006]
-        L7[Layer 7: Billing<br/>FastAPI<br/>Port 8008]
+    end
+
+    subgraph "Adjacent Capabilities"
+        L2_5[Signal Refinery<br/>FastAPI<br/>Port 8007]
+        L7[Billing<br/>FastAPI<br/>Port 8008]
     end
     
     subgraph "Data Layer"
@@ -254,7 +257,7 @@ Capability → UseCase → Persona → ValueDriver
 
 ---
 
-## Layer 2.5: Signal Refinery
+## Adjacent Capability: Signal Refinery
 
 **Purpose:** Normalize, deduplicate, and enrich Layer 2 extraction output into trusted, evidence-backed `ValueSignal` objects before graph ingestion.
 
@@ -297,6 +300,8 @@ flowchart LR
 | Evidence linking | Preserve provenance, document references, and confidence metadata |
 
 **Canonical source:** `services/layer2-5-signal-refinery/src`
+
+**Boundary rule:** Signal Refinery is adjacent to the core pipeline. It consumes Layer 2 output and pushes to Layer 3 through contracted API/client boundaries; it must not import Layer 2 or Layer 3 runtime modules directly.
 
 ---
 
@@ -385,7 +390,7 @@ stateDiagram-v2
 
 ---
 
-## Layer 7: Billing
+## Adjacent Capability: Billing
 
 **Purpose:** Tenant-scoped subscription, usage metering, entitlements, and Stripe webhook handling.
 
@@ -395,7 +400,7 @@ flowchart LR
         STRIPE[Stripe<br/>Webhooks]
     end
     
-    subgraph "Layer 7"
+    subgraph "Billing"
         L7_API[Billing API<br/>/v1/billing/*]
         METER[Usage Metering]
         ENT[Entitlement Engine]
@@ -432,6 +437,8 @@ flowchart LR
 
 **Canonical source:** `services/layer7-billing/src`
 
+**Boundary rule:** Billing is adjacent to the core pipeline. Core services interact with it through entitlement and usage-event contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
+
 ---
 
 ## Data Flow: End-to-End
@@ -442,7 +449,7 @@ sequenceDiagram
     participant FE as Frontend
     participant L1 as Layer 1
     participant L2 as Layer 2
-    participant L2_5 as Layer 2.5
+    participant L2_5 as Signal Refinery
     participant L3 as Layer 3
     participant L4 as Layer 4
     participant AI as LLM Provider
@@ -496,10 +503,10 @@ graph TB
                 FE_POD[Frontend Pods<br/>3 replicas]
                 L1_POD[L1 Pods<br/>2 replicas]
                 L2_POD[L2 Pods<br/>2 replicas]
-                L2_5_POD[L2.5 Pods<br/>2 replicas]
+                L2_5_POD[Signal Refinery Pods<br/>2 replicas]
                 L3_POD[L3 Pods<br/>3 replicas]
                 L4_POD[L4 Pods<br/>2 replicas]
-                L7_POD[L7 Pods<br/>2 replicas]
+                L7_POD[Billing Pods<br/>2 replicas]
             end
             
             subgraph "Data Tier"
@@ -570,13 +577,13 @@ graph TB
 | Layer | Upstream | Downstream | Data Stores |
 |-------|----------|------------|-------------|
 | L1: Ingestion | External sources, User uploads | L2 via Redis | PostgreSQL, S3 |
-| L2: Extraction | L1 via Redis | L2.5 via HTTP | PostgreSQL |
-| L2.5: Signal Refinery | L2 via HTTP | L3 via HTTP | PostgreSQL, Redis |
-| L3: Knowledge | L2.5 via HTTP, L4 queries | L4 context | Neo4j, PostgreSQL, Redis |
-| L4: Agents | L3 context, User workflows | Frontend SSE, L7 usage events | PostgreSQL, Redis |
+| L2: Extraction | L1 via Redis | Signal Refinery via HTTP, L3 contract where applicable | PostgreSQL |
+| Signal Refinery | L2 via HTTP | L3 via HTTP | PostgreSQL, Redis |
+| L3: Knowledge | Signal Refinery via HTTP, L4 queries | L4 context | Neo4j, PostgreSQL, Redis |
+| L4: Agents | L3 context, User workflows | Frontend SSE, Billing usage events | PostgreSQL, Redis |
 | L5: Ground Truth | L4 agent outputs | L6 benchmark input | PostgreSQL |
 | L6: Benchmarks | L5 validated truth | Reports, scorecards | PostgreSQL |
-| L7: Billing | L4 usage events, Stripe webhooks | Entitlement decisions | PostgreSQL |
+| Billing | L4 usage events, Stripe webhooks | Entitlement decisions | PostgreSQL |
 
 ---
 
@@ -595,7 +602,7 @@ graph TB
     
     subgraph "Application Zone"
         GW[API Gateway<br/>Auth/Rate Limit]
-        SVC[Services L1-L7]
+        SVC[Core Services L1-L6<br/>+ Adjacent Capabilities]
     end
     
     subgraph "Data Zone"
@@ -628,9 +635,9 @@ graph TB
 
 | Decision | Rationale | Trade-off |
 |----------|-----------|-----------|
-| 6-layer pipeline plus sub-layers | Clear boundaries (L1-L6), with L2.5 refinement and L7 billing as focused sub-layers | Network overhead between layers |
-| Layer 2.5 signal refinery | Separates extraction noise from trusted graph signals | Extra hop between L2 and L3 |
-| Layer 7 billing | Isolates subscription/usage/entitlements from core agent workflows | Separate service to deploy and operate |
+| 6-layer core pipeline plus adjacent capabilities | Clear core boundaries (L1-L6), with signal refinement and billing as focused bounded capabilities | Network overhead between services |
+| Signal Refinery | Separates extraction noise from trusted graph signals | Extra hop between L2 and L3 |
+| Billing | Isolates subscription/usage/entitlements from core agent workflows | Separate service to deploy and operate |
 | Neo4j for knowledge | Native graph operations, Cypher | Operational complexity |
 | PostgreSQL + pgvector | Unified relational + vector store | Not specialized vector DB |
 | LangGraph for agents | Stateful orchestration, pause/resume | Learning curve |
@@ -667,7 +674,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 | Idempotency | Idempotency keys on mutating endpoints | `tests/billing/test_webhook_idempotency.py` |
 | Migrations | Alembic per service; single-head policy | `make migrate`, `make check-migration-heads` |
 | Backups & DR | WAL-G, PITR, documented RPO/RTO | `docs/reliability/dr-policy.md`, `ops/restore_dry_run.py` |
-| Billing | Stripe webhooks + usage metering (Layer 7) | `services/layer7-billing/`, `tests/billing/` |
+| Billing | Stripe webhooks + usage metering (adjacent service) | `services/layer7-billing/`, `tests/billing/` |
 | CI/CD | GitHub Actions with signed artifacts, SBOM, GitOps | `.github/workflows/` |
 | Container security | Non-root users, slim base images, pinned digests, HEALTHCHECK | Dockerfiles, `scripts/ci/check-k8s-image-digests.sh` |
 
@@ -677,7 +684,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 
 | Concern | Canonical Path |
 | ------- | --------------- |
-| Runtime Python packages | `services/layer{1-7}-*/src/`, `value_fabric/shared/` |
+| Runtime Python packages | `services/layer{1-6}-*/src/`, adjacent service packages, `value_fabric/shared/` |
 | Frontend | `apps/web/src` |
 | API contracts | `contracts/openapi/*.json`, `contracts/jsonschema/*.json` |
 | Kubernetes manifests | `k8s/` |

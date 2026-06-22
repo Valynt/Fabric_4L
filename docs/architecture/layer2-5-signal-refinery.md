@@ -1,4 +1,4 @@
-# Layer 2.5: Signal Refinery
+# Adjacent Service: Signal Refinery
 
 > **Service:** `services/layer2-5-signal-refinery/`
 > **Port:** 8007
@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Layer 2.5 sits between **Layer 2 (Extraction)** and **Layer 3 (Knowledge Graph)**. It transforms raw extraction output into trusted, evidence-backed `ValueSignal` objects that downstream layers can consume with confidence.
+Signal Refinery is a deployable bounded capability adjacent to the six-layer core pipeline. It sits between **Layer 2 (Extraction)** and **Layer 3 (Knowledge Graph)** through contracted API/client boundaries and transforms raw extraction output into trusted, evidence-backed `ValueSignal` objects that downstream layers can consume with confidence.
 
 ### Core Responsibilities
 
@@ -17,6 +17,10 @@ Layer 2.5 sits between **Layer 2 (Extraction)** and **Layer 3 (Knowledge Graph)*
 3. **Lifecycle Management** — Advance signals through a formal state machine (draft → extracted → validated → promoted → superseded)
 4. **Evidence Provenance** — Maintain a structured audit trail for every signal
 5. **Best-effort L3 Push** — Push refined signals to L3 as Neo4j graph nodes without blocking on L3 availability
+
+### Boundary Rule
+
+Signal Refinery remains outside the core L1-L6 pipeline layer count. It must call Layer 2 and Layer 3 through contracted HTTP/client boundaries and must not import their runtime modules directly.
 
 ---
 
@@ -29,7 +33,7 @@ Layer 2.5 sits between **Layer 2 (Extraction)** and **Layer 3 (Knowledge Graph)*
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Layer 2.5: Signal Refinery (port 8007)                   │
+│  Signal Refinery (port 8007)                               │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Type Classification  → canonical ValueSignalType   │ │
 │  │  Trust Scoring        → composite 0–1 score         │ │
@@ -76,7 +80,7 @@ trust_score = (
 | State | Meaning | Who transitions |
 |-------|---------|-----------------|
 | draft | Initial placeholder or fallback | system |
-| extracted | Passed through refinery | L2.5 service |
+| extracted | Passed through refinery | Signal Refinery service |
 | validated | Human-reviewed and approved | reviewer via API |
 | promoted | Linked to a value driver/hypothesis | agent or analyst |
 | rejected | Reviewed and discarded | reviewer via API |
@@ -172,13 +176,13 @@ curl http://localhost:8007/health
 ### Testing
 
 ```bash
-# Run all L2.5 tests
+# Run all Signal Refinery tests
 pytest services/layer2-5-signal-refinery/tests/ -v
 
 # Verify trust score computation
 pytest services/layer2-5-signal-refinery/tests/test_signal_refinery.py -v
 
-# Verify L3 push resilience (L2.5 should survive L3 being down)
+# Verify L3 push resilience (Signal Refinery should survive L3 being down)
 pytest services/layer2-5-signal-refinery/tests/test_l3_client.py -v
 ```
 
@@ -196,9 +200,9 @@ pytest services/layer2-5-signal-refinery/tests/test_l3_client.py -v
 
 ## L3 Push Behavior
 
-- After create/refine, L2.5 pushes the signal to L3 via `POST /api/v1/graph/signals`
+- After create/refine, Signal Refinery pushes the signal to L3 via `POST /api/v1/graph/signals`
 - Push is **best-effort, non-blocking** — created via `asyncio.create_task()`
-- L2.5 remains fully operational if L3 is down
+- Signal Refinery remains fully operational if L3 is down
 - L3 persists signals as Neo4j nodes with `MERGE` on `(id, tenant_id)` for idempotency
 
 ---

@@ -368,6 +368,8 @@ jobs:
           READINESS_DIR="${ARTIFACT_DIR}/readiness"
           mkdir -p artifacts/readiness
           mkdir -p "${SECURITY_DIR}" "${READINESS_DIR}"
+          ENV_REQUIRED_FILE="${READINESS_DIR}/environment-required-evidence-${BUNDLE_STAMP}.json"
+          PROFILE="${{needs.determine-profile.outputs.profile}}"
 
           resolve_required_artifact() {
             local pattern="$1"
@@ -381,20 +383,88 @@ jobs:
             printf '%s\n' "${resolved}"
           }
 
-          tenant_isolation_file="$(resolve_required_artifact "*/artifacts/security/tenant-isolation-results.json" "tenant isolation test results")"
-          auth_coverage_file="$(resolve_required_artifact "*/artifacts/security/auth-endpoint-coverage.json" "auth endpoint coverage report")"
-          migration_rollback_file="$(resolve_required_artifact "*/artifacts/state/migration-rollback-test-output.txt" "migration rollback test output")"
-          red_snapshot_file="$(resolve_required_artifact "*/artifacts/obs/red-dashboard-snapshot-metadata.json" "RED dashboard snapshot metadata")"
+          resolve_first_artifact() {
+            local label="$1"
+            shift
+            local pattern
+            local resolved
+            for pattern in "$@"; do
+              resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+              if [[ -n "${resolved}" ]]; then
+                printf '%s\n' "${resolved}"
+                return 0
+              fi
+            done
+            echo "Missing required artifact for ${label}: $*" >&2
+            exit 1
+          }
+
+          record_environment_required_artifact() {
+            local label="$1"
+            local pattern="$2"
+            local resolved
+            resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+            if [[ -n "${resolved}" ]]; then
+              printf '%s\n' "${resolved}"
+              return 0
+            fi
+            python - "$ENV_REQUIRED_FILE" "$label" "$pattern" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          label = sys.argv[2]
+          pattern = sys.argv[3]
+          if path.exists():
+              data = json.loads(path.read_text(encoding="utf-8"))
+          else:
+              data = {"status": "REQUIRES_ENVIRONMENT", "missing": []}
+          data["missing"].append({"label": label, "pattern": pattern})
+          path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+          PY
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate environment artifact for ${label}: ${pattern}" >&2
+              exit 1
+            fi
+            return 1
+          }
+
+          tenant_isolation_file="$(resolve_first_artifact \
+            "tenant isolation test results" \
+            "*/artifacts/security/tenant-isolation-results.json" \
+            "*/artifacts/security/tenant-isolation/bundle-latest.json" \
+            "*/artifacts/tenant-isolation/summary.json")"
+          auth_coverage_file="$(resolve_first_artifact \
+            "auth endpoint coverage report" \
+            "*/artifacts/security/auth-endpoint-coverage.json" \
+            "*/artifacts/security/report.json" \
+            "*/artifacts/route-tenant-propagation.json")"
+          migration_rollback_file=""
+          if migration_candidate="$(record_environment_required_artifact "migration rollback test output" "*/artifacts/state/migration-rollback-test-output.txt")"; then
+            migration_rollback_file="${migration_candidate}"
+          fi
+          red_snapshot_file=""
+          if red_candidate="$(record_environment_required_artifact "RED dashboard snapshot metadata" "*/artifacts/obs/red-dashboard-snapshot-metadata.json")"; then
+            red_snapshot_file="${red_candidate}"
+          fi
 
           cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
           cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
           cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
           cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
 
-          cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
-          cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output.txt"
-          cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
-          cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
+          if [[ -n "${migration_rollback_file}" ]]; then
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output.txt"
+          fi
+          if [[ -n "${red_snapshot_file}" ]]; then
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
+          fi
+          if [[ -f "${ENV_REQUIRED_FILE}" ]]; then
+            cp "${ENV_REQUIRED_FILE}" "${READINESS_DIR}/environment-required-evidence.json"
+          fi
       - name: Evaluate release policy
         run: make gate-release-policy PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Run canonical release gate

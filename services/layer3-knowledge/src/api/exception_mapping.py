@@ -11,6 +11,7 @@ Reason: Utilities for mapping domain/infrastructure exceptions to HTTP errors.
 from typing import Any
 
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from ..api.exceptions import (
     ContractViolationError,
@@ -31,6 +32,12 @@ def map_exception_to_http_error(exc: Exception, *, context: dict[str, Any]) -> H
         return HTTPException(
             status_code=422,
             detail={"code": "VALIDATION_ERROR", "message": exc.message, "context": context},
+        )
+
+    if isinstance(exc, NotFoundError):
+        return HTTPException(
+            status_code=404,
+            detail={"code": "NOT_FOUND", "message": getattr(exc, "message", str(exc)), "context": context},
         )
 
     if isinstance(exc, TenantAccessError):

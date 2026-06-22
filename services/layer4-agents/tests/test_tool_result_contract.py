@@ -7,12 +7,18 @@ Location: services/layer4-agents/tests/ to use correct conftest.py paths.
 """
 
 
+import inspect
+
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from layer4_agents.tools import BaseTool, ToolRegistry, ToolResult
 from layer4_agents.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
-from layer4_agents.tools.competitive_tools import LLMDifferenceItem, LLMDifferencesResponse
+from layer4_agents.tools.competitive_tools import (
+    AnalyzeCompetitionTool,
+    LLMDifferenceItem,
+    LLMDifferencesResponse,
+)
 
 
 def validate_tool_result(result):
@@ -271,7 +277,13 @@ class TestToolRegistryContractCompliance:
         """Proof 3: Registry tool failure does not raise as normal control flow."""
         result = await registry.execute(
             "registered_failing_tool",
-            {"trigger": "fail", "tenant_id": "12345678-1234-1234-1234-123456789abc"},
+            {
+                "trigger": "fail",
+                "tenant_id": "12345678-1234-1234-1234-123456789abc",
+                "workflow_id": "wf-contract",
+                "run_id": "run-contract",
+                "trace_id": "trace-contract",
+            },
         )
 
         # Should return ToolResult, not raise
@@ -307,7 +319,7 @@ class TestLLMResponseValidation:
         # Malformed JSON should raise validation error (not silently fail with raw json.loads)
         invalid_json = '{"differences": [invalid]}'
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             LLMDifferencesResponse.model_validate_json(invalid_json)
 
     def test_llm_response_model_handles_missing_fields_gracefully(self):
@@ -354,9 +366,6 @@ class TestLLMNoRawJsonLoads:
         This test verifies the code structure - the actual proof is in
         test_llm_response_model_validates_correct_json above.
         """
-        import inspect
-        from layer4_agents.tools.competitive_tools import AnalyzeCompetitionTool
-
         # Get source of _extract_differences_via_llm
         source = inspect.getsource(AnalyzeCompetitionTool._extract_differences_via_llm)
 

@@ -31,6 +31,18 @@ Use this before creating files so we avoid drift into archived, compatibility-on
 | Layer 5 — Ground Truth | `services/layer5-ground-truth/src/layer5_ground_truth/` | `value_fabric/layer5/` (compatibility shims only) | `services/layer5-ground-truth/src/layer5_ground_truth/` | Layer 5 Maintainers — shim removal review by **2026-09-30** |
 | Layer 6 — Benchmarks | `services/layer6-benchmarks/src/` | `value_fabric/layer6/` (namespace shim only) | `services/layer6-benchmarks/src/` | Layer 6 Maintainers — shim removal review by **2026-09-30** |
 
+## Adjacent service path matrix
+
+Signal refinement and billing are deployable bounded capabilities, not additional
+horizontal core pipeline layers. They must communicate with the six core layers
+through contracted HTTP/client boundaries and must not import non-adjacent service
+runtime modules directly.
+
+| Capability | Canonical runtime paths | Legacy / compatibility paths (no net-new logic) | Allowed new development target | Owner / review |
+| :--------- | :---------------------- | :---------------------------------------------- | :----------------------------- | :------------- |
+| Signal Refinery | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | none approved outside service-local wrappers | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | Signal Refinery Maintainers |
+| Billing | `services/layer7-billing/src/layer7_billing/` | `services/billing/` (non-deployable legacy compatibility only) | `services/layer7-billing/src/layer7_billing/` | Billing Maintainers |
+
 Layer 6 note: when compatibility wrappers are present under `services/layer6-benchmarks/src/`, they are wrapper-only and cannot contain local domain logic; CI enforces this via `scripts/ci/check_layer6_wrapper_drift.py`, and `scripts/check_mirrored_files.py` enforces byte-alignment against the manifest-declared wrapper template in `scripts/mirrored_files.json`.
 
 ## Cross-root import policy (allowed vs forbidden)
@@ -39,12 +51,14 @@ Layer 6 note: when compatibility wrappers are present under `services/layer6-ben
 
 - Runtime-to-runtime imports within canonical roots (for example `services/layer3-knowledge/src/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
 - Compatibility imports that remain inside approved compatibility wrappers documented in this matrix.
+- Adjacent service clients that call another service through an explicit HTTP/client adapter and do not import the target service's runtime modules.
 
 ### Forbidden imports in production/runtime code
 
 - Any import from `prototypes/`.
 - Any import from `docs/archive/`.
 - Any import from other non-runtime roots that are not canonical runtime or approved compatibility wrapper paths.
+- Direct imports from another service runtime root when a contracted client boundary should be used instead.
 
 These restrictions are enforced by architecture tests (`tests/arch/test_no_non_runtime_imports.py`) and frontend hygiene linting (`apps/web/scripts/quality/assert-frontend-hygiene.mjs`).
 

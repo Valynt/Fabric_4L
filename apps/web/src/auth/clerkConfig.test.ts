@@ -71,6 +71,12 @@ describe("clerkConfig — provider normalization", () => {
     expect(isClerkAuthEnabled()).toBe(true);
   });
 
+  it("activates clerk on exact lowercase", () => {
+    setAuthProvider("clerk");
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
+  });
+
   it("normalizes 'clerk' after trim + case-fold", () => {
     setAuthProvider("  CLERK  ");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
@@ -78,14 +84,20 @@ describe("clerkConfig — provider normalization", () => {
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
-  it.each(["true", "1", "yes", "on", "enable", "CLERK_MODE", "clerk-mode", "clerks"])(
-    "does NOT activate legacy for garbage-looking value %s",
-    (v) => {
-      setAuthProvider(v);
-      expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
-      expect(isClerkAuthEnabled()).toBe(true);
-    },
-  );
+  it.each([
+    "true",
+    "1",
+    "yes",
+    "on",
+    "enable",
+    "CLERK_MODE",
+    "clerk-mode",
+    "clerks",
+  ])("does NOT activate legacy for garbage-looking value %s", v => {
+    setAuthProvider(v);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
+  });
 });
 
 describe("clerkConfig — publishable key fail-fast", () => {
@@ -100,17 +112,23 @@ describe("clerkConfig — publishable key fail-fast", () => {
 
   it("throws when key is missing", () => {
     delete env().VITE_CLERK_PUBLISHABLE_KEY;
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("throws when key is empty string", () => {
     env().VITE_CLERK_PUBLISHABLE_KEY = "";
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("throws when key is whitespace-only", () => {
     env().VITE_CLERK_PUBLISHABLE_KEY = "   ";
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("returns the trimmed key when present", () => {

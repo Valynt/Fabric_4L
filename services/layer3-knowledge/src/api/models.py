@@ -408,7 +408,7 @@ class SearchStreamEvent(BaseModel):
 
 # Entity Models
 class EntityContextRequest(BaseModel):
-    hops: int = Field(default=2, ge=1, le=4)
+    hops: int = Field(default=2, ge=1, le=3)
     relationship_types: list[str] | None = None
     fields: list[str] | None = Field(
         None,

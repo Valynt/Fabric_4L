@@ -1,4 +1,4 @@
-# Layer 7: Billing
+# Adjacent Service: Billing
 
 > **Service:** `services/layer7-billing/`
 > **Port:** 8008
@@ -8,13 +8,15 @@
 
 ## Purpose
 
-Layer 7 is the **canonical deployable billing service**. It owns billing runtime behavior for the platform and handles:
+Billing is the **canonical deployable billing service** and a bounded capability adjacent to the six-layer core pipeline. It owns billing runtime behavior for the platform and handles:
 
 1. **Usage Event Ingestion** — Accept and persist usage events from all platform services.
 2. **Plan Entitlement Checks** — Query whether a tenant has remaining quota for a given feature.
 3. **Invoice Listing** — Provide invoice summaries for tenant billing portals.
 4. **Payment State Tracking** — Track subscription status, trial state, and grace periods.
 5. **Stripe-facing Control Plane** — Verify Stripe webhooks and host subscription, checkout, portal, plan, overage, and usage-sync API surfaces as the Layer 4 billing routes migrate to thin proxies.
+
+Billing remains outside the core L1-L6 pipeline layer count. Core services must interact with it through entitlement, usage-event, and webhook contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
 
 `services/layer7-billing/` is the only deployable billing service. The historical `services/billing/` package is non-deployable compatibility code retained for legacy Stripe migration and webhook-idempotency tests; it must not own Docker/Compose/Kubernetes runtime wiring.
 
@@ -38,7 +40,7 @@ Layer 7 is the **canonical deployable billing service**. It owns billing runtime
                                     │
                                     ▼
                     ┌───────────────────────────────┐
-                    │  Layer 7: Billing (port 8008)  │
+                    │  Billing (port 8008)            │
                     │  ┌─────────────────────────┐  │
                     │  │  Usage Event Ingestion   │  │
                     │  │  Plan Entitlement Check  │  │
@@ -50,7 +52,7 @@ Layer 7 is the **canonical deployable billing service**. It owns billing runtime
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
               PostgreSQL       Redis           Stripe API
-              (events,         (caching,       (via Layer 7
+              (events,         (caching,       (via Billing
                invoices,       rate limits)     adapters/webhooks)
                entitlements)
 ```
@@ -61,7 +63,7 @@ Layer 7 is the **canonical deployable billing service**. It owns billing runtime
 
 ### REST Endpoints (port 8008)
 
-Canonical endpoints are exposed under `/v1/billing`. Layer 4 billing routes remain temporary forwarding shims while callers migrate directly to Layer 7.
+Canonical endpoints are exposed under `/v1/billing`. Layer 4 billing routes remain temporary forwarding shims while callers migrate directly to Billing.
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -167,7 +169,7 @@ curl http://localhost:8008/health
 ### Testing
 
 ```bash
-# Run all Layer 7 tests
+# Run all Billing tests
 pytest services/layer7-billing/tests/ -v
 
 # With coverage (≥80% required)
@@ -194,9 +196,9 @@ pytest services/layer7-billing/tests/ --cov=src/layer7_billing --cov-report=term
 ```
 1. L4 Agent calls POST /api/v1/workflows
 2. API Gateway intercepts, injects X-Tenant-ID
-3. Before executing, L4 calls L7:
+3. Before executing, L4 calls Billing:
    GET /v1/billing/entitlements/{plan_id}/decision?feature=agent_runs
-4. L7 checks tenant-scoped entitlement state:
+4. Billing checks tenant-scoped entitlement state:
    - If quota/policy allows the feature → HTTP 200 with `allowed: true`, proceed
    - If quota/policy blocks the feature → HTTP 200 with `allowed: false`; callers enforce the gate
 5. After workflow completes, L4 emits usage event:
@@ -221,7 +223,7 @@ The `tenant_context` middleware sets the RLS variable from the `X-Tenant-ID` hea
 
 ## Related
 
-- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — superseded extraction record; current ownership is consolidated in Layer 7
+- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — superseded extraction record; current ownership is consolidated in Billing
 - [ADR-010: PostgreSQL RLS for Multi-Tenancy](../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) — Tenant isolation
 - [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — active L4 billing proxy/shim retirement tracking
 - `services/billing/` — non-deployable legacy compatibility package

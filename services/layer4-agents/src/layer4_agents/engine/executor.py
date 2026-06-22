@@ -15,8 +15,8 @@ This implements the OrchestrationController agent type from the specification.
 
 import asyncio
 import logging
-from contextvars import Token
 from collections.abc import Callable
+from contextvars import Token
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID

@@ -104,8 +104,7 @@ class TestGenerationToolPromptInjectionControls:
         assert "<<<USER_CONTEXT>>>" in prompt
         assert "<<</USER_CONTEXT>>>" in prompt
         assert prompt.index("<<<USER_CONTEXT>>>") < prompt.index(injection)
-        assert prompt.index(injection) < prompt.index("<<</USER_CONTEXT>>>"
-        )
+        assert prompt.index(injection) < prompt.index("<<</USER_CONTEXT>>>")
 
 
 class TestConversationGuardrailRefusesPromptInjection:

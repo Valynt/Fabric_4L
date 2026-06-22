@@ -76,18 +76,18 @@ capabilities:
   - id: auth.clerk-config-normalization
     domain: auth
     description: >-
-      Clerk auth provider normalization is strict: only exact 'clerk' (case-folded,
-      trimmed) activates Clerk mode; all other values default to legacy. Missing
-      publishable key fails fast.
+      Clerk auth provider normalization is strict: explicit 'legacy' opts into
+      legacy mode; exact 'clerk' (case-folded, trimmed), missing values, and
+      unknown values use Clerk mode. Missing publishable key fails fast.
     owner: "@value-fabric/frontend-leads"
     kind: frontend
-    expected_failure_mode: "Throws on missing/invalid Clerk publishable key; garbage provider values default to legacy"
+    expected_failure_mode: "Throws on missing/invalid Clerk publishable key; garbage provider values do not activate legacy"
     allowed:
       file: apps/web/src/auth/clerkConfig.test.ts
       test: "activates clerk on exact lowercase"
     denied:
       file: apps/web/src/auth/clerkConfig.test.ts
-      test: "does NOT activate clerk for garbage-looking value"
+      test: "does NOT activate legacy for garbage-looking value"
 
   - id: auth.frontend-fail-closed
     domain: auth
@@ -188,8 +188,9 @@ capabilities:
   - id: tenant_isolation.billing-boundary
     domain: tenant_isolation
     description: >-
-      Layer 7 billing endpoints enforce auth, reject spoofed headers without JWT,
-      enforce tenant isolation on read/write, and enforce RBAC role boundaries.
+      The adjacent billing service enforces auth, rejects spoofed headers without
+      JWT, enforces tenant isolation on read/write, and enforces RBAC role
+      boundaries.
     owner: "@value-fabric/security-leads"
     marker: tenant_boundary
     expected_failure_mode: "401 on missing auth; 403 on cross-tenant access; 403 on RBAC violation"
@@ -203,9 +204,10 @@ capabilities:
   - id: tenant_isolation.hostile-endpoint-family
     domain: tenant_isolation
     description: >-
-      Every endpoint family (L1-L7 + API) enforces tenant auth guards, requires
-      auth on writes, uses non-optional tenant context on mutations, and returns
-      safe error envelopes.
+      Every core endpoint family (L1-L6), adjacent service endpoint family
+      (Signal Refinery and Billing), and API gateway path enforces tenant auth
+      guards, requires auth on writes, uses non-optional tenant context on
+      mutations, and returns safe error envelopes.
     owner: "@value-fabric/security-leads"
     marker: tenant_boundary
     expected_failure_mode: "Static analysis flags missing tenant guard; safe error envelope on violation"
