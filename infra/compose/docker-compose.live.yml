@@ -3,7 +3,7 @@ x-build-args: &id001
 services:
   postgres:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: postgres-base
     container_name: vf-live-postgres
     environment:
@@ -14,7 +14,7 @@ services:
       POSTGRES_INITDB_ARGS: -E UTF8 --locale=C
     volumes:
     - live-postgres-data:/var/lib/postgresql/data
-    - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     networks:
     - live-network
     deploy:
@@ -24,7 +24,7 @@ services:
           memory: '1GiB'
   redis:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: redis-base
     container_name: vf-live-redis
     volumes:
@@ -39,7 +39,7 @@ services:
 
   neo4j:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: neo4j-base
     container_name: vf-live-neo4j
     environment:
@@ -59,7 +59,7 @@ services:
 
   minio:
     extends:
-      file: ./infra/compose/docker-compose.base.yml
+      file: ./docker-compose.base.yml
       service: minio-base
     container_name: vf-live-minio
     environment:
@@ -108,7 +108,7 @@ services:
       KC_HEALTH_ENABLED: 'true'
       KC_FEATURES: token-exchange,admin-fine-grained-authz
     volumes:
-      - ./infra/keycloak/fabric-realm.json:/opt/keycloak/data/import/fabric-realm.json:ro
+      - ../../infra/keycloak/fabric-realm.json:/opt/keycloak/data/import/fabric-realm.json:ro
     ports:
       - 8080:8080
     networks:
@@ -131,7 +131,7 @@ services:
 
   layer1:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args:
         INSTALL_PLAYWRIGHT_BROWSERS: 'false'
@@ -157,7 +157,7 @@ services:
       CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES}
       CLERK_JWKS_URL: ${CLERK_JWKS_URL}
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:
@@ -177,7 +177,7 @@ services:
 
   layer1-worker:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer1-ingestion/Dockerfile.live
       args:
         INSTALL_PLAYWRIGHT_BROWSERS: 'false'
@@ -192,7 +192,7 @@ services:
       S3_ACCESS_KEY: ${MINIO_ROOT_USER}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:
@@ -214,7 +214,7 @@ services:
   # ---------------------------------------------------------------------------
   layer2:
     build:
-      context: .
+      context: ../..
       dockerfile: ./services/layer2-extraction/Dockerfile.full
       args: *id001
     container_name: vf-live-layer2
@@ -236,7 +236,7 @@ services:
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
     volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+    - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
     - live-network
     healthcheck:

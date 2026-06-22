@@ -1,7 +1,6 @@
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,
-    ValidationError,
 )
 
 """FastAPI application for Layer 2: Extraction Pipeline.
@@ -84,13 +83,14 @@ from value_fabric.shared.fastapi_framework.health import (
 )
 
 from layer2_extraction.alignment import SemanticAligner
-from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
-from layer2_extraction.api.s2s_auth import (
-    S2S_EXPECTED_AUD as _S2S_EXPECTED_AUD,
-    S2S_EXPECTED_SUB as _S2S_EXPECTED_SUB,
-    S2S_INTERNAL_PATHS as _S2S_INTERNAL_PATHS,
-    enforce_s2s_auth_guard,
+from layer2_extraction.api import s2s_auth
+from layer2_extraction.api.extraction_config import (
+    build_idempotency_key as _build_idempotency_key,
 )
+from layer2_extraction.api.extraction_config import (
+    validated_extraction_config as _validated_extraction_config,
+)
+from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
@@ -277,6 +277,8 @@ app.include_router(signal_lifecycle_router)
 # This middleware enforces that when SERVICE_AUTH_SECRET is configured, these
 # three internal routes may ONLY be called with a valid L1 S2S token.
 
+_S2S_INTERNAL_PATHS = s2s_auth.S2S_INTERNAL_PATHS
+
 @app.middleware("http")
 async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg,untyped-decorator]
     """Enforce inbound S2S JWT on internal extraction routes.
@@ -284,7 +286,7 @@ async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg
     In strict environments, the check is mandatory and fails closed.
     In explicit dev/test environments without SERVICE_AUTH_SECRET, the check is skipped.
     """
-    return await enforce_s2s_auth_guard(
+    return await s2s_auth.enforce_s2s_auth_guard(
         request,
         call_next,
         is_strict_runtime=_is_strict_runtime,
@@ -601,46 +603,6 @@ def _build_e2e_local_extraction_artifacts(
         model_version=telemetry_context["model_version"],
     )
     return ExtractionArtifacts(result=result, relationships=[relationship])
-
-
-def _resolve_value_pack_scope(extraction_config: dict[str, Any]) -> str:
-    return str(extraction_config.get("value_pack_scope") or extraction_config.get("value_pack") or "default")
-
-
-def _build_idempotency_key(
-    *,
-    tenant_id: str,
-    source_url: str,
-    content_id: str,
-    extraction_config: dict[str, Any],
-) -> str:
-    extraction_version = str(extraction_config.get("extraction_version") or "v1")
-    value_pack_scope = _resolve_value_pack_scope(extraction_config)
-    source_hash = hashlib.sha256(f"{content_id}|{source_url}".encode()).hexdigest()
-    payload = f"{tenant_id}|{source_hash}|{extraction_version}|{value_pack_scope}"
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
-def _validated_extraction_config(
-    extraction_config: dict[str, Any],
-    *,
-    tenant_id: str,
-    operation: str,
-) -> dict[str, Any]:
-    """Return extraction config with required runtime metadata populated."""
-    config = dict(extraction_config)
-    config["tenant_id"] = tenant_id
-    model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
-    if not model_version:
-        raise ValidationError(
-            message=f"model_version is required in extraction_config or EXTRACTION_MODEL env var for {operation}"
-        )
-    if not config.get("schema_version"):
-        raise ValidationError(message=f"schema_version is required in extraction_config for {operation}")
-    if not config.get("prompt_version"):
-        raise ValidationError(message=f"prompt_version is required in extraction_config for {operation}")
-    config["model_version"] = str(model_version)
-    return config
 
 
 # Global job store (Redis-backed if configured, otherwise in-memory)
@@ -1118,18 +1080,10 @@ async def run_extraction(
 
     await _set_pipeline_job(job_id, extraction_status="running")
     
-    # Validate required telemetry context fields - no empty string fallbacks
-    model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
-    if not model_version:
-        raise ValidationError(message = "model_version is required in extraction_config or EXTRACTION_MODEL env var")
-    
-    schema_version = config.get("schema_version")
-    if not schema_version:
-        raise ValidationError(message = "schema_version is required in extraction_config")
-    
-    prompt_version = config.get("prompt_version")
-    if not prompt_version:
-        raise ValidationError(message = "prompt_version is required in extraction_config")
+    config = _validated_extraction_config(config, tenant_id=tenant_id)
+    model_version = config["model_version"]
+    schema_version = config["schema_version"]
+    prompt_version = config["prompt_version"]
 
     # S2-8: Validate prompt_version against PromptRegistry on startup
     from layer2_extraction.extraction.prompt_registry import get_prompt_registry

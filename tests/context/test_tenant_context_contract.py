@@ -13,8 +13,8 @@ Test Strategy:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import patch
+from uuid import uuid4
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 

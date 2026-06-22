@@ -11,7 +11,7 @@ BYPASS_FLAGS=("DEV_AUTH_BYPASS" "ALLOW_DEV_AUTH_BYPASS" "AUTH_BYPASS_ENABLED" "A
 # Note: Testing compose files (release-smoke, backend-integrated, live, playwright-live) are excluded
 # as they legitimately use dev auth bypass for testing purposes
 PROD_COMPOSE_FILES=(
-  "docker-compose.prod.yml"
+  "infra/compose/docker-compose.prod.yml"
   "docker-compose.staging.yml"
   "docker-compose.preprod.yml"
   "docker-compose.full.yml"

@@ -201,7 +201,7 @@ services:
   # Layer 3: Neo4j Knowledge Graph
   neo4j:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: neo4j-base
     container_name: value-fabric-neo4j
     expose:
@@ -748,7 +748,7 @@ services:
   # Redis (shared across all layers)
   redis:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: redis-base
     container_name: value-fabric-redis
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -796,7 +796,7 @@ services:
   # PostgreSQL (for Layer 1 crawl state + Layer 5 Ground Truth)
   postgres:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: postgres-base
     container_name: value-fabric-postgres
     expose:
