@@ -21,6 +21,7 @@ from value_fabric.shared.idempotency import (
     IdempotencyRecord,
     IdempotencyRequest,
     IdempotencyService,
+    InMemoryIdempotencyStore,
     RedisIdempotencyStore,
     build_request_fingerprint,
 )
@@ -29,18 +30,28 @@ from ...webhook_security import (
     DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
     verify_stripe_webhook_signature,
 )
-from ..database import redis_client_async
+from ...database import redis_client_async
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Billing — Webhooks"])
 
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
+# Configure idempotency service with Redis store (falls back to in-memory if Redis unavailable)
+_idempotency_store = (
+    RedisIdempotencyStore(redis_client_async)
+    if redis_client_async is not None
+    else InMemoryIdempotencyStore()
+)
+
+_idempotency_service = IdempotencyService(store=_idempotency_store, ttl_seconds=24 * 60 * 60)
+
 
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict[str, Any]:
     """Receive Stripe billing webhooks after HMAC signature verification.
 
@@ -51,6 +62,10 @@ async def stripe_webhook(
 
     This endpoint is the canonical Layer 7 implementation. Layer 4 now
     forwards webhook calls here via a thin HTTP client stub.
+
+    Idempotency is enforced via:
+    - ``Idempotency-Key`` header (if provided by client)
+    - Event ID from Stripe payload (fallback)
     """
     if not _STRIPE_WEBHOOK_SECRET:
         logger.error("STRIPE_WEBHOOK_SECRET not configured")
@@ -61,13 +76,12 @@ async def stripe_webhook(
 
     body = await request.body()
     try:
-        signature = verify_stripe_webhook_signature(
+        verify_stripe_webhook_signature(
             body,
             stripe_signature,
             _STRIPE_WEBHOOK_SECRET,
             tolerance_seconds=DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
         )
-        import json
 
         event = json.loads(body)
         event_id = event.get("id") if isinstance(event, dict) else None
@@ -83,11 +97,65 @@ async def stripe_webhook(
         )
         raise ValidationError(message="Invalid Stripe webhook payload") from exc
 
+    # Idempotency check: use Idempotency-Key header if provided, otherwise use event_id
+    key = idempotency_key or event_id
+    if not key:
+        raise ValidationError(message="Either Idempotency-Key header or valid event_id required for idempotency")
+    endpoint_key = "POST:/webhook"
+    
+    # Build request fingerprint for payload validation
+    try:
+        event_dict = event if isinstance(event, dict) else {}
+        request_fingerprint = build_request_fingerprint("POST", "/webhook", event_dict)
+    except Exception as exc:
+        logger.warning("Request fingerprinting failed, using event_id as fallback", error=str(exc))
+        request_fingerprint = event_id
+
+    idempotency_request = IdempotencyRequest(
+        tenant_id="stripe",  # Stripe webhooks are tenant-agnostic
+        endpoint_key=endpoint_key,
+        idempotency_key=key,
+        request_fingerprint=request_fingerprint,
+    )
+
+    # Check for replay
+    try:
+        cached_response = _idempotency_service.check_replay(idempotency_request)
+        if cached_response is not None:
+            logger.info(
+                "Stripe webhook replay detected, returning cached response",
+                event_id=event_id,
+                idempotency_key=key,
+                operation="stripe_webhook",
+                route="/webhook",
+            )
+            return cached_response.body
+    except Exception as exc:
+        logger.warning("Idempotency check failed, proceeding with processing", error=str(exc))
+
+    # Process webhook (placeholder - actual processing logic would go here)
     logger.info(
         "Stripe webhook accepted (L7 canonical)",
         event_id=event_id,
         event_type=event_type,
+        idempotency_key=key,
         operation="stripe_webhook",
         route="/webhook",
     )
-    return {"received": True, "event_id": event_id}
+
+    response = {"received": True, "event_id": event_id}
+
+    # Store response for idempotency (non-critical if it fails)
+    try:
+        _idempotency_service.store_response(
+            idempotency_request,
+            IdempotencyRecord(
+                status_code=200,
+                body=response,
+                headers={},
+            ),
+        )
+    except Exception as exc:
+        logger.warning("Failed to store idempotency response", error=str(exc))
+
+    return response
