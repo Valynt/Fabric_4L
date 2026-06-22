@@ -47,6 +47,8 @@ def test_gate_writes_expected_artifacts_for_each_suite(tmp_path, monkeypatch):
         assert "- Status: passed" in summary
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["overall_status"] == "passed"
+    assert manifest["gate_scope"] == "subset"
+    assert manifest["release_authorizing"] is False
     assert manifest["blocks_release_on_failure"] is True
     assert manifest["required_regression_domains"] == [
         "architecture",
@@ -86,6 +88,8 @@ def test_gate_stops_on_first_failed_suite(tmp_path, monkeypatch):
     assert not (tmp_path / "billing").exists()
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["overall_status"] == "failed"
+    assert manifest["gate_scope"] == "subset"
+    assert manifest["release_authorizing"] is False
     assert manifest["stopped_on_failure"] is True
     assert manifest["covered_regression_domains"] == [
         "operational-behavior",

@@ -19,6 +19,7 @@ REQUIRED_REGRESSION_DOMAINS = {
 }
 ALLOWED_SUITE_STATUSES = {"passed", "failed", "not_run"}
 ALLOWED_OVERALL_STATUSES = {"passed", "failed"}
+ALLOWED_GATE_SCOPES = {"full", "subset"}
 DEFAULT_MANIFEST = REPO_ROOT / "artifacts" / "production-readiness" / "manifest.json"
 
 
@@ -112,8 +113,12 @@ def validate_manifest(path: Path) -> list[str]:
         errors.append("command must be make production-readiness-gate")
     if manifest.get("overall_status") not in ALLOWED_OVERALL_STATUSES:
         errors.append(f"invalid overall_status {manifest.get('overall_status')!r}")
+    if manifest.get("gate_scope") not in ALLOWED_GATE_SCOPES:
+        errors.append(f"invalid gate_scope {manifest.get('gate_scope')!r}")
     if manifest.get("blocks_release_on_failure") is not True:
         errors.append("blocks_release_on_failure must be true")
+    if not isinstance(manifest.get("release_authorizing"), bool):
+        errors.append("release_authorizing must be a boolean")
     if not isinstance(manifest.get("generated_at_utc"), str) or not manifest["generated_at_utc"].endswith("Z"):
         errors.append("generated_at_utc must be an RFC3339 UTC string ending in Z")
 
@@ -165,13 +170,21 @@ def validate_manifest(path: Path) -> list[str]:
 
     overall_status = manifest.get("overall_status")
     stopped_on_failure = manifest.get("stopped_on_failure")
+    gate_scope = manifest.get("gate_scope")
+    release_authorizing = manifest.get("release_authorizing")
     if overall_status == "passed":
         if any(status != "passed" for status in statuses):
             errors.append("overall passed requires every suite status to be passed")
-        if executed_domains != REQUIRED_REGRESSION_DOMAINS:
+        if gate_scope == "full" and executed_domains != REQUIRED_REGRESSION_DOMAINS:
             errors.append("overall passed requires all required regression domains to be covered")
         if stopped_on_failure is not False:
             errors.append("overall passed requires stopped_on_failure=false")
+    if release_authorizing is True and (gate_scope != "full" or overall_status != "passed"):
+        errors.append("release_authorizing=true requires a full passed gate")
+    if release_authorizing is True and executed_domains != REQUIRED_REGRESSION_DOMAINS:
+        errors.append("release_authorizing=true requires all required regression domains to be covered")
+    if gate_scope == "subset" and release_authorizing is not False:
+        errors.append("subset manifests must set release_authorizing=false")
     if overall_status == "failed":
         if "failed" not in statuses and "not_run" not in statuses:
             errors.append("overall failed requires at least one failed or not_run suite")

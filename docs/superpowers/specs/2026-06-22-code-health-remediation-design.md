@@ -31,6 +31,20 @@ Existing related work already in flight:
 
 The current working tree on `main` has significant uncommitted drift (docker-compose relocations, CI script rewrites, s2s-auth work). This drift must be committed or reverted before reliable remediation gates can be run.
 
+### Validated Findings (post-exploration)
+
+Several Repowise claims were stale or inaccurate when checked against the current tree:
+
+| Claim | Validation | Reality |
+|---|---|---|
+| 6 files with 100% duplication | Partially true | Only `sec_edgar.py` and `xbrl_parser.py` are content-identical duplicates. `robots_checker.py` is not duplicated. `redis_cache.py` exists only in Layer 3. The two Layer 4 `database.py` files are materially different. |
+| 850 dead exports / 15,009 lines | Overstated | Many "dead" frontend pages are loaded via dynamic imports. Only one re-export wrapper (`value-model/ValueModelTab.tsx`) is currently unreferenced. `ExecutionMetrics` in `telemetry.py` is unused, but the rest of `telemetry.py` is imported by the crawler. |
+| 16+ unowned auth/routing files | Debunked | `.github/CODEOWNERS` covers all listed files via `apps/web/` and `**/*auth*` patterns. A minor security-review gap exists for 3 routing files without "auth" in the path. |
+| Playwright script nesting depth 8 | Inaccurate | Current max brace nesting in `apps/web/scripts/playwright-route-audit-fast.ts` is 3. |
+| Legacy path drift | Confirmed | `services/layer1-ingestion/src/compliance/__init__.py` imports from deleted/moved legacy paths (`pii_scanner`, `robots_checker`). `services/layer1-ingestion/src/adapters/` duplicates canonical `layer1_ingestion/adapters/` files. |
+
+These validations reduce Sprint 1 scope significantly but reveal real cleanup work: removing legacy duplicate/empty packages and fixing broken imports.
+
 ---
 
 ## Approaches Considered
@@ -76,16 +90,18 @@ Before any remediation:
 
 | Track | Work |
 |---|---|
-| P0 duplication | Consolidate the 6 100%-duplication files into shared utilities or delete the redundant copies. Files: `services/layer1-ingestion/src/adapters/sec_edgar.py`, `xbrl_parser.py`, `robots_checker.py`, `services/layer3-knowledge/src/cache/redis_cache.py`, `services/layer4-agents/src/database.py`, and the canonical duplicate under `services/layer4-agents/src/layer4_agents/database.py`. |
-| P1 dead code (frontend) | Remove verified safe re-export wrappers under `src/features/intelligence-workspace/tabs/`. Do **not** delete `apps/web/src/pages/studio/NarrativeTab.tsx`, `InteractiveBusinessCase.tsx`, `ROITab.tsx`, `ValueCasePage.tsx`, or `RealizationPage.tsx` — they are loaded via dynamic imports and were previously restored after breaking the build. |
-| P1 dead code (backend) | Remove `services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py::ExecutionMetrics` (already verified and removed on remediation branch). Verify other high-confidence candidates with import search and tests. |
-| P3 ownership | Update `.github/CODEOWNERS` for auth/routing files. Note: Repowise "unowned" claim was partially debunked; only add entries for genuinely missing coverage. |
-| P4 nesting | Reduce nesting in `apps/web/scripts/playwright-route-audit-fast.ts::main` from 8 to ≤4 using early returns and helper functions. |
+| P0 duplication | Remove the 2 confirmed content-identical duplicates in legacy `services/layer1-ingestion/src/adapters/` (`sec_edgar.py`, `xbrl_parser.py`). The canonical copies live under `services/layer1-ingestion/src/layer1_ingestion/adapters/`. Do **not** touch `robots_checker.py`, `redis_cache.py`, or Layer 4 `database.py` — they are not true duplicates. |
+| Legacy package cleanup | Fix or remove the broken legacy package `services/layer1-ingestion/src/compliance/` whose `__init__.py` imports deleted files. No code imports from this package. |
+| P1 dead code (frontend) | Remove the one verified unreferenced re-export wrapper `apps/web/src/features/intelligence-workspace/tabs/value-model/ValueModelTab.tsx`. The other wrappers are imported by `workspaceTabRegistry.ts` or `studioTabRegistry.ts`. Do **not** delete the dynamic-import pages. |
+| P1 dead code (backend) | Remove the unused `ExecutionMetrics` class from `services/layer1-ingestion/src/layer1_ingestion/crawler/telemetry.py`. Verify with import search and tests. |
+| P3 ownership | Add explicit `.github/CODEOWNERS` patterns for auth/routing files that lack security-team coverage: `RequireClerkAuth.tsx`, `UnifiedRouteGuard.tsx`, `ClerkSignIn.tsx`. |
+| P4 nesting | The Playwright script nesting claim was inaccurate (current depth 3). Skip unless a fresh metric confirms depth ≥5. |
 
 **Success metrics for Sprint 1:**
 
-- 100% duplication files reduced from 6 to 0.
-- ≥1,000 lines of verified dead code removed.
+- 100% duplication files reduced from 2 to 0 (confirmed identical pairs removed).
+- Broken legacy package imports fixed or package removed.
+- ≥200 lines of verified dead code removed (duplicate adapters + unused wrapper + `ExecutionMetrics`).
 - `pnpm run verify:frontend` and targeted backend tests pass.
 
 ### Phase 2 — Sprint 2: Identity Middleware + Layer 1 Main API
@@ -209,6 +225,8 @@ make check-behavior-readiness-audit
 ## Decisions Already Made
 
 - Approach B (CI stabilization first, then 4-sprint remediation) is recommended.
-- The 6 100%-duplication files will be consolidated or removed.
+- Only the 2 confirmed content-identical duplicate adapter files will be removed; the other 4 claimed duplicates are not true duplicates.
 - The 5 large frontend pages flagged by Repowise will **not** be deleted because they are loaded via dynamic imports.
-- Dead-code removal will proceed batch-by-batch per `CLEANUP_PLAN_DEAD_CODE.md` with verification after each batch.
+- Only the one verified unreferenced re-export wrapper will be removed.
+- The broken legacy `services/layer1-ingestion/src/compliance/` package will be removed because no code imports from it and its `__init__.py` references deleted files.
+- Dead-code removal will proceed batch-by-batch with verification after each batch; `CLEANUP_PLAN_DEAD_CODE.md` is treated as a candidate list, not an authority.

@@ -15,7 +15,6 @@ P1-29: OpenTelemetry tracing integration for observability.
 """
 
 import asyncio
-import datetime as _datetime_module
 import hashlib
 import json
 import os
@@ -89,6 +88,11 @@ from layer2_extraction.api.extraction_config import (
 from layer2_extraction.api.extraction_config import (
     validated_extraction_config as _validated_extraction_config,
 )
+from layer2_extraction.api.extractor_factory import LazyExtractorFactory, validated_openai_key
+from layer2_extraction.api.pipeline_status import (
+    compute_overall_status,
+    pipeline_response_payload,
+)
 from layer2_extraction.api.retry_queue import (
     ExtractionArtifactsPayload,
     deserialize_artifacts,
@@ -99,6 +103,16 @@ from layer2_extraction.api.retry_queue import (
 )
 from layer2_extraction.api.routes import health as health_routes
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
+from layer2_extraction.api.schemas import (
+    EntityListResponse,
+    ExtractAndIngestResponse,
+    ExtractRequest,
+    ExtractResponse,
+    ExtractionStatusResponse,
+    ProvenanceResponse,
+    RelationshipsResponse,
+    default_extraction_config,
+)
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
@@ -303,16 +317,6 @@ DEFAULT_SIMILARITY_THRESHOLD = 0.85
 PROGRESS_REPORT_INTERVAL = 10  # Report progress every N chunks
 DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"  # nosec B108
 
-# Lazy initialization of extractors to avoid import-time side effects
-_entity_extractor = None
-_relationship_extractor = None
-
-# Known placeholder values that must not be used as real API keys.
-_OPENAI_KEY_PLACEHOLDERS = frozenset({
-    "", "your-openai-api-key", "sk-placeholder", "sk-test", "replace-me",
-    "your_openai_api_key", "openai_api_key", "none", "null",
-})
-
 
 def _get_validated_openai_key() -> str | None:
     """Return the OpenAI API key from the environment, or None if absent.
@@ -322,119 +326,32 @@ def _get_validated_openai_key() -> str | None:
     - The key matches a known placeholder value.
     - The key does not start with the 'sk-' prefix expected by the OpenAI SDK.
     """
-    key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not key or key.lower() in _OPENAI_KEY_PLACEHOLDERS:
-        if _is_strict_runtime():
-            raise RuntimeError(
-                "OPENAI_API_KEY is missing or set to a placeholder value. "
-                "A valid key is required in strict Layer 2 environments."
-            )
-        return None
-    if not key.startswith("sk-"):
-        if _is_strict_runtime():
-            raise RuntimeError(
-                "OPENAI_API_KEY does not start with 'sk-' — likely a misconfigured placeholder. "
-                "Refusing to start in strict environment."
-            )
-        logger.warning("OPENAI_API_KEY does not start with 'sk-'; key may be invalid")
-    return key
+    return validated_openai_key(is_strict_runtime=_is_strict_runtime, logger=logger)
+
+
+_extractor_factory = LazyExtractorFactory(
+    entity_extractor_cls=EntityExtractor,
+    relationship_extractor_cls=RelationshipExtractor,
+    key_provider=_get_validated_openai_key,
+    model_provider=lambda: os.getenv("LLM_MODEL", "gpt-4o"),
+)
 
 
 def get_entity_extractor():
     """Get or create the entity extractor (lazy initialization)."""
-    global _entity_extractor
-    if _entity_extractor is None:
-        _entity_extractor = EntityExtractor(
-            api_key=_get_validated_openai_key(), model=os.getenv("LLM_MODEL", "gpt-4o")
-        )
-    return _entity_extractor
+    return _extractor_factory.get_entity_extractor()
 
 
 def get_relationship_extractor():
     """Get or create the relationship extractor (lazy initialization)."""
-    global _relationship_extractor
-    if _relationship_extractor is None:
-        _relationship_extractor = RelationshipExtractor(
-            api_key=_get_validated_openai_key(), model=os.getenv("LLM_MODEL", "gpt-4o")
-        )
-    return _relationship_extractor
+    return _extractor_factory.get_relationship_extractor()
 
 
-# Request/Response Models
-class ExtractRequest(BaseModel):
-    """Request body for extraction endpoint."""
-
-    content_id: str = Field(..., description="ID of content to extract from (from Layer 1)")
-    source_url: str = Field(..., description="URL of source document")
-    markdown_content: str = Field(..., description="Markdown content to extract from")
-    extraction_config: dict = Field(
-        default_factory=lambda: {
-            "entity_types": ["Capability", "UseCase", "Persona", "ValueDriver"],
-            "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
-            "chunk_size": DEFAULT_CHUNK_SIZE,
-            "chunk_overlap": DEFAULT_CHUNK_OVERLAP,
-        }
-    )
-
-
-class ExtractResponse(BaseModel):
-    """Response from extraction endpoint."""
-
-    extraction_job_id: str
-    status: str
-    message: str
-
-
-class ExtractionStatusResponse(BaseModel):
-    """Status of a combined extraction + ingestion pipeline job."""
-
-    job_id: str
-    overall_status: str
-    extraction_status: str
-    ingestion_status: str
-    entities_extracted: int
-    relationships_extracted: int
-    retry_count: int = 0
-    last_error: str | None = None
-    next_retry_at: datetime | None = None
-    started_at: datetime | None = None
-    completed_at: datetime | None
-
-
-class EntityListResponse(BaseModel):
-    """List of entities in the ontology."""
-
-    entity_type: str
-    entities: list[dict]
-    total: int
-
-
-class RelationshipsResponse(BaseModel):
-    """Relationships for an entity."""
-
-    entity_id: str
-    incoming: list[dict]
-    outgoing: list[dict]
-
-
-class ProvenanceResponse(BaseModel):
-    """Provenance chain for an entity or output."""
-
-    activity_id: str
-    source: dict
-    extraction: dict
-    steps: list[dict]
-    output: dict
-
-
-class ExtractAndIngestResponse(BaseModel):
-    """Response for combined extract-and-ingest endpoint."""
-
-    job_id: str
-    overall_status: str
-    extraction_status: str
-    ingestion_status: str
-    message: str
+ExtractRequest.model_fields["extraction_config"].default_factory = lambda: default_extraction_config(
+    confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
+    chunk_size=DEFAULT_CHUNK_SIZE,
+    chunk_overlap=DEFAULT_CHUNK_OVERLAP,
+)
 
 
 @dataclass
@@ -649,19 +566,7 @@ class QuarantineStatusResponse(BaseModel):
     created_at: datetime
 
 def _compute_overall_status(extraction_status: str, ingestion_status: str) -> str:
-    if extraction_status == "failed" or ingestion_status == "failed":
-        return "failed"
-    if extraction_status == "pending" and ingestion_status == "pending":
-        return "pending"
-    if extraction_status in {"pending", "running"}:
-        return "running"
-    if extraction_status == "completed" and ingestion_status in {"pending", "queued"}:
-        return "partial"
-    if extraction_status == "completed" and ingestion_status == "running":
-        return "running"
-    if extraction_status == "completed" and ingestion_status in {"completed", "skipped"}:
-        return "completed"
-    return "pending"
+    return compute_overall_status(extraction_status, ingestion_status)
 
 
 async def _set_pipeline_job(
@@ -699,26 +604,7 @@ async def _set_pipeline_job(
 
 
 def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
-    def _to_datetime(value: datetime | str | None) -> datetime | None:
-        if value is None:
-            return None
-        if isinstance(value, _datetime_module.datetime):
-            return value
-        return datetime.fromisoformat(value)
-
-    return ExtractionStatusResponse(
-        job_id=job.job_id,
-        overall_status=_compute_overall_status(job.extraction_status, job.ingestion_status),
-        extraction_status=job.extraction_status,
-        ingestion_status=job.ingestion_status,
-        entities_extracted=job.entities_extracted,
-        relationships_extracted=job.relationships_extracted,
-        retry_count=job.retry_count,
-        last_error=job.last_error,
-        next_retry_at=_to_datetime(job.next_retry_at),
-        started_at=_to_datetime(job.created_at),
-        completed_at=_to_datetime(job.completed_at),
-    )
+    return ExtractionStatusResponse(**pipeline_response_payload(job))
 
 
 def _serialize_artifacts(artifacts: ExtractionArtifacts) -> tuple[str, str]:

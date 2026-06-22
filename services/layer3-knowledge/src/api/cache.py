@@ -8,10 +8,10 @@ All cache operations are tenant-scoped to prevent cross-tenant data leakage.
 Cache keys follow the pattern: cache:tenant:{tenant_id}:{resource_type}:{resource_id}
 """
 
+import json
 import logging
 import os
 import re
-import json
 from typing import Any
 from uuid import UUID
 

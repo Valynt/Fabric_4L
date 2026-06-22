@@ -62,6 +62,7 @@ def _base_manifest(tmp_path: Path) -> dict[str, object]:
         "generated_at_utc": "2026-06-22T18:52:07Z",
         "gate": "production-readiness-gate",
         "command": "make production-readiness-gate",
+        "gate_scope": "full",
         "overall_status": "passed",
         "stopped_on_failure": False,
         "artifact_dir": tmp_path.as_posix(),
@@ -80,6 +81,7 @@ def _base_manifest(tmp_path: Path) -> dict[str, object]:
             "tenant-isolation",
         ],
         "blocks_release_on_failure": True,
+        "release_authorizing": True,
         "suites": suites,
     }
 
@@ -146,3 +148,40 @@ def test_not_run_suite_must_be_failed_fail_fast_manifest(tmp_path: Path) -> None
     errors = validator.validate_manifest(manifest_path)
 
     assert "overall passed requires every suite status to be passed" in errors
+
+
+def test_subset_manifest_can_pass_without_authorizing_release(tmp_path: Path) -> None:
+    validator = load_validator_module()
+    suites = [
+        _suite(
+            tmp_path,
+            name="release",
+            status="passed",
+            returncode=0,
+            domains=["operational-behavior", "architecture"],
+        )
+    ]
+    payload = {
+        "schema_version": 1,
+        "generated_at_utc": "2026-06-22T18:52:07Z",
+        "gate": "production-readiness-gate",
+        "command": "make production-readiness-gate",
+        "gate_scope": "subset",
+        "overall_status": "passed",
+        "stopped_on_failure": False,
+        "artifact_dir": tmp_path.as_posix(),
+        "required_regression_domains": [
+            "architecture",
+            "contracts",
+            "operational-behavior",
+            "security",
+            "tenant-isolation",
+        ],
+        "covered_regression_domains": ["architecture", "operational-behavior"],
+        "blocks_release_on_failure": True,
+        "release_authorizing": False,
+        "suites": suites,
+    }
+    manifest_path = _write_manifest(tmp_path, payload)
+
+    assert validator.validate_manifest(manifest_path) == []
