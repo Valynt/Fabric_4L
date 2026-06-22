@@ -14,7 +14,7 @@
 #   2. The live-network must exist (created automatically by the live stack).
 #
 # Quick start:
-#   docker compose -f docker-compose.playwright-live.yml run --rm playwright pnpm run test:e2e:live
+#   docker compose -f infra/compose/docker-compose.playwright-live.yml run --rm playwright pnpm run test:e2e:live
 #
 # With PowerShell helper:
 #   .\scripts\run-playwright-docker.ps1 -Live
@@ -30,18 +30,18 @@
 services:
   playwright:
     build:
-      context: .
+      context: ../..
       dockerfile: ./apps/web/Dockerfile.playwright
     container_name: vf-playwright-live
     working_dir: /app
     volumes:
       # Live source mount — changes on host are visible immediately
-      - ./apps/web:/app
+      - ../../apps/web:/app
       # Named volume isolates Linux node_modules from Windows host binaries
       - playwright_node_modules:/app/node_modules
       # Test outputs surfaced back to host
-      - ./e2e-results:/app/e2e-results
-      - ./playwright-report:/app/playwright-report
+      - ../../e2e-results:/app/e2e-results
+      - ../../playwright-report:/app/playwright-report
     environment:
       # Playwright configuration — target the live frontend on the Docker network
       - PLAYWRIGHT_BASE_URL=http://frontend:3001

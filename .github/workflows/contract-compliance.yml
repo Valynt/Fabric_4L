@@ -14,6 +14,7 @@ name: Contract Compliance
 permissions:
   contents: read
   issues: write
+  actions: read
 
 on:
   pull_request:

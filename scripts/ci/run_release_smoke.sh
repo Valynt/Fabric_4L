@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="${RELEASE_SMOKE_COMPOSE_FILE:-docker-compose.release-smoke.yml}"
+COMPOSE_FILE="${RELEASE_SMOKE_COMPOSE_FILE:-infra/compose/docker-compose.release-smoke.yml}"
 ARTIFACT_DIR="${RELEASE_SMOKE_ARTIFACT_DIR:-artifacts/release_smoke}"
 PROJECT_NAME="${RELEASE_SMOKE_PROJECT_NAME:-fabric4l-release-smoke-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}}"
 STACK_TIMEOUT="${RELEASE_SMOKE_STACK_TIMEOUT:-900s}"

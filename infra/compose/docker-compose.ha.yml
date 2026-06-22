@@ -1,7 +1,7 @@
 version: "3.8"
 
 # P0-002: Database HA stack with streaming replication, PgBouncer, and WAL archiving.
-# Usage: docker compose -f docker-compose.ha.yml up -d
+# Usage: docker compose -f infra/compose/docker-compose.ha.yml up -d
 
 services:
   # ─── PostgreSQL Primary ───────────────────────────────────────────────────
@@ -92,8 +92,8 @@ services:
       ADMIN_USERS: postgres
       LISTEN_PORT: 6432
     volumes:
-      - ./config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      - ../../config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ../../config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     ports:
       - "6432:6432"
     networks:
@@ -118,7 +118,7 @@ services:
       PGDATABASE: fabric
     volumes:
       - postgres_archive:/var/lib/postgresql/archive:ro
-      - ./scripts/db/backup.sh:/backup.sh:ro
+      - ../../scripts/db/backup.sh:/backup.sh:ro
     command: ["/bin/sh", "-c", "while true; do /backup.sh; sleep 3600; done"]
     networks:
       - fabric_ha
@@ -132,7 +132,7 @@ services:
     image: haproxy:2.9-alpine
     container_name: fabric-haproxy
     volumes:
-      - ./config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ../../config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - "5434:5434"
       - "8404:8404"

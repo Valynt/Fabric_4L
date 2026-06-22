@@ -24,7 +24,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - contract-postgres-data:/var/lib/postgresql/data
-      - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     ports:
       - "5432:5432"
     networks:
@@ -78,7 +78,7 @@ services:
   # ---------------------------------------------------------------------------
   layer3:
     build:
-      context: ./services/layer3-knowledge
+      context: ../../services/layer3-knowledge
       dockerfile: ./Dockerfile
       args:
         <<: *build-args
@@ -93,8 +93,8 @@ services:
       REDIS_URL: redis://host.docker.internal:6379/0
       LOG_LEVEL: info
     volumes:
-      - ./services/layer3-knowledge/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer3-knowledge/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       neo4j:
         condition: service_healthy
@@ -116,7 +116,7 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
+      context: ../../services/layer4-agents
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-contract-layer4
@@ -157,8 +157,8 @@ services:
       layer5:
         condition: service_healthy
     volumes:
-      - ./services/layer4-agents/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer4-agents/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -175,7 +175,7 @@ services:
   # ---------------------------------------------------------------------------
   layer5:
     build:
-      context: ./services/layer5-ground-truth
+      context: ../../services/layer5-ground-truth
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-contract-layer5
@@ -201,8 +201,8 @@ services:
       layer3:
         condition: service_healthy
     volumes:
-      - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer5-ground-truth/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -216,7 +216,7 @@ services:
 
   layer5-migrate:
     build:
-      context: ./services/layer5-ground-truth
+      context: ../../services/layer5-ground-truth
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-contract-layer5-migrate
@@ -229,8 +229,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer5-ground-truth/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

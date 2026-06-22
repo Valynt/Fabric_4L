@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import (
     require_authenticated,
+    require_tenant,
     require_tenant_context,
     require_admin,
 )
@@ -238,6 +239,54 @@ class TestContextDependencies:
         
         # require_tenant_context returns 400 when tenant_id is missing
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert "tenant" in str(exc_info.value.detail).lower()
+
+    @pytest.mark.asyncio
+    async def test_require_tenant_context_rejects_malformed_context_tenant_id(self):
+        """A malformed tenant_id injected into RequestContext must fail closed."""
+        context = RequestContext(
+            tenant_id="../../../tenant-b",
+            user_id=uuid4(),
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await require_tenant_context(context=context)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert "tenant" in str(exc_info.value.detail).lower()
+
+    @pytest.mark.asyncio
+    async def test_require_tenant_rejects_malformed_requested_tenant_id(self):
+        """Requested tenant IDs are validated before comparison."""
+        context = RequestContext(
+            tenant_id=uuid4(),
+            user_id=uuid4(),
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await require_tenant(
+                tenant_id="tenant-b\x00injected",
+                context=context,
+            )
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert "tenant" in str(exc_info.value.detail).lower()
+
+    @pytest.mark.asyncio
+    async def test_require_tenant_rejects_unauthorized_requested_tenant_id(self):
+        """A valid but different requested tenant must be forbidden."""
+        context = RequestContext(
+            tenant_id=uuid4(),
+            user_id=uuid4(),
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await require_tenant(
+                tenant_id=str(uuid4()),
+                context=context,
+            )
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert "tenant" in str(exc_info.value.detail).lower()
     
     @pytest.mark.asyncio

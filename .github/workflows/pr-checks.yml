@@ -1500,7 +1500,7 @@ jobs:
 
       - name: Start deterministic E2E backend
         working-directory: ${{ github.workspace }}
-        run: docker compose -f docker-compose.e2e.yml up -d --build --wait
+        run: docker compose -f infra/compose/docker-compose.e2e.yml up -d --build --wait
 
       - name: Run P0 E2E gate
         run: |
@@ -1521,7 +1521,7 @@ jobs:
       - name: Tear down deterministic E2E backend
         if: always()
         working-directory: ${{ github.workspace }}
-        run: docker compose -f docker-compose.e2e.yml down -v
+        run: docker compose -f infra/compose/docker-compose.e2e.yml down -v
 
   # Kubernetes manifest validation (server-side dry-run via kustomize)
   k8s-dry-run:
@@ -1893,7 +1893,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/logs
-          docker compose -f docker-compose.test.yml logs > artifacts/logs/docker-compose.log || true
+          docker compose -f infra/compose/docker-compose.test.yml logs > artifacts/logs/docker-compose.log || true
 
       - name: Upload smoke report
         if: always()

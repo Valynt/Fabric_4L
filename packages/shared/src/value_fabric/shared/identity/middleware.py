@@ -536,62 +536,9 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 token = set_request_context(ctx)
                 request.state.governance_context = ctx
 
-                # Tenant lifecycle enforcement — must run before business logic.
-                # Prefer real-time resolver (DB/Redis) over stale JWT claims.
-                tenant_status = None
-                if self._tenant_status_resolver is not None:
-                    try:
-                        resolved = await self._tenant_status_resolver(str(ctx.tenant_id))
-                        if resolved is not None:
-                            tenant_status = resolved
-                    except Exception as exc:
-                        logger.warning(
-                            "tenant_status_resolver_failed",
-                            extra={
-                                "event": "tenant_status_resolver_failed",
-                                "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
-                                "error": str(exc),
-                                "tenant_id": str(ctx.tenant_id),
-                            },
-                        )
-                # Fast-path kill-switch check (Redis) — blocks even if resolver is down
-                if tenant_status is None:
-                    try:
-                        kill_switch = TenantKillSwitch(self._redis_client)
-                        if await kill_switch.is_suspended(str(ctx.tenant_id)):
-                            tenant_status = "suspended"
-                    except Exception:
-                        pass  # Kill switch is advisory; DB fallback below is authoritative
-                # Fall back to JWT claim if resolver unavailable or failed
-                if tenant_status is None and ctx.raw:
-                    tenant_status = ctx.raw.get("tenant_status")
-                if tenant_status == "suspended":
-                    return JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={
-                            "detail": "Tenant account is suspended. Please contact support.",
-                            "error": "tenant_suspended",
-                            "tenant_id": str(ctx.tenant_id),
-                        },
-                    )
-                if tenant_status == "pending":
-                    return JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={
-                            "detail": "Tenant account is pending activation.",
-                            "error": "tenant_pending",
-                            "tenant_id": str(ctx.tenant_id),
-                        },
-                    )
-                if tenant_status == "deleted":
-                    return JSONResponse(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        content={
-                            "detail": "Tenant not found.",
-                            "error": "tenant_not_found",
-                            "tenant_id": str(ctx.tenant_id),
-                        },
-                    )
+                tenant_status_response = await self._enforce_tenant_status(ctx)
+                if tenant_status_response is not None:
+                    return tenant_status_response
             else:
                 request.state.governance_context = None
 
@@ -667,6 +614,70 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
     # Resolution helpers
     # ------------------------------------------------------------------
+
+    async def _enforce_tenant_status(self, ctx: RequestContext) -> Optional[Response]:
+        """Return a blocking response for inactive tenant lifecycle states.
+
+        This must be called after identity resolution and before request business
+        logic. The resolver remains authoritative when available; kill-switch and
+        JWT claims preserve the existing fail-closed fallback behavior.
+        """
+        tenant_status = None
+        if self._tenant_status_resolver is not None:
+            try:
+                resolved = await self._tenant_status_resolver(str(ctx.tenant_id))
+                if resolved is not None:
+                    tenant_status = resolved
+            except Exception as exc:
+                logger.warning(
+                    "tenant_status_resolver_failed",
+                    extra={
+                        "event": "tenant_status_resolver_failed",
+                        "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                        "error": str(exc),
+                        "tenant_id": str(ctx.tenant_id),
+                    },
+                )
+
+        if tenant_status is None:
+            try:
+                kill_switch = TenantKillSwitch(self._redis_client)
+                if await kill_switch.is_suspended(str(ctx.tenant_id)):
+                    tenant_status = "suspended"
+            except Exception:
+                pass
+
+        if tenant_status is None and ctx.raw:
+            tenant_status = ctx.raw.get("tenant_status")
+
+        if tenant_status == "suspended":
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "detail": "Tenant account is suspended. Please contact support.",
+                    "error": "tenant_suspended",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        if tenant_status == "pending":
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "detail": "Tenant account is pending activation.",
+                    "error": "tenant_pending",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        if tenant_status == "deleted":
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "detail": "Tenant not found.",
+                    "error": "tenant_not_found",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        return None
 
     async def _resolve_identity(self, request: Request) -> Optional[RequestContext]:
         """Try each resolution strategy in priority order."""

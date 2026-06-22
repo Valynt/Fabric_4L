@@ -1,8 +1,8 @@
 # Blue/green launch control entrypoint.
 #
 # Usage:
-#   ACTIVE_COLOR=blue BLUE_UPSTREAM=http://blue.example.internal GREEN_UPSTREAM=http://green.example.internal docker compose -f docker-compose.blue-green.yml up -d traffic-router
-#   ACTIVE_COLOR=green BLUE_UPSTREAM=http://blue.example.internal GREEN_UPSTREAM=http://green.example.internal docker compose -f docker-compose.blue-green.yml up -d traffic-router
+#   ACTIVE_COLOR=blue BLUE_UPSTREAM=http://blue.example.internal GREEN_UPSTREAM=http://green.example.internal docker compose -f infra/compose/docker-compose.blue-green.yml up -d traffic-router
+#   ACTIVE_COLOR=green BLUE_UPSTREAM=http://blue.example.internal GREEN_UPSTREAM=http://green.example.internal docker compose -f infra/compose/docker-compose.blue-green.yml up -d traffic-router
 #
 # This file owns only the traffic switch and evidence-friendly health probe.
 # Blue and green environments are expected to be deployed separately and passed

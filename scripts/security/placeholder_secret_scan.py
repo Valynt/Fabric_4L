@@ -32,9 +32,9 @@ PROD_TARGET_SOURCE_RE = re.compile(r"(prod|production|staging|stage|helm|kustomi
 # Keep this list intentionally explicit and narrow.
 LOCAL_COMPOSE_ALLOWLIST = {
     "docker-compose.dev.yml",
-    "docker-compose.full.dev-vault.yml",
-    "docker-compose.e2e.yml",
-    "docker-compose.test.yml",
+    "infra/compose/docker-compose.full.dev-vault.yml",
+    "infra/compose/docker-compose.e2e.yml",
+    "infra/compose/docker-compose.test.yml",
 }
 
 

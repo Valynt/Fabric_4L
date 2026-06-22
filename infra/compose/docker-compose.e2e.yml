@@ -8,10 +8,10 @@
 #           to serve the frontend API surface.
 #
 # Usage:
-#   docker compose -f docker-compose.e2e.yml up -d --wait
+#   docker compose -f infra/compose/docker-compose.e2e.yml up -d --wait
 #   pnpm --filter frontend seed:e2e          # seed deterministic data
 #   pnpm --filter frontend test:e2e:journeys # run journey tests
-#   docker compose -f docker-compose.e2e.yml down -v
+#   docker compose -f infra/compose/docker-compose.e2e.yml down -v
 #
 # Environment modes:
 #   Local deterministic  — developer confidence  — this file
@@ -33,7 +33,7 @@ services:
       POSTGRES_MULTIPLE_DATABASES: ingestion,ground_truth,layer4_agents
     volumes:
       # No persistent volume — fresh database every run
-      - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     ports:
       - "5432:5432"
     networks:
@@ -81,7 +81,7 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
+      context: ../../services/layer4-agents
       dockerfile: ./Dockerfile
     container_name: vf-e2e-layer4
     ports:
@@ -141,7 +141,7 @@ services:
   # ---------------------------------------------------------------------------
   migrate:
     build:
-      context: ./services/layer4-agents
+      context: ../../services/layer4-agents
       dockerfile: ./Dockerfile
     container_name: vf-e2e-migrate
     environment:

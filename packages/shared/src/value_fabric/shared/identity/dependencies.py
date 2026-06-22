@@ -219,6 +219,20 @@ def _header_value(request: Any, header_name: str) -> str | None:
     return None
 
 
+def _require_valid_tenant_id(tenant_id: Any, *, operation: str) -> str:
+    from value_fabric.shared.database.tenant_validation import (
+        MissingTenantContextError,
+        require_tenant_context as require_database_tenant_context,
+    )
+
+    try:
+        return require_database_tenant_context(tenant_id, operation=operation)
+    except MissingTenantContextError as exc:
+        raise _bad_request(
+            "Tenant context required. Ensure request has passed through GovernanceMiddleware."
+        ) from exc
+
+
 async def get_current_context(request: Request) -> Optional[RequestContext]:
     """Return the current request context, checking request.state then ContextVar."""
 
@@ -297,7 +311,18 @@ async def require_tenant(
     """Require an authenticated tenant context, optionally matching a tenant ID."""
 
     ctx = await require_authenticated(context)
-    if tenant_id is not None and str(ctx.tenant_id) != str(tenant_id):
+    current_tenant = _require_valid_tenant_id(
+        ctx.tenant_id,
+        operation="identity.require_tenant",
+    )
+    if tenant_id is not None:
+        requested_tenant = _require_valid_tenant_id(
+            tenant_id,
+            operation="identity.require_tenant.target",
+        )
+    else:
+        requested_tenant = None
+    if requested_tenant is not None and current_tenant != requested_tenant:
         record_inconsistent_tenant_context_access(
             route="identity.require_tenant",
             source="target_tenant",
@@ -312,10 +337,10 @@ async def require_tenant_context(
     """Require that a validated request context contains a tenant identifier."""
 
     ctx = await require_authenticated(context)
-    if not ctx.tenant_id:
-        raise _bad_request(
-            "Tenant context required. Ensure request has passed through GovernanceMiddleware."
-        )
+    _require_valid_tenant_id(
+        ctx.tenant_id,
+        operation="identity.require_tenant_context",
+    )
     return ctx
 
 

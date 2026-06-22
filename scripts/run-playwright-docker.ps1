@@ -90,10 +90,10 @@ $ErrorActionPreference = "Stop"
 
 # Determine compose file and container name based on mode
 if ($Live) {
-    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "docker-compose.playwright-live.yml")
+    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "infra", "compose", "docker-compose.playwright-live.yml")
     $ContainerName = "vf-playwright-live"
 } else {
-    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "docker-compose.playwright.yml")
+    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "infra", "compose", "docker-compose.playwright.yml")
     $ContainerName = "vf-playwright"
 }
 

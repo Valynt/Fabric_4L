@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ALLOWED_DEV_FILES = {
-    "docker-compose.full.dev-vault.yml",
+    "infra/compose/docker-compose.full.dev-vault.yml",
     "k8s/dev-only/vault-deployment.yaml",
 }
 FORBIDDEN_PATTERNS = (
@@ -15,6 +15,7 @@ FORBIDDEN_PATTERNS = (
 )
 SCAN_GLOBS = (
     "docker-compose*.yml",
+    "infra/compose/docker-compose*.yml",
     "k8s/**/*.y*ml",
 )
 

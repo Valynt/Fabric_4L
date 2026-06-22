@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TARGET_COMPOSE_FILES = (
     "docker-compose.dev.yml",
     "docker-compose.live.yml",
-    "docker-compose.release-smoke.yml",
+    "infra/compose/docker-compose.release-smoke.yml",
     "docker-compose.full.yml",
 )
 

@@ -9,7 +9,7 @@ Production Python test profile for H-04.
 
 Prerequisites:
   pip install -r tests/requirements-test.txt
-  docker compose -f docker-compose.test.yml up -d postgres redis neo4j keycloak
+  docker compose -f infra/compose/docker-compose.test.yml up -d postgres redis neo4j keycloak
 
 Modes:
   --mandatory-only  Run mandatory unit/contract/security tests only.

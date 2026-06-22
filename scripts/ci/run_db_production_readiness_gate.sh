@@ -7,7 +7,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${DB_READINESS_COMPOSE_FILE:-docker-compose.db-readiness.yml}"
+COMPOSE_FILE="${DB_READINESS_COMPOSE_FILE:-infra/compose/docker-compose.db-readiness.yml}"
 PROJECT_NAME="${DB_READINESS_PROJECT_NAME:-fabric-db-readiness}"
 ARTIFACT_DIR="${DB_READINESS_ARTIFACT_DIR:-${ROOT}/artifacts/release/db-readiness}"
 PYTHON_BIN="${PYTHON:-python3}"

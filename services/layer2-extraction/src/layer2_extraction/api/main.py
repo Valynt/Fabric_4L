@@ -85,6 +85,12 @@ from value_fabric.shared.fastapi_framework.health import (
 
 from layer2_extraction.alignment import SemanticAligner
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
+from layer2_extraction.api.s2s_auth import (
+    S2S_EXPECTED_AUD as _S2S_EXPECTED_AUD,
+    S2S_EXPECTED_SUB as _S2S_EXPECTED_SUB,
+    S2S_INTERNAL_PATHS as _S2S_INTERNAL_PATHS,
+    enforce_s2s_auth_guard,
+)
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
@@ -271,15 +277,6 @@ app.include_router(signal_lifecycle_router)
 # This middleware enforces that when SERVICE_AUTH_SECRET is configured, these
 # three internal routes may ONLY be called with a valid L1 S2S token.
 
-_S2S_INTERNAL_PATHS: frozenset[str] = frozenset({
-    "/v1/extract",
-    "/v1/extract-and-ingest",
-    "/v1/extract/batch",
-})
-_S2S_EXPECTED_SUB = "layer1-ingestion"
-_S2S_EXPECTED_AUD = "layer2-extraction"
-
-
 @app.middleware("http")
 async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg,untyped-decorator]
     """Enforce inbound S2S JWT on internal extraction routes.
@@ -287,58 +284,11 @@ async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg
     In strict environments, the check is mandatory and fails closed.
     In explicit dev/test environments without SERVICE_AUTH_SECRET, the check is skipped.
     """
-    if request.method == "POST" and request.url.path in _S2S_INTERNAL_PATHS:
-        _secret = os.getenv("SERVICE_AUTH_SECRET", "").strip()
-        if not _secret:
-            if _is_strict_runtime():
-                from fastapi.responses import JSONResponse as _JSONResponse
-                return _JSONResponse(
-                    status_code=503,
-                    content={
-                        "detail": "S2S authentication not configured in strict environment",
-                        "code": "s2s_misconfiguration",
-                    },
-                )
-            # Dev: skip S2S check when secret is not configured
-            return await call_next(request)
-
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            from fastapi.responses import JSONResponse as _JSONResponse
-            return _JSONResponse(
-                status_code=401,
-                content={
-                    "detail": "S2S Bearer token required for internal extraction routes",
-                    "code": "s2s_token_required",
-                },
-            )
-        _token = auth_header[7:]
-        try:
-            from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_s2s
-            _claims = _decode_s2s(_token, expected_audience=_S2S_EXPECTED_AUD)
-        except Exception:
-            _claims = None
-
-        if _claims is None:
-            from fastapi.responses import JSONResponse as _JSONResponse
-            return _JSONResponse(
-                status_code=401,
-                content={
-                    "detail": "Invalid or expired S2S token for internal extraction route",
-                    "code": "s2s_token_invalid",
-                },
-            )
-        if _claims.sub != _S2S_EXPECTED_SUB:
-            from fastapi.responses import JSONResponse as _JSONResponse
-            return _JSONResponse(
-                status_code=403,
-                content={
-                    "detail": f"Unexpected service caller: {_claims.sub!r}",
-                    "code": "s2s_caller_forbidden",
-                },
-            )
-
-    return await call_next(request)
+    return await enforce_s2s_auth_guard(
+        request,
+        call_next,
+        is_strict_runtime=_is_strict_runtime,
+    )
 
 # ── End P1-017 ────────────────────────────────────────────────────────────────
 

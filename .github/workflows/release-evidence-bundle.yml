@@ -232,7 +232,7 @@ jobs:
 
       - name: Start backend stack
         run: |
-          docker compose -f docker-compose.backend-integrated.yml up -d --build
+          docker compose -f infra/compose/docker-compose.backend-integrated.yml up -d --build
 
       - name: Wait for healthy services
         run: |

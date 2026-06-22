@@ -3,9 +3,9 @@
 # start from a clean checkout without Infisical.
 
 x-e2e-local-env: &e2e-local-env
-  - path: .env.generated
+  - path: ../../.env.generated
     required: false
-  - path: .env.e2e-local
+  - path: ../../.env.e2e-local
     required: false
 
 services:
@@ -78,7 +78,7 @@ services:
   layer1-migrate:
     env_file: *e2e-local-env
     build:
-      context: ./services/layer1-ingestion
+      context: ../../services/layer1-ingestion
       dockerfile: ./Dockerfile
       args:
         INSTALL_PLAYWRIGHT_BROWSERS: "false"
@@ -113,7 +113,7 @@ services:
       NEO4J_PASSWORD: SecureLocalDevPass123
       LAYER3_API_URL: http://layer3:8001
     volumes:
-      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
 
   layer3:
     env_file: *e2e-local-env
@@ -154,8 +154,8 @@ services:
       LAYER4_BUSINESS_CASE_SKIP_TRUTH_GATE: "true"
       LAYER4_PROMPTS_ROOT: /app/prompts
     volumes:
-      - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
-      - ./services/layer4-agents/prompts:/app/prompts:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
+      - ../../services/layer4-agents/prompts:/app/prompts:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 15s
@@ -201,7 +201,7 @@ services:
       LAYER5_API_KEY: dev-local-layer5-api-key-32chars
       LOG_LEVEL: INFO
     volumes:
-      - ./contracts:/contracts:ro
+      - ../../contracts:/contracts:ro
     command: >
       uvicorn layer6_benchmarks.api.main:app --host 0.0.0.0 --port 8006
 

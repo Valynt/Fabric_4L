@@ -9,7 +9,7 @@ required host-gateway alias to non-infrastructure service containers.
 """
 from pathlib import Path
 
-path = Path("docker-compose.backend-integrated.yml")
+path = Path("infra/compose/docker-compose.backend-integrated.yml")
 text = path.read_text()
 
 replacements = {

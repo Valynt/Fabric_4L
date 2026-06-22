@@ -8,8 +8,8 @@
 #   pre-installed in the image.
 #
 # Quick start (contract tests — no backend required):
-#   docker compose -f docker-compose.playwright.yml build
-#   docker compose -f docker-compose.playwright.yml run --rm playwright
+#   docker compose -f infra/compose/docker-compose.playwright.yml build
+#   docker compose -f infra/compose/docker-compose.playwright.yml run --rm playwright
 #
 # With PowerShell helper:
 #   .\scripts\run-playwright-docker.ps1 -Build
@@ -17,12 +17,12 @@
 #
 # Backend-integrated tests:
 #   1. Start the deterministic backend stack:
-#      docker compose -f docker-compose.e2e.yml up -d --wait
+#      docker compose -f infra/compose/docker-compose.e2e.yml up -d --wait
 #   2. Run backend-integrated project:
 #      .\scripts\run-playwright-docker.ps1 -TestProject backend-integrated `
 #        -BackendUrl http://host.docker.internal:8004
 #   3. Tear down backend:
-#      docker compose -f docker-compose.e2e.yml down -v
+#      docker compose -f infra/compose/docker-compose.e2e.yml down -v
 #
 # Live code changes:
 #   Edit any file under apps/web/ on the host and re-run the container.
@@ -37,18 +37,18 @@
 services:
   playwright:
     build:
-      context: ./apps/web
+      context: ../../apps/web
       dockerfile: Dockerfile.playwright
     container_name: vf-playwright
     working_dir: /app
     volumes:
       # Live source mount — changes on host are visible immediately
-      - ./apps/web:/app
+      - ../../apps/web:/app
       # Named volume isolates Linux node_modules from Windows host binaries
       - playwright_node_modules:/app/node_modules
       # Test outputs surfaced back to host
-      - ./e2e-results:/app/e2e-results
-      - ./playwright-report:/app/playwright-report
+      - ../../e2e-results:/app/e2e-results
+      - ../../playwright-report:/app/playwright-report
     environment:
       # Playwright configuration
       - PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-http://localhost:3001}

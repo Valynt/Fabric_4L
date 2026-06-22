@@ -3,7 +3,7 @@ x-build-args: &id001
 services:
   postgres:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: postgres-base
     container_name: vf-live-postgres
     environment:
@@ -24,7 +24,7 @@ services:
           memory: '1GiB'
   redis:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: redis-base
     container_name: vf-live-redis
     volumes:
@@ -39,7 +39,7 @@ services:
 
   neo4j:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: neo4j-base
     container_name: vf-live-neo4j
     environment:
@@ -59,7 +59,7 @@ services:
 
   minio:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: minio-base
     container_name: vf-live-minio
     environment:

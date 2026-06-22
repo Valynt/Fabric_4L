@@ -739,26 +739,7 @@ gate-all: gate-local-production-subset ## Compatibility alias for the local-only
 
 production-readiness-gate: ## Canonical production-readiness gate required by CI
 	@echo "→ Gate: Production Readiness — centralized suites"
-	mkdir -p $(PRODUCTION_READINESS_ARTIFACT_DIR)
-	for suite in $(PRODUCTION_READINESS_SUITES); do \
-		mkdir -p "$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite"; \
-		summary_file="$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/summary.md"; \
-		{ \
-			echo "# Production readiness: $$suite"; \
-			echo; \
-			echo "- Suite: tests/$$suite/"; \
-			echo "- JUnit artifact: $(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
-			echo "- Status: running"; \
-		} > "$$summary_file"; \
-		$(PYTEST) "tests/$$suite/" --junitxml "$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
-		{ \
-			echo "# Production readiness: $$suite"; \
-			echo; \
-			echo "- Suite: tests/$$suite/"; \
-			echo "- JUnit artifact: $(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
-			echo "- Status: passed"; \
-		} > "$$summary_file"; \
-	done
+	$(PYTHON) scripts/ci/run_production_readiness_gate.py --artifact-dir $(PRODUCTION_READINESS_ARTIFACT_DIR)
 	@echo "✅  production-readiness-gate passed"
 
 gate-production: production-readiness-gate ## Compatibility alias for the canonical production-readiness gate

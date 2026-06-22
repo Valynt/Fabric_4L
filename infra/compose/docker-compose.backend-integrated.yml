@@ -6,11 +6,11 @@
 #
 # Usage (with Infisical — recommended):
 #   pnpm env:dev                    # generates .env.generated
-#   docker compose -f docker-compose.backend-integrated.yml --env-file .env.generated up --build -d
+#   docker compose -f infra/compose/docker-compose.backend-integrated.yml --env-file .env.generated up --build -d
 #   make test-backend-integrated-validation
 #
 # Usage (legacy manual .env):
-#   docker compose -f docker-compose.backend-integrated.yml up --build -d
+#   docker compose -f infra/compose/docker-compose.backend-integrated.yml up --build -d
 #   make test-backend-integrated-validation
 # =============================================================================
 
@@ -33,7 +33,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - bi-postgres-data:/var/lib/postgresql/data
-      - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     ports:
       - "5432:5432"
     networks:
@@ -126,7 +126,7 @@ services:
   # ---------------------------------------------------------------------------
   layer1:
     build:
-      context: ./services/layer1-ingestion
+      context: ../../services/layer1-ingestion
       dockerfile: ./Dockerfile
       args:
         INSTALL_PLAYWRIGHT_BROWSERS: "false"
@@ -156,8 +156,8 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ./services/layer1-ingestion/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer1-ingestion/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -171,7 +171,7 @@ services:
 
   layer1-worker:
     build:
-      context: ./services/layer1-ingestion
+      context: ../../services/layer1-ingestion
       dockerfile: ./Dockerfile
       args:
         INSTALL_PLAYWRIGHT_BROWSERS: "false"
@@ -188,8 +188,8 @@ services:
       LAYER1_S3_SECRET_KEY: ${LAYER1_S3_SECRET_KEY:-minioadmin}
       PYTHONPATH: /app
     volumes:
-      - ./services/layer1-ingestion/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer1-ingestion/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -205,7 +205,7 @@ services:
   # ---------------------------------------------------------------------------
   layer2:
     build:
-      context: ./services/layer2-extraction
+      context: ../../services/layer2-extraction
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-bi-layer2
@@ -231,8 +231,8 @@ services:
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
     volumes:
-      - ./services/layer2-extraction/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer2-extraction/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,7 +256,7 @@ services:
   # ---------------------------------------------------------------------------
   layer3:
     build:
-      context: ./services/layer3-knowledge
+      context: ../../services/layer3-knowledge
       dockerfile: ./Dockerfile
       args:
         <<: *build-args
@@ -271,8 +271,8 @@ services:
       REDIS_URL: redis://host.docker.internal:6379/0
       LOG_LEVEL: info
     volumes:
-      - ./services/layer3-knowledge/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer3-knowledge/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       neo4j:
         condition: service_healthy
@@ -294,7 +294,7 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
+      context: ../../services/layer4-agents
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-bi-layer4
@@ -342,8 +342,8 @@ services:
       layer6:
         condition: service_healthy
     volumes:
-      - ./services/layer4-agents/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer4-agents/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -360,7 +360,7 @@ services:
   # ---------------------------------------------------------------------------
   layer5:
     build:
-      context: ./services/layer5-ground-truth
+      context: ../../services/layer5-ground-truth
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-bi-layer5
@@ -390,8 +390,8 @@ services:
       layer3:
         condition: service_healthy
     volumes:
-      - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer5-ground-truth/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -405,7 +405,7 @@ services:
 
   layer5-migrate:
     build:
-      context: ./services/layer5-ground-truth
+      context: ../../services/layer5-ground-truth
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-bi-layer5-migrate
@@ -418,8 +418,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer5-ground-truth/src:/app/src:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -431,7 +431,7 @@ services:
   # ---------------------------------------------------------------------------
   layer6:
     build:
-      context: ./services/layer6-benchmarks
+      context: ../../services/layer6-benchmarks
       dockerfile: ./Dockerfile
       args: *build-args
     container_name: vf-bi-layer6
@@ -451,9 +451,9 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/layer6-benchmarks/src:/app/src:ro
-      - ./value_fabric/layer6:/app/value_fabric/layer6:ro
-      - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../services/layer6-benchmarks/src:/app/src:ro
+      - ../../value_fabric/layer6:/app/value_fabric/layer6:ro
+      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

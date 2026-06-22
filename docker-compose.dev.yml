@@ -45,7 +45,7 @@ services:
   # ---------------------------------------------------------------------------
   postgres:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: postgres-base
     container_name: vf-dev-postgres
     environment:
@@ -68,7 +68,7 @@ services:
       - "postgres"
       - "-c"
       - "config_file=/etc/postgresql/postgresql.conf"
-    # Healthcheck inherited from docker-compose.base.yml
+    # Healthcheck inherited from infra/compose/docker-compose.base.yml
 
   # PgBouncer connection pool (P1-1: Connection Pooling)
   pgbouncer:
@@ -97,7 +97,7 @@ services:
   # MinIO S3-compatible object storage (local development)
   minio:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: minio-base
     container_name: vf-dev-minio
     ports:
@@ -110,11 +110,11 @@ services:
       - minio-data:/data
     networks:
       - dev-network
-    # Healthcheck inherited from docker-compose.base.yml
+    # Healthcheck inherited from infra/compose/docker-compose.base.yml
 
   redis:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: redis-base
     container_name: vf-dev-redis
     ports:
@@ -123,11 +123,11 @@ services:
       - dev-redis-data:/data
     networks:
       - dev-network
-    # Healthcheck inherited from docker-compose.base.yml
+    # Healthcheck inherited from infra/compose/docker-compose.base.yml
 
   neo4j:
     extends:
-      file: ./docker-compose.base.yml
+      file: ./infra/compose/docker-compose.base.yml
       service: neo4j-base
     container_name: vf-dev-neo4j
     environment:

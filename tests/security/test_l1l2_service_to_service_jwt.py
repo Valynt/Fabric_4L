@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import time
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import jwt as pyjwt
 import pytest
@@ -87,9 +87,10 @@ class TestServiceJwtEncodeDecode:
         assert encode_service_jwt is not None and decode_service_jwt is not None
         tenant_id = uuid4()
         token = encode_service_jwt(tenant_id, sub="layer1-ingestion", aud="layer2-extraction")
-        # Tamper with payload
+        # Replace the signature segment entirely. Flipping only the trailing
+        # base64url character can leave decoded signature bytes unchanged.
         parts = token.split(".")
-        tampered = f"{parts[0]}.{parts[1]}.{parts[2][:-1]}x"
+        tampered = f"{parts[0]}.{parts[1]}.invalidsignature"
         assert decode_service_jwt(tampered) is None
 
     def test_encode_service_jwt_no_secret_returns_none(self, monkeypatch):
@@ -119,12 +120,16 @@ class TestL2ProductionStartupGuard:
         # Read the source to verify the guard exists; we can't import the
         # full module due to heavy side-effects, but the static check is
         # sufficient for acceptance.
-        source = open(
+        main_source = open(
             "services/layer2-extraction/src/layer2_extraction/api/main.py"
         ).read()
-        assert "SERVICE_AUTH_SECRET" in source
-        assert "_is_strict_runtime()" in source
-        assert "s2s_misconfiguration" in source
+        guard_source = open(
+            "services/layer2-extraction/src/layer2_extraction/api/s2s_auth.py"
+        ).read()
+        combined_source = main_source + guard_source
+        assert "SERVICE_AUTH_SECRET" in combined_source
+        assert "_is_strict_runtime" in main_source
+        assert "s2s_misconfiguration" in guard_source
 
 
 @pytest.mark.security
