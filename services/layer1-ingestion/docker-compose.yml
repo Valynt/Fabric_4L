@@ -80,7 +80,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: layer1-api
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn layer1_ingestion.api.main:app --host 0.0.0.0 --port 8000
     environment:
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/layer1_ingestion
       LAYER1_REDIS_URL: redis://redis:6379/0

@@ -6,7 +6,7 @@ Storage model aligned with Neo4j + provenance tracking.
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -35,7 +35,7 @@ class StatisticalProfile:
     std_dev: Decimal
     sample_size: int
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return StatisticalProfile_to_dictResult.model_validate(
             {
                 "p10": str(self.p10),
@@ -50,7 +50,7 @@ class StatisticalProfile:
         )
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StatisticalProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "StatisticalProfile":
         return cls(
             p10=Decimal(data["p10"]),
             p25=Decimal(data["p25"]),
@@ -73,8 +73,8 @@ class BenchmarkMetric:
     profile: StatisticalProfile
 
     # Validation rules
-    lower_bound: Optional[Decimal] = None
-    upper_bound: Optional[Decimal] = None
+    lower_bound: Decimal | None = None
+    upper_bound: Decimal | None = None
     is_higher_better: bool = True  # For comparison direction
 
 
@@ -92,27 +92,27 @@ class BenchmarkDataset:
 
     # Classification
     industry: str
-    segment: Optional[str]  # e.g., "enterprise", "mid-market", "small"
-    geography: Optional[str]  # e.g., "US", "EU", "global"
+    segment: str | None  # e.g., "enterprise", "mid-market", "small"
+    geography: str | None  # e.g., "US", "EU", "global"
 
     # Metrics
-    metrics: Dict[str, BenchmarkMetric] = field(default_factory=dict)
+    metrics: dict[str, BenchmarkMetric] = field(default_factory=dict)
 
     # Metadata
     version: str = "1.0.0"
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: Optional[datetime] = None
-    data_source: Optional[str] = None  # e.g., "Gartner 2024", "Internal Study"
+    updated_at: datetime | None = None
+    data_source: str | None = None  # e.g., "Gartner 2024", "Internal Study"
 
     # Provenance
-    provenance_id: Optional[str] = None  # Links to L4 provenance tracking
+    provenance_id: str | None = None  # Links to L4 provenance tracking
     is_public: bool = False
 
     # Isolation
     tenant_id: str = "system"
     ownership_mode: Literal["tenant", "global_system"] = "tenant"
 
-    def get_metric(self, name: str) -> Optional[BenchmarkMetric]:
+    def get_metric(self, name: str) -> BenchmarkMetric | None:
         """Get metric by name."""
         return self.metrics.get(name)
 
@@ -130,7 +130,7 @@ class ComparisonRequest:
     metric: str
     company_value: Decimal
     industry: str
-    segment: Optional[str] = None
+    segment: str | None = None
 
 
 @dataclass
@@ -144,7 +144,7 @@ class ComparisonResult:
     confidence: str  # high, medium, low
 
     # Detailed breakdown
-    statistical_profile: Optional[StatisticalProfile] = None
+    statistical_profile: StatisticalProfile | None = None
 
     # Interpretation
     assessment: str = ""  # e.g., "above_average", "top_performer"
@@ -167,12 +167,12 @@ class RangeValidationResult:
     is_valid: bool
     expected_range: tuple[Decimal, Decimal]
     actual_value: Decimal
-    deviation_percent: Optional[float]
+    deviation_percent: float | None
     severity: str  # info, warning, error
 
     # Guidance
     message: str = ""
-    recommended_action: Optional[str] = None
+    recommended_action: str | None = None
 
 
 # Manufacturing benchmark reference dataset (seed data)

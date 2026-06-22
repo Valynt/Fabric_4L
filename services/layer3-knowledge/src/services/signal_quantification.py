@@ -20,6 +20,8 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..db.query_execution import run_validated_query
 
+logger = logging.getLogger(__name__)
+
 
 class SignalQuantificationService__select_formulaResult(TypedDictModel):
     expression: str
@@ -34,25 +36,6 @@ class SignalQuantificationService__execute_formulaResult(TypedDictModel):
     success: bool
     value: Any | None = None
 
-try:
-    from value_fabric.shared.identity.context import require_context
-except ImportError:
-    require_context = None
-
-logger = logging.getLogger(__name__)
-
-
-def _get_tenant_id() -> str:
-    """Safely retrieve tenant ID from request context.
-
-    Returns "default" if context is not available (e.g., in tests or background tasks).
-    """
-    if not require_context:
-        return "default"
-    try:
-        return str(require_context().tenant_id)
-    except RuntimeError:
-        return "default"
 
 
 @dataclass
@@ -391,22 +374,25 @@ class SignalQuantificationService:
             "capacity_percent": [r"(\d+)%.*capacity", r"capacity.*(\d+)%"],
         }
 
-        var_key = variable_name.lower().replace("_", "")
+        var_key = variable_name.lower()
         regexes = patterns.get(var_key, [])
 
         for indicator in impact_indicators:
-            indicator_lower = indicator.lower()
             for regex in regexes:
-                match = re.search(regex, indicator_lower)
+                match = re.search(regex, indicator, re.IGNORECASE)
                 if match:
                     value_str = match.group(1)
                     try:
                         value = float(value_str)
-                        # Handle K/M suffixes if present in original
-                        if "K" in indicator.upper():
-                            value *= self.THOUSAND_MULTIPLIER
-                        if "M" in indicator.upper():
-                            value *= self.MILLION_MULTIPLIER
+                        # Check if K/M appears immediately after the number in the original indicator
+                        # Find the position where the number ends in the indicator string
+                        num_end_pos = match.end(1)
+                        if num_end_pos < len(indicator) and indicator[num_end_pos].upper() in ["K", "M"]:
+                            suffix = indicator[num_end_pos].upper()
+                            if suffix == "K":
+                                value *= self.THOUSAND_MULTIPLIER
+                            elif suffix == "M":
+                                value *= self.MILLION_MULTIPLIER
                         return value
                     except ValueError:
                         continue

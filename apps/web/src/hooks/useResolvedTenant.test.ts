@@ -2,35 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-import { useAuth, useOrganization } from '@clerk/react';
 
 import { createWrapper } from '../test-utils';
 import { server } from '../test/mocks/server';
 import { useResolvedTenant } from './useResolvedTenant';
-import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 import { useAccountContextStore, type AccountContextState } from '@/stores/accountContextStore';
 import { QK } from './queryKeys';
 import { BaseApiError } from './useApiShared';
+import { setupClerkSignedIn, setupClerkLoading, setupLegacyAuth, resetClerkMocks, getClerkMocks } from '@/test/utils/clerkTestHelpers';
 
-vi.mock('@clerk/react', () => ({
-  useAuth: vi.fn(),
-  useOrganization: vi.fn(),
-}));
-
-vi.mock('@/auth/clerkConfig', () => ({
-  isClerkAuthEnabled: vi.fn(),
-  getClerkUrls: vi.fn(() => ({
-    signInUrl: '/sign-in',
-    signUpUrl: '/sign-up',
-    afterSignInUrl: '/home',
-    afterSignUpUrl: '/onboarding',
-    selectOrgUrl: '/workspaces',
-  })),
-}));
-
-const mockUseAuth = vi.mocked(useAuth);
-const mockUseOrganization = vi.mocked(useOrganization);
-const mockClerkEnabled = vi.mocked(isClerkAuthEnabled);
+const { mockUseOrganization } = getClerkMocks();
 
 const TENANT_API_PATH = '/api/v1/auth/clerk/tenant';
 
@@ -43,48 +24,9 @@ const mockTenantResponse = {
   permissions: ['read:accounts', 'write:accounts'],
 };
 
-function setupClerkSignedIn(orgId: string | null) {
-  mockClerkEnabled.mockReturnValue(true);
-  mockUseAuth.mockReturnValue({
-    isLoaded: true,
-    isSignedIn: true,
-    getToken: vi.fn(),
-  } as unknown as ReturnType<typeof useAuth>);
-  mockUseOrganization.mockReturnValue({
-    isLoaded: true,
-    organization: orgId ? { id: orgId, slug: 'acme' } : null,
-  } as unknown as ReturnType<typeof useOrganization>);
-}
-
-function setupClerkLoading() {
-  mockClerkEnabled.mockReturnValue(true);
-  mockUseAuth.mockReturnValue({
-    isLoaded: false,
-    isSignedIn: undefined,
-    getToken: vi.fn(),
-  } as unknown as ReturnType<typeof useAuth>);
-  mockUseOrganization.mockReturnValue({
-    isLoaded: false,
-    organization: undefined,
-  } as unknown as ReturnType<typeof useOrganization>);
-}
-
-function setupLegacyAuth() {
-  mockClerkEnabled.mockReturnValue(false);
-  mockUseAuth.mockReturnValue({
-    isLoaded: true,
-    isSignedIn: false,
-    getToken: vi.fn(),
-  } as unknown as ReturnType<typeof useAuth>);
-  mockUseOrganization.mockReturnValue({
-    isLoaded: true,
-    organization: null,
-  } as unknown as ReturnType<typeof useOrganization>);
-}
-
 describe('useResolvedTenant', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    resetClerkMocks();
     sessionStorage.clear();
     useAccountContextStore.setState({
       selectedAccountId: null,
@@ -212,7 +154,7 @@ describe('useResolvedTenant', () => {
       result.current.queryClient.setQueryData(QK.accounts.all, [{ id: 'acct_123' }]);
     });
 
-    await waitFor(() => expect(result.current.tenant.tenant).not.toBeNull());
+    await waitFor(() => expect(result.current.tenant).not.toBeNull());
 
     expect(result.current.selectedAccountId).toBeNull();
     expect(result.current.queryClient.getQueryData(QK.accounts.all)).toBeUndefined();

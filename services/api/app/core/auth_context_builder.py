@@ -10,6 +10,7 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from .auth_directory import AuthDirectory
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 class TenantResolutionError(Exception):
     """Raised when Clerk claims cannot be resolved to a Fabric4L tenant."""
 
-    code: str = "auth.tenant_unresolved"
+    code: str = ErrorCode.AUTH_TENANT_UNRESOLVED
     http_status: int = 403
     public_message: str = "You do not have access to this resource."
 
@@ -32,11 +33,11 @@ class TenantResolutionError(Exception):
 
 
 class MembershipNotActiveError(TenantResolutionError):
-    code = "auth.membership_inactive"
+    code = ErrorCode.AUTH_MEMBERSHIP_INACTIVE
 
 
 class UserNotProvisionedError(TenantResolutionError):
-    code = "auth.user_unprovisioned"
+    code = ErrorCode.AUTH_USER_UNPROVISIONED
 
 
 def normalize_clerk_role(role: str | None) -> str | None:

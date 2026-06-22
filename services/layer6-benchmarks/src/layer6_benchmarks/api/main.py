@@ -15,6 +15,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+import decimal
 from decimal import Decimal
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -310,7 +311,7 @@ async def metrics_endpoint(request: Request):
     except Exception as exc:  # pragma: no cover - defensive only
         logger.error("Error generating metrics: %s", exc)
         return Response(
-            content="# Error generating metrics exposition"
+            content="# Error generating metrics exposition",
             status_code=500,
             media_type="text/plain",
         )
@@ -478,7 +479,7 @@ async def compare(
 
     try:
         company_value = Decimal(payload.company_value)
-    except Exception:
+    except (ValueError, decimal.InvalidOperation):
         _record_compare_metric(industry=dataset.industry, outcome="invalid_input")
         raise ValidationError(message="Invalid company_value format")
 
@@ -572,7 +573,7 @@ async def validate(
 
     try:
         value = Decimal(payload.value)
-    except Exception:
+    except (ValueError, decimal.InvalidOperation):
         raise ValidationError(message="Invalid value format")
 
     profile = metric.profile
@@ -637,7 +638,7 @@ async def list_industries(ctx: RequestContext = Depends(get_request_context)):
         raise ServiceUnavailableError(message="Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(tenant_id=tenant_id)
-    return list_industriesResult.model_validate(
+    return ListIndustriesResult.model_validate(
         {"industries": sorted({d.industry for d in datasets})}
     )
 

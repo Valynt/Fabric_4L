@@ -33,7 +33,7 @@ def _get_embedding_model():
             "sentence-transformers is not installed. "
             "Install it to use real embeddings."
         ) from exc
-    from config import get_settings
+    from ..config import get_settings
 
     settings = get_settings()
     return SentenceTransformer(settings.embedding_model)

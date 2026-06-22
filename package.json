@@ -90,7 +90,15 @@
       "brace-expansion@>=5.0.0 <5.0.6": "5.0.6",
       "tailwindcss>nanoid": "3.3.7",
       "tmp": ">=0.2.6",
-      "form-data": ">=4.0.6"
+      "form-data": ">=4.0.6",
+      "dompurify": ">=3.4.9",
+      "jsdom": ">=25.0.0",
+      "@opentelemetry/core": ">=2.8.0",
+      "esbuild": ">=0.28.1",
+      "@babel/core": ">=7.29.6",
+      "uuid": ">=11.1.1",
+      "qs": ">=6.15.2",
+      "js-yaml": ">=4.2.0"
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",

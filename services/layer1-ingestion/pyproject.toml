@@ -149,7 +149,6 @@ exclude = [
 # Suppressing arg-type/assignment/misc noise; genuine logic errors are caught elsewhere.
 [[tool.mypy.overrides]]
 module = [
-    "src.api.main",
     "src.shared.tasks",
     "src.shared.models",
     "src.crawler.decision_store",

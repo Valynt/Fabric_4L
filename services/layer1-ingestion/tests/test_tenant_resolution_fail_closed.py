@@ -7,7 +7,7 @@ from fastapi import Request
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
 from value_fabric.shared.identity.context import RequestContext
 
-from layer1_ingestion.api.app_monolith import get_tenant_id
+from layer1_ingestion.api.main import get_tenant_id
 
 
 def _make_request(ctx: RequestContext | None = None) -> Request:

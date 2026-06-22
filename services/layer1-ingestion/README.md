@@ -67,17 +67,17 @@ export LAYER1_REDIS_URL="redis://localhost:6379/0"
 alembic upgrade head
 
 # Start API server
-uvicorn src.api.main:app --reload --port 8000
+uvicorn layer1_ingestion.api.main:app --reload --port 8000
 
 # Start Celery worker (in another terminal)
-celery -A src.shared.tasks worker --loglevel=info
+celery -A layer1_ingestion.shared.tasks worker --loglevel=info
 ```
 
 ## Architecture
 
 ### Services
 
-- **API** (`src/api/main.py`): FastAPI REST endpoints
+- **API** (`src/layer1_ingestion/api/main.py`): FastAPI REST endpoints
 - **Crawler** (`src/crawler/`): Playwright-based web crawling
 - **Post-Processor** (`src/post_processor/`): Content extraction and Markdown conversion
 - **Scheduler**: Priority-based job scheduling via Celery

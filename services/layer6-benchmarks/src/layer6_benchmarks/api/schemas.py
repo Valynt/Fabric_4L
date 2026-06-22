@@ -1,6 +1,5 @@
 """Pydantic request/response schemas for Layer 6 Benchmark API."""
 
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -12,12 +11,12 @@ class DatasetSummary(BaseModel):
     name: str
     description: str
     industry: str
-    segment: Optional[str]
-    geography: Optional[str]
-    metrics: List[str]
+    segment: str | None
+    geography: str | None
+    metrics: list[str]
     metric_count: int
     version: str
-    data_source: Optional[str]
+    data_source: str | None
 
 
 class DatasetDetail(BaseModel):
@@ -27,11 +26,11 @@ class DatasetDetail(BaseModel):
     name: str
     description: str
     industry: str
-    segment: Optional[str]
-    geography: Optional[str]
-    metrics: Dict[str, dict]
+    segment: str | None
+    geography: str | None
+    metrics: dict[str, dict]
     version: str
-    data_source: Optional[str]
+    data_source: str | None
 
 
 class ComparisonRequestPayload(BaseModel):
@@ -41,7 +40,7 @@ class ComparisonRequestPayload(BaseModel):
     metric: str
     company_value: str = Field(..., description="Company value as string (Decimal)")
     industry: str
-    segment: Optional[str] = None
+    segment: str | None = None
 
 
 class ComparisonResponse(BaseModel):
@@ -70,7 +69,7 @@ class ValidationResponse(BaseModel):
     is_valid: bool
     expected_range: tuple[str, str]
     actual_value: str
-    deviation_percent: Optional[float]
+    deviation_percent: float | None
     severity: str
     message: str
 
@@ -80,11 +79,11 @@ class DatasetUpsertPayload(BaseModel):
     name: str
     description: str
     industry: str
-    segment: Optional[str] = None
-    geography: Optional[str] = None
-    metrics: Dict[str, dict]
+    segment: str | None = None
+    geography: str | None = None
+    metrics: dict[str, dict]
     version: str = "1.0.0"
-    data_source: Optional[str] = None
+    data_source: str | None = None
     is_public: bool = False
     ownership_mode: str = "tenant"
 
@@ -92,7 +91,7 @@ class DatasetUpsertPayload(BaseModel):
 class IndustriesResponse(BaseModel):
     """Response listing available industries."""
 
-    industries: List[str]
+    industries: list[str]
 
 
 class DatasetUpsertResponse(BaseModel):

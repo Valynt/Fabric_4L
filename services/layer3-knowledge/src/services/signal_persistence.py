@@ -17,25 +17,7 @@ from neo4j import AsyncDriver
 from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 
-try:
-    from value_fabric.shared.identity.context import require_context
-except ImportError:
-    require_context = None
-
 logger = logging.getLogger(__name__)
-
-
-def _get_tenant_id() -> str:
-    """Safely retrieve tenant ID from request context.
-
-    Returns "default" if context is not available (e.g., in tests or background tasks).
-    """
-    if not require_context:
-        return "default"
-    try:
-        return str(require_context().tenant_id)
-    except RuntimeError:
-        return "default"
 
 
 class SignalPersistenceService:

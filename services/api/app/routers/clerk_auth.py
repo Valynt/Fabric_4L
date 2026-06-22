@@ -12,6 +12,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, get_auth_directory
@@ -46,7 +47,7 @@ def _resolve_directory_tenant(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
-                "code": "auth.tenant_unresolved",
+                "code": ErrorCode.AUTH_TENANT_UNRESOLVED,
                 "message": "No active Clerk organization is associated with this request.",
             },
         )
@@ -55,7 +56,7 @@ def _resolve_directory_tenant(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
-                "code": "auth.tenant_unresolved",
+                "code": ErrorCode.AUTH_TENANT_UNRESOLVED,
                 "message": "The tenant for this organization is not active or no longer exists.",
             },
         )

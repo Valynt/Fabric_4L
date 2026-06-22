@@ -79,7 +79,7 @@ async def _get_tenant_model_or_404(
     model = result.scalar_one_or_none()
     if not model:
         suffix = " or deprecated" if not include_deprecated else ""
-        raise NotFoundError(message=str(f"ModelVersion {model_id} not found{suffix}"))
+        raise NotFoundError(message=f"ModelVersion {model_id} not found{suffix}")
     return model
 
 
@@ -242,7 +242,7 @@ async def get_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     return ModelVersionResponse.model_validate(model)
 
@@ -273,10 +273,10 @@ async def deprecate_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     if model.deprecated_at:
-        raise ValidationError(message = str(f"ModelVersion {model_id} is already deprecated"))
+        raise ValidationError(message=f"ModelVersion {model_id} is already deprecated")
 
     model.deprecated_at = datetime.now(UTC)
     model.deprecation_reason = reason or "Manually deprecated"
@@ -320,7 +320,7 @@ async def set_default_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     if model.deprecated_at:
         raise ValidationError(message = "Cannot set deprecated model as default")
@@ -386,7 +386,7 @@ async def promote_model(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise NotFoundError(message = str(f"ModelVersion {model_id} not found or deprecated"))
+        raise NotFoundError(message=f"ModelVersion {model_id} not found or deprecated")
 
     if not model.is_active:
         raise ValidationError(message = "Cannot deploy inactive model version")
@@ -553,7 +553,7 @@ async def rollback_deployment(
     deployment = result.scalar_one_or_none()
 
     if not deployment:
-        raise NotFoundError(message = str(f"Deployment {deployment_id} not found"))
+        raise NotFoundError(message=f"Deployment {deployment_id} not found")
 
     previous_status = deployment.status
 
@@ -609,7 +609,7 @@ async def create_evaluation(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise NotFoundError(message = str(f"ModelVersion {payload.model_version_id} not found"))
+        raise NotFoundError(message=f"ModelVersion {payload.model_version_id} not found")
 
     evaluation = ModelEvaluation(
         tenant_id=tenant_id,

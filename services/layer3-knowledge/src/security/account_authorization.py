@@ -8,8 +8,7 @@ Provides account-scoped authorization for entity access:
 
 from typing import Any
 
-from fastapi import Request, status
-from value_fabric.shared.error_handling import sanitize_public_error
+from fastapi import Request
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from ..schema.entity_scope import (
@@ -243,33 +242,3 @@ def optional_account_context(request: Request) -> str | None:
         Account ID if present, None otherwise
     """
     return getattr(request.state, "account_id", None)
-
-
-async def verify_entity_account_access(
-    entity_type: str,
-    entity_data: dict[str, Any],
-    request: Request,
-) -> None:
-    """Verify that the request account has access to the entity.
-
-    Args:
-        entity_type: Type of entity
-        entity_data: Entity data including account_id if applicable
-        request: FastAPI request object
-
-    Raises:
-       : If access is denied
-    """
-    entity_account_id = entity_data.get("account_id")
-    request_account_id = await get_request_account_id(request)
-    tenant_id = await get_request_tenant_id(request)
-
-    try:
-        check_account_access(
-            entity_type=entity_type,
-            entity_account_id=entity_account_id,
-            request_account_id=request_account_id,
-            tenant_id=tenant_id or "",
-        )
-    except AccountAuthorizationError as e:
-        raise AuthorizationError(message = str(sanitize_public_error(e, status_code=status.HTTP_403_FORBIDDEN).message)) from e

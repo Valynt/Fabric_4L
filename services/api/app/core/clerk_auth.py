@@ -14,6 +14,7 @@ from functools import lru_cache
 
 from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from .auth_context_builder import (
@@ -84,7 +85,7 @@ async def require_clerk_authenticated(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
-                "code": "auth.token_missing",
+                "code": ErrorCode.AUTH_TOKEN_MISSING,
                 "message": "Authentication required.",
                 "request_id": request.headers.get("X-Request-ID"),
             },
@@ -120,7 +121,7 @@ async def require_clerk_authenticated(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
-                "code": "auth.token_invalid",
+                "code": ErrorCode.AUTH_TOKEN_INVALID,
                 "message": exc.public_message,
                 "request_id": request.headers.get("X-Request-ID"),
             },

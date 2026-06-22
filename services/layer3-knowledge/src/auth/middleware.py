@@ -152,27 +152,6 @@ async def get_current_api_key(
     return auth_result.api_key
 
 
-async def get_optional_api_key(
-    credentials: HTTPAuthorizationCredentials | None = Security(security),
-    request: Request = None,
-    api_key_manager: APIKeyManager = Depends(get_api_key_manager),
-) -> APIKey | None:
-    """Get current API key (optional, doesn't raise exception).
-
-    Args:
-        credentials: HTTP authorization credentials
-        request: FastAPI request
-        api_key_manager: API key manager
-
-    Returns:
-        Authenticated API key or None
-    """
-    try:
-        return await get_current_api_key(credentials, request, api_key_manager)
-    except Exception:
-        return None
-
-
 def require_permission(permission: Permission):
     """Dependency to require specific permission.
 
@@ -228,65 +207,6 @@ def require_role(role: "Role"):
     return role_dependency
 
 
-def require_any_permission(*permissions: Permission):
-    """Dependency to require any of the specified permissions.
-
-    Args:
-        *permissions: Required permissions (any one is sufficient)
-
-    Returns:
-        Dependency function
-    """
-
-    async def any_permission_dependency(
-        api_key: APIKey = Depends(get_current_api_key),
-    ) -> APIKey:
-        """Check if API key has any of the required permissions."""
-        if not any(api_key.has_permission(perm) for perm in permissions):
-            raise AuthorizationError(message = "Request failed", details = {
-                    "error": "INSUFFICIENT_PERMISSIONS",
-                    "message": f"Insufficient permissions. Required any of: {[p.value for p in permissions]}",
-                    "required_permissions": [p.value for p in permissions],
-                    "current_permissions": list(api_key.permissions),
-                })
-
-        return api_key
-
-    return any_permission_dependency
-
-
-def require_all_permissions(*permissions: Permission):
-    """Dependency to require all of the specified permissions.
-
-    Args:
-        *permissions: Required permissions (all are required)
-
-    Returns:
-        Dependency function
-    """
-
-    async def all_permissions_dependency(
-        api_key: APIKey = Depends(get_current_api_key),
-    ) -> APIKey:
-        """Check if API key has all required permissions."""
-        missing_permissions = [
-            perm for perm in permissions if not api_key.has_permission(perm)
-        ]
-
-        if missing_permissions:
-            raise AuthorizationError(message = "Request failed", details = {
-                    "error": "INSUFFICIENT_PERMISSIONS",
-                    "message": f"Insufficient permissions. Missing: {[p.value for p in missing_permissions]}",
-                    "required_permissions": [p.value for p in permissions],
-                    "missing_permissions": [p.value for p in missing_permissions],
-                    "current_permissions": list(api_key.permissions),
-                })
-
-        return api_key
-
-    return all_permissions_dependency
-
-
 # Common permission dependencies
 require_read_health = require_permission(Permission.READ_HEALTH)
 require_read_metrics = require_permission(Permission.READ_METRICS)
@@ -303,53 +223,6 @@ require_developer_role = require_role(Role.DEVELOPER)
 require_analyst_role = require_role(Role.ANALYST)
 
 
-# Authentication utilities
-def create_authentication_error_detail(
-    error_message: str, schemes: list | None = None
-) -> dict:
-    """Create standardized authentication error detail.
-
-    Args:
-        error_message: Error message
-        schemes: Supported authentication schemes
-
-    Returns:
-        Error detail dictionary
-    """
-    detail = {"error": "AUTHENTICATION_FAILED", "message": error_message}
-
-    if schemes:
-        detail["schemes"] = schemes
-
-    return detail
-
-
-def create_authorization_error_detail(
-    error_message: str,
-    required_permissions: list | None = None,
-    current_permissions: list | None = None,
-) -> dict:
-    """Create standardized authorization error detail.
-
-    Args:
-        error_message: Error message
-        required_permissions: Required permissions
-        current_permissions: Current permissions
-
-    Returns:
-        Error detail dictionary
-    """
-    detail = {"error": "AUTHORIZATION_FAILED", "message": error_message}
-
-    if required_permissions:
-        detail["required_permissions"] = required_permissions
-
-    if current_permissions:
-        detail["current_permissions"] = current_permissions
-
-    return detail
-
-
 # Rate limiting integration
 def get_api_key_rate_limit(api_key: APIKey) -> int | None:
     """Get rate limit for API key.
@@ -361,30 +234,3 @@ def get_api_key_rate_limit(api_key: APIKey) -> int | None:
         Rate limit per minute or None
     """
     return api_key.rate_limit_per_minute
-
-
-# Audit logging
-def log_api_usage(
-    request: Request, api_key: APIKey, endpoint: str, method: str, status_code: int
-) -> None:
-    """Log API usage for audit purposes.
-
-    Args:
-        request: FastAPI request
-        api_key: Authenticated API key
-        endpoint: Endpoint path
-        method: HTTP method
-        status_code: Response status code
-    """
-    logger.info(
-        "API usage logged",
-        key_id=api_key.key_id,
-        key_name=api_key.name,
-        role=api_key.role.value,
-        endpoint=endpoint,
-        method=method,
-        status_code=status_code,
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent"),
-        request_id=getattr(request.state, "request_id", None),
-    )

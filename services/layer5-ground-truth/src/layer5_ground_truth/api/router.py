@@ -120,7 +120,7 @@ async def create_truth(
     # Reload with eager-loaded relationships for the response
     truth = await get_truth_object(db, truth.id, tenant_id)
     if truth is None:
-        raise NotFoundError(message = "Truth object not found after creation")
+        raise NotFoundError(message="Truth object not found after creation")
 
     # Best-effort KG sync for high-confidence objects
     settings = get_settings()
@@ -484,7 +484,7 @@ async def get_truth(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     return TruthObjectResponse.model_validate(truth)
 
 
@@ -519,7 +519,7 @@ async def validate_truth(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
 
     previous_status = truth.status
     previous_maturity = truth.maturity_level
@@ -542,10 +542,10 @@ async def validate_truth(
         )
     except InvalidTransitionError as exc:
         logger.warning("invalid_truth_transition: %s", exc)
-        raise BadRequestError(message = "Request failed", details = {"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"})
+        raise BadRequestError(message="Request failed", details={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"})
     except InsufficientEvidenceError as exc:
         logger.warning("insufficient_evidence: %s", exc)
-        raise BadRequestError(message = "Request failed", details = {"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
+        raise BadRequestError(message="Request failed", details={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
     except TransitionConflictError as exc:
         logger.warning("truth_transition_conflict: %s", exc)
         raise ConflictError(
@@ -558,7 +558,7 @@ async def validate_truth(
         )
     except ValueError as exc:
         logger.warning("truth_value_error: %s", exc)
-        raise BadRequestError(message = "Request failed", details = {"code": "INVALID_REQUEST", "message": "Invalid request parameters"})
+        raise BadRequestError(message="Request failed", details={"code": "INVALID_REQUEST", "message": "Invalid request parameters"})
 
     # Sync to Layer 3 after validation
     if truth.status == "validated":
@@ -647,7 +647,7 @@ async def add_truth_source(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
 
     _, source = await add_source(
         db=db,
@@ -679,7 +679,7 @@ async def get_audit_trail(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     return [ValidationEventResponse.model_validate(e) for e in truth.validation_events]
 
 
@@ -704,7 +704,7 @@ async def delete_truth(
     deleted_by = caller.user_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise NotFoundError(message = str(f"TruthObject {truth_id} not found"))
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     await soft_delete_truth_object(db, truth, deleted_by=deleted_by)
 
     try:

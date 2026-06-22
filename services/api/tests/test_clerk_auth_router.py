@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import get_auth_directory
@@ -154,7 +155,7 @@ async def test_clerk_tenant_fails_closed_when_org_id_missing() -> None:
         clerk_auth_module._resolve_directory_tenant(directory, auth.clerk_org_id)
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"
+    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 async def test_clerk_tenant_fails_closed_when_tenant_missing() -> None:
@@ -164,7 +165,7 @@ async def test_clerk_tenant_fails_closed_when_tenant_missing() -> None:
         clerk_auth_module._resolve_directory_tenant(directory, "org_unknown")
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"
+    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 @pytest.mark.parametrize("status", ["suspended", "deleted", "inactive"])
@@ -182,7 +183,7 @@ async def test_clerk_tenant_fails_closed_for_non_active_tenant(status: str) -> N
         clerk_auth_module._resolve_directory_tenant(directory, "org_suspended")
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == "auth.tenant_unresolved"
+    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 async def test_clerk_tenant_wrong_org_cannot_resolve_other_tenant() -> None:
@@ -254,7 +255,7 @@ def test_clerk_tenant_missing_token_returns_401(clerk_env_setup: None) -> None:
     client = TestClient(app)
     response = client.get("/v1/auth/clerk/tenant")
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "auth.token_missing"
+    assert response.json()["error"]["code"] == ErrorCode.AUTH_TOKEN_MISSING
 
 
 def test_clerk_tenant_invalid_token_returns_401(clerk_env_setup: None) -> None:
@@ -264,4 +265,4 @@ def test_clerk_tenant_invalid_token_returns_401(clerk_env_setup: None) -> None:
         headers={"Authorization": "Bearer not-a-real-jwt"},
     )
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "auth.token_invalid"
+    assert response.json()["error"]["code"] == ErrorCode.AUTH_TOKEN_INVALID

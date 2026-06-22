@@ -424,14 +424,10 @@ class ROICalculatorService:
     # ------------------------------------------------------------------
 
     async def create_template(
-        self, tenant_or_template: str | ROITemplateCreate, template: ROITemplateCreate | None = None
+        self, template: ROITemplateCreate
     ) -> dict[str, Any]:
-        """Create an ROI calculation template."""
-        if template is None:
-            template = tenant_or_template  # type: ignore[assignment]
-            tenant_id = _get_tenant_id()
-        else:
-            tenant_id = str(tenant_or_template)
+        """Create an ROI calculation template using current tenant context."""
+        tenant_id = _get_tenant_id()
         template_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
@@ -458,6 +454,38 @@ class ROICalculatorService:
             await mutation.write_node("ROITemplate", template_id, template_props)
 
         logger.info("roi_template_created", template_id=template_id, name=template.name)
+        return ROICalculatorService_create_templateResult.model_validate(template_props)
+
+    async def create_template_for_tenant(
+        self, tenant_id: str, template: ROITemplateCreate
+    ) -> dict[str, Any]:
+        """Create an ROI calculation template for an explicit tenant."""
+        template_id = str(uuid.uuid4())
+        now = datetime.now(UTC).isoformat()
+
+        template_props = {
+            "id": template_id,
+            "tenant_id": str(tenant_id),
+            "name": template.name,
+            "description": template.description,
+            "category": template.category,
+            "input_schema": json.dumps(template.input_schema),
+            "default_assumptions": json.dumps(template.default_assumptions),
+            "applicable_industries": template.applicable_industries,
+            "applicable_products": template.applicable_products,
+            "entity_type": "ROITemplate",
+            "created_at": now,
+            "updated_at": now,
+        }
+        async with self._driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=str(tenant_id),
+                session=session,
+                operation_source="roi_calculator_service.create_template_for_tenant",
+            )
+            await mutation.write_node("ROITemplate", template_id, template_props)
+
+        logger.info("roi_template_created", template_id=template_id, name=template.name, tenant_id=tenant_id)
         return ROICalculatorService_create_templateResult.model_validate(template_props)
 
     async def get_templates(

@@ -602,5 +602,5 @@ def _require_privileged_cross_tenant_reason(
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
+        raise ValidationError(message=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.")
     return reason

@@ -21,6 +21,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
+import { getClerkMocks } from "@/test/utils/clerkTestHelpers";
 
 const mockNavigate = vi.fn();
 
@@ -45,6 +46,8 @@ const mockTenantState = {
   isLoading: false,
   error: null as { status?: number } | null,
 };
+
+const { mockUseAuth, mockUseOrganization } = getClerkMocks();
 
 vi.mock("@clerk/react", () => ({
   useAuth: () => ({

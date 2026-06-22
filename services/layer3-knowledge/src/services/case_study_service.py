@@ -43,11 +43,6 @@ from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 from .cypher_scope_guard import validate_tenant_scoped_cypher
 
-try:
-    from value_fabric.shared.identity.context import require_context
-except ImportError:
-    require_context = None
-
 
 class CaseStudyService_get_by_industryResult(TypedDictModel):
     pass
@@ -108,20 +103,6 @@ class CaseStudyService_searchResult(TypedDictModel):
 logger = structlog.get_logger()
 
 
-def _get_tenant_id() -> str:
-    """Retrieve tenant ID from request context or fail closed."""
-    if not require_context:
-        raise AuthorizationError(
-            "Tenant context provider is unavailable for case study operations.",
-            details={"service": "CaseStudyService", "reason": "missing_context_provider"},
-        )
-    try:
-        return str(require_context().tenant_id)
-    except RuntimeError as exc:
-        raise AuthorizationError(
-            "Tenant context required for case study operations.",
-            details={"service": "CaseStudyService", "reason": "missing_request_context"},
-        ) from exc
 # ---------------------------------------------------------------------------
 # Case Study Data Model
 # ---------------------------------------------------------------------------

@@ -6,25 +6,11 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
+import { setupClerkSignedIn, resetClerkMocks, getClerkMocks } from "@/test/utils/clerkTestHelpers";
+
+const { mockUseAuth, mockUseOrganization } = getClerkMocks();
+
 const mockGetToken = vi.fn<(template?: string) => Promise<string | null>>(async () => "clerk-token");
-const mockUseAuth = vi.fn(() => ({
-  isLoaded: true,
-  isSignedIn: true,
-  getToken: mockGetToken,
-}));
-const mockUseOrganization = vi.fn(() => ({
-  isLoaded: true,
-  organization: { id: "org_1" },
-}));
-
-vi.mock("@clerk/react", () => ({
-  useAuth: () => mockUseAuth(),
-  useOrganization: () => mockUseOrganization(),
-}));
-
-vi.mock("@/auth/clerkConfig", () => ({
-  isClerkAuthEnabled: () => true,
-}));
 
 vi.mock("@/api/typedClient", () => ({
   apiGet: (...args: unknown[]) => mockApiGet(...args),
@@ -46,18 +32,20 @@ import { useResolvedTenant } from "./useResolvedTenant";
 
 describe("useResolvedTenant", () => {
   beforeEach(() => {
+    resetClerkMocks();
     mockApiGet.mockReset();
     mockGetToken.mockReset();
     mockGetToken.mockResolvedValue("clerk-token");
+    setupClerkSignedIn("org_1");
     mockUseAuth.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
       getToken: mockGetToken,
-    });
+    } as unknown as ReturnType<typeof mockUseAuth>);
     mockUseOrganization.mockReturnValue({
       isLoaded: true,
       organization: { id: "org_1" },
-    });
+    } as unknown as ReturnType<typeof mockUseOrganization>);
   });
 
   it("returns resolved tenant when backend mapping succeeds", async () => {

@@ -15,7 +15,7 @@
  *   - Fail closed: 401/403/500 errors are exposed as error state so callers
  *     can redirect to sign-in, /forbidden, or onboarding as appropriate.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useAuth, useOrganization } from "@clerk/react";
 
@@ -80,6 +80,9 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   const canFetch = clerkEnabled && authLoaded && isSignedIn && orgLoaded && organization != null;
   const activeOrgId = organization?.id;
 
+  // Track previous tenant ID to optimize cache invalidation
+  const previousTenantId = useRef<string | null>(null);
+
   const query = useQuery<ResolvedTenant, BaseApiError>({
     queryKey: TENANT_QUERY_KEY(activeOrgId),
     queryFn: async () => {
@@ -107,14 +110,19 @@ export function useResolvedTenant(): UseResolvedTenantResult {
     queryClient.invalidateQueries({ queryKey: QK.accounts.all });
   }, [activeOrgId, clearSelectedAccountId, queryClient]);
 
+  // Only invalidate cache when the actual tenant ID changes, not on every data refresh
   useEffect(() => {
     if (!query.data) {
       return;
     }
-    syncTenant();
-    clearSelectedAccountId();
-    queryClient.invalidateQueries({ queryKey: QK.accounts.all });
-  }, [query.data?.fabricTenantId, syncTenant, clearSelectedAccountId, queryClient]);
+    const currentTenantId = query.data.fabricTenantId;
+    if (previousTenantId.current !== currentTenantId) {
+      syncTenant();
+      clearSelectedAccountId();
+      queryClient.invalidateQueries({ queryKey: QK.accounts.all });
+      previousTenantId.current = currentTenantId;
+    }
+  }, [query.data, syncTenant, clearSelectedAccountId, queryClient]);
 
   return {
     tenant: query.data ?? null,

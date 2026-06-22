@@ -8,7 +8,6 @@ Provides context enrichment for all Layer 3 logs with:
 - operation_source: Source of the operation
 """
 
-import logging
 from contextvars import ContextVar
 from typing import Any
 
@@ -165,38 +164,3 @@ class LoggingContextManager:
         set_entity_context(self._prev_entity)
         set_operation_source(self._prev_source)
         return False
-
-
-def log_with_context(
-    logger: logging.Logger,
-    level: str,
-    msg: str,
-    tenant_id: str | None = None,
-    account_id: str | None = None,
-    request_id: str | None = None,
-    entity_id: str | None = None,
-    operation_source: str | None = None,
-    **kwargs: Any,
-) -> None:
-    """Log a message with enriched context.
-
-    Args:
-        logger: Logger instance
-        level: Log level (info, warning, error, debug)
-        msg: Log message
-        tenant_id: Optional tenant context
-        account_id: Optional account context
-        request_id: Optional request ID
-        entity_id: Optional entity ID
-        operation_source: Optional operation source
-        **kwargs: Additional log fields
-    """
-    with LoggingContextManager(
-        tenant_id=tenant_id,
-        account_id=account_id,
-        request_id=request_id,
-        entity_id=entity_id,
-        operation_source=operation_source,
-    ):
-        log_method = getattr(logger, level.lower(), logger.info)
-        log_method(msg, **kwargs)
