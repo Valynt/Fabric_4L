@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import structlog
 from value_fabric.shared.observability.request_context import logging_context_dict
+from value_fabric.shared.security.redaction import install_redaction_filter, redaction_processor
 
 from value_fabric.shared.observability.correlation import (
     LOG_FIELD_CORRELATION_ID,
@@ -24,10 +25,12 @@ def configure_structlog() -> None:
     global _STRUCTLOG_CONFIGURED
     if _STRUCTLOG_CONFIGURED:
         return
+    install_redaction_filter()
     structlog.configure(
         processors=[
             enrich_event_with_request_context,
             enrich_event_with_logging_context,
+            redaction_processor,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.add_log_level,
             structlog.processors.JSONRenderer(),

@@ -11,6 +11,7 @@ from typing import Any
 
 from .context import RequestContext, get_request_context
 from .permissions import Permission, Role
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
 
 try:
     from fastapi import HTTPException, status
@@ -221,6 +222,10 @@ def authorize_action(
         )
 
     if target_tenant_id is not None and str(ctx.tenant_id) != str(target_tenant_id):
+        record_inconsistent_tenant_context_access(
+            route=f"policy.{action}",
+            source="target_tenant",
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=_build_forbidden_detail(

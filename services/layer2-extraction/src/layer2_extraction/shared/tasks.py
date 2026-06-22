@@ -8,15 +8,17 @@ import logging
 import os
 
 from celery import Celery
+from value_fabric.shared.redis_ha import get_celery_redis_broker_config
 
 # Get Redis URL from environment
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+celery_broker_url, celery_transport_options = get_celery_redis_broker_config(redis_url)
 
 # Initialize Celery app
 celery_app = Celery(
     "layer2_extraction",
-    broker=redis_url,
-    backend=redis_url,
+    broker=celery_broker_url,
+    backend=celery_broker_url,
     include=["layer2_extraction.shared.tasks"],
 )
 
@@ -52,6 +54,8 @@ celery_app.conf.update(
     task_default_queue="default",
     task_default_exchange="default",
     task_default_routing_key="default",
+    broker_transport_options=celery_transport_options,
+    result_backend_transport_options=celery_transport_options,
     # Backpressure configuration
     worker_max_tasks_per_child=100,
     worker_max_memory_per_child=500000,

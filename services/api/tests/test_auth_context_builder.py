@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import time
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from value_fabric.shared.identity.fabric_auth import KeySet, SigningKey, VerificationKey
+from value_fabric.shared.identity.fabric_auth import (
+    KeySet,
+    SigningKey,
+    VerificationKey,
+    sign_envelope,
+    verify_envelope,
+)
+from value_fabric.shared.identity.fabric_auth.signer import ALGORITHM
 
 from app.core.auth_context_builder import build_auth_context, normalize_clerk_role
 from app.core.auth_directory import AuthDirectory
@@ -88,3 +97,60 @@ def test_build_auth_context_normalizes_roles_and_uses_envelope_settings() -> Non
     assert context.aud == "internal-test"
     assert context.exp == 1_700_000_120
     assert context.kid == "gateway-k1"
+
+
+def test_resolved_auth_context_signs_as_eddsa_internal_envelope() -> None:
+    directory = AuthDirectory()
+    directory.upsert_user(
+        id="fabric-user-1",
+        clerk_user_id="clerk-user-1",
+        email="alice@example.com",
+        display_name="Alice",
+        status="active",
+    )
+    directory.upsert_tenant(
+        id="fabric-tenant-1",
+        clerk_org_id="org-1",
+        name="Acme",
+        slug="acme",
+        status="active",
+    )
+    directory.upsert_membership(
+        clerk_org_id="org-1",
+        clerk_user_id="clerk-user-1",
+        clerk_membership_id="mem-1",
+        role="org:admin",
+        status="active",
+    )
+    envelope_settings = _ed25519_envelope_settings()
+    now = int(time.time())
+
+    context = build_auth_context(
+        claims=ClerkClaims(
+            sub="clerk-user-1",
+            org_id="org-1",
+            org_role="org:member",
+            org_permissions=("tenant:read", "agent:run"),
+            azp="https://app.example.com",
+            raw={"tenant_id": "attacker-controlled-body-value"},
+        ),
+        directory=directory,
+        envelope_settings=envelope_settings,
+        request_id="req-gateway",
+        now=now,
+    )
+    token = sign_envelope(context, signing_key=envelope_settings.signing_key)
+    verified = verify_envelope(
+        token,
+        key_set=envelope_settings.verification_keys,
+        expected_issuer="gateway-test",
+        expected_audience="internal-test",
+    )
+
+    assert ALGORITHM == "EdDSA"
+    assert verified.kid == "gateway-k1"
+    assert verified.tenant_id == "fabric-tenant-1"
+    assert verified.user_id == "fabric-user-1"
+    assert verified.clerk_org_id == "org-1"
+    assert verified.exp == now + envelope_settings.envelope_ttl_seconds
+    assert verified.permissions == frozenset({"tenant:read", "agent:run"})

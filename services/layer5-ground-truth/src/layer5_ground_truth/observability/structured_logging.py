@@ -11,6 +11,7 @@ from typing import Any
 
 import structlog
 from fastapi import Request
+from value_fabric.shared.security.redaction import install_redaction_filter, redaction_processor
 
 _tenant_id_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar("tenant_id", default=None)
 _request_id_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)
@@ -26,10 +27,12 @@ def _add_request_context(_: Any, __: str, event_dict: dict[str, Any]) -> dict[st
 
 
 def configure_structured_logging() -> None:
+    install_redaction_filter()
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
             _add_request_context,
+            redaction_processor,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.JSONRenderer(),
@@ -39,6 +42,7 @@ def configure_structured_logging() -> None:
         cache_logger_on_first_use=True,
     )
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout, force=True)
+    install_redaction_filter()
 
 
 def set_request_log_context(request: Request) -> None:

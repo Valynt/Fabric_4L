@@ -64,7 +64,11 @@ from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.probes import normalize_probe_payload
-from value_fabric.shared.security import validate_production_safety
+from value_fabric.shared.security import (
+    install_redaction_filter,
+    redaction_processor,
+    validate_production_safety,
+)
 
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
@@ -115,12 +119,14 @@ except ImportError as exc:
 
 
 # Configure logging
+install_redaction_filter()
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
+        redaction_processor,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,

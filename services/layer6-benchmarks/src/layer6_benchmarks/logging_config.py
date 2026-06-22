@@ -6,13 +6,16 @@ import logging
 import sys
 
 import structlog
+from value_fabric.shared.security.redaction import install_redaction_filter, redaction_processor
 
 
 def configure_structured_logging() -> None:
     """Configure JSON structured logs for layer6."""
+    install_redaction_filter()
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
+            redaction_processor,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.JSONRenderer(),
@@ -22,3 +25,4 @@ def configure_structured_logging() -> None:
         cache_logger_on_first_use=True,
     )
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+    install_redaction_filter()

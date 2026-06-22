@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from value_fabric.shared.identity.context import require_context
+from value_fabric.shared.redis_ha import create_async_redis_client
 from value_fabric.shared.security.neo4j import is_production_like_environment
 
 from ..metrics import get_metrics
@@ -65,9 +66,7 @@ class LLMBudgetGuardrails:
         if not redis_url:
             return None
         try:
-            from redis.asyncio import Redis
-
-            return Redis.from_url(redis_url, decode_responses=True)
+            return create_async_redis_client(redis_url, decode_responses=True)
         except asyncio.CancelledError:
             raise
         except Exception as exc:

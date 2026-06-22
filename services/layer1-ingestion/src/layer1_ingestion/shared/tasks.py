@@ -44,6 +44,7 @@ from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.redis_ha import get_celery_redis_broker_config
 
 from ..metrics.prometheus_metrics import get_metrics
 from ..shared.config import settings
@@ -162,11 +163,13 @@ def _run_async(coro):
         return asyncio.run(coro)
     return coro
 
+_celery_broker_url, _celery_transport_options = get_celery_redis_broker_config(settings.redis_url)
+
 # Initialize Celery app
 celery_app = Celery(
     "layer1_ingestion",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=_celery_broker_url,
+    backend=_celery_broker_url,
     include=["layer1_ingestion.shared.tasks"],
 )
 
@@ -210,6 +213,8 @@ celery_app.conf.update(
     task_default_queue="default",
     task_default_exchange="default",
     task_default_routing_key="default",
+    broker_transport_options=_celery_transport_options,
+    result_backend_transport_options=_celery_transport_options,
     # P0-03: Backpressure configuration
     worker_max_tasks_per_child=100,  # Recycle worker after 100 tasks
     worker_max_memory_per_child=500000,  # 500MB max memory per worker

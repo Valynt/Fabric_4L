@@ -16,6 +16,7 @@ import logging
 import os
 
 import redis
+from value_fabric.shared.redis_ha import create_sync_redis_client
 
 from app.core.config import get_settings
 
@@ -47,7 +48,7 @@ def get_redis_client() -> redis.Redis | None:
         return None
 
     try:
-        _redis_client = redis.Redis.from_url(
+        _redis_client = create_sync_redis_client(
             redis_url,
             decode_responses=True,
             socket_connect_timeout=5,

@@ -34,6 +34,7 @@ from .runtime_adapter import (
 from .tenant_validation import (
     MissingTenantContextError,
     TenantContextError,
+    record_inconsistent_tenant_context_access,
     require_tenant_context,
     validate_tenant_id,
 )
@@ -46,6 +47,7 @@ __all__ = [
     "validate_tenant_id",
     "TenantContextError",
     "MissingTenantContextError",
+    "record_inconsistent_tenant_context_access",
     "require_tenant_context",
     "PostgresPoolConfig",
     "create_postgresql_engine",

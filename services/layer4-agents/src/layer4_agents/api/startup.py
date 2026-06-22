@@ -11,7 +11,6 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-import redis.asyncio as redis
 from fastapi import FastAPI
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from value_fabric.shared.identity.feature_flags import (
@@ -19,6 +18,7 @@ from value_fabric.shared.identity.feature_flags import (
     register_feature_flag_lookup,
 )
 from value_fabric.shared.identity.vault_check import is_vault_healthy
+from value_fabric.shared.redis_ha import create_async_redis_client
 
 from ..config import configure_settings
 from ..config.checkpoint import CheckpointConfig, get_checkpoint_saver
@@ -118,7 +118,7 @@ def build_lifespan(
             raise RuntimeError("Vault unreachable - cannot start in production without secrets backend")
 
         redis_url = os.getenv("REDIS_URL")
-        startup_redis_client = redis.from_url(redis_url, decode_responses=True) if redis_url else None
+        startup_redis_client = create_async_redis_client(redis_url, decode_responses=True) if redis_url else None
         runtime_state.state_manager = StateManager(startup_redis_client)
 
         # The tool registry must share the production Redis client so that

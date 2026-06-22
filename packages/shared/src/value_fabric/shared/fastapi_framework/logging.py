@@ -15,6 +15,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from value_fabric.shared.security.redaction import (
+    install_redaction_filter,
+    is_sensitive_key,
+    redaction_processor,
+)
+
 
 DEFAULT_REDACT_KEYS: frozenset[str] = frozenset(
     {
@@ -62,9 +68,9 @@ def _redact_processor(redact_keys: Iterable[str]) -> Any:
 
     def processor(_logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         for key in list(event_dict.keys()):
-            if key.lower() in lowered:
+            if key.lower() in lowered or is_sensitive_key(key):
                 event_dict[key] = "***REDACTED***"
-        return event_dict
+        return redaction_processor(_logger, _method_name, event_dict)
 
     return processor
 
@@ -86,6 +92,7 @@ def configure_structlog(config: StructuredLoggingConfig) -> bool:
 
     level = getattr(logging, config.level.upper(), logging.INFO)
     logging.basicConfig(level=level, format="%(message)s")
+    install_redaction_filter()
 
     processors: list[Any] = [
         structlog.contextvars.merge_contextvars,

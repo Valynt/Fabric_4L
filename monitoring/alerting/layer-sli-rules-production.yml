@@ -2,6 +2,19 @@ groups:
   - name: layer-sli-production
     interval: 30s
     rules:
+      - alert: InconsistentTenantContextAccess
+        expr: sum(increase(tenant_context_inconsistent_access_total[5m])) by (layer, service, route, source) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: security
+          environment: production
+          oncall_owner: security-platform
+        annotations:
+          summary: "Inconsistent tenant context access rejected"
+          description: "A request or authorization boundary rejected conflicting tenant context labels in {{ $labels.service }} route {{ $labels.route }} from {{ $labels.source }}."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/tenant-isolation-context-access.md"
+
       - alert: L1LatencySLOViolation
         expr: histogram_quantile(0.95, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
         for: 10m

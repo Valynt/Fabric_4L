@@ -62,6 +62,7 @@ from value_fabric.shared.rate_limiting.http_middleware import (
     build_rate_limit_key,
     should_skip_rate_limit,
 )
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
 from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
 
 logger = logging.getLogger(__name__)
@@ -360,7 +361,12 @@ async def extract_context_from_api_key(api_key: str) -> RequestContext:
     )
 
 
-def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional[str]) -> None:
+def validate_context_consistency(
+    ctx: RequestContext,
+    header_tenant_id: Optional[str],
+    *,
+    route: str = "request_context",
+) -> None:
     """Reject conflicting tenant identifiers across trusted and untrusted inputs.
 
     JWT/API-key tenant claims are authoritative.  A caller-provided
@@ -373,6 +379,7 @@ def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional
         return
     raw_header = str(header_tenant_id).strip()
     if not raw_header:
+        record_inconsistent_tenant_context_access(route=route, source="header_invalid")
         raise ValueError("Invalid tenant_id header")
     try:
         header_value: UUID | str = UUID(raw_header)
@@ -380,8 +387,10 @@ def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional
         if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(raw_header):
             header_value = raw_header
         else:
+            record_inconsistent_tenant_context_access(route=route, source="header_invalid")
             raise ValueError("Invalid tenant_id header") from exc
     if str(ctx.tenant_id) != str(header_value):
+        record_inconsistent_tenant_context_access(route=route, source="header")
         raise ValueError("Conflicting tenant_id between authenticated context and header")
 
 
@@ -708,7 +717,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                             source="jwt",
                             raw=getattr(claims, "extra_claims", {}) or {},
                         )
-                    validate_context_consistency(ctx, request.headers.get(TENANT_ID_HEADER))
+                    validate_context_consistency(
+                        ctx,
+                        request.headers.get(TENANT_ID_HEADER),
+                        route=request.url.path,
+                    )
                     return ctx
                 except ValueError as exc:
                     logger.warning(
@@ -802,7 +815,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                             source="jwt",
                             raw=getattr(claims, "extra_claims", {}) or {},
                         )
-                    validate_context_consistency(ctx, request.headers.get(TENANT_ID_HEADER))
+                    validate_context_consistency(
+                        ctx,
+                        request.headers.get(TENANT_ID_HEADER),
+                        route=request.url.path,
+                    )
                     return ctx
                 except ValueError as exc:
                     logger.warning("Session cookie tenant context rejected: %s", exc)

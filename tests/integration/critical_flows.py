@@ -157,10 +157,10 @@ async def _assert_postgres_tenant_visible_with_rls(tenant_id: str, slug: str) ->
     database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
     conn = await asyncpg.connect(database_url)
     try:
-        await conn.execute("SELECT set_config('app.current_tenant_id', $1, true)", tenant_id)
+        await conn.execute("SELECT set_config('app.tenant_id', $1, true)", tenant_id)
         row = await conn.fetchrow("SELECT id, slug, settings FROM tenants WHERE id = $1 OR slug = $2", uuid.UUID(tenant_id), slug)
         assert row is not None, "Tenant must be visible to its own RLS-scoped PostgreSQL session"
-        await conn.execute("SELECT set_config('app.current_tenant_id', $1, true)", str(uuid.uuid4()))
+        await conn.execute("SELECT set_config('app.tenant_id', $1, true)", str(uuid.uuid4()))
         foreign = await conn.fetchrow("SELECT id FROM tenants WHERE id = $1", uuid.UUID(tenant_id))
         assert foreign is None, "Tenant row leaked through an RLS-scoped PostgreSQL session for another tenant"
     finally:

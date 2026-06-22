@@ -1,0 +1,157 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production-data
+
+resources:
+  - namespace.yaml
+  - ../../base/wal-g-config.yaml
+  - ../../base/postgres-patroni.yaml
+  - ../../base/postgres-backup-cronjob.yaml
+  - ../../base/redis-sentinel.yaml
+  - ../../base/neo4j-cluster.yaml
+  - ../../external-secrets/wal-g-backup-secrets.yaml
+  - externalsecrets.yaml
+  - services.yaml
+  - pdb.yaml
+  - network-policy.yaml
+
+labels:
+  - pairs:
+      environment: production
+      plane: data
+      managed-by: kustomize
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: redis-sentinel-config
+    patch: |-
+      - op: replace
+        path: /data/sentinel.conf
+        value: |
+          port 26379
+          dir /tmp
+          sentinel monitor fabric4l-master redis-master-0.redis-master.production-data.svc.cluster.local 6379 2
+          sentinel down-after-milliseconds fabric4l-master 5000
+          sentinel parallel-syncs fabric4l-master 1
+          sentinel failover-timeout fabric4l-master 10000
+          sentinel auth-pass fabric4l-master __REDIS_PASSWORD__
+  - target:
+      kind: CronJob
+      name: postgres-backup
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/command/2
+        value: |
+          set -e
+          BACKUP_DIR=/backups/postgres
+          mkdir -p $$BACKUP_DIR
+          TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+          FAILED=0
+
+          # All application databases
+          DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
+
+          for DB in $$DATABASES; do
+            # Check if the database exists before attempting backup
+            EXISTS=$$(PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres-patroni -U $${POSTGRES_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='$$DB'" 2>/dev/null || echo "")
+            if [ "$$EXISTS" = "1" ]; then
+              if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres-patroni -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
+                echo "OK: $$DB backed up to backup_$${DB}_$${TIMESTAMP}.dump"
+              else
+                echo "ERROR: pg_dump failed for $$DB" >&2
+                FAILED=1
+              fi
+            else
+              echo "SKIP: database $$DB does not exist yet (migration pending)"
+            fi
+          done
+
+          # Remove pg_dump backups older than 7 days
+          find $$BACKUP_DIR -name 'backup_*.dump' -mtime +7 -delete
+
+          # WAL-G physical base backup (gated; requires IRSA or AWS credentials)
+          if [ "$${ENABLE_WALG_BACKUP:-false}" = "true" ]; then
+            echo "WAL-G: starting physical base backup..."
+            TMP_PGDATA="/tmp/pgdata_walg_$${TIMESTAMP}"
+            mkdir -p "$$TMP_PGDATA"
+            # Stream base backup from postgres leader via replication protocol
+            if PGPASSWORD=$${POSTGRES_PASSWORD} pg_basebackup -h postgres-patroni -U $${POSTGRES_USER} -D "$$TMP_PGDATA" -Fp -Xs -P -v; then
+              if wal-g backup-push "$$TMP_PGDATA"; then
+                echo "WAL-G: base backup pushed successfully"
+              else
+                echo "ERROR: wal-g backup-push failed" >&2
+                FAILED=1
+              fi
+              rm -rf "$$TMP_PGDATA"
+            else
+              echo "ERROR: pg_basebackup failed" >&2
+              FAILED=1
+            fi
+            # Enforce S3 retention count
+            wal-g delete retain $${WALG_RETAIN_COUNT:-30} --confirm || true
+          fi
+
+          echo "Backup run completed: $$TIMESTAMP"
+          exit $$FAILED
+  - target:
+      kind: StatefulSet
+      name: redis-replica
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/3
+        value: redis-master-0.redis-master.production-data.svc.cluster.local
+  - target:
+      kind: StatefulSet
+      name: neo4j-core
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/4/value
+        value: production-data
+  - target:
+      kind: ServiceAccount
+      name: postgres-patroni
+    patch: |-
+      - op: remove
+        path: /metadata/annotations
+  - target:
+      kind: StatefulSet
+      name: neo4j-core
+    patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: neo4j
+                    role: core
+                topologyKey: kubernetes.io/hostname
+  - target:
+      kind: StatefulSet
+      name: postgres-patroni
+    patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: postgres-patroni
+                topologyKey: kubernetes.io/hostname
+  - target:
+      kind: Deployment
+      name: redis-sentinel
+    patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: redis-sentinel
+                topologyKey: kubernetes.io/hostname

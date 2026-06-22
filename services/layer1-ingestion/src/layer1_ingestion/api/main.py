@@ -57,7 +57,12 @@ try:
     from value_fabric.shared.models.typed_dict import TypedDictModel
     from value_fabric.shared.observability.metrics_access import verify_metrics_access
     from value_fabric.shared.probes import normalize_probe_payload
-    from value_fabric.shared.security import SecurityConfig, add_security_middleware
+    from value_fabric.shared.security import (
+        SecurityConfig,
+        add_security_middleware,
+        install_redaction_filter,
+        redaction_processor,
+    )
     from value_fabric.shared.startup import reject_insecure_bypass_in_production
 except ImportError as e:
     raise ImportError(
@@ -146,12 +151,14 @@ except ImportError as exc:
     process_scraping_job = _UnavailableTask("process_scraping_job", exc)
 
 # Configure logging
+install_redaction_filter()
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
+        redaction_processor,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,

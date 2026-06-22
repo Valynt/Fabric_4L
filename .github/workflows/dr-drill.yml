@@ -85,8 +85,8 @@ jobs:
 
       - name: Validate RTO/RPO targets
         run: |
-          echo "RTO target: 30 minutes"
-          echo "RPO target: 15 minutes (daily backups + WAL)"
+          echo "RTO target: 60 minutes"
+          echo "RPO target: 15 minutes (continuous WAL + daily full backup)"
           BACKUP_AGE_HOURS=$(aws s3 ls s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/ --recursive | sort | tail -1 | awk '{print $1" "$2}')
           echo "Latest backup age: $BACKUP_AGE_HOURS"
 
@@ -96,7 +96,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "DR Weekly Dry-Run: ${{ job.status }}\nCommit: ${{ github.sha }}\nRTO: 30min, RPO: 15min"
+              "text": "DR Weekly Dry-Run: ${{ job.status }}\nCommit: ${{ github.sha }}\nRTO: 60min, RPO: 15min"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DR_WEBHOOK }}

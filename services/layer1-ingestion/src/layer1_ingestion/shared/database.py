@@ -29,6 +29,7 @@ from uuid import UUID
 from fastapi import Depends, Request
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
+from value_fabric.shared.redis_ha import create_async_redis_client, create_sync_redis_client
 
 from ..metrics.prometheus_metrics import get_metrics
 from .config import settings
@@ -113,12 +114,10 @@ redis_client = None
 redis_client_async = None
 REDIS_AVAILABLE = False
 try:
-    import redis
-    _redis_client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    _redis_client = create_sync_redis_client(settings.redis_url, decode_responses=True)
     _redis_client.ping()
     redis_client = _redis_client
-    import redis.asyncio as redis_async
-    redis_client_async = redis_async.Redis.from_url(settings.redis_url, decode_responses=True)
+    redis_client_async = create_async_redis_client(settings.redis_url, decode_responses=True)
     REDIS_AVAILABLE = True
 except Exception:
     redis_client = None

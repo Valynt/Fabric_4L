@@ -62,25 +62,6 @@ class BenchmarkType(str, PyEnum):
     """Third-party research benchmarks"""
 
 
-class BenchmarkScopeEnum(str, PyEnum):
-    """Scope of benchmark applicability."""
-
-    GLOBAL = "global"
-    """Global applicability"""
-
-    INDUSTRY = "industry"
-    """Industry-specific"""
-
-    REGION = "region"
-    """Geographic region"""
-
-    SEGMENT = "segment"
-    """Market segment"""
-
-    ACCOUNT = "account"
-    """Account-specific"""
-
-
 class BenchmarkStatus(str, PyEnum):
     """Status of a benchmark version."""
 

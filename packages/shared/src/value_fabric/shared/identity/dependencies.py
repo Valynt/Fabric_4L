@@ -17,6 +17,8 @@ import time
 import types
 from typing import Any, Callable, Optional
 
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
+
 logger = logging.getLogger(__name__)
 
 
@@ -296,6 +298,10 @@ async def require_tenant(
 
     ctx = await require_authenticated(context)
     if tenant_id is not None and str(ctx.tenant_id) != str(tenant_id):
+        record_inconsistent_tenant_context_access(
+            route="identity.require_tenant",
+            source="target_tenant",
+        )
         raise _forbidden("Tenant context does not match requested tenant")
     return ctx
 

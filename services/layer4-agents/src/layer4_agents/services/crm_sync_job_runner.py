@@ -13,6 +13,7 @@ import redis.asyncio as redis
 from sqlalchemy import select
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.redis_ha import create_async_redis_client
 
 from ..database import db_session_for_context, get_session_factory
 from ..models.account import CRMProvider
@@ -200,7 +201,7 @@ async def enqueue_crm_sync_job(
     redis_url = os.getenv("REDIS_URL")
     if not redis_url:
         raise RuntimeError("REDIS_URL must be configured for CRM sync job queueing")
-    temp_client = redis.from_url(redis_url, decode_responses=True)
+    temp_client = create_async_redis_client(redis_url, decode_responses=True)
     try:
         await temp_client.lpush(CRM_SYNC_QUEUE_KEY, payload)
     finally:

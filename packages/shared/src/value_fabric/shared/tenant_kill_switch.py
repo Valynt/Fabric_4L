@@ -141,9 +141,9 @@ def get_kill_switch(redis_client: Any | None = None) -> TenantKillSwitch:
         redis_url = os.getenv("REDIS_URL")
         if redis_url:
             try:
-                import redis as _redis
+                from value_fabric.shared.redis_ha import create_sync_redis_client
 
-                redis_client = _redis.from_url(redis_url, decode_responses=True)
+                redis_client = create_sync_redis_client(redis_url, decode_responses=True)
             except Exception as exc:
                 logger.warning("Failed to create Redis client for kill switch: %s", exc)
     return TenantKillSwitch(redis_client)

@@ -46,6 +46,7 @@ import httpx
 from .models import AuditAction, AuditEvent, AuditOutcome
 from .redis_queue import RedisAuditQueue
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.security.redaction import REDACTED_VALUE, is_sensitive_key, redact_value
 
 
 class _scrub_detailsResult(TypedDictModel):
@@ -154,7 +155,7 @@ def _scrub_value(value: Any) -> Any:
         return _scrub_details(value)
     if isinstance(value, list):
         return [_scrub_value(item) for item in value]
-    return value
+    return redact_value(value)
 
 
 def _scrub_details(details: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,7 +164,7 @@ def _scrub_details(details: Dict[str, Any]) -> Dict[str, Any]:
     # TypedDictModel wrapper is useful for generated typing, but AuditEvent and
     # downstream DB serialization expect a concrete dict.
     return {
-        k: "[REDACTED]" if k.lower() in _SENSITIVE_KEYS else _scrub_value(v)
+        k: REDACTED_VALUE if k.lower() in _SENSITIVE_KEYS or is_sensitive_key(k) else _scrub_value(v)
         for k, v in details.items()
     }
 

@@ -155,6 +155,36 @@ class TestContextExtraction:
         with pytest.raises(ValueError, match="Conflicting.*tenant_id"):
             validate_context_consistency(jwt_context, header_tenant_id)
 
+    def test_conflicting_tenant_ids_emit_inconsistent_access_metric(self, monkeypatch):
+        """Tenant-header spoofing rejections must emit the isolation alert metric."""
+        from value_fabric.shared.identity import middleware
+
+        calls = []
+
+        def record_metric(**labels):
+            calls.append(labels)
+
+        monkeypatch.setattr(
+            middleware,
+            "record_inconsistent_tenant_context_access",
+            record_metric,
+        )
+
+        tenant_a = uuid4()
+        tenant_b = uuid4()
+        jwt_context = RequestContext(tenant_id=tenant_a, user_id=uuid4())
+
+        with pytest.raises(ValueError, match="Conflicting.*tenant_id"):
+            middleware.validate_context_consistency(
+                jwt_context,
+                str(tenant_b),
+                route="/api/v1/entities",
+            )
+
+        assert calls == [
+            {"route": "/api/v1/entities", "source": "header"}
+        ]
+
 
 class TestContextDependencies:
     """Verify FastAPI dependencies correctly enforce context requirements."""

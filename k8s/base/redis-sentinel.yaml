@@ -178,10 +178,19 @@ spec:
         - name: sentinel
           image: redis:7.2-alpine
           command:
-            - redis-sentinel
+            - sh
+            - -c
           args:
-            - /etc/redis/sentinel.conf
-            - --sentinel
+            - |
+              set -eu
+              sed "s/__REDIS_PASSWORD__/$${REDIS_PASSWORD}/g" /etc/redis/sentinel.conf > /tmp/sentinel.conf
+              exec redis-sentinel /tmp/sentinel.conf --sentinel
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: password
           ports:
             - containerPort: 26379
               name: sentinel
@@ -195,6 +204,8 @@ spec:
           volumeMounts:
             - name: sentinel-config
               mountPath: /etc/redis
+            - name: sentinel-tmp
+              mountPath: /tmp
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -205,6 +216,8 @@ spec:
         - name: sentinel-config
           configMap:
             name: redis-sentinel-config
+        - name: sentinel-tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -219,7 +232,45 @@ data:
     sentinel down-after-milliseconds fabric4l-master 5000
     sentinel parallel-syncs fabric4l-master 1
     sentinel failover-timeout fabric4l-master 10000
-    sentinel auth-pass fabric4l-master $(REDIS_PASSWORD)
+    sentinel auth-pass fabric4l-master __REDIS_PASSWORD__
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: value-fabric
+  labels:
+    app: redis
+    role: master
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: redis
+    role: master
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-replica
+  namespace: value-fabric
+  labels:
+    app: redis
+    role: replica
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: redis
+    role: replica
 ---
 apiVersion: v1
 kind: Service

@@ -16,3 +16,13 @@ def test_production_alert_runbook_urls_do_not_use_internal_hosts() -> None:
                 violations.append(f"{rule_file.relative_to(checker.REPO_ROOT)} contains {banned_host}")
 
     assert violations == []
+
+
+def test_inconsistent_tenant_context_alert_is_active() -> None:
+    rule_text = (checker.REPO_ROOT / "monitoring/alerting/layer-sli-rules-production.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "alert: InconsistentTenantContextAccess" in rule_text
+    assert "tenant_context_inconsistent_access_total" in rule_text
+    assert "tenant-isolation-context-access.md" in rule_text

@@ -98,6 +98,7 @@ spec:
       interval: 1m
       count: 3
       successCondition: result[0] >= 0.99
+      failureCondition: result[0] < 0.95
       failureLimit: 2
       provider:
         prometheus:
@@ -108,9 +109,9 @@ spec:
               status!~"5.."
             }[1m]))
             /
-            sum(rate(http_requests_total{
+            clamp_min(sum(rate(http_requests_total{
               service="layer1-ingestion"
-            }[1m]))
+            }[1m])), 1)
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
@@ -134,9 +135,9 @@ spec:
               status=~"5.."
             }[1m]))
             /
-            sum(rate(http_requests_total{
+            clamp_min(sum(rate(http_requests_total{
               service="layer1-ingestion"
-            }[1m]))
+            }[1m])), 1)
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
