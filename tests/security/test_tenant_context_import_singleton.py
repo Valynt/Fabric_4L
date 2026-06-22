@@ -20,8 +20,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _VERIFY_SCRIPT = _PROJECT_ROOT / "scripts" / "verify_tenant_drift.py"
 
