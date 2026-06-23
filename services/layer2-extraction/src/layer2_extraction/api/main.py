@@ -35,7 +35,6 @@ except ImportError:
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request
 from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel, Field
 
 # Load secrets from Infisical if available (optional in dev, required in prod)
 from value_fabric.shared.environment import (
@@ -106,12 +105,12 @@ from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifec
 from layer2_extraction.api.schemas import (
     EntityListResponse,
     ExtractAndIngestResponse,
+    ExtractionStatusResponse,
     ExtractRequest,
     ExtractResponse,
-    ExtractionStatusResponse,
     ProvenanceResponse,
+    QuarantineStatusResponse,
     RelationshipsResponse,
-    default_extraction_config,
 )
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
@@ -347,13 +346,6 @@ def get_relationship_extractor():
     return _extractor_factory.get_relationship_extractor()
 
 
-ExtractRequest.model_fields["extraction_config"].default_factory = lambda: default_extraction_config(
-    confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
-    chunk_size=DEFAULT_CHUNK_SIZE,
-    chunk_overlap=DEFAULT_CHUNK_OVERLAP,
-)
-
-
 @dataclass
 class ExtractionArtifacts:
     """Outputs from extraction pipeline used by ingestion step."""
@@ -548,22 +540,6 @@ except Exception as exc:
 
 
 quarantine_store = build_quarantine_store()
-
-
-class QuarantineStatusResponse(BaseModel):
-    job_id: str
-    quarantine_id: str
-    tenant_id: str
-    source_hash: str
-    model_version: str
-    schema_version: str
-    prompt_template_version: str
-    prompt_template_hash: str | None = None
-    validation_errors: list[str]
-    reason: str
-    review_status: str
-    retry_eligible: bool
-    created_at: datetime
 
 def _compute_overall_status(extraction_status: str, ingestion_status: str) -> str:
     return compute_overall_status(extraction_status, ingestion_status)

@@ -6,21 +6,18 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-
 DEFAULT_ENTITY_TYPES = ["Capability", "UseCase", "Persona", "ValueDriver"]
+DEFAULT_CHUNK_SIZE = 2000
+DEFAULT_CHUNK_OVERLAP = 200
+DEFAULT_CONFIDENCE_THRESHOLD = 0.75
 
 
-def default_extraction_config(
-    *,
-    confidence_threshold: float,
-    chunk_size: int,
-    chunk_overlap: int,
-) -> dict[str, object]:
+def default_extraction_config() -> dict[str, object]:
     return {
         "entity_types": list(DEFAULT_ENTITY_TYPES),
-        "confidence_threshold": confidence_threshold,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
+        "chunk_size": DEFAULT_CHUNK_SIZE,
+        "chunk_overlap": DEFAULT_CHUNK_OVERLAP,
     }
 
 
@@ -30,7 +27,7 @@ class ExtractRequest(BaseModel):
     content_id: str = Field(..., description="ID of content to extract from (from Layer 1)")
     source_url: str = Field(..., description="URL of source document")
     markdown_content: str = Field(..., description="Markdown content to extract from")
-    extraction_config: dict = Field(default_factory=dict)
+    extraction_config: dict = Field(default_factory=default_extraction_config)
 
 
 class ExtractResponse(BaseModel):
@@ -91,3 +88,21 @@ class ExtractAndIngestResponse(BaseModel):
     extraction_status: str
     ingestion_status: str
     message: str
+
+
+class QuarantineStatusResponse(BaseModel):
+    """Validation quarantine review payload for failed extraction artifacts."""
+
+    job_id: str
+    quarantine_id: str
+    tenant_id: str
+    source_hash: str
+    model_version: str
+    schema_version: str
+    prompt_template_version: str
+    prompt_template_hash: str | None = None
+    validation_errors: list[str]
+    reason: str
+    review_status: str
+    retry_eligible: bool
+    created_at: datetime

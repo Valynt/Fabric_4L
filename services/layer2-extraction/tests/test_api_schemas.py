@@ -12,6 +12,7 @@ from layer2_extraction.api.main import (
     ExtractRequest,
     ExtractResponse,
     ProvenanceResponse,
+    QuarantineStatusResponse,
     RelationshipsResponse,
 )
 
@@ -99,4 +100,38 @@ def test_list_relationship_and_provenance_response_shapes() -> None:
         "extraction": {"model": "model-a"},
         "steps": [],
         "output": {"entities": []},
+    }
+
+
+def test_quarantine_status_response_preserves_review_payload_shape() -> None:
+    created = datetime(2026, 1, 1, 0, 0, 0)
+
+    assert QuarantineStatusResponse(
+        job_id="job-1",
+        quarantine_id="quarantine-1",
+        tenant_id="tenant-1",
+        source_hash="hash-1",
+        model_version="model-a",
+        schema_version="schema-v1",
+        prompt_template_version="prompt-v1",
+        prompt_template_hash=None,
+        validation_errors=["invalid relationship"],
+        reason="validation_error",
+        review_status="pending",
+        retry_eligible=True,
+        created_at=created,
+    ).model_dump() == {
+        "job_id": "job-1",
+        "quarantine_id": "quarantine-1",
+        "tenant_id": "tenant-1",
+        "source_hash": "hash-1",
+        "model_version": "model-a",
+        "schema_version": "schema-v1",
+        "prompt_template_version": "prompt-v1",
+        "prompt_template_hash": None,
+        "validation_errors": ["invalid relationship"],
+        "reason": "validation_error",
+        "review_status": "pending",
+        "retry_eligible": True,
+        "created_at": created,
     }
