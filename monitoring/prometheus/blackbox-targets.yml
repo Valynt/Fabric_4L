@@ -1,0 +1,52 @@
+# Prometheus scrape config for Blackbox Exporter synthetic probes
+# Add this job to prometheus.yml or as a separate scrape_config file
+scrape_configs:
+  - job_name: "blackbox-health"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          # Replace with actual public-facing URLs for each environment
+          - https://api.value-fabric.com/health
+          - https://api.value-fabric.com/ready
+          - https://app.value-fabric.com/login
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: "blackbox-metrics"
+    metrics_path: /probe
+    params:
+      module: [http_2xx_no_redirect]
+    static_configs:
+      - targets:
+          - https://api.value-fabric.com/metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: "blackbox-tcp"
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - api.value-fabric.com:443
+          - postgres.value-fabric.com:5432
+          - redis.value-fabric.com:6379
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
