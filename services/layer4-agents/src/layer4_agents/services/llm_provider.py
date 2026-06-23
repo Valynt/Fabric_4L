@@ -3,7 +3,6 @@ from __future__ import annotations
 """Minimal LLM provider abstraction for Layer 4 runtime calls."""
 import asyncio
 import logging
-from dataclasses import dataclass
 from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
@@ -15,33 +14,13 @@ from .llm_adapter_interfaces import (
     CompletionRequest,
     CompletionResult,
     ErrorCategory,
+    LLMEmbeddingResponse,
+    LLMTextResponse,
+    LLMUsage,
     StructuredOutputAdapter,
     ToolCall,
     ToolCallingAdapter,
 )
-
-
-@dataclass(frozen=True)
-class LLMUsage:
-    """Token usage returned by an LLM provider."""
-
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-
-
-@dataclass(frozen=True)
-class LLMTextResponse:
-    """Text response returned by an LLM provider."""
-
-    content: str
-    usage: LLMUsage
-
-
-@dataclass(frozen=True)
-class LLMEmbeddingResponse:
-    """Embedding response returned by an LLM provider."""
-
-    embedding: list[float]
 
 
 class LLMProvider(Protocol):
@@ -107,7 +86,7 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
 
     async def embed(self, *, model: str, text: str) -> LLMEmbeddingResponse:
         response = await self._get_client().embeddings.create(model=model, input=text)
-        return LLMEmbeddingResponse(embedding=response.data[0].embedding)
+        return LLMEmbeddingResponse(embeddings=[response.data[0].embedding])
 
     async def complete(self, request: CompletionRequest) -> CompletionResult | AdapterError:
         try:

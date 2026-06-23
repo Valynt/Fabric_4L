@@ -20,12 +20,14 @@ from .llm_adapter_interfaces import (
     CompletionRequest,
     CompletionResult,
     ErrorCategory,
+    LLMEmbeddingResponse,
+    LLMTextResponse,
+    LLMUsage,
     StructuredOutputAdapter,
     ToolCall,
     ToolCallingAdapter,
 )
 from .llm_output_parser import parse_llm_json
-from .llm_provider import LLMEmbeddingResponse, LLMTextResponse, LLMUsage
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +143,7 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
 
     async def embed(self, *, model: str, text: str) -> LLMEmbeddingResponse:
         response = await self._get_client().embeddings.create(model=model, input=text)
-        return LLMEmbeddingResponse(embedding=response.data[0].embedding)
+        return LLMEmbeddingResponse(embeddings=[response.data[0].embedding])
 
     # ------------------------------------------------------------------
     # StructuredOutputAdapter
