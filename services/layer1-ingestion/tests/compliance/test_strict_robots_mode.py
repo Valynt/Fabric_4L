@@ -264,8 +264,8 @@ class TestCrawlDelayApplication:
 
     def test_crawl_delay_respected_in_task(self):
         """Verify that the task layer applies crawl delay via Celery retry."""
-        # TODO(behavior-debt): implement unit test for Celery retry countdown on crawl_delay.
-        pytest.skip("TODO(behavior-debt): crawl-delay Celery retry test not yet implemented")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement unit test for Celery retry countdown on crawl_delay.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): crawl-delay Celery retry test not yet implemented")
 
 
 class TestStrictRobotsModeMetrics:
@@ -273,10 +273,10 @@ class TestStrictRobotsModeMetrics:
 
     def test_strict_mode_block_emits_metric(self):
         """Strict mode blocks should emit a metric for observability."""
-        # TODO(behavior-debt): implement strict robots block metrics.
-        pytest.skip("TODO(behavior-debt): robots block metrics not yet implemented")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement strict robots block metrics.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): robots block metrics not yet implemented")
 
     def test_permissive_mode_no_block_metric(self):
         """Permissive mode should not emit block metric."""
-        # TODO(behavior-debt): implement strict robots block metrics.
-        pytest.skip("TODO(behavior-debt): robots block metrics not yet implemented")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement strict robots block metrics.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): robots block metrics not yet implemented")

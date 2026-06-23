@@ -145,8 +145,8 @@ class TestIdempotencyKeyBehavior:
         self, client, db, org_id, other_org_id, make_target
     ):
         """Idempotency keys should be scoped per tenant."""
-        # TODO(behavior-debt): implement per-tenant idempotency key scoping.
-        pytest.skip("TODO(behavior-debt): idempotency key scoping not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement per-tenant idempotency key scoping.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key scoping not yet implemented")
 
 
 class TestIdempotencyKeyExpiration:
@@ -156,15 +156,15 @@ class TestIdempotencyKeyExpiration:
         self, client, db, org_id, make_target
     ):
         """Idempotency keys should expire after TTL (e.g., 24 hours)."""
-        # TODO(behavior-debt): implement idempotency key TTL and replay semantics.
-        pytest.skip("TODO(behavior-debt): idempotency key TTL not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL not yet implemented")
 
     def test_expired_idempotency_key_allows_new_job(
         self, client, db, org_id, make_target
     ):
         """After expiration, same idempotency_key should allow new job creation."""
-        # TODO(behavior-debt): implement idempotency key TTL and replay semantics.
-        pytest.skip("TODO(behavior-debt): idempotency key TTL not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL not yet implemented")
 
 
 class TestReplayAfterJobCompletion:
@@ -174,15 +174,15 @@ class TestReplayAfterJobCompletion:
         self, client, db, org_id, make_target
     ):
         """Replay after job completion should return completed job status."""
-        # TODO(behavior-debt): implement idempotent replay returning completed status.
-        pytest.skip("TODO(behavior-debt): idempotent replay not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotent replay returning completed status.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay not yet implemented")
 
     def test_replay_after_job_failure_returns_failed_status(
         self, client, db, org_id, make_target
     ):
         """Replay after job failure should return failed job status."""
-        # TODO(behavior-debt): implement idempotent replay returning failed status.
-        pytest.skip("TODO(behavior-debt): idempotent replay not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotent replay returning failed status.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay not yet implemented")
 
 
 class TestIdempotencyKeyValidation:
@@ -192,15 +192,15 @@ class TestIdempotencyKeyValidation:
         self, client, db, org_id, make_target
     ):
         """Invalid idempotency key format should be rejected."""
-        # TODO(behavior-debt): implement idempotency key format validation.
-        pytest.skip("TODO(behavior-debt): idempotency key validation not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key format validation.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key validation not yet implemented")
 
     def test_too_long_idempotency_key_rejected(
         self, client, db, org_id, make_target
     ):
         """Too long idempotency key should be rejected."""
-        # TODO(behavior-debt): implement idempotency key length validation.
-        pytest.skip("TODO(behavior-debt): idempotency key validation not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key length validation.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key validation not yet implemented")
 
 
 class TestIdempotencyKeyMetrics:
@@ -208,10 +208,10 @@ class TestIdempotencyKeyMetrics:
 
     def test_idempotency_key_hit_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key hit should emit metric."""
-        # TODO(behavior-debt): implement idempotency key metrics.
-        pytest.skip("TODO(behavior-debt): idempotency key metrics not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key metrics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics not yet implemented")
 
     def test_idempotency_key_miss_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key miss should emit metric."""
-        # TODO(behavior-debt): implement idempotency key metrics.
-        pytest.skip("TODO(behavior-debt): idempotency key metrics not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key metrics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics not yet implemented")
