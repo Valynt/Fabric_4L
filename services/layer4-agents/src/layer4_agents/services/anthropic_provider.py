@@ -25,7 +25,7 @@ from .llm_adapter_interfaces import (
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from .llm_provider import LLMEmbeddingResponse, LLMTextResponse
+    from .llm_adapter_interfaces import LLMEmbeddingResponse, LLMTextResponse
 
 
 class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputAdapter):
@@ -160,7 +160,7 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
         response_format: dict[str, Any] | None = None,
     ) -> LLMTextResponse:
         """Synchronous-style text completion for LLMProvider protocol compatibility."""
-        from .llm_provider import LLMTextResponse, LLMUsage
+        from .llm_adapter_interfaces import LLMTextResponse, LLMUsage
 
         system, anthropic_messages = self._build_anthropic_messages(messages)
         kwargs: dict[str, Any] = {

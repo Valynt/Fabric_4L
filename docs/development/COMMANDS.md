@@ -125,6 +125,9 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-manifest-secret-hygiene` | Enforce secret-only references and denylisted sensitive patterns in manifests. |
 | `check-path-env-hygiene` | Fail on suspicious path artifacts and unapproved tracked env files. |
 | `check-pytest-skip-governance` | Enforce pytest skip governance. |
+| `check-hermetic-build-inputs` | Enforce digest-pinned Docker base images and approved CI external domains. |
+| `check-production-k8s-mutable-tags` | Fail if production-facing K8s manifests use `:latest` or `:main` image tags. |
+| `check-k8s-image-digests` | Fail if production K8s overlays use mutable image tags. |
 | `check-test-skip-register-uniqueness` | Enforce unique skip register keys. |
 | `check-reports-evidence-policy` | Enforce reports artifact policy. |
 | `check-legacy-debt` | Enforce legacy debt baseline. |
@@ -279,6 +282,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `logs` | Tail service logs. |
 | `build` | Build frontend production bundle. |
 | `docker-build` | Build deployable Docker images locally. |
+| `docker-build-multi` | Build deployable images for `linux/amd64` and `linux/arm64` with `docker buildx`. |
 | `sdk` | Generate the Python SDK. |
 | `evals` | Run agent golden-trace evaluations. |
 | `evals-full` | Run full eval suite. |

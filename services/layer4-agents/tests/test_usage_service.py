@@ -349,7 +349,6 @@ async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
         batch_mock.assert_called_once()
 
 
-@pytest.mark.skip(reason="Requires full FastAPI app context")
 def test_post_events_endpoint(client):
     """Test POST /billing/events endpoint."""
     response = client.post("/billing/events", json={
@@ -363,7 +362,6 @@ def test_post_events_endpoint(client):
     assert response.status_code in [200, 401]  # 401 if auth required
 
 
-@pytest.mark.skip(reason="Requires full FastAPI app context")
 def test_get_usage_summary_endpoint(client):
     """Test GET /billing/usage/{customer_id}/summary endpoint."""
     response = client.get("/billing/usage/user_123/summary?metric_name=requests")

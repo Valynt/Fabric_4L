@@ -328,7 +328,7 @@ class SemanticSearchTool(BaseTool):
             model=self.embedding_model,
             text=text,
         )
-        return response.embedding
+        return response.embeddings[0]
 
     async def execute(self, input_data: SemanticSearchInput) -> SemanticSearchOutput:
         """Execute semantic search against Pinecone vector store with tenant isolation.

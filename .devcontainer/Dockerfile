@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:bookworm
+FROM mcr.microsoft.com/devcontainers/base@sha256:aba0f2e0730af481edf2db5582a80c0ed2591bee78ec177f7fa7a38e8f5e1105
 
 # Install build tools not present in base image
 # (curl, wget, git, gnupg, ca-certificates, jq are already in devcontainers/base:bookworm)

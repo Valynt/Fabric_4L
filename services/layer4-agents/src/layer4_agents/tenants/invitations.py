@@ -12,9 +12,11 @@ import logging
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 import httpx
+import redis
 
 from .email_verification import EmailConfig
 
@@ -40,7 +42,7 @@ class InvitationToken:
 class InvitationService:
     """Service for managing user invitation tokens and emails."""
 
-    def __init__(self, redis_client=None, token_expiry_hours: int = DEFAULT_INVITE_TOKEN_EXPIRY_HOURS) -> None:
+    def __init__(self, redis_client: redis.Redis | None = None, token_expiry_hours: int = DEFAULT_INVITE_TOKEN_EXPIRY_HOURS) -> None:
         self.redis = redis_client
         self.config = EmailConfig.from_env()
         self.token_expiry_hours = max(
@@ -89,7 +91,7 @@ class InvitationService:
 
         key = f"invite:{token}"
         try:
-            data = self.redis.get(key)
+            data = cast(str | None, self.redis.get(key))
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -131,7 +133,7 @@ class InvitationService:
 
         key = f"invite:{token}"
         try:
-            data_str = self.redis.get(key)
+            data_str = cast(str | None, self.redis.get(key))
             if data_str:
                 data = json.loads(data_str)
                 data["used"] = True

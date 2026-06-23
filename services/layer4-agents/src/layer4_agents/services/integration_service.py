@@ -24,7 +24,7 @@ from ..metrics import get_metrics
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
 from ..models.integration import Integration, IntegrationStatus
-from .crm_sync_job_runner import enqueue_crm_sync_job
+from .crm_sync_queue import enqueue_crm_sync_job
 from .encryption_service import DEFAULT_KEY_ID, EncryptionService
 
 

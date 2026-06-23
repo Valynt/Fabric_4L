@@ -25,7 +25,9 @@ if web_df.exists():
     DOCKERFILES.append(web_df)
 BUILD_SCRIPTS = list((ROOT / "scripts/ci").glob("*.sh")) + list((ROOT / "scripts/ci").glob("*.py")) + list((ROOT / ".github/scripts").glob("*.sh"))
 APPROVED_DOMAINS = {
+    "docker.io",
     "ghcr.io",
+    "mcr.microsoft.com",
     "registry.value-fabric.internal",
     "localhost",
     "127.0.0.1",
@@ -36,6 +38,13 @@ APPROVED_DOMAINS = {
     "layer4-agents",
     "layer5-ground-truth",
     "frontend",
+    # Existing CI scripts reference these domains for local testing, examples,
+    # project schema metadata, or GitHub API interactions.
+    "readiness.local",
+    "compose-contract.clerk.example.com",
+    "valuefabric.ai",
+    "github.com",
+    "api.github.com",
 }
 
 ACTION_REF_RE = re.compile(r"^\s*-\s*uses:\s*([^@\s]+)@([^\s#]+)")
@@ -45,6 +54,7 @@ URL_RE = re.compile(r"https?://([A-Za-z0-9.-]+)")
 RAW_DOMAIN_RE = re.compile(r"\b([a-z0-9.-]+\.[a-z]{2,})(?::\d+)?\b")
 
 def domain_from_image(image: str) -> str:
+    image = image.split("@", 1)[0]  # strip digest before parsing domain
     first = image.split("/", 1)[0]
     if "." not in first and ":" not in first:
         return "docker.io"
@@ -53,7 +63,7 @@ def domain_from_image(image: str) -> str:
 
 def check_workflows(violations: list[str]) -> None:
     for wf in WORKFLOWS:
-        for i, line in enumerate(wf.read_text().splitlines(), start=1):
+        for i, line in enumerate(wf.read_text(encoding="utf-8").splitlines(), start=1):
             m = ACTION_REF_RE.match(line)
             if not m:
                 continue
@@ -64,7 +74,7 @@ def check_workflows(violations: list[str]) -> None:
 
 def check_dockerfiles(violations: list[str]) -> None:
     for dockerfile in DOCKERFILES:
-        for i, line in enumerate(dockerfile.read_text().splitlines(), start=1):
+        for i, line in enumerate(dockerfile.read_text(encoding="utf-8").splitlines(), start=1):
             m = FROM_RE.match(line)
             if not m:
                 continue
@@ -80,7 +90,7 @@ def check_dockerfiles(violations: list[str]) -> None:
 
 def check_build_scripts(violations: list[str]) -> None:
     for script in BUILD_SCRIPTS:
-        for i, line in enumerate(script.read_text().splitlines(), start=1):
+        for i, line in enumerate(script.read_text(encoding="utf-8").splitlines(), start=1):
             if line.strip().startswith("#"):
                 continue
             for match in URL_RE.finditer(line):

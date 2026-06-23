@@ -234,8 +234,6 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if rel_path.startswith("services/layer6-benchmarks/tests/"):
                     continue
-                if "scripts/migrate_l6_test_imports_canonical.py" == rel_path:
-                    continue
 
                 content = py_file.read_text(encoding="utf-8")
                 if pattern.search(content):

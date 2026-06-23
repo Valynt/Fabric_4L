@@ -1,0 +1,38 @@
+# Opt-in ARM64 / Apple Silicon override for local development.
+#
+# Usage:
+#   pnpm env:dev  # generates .env.generated
+#   docker compose -f infra/compose/docker-compose.dev.yml \
+#                  -f infra/compose/docker-compose.arm64.yml \
+#                  --env-file .env.generated up -d
+#
+# This forces core infrastructure and buildable services to the linux/arm64
+# platform, avoiding QEMU emulation on Apple Silicon hosts.
+# Services not present in docker-compose.dev.yml (e.g. layer1, layer3, layer5,
+# layer6, layer7) are omitted; use docker-compose.full.yml for the full stack.
+
+services:
+  postgres:
+    platform: linux/arm64
+  pgbouncer:
+    platform: linux/arm64
+  minio:
+    platform: linux/arm64
+  redis:
+    platform: linux/arm64
+  neo4j:
+    platform: linux/arm64
+  keycloak:
+    platform: linux/arm64
+  layer2:
+    platform: linux/arm64
+  layer2-worker:
+    platform: linux/arm64
+  layer2-5:
+    platform: linux/arm64
+  layer4:
+    platform: linux/arm64
+  api-gateway:
+    platform: linux/arm64
+  frontend:
+    platform: linux/arm64

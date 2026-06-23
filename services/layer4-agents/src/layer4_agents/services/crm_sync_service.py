@@ -31,7 +31,6 @@ from ..models.account import (
 from ..models.integration import Integration
 from ..models.tool_schemas import GetProspectDataInput
 from ..tools.crm_tools import GetProspectDataTool
-from .integration_service import IntegrationService
 
 
 class CRMSyncService__get_crm_configResult(TypedDictModel):
@@ -535,6 +534,8 @@ class CRMSyncService:
         SECURITY: Never falls back to environment variables in production.
         Per-tenant integration config is the only authorized source.
         """
+        from .integration_service import IntegrationService
+
         integration_service = IntegrationService(self.db)
         integration: Integration | None = await integration_service.get_integration(
             tenant_id, provider

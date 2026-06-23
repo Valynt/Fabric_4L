@@ -159,6 +159,69 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function parseLogEntry(data: unknown): JobStreamState["logs"][number] | null {
+  if (!isRecord(data)) return null;
+  const result = LogEntrySchema.safeParse({
+    timestamp: data.timestamp,
+    level: data.level,
+    message: data.message,
+  });
+  return result.success
+    ? result.data
+    : {
+        timestamp: "",
+        level: "INFO",
+        message: "",
+      };
+}
+
+function parseEntityEntry(data: unknown): JobStreamState["entities"][number] | null {
+  if (!isRecord(data)) return null;
+  const result = EntityEntrySchema.safeParse({
+    type: data.type,
+    name: data.name,
+  });
+  return result.success
+    ? result.data
+    : {
+        type: "unknown",
+        name: "Unknown",
+      };
+}
+
+function applyJobStreamEvent(
+  previous: JobStreamState,
+  event: JobStreamEvent,
+): JobStreamState {
+  switch (event.type) {
+    case "progress":
+      return {
+        ...previous,
+        progress: typeof event.data === "number" ? event.data : previous.progress,
+      };
+
+    case "status":
+      return {
+        ...previous,
+        status: mapJobStatus(typeof event.data === "string" ? event.data : ""),
+      };
+
+    case "log": {
+      const logEntry = parseLogEntry(event.data);
+      return logEntry ? { ...previous, logs: [...previous.logs, logEntry] } : previous;
+    }
+
+    case "entity": {
+      const entity = parseEntityEntry(event.data);
+      return entity ? { ...previous, entities: [...previous.entities, entity] } : previous;
+    }
+
+    case "complete":
+    case "error":
+      return previous;
+  }
+}
+
 /**
  * Subscribe to real-time job updates via SSE or polling fallback.
  *
@@ -368,82 +431,12 @@ export function useJobStream(jobId: string | null) {
           const parsed = parseJobStreamEventJson(event.data);
           if (parsed === null) return;
 
-          // MANDATE 1: NULL/UNDEFINED SAFETY - All state updates use nullish coalescing
-          setState(prev => {
-            switch (parsed.type) {
-              case "progress":
-                return {
-                  ...prev,
-                  progress:
-                    typeof parsed.data === "number"
-                      ? parsed.data
-                      : prev.progress,
-                };
+          if (parsed.type === "complete" || parsed.type === "error") {
+            cleanup();
+            return;
+          }
 
-              case "status":
-                return {
-                  ...prev,
-                  status: mapJobStatus(
-                    typeof parsed.data === "string" ? parsed.data : ""
-                  ),
-                };
-
-              case "log": {
-                if (!isRecord(parsed.data)) return prev;
-                const validatedLog = LogEntrySchema.safeParse({
-                  timestamp: parsed.data.timestamp,
-                  level: parsed.data.level,
-                  message: parsed.data.message,
-                });
-                // MANDATE 7: BOUNDS - Safe array append with spread
-                return {
-                  ...prev,
-                  logs: [
-                    ...prev.logs,
-                    validatedLog.success
-                      ? validatedLog.data
-                      : {
-                          timestamp: "",
-                          level: "INFO",
-                          message: "",
-                        },
-                  ],
-                };
-              }
-
-              case "entity": {
-                if (!isRecord(parsed.data)) return prev;
-                const validatedEntity = EntityEntrySchema.safeParse({
-                  type: parsed.data.type,
-                  name: parsed.data.name,
-                });
-                return {
-                  ...prev,
-                  entities: [
-                    ...prev.entities,
-                    validatedEntity.success
-                      ? validatedEntity.data
-                      : {
-                          type: "unknown",
-                          name: "Unknown",
-                        },
-                  ],
-                };
-              }
-
-              case "complete":
-              case "error": {
-                // MANDATE 6: Clean up on terminal state
-                cleanup();
-                return prev;
-              }
-
-              default:
-                // MANDATE 2: Exhaustive switch - this should never happen due to Zod enum
-                logWarn("Unhandled event type", { type: parsed.type });
-                return prev;
-            }
-          });
+          setState((prev) => applyJobStreamEvent(prev, parsed));
         } catch (handlerErr) {
           // MANDATE 3: Log but don't break connection
           logError("SSE message handler error", {

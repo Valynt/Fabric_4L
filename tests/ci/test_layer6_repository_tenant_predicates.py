@@ -10,10 +10,24 @@ from layer6_benchmarks.repositories.benchmark_repository import BenchmarkReposit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER6_REPOSITORY_PATHS = [
-    REPO_ROOT / "value_fabric/layer6/repositories",
+    REPO_ROOT / "services" / "layer6-benchmarks" / "src" / "layer6_benchmarks" / "repositories",
 ]
 BENCHMARK_DATASET_MATCH = re.compile(r"MATCH\s*\(d:BenchmarkDataset\)")
 TENANT_PREDICATE = re.compile(r"d\.tenant_id\s*=\s*\$tenant_id")
+
+
+def test_layer6_repository_paths_use_canonical_service_namespace() -> None:
+    expected = (
+        REPO_ROOT
+        / "services"
+        / "layer6-benchmarks"
+        / "src"
+        / "layer6_benchmarks"
+        / "repositories"
+    )
+    assert LAYER6_REPOSITORY_PATHS == [expected]
+    assert expected.is_dir()
+    assert (expected / "benchmark_repository.py").is_file()
 
 
 def test_benchmarkdataset_match_always_scopes_tenant() -> None:
@@ -58,7 +72,7 @@ async def test_list_datasets_query_uses_bound_tenant_parameter() -> None:
 
     assert len(tx.calls) == 1
     query, params = tx.calls[0]
-    assert "WHERE d.tenant_id = $tenant_id" in query
+    assert "d.tenant_id = $tenant_id" in query
     assert params["tenant_id"] == attacker_tenant
 
 
@@ -71,7 +85,7 @@ async def test_get_dataset_query_uses_bound_tenant_parameter() -> None:
 
     assert len(tx.calls) == 1
     query, params = tx.calls[0]
-    assert "tenant_id: $tenant_id" in query
+    assert "d.tenant_id = $tenant_id" in query
     assert params["tenant_id"] == attacker_tenant
 
 

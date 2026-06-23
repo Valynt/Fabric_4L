@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -16,12 +16,10 @@ COPY services/layer2-extraction/pyproject.toml services/layer2-extraction/uv.loc
 RUN uv sync --frozen --no-install-project
 
 COPY services/layer2-extraction/src/ ./src/
-COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY packages/platform-contract/src/python/canonical/ ./canonical/
-COPY services/layer2-extraction/src/layer2_extraction/ ./value_fabric/layer2/
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -36,10 +34,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src
 
 COPY services/layer2-extraction/src/ ./src/
-COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY packages/platform-contract/src/python/canonical/ ./canonical/
-COPY services/layer2-extraction/src/layer2_extraction/ ./value_fabric/layer2/
 
 RUN chown -R appuser:appgroup /app
 USER appuser

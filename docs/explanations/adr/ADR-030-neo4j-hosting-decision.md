@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted — 2026-06-23
 
 ## Context
 
@@ -10,7 +10,7 @@ Fabric_4L requires a graph database for Layer 3 (Knowledge Graph) and Layer 2.5 
 
 ## Decision
 
-### Preferred Path: Managed Neo4j (Neo4j Aura or equivalent)
+### Production Path: Managed Neo4j Aura
 
 **Rationale:**
 - Lowest operational burden: automated backups, patching, scaling, and monitoring
@@ -18,23 +18,24 @@ Fabric_4L requires a graph database for Layer 3 (Knowledge Graph) and Layer 2.5 
 - Professional support and SLAs
 - Compliance certifications (SOC 2, encryption at rest/transit)
 
-**Evaluation Criteria:**
+**Operational requirements:**
 1. **Pricing model:** Per-GB or per-instance; must fit projected data volumes (entity graph, relationship graph, provenance)
 2. **Region availability:** Must be available in the same AWS region as EKS workloads (us-east-1) or support low-latency VPC peering
 3. **VPC connectivity:** PrivateLink, VPC peering, or IP allowlisting for EKS → Neo4j traffic
 4. **Backup SLAs:** Point-in-time recovery, snapshot frequency, export portability
 5. **Compliance:** SOC 2 Type II, encryption standards, audit logging
 
-**If Neo4j Aura is selected:**
+**Production implementation:**
 - Connection details stored in Vault and synced via ExternalSecrets
+- Production overlays delete the in-cluster Neo4j Deployment, Service, and PVCs via `k8s/envs/prod/neo4j-aura-patch.yml`
+- Layer 3 and Layer 4 settings reject in-cluster or insecure Neo4j targets in staging/production
 - Network policy for egress to Aura endpoints
 - Backup validation per Aura SLA
-- Migration plan from self-hosted to Aura (if applicable)
 
 ### Fallback Path: Self-Hosted Neo4j on EKS via Helm
 
 **Rationale:**
-- Required if managed Neo4j is not feasible due to cost, compliance, or data sovereignty constraints
+- Allowed only with explicit architecture/security exception if managed Neo4j is not feasible due to cost, compliance, or data sovereignty constraints
 - Full control over deployment, backups, and networking
 
 **Implementation:**
@@ -61,10 +62,10 @@ Fabric_4L requires a graph database for Layer 3 (Knowledge Graph) and Layer 2.5 
 
 ## Action Items
 
-1. **Procurement/Architecture:** Evaluate Neo4j Aura Professional or Enterprise pricing against projected 12-month graph size
-2. **Network:** Validate VPC peering or PrivateLink latency from EKS worker nodes to Aura endpoints
-3. **Compliance:** Confirm SOC 2 coverage and encryption standards meet Fabric_4L requirements
-4. **Timeline:** Decision required before P0-002 can be fully closed; Helm fallback can be prepared in parallel
+1. **Platform:** Keep `k8s/envs/prod/neo4j-aura-patch.yml` in the production overlay so in-cluster Neo4j is not deployed for production traffic.
+2. **SRE:** Validate Aura endpoint connectivity, backup SLA evidence, and restore/export procedures as release evidence.
+3. **Security:** Keep production/staging startup validation fail-closed for non-Aura or insecure Neo4j targets.
+4. **Architecture:** Prepare Helm fallback only as an exception path, not as the default production deployment.
 
 ## Related
 

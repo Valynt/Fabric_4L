@@ -3,7 +3,7 @@ from __future__ import annotations
 """Layer 4 core adapter interfaces for provider-agnostic LLM orchestration."""
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Protocol
 
@@ -108,4 +108,25 @@ class StructuredOutputAdapter(Protocol):
         schema: dict[str, Any],
     ) -> dict[str, Any] | AdapterError:
         """Return validated structured output or normalized error."""
+
+
+@dataclass
+class LLMUsage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+@dataclass
+class LLMTextResponse:
+    content: str
+    usage: LLMUsage = field(default_factory=LLMUsage)
+    raw: Any = None
+
+
+@dataclass
+class LLMEmbeddingResponse:
+    embeddings: list[list[float]] = field(default_factory=list)
+    usage: LLMUsage = field(default_factory=LLMUsage)
+    raw: Any = None
 

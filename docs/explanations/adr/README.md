@@ -2,7 +2,7 @@
 title: "Architecture Decision Records (ADRs)"
 category: "explanations"
 audience: "advanced"
-last-reviewed: "2026-04-19"
+last-reviewed: "2026-06-23"
 freshness: "current"
 related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../core-concepts/security-model"]
 ---
@@ -11,6 +11,43 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 
 > **What are ADRs?**  
 > Architecture Decision Records capture the context, decision, and consequences of significant architectural choices. They help new team members understand *why* we built things this way, not just *how*.
+
+---
+
+## When to Write an ADR
+
+Write an ADR when a decision is durable, cross-cutting, or expensive to reverse.
+At minimum, use an ADR for:
+
+- **Layer boundaries or canonical runtime paths**: adding, removing, splitting, or renaming layer/service ownership, import roots, deployable service boundaries, or compatibility shims.
+- **Cross-service contracts**: changing API shapes, event envelopes, schema ownership, generated clients, or service-to-service communication patterns.
+- **Tenant isolation, security, or compliance posture**: changing authentication, authorization, tenant scoping, auditability, encryption, data retention, or fail-closed behavior.
+- **Production infrastructure or managed-service strategy**: selecting or replacing databases, queues, object stores, hosting models, network topology, CI/CD gates, or runtime deployment patterns.
+- **Agent, provider, or governance architecture**: changing provider boundaries, workflow orchestration, model governance, prompt/output contracts, or human approval gates.
+- **Accepted exceptions or deprecations**: approving a temporary deviation from a platform rule, superseding an ADR, or setting a compatibility-removal timeline.
+
+## When Not to Write an ADR
+
+Do not write an ADR for changes that are fully explained by an existing ADR,
+runbook, contract, or local implementation note. Prefer a normal PR description
+or targeted documentation update for:
+
+- Bug fixes that preserve existing behavior and contracts.
+- Local implementation details that do not affect a public API, layer boundary, security control, or deployment model.
+- Test-only changes that do not redefine release gates or policy.
+- Operational instructions that belong in a runbook.
+- One-off cleanup that does not create a reusable rule or lasting decision.
+
+## ADR Review Criteria
+
+An ADR is ready for review only when it includes:
+
+- A clear problem statement and scope boundary.
+- The concrete decision, status, date, and decision owner.
+- The alternatives considered, including why rejected options were not chosen.
+- The consequences for contracts, tenant isolation, security, operations, tests, and documentation.
+- A validation or enforcement path, such as CI checks, architecture tests, contract tests, runtime guards, or manual evidence requirements.
+- Any owner and follow-up obligations, including removal dates for temporary compatibility, exception, or migration decisions.
 
 ---
 
@@ -45,7 +82,7 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 | [ADR-027](./ADR-027-shim-removal.md) | Namespace Shim Removal | ✅ Accepted | 2026-06-04 |
 | [ADR-028](./ADR-028-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
 | [ADR-029](./ADR-029-deterministic-entity-id-generation.md) | Deterministic Entity ID Generation | ✅ Accepted | — |
-| [ADR-030](./ADR-030-neo4j-hosting-decision.md) | Neo4j Hosting Decision | Proposed | — |
+| [ADR-030](./ADR-030-neo4j-hosting-decision.md) | Neo4j Hosting Decision | ✅ Accepted | 2026-06-23 |
 | [ADR-031](./ADR-031-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
 
 ---
@@ -110,4 +147,4 @@ To propose a new ADR:
 
 ---
 
-*Last updated: 2026-05-22*
+*Last updated: 2026-06-23*

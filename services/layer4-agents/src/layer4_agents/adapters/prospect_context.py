@@ -8,7 +8,8 @@ from layer4_agents.integration.layer1_client import Layer1IngestionClient
 from layer4_agents.integration.layer2_client import Layer2ExtractionClient
 from layer4_agents.integration.layer3_client import Layer3Client, Layer3ClientError
 from layer4_agents.integration.layer5_client import Layer5GroundTruthClient
-from layer4_agents.interfaces.prospect_context import ProspectContextPort, ProspectContextSources
+
+from ..interfaces.prospect_context import ProspectContextPort, ProspectContextSources
 
 
 class CrossLayerProspectContextAdapter(ProspectContextPort):

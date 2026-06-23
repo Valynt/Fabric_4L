@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -17,7 +17,7 @@ RUN uv pip install "sqlalchemy>=2.0" "pyjwt>=2.8.0" "redis>=5.0"
 
 COPY src/ ./src/
 
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \

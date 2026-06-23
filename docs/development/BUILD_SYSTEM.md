@@ -37,11 +37,13 @@ Use the same runtime family across local development, CI, and container images t
 | Node.js | `22.12.0` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
 | pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
 | Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
-| Python container base | `python:3.11.13-slim-bookworm` | Maintained service Dockerfiles and full/uv service variants | `FROM python:3.11.13-slim-bookworm` in service Dockerfiles |
+| Python container base | `python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1` (`python:3.11.13-slim-bookworm`) | Maintained service Dockerfiles and full/uv service variants | `FROM python@sha256:...` in service Dockerfiles |
+| Node container base | `node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625` (`node:22.12.0-alpine3.20`) | Frontend Dockerfiles | `FROM node@sha256:...` in `apps/web/Dockerfile*` |
 
 Policy notes:
 
 - CI should pin Node setup jobs to `22.12.0` rather than a moving major alias or Node 24 unless the root engine and local setup docs are intentionally upgraded together.
+- Container base images are pinned to cryptographic manifest digests. When refreshing a patch level, update every service Dockerfile together and record the new digest in this matrix.
 - CI should run Python governance, contract, and backend checks on Python 3.11 to match the supported service runtime family.
 - Service Dockerfiles should use the shared Python 3.11 patch image above; update all service Dockerfiles together when refreshing the patch level.
 - If a workflow needs a newer runtime for a one-off tool, document the exception in that workflow and in this matrix before merging the drift.
@@ -86,6 +88,21 @@ python scripts/ci/run_root_aggregate_checks.py --list
 python scripts/ci/run_root_aggregate_checks.py schema
 pnpm test:isolation
 ```
+
+## ARM64 / Apple Silicon Local Development
+
+To avoid QEMU emulation on Apple Silicon hosts, force native `linux/arm64` platforms by layering the opt-in override file on top of the standard dev stack:
+
+```bash
+pnpm env:dev  # generates .env.generated
+docker compose -f infra/compose/docker-compose.dev.yml \
+               -f infra/compose/docker-compose.arm64.yml \
+               --env-file .env.generated up -d
+```
+
+The override applies `platform: linux/arm64` to every service defined in the partial dev stack (postgres, redis, neo4j, minio, keycloak, pgbouncer, layer2, layer2-worker, layer2-5, layer4, api-gateway, and frontend). The same override can be combined with `docker-compose.full.yml` for the full layer stack.
+
+CI builds application images for both `linux/amd64` and `linux/arm64` and publishes a multi-arch manifest. Use `make docker-build-multi` to reproduce the multi-platform build locally with `docker buildx`.
 
 ## Related Documentation
 

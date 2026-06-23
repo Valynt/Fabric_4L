@@ -438,7 +438,7 @@ class TestCRMSyncService:
         mock_service.get_integration.return_value = mock_integration
         mock_service.decrypt_credentials.return_value = {"api_key": "test_key", "api_secret": "test_secret"}
         
-        with patch('layer4_agents.services.crm_sync_service.IntegrationService', return_value=mock_service):
+        with patch('layer4_agents.services.integration_service.IntegrationService', return_value=mock_service):
             # Act
             config = await sync_service._get_crm_config(CRMProvider.SALESFORCE, "tenant-123")
             
@@ -456,7 +456,7 @@ class TestCRMSyncService:
         mock_service = AsyncMock()
         mock_service.get_integration.return_value = None
         
-        with patch('layer4_agents.services.crm_sync_service.IntegrationService', return_value=mock_service):
+        with patch('layer4_agents.services.integration_service.IntegrationService', return_value=mock_service):
             # Act
             config = await sync_service._get_crm_config(CRMProvider.SALESFORCE, "unknown-tenant")
             

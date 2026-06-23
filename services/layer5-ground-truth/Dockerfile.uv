@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 5: Ground Truth Service (uv edition)
-ARG BASE_IMAGE=python:3.11.13-slim-bookworm
+ARG BASE_IMAGE=python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1
 FROM ${BASE_IMAGE} AS builder
 
 # Install build dependencies
@@ -20,7 +20,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv pip sync uv.lock --target /app/venv
 
 # Stage 2: Runtime
-ARG BASE_IMAGE=python:3.11.13-slim-bookworm
+ARG BASE_IMAGE=python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1
 FROM ${BASE_IMAGE} AS runtime
 
 # Install runtime dependencies
