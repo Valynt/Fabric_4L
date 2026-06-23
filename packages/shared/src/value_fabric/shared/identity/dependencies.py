@@ -159,7 +159,16 @@ def _resolve_fastapi_dependencies() -> tuple[Any, Any, Any, Any, Any]:
 
 Depends, HTTPException, Request, status, DependsParam = _resolve_fastapi_dependencies()
 
-from value_fabric.shared.audit import emit_audit_event  # noqa: E402
+# Lazy-load audit to avoid circular import with security.config
+_emit_audit_event = None
+
+def _get_emit_audit_event():
+    global _emit_audit_event
+    if _emit_audit_event is None:
+        from value_fabric.shared.audit import emit_audit_event
+        _emit_audit_event = emit_audit_event
+    return _emit_audit_event
+
 from value_fabric.shared.audit.models import (  # noqa: E402
     AuditAction,
     AuditOutcome,
@@ -554,7 +563,7 @@ def require_privileged_access(
                 )
 
                 await _maybe_await(
-                    emit_audit_event(
+                    _get_emit_audit_event()(
                         action=AuditAction.CROSS_TENANT_ACCESS,
                         outcome=AuditOutcome.SUCCESS,
                         actor_id=context.user_id,
