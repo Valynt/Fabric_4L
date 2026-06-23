@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 1: Data Ingestion Service (uv edition)
 # Stage 1: Builder - installs dependencies using uv.lock
-ARG BASE_IMAGE=python:3.11.13-slim-bookworm
+ARG BASE_IMAGE=python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1
 FROM ${BASE_IMAGE} AS builder
 
 WORKDIR /app
@@ -27,7 +27,7 @@ RUN python -m playwright install chromium
 RUN python -m playwright install-deps chromium
 
 # Stage 2: Runtime - minimal image with only runtime dependencies
-ARG BASE_IMAGE=python:3.11.13-slim-bookworm
+ARG BASE_IMAGE=python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1
 FROM ${BASE_IMAGE} AS runtime
 
 # Install runtime dependencies with retry logic
