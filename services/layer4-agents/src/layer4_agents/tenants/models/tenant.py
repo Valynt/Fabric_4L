@@ -6,13 +6,16 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, DateTime, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...database import Base
+
+if TYPE_CHECKING:
+    from .isolation_tier_history import TenantIsolationTierHistory
 
 
 class TenantStatus(str, Enum):
