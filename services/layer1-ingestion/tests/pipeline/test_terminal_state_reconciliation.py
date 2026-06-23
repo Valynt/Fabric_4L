@@ -373,8 +373,8 @@ class TestNoOrphanedRunningStates:
 
     def test_stuck_jobs_metric_reflects_non_terminal_count(self, db, org_id):
         """The stuck_jobs metric should reflect the count of non-terminal jobs."""
-        # TODO(behavior-debt): implement stuck-jobs reconciliation metrics.
-        pytest.skip("TODO(behavior-debt): stuck-jobs metrics not yet implemented")
+        # TODO(VF-L1-TERMINAL-DEBT-001): implement stuck-jobs reconciliation metrics.
+        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs metrics not yet implemented")
 
 
 class TestRetryMechanismBehavior:
@@ -404,8 +404,8 @@ class TestRetryMechanismBehavior:
 
     def test_retry_countdown_increases(self):
         """Verify that retry countdown increases with each retry."""
-        # TODO(behavior-debt): implement exponential-backoff retry countdown test.
-        pytest.skip("TODO(behavior-debt): retry countdown test not yet implemented")
+        # TODO(VF-L1-TERMINAL-DEBT-001): implement exponential-backoff retry countdown test.
+        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): retry countdown test not yet implemented")
 
 
 # Helper function for tests

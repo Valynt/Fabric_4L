@@ -284,7 +284,7 @@ async def test_graceful_degradation_without_redis():
 # API route tests
 # -----------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="API authentication middleware requires additional setup - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUTH-DEBT-001: API authentication middleware requires additional setup")
 @pytest.mark.asyncio
 async def test_api_list_flags(client: AsyncClient):
     # Seed a system-wide flag directly via service
@@ -306,7 +306,7 @@ async def test_api_list_flags(client: AsyncClient):
     assert any(f["flag_key"] == "api_flag" for f in data)
 
 
-@pytest.mark.skip(reason="API authentication middleware requires additional setup - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUTH-DEBT-001: API authentication middleware requires additional setup")
 @pytest.mark.asyncio
 async def test_api_get_flag(client: AsyncClient):
     async for db in app.dependency_overrides[get_db_from_context]():
@@ -326,7 +326,7 @@ async def test_api_get_flag(client: AsyncClient):
     assert response.json()["flag_key"] == "get_me"
 
 
-@pytest.mark.skip(reason="API authentication middleware requires additional setup - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUTH-DEBT-001: API authentication middleware requires additional setup")
 @pytest.mark.asyncio
 async def test_api_upsert_flag(client: AsyncClient):
     response = await client.put(
@@ -344,7 +344,7 @@ async def test_api_upsert_flag(client: AsyncClient):
     assert data["rollout_percentage"] == 75
 
 
-@pytest.mark.skip(reason="API authentication middleware requires additional setup - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUTH-DEBT-001: API authentication middleware requires additional setup")
 @pytest.mark.asyncio
 async def test_api_delete_flag(client: AsyncClient):
     async for db in app.dependency_overrides[get_db_from_context]():
@@ -363,7 +363,7 @@ async def test_api_delete_flag(client: AsyncClient):
     assert response.status_code == 204
 
 
-@pytest.mark.skip(reason="API authentication middleware requires additional setup - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUTH-DEBT-001: API authentication middleware requires additional setup")
 @pytest.mark.asyncio
 async def test_api_evaluate_flag(client: AsyncClient):
     async for db in app.dependency_overrides[get_db_from_context]():
@@ -389,7 +389,7 @@ async def test_api_evaluate_flag(client: AsyncClient):
 # Audit logging tests
 # -----------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="Audit event mocking has import path issues - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUDIT-DEBT-001: Audit event mocking has import path issues")
 @pytest.mark.asyncio
 async def test_audit_event_emitted_on_create(test_db: AsyncSession, monkeypatch):
     captured = {}
@@ -416,7 +416,7 @@ async def test_audit_event_emitted_on_create(test_db: AsyncSession, monkeypatch)
     assert captured.get("resource_id") == "audit_flag"
 
 
-@pytest.mark.skip(reason="Audit event mocking has import path issues - skip for now")
+@pytest.mark.skip(reason="VF-L4-AUDIT-DEBT-001: Audit event mocking has import path issues")
 @pytest.mark.asyncio
 async def test_audit_event_emitted_on_delete(test_db: AsyncSession, monkeypatch):
     await FeatureFlagService.upsert_flag(
