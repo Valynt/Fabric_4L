@@ -6,23 +6,20 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from datetime import UTC, datetime
 
 import redis.asyncio as redis
 from sqlalchemy import select
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.redis_ha import create_async_redis_client
 
 from ..database import db_session_for_context, get_session_factory
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
 from ..models.integration import IntegrationStatus
+from .crm_sync_queue import CRM_SYNC_QUEUE_KEY, enqueue_crm_sync_job
 
 logger = logging.getLogger(__name__)
-
-CRM_SYNC_QUEUE_KEY = "layer4:crm_sync_jobs"
 
 
 class CRMSyncJobRunner:
@@ -183,26 +180,3 @@ class CRMSyncJobRunner:
                     logger.exception("Failed to emit sync job failure audit event")
 
 
-async def enqueue_crm_sync_job(
-    *,
-    redis_client: redis.Redis | None,
-    job_id: str,
-    tenant_id: str,
-    provider: str,
-) -> None:
-    payload = json.dumps(
-        {"job_id": job_id, "tenant_id": tenant_id, "provider": provider},
-        separators=(",", ":"),
-    )
-    if redis_client is not None:
-        await redis_client.lpush(CRM_SYNC_QUEUE_KEY, payload)
-        return
-
-    redis_url = os.getenv("REDIS_URL")
-    if not redis_url:
-        raise RuntimeError("REDIS_URL must be configured for CRM sync job queueing")
-    temp_client = create_async_redis_client(redis_url, decode_responses=True)
-    try:
-        await temp_client.lpush(CRM_SYNC_QUEUE_KEY, payload)
-    finally:
-        await temp_client.aclose()
