@@ -9,16 +9,12 @@ when, and why - essential for governance, compliance, and incident review.
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...database import Base
-
-if TYPE_CHECKING:
-    from .tenant import Tenant
 
 
 class TenantIsolationTierHistory(Base):
