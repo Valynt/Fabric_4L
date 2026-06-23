@@ -601,8 +601,10 @@ docker-build: ## Build all deployable production Docker images locally
 
 docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm64 (requires docker buildx)
 	@echo "→ Building multi-arch images (requires docker buildx)..."
-	@for ctx in services/api services/layer1-ingestion services/layer2-extraction services/layer2-5-signal-refinery services/layer3-knowledge services/layer4-agents services/layer5-ground-truth services/layer6-benchmarks services/layer7-billing apps/web; do \
+	@set -e; \
+	for ctx in services/api services/layer1-ingestion services/layer2-extraction services/layer2-5-signal-refinery services/layer3-knowledge services/layer4-agents services/layer5-ground-truth services/layer6-benchmarks services/layer7-billing apps/web; do \
 		service=$$(basename $$ctx); \
+		echo "Building $$service..."; \
 		docker buildx build --platform linux/amd64,linux/arm64 -t fabric_4l/$$service:multi-arch $$ctx; \
 	done
 	@echo "✅ Multi-arch build complete"

@@ -18,7 +18,6 @@ COPY services/layer7-billing/pyproject.toml ./pyproject.toml
 RUN uv sync --no-install-project
 
 COPY services/layer7-billing/src/ ./src/
-COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
 FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
@@ -37,7 +36,6 @@ ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
 
 COPY services/layer7-billing/src/ ./src/
-COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
 RUN chown -R appuser:appgroup /app
