@@ -125,16 +125,16 @@ Staging and production evidence will be appended after runtime validation.
   - `scripts/ci/validate-rds-backup.sh`
   - `scripts/ci/validate-elasticache-failover.sh`
 - Neo4j hosting decision ADR: `docs/explanations/adr/ADR-030-neo4j-hosting-decision.md`
-  - Preferred: managed Neo4j Aura evaluation
-  - Fallback: official Neo4j Helm chart on EKS
-  - Raw cluster YAML avoided
+  - Accepted: managed Neo4j Aura is the production path
+  - Fallback: official Neo4j Helm chart on EKS only by explicit architecture/security exception
+  - Production overlay removes in-cluster Neo4j via `k8s/envs/prod/neo4j-aura-patch.yml`
 - **Status:** Implementation complete; static manifest/policy checks passed; staging HA validation blocked pending AWS/staging environment.
 - **Next actions:**
   1. Complete `docs/runbooks/p0-aws-github-environment-setup.md` Sections 1–4
   2. Terraform plan + apply in staging (after P0-010 OIDC configured)
   3. Run `validate-rds-backup.sh fabric-staging` and `validate-elasticache-failover.sh fabric-staging`
   4. Apply K8s ExternalSecrets and test pod connectivity
-  5. Evaluate Neo4j Aura vs. Helm fallback
+  5. Validate Neo4j Aura endpoint connectivity, backup SLA evidence, and restore/export procedures
 
 ## Deferred Gates
 

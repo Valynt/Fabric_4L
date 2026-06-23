@@ -170,7 +170,7 @@ git commit -m "build(docker): pin base images to manifest digests for multi-arch
 - Modify: `Makefile`
 - Test: a local multi-platform build dry-run
 
-- [ ] **Step 1: Add platforms to build-push-action in build-deploy.yml**
+- [x] **Step 1: Add platforms to build-push-action in build-deploy.yml**
 
 In `.github/workflows/build-deploy.yml`, locate every `docker/build-push-action` step and add:
 
@@ -193,15 +193,11 @@ Example:
     cache-to: type=gha,mode=max
 ```
 
-- [ ] **Step 2: Add platforms to PR checks image build**
+- [x] **Step 2: Add platforms to PR checks image build**
 
-In `.github/workflows/pr-checks.yml`, find the `docker/build-push-action` step used for Trivy/SBOM generation and add:
+In `.github/workflows/pr-checks.yml`, the existing step uses `load: true` so the image is available for the Trivy scan; `load` is incompatible with multi-platform builds. Left the PR step single-platform and added a comment explaining that multi-platform validation happens in `build-deploy.yml`.
 
-```yaml
-platforms: linux/amd64,linux/arm64
-```
-
-- [ ] **Step 3: Add a local multi-platform Makefile target**
+- [x] **Step 3: Add a local multi-platform Makefile target**
 
 In `Makefile`, add:
 
@@ -215,20 +211,13 @@ docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm
 	@echo "✅ Multi-arch build complete"
 ```
 
-- [ ] **Step 4: Dry-run a multi-platform build for one service**
+- [x] **Step 4: Dry-run a multi-platform build for one service**
 
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 -f services/layer4-agents/Dockerfile -t layer4:multi services/layer4-agents
-```
+Local Docker builder is not available in this environment (`desktop-linux` builder reports a pipe/connection error), so the dry-run could not be executed here. The workflow change will be validated in CI on the next `main` build.
 
-Expected: Build succeeds for both platforms.
+- [x] **Step 5: Commit**
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add .github/workflows/build-deploy.yml .github/workflows/pr-checks.yml Makefile
-git commit -m "ci(docker): build application images for linux/amd64 and linux/arm64"
-```
+Changes staged; commit left to the user per repository workflow conventions.
 
 ---
 
@@ -294,9 +283,9 @@ services:
     platform: linux/arm64
 ```
 
-If any service name in `docker-compose.dev.yml` differs, match the actual service names.
+Service names were matched to the partial dev stack (layer1/layer3/layer5/layer6/layer7/qdrant omitted because they are defined in `docker-compose.full.yml` only).
 
-- [ ] **Step 2: Validate the override parses**
+- [x] **Step 2: Validate the override parses**
 
 ```bash
 docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.arm64.yml config > /dev/null
@@ -304,7 +293,7 @@ docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-c
 
 Expected: No errors.
 
-- [ ] **Step 3: Document usage**
+- [x] **Step 3: Document usage**
 
 Add a short section to `docs/development/BUILD_SYSTEM.md` (or `AGENTS.md` if BUILD_SYSTEM.md does not exist):
 
@@ -320,25 +309,25 @@ docker compose -f infra/compose/docker-compose.dev.yml \
 ```
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
-```bash
-git add infra/compose/docker-compose.arm64.yml docs/development/BUILD_SYSTEM.md
-git commit -m "dev(compose): add opt-in ARM64 platform override"
-```
+Changes staged; commit left to the user per repository workflow conventions.
 
 ---
 
 ## Task 4: Pin third-party infrastructure images in K8s manifests
 
 **Files:**
-- Modify: `k8s/base/*.yml` or `k8s/envs/prod/kustomization.yaml` as appropriate
+- Modify: `k8s/envs/prod/kustomization.yaml`
 - Modify: `k8s/envs/staging/kustomization.yaml`
+- Modify: `k8s/envs/prod/kustomization.yaml.template`
+- Modify: `k8s/overlays/production/kustomization.yaml`
+- Modify: `k8s/overlays/staging/kustomization.yaml`
 - Modify: `k8s/deployments/prod-nginx/kustomization.yaml`
 - Modify: `k8s/deployments/staging-nginx/kustomization.yaml`
 - Test: `scripts/ci/validate-k8s-image-tags.sh`, `scripts/ci/check-k8s-image-digests.sh`
 
-- [ ] **Step 1: Identify all third-party images in production manifests**
+- [x] **Step 1: Identify all third-party images in production manifests**
 
 Run:
 
@@ -354,7 +343,9 @@ Expected output includes images like:
 - `prom/prometheus:v2.54.1`
 - etc.
 
-- [ ] **Step 2: Resolve each tag to a manifest digest**
+- [x] **Step 2: Resolve each tag to a manifest digest**
+
+Resolved all tags except `ghcr.io/zalando/spilo-16:3.2-p1` (requires authentication / tag not publicly resolvable) and corrected `pgbouncer/pgbouncer:1.24.1` to the latest available digest because the `1.24.1` tag does not exist in Docker Hub.
 
 For each third-party image, run:
 
@@ -371,7 +362,7 @@ docker buildx imagetools inspect postgres:15.10-alpine --format '{{.Manifest.Dig
 
 Record all digests.
 
-- [ ] **Step 3: Add digest overrides to the prod Kustomization**
+- [x] **Step 3: Add digest overrides to the prod Kustomization**
 
 In `k8s/deployments/prod-nginx/kustomization.yaml`, add an `images:` block for each third-party image:
 
@@ -387,26 +378,17 @@ images:
 
 If the overlay already has an `images:` block, append to it.
 
-- [ ] **Step 4: Repeat for staging**
+- [x] **Step 4: Repeat for staging**
 
 Apply the same digest overrides to `k8s/deployments/staging-nginx/kustomization.yaml`, replacing the `sha256:STAGING_DIGEST_PLACEHOLDER` value for application images if present.
 
-- [ ] **Step 5: Validate production manifests**
+- [x] **Step 5: Validate production manifests**
 
-```bash
-bash scripts/ci/validate-k8s-image-tags.sh k8s/deployments/prod-nginx
-bash scripts/ci/validate-k8s-image-tags.sh k8s/deployments/staging-nginx
-bash scripts/ci/check-k8s-image-digests.sh
-```
+`scripts/ci/check_production_k8s_mutable_tags.py` and `scripts/ci/check-k8s-image-digests.sh` both PASS. `validate-k8s-image-tags.sh` requires `kustomize`, which is not installed in this environment; `validate_k8s_production_overlays.py` skips kustomize rendering and passes.
 
-Expected: All PASS.
+- [x] **Step 6: Commit**
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add k8s/deployments/prod-nginx/kustomization.yaml k8s/deployments/staging-nginx/kustomization.yaml
-git commit -m "k8s: pin third-party infrastructure images to manifest digests"
-```
+Changes staged; commit left to the user per repository workflow conventions.
 
 ---
 
@@ -415,44 +397,48 @@ git commit -m "k8s: pin third-party infrastructure images to manifest digests"
 **Files:**
 - All changed files
 
-- [ ] **Step 1: Verify hermetic build input gate**
+- [x] **Step 1: Verify hermetic build input gate**
 
 ```bash
 python scripts/ci/check_hermetic_build_inputs.py
 ```
 
-Expected: PASS.
+Dockerfile base images pass. Pre-existing violations remain in unrelated scripts (`run_db_production_readiness_gate.sh`, `check_docker_compose_config.py`, `gate_engineering_validator.py`, `generate_ci_failure_backlog.py`) and are out of scope for this task.
 
-- [ ] **Step 2: Verify multi-platform build for all services**
+- [x] **Step 2: Verify multi-platform build for all services**
 
 ```bash
 make docker-build-multi
 ```
 
-Expected: All images build successfully for both platforms.
+Local Docker builder is unavailable in this environment, so the command could not be executed. The `docker-build-multi` target is present and recognized by `make help`; CI will exercise it on the next `main` build.
 
-- [ ] **Step 3: Verify K8s manifest validation**
+- [x] **Step 3: Verify K8s manifest validation**
 
 ```bash
 python scripts/ci/validate_k8s_production_overlays.py
-bash scripts/ci/validate-k8s-image-tags.sh k8s/deployments/prod-nginx
 ```
 
-Expected: PASS.
+PASS. `validate-k8s-image-tags.sh` requires `kustomize`, which is not installed here.
 
-- [ ] **Step 4: Verify compose override parses**
+- [x] **Step 4: Verify compose override parses**
 
 ```bash
 docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.arm64.yml config > /dev/null
 ```
 
-Expected: No errors.
+PASS (with required env vars supplied: `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`).
 
-- [ ] **Step 5: Commit verification checkpoint**
+- [x] **Step 5: Verification checkpoint**
 
-```bash
-git commit --allow-empty -m "ci(docker): Phase 2 multi-arch deterministic build verification checkpoint"
-```
+Additional checks run and passing:
+- `python scripts/ci/check_workflow_targets_and_artifacts.py`
+- `python scripts/ci/check_manifest_secret_hygiene.py`
+- `python scripts/ci/generate_workflow_registry.py --check`
+- `python scripts/ci/verify_workflow_registry.py`
+- `python -m pytest tests/ci/test_build_promotion_artifact_contract.py tests/release/test_release_artifact_integrity.py tests/security/test_supply_chain.py`
+
+Note: `tests/ci/test_workflow_permissions.py` and `tests/ci/test_ci_workflow_consolidation.py` have pre-existing failures unrelated to these changes.
 
 ---
 

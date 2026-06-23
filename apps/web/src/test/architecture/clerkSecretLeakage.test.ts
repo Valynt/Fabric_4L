@@ -53,6 +53,21 @@ const ALLOWED_PATTERNS = [
   "VITE_CLERK_SELECT_ORG_URL",
 ];
 
+const SKIPPED_DIRECTORIES = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  ".vitest",
+  "coverage",
+]);
+
+function shouldIncludeSourceFile(fileName: string, extensions: string[]): boolean {
+  const ext = fileName.split(".").pop();
+  return Boolean(ext && extensions.includes(ext));
+}
+
 function walkDir(dir: string, extensions: string[]): string[] {
   const files: string[] = [];
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -60,24 +75,10 @@ function walkDir(dir: string, extensions: string[]): string[] {
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      // Skip node_modules, .git, dist, build, etc.
-      if (
-        entry.name === "node_modules" ||
-        entry.name === ".git" ||
-        entry.name === "dist" ||
-        entry.name === "build" ||
-        entry.name === ".next" ||
-        entry.name === ".vitest" ||
-        entry.name === "coverage"
-      ) {
-        continue;
-      }
+      if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
       files.push(...walkDir(fullPath, extensions));
-    } else if (entry.isFile()) {
-      const ext = entry.name.split(".").pop();
-      if (ext && extensions.includes(ext)) {
-        files.push(fullPath);
-      }
+    } else if (entry.isFile() && shouldIncludeSourceFile(entry.name, extensions)) {
+      files.push(fullPath);
     }
   }
   return files;

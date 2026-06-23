@@ -56,6 +56,38 @@ export function isC1Enabled(): boolean {
   return ENABLE_C1;
 }
 
+function parseSseDataLine(line: string): C1StreamChunk | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("data: ")) return null;
+
+  try {
+    return JSON.parse(trimmed.slice(6)) as C1StreamChunk;
+  } catch (err) {
+    log.warn("Malformed SSE chunk", { errorCode: String(err) });
+    return null;
+  }
+}
+
+function parseFinalBufferedSseChunk(buffer: string): C1StreamChunk | null {
+  const remaining = buffer.trim();
+  if (!remaining.startsWith("data: ")) return null;
+
+  const jsonPart = remaining.slice(6);
+  if (!(jsonPart.endsWith("}") || jsonPart.endsWith("]")) || !isValidJson(jsonPart)) {
+    log.warn("Discarding incomplete final chunk");
+    return null;
+  }
+
+  try {
+    return JSON.parse(jsonPart) as C1StreamChunk;
+  } catch (err) {
+    log.warn("Failed to parse final SSE chunk", {
+      errorCode: String(err),
+    });
+    return null;
+  }
+}
+
 /**
  * Stream C1 response for interactive UI generation.
  * Uses the L4 server-side proxy (`POST /v1/c1/stream`) so the Thesys API
@@ -127,41 +159,13 @@ export async function* streamC1Response(
       buffer = lines.pop() || "";
 
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        if (trimmed.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(trimmed.slice(6)) as C1StreamChunk;
-            yield data;
-          } catch (err) {
-            log.warn("Malformed SSE chunk", { errorCode: String(err) });
-          }
-        }
+        const chunk = parseSseDataLine(line);
+        if (chunk) yield chunk;
       }
     }
 
-    // Process any remaining buffered data - only if it looks complete
-    const remaining = buffer.trim();
-    if (remaining.startsWith("data: ")) {
-      const jsonPart = remaining.slice(6);
-      // Only parse if the JSON looks complete (ends with } or ] and has matching braces)
-      if (
-        (jsonPart.endsWith("}") || jsonPart.endsWith("]")) &&
-        isValidJson(jsonPart)
-      ) {
-        try {
-          const data = JSON.parse(jsonPart) as C1StreamChunk;
-          yield data;
-        } catch (err) {
-          log.warn("Failed to parse final SSE chunk", {
-            errorCode: String(err),
-          });
-        }
-      } else {
-        log.warn("Discarding incomplete final chunk");
-      }
-    }
+    const finalChunk = parseFinalBufferedSseChunk(buffer);
+    if (finalChunk) yield finalChunk;
 
     yield { type: "done" };
   } catch (error) {

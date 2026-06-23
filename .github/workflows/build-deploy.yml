@@ -99,10 +99,11 @@ jobs:
         id: build
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # v5
         with:
-          context: ${{ matrix.layer == 'frontend' && 'frontend' || format('services/{0}', matrix.layer) }}
+          context: ${{ matrix.layer == 'frontend' && 'apps/web' || format('services/{0}', matrix.layer) }}
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |

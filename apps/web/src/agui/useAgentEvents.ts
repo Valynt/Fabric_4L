@@ -138,6 +138,97 @@ export function getMissingActionContextMessage(options: Pick<UseAgentEventsOptio
   return undefined;
 }
 
+function formatAgentTimestamp(timestamp?: string): string {
+  return new Date(timestamp ?? Date.now()).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function initializeExpectedSteps(
+  expectedSteps: Extract<AgentEvent, { type: AgentEventType.RUN_STARTED }>["expectedSteps"],
+): StepSnapshot[] {
+  return (expectedSteps ?? []).map((step) => ({
+    id: step.id,
+    label: step.label,
+    status: "pending",
+  }));
+}
+
+function updateStep(
+  steps: StepSnapshot[],
+  stepId: string,
+  patch: Omit<Partial<StepSnapshot>, "id">,
+): StepSnapshot[] {
+  return steps.map((step) => (step.id === stepId ? { ...step, ...patch } : step));
+}
+
+function appendOrUpdateAgentMessage(
+  messages: AgentMessage[],
+  event: Extract<AgentEvent, { type: AgentEventType.TEXT_MESSAGE_CONTENT }>,
+): AgentMessage[] {
+  const existing = messages.find((message) => message.id === event.messageId);
+  if (existing) {
+    return messages.map((message) =>
+      message.id === event.messageId
+        ? { ...message, content: message.content + event.delta }
+        : message,
+    );
+  }
+
+  return [
+    ...messages,
+    {
+      id: event.messageId,
+      role: "agent",
+      content: event.delta,
+      timestamp: formatAgentTimestamp(event.timestamp),
+    },
+  ];
+}
+
+function createAgentMessagePlaceholder(
+  event: Extract<AgentEvent, { type: AgentEventType.TEXT_MESSAGE_START }>,
+): AgentMessage {
+  return {
+    id: event.messageId,
+    role: "agent",
+    content: "",
+    timestamp: formatAgentTimestamp(event.timestamp),
+  };
+}
+
+function createRunErrorMessage(
+  event: Extract<AgentEvent, { type: AgentEventType.RUN_ERROR }>,
+): AgentMessage {
+  return {
+    id: `err-${Date.now()}`,
+    role: "agent",
+    content: event.retryable
+      ? `I couldn't complete that request: ${event.message}. Please try again.`
+      : `An error occurred: ${event.message}`,
+    timestamp: formatAgentTimestamp(event.timestamp),
+  };
+}
+
+function getCompleteRunMetadata(metadata?: RunMetadata | null) {
+  if (
+    metadata &&
+    typeof metadata.runId === "string" &&
+    typeof metadata.traceId === "string" &&
+    typeof metadata.workflowId === "string" &&
+    typeof metadata.auditEventId === "string"
+  ) {
+    return {
+      runId: metadata.runId,
+      traceId: metadata.traceId,
+      workflowId: metadata.workflowId,
+      auditEventId: metadata.auditEventId,
+    };
+  }
+  return null;
+}
+
 // ── Hook Implementation ─────────────────────────────────────────────────────
 
 export function useAgentEvents({
@@ -194,79 +285,38 @@ export function useAgentEvents({
         setCurrentRunId(event.runId ?? null);
         setRunState("running");
         setLastError(null);
-        // Initialize steps from expectedSteps
-        if (event.expectedSteps) {
-          setSteps(
-            event.expectedSteps.map((s) => ({
-              id: s.id,
-              label: s.label,
-              status: "pending",
-            })),
-          );
-        }
+        setSteps(initializeExpectedSteps(event.expectedSteps));
         break;
       }
 
       case AgentEventType.STEP_STARTED: {
         setSteps((prev) =>
-          prev.map((s) =>
-            s.id === event.stepId
-              ? { ...s, status: "active", startedAt: event.timestamp }
-              : s,
-          ),
+          updateStep(prev, event.stepId, {
+            status: "active",
+            startedAt: event.timestamp,
+          }),
         );
         break;
       }
 
       case AgentEventType.STEP_FINISHED: {
         setSteps((prev) =>
-          prev.map((s) =>
-            s.id === event.stepId
-              ? { ...s, status: event.status, finishedAt: event.timestamp, result: event.result }
-              : s,
-          ),
+          updateStep(prev, event.stepId, {
+            status: event.status,
+            finishedAt: event.timestamp,
+            result: event.result,
+          }),
         );
         break;
       }
 
       case AgentEventType.TEXT_MESSAGE_CONTENT: {
-        // For non-streaming (single delta), add the full message
-        const agentMsg: AgentMessage = {
-          id: event.messageId,
-          role: "agent",
-          content: event.delta,
-          timestamp: new Date(event.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        setMessages((prev) => {
-          // If we already have this messageId, append to it (streaming)
-          const existing = prev.find((m) => m.id === event.messageId);
-          if (existing) {
-            return prev.map((m) =>
-              m.id === event.messageId
-                ? { ...m, content: m.content + event.delta }
-                : m,
-            );
-          }
-          return [...prev, agentMsg];
-        });
+        setMessages((prev) => appendOrUpdateAgentMessage(prev, event));
         break;
       }
 
       case AgentEventType.TEXT_MESSAGE_START: {
-        // Pre-create an empty message placeholder for streaming
-        const placeholder: AgentMessage = {
-          id: event.messageId,
-          role: "agent",
-          content: "",
-          timestamp: new Date(event.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        setMessages((prev) => [...prev, placeholder]);
+        setMessages((prev) => [...prev, createAgentMessagePlaceholder(event)]);
         break;
       }
 
@@ -278,21 +328,8 @@ export function useAgentEvents({
         const output = event.output as {
           actions?: Array<{ label: string; page_action: WorkspacePageActionContract }>;
         } | undefined;
-        const metadata = event.metadata;
-        if (
-          metadata &&
-          output?.actions?.length &&
-          typeof metadata.runId === "string" &&
-          typeof metadata.traceId === "string" &&
-          typeof metadata.workflowId === "string" &&
-          typeof metadata.auditEventId === "string"
-        ) {
-          const runMetadataIds = {
-            runId: metadata.runId,
-            traceId: metadata.traceId,
-            workflowId: metadata.workflowId,
-            auditEventId: metadata.auditEventId,
-          };
+        const runMetadataIds = getCompleteRunMetadata(event.metadata);
+        if (runMetadataIds && output?.actions?.length) {
           setStructuredActions(
             output.actions.map((action) => ({
               label: action.label,
@@ -310,19 +347,7 @@ export function useAgentEvents({
       case AgentEventType.RUN_ERROR: {
         setRunState("error");
         setLastError(event.message);
-        // Add error message to chat
-        const errorMsg: AgentMessage = {
-          id: `err-${Date.now()}`,
-          role: "agent",
-          content: event.retryable
-            ? `I couldn't complete that request: ${event.message}. Please try again.`
-            : `An error occurred: ${event.message}`,
-          timestamp: new Date(event.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) => [...prev, createRunErrorMessage(event)]);
         break;
       }
 
@@ -357,16 +382,11 @@ export function useAgentEvents({
           });
         }
         setSteps((prev) =>
-          prev.map((s) =>
-            s.id === event.toolCallId
-              ? {
-                  ...s,
-                  status: event.success ? "done" : "error",
-                  finishedAt: event.timestamp,
-                  result: event.result,
-                }
-              : s,
-          ),
+          updateStep(prev, event.toolCallId, {
+            status: event.success ? "done" : "error",
+            finishedAt: event.timestamp,
+            result: event.result,
+          }),
         );
         break;
       }

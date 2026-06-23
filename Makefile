@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer4-strict typecheck-layer5 typecheck-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
@@ -23,7 +23,7 @@
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
-	check-temporal-skips \
+	check-temporal-skips check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -71,6 +71,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
+	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
@@ -195,6 +196,21 @@ check-temporal-skips: ## Guard against net-new unregistered hard-coded temporal 
 		--json-out artifacts/temporal-skip-guard.json \
 		--md-out artifacts/temporal-skip-guard.md
 	@echo "✅ Temporal skip guard passed"
+
+check-hermetic-build-inputs: ## Enforce digest-pinned Docker base images and approved external domains in CI inputs
+	@echo "→ Checking hermetic build inputs..."
+	@$(PYTHON) scripts/ci/check_hermetic_build_inputs.py
+	@echo "✅ Hermetic build input checks passed"
+
+check-production-k8s-mutable-tags: ## Fail if production-facing K8s manifests use :latest or :main image tags
+	@echo "→ Checking production K8s manifests for mutable tags..."
+	@$(PYTHON) scripts/ci/check_production_k8s_mutable_tags.py
+	@echo "✅ Production K8s mutable tag check passed"
+
+check-k8s-image-digests: ## Fail if production overlays use mutable image tags
+	@echo "→ Checking K8s production overlays for mutable tags..."
+	@bash scripts/ci/check-k8s-image-digests.sh
+	@echo "✅ K8s image digest check passed"
 
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
 	@$(PYTHON) scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
@@ -582,6 +598,14 @@ docker-build: ## Build all deployable production Docker images locally
 	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
 	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
 	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
+
+docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm64 (requires docker buildx)
+	@echo "→ Building multi-arch images (requires docker buildx)..."
+	@for ctx in services/api services/layer1-ingestion services/layer2-extraction services/layer2-5-signal-refinery services/layer3-knowledge services/layer4-agents services/layer5-ground-truth services/layer6-benchmarks services/layer7-billing apps/web; do \
+		service=$$(basename $$ctx); \
+		docker buildx build --platform linux/amd64,linux/arm64 -t fabric_4l/$$service:multi-arch $$ctx; \
+	done
+	@echo "✅ Multi-arch build complete"
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 

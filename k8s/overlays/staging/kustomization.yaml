@@ -39,6 +39,27 @@ images:
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
     digest: sha256:0aa8f24975fc35f039525dcfabdb6d50b76699407090df0d4c4f73d32cb0e4a7
+  # Infrastructure images are pinned to cryptographic manifest digests.
+  # Resolved: 2026-06-23 with `docker buildx imagetools inspect`.
+  - name: busybox
+    digest: sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+  - name: ghcr.io/external-secrets/external-secrets
+    newName: ghcr.io/external-secrets/external-secrets
+    digest: sha256:39c1c5508ddb89cb0f12023771760174b02e13e7d87959b2d05b53954b606938
+  - name: neo4j
+    digest: sha256:ca5da0c4cb596a9e9097aad8c79c10156f0c6261faa2ddcc74183a1e552554ed
+  - name: pgbouncer/pgbouncer
+    digest: sha256:aa8a38b7b33e5fe70c679053f97a8e55c74d52b00c195f0880845e52b50ce516
+  - name: postgres
+    digest: sha256:a58cec2ba7a60b4c08d51f2ca93c1ad65fbf96e75cf0c89b7c0d2684860d3bb3
+  - name: prom/alertmanager
+    digest: sha256:27c475db5fb156cab31d5c18a4251ac7ed567746a2483ff264516437a39b15ba
+  - name: prom/prometheus
+    digest: sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94
+  - name: redis
+    digest: sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+  # ghcr.io/zalando/spilo-16:3.2-p1 could not be resolved (private/unknown tag);
+  # left at the existing tag until a valid digest is available.
 
 replicas:
   - name: layer1-ingestion

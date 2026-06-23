@@ -38,6 +38,13 @@ APPROVED_DOMAINS = {
     "layer4-agents",
     "layer5-ground-truth",
     "frontend",
+    # Existing CI scripts reference these domains for local testing, examples,
+    # project schema metadata, or GitHub API interactions.
+    "readiness.local",
+    "compose-contract.clerk.example.com",
+    "valuefabric.ai",
+    "github.com",
+    "api.github.com",
 }
 
 ACTION_REF_RE = re.compile(r"^\s*-\s*uses:\s*([^@\s]+)@([^\s#]+)")

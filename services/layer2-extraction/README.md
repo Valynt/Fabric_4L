@@ -1,7 +1,7 @@
 # Layer 2: Ontology-Guided Extraction Pipeline
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: net-new layer logic must go to canonical runtime packages in `value_fabric/layer*/`. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: net-new Layer 2 logic must go to `services/layer2-extraction/src/`. The legacy `value_fabric/layer2/` namespace has been removed per [ADR-027](../../docs/explanations/adr/ADR-027-shim-removal.md). See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Transforms unstructured Markdown content into structured RDF/OWL triples using LLM-guided extraction with strict schema compliance.
 
@@ -285,10 +285,10 @@ Per the Value Fabric specification:
 
 ## Runtime path governance (edit here vs consume there)
 
-- **Canonical runtime implementation (edit here):** `value_fabric/layer2/`
-- **Compatibility/service import surface (consume here):** `services/layer2-extraction/src/layer2_extraction/`
+- **Canonical runtime implementation (edit here):** `services/layer2-extraction/src/`
+- **Canonical import namespace (consume here):** `layer2_extraction.*`
 
-Files in `services/layer2-extraction/src/layer2_extraction/` that overlap canonical modules are compatibility shims that re-export `value_fabric.layer2.*`. Keep extraction/business logic in `value_fabric/layer2/`; keep service-local code limited to wrapper/bootstrap responsibilities.
+`value_fabric/layer2/` has been removed. Do not restore that namespace, copy service files into it during builds, or add new `value_fabric.layer2.*` imports. Keep extraction, API, model, integration, and validation logic under `services/layer2-extraction/src/layer2_extraction/`.
 
 
 ## Migration reproducibility reference
