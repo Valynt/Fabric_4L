@@ -32,32 +32,32 @@ spec:
     - __API_HOST__
   rules:
     - matches:
-        - path: { type: PathPrefix, value: /layer1 }
+        - path: {type: PathPrefix, value: /layer1}
       backendRefs:
         - name: layer1-ingestion
           port: 8000
     - matches:
-        - path: { type: PathPrefix, value: /layer2 }
+        - path: {type: PathPrefix, value: /layer2}
       backendRefs:
         - name: layer2-extraction
           port: 8000
     - matches:
-        - path: { type: PathPrefix, value: /layer3 }
+        - path: {type: PathPrefix, value: /layer3}
       backendRefs:
         - name: layer3-knowledge
           port: 8001
     - matches:
-        - path: { type: PathPrefix, value: /layer4 }
+        - path: {type: PathPrefix, value: /layer4}
       backendRefs:
         - name: layer4-agents
           port: 8000
     - matches:
-        - path: { type: PathPrefix, value: /layer5 }
+        - path: {type: PathPrefix, value: /layer5}
       backendRefs:
         - name: layer5-ground-truth
           port: 8005
     - matches:
-        - path: { type: PathPrefix, value: /layer6 }
+        - path: {type: PathPrefix, value: /layer6}
       backendRefs:
         - name: layer6-benchmarks
           port: 8006

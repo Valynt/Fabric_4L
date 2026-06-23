@@ -2,8 +2,8 @@
  * usePaginatedList — Pagination State Management Hook
  *
  * UI/state-first pagination helper that manages page state, calculations,
- * and navigation methods. Not coupled to useFabricQuery — designed to work
- * with both server-side and client-side pagination patterns.
+ * and navigation methods. Designed to work with both server-side and
+ * client-side pagination patterns.
  *
  * @example Server-side pagination
  * ```ts

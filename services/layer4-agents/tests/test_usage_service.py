@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for UsageService and usage metering endpoints.
 
 Covers:
@@ -7,25 +9,22 @@ Covers:
 - Tenant isolation validation
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventStatus
-from value_fabric.layer4.api.routes.billing import UsageBatchRequest, UsageEventRequest, ingest_usage_batch, ingest_usage_event
-
-# Mock stripe before importing
-mock_stripe_module = MagicMock()
-
-with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
-    from value_fabric.layer4.services.usage_service import UsageService, UsageValidationError
-
+from layer4_agents.api.routes.billing import (
+    UsageBatchRequest,
+    UsageEventRequest,
+    ingest_usage_batch,
+    ingest_usage_event,
+)
+from layer4_agents.models.billing import BillingUsageEvent, UsageEventStatus
+from layer4_agents.services.usage_service import UsageService, UsageValidationError
 
 # =============================================================================
 # Fixtures
@@ -38,6 +37,7 @@ def mock_db():
     session.execute = AsyncMock()
     session.commit = AsyncMock()
     session.add = MagicMock()
+    session.add_all = MagicMock()
     session.flush = AsyncMock()
     session.refresh = AsyncMock()
     session.rollback = AsyncMock()
@@ -141,8 +141,9 @@ async def test_ingest_event_validation_errors(mock_db):
 async def test_ingest_batch_success(mock_db):
     """Test batch ingestion with multiple events."""
     service = UsageService(mock_db, tenant_id="tenant_abc123")
-    mock_db.execute.return_value.scalar_one_or_none.return_value = None
-    
+    # New bulk path uses a single idempotency lookup via result.all()
+    mock_db.execute.return_value = MagicMock(all=MagicMock(return_value=[]))
+
     events = [
         {
             "event_id": f"evt_batch_{i}",
@@ -153,28 +154,32 @@ async def test_ingest_batch_success(mock_db):
         }
         for i in range(5)
     ]
-    
+
     result = await service.ingest_batch(events)
-    
+
     assert result["created"] == 5
     assert result["duplicates"] == 0
     assert result["errors"] == 0
     assert result["error_details"] is None
+    # Bulk insert should use a single add_all + flush
+    mock_db.add_all.assert_called_once()
+    mock_db.flush.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_ingest_batch_validation_errors(mock_db):
     """Test batch ingestion with validation errors."""
     service = UsageService(mock_db, tenant_id="tenant_abc123")
-    
+    mock_db.execute.return_value = MagicMock(all=MagicMock(return_value=[]))
+
     events = [
         {"event_id": "evt_ok", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests"},
         {"event_id": "", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests"},  # Invalid
         {"event_id": "evt_neg", "customer_id": "user_123", "event_name": "api_call", "metric_name": "requests", "quantity": -5},  # Invalid
     ]
-    
+
     result = await service.ingest_batch(events)
-    
+
     assert result["created"] == 1
     assert result["errors"] == 2
     assert len(result["error_details"]) == 2
@@ -282,13 +287,16 @@ async def test_tenant_isolation_in_queries(mock_db):
 def client():
     """FastAPI test client."""
     from fastapi.testclient import TestClient
-    from value_fabric.layer4.api.main import app
+
+    from layer4_agents.api.main import app
     return TestClient(app)
 
 
 @pytest.mark.asyncio
 async def test_ingest_usage_event_blocks_hard_limit(mock_db):
     """Hard-limit plans are denied before usage is consumed."""
+    from datetime import UTC, datetime
+    
     context = MagicMock()
     context.tenant_id = "tenant_abc123"
     request = UsageEventRequest(
@@ -297,19 +305,22 @@ async def test_ingest_usage_event_blocks_hard_limit(mock_db):
         event_name="api_call",
         metric_name="requests",
         quantity=10.0,
+        timestamp=datetime.now(UTC),
     )
 
-    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": False, "error": "Usage limit exceeded for requests", "limit": 100, "current_usage": 100, "overage": 10, "requested": 10.0})), \
-         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
+    with patch("layer4_agents.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": False, "error": "Usage limit exceeded for requests", "limit": 100, "current_usage": 100, "overage": 10, "requested": 10.0})), \
+         patch("layer4_agents.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
         with pytest.raises(Exception) as exc:
             await ingest_usage_event(request=request, db=mock_db, context=context)
-        assert getattr(exc.value, "status_code", None) == 402
+        assert getattr(exc.value, "status_code", None) == 429
         ingest_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
     """Soft-limit plans pass pre-check and continue deterministic ingestion."""
+    from datetime import UTC, datetime
+    
     context = MagicMock()
     context.tenant_id = "tenant_abc123"
     request = UsageBatchRequest(events=[
@@ -319,6 +330,7 @@ async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
             event_name="api_call",
             metric_name="requests",
             quantity=2.0,
+            timestamp=datetime.now(UTC),
         ),
         UsageEventRequest(
             event_id="evt_2",
@@ -326,11 +338,12 @@ async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
             event_name="api_call",
             metric_name="requests",
             quantity=3.0,
+            timestamp=datetime.now(UTC),
         ),
     ])
 
-    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": True})), \
-         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_batch", new=AsyncMock(return_value={"created": 2, "duplicates": 0, "errors": 0, "error_details": None})) as batch_mock:
+    with patch("layer4_agents.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": True})), \
+         patch("layer4_agents.api.routes.billing.UsageService.ingest_batch", new=AsyncMock(return_value={"created": 2, "duplicates": 0, "errors": 0, "error_details": None})) as batch_mock:
         response = await ingest_usage_batch(request=request, db=mock_db, context=context)
         assert response["created"] == 2
         batch_mock.assert_called_once()

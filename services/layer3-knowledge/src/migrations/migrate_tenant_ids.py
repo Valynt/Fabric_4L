@@ -365,7 +365,7 @@ class TenantIdMigration:
                         })
                         logger.info(f"Created constraint: {constraint.name}")
                     except Exception as e:
-                        if "already exists" in str(e):
+                        if "already exists" in repr(e):
                             results.append({
                                 "constraint": constraint.name,
                                 "status": "already_exists"
@@ -374,7 +374,7 @@ class TenantIdMigration:
                             results.append({
                                 "constraint": constraint.name,
                                 "status": "failed",
-                                "error": str(e)
+                                "error": type(e).__name__,
                             })
         
         return TenantIdMigration_create_constraintsResult.model_validate({

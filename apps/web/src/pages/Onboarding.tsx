@@ -5,13 +5,27 @@
  * workspace selection. A future iteration should implement the full onboarding
  * flow (team invites, value pack selection, first account creation, etc.).
  */
-import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
+import { useNavigation } from "@/hooks/useNavigation";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function OnboardingPage() {
+  // Clerk hooks may only be invoked inside <ClerkProvider>. In legacy mode the
+  // provider is not mounted, so render the placeholder without a Clerk name.
+  if (!isClerkAuthEnabled()) {
+    return <OnboardingView firstName={null} />;
+  }
+  return <OnboardingClerkView />;
+}
+
+function OnboardingClerkView() {
   const { user } = useUser();
-  const navigate = useNavigate();
+  return <OnboardingView firstName={user?.firstName ?? null} />;
+}
+
+function OnboardingView({ firstName }: { firstName: string | null }) {
+  const { navigateTo } = useNavigation();
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-8 p-6">
@@ -20,8 +34,8 @@ export default function OnboardingPage() {
           Welcome to ValuePact
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          {user?.firstName
-            ? `Great to have you here, ${user.firstName}.`
+          {firstName
+            ? `Great to have you here, ${firstName}.`
             : "Great to have you here."}{" "}
           Let&apos;s get your workspace set up.
         </p>
@@ -45,7 +59,7 @@ export default function OnboardingPage() {
         </ul>
 
         <div className="mt-6 flex justify-end">
-          <Button onClick={() => navigate("/workspaces")}>
+          <Button onClick={() => navigateTo("workspaces")}>
             Choose a workspace
           </Button>
         </div>

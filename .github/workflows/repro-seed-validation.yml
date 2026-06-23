@@ -7,7 +7,7 @@ on:
       - 'tests/repro-seeds/**'
       - '.github/workflows/repro-seed-validation.yml'
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'scripts/repro-seeds/**'
       - 'tests/repro-seeds/**'

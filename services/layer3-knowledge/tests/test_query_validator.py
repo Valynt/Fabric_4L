@@ -8,7 +8,7 @@ Validates that the query validator correctly identifies:
 
 import pytest
 
-from value_fabric.layer3.security.query_validator import (
+from src.security.query_validator import (
     QueryValidator,
     ValidationFinding,
     ValidationSeverity,
@@ -66,7 +66,7 @@ class TestQueryValidator:
         with pytest.raises(UnscopedQueryError) as exc_info:
             validator.validate(query)
         
-        assert "tenant_id" in str(exc_info.value)
+        assert "unscoped_query" in str(exc_info.value)
     
     def test_invalid_query_no_property_map_raises_error(self, validator):
         """Entity MATCH without any property map raises error."""
@@ -78,7 +78,7 @@ class TestQueryValidator:
         with pytest.raises(UnscopedQueryError) as exc_info:
             validator.validate(query)
         
-        assert "missing tenant_id filter" in str(exc_info.value)
+        assert "unscoped_query" in str(exc_info.value)
     
     def test_invalid_query_multiple_entities_missing_tenant(self, validator):
         """Query with multiple Entity MATCH clauses missing tenant_id on any raises error."""
@@ -91,7 +91,7 @@ class TestQueryValidator:
         with pytest.raises(UnscopedQueryError) as exc_info:
             validator.validate(query)
         
-        assert "missing tenant_id filter" in str(exc_info.value)
+        assert "unscoped_query" in str(exc_info.value)
     
     def test_lenient_validator_logs_warning_but_allows(self, lenient_validator):
         """Lenient validator logs warning but doesn't raise for unscoped queries."""
@@ -141,7 +141,7 @@ class TestQueryValidator:
         with pytest.raises(UnscopedQueryError) as exc_info:
             validator.validate(query)
         
-        assert "missing tenant_id filter" in str(exc_info.value)
+        assert "unscoped_query" in str(exc_info.value)
     
     def test_valid_where_clause_with_tenant(self, validator):
         """WHERE clause with explicit tenant_id check passes.
@@ -412,7 +412,7 @@ class TestQueryValidatorEdgeCases:
             WHERE a.tenant_id = $tenant_id
             RETURN a, b
         """
-        with pytest.raises(UnscopedQueryError, match="missing tenant_id filter for Capability\\(b\\)"):
+        with pytest.raises(UnscopedQueryError, match="unscoped_query"):
             validator.validate_structural_tenant_scope(query)
 
     def test_delete_with_alias_missing_tenant_fails_structural_validation(self, validator):

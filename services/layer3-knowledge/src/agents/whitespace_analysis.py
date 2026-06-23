@@ -189,7 +189,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
                 status="failed",
                 output={},
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                errors=[str(e)],
+                errors=["agent_execution_failed"],
             )
 
     async def _identify_gaps(
@@ -238,6 +238,9 @@ class WhitespaceAnalysisAgent(BaseAgent):
                         "existing_capabilities": existing_capabilities,
                         "tenant_id": tenant_id,
                     },
+                    tenant_id=tenant_id,
+                    require_explicit_tenant_id=True,
+                    query_name="whitespace_analysis.identify_gaps",
                 )
                 async for record in result:
                     gaps.append(
@@ -261,6 +264,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
             "gaps_identified": len(gaps),
             "gaps": gaps,
             "gap_summary": self._summarize_gaps_by_category(gaps),
+            "error": "",
         })
 
 
@@ -295,7 +299,14 @@ class WhitespaceAnalysisAgent(BaseAgent):
 
         async with self._driver.session() as session:
             for cap_id in capabilities:
-                result = await run_validated_query(session, maturity_query, {"cap_id": cap_id, "tenant_id": tenant_id})
+                result = await run_validated_query(
+                    session,
+                    maturity_query,
+                    {"cap_id": cap_id, "tenant_id": tenant_id},
+                    tenant_id=tenant_id,
+                    require_explicit_tenant_id=True,
+                    query_name="whitespace_analysis.assess_maturity",
+                )
                 record = await result.single()
 
                 if record:
@@ -320,6 +331,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
             "total_capabilities_assessed": len(assessments),
             "assessments": assessments,
             "average_maturity_score": self._calculate_average_maturity(assessments),
+            "error": "",
         })
 
 
@@ -367,8 +379,13 @@ class WhitespaceAnalysisAgent(BaseAgent):
         pathways = []
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
-                expansion_query, {"cap_id": target_capability_id, "tenant_id": tenant_id}
+            result = await run_validated_query(
+                session,
+                expansion_query,
+                {"cap_id": target_capability_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="whitespace_analysis.generate_expansion_pathways",
             )
             async for record in result:
                 pathways.append(
@@ -389,6 +406,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
             "starting_capability": target_capability_id,
             "pathways": pathways,
             "total_pathways": len(pathways),
+            "error": "",
         })
 
 

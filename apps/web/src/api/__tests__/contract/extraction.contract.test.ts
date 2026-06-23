@@ -263,7 +263,7 @@ describe('Contract: extraction auth failures', () => {
   it('401 matches ApiError shape', () => {
     assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-extract-401' },
+      { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-extract-401' } },
       'ApiError (401)'
     );
   });
@@ -271,20 +271,20 @@ describe('Contract: extraction auth failures', () => {
   it('403 cross-tenant job access matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Extraction job belongs to a different tenant', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-extract-403' },
+      { error: { message: 'Extraction job belongs to a different tenant', code: 'AUTHORIZATION_ERROR', request_id: 'trace-extract-403' } },
       'ApiError (403 cross-tenant)'
     );
-    expect(err.code).toBe('AUTHORIZATION_ERROR');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('AUTHORIZATION_ERROR');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('job not found 404 matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Extraction job not found', code: 'NOT_FOUND', trace_id: 'trace-extract-404' },
+      { error: { message: 'Extraction job not found', code: 'NOT_FOUND', request_id: 'trace-extract-404' } },
       'ApiError (404)'
     );
-    expect(err.code).toBe('NOT_FOUND');
+    expect(err.error.code).toBe('NOT_FOUND');
   });
 });
 

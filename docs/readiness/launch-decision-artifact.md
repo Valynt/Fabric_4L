@@ -1,10 +1,11 @@
-d# Launch Decision Artifact (Canonical)
+# Launch Decision Artifact (Canonical)
 
 - **Owner:** Release Management (Engineering)
-- **Last Updated (UTC):** 2026-05-21
+- **Last Updated (UTC):** 2026-06-15
 - **Scope:** Production launch go/no-go decision package for Value Fabric.
 - **Aligned Runbook:** `docs/runbooks/deployment-rollout-and-rollback.md`
 - **Primary Readiness Criteria Source:** `docs/readiness/current.md`
+- **Current Posture:** **BLOCKED** on the current repository state as of 2026-06-21. Newer local evidence shows launch-gate drift, tenant-isolation regression, contract drift, and stale/failing release artifacts. The repository cannot claim GO or GO WITH ACCEPTED RISKS until these are remediated. See `.windsurf/plans/launch-readiness-2026-06-21.md` for the verified assessment and remediation plan.
 
 ## 1) Consolidated Evidence Ledger
 
@@ -12,17 +13,80 @@ This table maps each launch criterion in `docs/readiness/current.md` to objectiv
 
 | Launch criterion (`docs/readiness/current.md`) | Objective evidence artifact(s) | Verification command or source | Status owner |
 |---|---|---|---|
-| 1. `make verify` passes with no failing gate | `artifacts/release/gate-result.json`, CI job log for verify gate | `make verify` | Engineering |
+| 1. `make verify` passes with no failing gate | `artifacts/readiness/make-verify-2026-06-15.log`; contract-static 420 passed/33 skipped/1 xfailed; security smoke 13 passed/1 xfailed; behavior-readiness YELLOW (0 blocking skips); structural preflight 0 findings; docs-harness pass. | `make verify` | Engineering |
+| 1a. Repository-owned `make verify` sub-gates | Local evidence: `make lint` ✅, `make typecheck` ✅, `make security-smoke` ✅, `make verify-structure` ✅, behavior-readiness ✅, docs-harness ✅, contract-static ✅ | 2026-06-15 sweep | Engineering |
+| 1b. `make verify` blockers remaining | **R-2026-06-13-01** and **R-2026-06-13-02** are closed in the 2026-06-15 sweep. No repository-owned blockers remain. | `make verify`, `make contract-tests`, `make test` | Engineering |
 | 2. Contract lint + tool contract checks pass | `artifacts/release/gate-result.json`, contract-check step logs | `python scripts/ci/platform_contract_lint.py` + `python scripts/ci/check_tool_contracts.py` | Engineering |
-| 3. Security smoke tests pass | Security smoke-test CI logs, release summary | `scripts/ops/release-gate.sh` (security checks section) | Security |
+| 3. Security smoke/regression checks pass | Security smoke-test CI logs, release summary | `scripts/ops/release-gate.sh` (security checks section); local: `make security-smoke` → 13 passed, 1 xfailed | Security |
 | 4. Graph Query module gate passes on PR + release branches | `.github/workflows/graph-module-tests.yml` run summaries and coverage artifacts | GitHub Actions workflow execution on PR + release branch | Engineering |
 | 5. Release gate report indicates no P0 blockers | `artifacts/release/gate-result.json`, `artifacts/release/summary.md` | `scripts/ops/release-gate.sh` + `scripts/ops/render-release-summary.sh` | Engineering + Product |
 | 6. Launch readiness percentage aligned across canonical docs | `docs/readiness/current.md` and launch docs consistency checks | Docs review + release checklist validation | Product + Operations |
 | Tenant isolation regression-free | Tenant isolation test reports and targeted logs | `pytest tests/security -k tenant` (or equivalent service-specific tenant suites) | Security + Engineering |
 | L3 Neo4j tenant scoping hardened | 49/49 hostile cross-tenant tests pass (`tests/security/test_benchmarks_cross_tenant_isolation.py`, `test_variables_cross_tenant_isolation.py`, `test_models_cross_tenant_isolation.py`, `test_formula_governance_cross_tenant_isolation.py`); Neo4j schema migration `030_neo4j_tenant_id_constraints_and_indexes.py` created with idempotent NOT NULL constraints + indexes on 7 node labels; migration registry at `services/layer3-knowledge/src/migrations/MIGRATIONS.md` | `pytest tests/security/test_benchmarks_cross_tenant_isolation.py tests/security/test_variables_cross_tenant_isolation.py tests/security/test_models_cross_tenant_isolation.py tests/security/test_formula_governance_cross_tenant_isolation.py --no-mandatory-dep-check -q` → 49 passed | Security + Engineering |
 | L3 import topology fixed | 14 previously-blocked test files now collect (55 tests); resolved: 12 git merge conflicts across layer3-knowledge/src, 4 bare `agents.base` imports, 3 bare `config` imports, `config/__init__.py` relative import, `TypedDict` namespace, missing `rdflib`/`neo4j`/`langgraph` deps in pytest venv, `app_monolith.py` shim, `_get_tenant_context` function; `pytest.ini` updated with `testpaths = services/layer3-knowledge`; `services/layer3-knowledge/conftest.py` updated with sys.path guard | `pytest tests/layer3/ tests/ci/test_layer3_settings_import_compat.py tests/performance/test_performance_optimizations.py tests/security/test_layer3_similarity_roi_tenant_isolation.py tests/security/test_neo4j_cross_tenant_write_isolation.py --collect-only --no-mandatory-dep-check -q` → 55 collected, 0 errors | Engineering |
-| Live workflow validation passes | E2E critical-path smoke script at `scripts/e2e/critical_path_smoke.py`; dry-run artifact at `signoff-evidence/e2e/e2e-critical-path-20260521.json`; **REQUIRES live stack** (`docker-compose -f docker-compose.live.yml up -d`) for full PASS — run `python scripts/e2e/critical_path_smoke.py` against live stack and commit updated artifact | `python scripts/e2e/critical_path_smoke.py` (requires live docker-compose stack) | Operations |
+| Live workflow validation passes | E2E critical-path smoke script at `scripts/e2e/critical_path_smoke.py`; artifact at `signoff-evidence/e2e/e2e-critical-path-20260614.json`; Playwright live P0 evidence in progress at `signoff-evidence/e2e/e2e-live-p0-20260613.json` | `python scripts/e2e/critical_path_smoke.py --host` against live stack; **PASS** `overall=pass`, `passed=12`, `failed=0` | Operations |
 | Security regression suite stable | Security regression test artifacts | `pytest tests/security` | Security |
+| Rollback readiness | Release rollback procedure + DB migration rollback tests | `python scripts/ci/verify_release_rollback.py` → **PASS** 8/8 | SRE + Engineering |
+
+## 1b) Runtime Certification Evidence (2026-06-14)
+
+Evidence collected against the local Docker staging surrogate for candidate `rc-2026-06-13-116815f3`.
+
+| Criterion | Evidence artifact | Result | Notes |
+|---|---|---|---|
+| P0-001 — Playwright backend-integrated journeys | `signoff-evidence/p0-journeys-20260613.json` | **ACCEPTED RISK — pending sign-off** | Legacy/mock-auth frontend no longer crashes. Auth fixture seeds backend session and persists `vf_session`/`vf_csrf_token` cookies. Missing `case-meridian-e2e-001` seed added. **Repository-owned route drift fixed** in `j1-golden-path-backend-integrated.spec.ts` and `j20-billing-entitlement-gates.spec.ts` (`/settings/*` → `/t/:tenantSlug/settings/*`); `apps/web` typecheck passes. Full staging execution still required for evidence. |
+| P0-002 — Rollback / restore drill | `signoff-evidence/p0-rollback-20260613.json` | **ACCEPTED RISK — pending sign-off** | Image-only rollback of Layer 4 to the previous release-smoke image failed (`ModuleNotFoundError: No module named 'canonical'`). The rollback runbook now documents that safe rollback requires immutable commit-pinned images or coordinated source+dependency rollback. Static rollback verifier passes 8/8. A full environment rehearsal remains required. |
+| P0-003 — Enterprise SSO/OIDC | `signoff-evidence/p0-sso-20260613.json` | **ACCEPTED RISK — pending sign-off** | Local Keycloak surrogate (`vf-dev-keycloak`, port 8080, realm `fabric`) is running. Direct-access grants enabled for public client `fabric-frontend`. Token issuance verified for `admin`/`admin` and `analyst`/`analyst`; access tokens contain `realm_access.roles`, `tenant_id`, and `org_id` attributes. Real enterprise IdP integration remains environment-dependent. |
+| P1 operational evidence | `signoff-evidence/p1-operational-20260613.json` | **DEFERRED/PARTIAL** | 2 verified (auth fail-closed, critical-path smoke), 1 partial (metrics endpoints), 4 deferred (alert receivers, billing, live LLM, dashboards/log aggregation). |
+| Local live-stack health | `signoff-evidence/e2e/e2e-critical-path-20260614.json` | **PASS** | All six layers `/health` and `/ready` return 200; critical-path smoke passes 12/0. |
+
+## 1c) Final Recommendation
+
+**Decision:** **BLOCKED** on the current repository state.
+
+**Evidence summary:**
+- ❌ `artifacts/release/gate-result.json` is stale (2026-05-02) and reports FAIL; `artifacts/release/release-readiness-report.md` (2026-06-21) reports `Release eligible: False`, `Decision: blocked`.
+- ❌ `artifacts/security/tenant-isolation-summary.md` (2026-06-21) reports cross-layer tenant isolation matrix exit 1.
+- ❌ `artifacts/arch/summary.md` reports 1 contract drift violation.
+- ❌ Launch-gate path drift: `.github/workflows/smoke-gate.yml` and `scripts/smoke/production_smoke.py` are missing; `.github/workflows/prod-readiness.yml` resolves required artifacts (`tenant-isolation-results.json`, `auth-endpoint-coverage.json`, `migration-rollback-test-output.txt`, `red-dashboard-snapshot-metadata.json`) that do not exist locally.
+- ❌ `artifacts/smoke/`, `artifacts/obs/`, `artifacts/agent/` are empty; `artifacts/state/` contains only `gate-state.xml`.
+- ⚠️ P0-001 Playwright launch journeys, P0-002 rollback rehearsal, and P0-003 enterprise SSO/OIDC remain environment-dependent, but they cannot be accepted as risks while repository-owned blockers above remain unresolved.
+- ⚠️ P1 operational evidence remains incomplete and will require waivers after repository-owned gates are green.
+
+**Required before reconsidering GO / GO WITH ACCEPTED RISKS:**
+1. Resolve all items in `.windsurf/plans/launch-readiness-2026-06-21.md` Section 5 (top 5 blockers).
+2. Re-run `make verify`, `make production-readiness-gate`, and `make release-gate PROFILE=release-candidate` successfully.
+3. Collect fresh retained artifacts for arch, security, state, agent, obs, and smoke gates.
+4. Collect countersigned waivers for environment-dependent P0/P1 items.
+
+**Required before removing accepted-risk status (path to unconditional GO):**
+1. Execute P0 Playwright launch journeys in a Clerk-configured staging environment and attach retained JUnit/trace evidence (or sign a scope-reduction waiver).
+2. Rehearse and document a production-like rollback using immutable, version-pinned images and attach passing recovery evidence (or sign a waiver).
+3. Configure an enterprise IdP and complete SSO/OIDC validation (or sign a waiver).
+4. Obtain countersigned waivers for all accepted P0/P1 risks recorded in `production-readiness/risk_register.md` and `docs/launch/launch-blocker-register.md`.
+5. Exercise P1 operational items in a configured environment with provider credentials.
+
+### Convert NO GO to GO classification (2026-06-15)
+
+The focused "Convert NO GO to GO" mission re-classified the remaining blockers as runtime/environment-dependent:
+
+- **P0-001** — Playwright journey route/UX drift in tenant-scoped settings; requires configured staging + Playwright.
+- **P0-002** — Rollback doctrine is repository-complete; requires production-like rehearsal.
+- **P0-003** — SSO/OIDC code is complete; requires real enterprise IdP configuration.
+- **P1 areas** — Billing, alerting, telemetry, live LLM, and dashboards/SLOs are EXTERNAL; operational runbooks are VERIFIED.
+
+Full dependency request and risk acceptance statement: `docs/launch/runtime-dependency-report-2026-06-15.md`.
+
+## 1d) Multi-Function Sign-Off Status
+
+Launch cannot proceed without explicit sign-off. The **GO WITH ACCEPTED RISKS** posture is contingent on countersigned waivers for the environment-dependent P0/P1 items listed in `production-readiness/risk_register.md`.
+
+| Function | Owner | Sign-off status | Timestamp (UTC) | Notes |
+|---|---|---|---|---|
+| Engineering | _TBD_ | Pending countersignature | _TBD_ | Repository-owned gates pass; countersignature required for accepted-risk waivers. |
+| Security | _TBD_ | Pending countersignature | _TBD_ | Security smoke and tenant-architecture tests pass; countersignature required for SSO/OIDC and isolation waivers. |
+| Product | _TBD_ | Pending countersignature | _TBD_ | Countersignature required for launch scope reduction / accepted-risk waivers. |
+| Operations | _TBD_ | Pending countersignature | _TBD_ | Static DR/release evidence passes; countersignature required for rollback-rehearsal and observability waivers. |
 
 ## 1a) Phase 1 Implementation Evidence (2026-05-21)
 
@@ -126,12 +190,14 @@ Launch cannot proceed without explicit sign-off from:
 - Product owner
 - Operations owner
 
+The **GO WITH ACCEPTED RISKS** posture is contingent on countersigned waivers for the environment-dependent P0/P1 items recorded in `production-readiness/risk_register.md` and `docs/launch/launch-blocker-register.md`.
+
 | Function | Owner | Sign-off status | Timestamp (UTC) | Notes |
 |---|---|---|---|---|
-| Engineering | _TBD_ | Pending | _TBD_ |  |
-| Security | _TBD_ | Pending | _TBD_ |  |
-| Product | _TBD_ | Pending | _TBD_ |  |
-| Operations | _TBD_ | Pending | _TBD_ |  |
+| Engineering | _TBD_ | Pending countersignature | _TBD_ | Repository-owned gates pass; countersignature required for accepted-risk waivers. |
+| Security | _TBD_ | Pending countersignature | _TBD_ | Security smoke and tenant-architecture tests pass; countersignature required for SSO/OIDC and isolation waivers. |
+| Product | _TBD_ | Pending countersignature | _TBD_ | Countersignature required for launch scope reduction / accepted-risk waivers. |
+| Operations | _TBD_ | Pending countersignature | _TBD_ | Static DR/release evidence passes; countersignature required for rollback-rehearsal and observability waivers. |
 
 ## 5) Launch Execution Controls
 

@@ -7,7 +7,7 @@ Validates that Layer 4 tools conform to CONTRACT.md §2.4:
 - Proper error structure with recoverable flag
 
 Usage:
-    python3 scripts/ci/check_tool_contracts.py services/layer4-agents/src/tools/
+    python3 scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 """
 
 from __future__ import annotations
@@ -160,7 +160,7 @@ def main() -> int:
     print("=" * 60)
 
     if not all_violations:
-        print("✅ No contract violations found")
+        print("PASS No contract violations found")
         return 0
 
     # Group by rule

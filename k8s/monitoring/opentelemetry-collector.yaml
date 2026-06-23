@@ -1,23 +1,11 @@
-apiVersion: opentelemetry.io/v1alpha1
+# yaml-language-server: $schema=./kubernetes-resource.schema.json
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: value-fabric-collector
+  name: value-fabric-otel
   namespace: monitoring
-  labels:
-    app: opentelemetry
-    tier: observability
 spec:
   mode: deployment
-  replicas: 1
-  # P1-18 FIX: Add pod security context
-  podSecurityContext:
-    runAsNonRoot: true
-    seccompProfile:
-      type: RuntimeDefault
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
   config: |
     receivers:
       otlp:
@@ -26,119 +14,17 @@ spec:
             endpoint: 0.0.0.0:4317
           http:
             endpoint: 0.0.0.0:4318
-      
-      prometheus:
-        config:
-          scrape_configs:
-            - job_name: 'otel-collector'
-              scrape_interval: 30s
-              static_configs:
-                - targets: ['localhost:8888']
-    
+
     processors:
-      batch:
-        timeout: 1s
-        send_batch_size: 1024
-      
-      resource:
-        attributes:
-          - key: environment
-            value: production
-            action: upsert
-          - key: service.namespace
-            value: value-fabric
-            action: upsert
-      
-      tail_sampling:
-        decision_wait: 10s
-        num_traces: 100000
-        expected_new_traces_per_sec: 1000
-        policies:
-          - name: errors
-            type: status_code
-            status_code: {status_codes: [ERROR, UNSET]}
-          - name: latency
-            type: latency
-            latency: {threshold_ms: 1000}
-          - name: probabilistic
-            type: probabilistic
-            probabilistic: {sampling_percentage: 10}
-    
+      batch: {}
+
     exporters:
-      jaeger:
-        endpoint: jaeger-collector.monitoring.svc.cluster.local:14250
-        tls:
-          insecure: true
-
-      prometheus:
-        endpoint: 0.0.0.0:8889
-        namespace: otel
-
       logging:
-        loglevel: info
-
-    extensions:
-      health_check:
-        endpoint: 0.0.0.0:13133
-        path: /health
-
-      pprof:
-        endpoint: 0.0.0.0:1777
-
-      zpages:
-        endpoint: 0.0.0.0:55679
+        verbosity: normal
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [batch, resource, tail_sampling]
-          exporters: [jaeger, logging]
-        
-        metrics:
-          receivers: [prometheus, otlp]
-          processors: [batch, resource]
-          exporters: [prometheus, logging]
-      
-      extensions: [health_check, pprof, zpages]
-  
-  resources:
-    limits:
-      cpu: "1000m"
-      memory: "2Gi"
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-  
-  serviceAccount: otel-collector
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: otel-collector
-  namespace: monitoring
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: otel-collector-role
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "nodes", "services", "endpoints"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets"]
-    verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: otel-collector-binding
-subjects:
-  - kind: ServiceAccount
-    name: otel-collector
-    namespace: monitoring
-roleRef:
-  kind: ClusterRole
-  name: otel-collector-role
-  apiGroup: rbac.authorization.k8s.io
+          processors: [batch]
+          exporters: [logging]

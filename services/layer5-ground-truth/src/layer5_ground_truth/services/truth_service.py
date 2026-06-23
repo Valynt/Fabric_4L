@@ -92,7 +92,12 @@ async def create_truth_object(
         notes="Initial extraction",
     )
     db.add(initial_event)
-    await db.flush()  # Flush so the event has an ID and can be loaded by refresh
+    try:
+        await db.flush()  # Flush so the event has an ID and can be loaded by refresh
+    except Exception:
+        from .audit_write_monitor import record_audit_write_failure
+        record_audit_write_failure()
+        raise
 
     # Attach sources if provided
     if sources:
@@ -310,60 +315,6 @@ async def validate_truth_object(
         )
     else:
         raise ValueError(f"Unknown validation action: {action!r}")
-
-
-# ---------------------------------------------------------------------------
-# Freshness monitor
-# ---------------------------------------------------------------------------
-
-
-async def mark_expired_objects(db: AsyncSession, tenant_id: UUID) -> int:
-    """
-    Transition all TruthObjects past their expires_at date to EXPIRED status.
-
-    Returns the number of objects marked expired.
-    """
-    now = datetime.now(UTC)
-
-    stmt = (
-        select(TruthObject)
-        .options(selectinload(TruthObject.sources))
-        .where(
-            and_(
-                TruthObject.tenant_id == tenant_id,
-                TruthObject.deleted_at.is_(None),
-                TruthObject.status.in_([TruthStatus.VALIDATED.value, TruthStatus.DISPUTED.value]),
-                TruthObject.expires_at.isnot(None),
-                TruthObject.expires_at <= now,
-            )
-        )
-    )
-    result = await db.execute(stmt)
-    expired_truths = result.scalars().all()
-
-    expired_count = 0
-    for truth in expired_truths:
-        try:
-            await _state_machine.expire(
-                db,
-                truth,
-                notes=f"Automatically expired: expired at {truth.expires_at.isoformat()}",
-            )
-            expired_count += 1
-        except Exception:
-            logger.warning(
-                "Failed to expire TruthObject %s (status=%s)",
-                truth.id,
-                truth.status,
-                exc_info=True,
-            )
-
-    logger.info(
-        "Marked %d TruthObjects as expired for org %s",
-        expired_count,
-        tenant_id,
-    )
-    return expired_count
 
 
 # ---------------------------------------------------------------------------

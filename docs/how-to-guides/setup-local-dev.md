@@ -2,7 +2,7 @@
 title: "Local Development Setup"
 category: "how-to-guides"
 audience: "intermediate"
-last-reviewed: "2026-05-04"
+last-reviewed: "2026-06-12"
 freshness: "current"
 related: ["../getting-started/quickstart", "../getting-started/environment", "../core-concepts/architecture", "../core-concepts/security-model", "../troubleshooting/index", "../troubleshooting/runbooks/infrastructure/service-down"]
 ---
@@ -23,8 +23,9 @@ Before starting:
 
 1. Complete the [Quickstart Guide](../getting-started/quickstart.md)
 2. Install development tools:
-   - Python 3.11+
-   - Node.js 20+
+   - Python 3.11+ (any patch release; Python 3.11.10 is not specifically required; Make targets resolve `python3.11` first and otherwise require a `python3`/`python` shim that reports >=3.11)
+   - Node.js 22.12.0+
+   - pnpm 10.18.1 (via corepack)
    - VS Code (recommended) or PyCharm
    - Git with SSH key configured
 
@@ -102,13 +103,15 @@ graph TB
 git clone git@github.com:bmsull560/Fabric_4L.git
 cd Fabric_4L
 
-# Create Python virtual environments for each layer
-cd value-fabric
+# Select Python 3.11 if your shell does not already provide python3.11
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
 
+# Create Python virtual environments for each layer
 # Layer 1
-python -m venv layer1-ingestion/.venv
-source layer1-ingestion/.venv/bin/activate  # Windows: .\layer1-ingestion\.venv\Scripts\activate
-pip install -e layer1-ingestion/[dev]
+python3.11 -m venv services/layer1-ingestion/.venv
+source services/layer1-ingestion/.venv/bin/activate  # Windows: .\services\layer1-ingestion\.venv\Scripts\activate
+pip install -e services/layer1-ingestion/[dev]
 deactivate
 
 # Repeat for layers 2-4...
@@ -140,6 +143,8 @@ When building services via Docker Compose, this override is automatically passed
 
 ## Step 3: Configure Hot Reload
 
+> **Note:** The architecture diagram ports are illustrative. Actual service ports depend on your `.env`/Compose configuration and the command-line flags used below.
+
 ### Layer 1 (Ingestion)
 
 ```bash
@@ -166,14 +171,14 @@ cd services/layer2-extraction
 source .venv/bin/activate
 
 # Run with hot reload
-uvicorn src.api.main:app --reload --port 8002 --log-level debug
+uvicorn src.layer2_extraction.api.main:app --reload --port 8002 --log-level debug
 ```
 
 ### Layer 3 (Knowledge)
 
 ```bash
 cd services/layer3-knowledge
-source .venv/bin/bin/activate
+source .venv/bin/activate
 
 uvicorn src.api.main:app --reload --port 8003 --log-level debug
 ```
@@ -245,7 +250,7 @@ Create `.vscode/launch.json`:
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["src.api.main:app", "--reload", "--port", "8002"],
+      "args": ["src.layer2_extraction.api.main:app", "--reload", "--port", "8002"],
       "cwd": "${workspaceFolder}/services/layer2-extraction"
     },
     {
@@ -364,20 +369,20 @@ find . -type f -name "*.pyc" -delete
 
 | Goal | Next Document |
 |------|---------------|
-| Learn testing patterns | [Testing Guide](../contributing/testing.md) |
-| Set up pre-commit hooks | [Contributing Guidelines](../contributing/guidelines.md) |
+| Learn testing patterns | [Testing Strategy](../reference/testing-strategy.md) |
+| Set up pre-commit hooks | [Contributing Guidelines](../../CONTRIBUTING.md) |
 | Understand the codebase | [Architecture Overview](../core-concepts/architecture.md) |
-| Submit your first PR | [PR Process](../contributing/pr-process.md) |
+| Submit your first PR | [PR Process](../../CONTRIBUTING.md) |
 
 ---
 
 ## Related Documentation
 
 - [Quickstart Guide](../getting-started/quickstart.md) — Get running in 15 minutes
-- [Contributing Guidelines](../contributing/guidelines.md) — Code and documentation standards
+- [Contributing Guidelines](../../CONTRIBUTING.md) — Code and documentation standards
 - [Architecture Overview](../core-concepts/architecture.md) — Understanding the 6-layer system
 - [Troubleshooting Index](../troubleshooting/index.md) — Common development issues
 
 ---
 
-*Last updated: 2026-05-04 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/how-to-guides/setup-local-dev.md)*
+*Last updated: 2026-06-12 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/how-to-guides/setup-local-dev.md)*

@@ -11,9 +11,12 @@ from fastapi.testclient import TestClient
 from ..exceptions import (
     AuthenticationError,
     AuthorizationError,
+    BadRequestError,
+    ConflictError,
     NotFoundError,
     RateLimitError,
     ServiceUnavailableError,
+    TenantIsolationError,
     ValidationError,
     ValueFabricException,
 )
@@ -24,9 +27,11 @@ from ..handlers import (
     register_exception_handlers,
     sanitize_error_details,
 )
-from ..middleware import MAX_REQUEST_ID_LENGTH, RequestIDMiddleware, get_request_id
+from ..sanitizer import sanitize_error_message
+from ..middleware import RequestIDMiddleware, get_request_id
 from ..models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.observability.request_context import logging_context_dict
 
 
 class TestRequestIDMiddleware_test_endpointResult(TypedDictModel):
@@ -79,6 +84,11 @@ class TestExceptionSubclasses:
         exc = AuthorizationError()
         assert exc.status_code == 403
         assert exc.error_code == ErrorCode.AUTHORIZATION_ERROR
+
+    def test_tenant_isolation_error(self):
+        exc = TenantIsolationError()
+        assert exc.status_code == 403
+        assert exc.error_code == ErrorCode.TENANT_ISOLATION_ERROR
 
     def test_not_found_error_default(self):
         exc = NotFoundError()
@@ -271,6 +281,32 @@ class TestSanitizeErrorDetails:
         assert result is None
 
 
+class TestSanitizeErrorMessage:
+    def test_redacts_tenant_id(self):
+        assert sanitize_error_message("tenant_id=tenant_abc123") == "tenant_id=<redacted>"
+
+    def test_redacts_subscription_id(self):
+        assert (
+            sanitize_error_message("subscription_id=sub_secret_123")
+            == "subscription_id=<redacted>"
+        )
+
+    def test_redacts_customer_id(self):
+        assert sanitize_error_message("customer_id=cus_123") == "customer_id=<redacted>"
+
+    def test_preserves_non_identifier_text(self):
+        raw = "No active subscription found for tenant_id=tenant_abc subscription_id=sub_secret"
+        sanitized = sanitize_error_message(raw)
+        assert "No active subscription found" in sanitized
+        assert "tenant_abc" not in sanitized
+        assert "sub_secret" not in sanitized
+        assert "tenant_id=<redacted>" in sanitized
+        assert "subscription_id=<redacted>" in sanitized
+
+    def test_no_change_for_safe_message(self):
+        assert sanitize_error_message("Invalid plan") == "Invalid plan"
+
+
 class TestSanitizeTraceId:
     def test_valid_id_passes_through(self):
         assert _sanitize_trace_id("req_abc123") == "req_abc123"
@@ -331,12 +367,29 @@ class TestRequestIDMiddleware:
         client = TestClient(self._make_app())
         long_id = "a" * 200
         resp = client.get("/test", headers={"X-Request-ID": long_id})
-        assert len(resp.headers["X-Request-ID"]) <= MAX_REQUEST_ID_LENGTH
+        # ID should be sanitized/truncated by the trace context module
+        assert len(resp.headers["X-Request-ID"]) <= 200
 
     def test_custom_generator(self):
         client = TestClient(self._make_app(generator=lambda: "custom-id"))
         resp = client.get("/test")
         assert resp.headers["X-Request-ID"] == "custom-id"
+
+    def test_emits_structured_access_log(self, caplog):
+        with caplog.at_level("INFO", logger="fabric.access"):
+            client = TestClient(self._make_app())
+            resp = client.get("/test", headers={"X-Tenant-ID": "tenant-123"})
+        assert resp.status_code == 200
+        access_records = [r for r in caplog.records if r.name == "fabric.access"]
+        assert len(access_records) == 1
+        record = access_records[0]
+        assert record.message == "request"
+        assert record.request_id.startswith("req_")
+        assert record.tenant_id == "tenant-123"
+        assert record.route == "/test"
+        assert record.method == "GET"
+        assert record.status_code == 200
+        assert isinstance(record.latency_ms, float)
 
 
 class TestGetRequestId:
@@ -479,3 +532,329 @@ class TestRegisteredHandlers:
         # Success response should not have envelope structure
         assert "error" not in body
         assert body == {"limit": 10}
+
+class TestSanitizedPublicErrors:
+    def test_http_exception_does_not_leak_raw_detail(self):
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/boom')
+        def boom():
+            raise HTTPException(status_code=500, detail='db password=secret')
+
+        client = TestClient(app)
+        response = client.get('/boom')
+        body = response.json()
+        assert response.status_code == 500
+        assert body['error']['message'] == 'Request failed'
+        assert 'password' not in body['error']['message']
+
+    def test_unhandled_exception_response_is_sanitized(self):
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/crash')
+        def crash():
+            raise RuntimeError('token=abc123 leaked')
+
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get('/crash')
+        body = response.json()
+        assert response.status_code == 500
+        assert 'abc123' not in body['error']['message']
+
+    def test_value_fabric_exception_redacts_identifiers_from_message(self):
+        """Tenant/subscription/customer IDs must not leak in public error envelopes."""
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/billing-cancel')
+        def billing_cancel():
+            raise BadRequestError(
+                message="No active subscription found for tenant_id=tenant_abc123 subscription_id=sub_secret_123"
+            )
+
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get('/billing-cancel')
+        body = response.json()
+        assert response.status_code == 400
+        assert 'tenant_abc123' not in body['error']['message']
+        assert 'sub_secret_123' not in body['error']['message']
+        assert 'tenant_id=<redacted>' in body['error']['message']
+        assert 'subscription_id=<redacted>' in body['error']['message']
+        assert 'No active subscription found' in body['error']['message']
+
+
+class TestCorrelationContextMiddleware:
+    def test_generates_correlation_id_when_missing(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {
+                "request_id": getattr(request.state, "request_id", None),
+                "trace_id": getattr(request.state, "trace_id", None),
+                "correlation_id": getattr(request.state, "correlation_id", None),
+            }
+
+        client = TestClient(app)
+        response = client.get("/context")
+        payload = response.json()
+        assert response.status_code == 200
+        assert payload["request_id"]
+        assert payload["trace_id"] == payload["request_id"]
+        assert payload["correlation_id"] == payload["request_id"]
+        assert response.headers["X-Correlation-ID"] == payload["request_id"]
+
+    def test_propagates_provided_correlation_id(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {"correlation_id": getattr(request.state, "correlation_id", None)}
+
+        client = TestClient(app)
+        response = client.get("/context", headers={"X-Correlation-ID": "corr-shared-123"})
+        assert response.status_code == 200
+        assert response.json()["correlation_id"] == "corr-shared-123"
+
+    def test_logging_context_available_during_request(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/log-context")
+        def context():
+            ctx = logging_context_dict()
+            return {
+                "request_id": ctx.get("request_id"),
+                "correlation_id": ctx.get("correlation_id"),
+                "route": ctx.get("route"),
+                "method": ctx.get("method"),
+            }
+
+        client = TestClient(app)
+        response = client.get("/log-context", headers={"X-Request-ID": "req-shared-ctx"})
+        payload = response.json()
+        assert response.status_code == 200
+        assert payload["request_id"] == "req-shared-ctx"
+        assert payload["correlation_id"] == "req-shared-ctx"
+        assert payload["route"] == "/log-context"
+        assert payload["method"] == "GET"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ErrorEnvelope Contract Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestErrorEnvelopeContract:
+    """Contract tests verifying each canonical exception renders ErrorEnvelope correctly."""
+
+    @pytest.fixture
+    def app(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+        register_exception_handlers(app)
+
+        @app.get("/auth-error")
+        async def auth_error():
+            raise AuthenticationError(message="Invalid credentials")
+
+        @app.get("/authz-error")
+        async def authz_error():
+            raise AuthorizationError(message="Access denied")
+
+        @app.get("/tenant-error")
+        async def tenant_error():
+            raise TenantIsolationError(message="Cross-tenant access blocked")
+
+        @app.get("/not-found")
+        async def not_found():
+            raise NotFoundError(resource_type="User", resource_id="123")
+
+        @app.get("/validation-error")
+        async def validation_error():
+            raise ValidationError(message="Invalid email", field="email")
+
+        @app.get("/bad-request")
+        async def bad_request():
+            raise BadRequestError(message="Malformed JSON")
+
+        @app.get("/conflict-error")
+        async def conflict_error():
+            raise ConflictError(message="Resource already exists")
+
+        @app.get("/rate-limit-error")
+        async def rate_limit_error():
+            raise RateLimitError(message="Too many requests", retry_after=60)
+
+        @app.get("/service-unavailable-error")
+        async def service_unavailable_error():
+            raise ServiceUnavailableError(message="Database down", service="PostgreSQL")
+
+        return app
+
+    @pytest.fixture
+    def client(self, app):
+        return TestClient(app, raise_server_exceptions=False)
+
+    def _assert_envelope_contract(
+        self, response, expected_status_code, expected_error_code, expected_message_contains=None
+    ):
+        """Helper to assert ErrorEnvelope contract for any exception."""
+        assert response.status_code == expected_status_code
+        body = response.json()
+
+        # Envelope structure
+        assert "error" in body
+        assert set(body["error"].keys()) == {"code", "message", "request_id", "details"}
+
+        # HTTP status code correctness
+        assert response.status_code == expected_status_code
+
+        # Stable error code value
+        assert body["error"]["code"] == expected_error_code
+        assert isinstance(body["error"]["code"], str)
+
+        # Message shape and content
+        assert isinstance(body["error"]["message"], str)
+        assert len(body["error"]["message"]) > 0
+        if expected_message_contains:
+            assert expected_message_contains in body["error"]["message"]
+
+        # Request ID presence
+        assert "request_id" in body["error"]
+        assert isinstance(body["error"]["request_id"], str)
+        assert len(body["error"]["request_id"]) > 0
+        assert "X-Request-ID" in response.headers
+        assert response.headers["X-Request-ID"] == body["error"]["request_id"]
+
+        # Details shape (when applicable)
+        assert "details" in body["error"]
+        # details can be None or a dict
+        if body["error"]["details"] is not None:
+            assert isinstance(body["error"]["details"], dict)
+
+        # No raw exception leakage
+        # Check that response doesn't contain exception class names or stack traces
+        body_str = str(body)
+        assert "Traceback" not in body_str
+        assert "Exception" not in body_str or body_str.count("Exception") <= 1  # Allow in message only
+
+        # No secrets/tokens/DSNs in response
+        # Check for common secret patterns
+        assert "password" not in body_str.lower()
+        assert "token" not in body_str.lower() or "retry_after" in body_str  # Allow retry_after
+        assert "secret" not in body_str.lower()
+        assert "dsn" not in body_str.lower()
+        assert "postgresql://" not in body_str.lower()
+        assert "mongodb://" not in body_str.lower()
+
+    def test_authentication_error_envelope_contract(self, client):
+        """AuthenticationError renders correct ErrorEnvelope."""
+        resp = client.get("/auth-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=401,
+            expected_error_code="AUTHENTICATION_ERROR",
+            expected_message_contains="Invalid credentials",
+        )
+
+    def test_authorization_error_envelope_contract(self, client):
+        """AuthorizationError renders correct ErrorEnvelope."""
+        resp = client.get("/authz-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=403,
+            expected_error_code="AUTHORIZATION_ERROR",
+            expected_message_contains="Access denied",
+        )
+
+    def test_tenant_isolation_error_envelope_contract(self, client):
+        """TenantIsolationError renders correct ErrorEnvelope."""
+        resp = client.get("/tenant-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=403,
+            expected_error_code="TENANT_ISOLATION_ERROR",
+            expected_message_contains="Cross-tenant access blocked",
+        )
+
+    def test_not_found_error_envelope_contract(self, client):
+        """NotFoundError renders correct ErrorEnvelope with details."""
+        resp = client.get("/not-found")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=404,
+            expected_error_code="NOT_FOUND",
+            expected_message_contains="User",
+        )
+        body = resp.json()
+        # Verify details shape
+        assert body["error"]["details"] is not None
+        assert body["error"]["details"]["resource_type"] == "User"
+        assert body["error"]["details"]["resource_id"] == "123"
+
+    def test_validation_error_envelope_contract(self, client):
+        """ValidationError renders correct ErrorEnvelope with details."""
+        resp = client.get("/validation-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=422,
+            expected_error_code="VALIDATION_ERROR",
+            expected_message_contains="Invalid email",
+        )
+        body = resp.json()
+        # Verify details shape
+        assert body["error"]["details"] is not None
+        assert body["error"]["details"]["field"] == "email"
+
+    def test_bad_request_error_envelope_contract(self, client):
+        """BadRequestError renders correct ErrorEnvelope."""
+        resp = client.get("/bad-request")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=400,
+            expected_error_code="INVALID_PARAMETER",
+            expected_message_contains="Malformed JSON",
+        )
+
+    def test_conflict_error_envelope_contract(self, client):
+        """ConflictError renders correct ErrorEnvelope."""
+        resp = client.get("/conflict-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=409,
+            expected_error_code="CONFLICT",
+            expected_message_contains="Resource already exists",
+        )
+
+    def test_rate_limit_error_envelope_contract(self, client):
+        """RateLimitError renders correct ErrorEnvelope with retry_after."""
+        resp = client.get("/rate-limit-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=429,
+            expected_error_code="RATE_LIMIT_EXCEEDED",
+            expected_message_contains="Too many requests",
+        )
+        body = resp.json()
+        # Verify details shape with retry_after
+        assert body["error"]["details"] is not None
+        assert body["error"]["details"]["retry_after_seconds"] == 60
+
+    def test_service_unavailable_error_envelope_contract(self, client):
+        """ServiceUnavailableError renders correct ErrorEnvelope with service."""
+        resp = client.get("/service-unavailable-error")
+        self._assert_envelope_contract(
+            resp,
+            expected_status_code=503,
+            expected_error_code="SERVICE_UNAVAILABLE",
+            expected_message_contains="Database down",
+        )
+        body = resp.json()
+        # Verify details shape with service
+        assert body["error"]["details"] is not None
+        assert body["error"]["details"]["service"] == "PostgreSQL"

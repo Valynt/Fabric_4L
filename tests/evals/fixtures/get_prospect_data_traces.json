@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "skill": "get_prospect_data",
+  "traces": [
+    {
+      "id": "gpd-001",
+      "description": "Load profile and opportunity data for an active prospect",
+      "input": {
+        "prospect_id": "prospect-acme-cio",
+        "data_types": ["profile", "opportunities"]
+      },
+      "assertions": {
+        "requires_tenant_scope": true
+      }
+    }
+  ]
+}

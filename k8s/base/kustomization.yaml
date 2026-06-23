@@ -1,43 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Image registry configuration.
-# The `name` field matches the placeholder used in each service manifest.
-# Overlays override `newTag` (or `newName`) to deploy a specific version.
-#
-# Registry: ghcr.io/bmsull560/fabric_4l
-# To deploy a specific tag in an overlay, add:
-#   images:
-#     - name: services/layer4-agents
-#       newTag: v1.2.3
-images:
-  - name: services/layer1-ingestion
-    newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
-    newTag: main
-  - name: services/layer2-extraction
-    newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
-    newTag: main
-  - name: services/layer3-knowledge
-    newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
-    newTag: main
-  - name: services/layer4-agents
-    newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
-    newTag: main
-  - name: services/layer5-ground-truth
-    newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
-    newTag: main
-  - name: services/layer6-benchmarks
-    newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
-    newTag: main
-  - name: apps/web
-    newName: ghcr.io/bmsull560/fabric_4l/web
-    newTag: main
+# Only dev/prod overlays should define image resolution here.
+# Staging uses STAGING_DIGEST_PLACEHOLDER; prod uses promoted SHA digests.
+# Base manifests keep their original placeholder image names.
+images: []
 
 resources:
   - namespace.yml
   - configmap-global.yml
+  - configmap-api-gateway-auth.yaml
   # External Secrets Operator for Vault integration
-  - external-secrets-operator.yml
+  # - external-secrets-operator.yml
+  # NOTE: The operator is installed cluster-wide in the external-secrets namespace
+  # by platform bootstrapping, not by the per-environment app overlay.
   # SECURITY TEMPLATES (must populate with real values before production use):
   #   - jwt-keys-secret.yaml: RSA key pair for JWT RS256 signing
   #     Do NOT include the placeholder template in base; add only to overlays
@@ -51,7 +27,10 @@ resources:
   - pgbouncer-config.yml
   - pgbouncer.yml
   - neo4j.yml
+  - api-gateway.yml
   - layer1-ingestion.yml
+  - layer1-celery.yaml
+  - layer1-serviceaccount.yaml
   - layer2-extraction.yml
   - layer2-5-signal-refinery.yml
   - layer3-knowledge.yml
@@ -61,12 +40,8 @@ resources:
   - frontend.yml
   - monitoring-prometheus.yml
   - monitoring-alertmanager.yml
-  # SECURITY: alertmanager-secrets contains webhook URLs and PagerDuty keys.
-  # Do NOT commit real values. In production, use External Secrets Operator
-  # (k8s/external-secrets/alertmanager-secrets.yaml) or inject via CI.
-  # This placeholder manifest uses environment-variable tokens for kustomize/
-  # envsubst processing at deploy time.
-  - alertmanager-secrets.yml
+  # SECURITY: alertmanager secrets are managed by
+  # k8s/external-secrets/alertmanager-secrets.yaml (not committed as a raw Secret).
   - tenant-safety.yml
   # Backup CronJobs (Phase 1)
   - postgres-backup-cronjob.yaml

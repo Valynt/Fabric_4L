@@ -5,7 +5,7 @@
 # This variant is intentionally scoped to docker-compose.live.yml, where the
 # build context must include both services/layer1-ingestion and value_fabric.
 
-FROM python:3.11.11-slim-bookworm AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
         mkdir -p /root/.cache/ms-playwright; \
     fi
 
-FROM python:3.11.11-slim-bookworm AS runtime
+FROM python:3.11.13-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
@@ -63,7 +63,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 
 COPY --from=builder /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
@@ -83,4 +83,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 
 EXPOSE 8000
 
-CMD ["sh", "-lc", "attempts=0; until /app/.venv/bin/alembic upgrade head; do attempts=$((attempts + 1)); if [ \"$attempts\" -ge 24 ]; then echo \"layer1 migration failed after ${attempts} attempts\"; exit 1; fi; echo \"waiting for layer1 database (${attempts}/24)\"; sleep 5; done; exec /app/.venv/bin/uvicorn src.api.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-lc", "attempts=0; until /app/.venv/bin/alembic upgrade head; do attempts=$((attempts + 1)); if [ \"$attempts\" -ge 24 ]; then echo \"layer1 migration failed after ${attempts} attempts\"; exit 1; fi; echo \"waiting for layer1 database (${attempts}/24)\"; sleep 5; done; exec /app/.venv/bin/uvicorn layer1_ingestion.api.main:app --host 0.0.0.0 --port 8000"]

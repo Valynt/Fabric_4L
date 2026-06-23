@@ -255,15 +255,44 @@ interface ToolCall {
 - Agent runs without trace IDs or session correlation
 - Storing raw prompts/completions in application logs (PII exposure)
 
-**Enforcement:**
-- TypeScript: All agent outputs must conform to defined Pydantic model
-- ESLint: `no-json-parse-agent-output` - flags JSON.parse() on LLM responses
-- CI: OTel trace validation - verifies minimum required spans
-- Runtime: Unstructured outputs rejected at boundary
+---
+
+### 2.6 Canonical API Error Envelope
+
+**Status:** `ratified` | **Enforcement:** immediate
+
+All HTTP APIs must return the same top-level error envelope for 4xx/5xx responses:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable message",
+    "request_id": "req_abc123",
+    "details": {
+      "safe_metadata_only": true
+    }
+  }
+}
+```
+
+Required guarantees:
+- `error.code` is machine-readable and stable.
+- `error.message` is safe for consumers and does not leak internal state.
+- `error.request_id` maps to trace/request correlation (`X-Request-ID` header).
+- `error.details` is optional and must contain only sanitized metadata.
+
+Common failure classes and canonical mapping:
+- Validation failures → `422` + `VALIDATION_ERROR`
+- Authentication failures → `401` + `AUTHENTICATION_ERROR`
+- Authorization failures → `403` + `AUTHORIZATION_ERROR`
+- Tenant boundary denials → `403` + `TENANT_ISOLATION_ERROR`
+- Throttling/rate limits → `429` + `THROTTLED`
+- Unhandled internal errors → `500` + `INTERNAL_ERROR`
 
 ---
 
-### 2.6 UI State Progression and Route Model
+### 2.7 UI State Progression and Route Model
 
 **Status:** `proposed` | **Target:** `ratified` 2026-05-23 | **Enforcement:** 2026-06-23
 
@@ -512,3 +541,14 @@ Status progression: proposed → ratified → enforced
 | 2026-04-23 | Platform Team | Initial draft | Establish canonical contracts for six cross-layer concerns |
 | 2026-04-25 | Platform Team | Ratify Section 2.2 | RLS via SET LOCAL ratified as Enforced Canon per Unified Recommendation memo; TenantAwarePool moved to experimental |
 | 2026-05-13 | Platform Team | Close organizational governance controls | Link contributor onboarding, PR governance confirmations, and engineering governance SOP to the canonical contract |
+
+## OpenAPI Dynamic Shape Guardrails (Type Safety)
+
+To keep generated frontend API types free of `any` in response models, dynamic response structures must be modeled explicitly in OpenAPI:
+
+- Use `oneOf` / `anyOf` (+ discriminator when practical) for polymorphic payloads.
+- Use `type: object` + `additionalProperties` with a typed value schema for map/dictionary payloads.
+- Avoid untyped object blobs (`{}` or free-form object) unless contract behavior requires opaque passthrough data.
+- Response model updates must be followed by type regeneration (`pnpm --dir apps/web run generate:types`) and generated-type guard checks.
+
+The repo now enforces a generated-response guard (`test:generated-response-types`) that fails if generated response schema entries regress to `Response: any` in L4/L5 type surfaces.

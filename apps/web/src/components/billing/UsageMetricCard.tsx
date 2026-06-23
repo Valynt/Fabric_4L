@@ -24,12 +24,12 @@ export function UsageMetricCard({
   const isSafe = percentage < warningThreshold;
 
   const StatusIcon = isDanger ? AlertTriangle : isWarning ? AlertCircle : CheckCircle;
-  const statusColor = isDanger ? 'text-red-600' : isWarning ? 'text-yellow-600' : 'text-green-600';
+  const statusColor = isDanger ? 'text-destructive' : isWarning ? 'text-warning' : 'text-success';
   const progressColor = isDanger
-    ? 'bg-red-500'
+    ? 'bg-destructive/100'
     : isWarning
-      ? 'bg-yellow-500'
-      : 'bg-green-500';
+      ? 'bg-warning/100'
+      : 'bg-success/100';
 
   // Format metric name for display (e.g., "api_calls" -> "API Calls")
   const formatMetricName = (name: string): string => {
@@ -40,7 +40,7 @@ export function UsageMetricCard({
   };
 
   return (
-    <Card className={cn('transition-all', isDanger && 'border-red-200 bg-red-50/50')}>
+    <Card className={cn('transition-all', isDanger && 'border-destructive/20 bg-destructive/10/50')}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -72,8 +72,8 @@ export function UsageMetricCard({
 
           <div className="flex items-center justify-between text-xs">
             <span className={cn('font-medium', statusColor)}>{percentage.toFixed(1)}% used</span>
-            {isDanger && <span className="text-red-600 font-medium">Overage imminent</span>}
-            {isWarning && <span className="text-yellow-600">Approaching limit</span>}
+            {isDanger && <span className="text-destructive font-medium">Overage imminent</span>}
+            {isWarning && <span className="text-warning">Approaching limit</span>}
           </div>
         </div>
       </CardContent>

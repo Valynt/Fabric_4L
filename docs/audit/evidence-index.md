@@ -81,7 +81,36 @@ Quick reference for auditors reviewing Value Fabric compliance evidence.
 
 ## Automated Evidence Collection
 
-Generate fresh evidence bundle:
+Generate the release/audit evidence bundle used for release-candidate review:
+
+```bash
+pnpm evidence:bundle
+tar -tf artifacts/evidence/*.tar.gz
+```
+
+PowerShell reviewers should pass the resolved archive path because Windows
+`tar.exe` does not expand `*.tar.gz`:
+
+```powershell
+tar -tf (Get-ChildItem artifacts/evidence/*.tar.gz | Select-Object -First 1).FullName
+```
+
+The generated archive is written to `artifacts/evidence/value-fabric-evidence-<sha>.tar.gz`.
+Open `manifest.json` inside the archive first. It records the release candidate
+SHA, input sources, evidence gaps, file sizes, and SHA-256 checksums for bundled
+evidence files.
+
+Auditor verification flow:
+
+1. Confirm `manifest.json.git_sha` matches the reviewed release candidate.
+2. Recompute SHA-256 for each listed `manifest.files[*].archive_path`.
+3. Compare the digest with `manifest.files[*].sha256`.
+4. Review `manifest.evidence_gaps`; these are not hidden failures. They identify
+   missing live, heavyweight, or environment-dependent evidence that must be
+   attached before treating the bundle as complete production release evidence.
+
+The legacy SOC2/ISO collection script can still generate quarterly control
+evidence:
 
 ```bash
 ./scripts/audit/generate-evidence-bundle.sh \

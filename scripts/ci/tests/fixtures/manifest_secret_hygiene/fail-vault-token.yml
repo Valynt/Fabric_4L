@@ -1,0 +1,4 @@
+apiVersion: v1
+kind: ConfigMap
+data:
+  VAULT_DEV_ROOT_TOKEN_ID: dev-only

@@ -22,9 +22,23 @@ spec:
         app: neo4j
         component: database
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 7474
+        runAsGroup: 7474
+        fsGroup: 7474
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: neo4j
           image: neo4j:5-community
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 7474
               name: http
@@ -103,9 +117,13 @@ kind: PersistentVolumeClaim
 metadata:
   name: neo4j-data-pvc
   namespace: value-fabric
+  annotations:
+    security.valuefabric.io/encryption-at-rest: "required"
+    security.valuefabric.io/kms-provider: "external"
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: encrypted-rwo
   resources:
     requests:
       storage: 20Gi
@@ -115,9 +133,13 @@ kind: PersistentVolumeClaim
 metadata:
   name: neo4j-logs-pvc
   namespace: value-fabric
+  annotations:
+    security.valuefabric.io/encryption-at-rest: "required"
+    security.valuefabric.io/kms-provider: "external"
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: encrypted-rwo
   resources:
     requests:
       storage: 5Gi

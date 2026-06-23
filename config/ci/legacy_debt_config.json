@@ -11,5 +11,15 @@
     "config/ci/legacy_debt_approvals.json",
     "docs/operations/legacy-debt-baseline-overrides.md",
     "spec.md"
+  ],
+  "excluded_prefixes": [
+    ".devin/",
+    "archive/",
+    "docs/archive/",
+    "docs/archive/evidence/reports/repo-cleanup/",
+    "apps/web/src/api/generated/",
+    "contracts/deprecations/",
+    "contracts/openapi/",
+    "packages/platform-contract/src/typescript/generated/"
   ]
 }

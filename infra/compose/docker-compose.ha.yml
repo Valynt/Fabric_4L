@@ -1,0 +1,153 @@
+version: "3.8"
+
+# P0-002: Database HA stack with streaming replication, PgBouncer, and WAL archiving.
+# Usage: docker compose -f infra/compose/docker-compose.ha.yml up -d
+
+services:
+  # ─── PostgreSQL Primary ───────────────────────────────────────────────────
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: fabric-postgres-primary
+    hostname: postgres-primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: fabric
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # WAL archiving for point-in-time recovery
+      POSTGRES_INITDB_WALDIR: /var/lib/postgresql/wal
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby=on
+      -c archive_mode=on
+      -c archive_command='cp %p /var/lib/postgresql/archive/%f'
+      -c archive_timeout=300
+      -c checkpoint_timeout=300
+      -c max_connections=200
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - postgres_archive:/var/lib/postgresql/archive
+    ports:
+      - "5432:5432"
+    networks:
+      - fabric_ha
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fabric"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── PostgreSQL Replica (Hot Standby) ───────────────────────────────────────
+  postgres-replica:
+    image: postgres:16-alpine
+    container_name: fabric-postgres-replica
+    hostname: postgres-replica
+    environment:
+      PGUSER: replicator
+      PGPASSWORD: ${REPLICATOR_PASSWORD:-replicator}
+    command: >
+      bash -c "
+        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+          pg_basebackup --host=postgres-primary --port=5432 --username=replicator --pgdata=/var/lib/postgresql/data --write-recovery-conf --slot=replica_slot --progress;
+        fi &&
+        exec postgres -c hot_standby=on
+      "
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - fabric_ha
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fabric"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── PgBouncer Connection Pooler ────────────────────────────────────────────
+  pgbouncer:
+    image: pgbouncer/pgbouncer:1.22
+    container_name: fabric-pgbouncer
+    environment:
+      DATABASES_HOST: postgres-primary
+      DATABASES_PORT: 5432
+      DATABASES_DATABASE: fabric
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_IDLE_TIMEOUT: 600
+      SERVER_LIFETIME: 3600
+      AUTH_TYPE: md5
+      AUTH_FILE: /etc/pgbouncer/userlist.txt
+      ADMIN_USERS: postgres
+      LISTEN_PORT: 6432
+    volumes:
+      - ../../config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ../../config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6432:6432"
+    networks:
+      - fabric_ha
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── WAL-G Backup Agent ─────────────────────────────────────────────────────
+  wal-g-backup:
+    image: wal-g/wal-g:latest
+    container_name: fabric-wal-g
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      WALG_S3_PREFIX: s3://${S3_BACKUP_BUCKET:-fabric-db-backups}/wal
+      PGHOST: postgres-primary
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: fabric
+    volumes:
+      - postgres_archive:/var/lib/postgresql/archive:ro
+      - ../../scripts/db/backup.sh:/backup.sh:ro
+    command: ["/bin/sh", "-c", "while true; do /backup.sh; sleep 3600; done"]
+    networks:
+      - fabric_ha
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── HAProxy Load Balancer ─────────────────────────────────────────────────
+  haproxy:
+    image: haproxy:2.9-alpine
+    container_name: fabric-haproxy
+    volumes:
+      - ../../config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "5434:5434"
+      - "8404:8404"
+    networks:
+      - fabric_ha
+    depends_on:
+      - postgres-primary
+      - postgres-replica
+    restart: unless-stopped
+
+volumes:
+  postgres_primary_data:
+  postgres_replica_data:
+  postgres_archive:
+
+networks:
+  fabric_ha:
+    driver: bridge

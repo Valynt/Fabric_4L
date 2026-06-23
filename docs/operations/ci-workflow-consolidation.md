@@ -1,27 +1,59 @@
-# CI Workflow Consolidation Plan
+# CI Workflow Consolidation Record
 
-This inventory defines the current cleanup path for overlapping GitHub Actions workflows. It is intentionally non-destructive: workflows stay enabled until branch protection and replacement proof are confirmed.
+S6-6 closed the workflow sprawl gate by consolidating duplicate and reporting
+workflows into canonical GitHub Actions files. The repository-level invariant is
+now fewer than 50 workflow YAML files in `.github/workflows/`, enforced by
+`scripts/ci/verify_workflow_registry.py`.
 
 ## Canonical workflow ownership
 
-| Gate family | Canonical workflow | Notes |
+| Gate family | Canonical workflow | Consolidated coverage |
 | --- | --- | --- |
-| Fast PR validation | `pr-checks.yml` | Primary PR build, test, type, and coverage signal. Keep focused on fast merge-blocking feedback. |
-| Security scanning | `security-gates.yml` | Owns SAST and dependency audit coverage such as Bandit and pip-audit. |
-| Contract enforcement | `contract-compliance.yml` | Owns OpenAPI drift, platform contract linting, and contract scorecard evidence. |
-| Launch evidence | `launch-readiness.yml` | Owns staged launch-readiness evidence once remote execution is proven. |
+| Fast PR validation | `pr-checks.yml` | Legacy `test.yml`, mandatory test, verify, and preflight signals now stay under the primary PR gate family. |
+| Security scanning | `security-gates.yml` | Secret guardrail and extended security validation coverage stays under the canonical security gate family. |
+| Contract enforcement | `contract-compliance.yml` | Contract drift, scorecard, and governance checks remain merge-visible. |
+| Release readiness | `prod-readiness.yml` | Launch and production-readiness checklist evidence stays under the production readiness gate. |
+| Code scanning | `codeql.yml` | CodeQL has one canonical workflow. |
+| Chaos and operational drills | `chaos-testing.yml`, `dr-drill.yml` | Chaos smoke, restore verification, and game-day evidence are represented by canonical operational evidence workflows. |
+| Kubernetes readiness | `k8s-readiness.yml` | Kubernetes validation remains under one readiness workflow. |
+| Repository hygiene | `repo-hygiene.yml` | Branch cleanup, stale PR, CI backlog, README sync, and KPI reporting are consolidated as repository hygiene/reporting concerns. |
+| Supply chain and SDK | `supply-chain.yml`, `publish-sdk.yml` | Package policy, signing, and SDK generation coverage stays with supply-chain and publish workflows. |
+| Performance | `performance-load-tests.yml` | Baseline and PR performance gate coverage stays with the load-test workflow family. |
 
-## Deprecation candidates
+## Retired workflow files
 
-| Workflow | Current status | Replacement | Required before disabling |
-| --- | --- | --- | --- |
-| `test.yml` | Legacy monolithic test workflow. | `pr-checks.yml` plus targeted integration workflows. | Confirm branch protection does not require `Test Suite`; confirm per-layer PR checks cover required tests. |
-| `critical-gates.yml` | Overlaps auth coverage, tenant isolation, OpenAPI drift, and config gates. | `security-gates.yml`, `contract-compliance.yml`, and `pr-checks.yml`. | Confirm each matrix gate has an active canonical owner and artifact path. |
-| `prod-readiness.yml` | Older production-readiness gate. | `launch-readiness.yml`. | Confirm launch-readiness Stage 1-4 remote execution and artifact upload. |
+The following workflow files were retired after their coverage was assigned to
+the canonical families above:
 
-## Cleanup rules
+`audit-snapshot.yml`, `chaos-engineering.yml`, `chaos-smoke.yml`,
+`ci-failure-backlog.yml`, `cleanup-branches.yml`, `codeql-analysis.yml`,
+`compliance-evidence-integrity.yml`, `game-day-evidence.yml`,
+`integration-tests.yml`, `k8s-validation.yml`, `launch-readiness.yml`,
+`layer6-dashboard-metric-drift.yml`, `live-workflow-validation.yml`,
+`package-manager-policy.yml`, `package-sign.yml`, `performance-baseline.yml`,
+`pr-performance-gate.yml`, `preflight.yml`,
+`production-readiness-check.yml`, `refresh-testing-kpis.yml`,
+`regenerate-sdk.yml`, `restore-verification.yml`, `secret-guardrails.yml`,
+`security-validation.yml`, `smoke-gate.yml`, `stale.yml`,
+`test-mandatory.yml`, `test.yml`, `verify-gate.yml`,
+`workflow-readme-sync-check.yml`.
 
-- Do not delete or disable a workflow in the same PR that only introduces the replacement.
-- Do not rename required workflow or job names until branch protection has been updated.
-- Remove duplicated checks only from the non-canonical workflow after the canonical workflow has a passing remote run.
-- Keep security and contract gates visible; do not hide failures by moving them to optional workflows.
+## Consolidation proof decisions
+
+| Workflow | Replacement owner | Required-check status | Proof summary | Deletion risk |
+| --- | --- | --- | --- | --- |
+| `codeql-analysis.yml` | `codeql.yml` | `retired-recorded`; both CodeQL workflows were blocking before consolidation. | The current checkout keeps one canonical CodeQL workflow and the retired file is no longer present or registered. Branch protection must no longer require the retired workflow name. | `needs branch-protection update` |
+| `chaos-smoke.yml` | `chaos-testing.yml` | `retired-recorded`; historical workflow was PR-triggered and blocking. | The current checkout keeps `chaos-testing.yml` as the operational chaos owner and the retired smoke workflow is no longer present or registered. Branch protection must no longer require `chaos-smoke-informational` or `chaos-smoke-required-ready-marker`. | `needs branch-protection update` |
+| `deploy.yml` | `build-deploy.yml`, `environment-promotion.yml` | `present-blocked`; `blocking=true`; owns workflow-call deployment behavior. | Keep enabled: it owns the unique `workflow_call` trigger, `AWS_DEPLOY_ROLE_ARN` and `INFISICAL_IDENTITY_ID` secrets, `${{ steps.evidence.outputs.file }}` and `deployment-record.json` artifacts, plus `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `rollback-on-failure`, `verify`, `evidence`, and `notify` jobs. | `not safe` |
+
+## Guardrails
+
+- Keep branch-protected check names aligned with the canonical workflows before
+  changing GitHub repository settings.
+- Add future workflow behavior as a job/profile in an existing canonical
+  workflow unless a separate file has a distinct owner, trigger model, and
+  artifact contract.
+- Update `workflow-registry.json`, `WORKFLOW_REGISTRY.md`, and `README.md`
+  whenever workflow files are added, removed, or renamed.
+- Run `python scripts/ci/verify_workflow_registry.py` before marking workflow
+  inventory changes complete.

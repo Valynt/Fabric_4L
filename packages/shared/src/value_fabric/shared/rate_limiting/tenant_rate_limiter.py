@@ -190,6 +190,40 @@ class TenantRateLimiter:
         self.custom_limits = custom_limits or {}
         self.route_tier_policies = route_tier_policies or DEFAULT_ROUTE_TIER_POLICIES
     
+    @staticmethod
+    def create_from_env() -> "TenantRateLimiter":
+        """Factory to create TenantRateLimiter from environment configuration.
+        
+        Reads REDIS_URL from environment and creates a Redis client.
+        Falls back to in-memory limiter in development if Redis not configured.
+        
+        Returns:
+            TenantRateLimiter instance
+            
+        Raises:
+            ValueError: If Redis is misconfigured in production
+        """
+        import os
+        
+        redis_url = os.getenv("REDIS_URL")
+        environment = os.getenv("ENVIRONMENT", "").lower()
+        
+        if not redis_url:
+            if environment in {"production", "staging"}:
+                raise ValueError(
+                    "REDIS_URL is required in production-like environments for rate limiting"
+                )
+            logger.warning(
+                "Redis not configured for rate limiting; using degraded in-memory behavior"
+            )
+            # Return a limiter with a mock client for development
+            return TenantRateLimiter(redis_client=None)
+        
+        import redis.asyncio as redis_async
+        
+        redis_client = redis_async.from_url(redis_url, decode_responses=True)
+        return TenantRateLimiter(redis_client=redis_client)
+    
     async def check_rate_limit(
         self,
         tenant_id: UUID,
@@ -297,7 +331,27 @@ class TenantRateLimiter:
         """
         now = datetime.utcnow()
         window_start = now - timedelta(seconds=window_seconds)
-        
+
+        # Degraded in-memory fallback when Redis is unavailable (development mode).
+        # create_from_env() returns redis_client=None when REDIS_URL is absent.
+        if self.redis is None:
+            env = os.getenv("ENVIRONMENT", "").lower()
+            if env in {"production", "staging", "preprod"}:
+                raise RuntimeError(
+                    "Redis is required for tenant rate limiting in production-like environments. "
+                    "Set REDIS_URL or ensure Redis is available."
+                )
+            logger.warning(
+                "Redis unavailable for rate limiting — allowing request (degraded mode)",
+                extra={"tenant_id": str(tenant_id)},
+            )
+            return RateLimitResult(
+                allowed=True,
+                limit=limit,
+                remaining=limit,
+                reset_at=now + timedelta(seconds=window_seconds),
+            )
+
         # Redis key design: tenant + principal + route group + endpoint + window
         key = (
             "ratelimit:"
@@ -306,7 +360,7 @@ class TenantRateLimiter:
             f"route_group:{route_group}:"
             f"endpoint:{endpoint}:window:{window_seconds}"
         )
-        
+
         try:
             # Use Redis sorted set with timestamps as scores
             # Remove old entries outside window

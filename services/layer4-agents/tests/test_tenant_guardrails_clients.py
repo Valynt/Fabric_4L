@@ -99,3 +99,46 @@ async def test_layer5_list_truths_requires_tenant_and_allows_privileged_with_rea
     assert "organization_id" not in captured["params"]
 
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_layer5_tenant_fallback_includes_service_auth_secret(monkeypatch):
+    monkeypatch.setenv("SERVICE_AUTH_SECRET", "service-auth-secret-minimum-32-bytes!!")
+
+    client = Layer5GroundTruthClient(
+        base_url="http://example.test",
+        tenant_id="12345678-1234-1234-1234-123456789abc",
+    )
+
+    assert client._client.headers["X-Tenant-ID"] == "12345678-1234-1234-1234-123456789abc"
+    assert client._client.headers["X-Service-Auth"] == "service-auth-secret-minimum-32-bytes!!"
+    assert "Authorization" not in client._client.headers
+
+    await client.close()
+
+
+def test_layer5_tenant_fallback_fails_closed_without_service_auth_secret(monkeypatch):
+    monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
+
+    with pytest.raises(ValueError, match="SERVICE_AUTH_SECRET is required"):
+        Layer5GroundTruthClient(
+            base_url="http://example.test",
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+        )
+
+
+@pytest.mark.asyncio
+async def test_layer5_service_token_does_not_mix_tenant_fallback_secret(monkeypatch):
+    monkeypatch.setenv("SERVICE_AUTH_SECRET", "different-service-auth-secret-minimum-32-bytes")
+
+    client = Layer5GroundTruthClient(
+        base_url="http://example.test",
+        service_token="signed-service-jwt",
+        tenant_id="12345678-1234-1234-1234-123456789abc",
+    )
+
+    assert client._client.headers["Authorization"] == "Bearer signed-service-jwt"
+    assert "X-Tenant-ID" not in client._client.headers
+    assert "X-Service-Auth" not in client._client.headers
+
+    await client.close()

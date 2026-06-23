@@ -22,6 +22,7 @@
  *   - Any horizontal tab navigation that needs URL persistence
  */
 import { useSearchParams } from "react-router-dom";
+import { logWarn } from "@/lib/telemetry";
 import { cn } from "@/lib/utils";
 import { TabNav, type TabItem } from "./TabNav";
 
@@ -47,7 +48,7 @@ export function HorizontalTabWrapper({
   // Handle empty tabs array gracefully
   if (tabs.length === 0) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('HorizontalTabWrapper: tabs array is empty. No tabs will be rendered.');
+      logWarn('HorizontalTabWrapper: tabs array is empty. No tabs will be rendered.');
     }
     return null;
   }

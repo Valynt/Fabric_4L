@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """End-to-end vector index test for Layer 3 Knowledge Graph.
 
 This test focuses specifically on vector index functionality:
@@ -16,7 +18,6 @@ Requirements:
     - sentence-transformers package
 """
 
-from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
@@ -33,17 +34,17 @@ try:
 except ImportError:
     HAS_TESTCONTAINERS = False
 
-from value_fabric.layer3.api.dependencies import (
+from src.api.dependencies import (
     get_schema_initializer,
     get_sync_manager,
 )
-from value_fabric.layer3.api.main import app
-from value_fabric.layer3.config import Settings
-from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
-from value_fabric.layer3.ingestion.sync_manager import SyncManager
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import VectorStore
-from value_fabric.layer3.schema.initializer import SchemaInitializer
+from src.api.main import app
+from src.config import Settings
+from src.ingestion.neo4j_loader import Neo4jLoader
+from src.ingestion.sync_manager import SyncManager
+from src.retrieval.hybrid_search import HybridSearch
+from src.retrieval.vector_store import VectorStore
+from src.schema.initializer import SchemaInitializer
 
 # Skip entire module if testcontainers not installed
 pytestmark = [
@@ -52,6 +53,7 @@ pytestmark = [
         reason="testcontainers not installed - run: pip install testcontainers[neo4j]"
     ),
     pytest.mark.integration,
+    pytest.mark.vector,
 ]
 
 
@@ -676,4 +678,3 @@ class TestVectorCleanup:
             )
             record = await result.single()
             assert record is None, "Entity should be deleted"
-

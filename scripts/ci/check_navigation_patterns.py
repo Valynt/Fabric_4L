@@ -22,9 +22,9 @@ Exit codes:
 import argparse
 import re
 import sys
-from pathlib import Path
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -150,11 +150,11 @@ def main() -> int:
         return 1
 
     total_files = 0
-    file_findings = defaultdict(list)
+    file_findings: defaultdict[Path, list[Finding]] = defaultdict(list)
     
     # Category counters
-    category_counts = defaultdict(int)
-    category_files = defaultdict(set)
+    category_counts: defaultdict[str, int] = defaultdict(int)
+    category_files: defaultdict[str, set[Path]] = defaultdict(set)
 
     # Check TypeScript/TSX files
     for file_path in frontend_src.rglob("*.ts*"):

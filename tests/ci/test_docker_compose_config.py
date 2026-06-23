@@ -393,3 +393,108 @@ services:
     failures = module.validate_compose_contract(compose, tmp_path)
 
     assert failures == []
+
+
+def test_pythonpath_missing_volume_mount_fails():
+    module = load_module()
+    tmp_path = repo_tmp_path("pythonpath-missing-mount")
+    compose = write_file(
+        tmp_path / "docker-compose.dev.yml",
+        """
+services:
+  api:
+    image: alpine:3.20
+    environment:
+      - PYTHONPATH=/app:/app/src:/app/value_fabric
+    volumes:
+      - ./api/src:/app/src:ro
+    healthcheck:
+      test: ["CMD", "true"]
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+    messages = [failure.message for failure in failures]
+
+    assert any("PYTHONPATH entry '/app/value_fabric' is not backed by a volume mount" in m for m in messages)
+
+
+def test_pythonpath_with_valid_mounts_passes():
+    module = load_module()
+    tmp_path = repo_tmp_path("pythonpath-valid-mounts")
+    write_file(tmp_path / "packages" / "shared" / "src" / "value_fabric" / "__init__.py", "")
+    compose = write_file(
+        tmp_path / "docker-compose.dev.yml",
+        """
+services:
+  api:
+    image: alpine:3.20
+    environment:
+      - PYTHONPATH=/app:/app/src:/app/value_fabric
+    volumes:
+      - ./api/src:/app/src:ro
+      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
+    healthcheck:
+      test: ["CMD", "true"]
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+    messages = [failure.message for failure in failures]
+
+    assert not any("PYTHONPATH" in m for m in messages)
+
+
+def test_frontend_env_completeness_missing_vars_fails():
+    module = load_module()
+    tmp_path = repo_tmp_path("frontend-env-incomplete")
+    compose = write_file(
+        tmp_path / "docker-compose.dev.yml",
+        """
+services:
+  frontend:
+    image: node:22-alpine
+    environment:
+      - VITE_API_BASE=/api/v1
+      - VITE_USE_MOCKS=false
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+    messages = [failure.message for failure in failures]
+
+    assert any("required frontend env variable 'VITE_L1_PREFIX' is missing" in m for m in messages)
+    assert any("required frontend env variable 'VITE_ENABLE_CRM_SYNC' is missing" in m for m in messages)
+
+
+def test_frontend_env_completeness_all_vars_passes():
+    module = load_module()
+    tmp_path = repo_tmp_path("frontend-env-complete")
+    compose = write_file(
+        tmp_path / "docker-compose.dev.yml",
+        """
+services:
+  frontend:
+    image: node:22-alpine
+    environment:
+      - VITE_API_BASE=/api/v1
+      - VITE_L1_PREFIX=/ingest
+      - VITE_L2_PREFIX=/extract
+      - VITE_L2_5_PREFIX=/signals
+      - VITE_L3_PREFIX=/graph
+      - VITE_L4_PREFIX=/agents
+      - VITE_L5_PREFIX=/truths
+      - VITE_L6_PREFIX=/benchmarks
+      - VITE_L7_PREFIX=/billing
+      - VITE_ENABLE_CRM_SYNC=false
+      - VITE_CRM_PROVIDER=salesforce
+      - VITE_CRM_API_PROXY=/api/crm
+      - VITE_ENABLE_C1_REPORTS=false
+      - VITE_USE_MOCKS=false
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+    messages = [failure.message for failure in failures]
+
+    assert not any("frontend env variable" in m for m in messages)

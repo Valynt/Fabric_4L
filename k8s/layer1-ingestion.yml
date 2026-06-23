@@ -22,6 +22,7 @@ spec:
         app: layer1-ingestion
         component: layer1
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -47,7 +48,7 @@ spec:
               cpu: "50m"
       containers:
         - name: api
-          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -66,7 +67,11 @@ spec:
                   name: layer1-db-credentials
                   key: DATABASE_URL
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -128,13 +133,13 @@ spec:
               mountPath: /tmp
         # Celery worker sidecar
         - name: celery-worker
-          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-          command: ["celery", "-A", "layer1_ingestion.src.shared.tasks", "worker", "-l", "info"]
+          command: ["celery", "-A", "layer1_ingestion.shared.tasks", "worker", "-l", "info"]
           envFrom:
             - configMapRef:
                 name: value-fabric-config
@@ -145,7 +150,11 @@ spec:
                   name: layer1-db-credentials
                   key: DATABASE_URL
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -167,7 +176,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"
@@ -180,7 +189,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"
@@ -193,7 +202,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"

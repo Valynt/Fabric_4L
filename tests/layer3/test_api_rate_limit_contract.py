@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer3.api.rate_limiter import RateLimiter, TenantRateLimiter
+from src.api.rate_limiter import RateLimiter, TenantRateLimiter
 
 
 @pytest.mark.asyncio

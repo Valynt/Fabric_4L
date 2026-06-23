@@ -22,15 +22,15 @@ export function DependencyPanel({ formulaId }: DependencyPanelProps) {
 
   const renderList = (items: DependentAsset[] | undefined, label: string) => (
     <div>
-      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">{label}</div>
+      <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">{label}</div>
       {(items || []).length === 0 ? (
-        <div className="text-[12px] text-muted-foreground py-2">None</div>
+        <div className="vf-text-body-s text-muted-foreground py-2">None</div>
       ) : (
         <div className="space-y-1">
           {(items || []).map((item) => (
-            <div key={item.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md text-[12px]">
+            <div key={item.id} className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md vf-text-body-s">
               <span className="font-medium truncate">{item.name}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{item.type}</span>
+              <span className="ml-auto vf-text-micro text-muted-foreground">{item.type}</span>
             </div>
           ))}
         </div>

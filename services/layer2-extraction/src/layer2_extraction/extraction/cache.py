@@ -23,6 +23,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency fallback
     RedisError = Exception
 
+_REDIS_ERRORS = (RedisError,)
+
 
 class _InMemoryLRUCache:
     """Thread-safe-ish in-memory LRU cache with TTL emulation."""
@@ -61,20 +63,9 @@ class ExtractionCache:
             try:
                 import redis.asyncio as aioredis
                 self._redis = aioredis.from_url(redis_url, decode_responses=False)
-            except (ImportError, RedisError) as exc:
+            except (ImportError,) + _REDIS_ERRORS as exc:
                 logger.warning(
                     "Cache backend unavailable; falling back to in-memory cache",
-                    extra={
-                        "operation": "connect",
-                        "tenant_id": None,
-                        "job_id": None,
-                        "correlation_id": None,
-                        "exception_class": type(exc).__name__,
-                    },
-                )
-            except (ValueError, TypeError, OSError) as exc:
-                logger.exception(
-                    "Unexpected cache initialization failure; using in-memory fallback",
                     extra={
                         "operation": "connect",
                         "tenant_id": None,
@@ -87,24 +78,28 @@ class ExtractionCache:
     @staticmethod
     def _log_cache_failure(operation: str, exc: Exception, context: dict[str, str | None] | None = None) -> None:
         context = context or {}
+        tenant_id = context.get("tenant_id") or ""  # Use empty string as fallback for metrics
+        
+        # Always record metrics even without tenant context for observability
         metrics = get_metrics()
         if metrics:
             metrics.record_cache_failure(
                 failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
-                tenant_id=context.get("tenant_id") or "unknown",
-                ingestion_id=context.get("ingestion_id") or "unknown",
-                extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "unknown",
-                model_version=context.get("model_version") or "unknown",
-                schema_version=context.get("schema_version") or "unknown",
-                value_pack_id=context.get("value_pack_id") or "unknown",
+                tenant_id=tenant_id,
+                ingestion_id=context.get("ingestion_id", ""),
+                extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
+                model_version=context.get("model_version", ""),
+                schema_version=context.get("schema_version", ""),
+                value_pack_id=context.get("value_pack_id", ""),
                 operation=operation,
             )
+        
         logger.warning(
             "Cache operation failed; continuing without cache",
             exc_info=exc,
             extra={
                 "operation": operation,
-                "tenant_id": context.get("tenant_id"),
+                "tenant_id": tenant_id or None,  # Use None in logs if empty
                 "job_id": context.get("job_id"),
                 "correlation_id": context.get("correlation_id"),
                 "exception_class": type(exc).__name__,
@@ -141,6 +136,8 @@ class ExtractionCache:
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
     ) -> Any | None:
+        if not tenant_id:
+            raise ValueError("tenant_id is required for cache operations")
         key = self._make_key(
             tenant_id,
             source_hash,
@@ -154,7 +151,7 @@ class ExtractionCache:
             try:
                 raw = await self._redis.get(key)
                 if raw:
-                    return pickle.loads(raw)
+                    return pickle.loads(raw)  # nosec B301
             except RedisError as exc:
                 self._log_cache_failure("read", exc, context)
             except (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError) as exc:
@@ -178,6 +175,8 @@ class ExtractionCache:
         ttl: int | None = None,
         context: dict[str, str | None] | None = None,
     ) -> None:
+        if not tenant_id:
+            raise ValueError("tenant_id is required for cache operations")
         key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
         ttl = ttl or self._default_ttl
         if self._redis is not None:

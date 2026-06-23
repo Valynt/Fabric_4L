@@ -390,7 +390,7 @@ describe('ValuePacks', () => {
       // Wait for mutation to settle and error alert to render
       const packActions = screen.getByTestId('pack-actions');
       await waitFor(() => {
-        expect(within(packActions).getByText(/Deployment failed/i)).toBeInTheDocument();
+        expect(within(packActions).getByText(/Request failed with status code 400/i)).toBeInTheDocument();
       });
       await waitFor(() => {
         expect(screen.getByRole('button', { name: 'Deploy to Account' })).toBeEnabled();
@@ -400,7 +400,7 @@ describe('ValuePacks', () => {
       const dismissErrorButton = within(packActions).getByRole('button', { name: '×' });
       await user.click(dismissErrorButton);
       await waitFor(() => {
-        expect(within(packActions).queryByText(/Deployment failed/i)).not.toBeInTheDocument();
+        expect(within(packActions).queryByText(/Request failed with status code 400/i)).not.toBeInTheDocument();
       });
     });
   });

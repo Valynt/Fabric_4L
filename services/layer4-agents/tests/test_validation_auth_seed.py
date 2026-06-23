@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Security regression tests for the backend-integrated validation auth seed."""
 
-from __future__ import annotations
 
 import os
 from typing import Any
@@ -9,16 +10,17 @@ from uuid import UUID
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 
 os.environ.setdefault("API_KEY_HMAC_SECRET", "test-api-key-hmac-secret-for-validation-seed-1234567890")
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-validation-seed-1234567890")
 os.environ.setdefault("SERVICE_AUTH_SECRET", "test-service-auth-secret-for-validation-seed-1234567890")
 
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.tenants.models.api_key import APIKey
-from value_fabric.layer4.tenants.models.tenant import Tenant
-from value_fabric.layer4.tenants.models.user import User
+from layer4_agents.api.routes import analysis
+from layer4_agents.tenants.models.api_key import APIKey
+from layer4_agents.tenants.models.tenant import Tenant
+from layer4_agents.tenants.models.user import User
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -46,6 +48,7 @@ class FakeDb:
 @pytest.fixture
 def validation_app(monkeypatch: pytest.MonkeyPatch) -> tuple[FastAPI, FakeDb]:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     db = FakeDb()
 
@@ -69,7 +72,7 @@ async def _post_auth_seed(
     app: FastAPI,
     *,
     body: dict[str, Any] | None = None,
-    reason: str = analysis.E2E_SEED_PRIVILEGED_REASON,
+    reason: str = analysis.SEED_PRIVILEGED_REASON,
 ) -> Any:
     headers = {"X-Privileged-Reason": reason} if reason else {}
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

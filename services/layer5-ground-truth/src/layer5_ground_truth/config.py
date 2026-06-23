@@ -1,6 +1,7 @@
 """Configuration for Layer 5 Ground Truth service."""
 
 import logging
+import warnings
 from functools import lru_cache
 from typing import ClassVar
 from urllib.parse import urlparse
@@ -36,7 +37,11 @@ def _normalize_environment(value: str | None) -> str:
 
 
 def is_production_like_environment(value: str | None) -> bool:
-    """Return whether a runtime environment must fail closed on unsafe config."""
+    """Return True for production or staging environments.
+
+    Per the launch-readiness gate, staging and stage are treated as
+    production-like and must enforce the same fail-closed controls.
+    """
     return _normalize_environment(value) in PRODUCTION_LIKE_ENVIRONMENTS
 
 
@@ -78,7 +83,7 @@ class Settings(BaseSettings):
     app_env: str | None = Field(default=None, alias="APP_ENV")
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec B104
     api_port: int = Field(default=8005, alias="API_PORT")
     api_workers: int = Field(default=1, alias="API_WORKERS")
     api_version: str = Field(default="v1", alias="API_VERSION")
@@ -244,6 +249,23 @@ class Settings(BaseSettings):
         """Return parsed CORS origins after trimming empty entries."""
         return _parse_cors_origins(self.cors_origins)
 
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug_flag(cls, value: object) -> object:
+        """Treat only explicit boolean strings as DEBUG=true/false.
+
+        Some deployment shells expose release channel labels through DEBUG.
+        Those labels must not crash settings import, and they must not enable
+        debug mode.
+        """
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on"}:
+                return True
+            if normalized in {"0", "false", "no", "off", "", "release", "prod", "production", "staging"}:
+                return False
+        return value
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
@@ -289,6 +311,12 @@ class Settings(BaseSettings):
     def validate_production_fail_closed(self) -> "Settings":
         """Reject unsafe production-like configuration before app startup."""
         if not self.is_production_like:
+            if self.effective_environment == "development" and self.allow_insecure_dev_auth_bypass:
+                warnings.warn(
+                    "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             return self
 
         errors: list[str] = []
@@ -297,6 +325,8 @@ class Settings(BaseSettings):
             errors.append("DEBUG must be false")
         if len(self.jwt_secret) < 32 or self.jwt_secret.strip().lower() in WEAK_JWT_SECRETS:
             errors.append("JWT_SECRET must be a non-placeholder value of at least 32 characters")
+        if self.jwt_algorithm.upper() == "HS256":
+            errors.append("JWT_ALGORITHM must not be HS256 in production-like environments; use RS256 or stronger")
         if not self.jwt_issuer.strip():
             errors.append("JWT_ISSUER must be configured")
         if not self.jwt_audience.strip():

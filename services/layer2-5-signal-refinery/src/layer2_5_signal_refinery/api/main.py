@@ -1,3 +1,21 @@
+from __future__ import annotations
+
+import structlog
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import FastAPI
+from value_fabric.shared.probes import normalize_probe_payload
+from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult
+from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
+
+from ..clients.l3_graph_client import get_l3_client
+from ..config import get_settings
+from ..database import close_db, init_db
+from ..logging_config import configure_structured_logging
+from .routes.signals import router as signals_router
+
 """Layer 2.5 Signal Refinery — FastAPI application.
 
 Run with:
@@ -6,60 +24,39 @@ Run with:
 Port: 8007
 """
 
-from __future__ import annotations
-
-import logging
-from contextlib import asynccontextmanager
-from typing import Any
-
-from fastapi import FastAPI
-from sqlalchemy import text
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
-
-from ..clients.l3_graph_client import get_l3_client
-from ..config import get_settings
-from ..database import close_db, init_db
-from .routes.signals import router as signals_router
-
-logger = logging.getLogger(__name__)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+# Configure structured logging
+configure_structured_logging()
+logger = structlog.get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Governance middleware (optional — graceful fallback)
+# Health probes
 # ---------------------------------------------------------------------------
 
-def _add_governance_middleware(app: FastAPI) -> None:
+async def _probe_database() -> ProbeResult:
+    from sqlalchemy import text
+    from ..database import get_engine
     try:
-        from value_fabric.shared.identity.middleware import GovernanceMiddleware
-        from value_fabric.shared.security import SecurityConfig, add_security_middleware
-        from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
+        # Infrastructure connectivity check only — no tenant context. A health
+        # probe must not open a tenant-scoped session (db_session_for_context),
+        # so it connects at the engine level and runs a read-only SELECT 1.
+        async with get_engine().connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return ProbeResult(name="database", healthy=True, detail="postgresql:ok")
+    except Exception as exc:
+        logger.warning("Database health probe failed", exc_info=exc)
+        return ProbeResult(name="database", healthy=False, detail="postgresql:unavailable")
 
-        app.add_middleware(
-            GovernanceMiddleware,
-            api_key_resolver=None,
-            rate_limiter=None,
-        )
-        security_config = SecurityConfig.from_env(
-            skip_validation_paths=frozenset({"/health", "/metrics"}),
-            strict_mode=True,
-        )
-        add_security_middleware(app, config=security_config)
-        app.add_middleware(CORSMiddleware, **resolve_cors_policy().as_kwargs())
-        logger.info("Governance middleware loaded from value_fabric.shared")
-    except ImportError as exc:
-        raise RuntimeError(
-            "FATAL: value_fabric.shared is required for secure CORS configuration. "
-            "Running without governance middleware is not permitted. "
-            "Install the shared package or set CORS_ORIGINS explicitly."
-        ) from exc
+
+async def _probe_l3_client() -> ProbeResult:
+    try:
+        l3_client = get_l3_client()
+        if l3_client is None:
+            return ProbeResult(name="l3_client", healthy=False, detail="l3_client:not_initialized")
+        return ProbeResult(name="l3_client", healthy=True, detail="l3_client:ok")
+    except Exception as exc:
+        logger.warning("L3 client health probe failed", exc_info=exc)
+        return ProbeResult(name="l3_client", healthy=False, detail="l3_client:unavailable")
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +76,54 @@ async def lifespan(app: FastAPI):
 
 
 # ---------------------------------------------------------------------------
+# Middleware hooks
+# ---------------------------------------------------------------------------
+
+
+def _post_core_middleware_hook(app: FastAPI) -> None:
+    try:
+        from value_fabric.shared.identity.middleware import GovernanceMiddleware
+        from value_fabric.shared.security import SecurityConfig, add_security_middleware
+
+        app.add_middleware(
+            GovernanceMiddleware,
+            api_key_resolver=None,
+            rate_limiter=None,
+        )
+        security_config = SecurityConfig.from_env(
+            skip_validation_paths=frozenset({"/health", "/metrics", "/ready"}),
+            strict_mode=True,
+        )
+        add_security_middleware(app, config=security_config)
+        logger.info("Governance middleware loaded from value_fabric.shared")
+    except ImportError as exc:
+        raise RuntimeError(
+            "FATAL: value_fabric.shared is required for secure configuration. "
+            "Install the shared package or set security config explicitly."
+        ) from exc
+
+
+def _health_augmentation_hook(app: FastAPI) -> None:
+    settings = get_settings()
+
+    @app.get("/health", include_in_schema=False)
+    @app.get("/health/live", include_in_schema=False)
+    async def health() -> dict[str, Any]:
+        return normalize_probe_payload(
+            status="ok",
+            service="layer2-5-signal-refinery",
+            extra={
+                "version": "0.1.0",
+                "environment": settings.environment,
+            },
+        )
+
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics() -> str:
+        return ""
+
+
+# ---------------------------------------------------------------------------
 # App factory
 # ---------------------------------------------------------------------------
 
@@ -87,7 +132,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
     reject_insecure_bypass_in_production(service_name="layer2-5-signal-refinery", settings=settings)
 
-    app = FastAPI(
+    app = create_fabric_app(
+        service_name="layer2-5-signal-refinery",
         title="Layer 2.5: Signal Refinery",
         description=(
             "Turns L2 extraction output into trusted, evidence-backed ValueSignal objects. "
@@ -95,62 +141,23 @@ def create_app() -> FastAPI:
         ),
         version="0.1.0",
         lifespan=lifespan,
+        cors_policy=resolve_cors_policy(),
+        post_core_middleware_hook=_post_core_middleware_hook,
+        health_probes=[
+            CallableProbe(name="database", fn=_probe_database),
+            CallableProbe(name="l3_client", fn=_probe_l3_client),
+        ],
+        readiness_path="/ready",
+        health_readiness_augmentation_hook=_health_augmentation_hook,
+        enforce_tenant_context=True,
         docs_url="/docs",
         redoc_url="/redoc",
+        telemetry_service_name="layer2-5-signal-refinery",
+        instrument_telemetry=True,
     )
-
-    _add_governance_middleware(app)
-    register_exception_handlers(app)
 
     # Routes
     app.include_router(signals_router)
-
-    # Health
-    @app.get("/health", include_in_schema=False)
-    async def health() -> dict[str, Any]:
-        return {
-            "status": "ok",
-            "service": "layer2-5-signal-refinery",
-            "version": "0.1.0",
-            "environment": settings.environment,
-        }
-
-    # Readiness check
-    @app.get("/ready", include_in_schema=False)
-    async def ready() -> dict[str, Any]:
-        """Readiness check for Kubernetes probes."""
-        try:
-            # Check database connectivity
-            from ..database import db_session
-            async with db_session() as session:
-                await session.execute(text("SELECT 1"))
-
-            # Check L3 client connectivity
-            l3_client = get_l3_client()
-            # Simple connectivity check - verify client is initialized
-            if l3_client is None:
-                raise RuntimeError("L3 client not initialized")
-
-            return {
-                "status": "ready",
-                "service": "layer2-5-signal-refinery",
-                "checks": {
-                    "database": "ok",
-                    "l3_client": "ok",
-                },
-            }
-        except Exception as exc:
-            logger.error("Readiness check failed: %s", exc)
-            return {
-                "status": "not_ready",
-                "service": "layer2-5-signal-refinery",
-                "error": str(exc),
-            }
-
-    # Metrics stub
-    @app.get("/metrics", include_in_schema=False)
-    async def metrics() -> str:
-        return ""
 
     return app
 

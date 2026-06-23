@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for ValueFlowFacadeService.
 
@@ -11,12 +13,11 @@ Covers:
 - In-memory fallback (no Redis)
 """
 
-from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer4.api.schemas.value_flow import ValueFlowStep
-from value_fabric.layer4.services.value_flow_facade import ValueFlowFacadeService
+from layer4_agents.api.schemas.value_flow import ValueFlowStep
+from layer4_agents.services.value_flow_facade import ValueFlowFacadeService
 
 
 # ---------------------------------------------------------------------------

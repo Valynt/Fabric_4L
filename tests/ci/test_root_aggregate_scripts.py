@@ -34,17 +34,37 @@ def repo_tmp_path(name: str) -> Path:
 
 
 def test_root_scripts_use_fail_closed_orchestrator():
-    root_package = load_json(REPO_ROOT / "package.json")
-    scripts = root_package["scripts"]
-
-    assert scripts["typecheck"] == "python scripts/ci/run_root_aggregate_checks.py typecheck"
-    assert scripts["lint"] == "python scripts/ci/run_root_aggregate_checks.py lint"
-    assert scripts["test"] == "python scripts/ci/run_root_aggregate_checks.py test"
+    scripts = load_json(REPO_ROOT / "package.json")["scripts"]
+    expected = {
+        "typecheck": "python scripts/ci/run_root_aggregate_checks.py typecheck",
+        "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
+        "test": "python scripts/ci/run_root_aggregate_checks.py test",
+        "test:security": "python -m pytest tests/security/ -v --tb=short",
+        "test:observability": "python -m pytest tests/observability/ -v --tb=short",
+        "test:reliability": "python -m pytest tests/reliability/ -v --tb=short",
+        "test:recovery": "python -m pytest tests/recovery/ -v --tb=short",
+        "test:release": "python -m pytest tests/release/ -v --tb=short",
+        "test:tenancy": "python -m pytest tests/tenancy/ -v --tb=short",
+        "test:billing": "python -m pytest tests/billing/ -v --tb=short",
+        "test:abuse": "python -m pytest tests/abuse/ -v --tb=short",
+        "test:config": "python -m pytest tests/config/ -v --tb=short",
+        "test:audit": "python -m pytest tests/audit/ -v --tb=short",
+        "test:production-readiness": "python -m pytest tests/security/ tests/reliability/ tests/observability/ tests/recovery/ tests/release/ tests/tenancy/ tests/billing/ tests/abuse/ tests/config/ tests/audit/ -v --tb=short",
+        "test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation",
+        "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",
+        "test:crawler": "python scripts/ci/run_root_aggregate_checks.py crawler",
+        "test:router": "python scripts/ci/run_root_aggregate_checks.py router",
+        "db:extensions:check": "python scripts/ci/run_root_aggregate_checks.py db-extensions-check",
+        "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
+        "readiness:10": "python scripts/ci/readiness_10_gate.py",
+        "ops:quota:check": "python scripts/ci/check_quota_policy.py",
+    }
+    for script, command in expected.items():
+        assert scripts[script] == command
 
 
 def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
     runner = load_runner_module()
-
     expected = {
         "typecheck": {
             ("apps/web", "typecheck"),
@@ -66,17 +86,96 @@ def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
 
     assert set(runner.EXPECTED_CHECKS) == set(expected)
     for target, expected_pairs in expected.items():
-        checks = runner.EXPECTED_CHECKS[target]
-        assert checks
-        assert {(check.package_path, check.script) for check in checks} == expected_pairs
+        assert {
+            (check.package_path, check.script)
+            for check in runner.EXPECTED_CHECKS[target]
+        } == expected_pairs
+
+
+def test_named_gate_registry_exposes_maturity_gates():
+    runner = load_runner_module()
+
+    assert set(runner.GATES) == {
+        "typecheck",
+        "lint",
+        "test",
+        "security",
+        "schema",
+        "isolation",
+        "crawler",
+        "router",
+        "db-extensions-check",
+        "db-migrate-status",
+    }
+    assert runner.ALL_GATE_NAMES == (
+        "lint",
+        "test",
+        "security",
+        "schema",
+        "isolation",
+        "crawler",
+        "router",
+        "db-extensions-check",
+        "db-migrate-status",
+    )
+
+
+def test_list_outputs_every_supported_gate():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--list"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.splitlines() == [
+        "typecheck",
+        "lint",
+        "test",
+        "security",
+        "schema",
+        "isolation",
+        "crawler",
+        "router",
+        "db-extensions-check",
+        "db-migrate-status",
+        "all",
+    ]
+
+
+def test_json_outputs_machine_readable_gate_metadata():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--json"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    gate_names = [gate["name"] for gate in payload["gates"]]
+    assert "security" in gate_names
+    assert "db-extensions-check" in gate_names
+    assert "db-migrate-status" in gate_names
+    assert payload["aggregate_targets"]["all"] == list(load_runner_module().ALL_GATE_NAMES)
+    assert payload["exit_codes"] == {
+        "passed": 0,
+        "failed": 1,
+        "configuration_error": 2,
+        "command_not_found": 127,
+        "not_applicable": 0,
+    }
+    assert payload["annotations"]
 
 
 def test_expected_package_scripts_exist_in_current_checkout():
     runner = load_runner_module()
 
     for target in runner.EXPECTED_CHECKS:
-        checks = runner.validate_expected_checks(target, REPO_ROOT)
-        assert checks
+        assert runner.validate_expected_checks(target, REPO_ROOT)
 
 
 def test_missing_required_package_script_fails_before_running():
@@ -100,13 +199,12 @@ def test_missing_required_package_script_fails_before_running():
 
 def test_zero_check_target_fails_closed(monkeypatch):
     runner = load_runner_module()
-    tmp_path = repo_tmp_path("zero-check")
-    monkeypatch.setitem(runner.EXPECTED_CHECKS, "empty", ())
+    monkeypatch.setitem(runner.GATES, "empty", runner.Gate("empty", "Empty test gate", "package", ()))
 
     try:
-        runner.validate_expected_checks("empty", tmp_path)
+        runner.validate_expected_checks("empty", REPO_ROOT)
     except runner.AggregateCheckError as exc:
-        assert "zero package checks" in str(exc)
+        assert "zero checks" in str(exc)
     else:
         raise AssertionError("empty check matrix did not fail")
 
@@ -122,10 +220,11 @@ def test_runner_invokes_explicit_pnpm_dir_commands(monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.setitem(
-        runner.EXPECTED_CHECKS,
+        runner.GATES,
         "test",
-        (runner.PackageCheck("apps/web", "test"),),
+        runner.Gate("test", "Test gate", "package", (runner.PackageCheck("apps/web", "test"),)),
     )
+    monkeypatch.setattr(runner, "validate_expected_checks", lambda target, repo_root: runner.GATES[target].checks)
 
     def fake_runner(command, cwd):
         calls.append((list(command), cwd))
@@ -133,3 +232,105 @@ def test_runner_invokes_explicit_pnpm_dir_commands(monkeypatch):
 
     assert runner.run_aggregate_check("test", tmp_path, fake_runner) == 0
     assert calls == [(["pnpm", "--dir", "apps/web", "run", "test"], tmp_path)]
+
+
+def test_command_gate_failure_returns_one():
+    runner = load_runner_module()
+    calls: list[tuple[list[str], Path]] = []
+
+    def fake_runner(command, cwd):
+        calls.append((list(command), cwd))
+        return subprocess.CompletedProcess(command, 9)
+
+    result = runner.run_gate("security", REPO_ROOT, fake_runner)
+
+    assert result.status == runner.GateStatus.FAILED
+    assert result.exit_code == 1
+    assert calls == [
+        (
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-v",
+                "--tb=short",
+                "-x",
+                "tests/security/test_security_smoke.py",
+            ],
+            REPO_ROOT,
+        )
+    ]
+
+
+def test_missing_command_executable_returns_127():
+    runner = load_runner_module()
+
+    def missing_runner(command, cwd):
+        return subprocess.CompletedProcess(command, 127)
+
+    result = runner.run_gate("schema", REPO_ROOT, missing_runner)
+
+    assert result.status == runner.GateStatus.FAILED
+    assert result.exit_code == 127
+
+
+def test_invalid_gate_returns_configuration_error(capsys):
+    runner = load_runner_module()
+
+    assert runner.main(["definitely-not-a-gate"]) == 2
+    assert "Unsupported gate" in capsys.readouterr().err
+
+
+def test_missing_optional_gate_is_not_applicable_not_silent_success(monkeypatch):
+    runner = load_runner_module()
+    tmp_path = repo_tmp_path("missing-optional-gate")
+    monkeypatch.setitem(
+        runner.GATES,
+        "optional-demo",
+        runner.Gate(
+            name="optional-demo",
+            description="Optional demo gate",
+            kind="command",
+            checks=(
+                runner.CommandCheck(
+                    ("demo",),
+                    "optional demo",
+                    required_paths=(Path("missing/demo.txt"),),
+                    optional=True,
+                ),
+            ),
+        ),
+    )
+
+    result = runner.run_gate(
+        "optional-demo",
+        tmp_path,
+        lambda command, cwd: subprocess.CompletedProcess(command, 99),
+    )
+
+    assert result.status == runner.GateStatus.NOT_APPLICABLE
+    assert result.exit_code == 0
+    assert result.checks[0].status == runner.GateStatus.NOT_APPLICABLE
+    assert result.checks[0].missing_paths == ("missing/demo.txt",)
+
+
+def test_all_aggregates_results_deterministically(monkeypatch):
+    runner = load_runner_module()
+    calls: list[str] = []
+
+    def fake_run_gate(target, repo_root=runner.REPO_ROOT, runner_arg=runner.default_runner, *, emit_text=True):
+        calls.append(target)
+        if target == "router":
+            return runner.GateResult(target, target, runner.GateStatus.FAILED, 1, ())
+        if target == "crawler":
+            return runner.GateResult(target, target, runner.GateStatus.NOT_APPLICABLE, 0, ())
+        return runner.GateResult(target, target, runner.GateStatus.PASSED, 0, ())
+
+    monkeypatch.setattr(runner, "run_gate", fake_run_gate)
+    results = runner.run_all()
+
+    assert calls == list(runner.ALL_GATE_NAMES)
+    assert [result.status for result in results].count(runner.GateStatus.PASSED) == len(runner.ALL_GATE_NAMES) - 2
+    assert [result.status for result in results].count(runner.GateStatus.FAILED) == 1
+    assert [result.status for result in results].count(runner.GateStatus.NOT_APPLICABLE) == 1
+    assert runner._exit_code_for_results(results) == 1

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "value-fabric-shared"
+version = "1.0.0"
+description = "Value Fabric shared Python library"
+dependencies = [
+    "limits>=3.13.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]

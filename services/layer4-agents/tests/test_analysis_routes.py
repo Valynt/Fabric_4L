@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Targeted tests for analysis routes executor integration."""
 
-from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
@@ -12,9 +13,10 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.api.common.db import get_route_db
-from value_fabric.layer4.config.settings import settings
+from layer4_agents.api.routes import analysis
+from layer4_agents.api.common.db import get_route_db
+from layer4_agents.config.settings import settings
+from value_fabric.shared.error_handling import register_exception_handlers
 
 
 async def _async_return(value: Any) -> Any:
@@ -84,6 +86,7 @@ class FakeScenarioDb:
 def analysis_app() -> FastAPI:
     """Build a small FastAPI app with analysis routes only."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     return app
 
@@ -142,6 +145,58 @@ async def test_post_cases_success_path(analysis_app: FastAPI, monkeypatch) -> No
     payload = response.json()
     assert "case_id" in payload
     assert payload["status"] in ("created", "completed")
+
+
+@pytest.mark.asyncio
+async def test_post_cases_uses_optional_case_id(analysis_app: FastAPI, monkeypatch) -> None:
+    """POST /cases should accept and persist an optional deterministic case_id."""
+    account_uuid = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    deterministic_case_id = "case-deterministic-001"
+
+    class FakeDb:
+        def __init__(self) -> None:
+            self.added: list[Any] = []
+
+        async def execute(self, stmt: Any) -> Any:
+            return FakeExecuteResult()
+
+        def add(self, record: Any) -> None:
+            self.added.append(record)
+
+        async def commit(self) -> None:
+            pass
+
+    fake_db = FakeDb()
+    monkeypatch.setattr(
+        analysis,
+        "AccountService",
+        lambda db: SimpleNamespace(
+            get_account=lambda account_id, tenant_id=None: _async_return(
+                SimpleNamespace(id=account_id, name="Acme Corp")
+            )
+        ),
+    )
+
+    analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
+    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
+    analysis_app.dependency_overrides[analysis.get_executor] = lambda: None
+
+    async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
+        response = await client.post(
+            "/v1/cases",
+            json={
+                "account_id": str(account_uuid),
+                "title": "Deterministic Case",
+                "case_id": deterministic_case_id,
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["case_id"] == deterministic_case_id
+    assert payload["status"] == "created"
+    assert len(fake_db.added) == 1
+    assert fake_db.added[0].case_id == deterministic_case_id
 
 
 @pytest.mark.asyncio
@@ -349,9 +404,9 @@ async def test_get_workspace_tab_invalid_tab_key(analysis_app: FastAPI) -> None:
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.get("/v1/cases/test-case/workspace/invalid-tab")
-        assert response.status_code == 400
-        payload = response.json()
-        assert "Invalid tab_key" in payload["detail"]
+    assert response.status_code == 422
+    payload = response.json()
+    assert "Invalid tab_key" in payload["error"]["message"]
 
 
 @pytest.mark.asyncio

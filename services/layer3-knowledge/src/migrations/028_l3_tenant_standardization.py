@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -33,7 +35,6 @@ Environment:
     DEFAULT_TENANT  (default: default)
 """
 
-from __future__ import annotations
 
 import argparse
 import asyncio

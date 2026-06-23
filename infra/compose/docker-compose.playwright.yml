@@ -1,0 +1,75 @@
+# =============================================================================
+# docker-compose.playwright.yml — Playwright Live Test Runner
+# =============================================================================
+#
+# Purpose:
+#   Run Playwright E2E tests inside Docker with live source-code mounting.
+#   All browsers (Chromium, Firefox, WebKit) and system dependencies are
+#   pre-installed in the image.
+#
+# Quick start (contract tests — no backend required):
+#   docker compose -f infra/compose/docker-compose.playwright.yml build
+#   docker compose -f infra/compose/docker-compose.playwright.yml run --rm playwright
+#
+# With PowerShell helper:
+#   .\scripts\run-playwright-docker.ps1 -Build
+#   .\scripts\run-playwright-docker.ps1 -TestProject contracts
+#
+# Backend-integrated tests:
+#   1. Start the deterministic backend stack:
+#      docker compose -f infra/compose/docker-compose.e2e.yml up -d --wait
+#   2. Run backend-integrated project:
+#      .\scripts\run-playwright-docker.ps1 -TestProject backend-integrated `
+#        -BackendUrl http://host.docker.internal:8004
+#   3. Tear down backend:
+#      docker compose -f infra/compose/docker-compose.e2e.yml down -v
+#
+# Live code changes:
+#   Edit any file under apps/web/ on the host and re-run the container.
+#   The bind mount reflects changes immediately.
+#
+# Test results:
+#   - playwright-report/index.html   (interactive HTML report)
+#   - e2e-results/junit.xml          (CI-friendly JUnit output)
+#   - e2e-results/                   (traces, screenshots, videos)
+# =============================================================================
+
+services:
+  playwright:
+    build:
+      context: ../../apps/web
+      dockerfile: Dockerfile.playwright
+    container_name: vf-playwright
+    working_dir: /app
+    volumes:
+      # Live source mount — changes on host are visible immediately
+      - ../../apps/web:/app
+      # Named volume isolates Linux node_modules from Windows host binaries
+      - playwright_node_modules:/app/node_modules
+      # Test outputs surfaced back to host
+      - ../../e2e-results:/app/e2e-results
+      - ../../playwright-report:/app/playwright-report
+    environment:
+      # Playwright configuration
+      - PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL:-http://localhost:3001}
+      - PLAYWRIGHT_BACKEND_URL=${PLAYWRIGHT_BACKEND_URL:-}
+      - PLAYWRIGHT_LIVE_MODE=${PLAYWRIGHT_LIVE_MODE:-false}
+      - CI=${CI:-false}
+      # Output directories (must match playwright.config.ts defaults)
+      - PLAYWRIGHT_HTML_REPORT=/app/playwright-report
+      - PLAYWRIGHT_JUNIT_FILE=/app/e2e-results/junit.xml
+      - PLAYWRIGHT_OUTPUT_DIR=/app/e2e-results/
+      # Web server: use production preview in Docker for fast page loads
+      - PLAYWRIGHT_WEBSERVER_COMMAND=pnpm preview --host --port 3001
+      # Vite / frontend env (used by pnpm dev when webServer starts)
+      - VITE_USE_MOCKS=${VITE_USE_MOCKS:-true}
+      - VITE_ENABLE_MOCK_FALLBACK=${VITE_ENABLE_MOCK_FALLBACK:-true}
+    ports:
+      # Playwright UI mode
+      - "9323:9323"
+    # Keep container alive when running interactive UI mode
+    stdin_open: true
+    tty: true
+
+volumes:
+  playwright_node_modules:

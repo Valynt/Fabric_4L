@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("JWT_SECRET", "test-secret-123456789012345678901234567890")
 
-from value_fabric.layer4.tenants.api.routes import oidc
+from layer4_agents.tenants.api.routes import oidc
 from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 

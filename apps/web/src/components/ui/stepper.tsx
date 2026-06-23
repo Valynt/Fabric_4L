@@ -117,7 +117,7 @@ function StepperIndicator({ status }: { status: StepStatus }) {
   return (
     <span
       className={cn(
-        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors",
+        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border vf-text-micro font-semibold transition-colors",
         status === "active" && "border-primary bg-primary text-primary-foreground",
         status === "pending" && "border-muted-foreground/30 text-muted-foreground",
         status === "completed" && "border-primary bg-primary text-primary-foreground"

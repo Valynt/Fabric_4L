@@ -19,11 +19,11 @@ def _env():
     old = dict(os.environ)
     os.environ.update(
         {
-            "JWT_SECRET": "active-secret",
+            "JWT_SECRET": "active-secret-key-must-be-at-least-32-bytes!!",
             "JWT_ALGORITHM": "HS256",
             "JWT_ACTIVE_KID": "active-k1",
             "JWT_PREVIOUS_KID": "prev-k0",
-            "JWT_PREVIOUS_SECRET": "prev-secret",
+            "JWT_PREVIOUS_SECRET": "previous-secret-key-must-be-at-least-32-bytes!!",
             "JWT_ISSUER": "value-fabric-internal",
             "JWT_AUDIENCE": "value-fabric-services",
         }
@@ -64,7 +64,7 @@ def test_rotated_previous_key_is_accepted():
         "exp": int(time.time()) + 3600,
         "iat": int(time.time()),
     }
-    token = jwt.encode(payload, "prev-secret", algorithm="HS256", headers={"kid": "prev-k0"})
+    token = jwt.encode(payload, "previous-secret-key-must-be-at-least-32-bytes!!", algorithm="HS256", headers={"kid": "prev-k0"})
     claims = decode_jwt(token)
     assert claims is not None
 

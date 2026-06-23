@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 ENTRYPOINTS = {
-    "layer1": REPO_ROOT / "services/layer1-ingestion/src/api/main.py",
+    "layer1": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "layer2": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "layer3": REPO_ROOT / "services/layer3-knowledge/src/api/main.py",
     "layer4": REPO_ROOT / "services/layer4-agents/src/api/main.py",

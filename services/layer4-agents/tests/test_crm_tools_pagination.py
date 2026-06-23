@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for CRM tools pagination and rate limit handling.
 
@@ -7,7 +9,6 @@ Covers:
 - Max page safety limit
 """
 
-from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -15,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from value_fabric.layer4.models.tool_schemas import GetProspectDataInput
-from value_fabric.layer4.tools.crm_tools import GetProspectDataTool
+from layer4_agents.models.tool_schemas import GetProspectDataInput
+from layer4_agents.tools.crm_tools import FetchInteractionHistoryTool, GetProspectDataTool
 
 
 class MockResponse:
@@ -74,7 +75,7 @@ async def test_salesforce_opportunity_pagination():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["opportunities"]),
         )
 
     assert len(result.opportunities) == 3
@@ -108,7 +109,7 @@ async def test_salesforce_rate_limit_graceful():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["profile", "opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["profile", "opportunities"]),
         )
 
     # Profile should still be fetched
@@ -149,9 +150,56 @@ async def test_salesforce_max_pages_safety():
 
         result = await tool._get_salesforce_data(
             mock_client,
-            GetProspectDataInput(prospect_id="001TEST123456789", data_types=["opportunities"]),
+            GetProspectDataInput(prospect_id="001TEST12345678", data_types=["opportunities"]),
         )
 
     # Should stop at max_pages (10) even though more pages exist
     assert len(result.opportunities) == 10
     assert call_count == 10
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "001TEST12345678",
+        "001TEST12345678AAA",
+    ],
+)
+def test_salesforce_tools_share_strict_soql_safe_id_helper(prospect_id: str):
+    prospect_tool = GetProspectDataTool(config={"crm_type": "salesforce"})
+    interaction_tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
+
+    assert prospect_tool._soql_safe_id(prospect_id) == prospect_id
+    assert interaction_tool._soql_safe_id(prospect_id) == prospect_id
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "",
+        None,
+        "001TEST123456789",
+        "001TEST12345' OR Name != ''",
+        "001TEST12345;DROP",
+    ],
+)
+def test_fetch_interaction_history_rejects_invalid_or_malicious_ids(prospect_id):
+    tool = FetchInteractionHistoryTool(config={"crm_type": "salesforce"})
+    with pytest.raises(ValueError, match="Invalid prospect_id format"):
+        tool._soql_safe_id(prospect_id)
+
+
+@pytest.mark.parametrize(
+    "prospect_id",
+    [
+        "",
+        None,
+        "001TEST123456789",
+        "001TEST12345' OR Name != ''",
+        "001TEST12345;DROP",
+    ],
+)
+def test_get_prospect_data_rejects_invalid_or_malicious_ids(prospect_id):
+    tool = GetProspectDataTool(config={"crm_type": "salesforce"})
+    with pytest.raises(ValueError, match="Invalid prospect_id format"):
+        tool._soql_safe_id(prospect_id)

@@ -54,8 +54,8 @@ L4_WORKFLOWS_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "
 HTTP_DECORATORS = {"get", "post", "put", "delete", "patch"}
 
 # Frontend API client configuration paths
-FRONTEND_CLIENT_PATH = REPO_ROOT / "frontend" / "client" / "src" / "api" / "client.ts"
-ENV_EXAMPLE_PATH = REPO_ROOT / "frontend" / "client" / ".env.example"
+FRONTEND_CLIENT_PATH = REPO_ROOT / "apps" / "web" / "src" / "api" / "client.ts"
+ENV_EXAMPLE_PATH = REPO_ROOT / ".env.example"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -177,11 +177,11 @@ class TestL4WorkflowSSEContractsConsumedByUI:
     def test_workflow_status_response_matches_l4_openapi(self) -> None:
         """Workflow status response matches OpenAPI schema."""
         sample_status = {
-            "workflow_instance_id": "wf-123",
+            "id": "wf-123",
             "workflow_type": "business_case",
             "status": "running",
             "current_state": "analyzing",
-            "progress_percentage": 45,
+            "progress": 45,
             "started_at": "2026-04-14T00:00:00Z",
             "completed_at": None,
             "results": {},
@@ -232,12 +232,12 @@ class TestPathAlignment:
 
     # Expected layer prefixes for drift detection
     EXPECTED_LAYER_PREFIXES = {
-        'L1': ('VITE_L1_PREFIX', '/v1/ingest'),
-        'L2': ('VITE_L2_PREFIX', '/v1/extract'),
-        'L3': ('VITE_L3_PREFIX', '/v1/graph'),
-        'L4': ('VITE_L4_PREFIX', '/v1/agents'),
-        'L5': ('VITE_L5_PREFIX', '/v1/truths'),
-        'L6': ('VITE_L6_PREFIX', '/v1/benchmarks'),
+        'L1': ('VITE_L1_PREFIX', '/ingest'),
+        'L2': ('VITE_L2_PREFIX', '/extract'),
+        'L3': ('VITE_L3_PREFIX', '/graph'),
+        'L4': ('VITE_L4_PREFIX', '/agents'),
+        'L5': ('VITE_L5_PREFIX', '/truths'),
+        'L6': ('VITE_L6_PREFIX', '/benchmarks'),
     }
 
     def _extract_env_default(self, client_content: str, var_name: str) -> str | None:
@@ -248,19 +248,26 @@ class TestPathAlignment:
         """
         pattern = rf"{re.escape(var_name)}\s*\|\|\s*['\"]([^'\"]+)['\"]"
         match = re.search(pattern, client_content)
+        if match:
+            return match.group(1)
+
+        get_env_var_pattern = (
+            rf"getApiEnvVar\(\s*\[[^\]]*{re.escape(var_name)}[^\]]*\]\s*,\s*['\"]([^'\"]+)['\"]"
+        )
+        match = re.search(get_env_var_pattern, client_content, re.DOTALL)
         return match.group(1) if match else None
 
     def test_env_example_has_correct_api_base(self) -> None:
-        """VITE_API_BASE must be /api (not /api/v1) to allow layer prefixes to include /v1."""
+        """VITE_API_BASE must include the gateway API version."""
         env_content = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
 
-        assert "VITE_API_BASE=/api" in env_content, (
-            "VITE_API_BASE should be /api to allow layer prefixes to include /v1. "
-            "This enables proper ingress routing from /api/v1/* to backend /v1/*."
+        assert "VITE_API_BASE=/api/v1" in env_content, (
+            "VITE_API_BASE should be /api/v1 so layer prefixes stay layer-scoped. "
+            "This matches docs/reference/service-routing-and-api-version-matrix.md."
         )
 
     def test_env_example_layer_prefixes_include_api_version(self) -> None:
-        """All layer prefixes must include /v1 to align with backend OpenAPI routes."""
+        """All layer prefixes must stay layer-scoped under the gateway API version."""
         env_content = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
 
         missing_v1 = []
@@ -270,8 +277,8 @@ class TestPathAlignment:
                 missing_v1.append(f"{layer_name} ({var_name} should be {expected})")
 
         assert not missing_v1, (
-            f"Layer prefixes missing /v1: {', '.join(missing_v1)}. "
-            "All layer prefixes must include /v1 to align with backend OpenAPI routes."
+            f"Layer prefixes do not match the gateway route matrix: {', '.join(missing_v1)}. "
+            "Layer prefixes must not duplicate the /api/v1 gateway prefix."
         )
 
     def test_api_client_defaults_match_env_example(self) -> None:
@@ -282,10 +289,10 @@ class TestPathAlignment:
         api_base_default = self._extract_env_default(client_content, 'VITE_API_BASE')
         assert api_base_default is not None, (
             "Could not find VITE_API_BASE fallback default in client.ts. "
-            "Pattern should be: import.meta.env.VITE_API_BASE || '/api'"
+            "Pattern should be: import.meta.env.VITE_API_BASE || '/api/v1'"
         )
-        assert api_base_default == "/api", (
-            f"API client default VITE_API_BASE should be '/api', got '{api_base_default}'. "
+        assert api_base_default == "/api/v1", (
+            f"API client default VITE_API_BASE should be '/api/v1', got '{api_base_default}'. "
             "This must match .env.example for consistent behavior."
         )
 

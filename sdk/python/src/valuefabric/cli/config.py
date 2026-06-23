@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-import toml
 import typer
 from rich import print as rich_print
 
@@ -17,6 +17,79 @@ CONFIG_DIR = Path.home() / ".config" / "valuefabric"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 
 DEFAULT_PROFILE = "default"
+
+
+def _parse_toml_value(raw: str) -> Any:
+    value = raw.strip()
+    if value.startswith('"') and value.endswith('"'):
+        return value[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    if value.startswith("[") and value.endswith("]"):
+        items = value[1:-1].strip()
+        if not items:
+            return []
+        return [_parse_toml_value(item.strip()) for item in items.split(",")]
+    try:
+        return int(value)
+    except ValueError:
+        try:
+            return float(value)
+        except ValueError:
+            return value
+
+
+def _load_profile_toml(text: str) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    current_profile: dict[str, Any] | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[profiles.") and line.endswith("]"):
+            profile_name = line[len("[profiles.") : -1].strip('"')
+            profiles = data.setdefault("profiles", {})
+            if not isinstance(profiles, dict):
+                raise ValueError("profiles must be a table")
+            current_profile = profiles.setdefault(profile_name, {})
+            continue
+        if "=" not in line:
+            raise ValueError(f"invalid line: {line}")
+        key, raw_value = line.split("=", 1)
+        target = current_profile if current_profile is not None else data
+        target[key.strip()] = _parse_toml_value(raw_value)
+    return data
+
+
+def _format_toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_format_toml_value(item) for item in value) + "]"
+    escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _dump_profile_toml(config: dict[str, Any]) -> str:
+    lines: list[str] = []
+    active = config.get("active_profile")
+    if active is not None:
+        lines.append(f"active_profile = {_format_toml_value(active)}")
+        lines.append("")
+    profiles = config.get("profiles", {})
+    if isinstance(profiles, dict):
+        for profile_name, profile in profiles.items():
+            escaped_name = str(profile_name).replace("\\", "\\\\").replace('"', '\\"')
+            lines.append(f'[profiles."{escaped_name}"]')
+            if isinstance(profile, dict):
+                for key, value in profile.items():
+                    lines.append(f"{key} = {_format_toml_value(value)}")
+            lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def _check_token_expiration(profile_config: dict, profile_name: str) -> None:
@@ -44,8 +117,8 @@ def _load_config() -> dict:
     if not CONFIG_FILE.exists():
         return {}
     try:
-        return toml.load(CONFIG_FILE)
-    except toml.TomlDecodeError as e:
+        return _load_profile_toml(CONFIG_FILE.read_text(encoding="utf-8"))
+    except ValueError as e:
         raise ConfigurationError(
             f"Config file is corrupted: {CONFIG_FILE}\n"
             f"Parse error: {e}\n"
@@ -55,8 +128,7 @@ def _load_config() -> dict:
 
 def _save_config(config: dict) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
-        toml.dump(config, f)
+    CONFIG_FILE.write_text(_dump_profile_toml(config), encoding="utf-8")
 
 
 def get_active_profile() -> str:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/release-gate.sh — Enforcement-grade Release Gate orchestrator for Value Fabric
 # Usage: bash scripts/release-gate.sh [PROFILE]
-# Profile: pr-fast | mainline-full | release-candidate (default: release-candidate)
+# Profile: any profile defined in .fabric/prod-gates.policy.yaml (default: release-candidate)
 set -uo pipefail
 
 PROFILE="${1:-release-candidate}"
@@ -49,7 +49,13 @@ print('true' if '$PROFILE' in data.get('profiles', {}) else 'false')
 ")
 if [ "$PROFILE_VALID" != "true" ]; then
     echo "❌ Negative check FAILED: Unknown profile '$PROFILE'"
-    echo "   Valid profiles: pr-fast, mainline-full, release-candidate"
+    VALID_PROFILES=$($_PYTHON -c "
+import yaml
+with open('$POLICY_FILE_REL') as f:
+    data = yaml.safe_load(f)
+print(', '.join(sorted(data.get('profiles', {}).keys())))
+")
+    echo "   Valid profiles: $VALID_PROFILES"
     exit 1
 fi
 
@@ -137,8 +143,10 @@ if [ "${GATE_STATUS[policy]}" != "PASS" ]; then
     exit 1
 fi
 
-# ── Step 2: Lint (hard-fail) ─────────────────────────────────────────────────
-run_target "lint"
+# ── Step 2: Optional lint (hard-fail when included in profile) ───────────────
+if [ -n "${GATE_TARGET[lint]:-}" ]; then
+    run_target "lint"
+fi
 
 # ── Step 3: Remaining gates from policy profile ──────────────────────────────
 for gate in $GATES; do
@@ -156,7 +164,10 @@ NEGATIVE_TOTAL=0
 
 # 4a: Broken lint must fail
 NEGATIVE_TOTAL=$((NEGATIVE_TOTAL + 1))
-if [ "${GATE_STATUS[lint]}" = "FAIL" ]; then
+if [ -z "${GATE_TARGET[lint]:-}" ]; then
+    echo "   ℹ️  Negative: lint not in profile — skipping"
+    NEGATIVE_PASS=$((NEGATIVE_PASS + 1))
+elif [ "${GATE_STATUS[lint]}" = "FAIL" ]; then
     echo "   ✅ Negative: Broken lint correctly fails gate"
     NEGATIVE_PASS=$((NEGATIVE_PASS + 1))
 else
@@ -363,7 +374,7 @@ EOF
 # after gate-result.json is written so evidence records the current run instead
 # of stale prior-run PASS/FAIL data.
 if [ -f "$ROOT/scripts/ops/render-release-summary.sh" ]; then
-    bash "$ROOT/scripts/ops/render-release-summary.sh" >> "$LOG_DIR/gates-render-summary.log" 2>&1 || {
+    bash "$ROOT/scripts/ops/render-release-summary.sh" >> "$LOG_DIR/gate-summary.log" 2>&1 || {
         echo "❌ Final summary render failed after gate-result.json was written" | tee -a "$LOG_DIR/release-gate.log"
         exit 1
     }

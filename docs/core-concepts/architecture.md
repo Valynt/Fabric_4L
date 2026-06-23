@@ -2,7 +2,7 @@
 title: "Value Fabric Architecture"
 category: "core-concepts"
 audience: "intermediate"
-last-reviewed: "2026-05-04"
+last-reviewed: "2026-06-20"
 freshness: "current"
 related: ["../getting-started/quickstart", "../getting-started/environment", "../reference/layer1-ingestion-api", "security-model", "ontology-system", "../explanations/adr/ADR-001-six-layer-architecture", "../explanations/adr/ADR-002-hybrid-graph-database"]
 ---
@@ -10,7 +10,7 @@ related: ["../getting-started/quickstart", "../getting-started/environment", "..
 # Value Fabric System Architecture
 
 > **In this guide, you will:**
-> - Understand the 6-layer pipeline architecture
+> - Understand the 6-layer core pipeline plus adjacent deployable capabilities
 > - Learn how data flows through the system
 > - Explore container and component-level designs
 > - See deployment topology for production
@@ -70,7 +70,7 @@ graph TB
 
 ## Container Architecture (C4 Level 2)
 
-The system follows a 6-layer pipeline architecture with clear separation of concerns:
+The system follows a 6-layer core pipeline architecture with clear separation of concerns. Signal Refinery and Billing are deployable adjacent capabilities; they are invoked through contracted service boundaries instead of being additional horizontal pipeline layers.
 
 ```mermaid
 graph TB
@@ -83,13 +83,18 @@ graph TB
         GW[API Gateway<br/>Authentication<br/>Rate Limiting]
     end
     
-    subgraph "Service Layer"
+    subgraph "Core Service Layer"
         L1[Layer 1: Ingestion<br/>FastAPI + Playwright<br/>Port 8001]
         L2[Layer 2: Extraction<br/>FastAPI + LLM<br/>Port 8002]
         L3[Layer 3: Knowledge<br/>FastAPI + Neo4j<br/>Port 8003]
         L4[Layer 4: Agents<br/>FastAPI + LangGraph<br/>Port 8004]
         L5[Layer 5: Ground Truth<br/>FastAPI + PostgreSQL<br/>Port 8005]
         L6[Layer 6: Benchmarks<br/>FastAPI + Statistical Libraries<br/>Port 8006]
+    end
+
+    subgraph "Adjacent Capabilities"
+        L2_5[Signal Refinery<br/>FastAPI<br/>Port 8007]
+        L7[Billing<br/>FastAPI<br/>Port 8008]
     end
     
     subgraph "Data Layer"
@@ -108,10 +113,12 @@ graph TB
     CLI -->|REST| GW
     GW -->|Route + Auth| L1
     GW -->|Route + Auth| L2
+    GW -->|Route + Auth| L2_5
     GW -->|Route + Auth| L3
     GW -->|Route + Auth| L4
     GW -->|Route + Auth| L5
     GW -->|Route + Auth| L6
+    GW -->|Route + Auth| L7
     
     L1 -->|Ingest jobs| RED
     L1 -->|Metadata| PG
@@ -120,6 +127,9 @@ graph TB
     L2 -->|Poll jobs| RED
     L2 -->|LLM calls| OPENAI
     L2 -->|Extraction state| PG
+    
+    L2_5 -->|Refined signals| PG
+    L2_5 -->|Queue state| RED
     
     L3 -->|Graph queries| NEO
     L3 -->|Vector search| PG
@@ -131,20 +141,25 @@ graph TB
     
     L5 -->|Truth objects| PG
     L6 -->|Benchmark results| PG
+    L7 -->|Billing state| PG
     
     L1 -.->|Progress updates| L4
-    L2 -.->|Extractions| L3
+    L2 -.->|Raw signals| L2_5
+    L2_5 -.->|Refined signals| L3
     L3 -.->|Context| L4
     L4 -.->|Agent outputs| L5
     L5 -.->|Validated truth| L6
+    L4 -.->|Usage events| L7
     
     style FE fill:#4a90d9,color:white
     style L1 fill:#2ecc71,color:white
     style L2 fill:#2ecc71,color:white
+    style L2_5 fill:#2ecc71,color:white
     style L3 fill:#2ecc71,color:white
     style L4 fill:#2ecc71,color:white
     style L5 fill:#2ecc71,color:white
     style L6 fill:#2ecc71,color:white
+    style L7 fill:#2ecc71,color:white
     style GW fill:#e74c3c,color:white
     style PG fill:#9b59b6,color:white
     style NEO fill:#9b59b6,color:white
@@ -242,6 +257,54 @@ Capability → UseCase → Persona → ValueDriver
 
 ---
 
+## Adjacent Capability: Signal Refinery
+
+**Purpose:** Normalize, deduplicate, and enrich Layer 2 extraction output into trusted, evidence-backed `ValueSignal` objects before graph ingestion.
+
+```mermaid
+flowchart LR
+    subgraph "Input"
+        RAW[Raw Extracted Signals<br/>+ Confidence + Provenance]
+    end
+    
+    subgraph "Processing"
+        DEDUP[Deduplication]
+        ENRICH[Enrichment]
+        NORM[Normalization]
+        EVIDENCE[Evidence Linking]
+    end
+    
+    subgraph "Output"
+        TRUSTED[ValueSignal Objects<br/>Ready for L3 / L4]
+    end
+    
+    RAW --> DEDUP
+    DEDUP --> ENRICH
+    ENRICH --> NORM
+    NORM --> EVIDENCE
+    EVIDENCE --> TRUSTED
+    
+    style DEDUP fill:#2ecc71,color:white
+    style ENRICH fill:#2ecc71,color:white
+    style NORM fill:#2ecc71,color:white
+    style EVIDENCE fill:#2ecc71,color:white
+    style TRUSTED fill:#4a90d9,color:white
+```
+
+**Key Behaviors:**
+| Behavior | Purpose |
+|----------|---------|
+| Deduplication | Collapse near-duplicate signals from overlapping sources |
+| Enrichment | Add derived context, units, and temporal scope |
+| Normalization | Map signals to canonical ontology shapes |
+| Evidence linking | Preserve provenance, document references, and confidence metadata |
+
+**Canonical source:** `services/layer2-5-signal-refinery/src`
+
+**Boundary rule:** Signal Refinery is adjacent to the core pipeline. It consumes Layer 2 output and pushes to Layer 3 through contracted API/client boundaries; it must not import Layer 2 or Layer 3 runtime modules directly.
+
+---
+
 ## Layer 3: Knowledge Graph & Semantic Layer
 
 **Purpose:** Store, query, and reason over extracted knowledge
@@ -327,6 +390,57 @@ stateDiagram-v2
 
 ---
 
+## Adjacent Capability: Billing
+
+**Purpose:** Tenant-scoped subscription, usage metering, entitlements, and Stripe webhook handling.
+
+```mermaid
+flowchart LR
+    subgraph "External"
+        STRIPE[Stripe<br/>Webhooks]
+    end
+    
+    subgraph "Billing"
+        L7_API[Billing API<br/>/v1/billing/*]
+        METER[Usage Metering]
+        ENT[Entitlement Engine]
+        INV[Invoice & Payment State]
+    end
+    
+    subgraph "Data"
+        PG_BILL[(PostgreSQL<br/>Billing Schema)]
+    end
+    
+    STRIPE -->|webhook| L7_API
+    L7_API --> METER
+    L7_API --> ENT
+    L7_API --> INV
+    METER --> PG_BILL
+    ENT --> PG_BILL
+    INV --> PG_BILL
+    
+    style L7_API fill:#2ecc71,color:white
+    style METER fill:#2ecc71,color:white
+    style ENT fill:#2ecc71,color:white
+    style INV fill:#2ecc71,color:white
+    style PG_BILL fill:#9b59b6,color:white
+    style STRIPE fill:#95a5a6,color:white
+```
+
+**Key Responsibilities:**
+| Responsibility | Description |
+| ---------------- | ----------- |
+| Plans & subscriptions | Product plans, trials, and subscription lifecycle |
+| Usage events | Metered usage aggregation and billing records |
+| Entitlements | Tenant-scoped feature access decisions |
+| Stripe webhooks | Verified webhook ingestion and idempotent processing |
+
+**Canonical source:** `services/layer7-billing/src`
+
+**Boundary rule:** Billing is adjacent to the core pipeline. Core services interact with it through entitlement and usage-event contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
+
+---
+
 ## Data Flow: End-to-End
 
 ```mermaid
@@ -335,6 +449,7 @@ sequenceDiagram
     participant FE as Frontend
     participant L1 as Layer 1
     participant L2 as Layer 2
+    participant L2_5 as Signal Refinery
     participant L3 as Layer 3
     participant L4 as Layer 4
     participant AI as LLM Provider
@@ -348,8 +463,10 @@ sequenceDiagram
         L1->>L2: Queue extraction
         L2->>AI: LLM extraction
         AI-->>L2: Entities + relationships
-        L2->>L3: Store in knowledge graph
-        L3-->>L2: Confirmation
+        L2->>L2_5: Raw signals
+        L2_5->>L2_5: Refine & enrich
+        L2_5->>L3: Store in knowledge graph
+        L3-->>L2_5: Confirmation
     end
     
     L1-->>FE: SSE: Job complete
@@ -386,8 +503,10 @@ graph TB
                 FE_POD[Frontend Pods<br/>3 replicas]
                 L1_POD[L1 Pods<br/>2 replicas]
                 L2_POD[L2 Pods<br/>2 replicas]
+                L2_5_POD[Signal Refinery Pods<br/>2 replicas]
                 L3_POD[L3 Pods<br/>3 replicas]
                 L4_POD[L4 Pods<br/>2 replicas]
+                L7_POD[Billing Pods<br/>2 replicas]
             end
             
             subgraph "Data Tier"
@@ -412,31 +531,40 @@ graph TB
     ING --> FE_POD
     ING --> L1_POD
     ING --> L2_POD
+    ING --> L2_5_POD
     ING --> L3_POD
     ING --> L4_POD
+    ING --> L7_POD
     
     L1_POD --> S3
     L1_POD --> PG_CLUSTER
     L2_POD --> RED_CLUSTER
     L2_POD --> OPENAI
+    L2_5_POD --> PG_CLUSTER
+    L2_5_POD --> RED_CLUSTER
     L3_POD --> NEO_CLUSTER
     L3_POD --> PG_CLUSTER
     L4_POD --> RED_CLUSTER
     L4_POD --> OPENAI
+    L7_POD --> PG_CLUSTER
     
     FE_POD --> IDP
     L1_POD --> VAULT
     L2_POD --> VAULT
+    L2_5_POD --> VAULT
     L3_POD --> VAULT
     L4_POD --> VAULT
+    L7_POD --> VAULT
     
     style CDN fill:#4a90d9,color:white
     style LB fill:#e74c3c,color:white
     style FE_POD fill:#2ecc71,color:white
     style L1_POD fill:#2ecc71,color:white
     style L2_POD fill:#2ecc71,color:white
+    style L2_5_POD fill:#2ecc71,color:white
     style L3_POD fill:#2ecc71,color:white
     style L4_POD fill:#2ecc71,color:white
+    style L7_POD fill:#2ecc71,color:white
     style PG_CLUSTER fill:#9b59b6,color:white
     style NEO_CLUSTER fill:#9b59b6,color:white
     style OPENAI fill:#95a5a6,color:white
@@ -449,9 +577,13 @@ graph TB
 | Layer | Upstream | Downstream | Data Stores |
 |-------|----------|------------|-------------|
 | L1: Ingestion | External sources, User uploads | L2 via Redis | PostgreSQL, S3 |
-| L2: Extraction | L1 via Redis | L3 via HTTP | PostgreSQL |
-| L3: Knowledge | L2 via HTTP, L4 queries | L4 context | Neo4j, PostgreSQL, Redis |
-| L4: Agents | L3 context, User workflows | Frontend SSE | PostgreSQL, Redis |
+| L2: Extraction | L1 via Redis | Signal Refinery via HTTP, L3 contract where applicable | PostgreSQL |
+| Signal Refinery | L2 via HTTP | L3 via HTTP | PostgreSQL, Redis |
+| L3: Knowledge | Signal Refinery via HTTP, L4 queries | L4 context | Neo4j, PostgreSQL, Redis |
+| L4: Agents | L3 context, User workflows | Frontend SSE, Billing usage events | PostgreSQL, Redis |
+| L5: Ground Truth | L4 agent outputs | L6 benchmark input | PostgreSQL |
+| L6: Benchmarks | L5 validated truth | Reports, scorecards | PostgreSQL |
+| Billing | L4 usage events, Stripe webhooks | Entitlement decisions | PostgreSQL |
 
 ---
 
@@ -470,7 +602,7 @@ graph TB
     
     subgraph "Application Zone"
         GW[API Gateway<br/>Auth/Rate Limit]
-        SVC[Services L1-L4]
+        SVC[Core Services L1-L6<br/>+ Adjacent Capabilities]
     end
     
     subgraph "Data Zone"
@@ -503,7 +635,9 @@ graph TB
 
 | Decision | Rationale | Trade-off |
 |----------|-----------|-----------|
-| 6-layer separation | Clear boundaries, independent scaling | Network overhead between layers |
+| 6-layer core pipeline plus adjacent capabilities | Clear core boundaries (L1-L6), with signal refinement and billing as focused bounded capabilities | Network overhead between services |
+| Signal Refinery | Separates extraction noise from trusted graph signals | Extra hop between L2 and L3 |
+| Billing | Isolates subscription/usage/entitlements from core agent workflows | Separate service to deploy and operate |
 | Neo4j for knowledge | Native graph operations, Cypher | Operational complexity |
 | PostgreSQL + pgvector | Unified relational + vector store | Not specialized vector DB |
 | LangGraph for agents | Stateful orchestration, pause/resume | Learning curve |
@@ -525,13 +659,50 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 
 ---
 
+## Cross-Cutting Concerns
+
+| Concern | Implementation | Evidence |
+| ------- | -------------- | -------- |
+| Tenant isolation | PostgreSQL RLS + governance middleware + tenant context | `tests/security/test_rls_enforcement.py`, `tests/security/test_tenant_isolation.py` |
+| Authentication | OIDC via Keycloak/Clerk; JWT validation; API keys | `services/api/app/auth*`, `infra/keycloak/` |
+| Authorization | RBAC roles + ABAC policies via OPA | `infra/opa/policies/`, `tests/security/test_rbac.py` |
+| Audit logging | Append-only audit events with structured logging | `tests/audit/`, `services/*/src/audit*` |
+| Secrets management | Infisical + short-lived OIDC; no secrets in repo | `gitleaks`, `.infisical.json`, `pnpm env:dev` |
+| Observability | OpenTelemetry traces, Prometheus metrics, structured logs | `tests/contract/test_otel_instrumentation.py`, `monitoring/` |
+| Health & readiness | `/health`, `/healthz`, `/readyz`, `/metrics` on services | Dockerfiles, service routers |
+| Rate limiting | Tenant-scoped rate limits and quotas | `tests/test_tenant_rate_limiting.py`, `tests/abuse/` |
+| Idempotency | Idempotency keys on mutating endpoints | `tests/billing/test_webhook_idempotency.py` |
+| Migrations | Alembic per service; single-head policy | `make migrate`, `make check-migration-heads` |
+| Backups & DR | WAL-G, PITR, documented RPO/RTO | `docs/reliability/dr-policy.md`, `ops/restore_dry_run.py` |
+| Billing | Stripe webhooks + usage metering (adjacent service) | `services/layer7-billing/`, `tests/billing/` |
+| CI/CD | GitHub Actions with signed artifacts, SBOM, GitOps | `.github/workflows/` |
+| Container security | Non-root users, slim base images, pinned digests, HEALTHCHECK | Dockerfiles, `scripts/ci/check-k8s-image-digests.sh` |
+
+---
+
+## Source of Truth Paths
+
+| Concern | Canonical Path |
+| ------- | --------------- |
+| Runtime Python packages | `services/layer{1-6}-*/src/`, adjacent service packages, `packages/shared/src/value_fabric/shared/` |
+| Frontend | `apps/web/src` |
+| API contracts | `contracts/openapi/*.json`, `contracts/jsonschema/*.json` |
+| Kubernetes manifests | `k8s/` |
+| Monitoring | `monitoring/` |
+| Internal documentation | `docs/` |
+| Public documentation | `docs-site/` |
+| CI/CD | `.github/workflows/` |
+| SDK | `sdk/python/` |
+
+---
+
 ## Next Steps
 
 | Goal | Next Document |
 |------|---------------|
 | Understand security model | [Security Model](./security-model.md) |
 | Learn about ontology | [Ontology System](./ontology-system.md) |
-| Deploy to production | [Kubernetes Deployment](../how-to-guides/deploy-to-k8s.md) |
+| Deploy to production | [Kubernetes Deployment](../../k8s/README.md) |
 | Read design decisions | [ADR Index](../explanations/adr/) |
 
 ---
@@ -539,11 +710,11 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 ## Related Documentation
 
 - [Quickstart Guide](../getting-started/quickstart.md) — Get running in 15 minutes
-- [API Reference](../reference/api-reference.md) — Endpoint documentation
+- [API Reference](../../API_REFERENCE.md) — Endpoint documentation
 - [Troubleshooting Index](../troubleshooting/index.md) — Common issues
 - [Security Model](./security-model.md) — Authentication and authorization
 - [Ontology System](./ontology-system.md) — Entity and relationship types
 
 ---
 
-*Last updated: 2026-05-04 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/core-concepts/architecture.md)*
+*Last updated: 2026-06-20 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/core-concepts/architecture.md)*

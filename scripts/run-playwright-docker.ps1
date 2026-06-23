@@ -6,7 +6,7 @@
     Builds and runs the Playwright test container with live source mounting.
     Supports headless, headed, and Playwright UI mode on Windows hosts.
     The -Live switch targets the separately-running Docker-hosted frontend
-    from docker-compose.live.yml instead of starting a new frontend server.
+    from infra/compose/docker-compose.live.yml instead of starting a new frontend server.
 
 .PARAMETER Build
     Build or rebuild the Docker image. Do this after changing dependencies.
@@ -37,7 +37,7 @@
     Additional arguments passed to the Playwright CLI.
 
 .PARAMETER Live
-    Run tests against the live Docker-hosted frontend from docker-compose.live.yml.
+    Run tests against the live Docker-hosted frontend from infra/compose/docker-compose.live.yml.
     Requires the live stack to be running. Sets mocks to false and uses internal
     Docker network addresses (frontend:3001, layer4:8000).
 
@@ -90,10 +90,10 @@ $ErrorActionPreference = "Stop"
 
 # Determine compose file and container name based on mode
 if ($Live) {
-    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "docker-compose.playwright-live.yml")
+    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "infra", "compose", "docker-compose.playwright-live.yml")
     $ContainerName = "vf-playwright-live"
 } else {
-    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "docker-compose.playwright.yml")
+    $ComposeFile = [System.IO.Path]::Combine($PSScriptRoot, "..", "infra", "compose", "docker-compose.playwright.yml")
     $ContainerName = "vf-playwright"
 }
 
@@ -115,23 +115,23 @@ if ($Build) {
 
 # Live mode: verify the live stack is running and healthy
 if ($Live) {
-    Write-Host "=== Live mode: verifying docker-compose.live.yml stack ===" -ForegroundColor Cyan
+    Write-Host "=== Live mode: verifying infra/compose/docker-compose.live.yml stack ===" -ForegroundColor Cyan
 
     $frontendContainer = docker ps --filter "name=vf-live-frontend" --format "{{.Names}}" 2>$null
     if (-not $frontendContainer) {
-        Write-Error "Live frontend container (vf-live-frontend) is not running.`nPlease start the live stack first:`n  docker compose -f docker-compose.live.yml up -d --wait"
+        Write-Error "Live frontend container (vf-live-frontend) is not running.`nPlease start the live stack first:`n  docker compose -f infra/compose/docker-compose.live.yml up -d --wait"
         exit 1
     }
 
     $frontendHealth = docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $frontendContainer 2>$null
     if ($frontendHealth -ne "healthy" -and $frontendHealth -ne "running") {
-        Write-Error "Live frontend container is not healthy (state: $frontendHealth).`nPlease wait for the stack to become healthy:`n  docker compose -f docker-compose.live.yml ps`n  docker compose -f docker-compose.live.yml logs -f frontend"
+        Write-Error "Live frontend container is not healthy (state: $frontendHealth).`nPlease wait for the stack to become healthy:`n  docker compose -f infra/compose/docker-compose.live.yml ps`n  docker compose -f infra/compose/docker-compose.live.yml logs -f frontend"
         exit 1
     }
 
     $liveNetwork = docker network ls --filter "name=live-network" --format "{{.Name}}" 2>$null
     if (-not $liveNetwork) {
-        Write-Error "Docker network 'live-network' does not exist.`nPlease start the live stack first:`n  docker compose -f docker-compose.live.yml up -d --wait"
+        Write-Error "Docker network 'live-network' does not exist.`nPlease start the live stack first:`n  docker compose -f infra/compose/docker-compose.live.yml up -d --wait"
         exit 1
     }
 

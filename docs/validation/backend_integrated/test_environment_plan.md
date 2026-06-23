@@ -22,4 +22,10 @@ The harness sends tenant, user, and role headers on every request. Missing tenan
 
 ## Recommended Commands
 
-The dedicated validation commands are exposed in the repository Makefile. `make test-backend-integrated-validation` runs the full backend-integrated milestone, and `make test-backend-integrated-release-smoke` runs only release-smoke checks. Direct Pytest execution is also supported with `pytest tests/backend_integrated -m backend_integrated`.
+`docker-compose.test.yml` is an infrastructure-only compose file for PostgreSQL, Redis, Neo4j, and Keycloak. It should be started as shared test infrastructure rather than as a one-shot integration runner:
+
+```bash
+docker compose -f docker-compose.test.yml up -d postgres redis neo4j keycloak
+```
+
+The dedicated validation commands are exposed in the repository Makefile. `make test-backend-integrated-validation` runs the full backend-integrated milestone, and `make test-backend-integrated-release-smoke` runs only release-smoke checks. Direct Pytest execution is also supported with `pytest tests/backend_integrated -m backend_integrated -v`. Keep integration execution on those canonical host/CI commands instead of adding an `integration-runner` service or using `--abort-on-container-exit --exit-code-from integration-runner` for this compose file.

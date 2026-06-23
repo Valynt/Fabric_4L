@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """OSS-1 parity tests for the non-default aiocache CachePort pilot."""
 
-from __future__ import annotations
 
 import asyncio
 import fnmatch
@@ -10,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from value_fabric.layer3.cache import (
+from src.cache import (
     AiocacheCacheAdapter,
     CacheConfig,
     CachePort,

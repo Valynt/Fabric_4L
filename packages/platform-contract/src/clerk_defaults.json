@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "fabric-platform-contract://clerk-defaults.json",
+  "description": "Canonical cross-language defaults for Clerk and Fabric auth wiring. This file is the single source of truth; both TypeScript and Python Clerk config modules load it at import time.",
+  "clerk": {
+    "jwtAudience": "fabric4l-api",
+    "authorizedParties": ["http://localhost:3001"],
+    "signInUrl": "/sign-in",
+    "signUpUrl": "/sign-up",
+    "afterSignInUrl": "/home",
+    "afterSignUpUrl": "/onboarding",
+    "jwtTemplate": "fabric4l-api",
+    "webhookRateLimitPerMinute": 30
+  },
+  "fabric": {
+    "authIssuer": "fabric4l-gateway",
+    "authAudience": "fabric4l-internal",
+    "authEnvelopeTtlSeconds": 300,
+    "authSigningKid": "gateway-k1"
+  }
+}

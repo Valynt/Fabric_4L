@@ -22,19 +22,19 @@ interface SSOProvider {
 
 // SVG icons for SSO providers
 const OktaIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.8a7.2 7.2 0 110 14.4 7.2 7.2 0 010-14.4z" />
   </svg>
 );
 
 const AzureIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
     <path d="M5.483 0v11.617L0 18.174V3.518L5.483 0zm13.518 0v10.583L12 23.935V12.294l7.001-12.294zm-7 19.835l-5.834-3.258L12 11.192l5.834 5.285-5.833 3.358z" />
   </svg>
 );
 
 const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -107,7 +107,7 @@ export function SSOButtons({
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            {enabled ? "Or continue with" : "SSO (Coming Soon)"}
+            {enabled ? "Or continue with" : "SSO not enabled"}
           </span>
         </div>
       </div>
@@ -127,12 +127,12 @@ export function SSOButtons({
             title={
               enabled
                 ? `Sign in with ${provider.name}`
-                : `${provider.name} SSO — Coming Soon (Task 69)`
+                : `${provider.name} SSO is not enabled in this environment`
             }
           >
             {provider.icon}
             <span className="flex-1 text-center">
-              {enabled ? provider.name : `${provider.name} — Coming Soon`}
+              {enabled ? provider.name : `${provider.name} SSO not enabled`}
             </span>
           </Button>
         ))}

@@ -276,7 +276,7 @@ class MockMCPServer:
             return self._create_error(
                 request.id,
                 MCPErrorCode.INTERNAL_ERROR,
-                str(e),
+                repr(e),
             )
     
     # =========================================================================

@@ -76,7 +76,7 @@ export function PropertyEditor({ type, className }: PropertyEditorProps) {
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center justify-between">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <h3 className="vf-text-caption font-bold uppercase tracking-wider text-muted-foreground">
             Property Editor
           </h3>
           <Btn variant="ghost" onClick={() => setIsAddingProperty(true)} disabled={isAddingProperty}>
@@ -89,23 +89,23 @@ export function PropertyEditor({ type, className }: PropertyEditorProps) {
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <div className="space-y-2">
           <div>
-            <label htmlFor="type-name" className="text-[10px] font-medium text-muted-foreground uppercase">Type Name</label>
+            <label htmlFor="type-name" className="vf-text-micro font-medium text-muted-foreground uppercase">Type Name</label>
             <input
               id="type-name"
               type="text"
               value={type.name}
               readOnly
-              className="w-full px-2 py-1 text-[13px] font-semibold bg-transparent border border-border rounded"
+              className="w-full px-2 py-1 vf-text-body-m font-semibold bg-transparent border border-border rounded"
             />
           </div>
           <div>
-            <label htmlFor="type-description" className="text-[10px] font-medium text-muted-foreground uppercase">Description</label>
+            <label htmlFor="type-description" className="vf-text-micro font-medium text-muted-foreground uppercase">Description</label>
             <textarea
               id="type-description"
               value={type.description}
               readOnly
               rows={2}
-              className="w-full px-2 py-1 text-[12px] bg-transparent border border-border rounded resize-none"
+              className="w-full px-2 py-1 vf-text-body-s bg-transparent border border-border rounded resize-none"
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ export function PropertyEditor({ type, className }: PropertyEditorProps) {
           {type.properties.length === 0 && !isAddingProperty && (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">No properties defined</p>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="vf-text-caption text-muted-foreground mt-1">
                 Click "Add Property" to add one
               </p>
             </div>
@@ -205,34 +205,34 @@ function PropertyRow({ property, index, isSelected, onSelect, onUpdate, onDelete
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-5">{index + 1}</span>
-            <span className="text-[13px] font-semibold text-foreground">{property.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+            <span className="vf-text-micro text-muted-foreground w-5">{index + 1}</span>
+            <span className="vf-text-body-m font-semibold text-foreground">{property.name}</span>
+            <span className="vf-text-micro px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
               {property.type}
             </span>
             {property.required && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
+              <span className="vf-text-micro px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
                 required
               </span>
             )}
           </div>
           {property.description && (
-            <p className="text-[11px] text-muted-foreground mt-1 ml-7">{property.description}</p>
+            <p className="vf-text-caption text-muted-foreground mt-1 ml-7">{property.description}</p>
           )}
           {property.constraints && Object.keys(property.constraints).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2 ml-7">
               {property.constraints.minLength !== undefined && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
+                <span className="vf-text-micro px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
                   min: {property.constraints.minLength}
                 </span>
               )}
               {property.constraints.maxLength !== undefined && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
+                <span className="vf-text-micro px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
                   max: {property.constraints.maxLength}
                 </span>
               )}
               {property.constraints.enum && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
+                <span className="vf-text-micro px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
                   enum: {property.constraints.enum.join(', ')}
                 </span>
               )}
@@ -240,7 +240,7 @@ function PropertyRow({ property, index, isSelected, onSelect, onUpdate, onDelete
           )}
         </div>
         <div className="flex items-center gap-1 ml-2">
-          <Btn variant="ghost" className="text-[11px]" onClick={() => setIsEditing(true)}>
+          <Btn variant="ghost" className="vf-text-caption" onClick={() => setIsEditing(true)}>
             Edit
           </Btn>
           <Btn variant="ghost" className="text-destructive" onClick={() => onDelete()} aria-label="Delete property">
@@ -268,7 +268,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
   return (
     <div className="space-y-3">
       <div>
-        <label htmlFor="prop-name" className="text-[10px] font-medium text-muted-foreground uppercase">Name</label>
+        <label htmlFor="prop-name" className="vf-text-micro font-medium text-muted-foreground uppercase">Name</label>
         <input
           id="prop-name"
           type="text"
@@ -276,19 +276,19 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
           onChange={(e) => updateField('name', e.target.value)}
           placeholder="property_name"
           aria-label="Property name"
-          className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+          className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="prop-type" className="text-[10px] font-medium text-muted-foreground uppercase">Type</label>
+          <label htmlFor="prop-type" className="vf-text-micro font-medium text-muted-foreground uppercase">Type</label>
           <select
             id="prop-type"
             value={property.type || 'string'}
             onChange={(e) => updateField('type', e.target.value as OntologyProperty['type'])}
             aria-label="Property type"
-            className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+            className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
           >
             <option value="string">string</option>
             <option value="number">number</option>
@@ -310,13 +310,13 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
               aria-label="Property required"
               className="rounded border-border"
             />
-            <span className="text-[12px]">Required</span>
+            <span className="vf-text-body-s">Required</span>
           </label>
         </div>
       </div>
 
       <div>
-        <label htmlFor="prop-description" className="text-[10px] font-medium text-muted-foreground uppercase">Description</label>
+        <label htmlFor="prop-description" className="vf-text-micro font-medium text-muted-foreground uppercase">Description</label>
         <input
           id="prop-description"
           type="text"
@@ -324,14 +324,14 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
           onChange={(e) => updateField('description', e.target.value)}
           placeholder="What this property represents"
           aria-label="Property description"
-          className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+          className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
         />
       </div>
 
       {property.type === 'string' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="prop-min-length" className="text-[10px] font-medium text-muted-foreground uppercase">Min Length</label>
+            <label htmlFor="prop-min-length" className="vf-text-micro font-medium text-muted-foreground uppercase">Min Length</label>
             <input
               id="prop-min-length"
               type="number"
@@ -344,11 +344,11 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
                 });
               }}
               aria-label="Minimum length"
-              className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+              className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
             />
           </div>
           <div>
-            <label htmlFor="prop-max-length" className="text-[10px] font-medium text-muted-foreground uppercase">Max Length</label>
+            <label htmlFor="prop-max-length" className="vf-text-micro font-medium text-muted-foreground uppercase">Max Length</label>
             <input
               id="prop-max-length"
               type="number"
@@ -361,7 +361,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
                 });
               }}
               aria-label="Maximum length"
-              className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+              className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
             />
           </div>
         </div>
@@ -370,7 +370,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
       {property.type === 'number' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="prop-min-value" className="text-[10px] font-medium text-muted-foreground uppercase">Min Value</label>
+            <label htmlFor="prop-min-value" className="vf-text-micro font-medium text-muted-foreground uppercase">Min Value</label>
             <input
               id="prop-min-value"
               type="number"
@@ -383,11 +383,11 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
                 });
               }}
               aria-label="Minimum value"
-              className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+              className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
             />
           </div>
           <div>
-            <label htmlFor="prop-max-value" className="text-[10px] font-medium text-muted-foreground uppercase">Max Value</label>
+            <label htmlFor="prop-max-value" className="vf-text-micro font-medium text-muted-foreground uppercase">Max Value</label>
             <input
               id="prop-max-value"
               type="number"
@@ -400,7 +400,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
                 });
               }}
               aria-label="Maximum value"
-              className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+              className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
             />
           </div>
         </div>
@@ -408,7 +408,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
 
       {property.type === 'string' && (
         <div>
-          <label htmlFor="prop-enum" className="text-[10px] font-medium text-muted-foreground uppercase">Enum Values (comma-separated)</label>
+          <label htmlFor="prop-enum" className="vf-text-micro font-medium text-muted-foreground uppercase">Enum Values (comma-separated)</label>
           <input
             id="prop-enum"
             type="text"
@@ -424,7 +424,7 @@ function PropertyFormFields({ property, onChange }: PropertyFormFieldsProps) {
             }}
             placeholder="value1, value2, value3"
             aria-label="Enum values"
-            className="w-full px-2 py-1.5 text-[12px] bg-card border border-border rounded"
+            className="w-full px-2 py-1.5 vf-text-body-s bg-card border border-border rounded"
           />
         </div>
       )}
@@ -442,7 +442,7 @@ interface NewPropertyFormProps {
 function NewPropertyForm({ property, onChange, onSave, onCancel }: NewPropertyFormProps) {
   return (
     <div className="p-3 border border-primary/30 rounded-lg bg-primary/5 mb-3">
-      <h4 className="text-[12px] font-semibold mb-3">New Property</h4>
+      <h4 className="vf-text-body-s font-semibold mb-3">New Property</h4>
       <PropertyFormFields property={property} onChange={onChange} />
       <div className="flex justify-end gap-2 mt-3">
         <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>

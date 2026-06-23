@@ -1,25 +1,7 @@
-"""Identity and authentication shared components."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.shared.identity``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
-from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
-
-from .oidc_state import (
-    InMemoryOIDCStateStore,
-    OIDCStateStore,
-    OIDCStateStoreProtocol,
-    RedisOIDCStateStore,
-    create_oidc_state_store,
-)
-
-__all__ = [
-    "OIDCClient",
-    "map_role_from_claims",
-    "OIDCProviderConfig",
-    "OIDCStateStore",
-    "OIDCStateStoreProtocol",
-    "RedisOIDCStateStore",
-    "InMemoryOIDCStateStore",
-    "create_oidc_state_store",
-]
+from layer4_agents.shared.identity import *  # noqa: F401,F403

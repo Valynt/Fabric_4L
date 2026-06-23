@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 """Canonical endpoint surface regression tests for Layer 3 route normalization.
 
 Validates that the double-prefix bugs are fixed and legacy aliases remain governed.
 """
 
-from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer3.api.routes.entities import router as entities_router
-from value_fabric.layer3.api.routes.calculators import router as calculators_router
-from value_fabric.layer3.api.routes.graph_viz import router as graph_viz_router
+from src.api.routes.entities import router as entities_router
+from src.api.routes.calculators import router as calculators_router
+from src.api.routes.graph_viz import router as graph_viz_router
 
 
 @pytest.mark.unit

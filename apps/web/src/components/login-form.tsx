@@ -49,7 +49,7 @@ function PlatformLogo() {
   return (
     <div className="flex items-center justify-center gap-2">
       <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
-        <svg viewBox="0 0 24 24" className="w-5 h-5 text-background" fill="currentColor">
+        <svg viewBox="0 0 24 24" className="w-5 h-5 text-background" fill="currentColor" aria-hidden="true">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
@@ -78,9 +78,9 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/[^a-zA-Z0-9]/.test(pw)) score++
 
   if (score <= 1) return { score, label: "Weak", color: "bg-destructive" }
-  if (score <= 2) return { score, label: "Fair", color: "bg-amber-500" }
-  if (score <= 3) return { score, label: "Good", color: "bg-yellow-500" }
-  return { score, label: "Strong", color: "bg-emerald-500" }
+  if (score <= 2) return { score, label: "Fair", color: "bg-warning" }
+  if (score <= 3) return { score, label: "Good", color: "bg-warning" }
+  return { score, label: "Strong", color: "bg-success" }
 }
 
 function PasswordStrength({ password }: { password: string }) {
@@ -114,8 +114,6 @@ interface LoginFormProps extends React.ComponentProps<"div"> {
   onLogin?: (email: string, password: string) => Promise<void>
   /** SSO provider button handler — receives "apple" | "google" */
   onSSOProvider?: (provider: string) => void
-  /** Dev-only bypass button */
-  onDevBypass?: () => void
   isLoading?: boolean
   error?: string | null
   successMessage?: string | null
@@ -125,7 +123,6 @@ export function LoginForm({
   className,
   onLogin,
   onSSOProvider,
-  onDevBypass,
   isLoading = false,
   error: externalError = null,
   successMessage = null,
@@ -183,8 +180,8 @@ export function LoginForm({
 
               {/* Success message */}
               {successMessage && (
-                <Alert variant="default" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20" role="status">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+                <Alert variant="default" className="bg-success/10 text-success border-success/20" role="status">
+                  <CheckCircle className="h-4 w-4 text-success" aria-hidden="true" />
                   <AlertDescription>{successMessage}</AlertDescription>
                 </Alert>
               )}
@@ -306,19 +303,6 @@ export function LoginForm({
                     )}
                   </Button>
                 </>
-              )}
-
-              {/* Dev bypass */}
-              {import.meta.env.DEV && onDevBypass && (
-                <Button
-                  variant="ghost"
-                  type="button"
-                  size="sm"
-                  className="w-full text-xs text-muted-foreground hover:text-primary"
-                  onClick={onDevBypass}
-                >
-                  Development Bypass
-                </Button>
               )}
 
               {/* Sign up link */}

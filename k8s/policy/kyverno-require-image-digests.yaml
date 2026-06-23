@@ -23,6 +23,8 @@ spec:
               namespaces:
                 - value-fabric-prod
                 - value-fabric-production
+                - value-fabric
+                - fabric-4l-prod
       validate:
         message: "Containers in production namespaces must use image digests (@sha256:...)."
         foreach:

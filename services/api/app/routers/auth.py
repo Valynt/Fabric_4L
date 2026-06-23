@@ -8,8 +8,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, BadRequestError, ConflictError, NotFoundError, RateLimitError, ServiceUnavailableError, ValidationError
 
 from app.core.config import get_settings
 from app.core.database import db
@@ -28,8 +30,11 @@ from app.core.security import (
     verify_password,
 )
 from app.models.schemas import AuditLogEvent, Tenant, User
+from app.repositories.session_store import ImpersonationSessionRepository
+from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = structlog.get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -106,17 +111,14 @@ async def signup(payload: SignupRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        logger.warning("Password strength validation failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
+        logger.warning("Password strength validation failed", error=str(exc))
+        raise ValidationError(message="Password does not meet strength requirements") from exc
 
     # Cross-tenant email uniqueness check — requires explicit allow_system_scope
     # so the bypass cannot be triggered by an arbitrary caller passing "system".
     existing = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this email already exists",
-        )
+        raise ConflictError(message="An account with this email already exists")
 
     tenant_id = str(uuid.uuid4())
     tenant = Tenant(
@@ -172,24 +174,12 @@ async def login(payload: LoginRequest) -> TokenResponse:
 
     # Check account lockout before any other status check (F-05).
     if is_account_locked(user):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Account temporarily locked due to repeated failed login attempts. Try again later.",
-            headers={"WWW-Authenticate": "Bearer", "Retry-After": "900"},
-        )
+        raise RateLimitError(message="Account temporarily locked due to repeated failed login attempts. Try again later.")
 
     if user.status == "invited":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account pending activation. Please accept your invitation.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthorizationError(message="Account pending activation. Please accept your invitation.")
     if user.status == "deactivated":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account deactivated. Contact your tenant administrator.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthorizationError(message="Account deactivated. Contact your tenant administrator.")
     if not user.password_hash or not verify_password(payload.password, user.password_hash):
         # Record the failure and persist the updated attempt count.
         updated = record_failed_login(user)
@@ -222,7 +212,10 @@ _ROLE_RANK: dict[str, int] = {
     "read_only": 20,
 }
 
-_IMPERSONATION_SESSIONS: dict[str, dict[str, str]] = {}
+
+
+def get_impersonation_repo() -> ImpersonationSessionRepository:
+    return ImpersonationSessionRepository(get_distributed_store())
 
 
 @router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -242,17 +235,11 @@ async def invite_user(
     inviter_rank = _ROLE_RANK.get(current_user.role, 0)
     invitee_rank = _ROLE_RANK.get(payload.role, 0)
     if inviter_rank == 0 or invitee_rank >= inviter_rank:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot invite a user to a role equal to or higher than your own",
-        )
+        raise AuthorizationError(message="Cannot invite a user to a role equal to or higher than your own")
 
     existing = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists",
-        )
+        raise ConflictError(message="User with this email already exists")
 
     user_id = str(uuid.uuid4())
     user = User(
@@ -282,22 +269,16 @@ async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        logger.warning("Password strength validation failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
+        logger.warning("Password strength validation failed", error=str(exc))
+        raise ValidationError(message="Password does not meet strength requirements") from exc
 
     users = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if not users:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found",
-        )
+        raise NotFoundError(message="Invitation not found")
 
     user = users[0]
     if user.status != "invited":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invitation already accepted or account deactivated",
-        )
+        raise ConflictError(message="Invitation already accepted or account deactivated")
 
     # Update user to active with password
     updated = user.model_copy(update={
@@ -349,25 +330,29 @@ async def start_impersonation(
     payload: ImpersonationStartRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
+    repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> ImpersonationStartResponse:
     if current_user.role not in {"tenant_admin", "super_admin"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role for impersonation")
+        raise AuthorizationError(message="Insufficient role for impersonation")
     target_user = db.users.get(payload.target_user_id, tenant_id=current_user.tenant_id)
     if target_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found in tenant scope")
+        raise NotFoundError(message="Target user not found in tenant scope")
     if target_user.tenant_id != current_user.tenant_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cross-tenant impersonation is forbidden")
+        raise AuthorizationError(message="Cross-tenant impersonation is forbidden")
 
     session_id = str(uuid.uuid4())
-    _IMPERSONATION_SESSIONS[session_id] = {
-        "tenant_id": current_user.tenant_id,
-        "target_user_id": target_user.id,
-        "impersonated_by": current_user.id,
-        "reason": payload.reason,
-        "started_at": datetime.now(UTC).isoformat(),
-        "notify_email": str(payload.notify_email),
-        "notify_webhook": str(payload.notify_webhook),
-    }
+    try:
+        repo.create(
+            tenant_id=current_user.tenant_id,
+            session_id=session_id,
+            target_user_id=target_user.id,
+            impersonated_by=current_user.id,
+            reason=payload.reason,
+            notify_email=payload.notify_email,
+            notify_webhook=payload.notify_webhook,
+        )
+    except (StoreUnavailableError, StorePayloadError):
+        raise ServiceUnavailableError(message="Impersonation store unavailable")
     event_payload = {
         "actor_user_id": current_user.id,
         "impersonated_user_id": target_user.id,
@@ -415,10 +400,14 @@ async def start_impersonation(
 async def stop_impersonation(
     request: Request,
     auth: TokenPayload = Depends(require_authenticated),
+    repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> None:
     if not auth.impersonation_session_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
-    session = _IMPERSONATION_SESSIONS.pop(auth.impersonation_session_id, None)
+        raise BadRequestError(message="No active impersonation session")
+    try:
+        session = repo.pop(tenant_id=auth.tenant_id, session_id=auth.impersonation_session_id)
+    except (StoreUnavailableError, StorePayloadError):
+        raise ServiceUnavailableError(message="Impersonation store unavailable")
     stop_event_id = str(uuid.uuid4())
     db.audit_logs.insert(stop_event_id, AuditLogEvent(
         id=stop_event_id,
@@ -430,15 +419,15 @@ async def stop_impersonation(
         resource_id=session["target_user_id"] if session else auth.sub,
         payload={
             "actor_user_id": auth.sub,
-            "impersonated_user_id": session["target_user_id"] if session else auth.sub,
+            "impersonated_user_id": str(session.get("target_user_id")) if session else auth.sub,
             "impersonated_tenant_id": auth.tenant_id,
             "impersonated_by": auth.impersonated_by,
             "correlation_id": request.headers.get("X-Request-ID"),
             "timestamp": datetime.now(UTC).isoformat(),
             "action_code": "impersonation.stop",
-            "reason": session["reason"] if session else auth.impersonation_reason,
+            "reason": str(session.get("reason")) if session else auth.impersonation_reason,
             "impersonation_session_id": auth.impersonation_session_id,
-            "tenant_notifications": {"in_app": True, "email": session["notify_email"] == "True" if session else False, "webhook": session["notify_webhook"] == "True" if session else False},
+            "tenant_notifications": {"in_app": True, "email": bool(session.get("notify_email")) if session else False, "webhook": bool(session.get("notify_webhook")) if session else False},
         },
     ))
     return None

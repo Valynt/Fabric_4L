@@ -1,10 +1,10 @@
-"""Add Row-Level Security (RLS) policies for organization isolation (P0-07).
+"""Add Row-Level Security (RLS) policies for tenant isolation (P0-07).
 
 Revision ID: 002
 Revises: 20240101_0000_a1b2c3d4e5f6_initial_ground_truth_schema
 Create Date: 2026-04-13
 
-Note: Layer 5 uses 'organization_id' instead of 'tenant_id' for multi-tenancy.
+Layer 5 uses tenant_id for multi-tenancy.
 """
 
 from collections.abc import Sequence
@@ -18,7 +18,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# Tables that have organization_id and need RLS policies
+# Tables that have tenant_id and need RLS policies
 RLS_TABLES = [
     "truth_objects",
     "truth_sources",
@@ -28,7 +28,7 @@ RLS_TABLES = [
 
 
 def upgrade() -> None:
-    """Enable RLS and create policies for organization isolation."""
+    """Enable RLS and create policies for tenant isolation."""
     # Ensure required roles exist for admin bypass policies
     op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'admin_role') THEN CREATE ROLE admin_role NOLOGIN; END IF; END $$")
     op.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'system_role') THEN CREATE ROLE system_role NOLOGIN; END IF; END $$")
@@ -38,11 +38,13 @@ def upgrade() -> None:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
 
-    # Create organization isolation policy for each table
+    # Create tenant isolation policy for each table
     # Uses current_setting('app.tenant_id') set by SET LOCAL
-    # Maps organization_id to tenant_id for RLS compatibility
+    # NOTE: at this point in the migration history the tenant column is named
+    # organization_id. Migration 006 replaces these policies with tenant_id
+    # variants after the rename.
     for table in RLS_TABLES:
-        # Organization users can only see their own rows
+        # Tenant users can only see their own rows
         op.execute(f"""
             CREATE POLICY organization_isolation_policy ON {table}
                 FOR ALL

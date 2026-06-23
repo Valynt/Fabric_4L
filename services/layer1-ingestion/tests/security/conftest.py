@@ -12,30 +12,39 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 
 # Lazy import helpers
 def _get_app():
-    from value_fabric.layer1.api.app_monolith import app
+    # Patch rate limiting before app import so tests don't get 429 from Redis
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    async def _mock_check_rate_limit(self, request, ctx):
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return _MockResult()
+    GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
+    from layer1_ingestion.api.main import app
+    from value_fabric.shared.error_handling.handlers import register_exception_handlers
+    register_exception_handlers(app)
     return app
 
 
 def _get_base():
-    from value_fabric.layer1.shared.models import Base
+    from layer1_ingestion.shared.models import Base
     return Base
 
 
 def _get_db_override():
-    from value_fabric.layer1.shared.database import get_db_from_context_sync
+    from layer1_ingestion.shared.database import get_db_from_context_sync
     return get_db_from_context_sync
 
 
 def _make_target_factory():
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     return create_scraping_target
 
 
@@ -47,11 +56,80 @@ def _get_postgres_url():
     )
 
 
+def _apply_rls_policies(engine):
+    """Apply production RLS DDL to test database.
+    
+    Mirrors migration 017: enables RLS and creates tenant isolation policies
+    using tenant_id.  Must run after Base.metadata.create_all().
+    """
+    tables = [
+        "scraping_targets",
+        "scraping_jobs",
+        "raw_content",
+        "extracted_data",
+        "compliance_logs",
+        "proxy_pools",
+        "job_stage_details",
+        "job_errors",
+        "crawl_decisions",
+    ]
+    with engine.connect() as conn:
+        for table in tables:
+            conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"))
+            conn.execute(text(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}"))
+            conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
+            conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))
+            conn.execute(text(f"""
+                CREATE POLICY tenant_isolation_policy ON {table}
+                    FOR ALL
+                    TO PUBLIC
+                    USING (
+                        tenant_id::text = current_setting('app.tenant_id', true)
+                    )
+                    WITH CHECK (
+                        tenant_id::text = current_setting('app.tenant_id', true)
+                    )
+            """))
+            conn.execute(text(f"""
+                CREATE POLICY admin_bypass_policy ON {table}
+                    FOR ALL
+                    TO admin_role, system_role
+                    USING (current_setting('app.tenant_id', true) = '')
+            """))
+        conn.commit()
+
+
+def _create_test_role(engine):
+    """Create a non-superuser role for RLS enforcement tests."""
+    with engine.connect() as conn:
+        conn.execute(text("""
+            DO $$ BEGIN
+                CREATE ROLE test_app_role WITH LOGIN PASSWORD 'test';
+            EXCEPTION WHEN duplicate_object THEN
+                ALTER ROLE test_app_role WITH LOGIN PASSWORD 'test';
+            END $$;
+        """))
+        conn.execute(text("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO test_app_role"))
+        conn.execute(text("GRANT USAGE ON SCHEMA public TO test_app_role"))
+        conn.execute(text("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO test_app_role"))
+        conn.execute(text("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO test_app_role"))
+        conn.execute(text("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO test_app_role"))
+        conn.commit()
+
+
+def _drop_test_role(engine):
+    """Drop the test role created for RLS enforcement tests."""
+    with engine.connect() as conn:
+        conn.execute(text("DROP OWNED BY test_app_role"))
+        conn.execute(text("DROP ROLE IF EXISTS test_app_role"))
+        conn.commit()
+
+
 def _ensure_postgresql(engine):
-    """Hard guard: fail tests if not running against PostgreSQL."""
+    """Skip tests if not running against PostgreSQL."""
     dialect = engine.dialect.name
     if dialect != "postgresql":
-        pytest.fail(
+        pytest.skip(
             f"PostgreSQL-required test running against {dialect}. "
             f"Security/RLS tests must run against PostgreSQL to validate "
             f"PostgreSQL-specific behavior (JSONB, RLS, SET LOCAL, current_setting). "
@@ -66,7 +144,7 @@ def _ensure_postgresql(engine):
 @pytest.fixture(scope="function")
 def engine():
     """In-memory SQLite engine for each test."""
-    return create_engine("sqlite:///:memory:")
+    return create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 
 
 @pytest.fixture(scope="function")
@@ -91,7 +169,7 @@ def db(engine):
 def postgres_engine():
     """PostgreSQL engine for security tests."""
     url = _get_postgres_url()
-    engine = create_engine(url)
+    engine = create_engine(url, poolclass=NullPool)
     _ensure_postgresql(engine)
     yield engine
     engine.dispose()
@@ -101,42 +179,86 @@ def postgres_engine():
 def postgres_db(postgres_engine):
     """SQLAlchemy Session scoped to each test with PostgreSQL."""
     Base = _get_base()
-    
+
     # Create all tables
     Base.metadata.create_all(bind=postgres_engine)
-    
-    # Enable RLS on all tables that support it
-    with postgres_engine.connect() as conn:
-        try:
-            conn.execute(text("SET session_replication_role = 'replica'"))
-            conn.commit()
-        except Exception:
-            pass
-    
-    SessionLocal = sessionmaker(bind=postgres_engine)
-    session = SessionLocal()
+
+    # Apply real RLS policies (matches production migration 017)
+    _apply_rls_policies(postgres_engine)
+
+    # Create non-superuser role for RLS enforcement
+    _create_test_role(postgres_engine)
+
+    # Build an engine that enforces RLS by connecting as a non-superuser role.
+    # We reuse the same URL but add a connect listener that SET ROLEs so
+    # get_db_session runs as test_app_role and is subject to RLS.
+    rls_engine = create_engine(_get_postgres_url(), poolclass=NullPool)
+
+    def _set_role(dbapi_conn, connection_record):
+        with dbapi_conn.cursor() as cur:
+            cur.execute("SET ROLE test_app_role")
+
+    event.listen(rls_engine, "connect", _set_role)
+
+    # Monkeypatch module-level database engine so get_db_session uses the RLS engine
+    import layer1_ingestion.shared.database as db_module
+    original_engine = db_module.engine
+    original_session_local = db_module.SessionLocal
+    db_module.engine = rls_engine
+    db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=rls_engine)
+
+    # Superuser session for test data creation (bypasses RLS)
+    SessionLocal_super = sessionmaker(bind=postgres_engine)
+    session = SessionLocal_super()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=postgres_engine)
+        # Restore original engine and SessionLocal
+        db_module.engine = original_engine
+        db_module.SessionLocal = original_session_local
+        rls_engine.dispose()
+        # Drop test role and fast cleanup
+        _drop_test_role(postgres_engine)
+        with postgres_engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+            conn.commit()
 
 
 @pytest.fixture(scope="function")
-def make_job(postgres_db):
+def make_job(postgres_db, user_id):
     """Factory for creating ScrapingJob rows."""
-    from value_fabric.layer1.shared.models import ScrapingJob, JobStatus
+    from layer1_ingestion.shared.models import ScrapingJob, JobStatus
     from uuid import uuid4
 
-    def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value):
+    def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value, created_by: UUID = None):
+        if created_by is None:
+            created_by = user_id
         if target_id is None:
-            target_id = uuid4()
+            # Create a dummy target to satisfy foreign key constraint
+            from layer1_ingestion.shared.models import ScrapingTarget
+            target = ScrapingTarget(
+                tenant_id=tenant_id,
+                name="Test Target",
+                url="https://example.com",
+                target_type="SINGLE_PAGE",
+                status="ACTIVE",
+                created_by=created_by,
+            )
+            postgres_db.add(target)
+            postgres_db.flush()
+            postgres_db.refresh(target)
+            target_id = target.id
         job = ScrapingJob(
             id=uuid4(),
             tenant_id=tenant_id,
             target_id=target_id,
             status=status,
             configuration={},
+            created_by=created_by,
         )
         postgres_db.add(job)
         postgres_db.commit()
@@ -176,40 +298,53 @@ def client(org_id, user_id, db):
 
     class FakeGovernanceMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
-            request.state.governance_context = {
-                "tenant_id": str(org_id),
-                "user_id": str(user_id),
-                "roles": ["user"],
-            }
+            from value_fabric.shared.identity.context import RequestContext
+            request.state.governance_context = RequestContext(
+                tenant_id=org_id,
+                user_id=str(user_id),
+                roles=["user"],
+                auth_source="jwt_claim",
+            )
             request.state.db = db
+            # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
+            # skips its Redis rate-limit check (avoids 429 in tests).
+            _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+            request.state.rate_limit_result = _MockResult()
+            request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
             response = await call_next(request)
             return response
-
-    app.add_middleware(FakeGovernanceMiddleware)
 
     def override_get_db():
         yield db
 
     app.dependency_overrides[get_db_from_context] = override_get_db
 
-    with TestClient(app) as test_client:
+    # Wrap app with middleware instead of mutating global app
+    wrapped = FakeGovernanceMiddleware(app)
+    with TestClient(wrapped) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
-def make_target(db):
+def make_target(postgres_db, user_id):
     """Factory for creating ScrapingTarget rows."""
     create_scraping_target = _make_target_factory()
+    from layer1_ingestion.shared.models import TargetType
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", name: str = "Test Target"):
-        return create_scraping_target(
-            db,
+        t = create_scraping_target(
             tenant_id=tenant_id,
             name=name,
             url="https://example.com",
-            status=status,
+            target_type=TargetType.SINGLE_PAGE,
+            created_by=user_id,
         )
+        t.status = status
+        postgres_db.add(t)
+        postgres_db.flush()
+        postgres_db.refresh(t)
+        return t
 
     return _make

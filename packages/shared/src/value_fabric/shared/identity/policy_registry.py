@@ -11,6 +11,7 @@ from typing import Any
 
 from .context import RequestContext, get_request_context
 from .permissions import Permission, Role
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
 
 try:
     from fastapi import HTTPException, status
@@ -70,11 +71,45 @@ ACTION_POLICIES: dict[str, ActionPolicy] = {
     "layer5.truths.add_source": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Add truth evidence source"),
     "layer5.truths.read_audit": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read truth audit trail"),
     "layer5.truths.delete": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Delete truth object"),
+    "layer5.governance.formulas.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance formula"),
+    "layer5.governance.formulas.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List governance formulas"),
+    "layer5.governance.formulas.get": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read governance formula"),
+    "layer5.governance.formulas.create_version": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance formula version"),
+    "layer5.governance.formulas.submit": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Submit governance formula for approval"),
+    "layer5.governance.formulas.approve": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Approve governance formula"),
+    "layer5.governance.formulas.reject": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Reject governance formula"),
+    "layer5.governance.formulas.deprecate": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Deprecate governance formula"),
+    "layer5.governance.formulas.archive": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Archive governance formula"),
+    "layer5.governance.benchmarks.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance benchmark"),
+    "layer5.governance.benchmarks.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List governance benchmarks"),
+    "layer5.governance.benchmarks.create_version": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance benchmark version"),
+    "layer5.governance.policies.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance policy"),
+    "layer5.governance.policies.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List governance policies"),
+    "layer5.governance.policies.evaluate": ActionPolicy((Permission.READ_ANALYTICS.value,), "Evaluate governance policy"),
+    "layer5.governance.assumptions.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create governance assumption"),
+    "layer5.governance.assumptions.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List governance assumptions"),
+    "layer5.governance.assumptions.add_evidence": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Add governance assumption evidence"),
+    "layer5.governance.assumptions.submit": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Submit governance assumption"),
+    "layer5.governance.value_entries.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create value realization entry"),
+    "layer5.governance.value_entries.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List value realization entries"),
+    "layer5.governance.value_entries.update": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Update value realization entry"),
+    "layer5.governance.approvals.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List governance approvals"),
+    "layer5.governance.approvals.get": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read governance approval"),
+    "layer5.governance.approvals.approve": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Approve governance approval"),
+    "layer5.governance.approvals.reject": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Reject governance approval"),
     "layer6.benchmarks.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List benchmark datasets"),
     "layer6.benchmarks.read": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read benchmark dataset"),
+    "layer6.benchmarks.write": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create or update benchmark dataset"),
     "layer6.benchmarks.compare": ActionPolicy((Permission.READ_ANALYTICS.value,), "Run benchmark comparison"),
     "layer6.benchmarks.validate": ActionPolicy((Permission.READ_ANALYTICS.value,), "Validate value against benchmark"),
     "layer6.benchmarks.industries": ActionPolicy((Permission.READ_ANALYTICS.value,), "List benchmark industries"),
+    "layer5.academy.read": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read academy content"),
+    "layer5.academy.write": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Write academy progress and assessments"),
+    "layer5.value_claims.create": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Create value claim"),
+    "layer5.value_claims.list": ActionPolicy((Permission.READ_ANALYTICS.value,), "List value claims"),
+    "layer5.value_claims.read": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read value claim"),
+    "layer5.value_claims.transition": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Transition value claim status"),
+    "layer5.value_claims.archive": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Archive value claim"),
 }
 
 
@@ -187,6 +222,10 @@ def authorize_action(
         )
 
     if target_tenant_id is not None and str(ctx.tenant_id) != str(target_tenant_id):
+        record_inconsistent_tenant_context_access(
+            route=f"policy.{action}",
+            source="target_tenant",
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=_build_forbidden_detail(

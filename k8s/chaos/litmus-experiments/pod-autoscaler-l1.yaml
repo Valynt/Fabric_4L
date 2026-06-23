@@ -52,7 +52,7 @@ spec:
                 type: "regex"
                 criteria: "matches"
                 value: "[3-6]"
-            
+
             # Verify ingestion throughput during scale-up
             - name: "throughput-maintenance"
               type: "httpProbe"
@@ -71,7 +71,7 @@ spec:
                     contentType: "application/json"
                     criteria: "<"
                     responseCode: "500"
-            
+
             # Post-chaos: verify scale-down completes
             - name: "scale-down-completion"
               type: "cmdProbe"
@@ -125,7 +125,7 @@ spec:
           - "patch"
           - "update"
           - "delete"
-    image: "litmuschaos/go-runner:latest"
+    image: "litmuschaos/go-runner:3.13.0"
     imagePullPolicy: Always
     args:
       - -c

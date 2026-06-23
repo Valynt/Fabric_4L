@@ -1,0 +1,81 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "triage_timestamp": "2026-06-14T07:07:09Z",
+  "triage_agent": "kimi-code-cli",
+  "commit": "9a2d2192329ff883d98af8c417aa3ef7e27d5cde",
+  "overall_status": "DONE_WITH_CONCERNS",
+  "overall_rationale": "Layer 5 migration code bugs and the Layer 4 readiness probe bug are fixed and committed. The Layer 5 migration failure left the staging database in a corrupted state (missing alembic_version with tables already created). That state must be cleaned and migrations rerun before L5 /ready can report aligned. Metrics access from Docker gateway IPs is expected local-staging behavior.",
+  "blockers": [
+    {
+      "id": "B-01",
+      "component": "layer5-migrations",
+      "root_cause": "Real duplicate CREATE statements in the Layer 5 migration graph, compounded by staging DB state corruption from previous failed runs. 010_add_assumption_governance_models created stub tables (benchmark_datasets, policy_rules, approval_requests, approval_decisions) that are recreated with canonical schemas by 011_add_approval_workflow and 012_add_governance_entities. 014_add_value_realization_ledger explicitly created index ix_value_realization_updates_updated_at while the column already had index=True, producing a second duplicate index. The staging DB also has tables from the initial migration but no alembic_version record, so rerunning migrations fails with 'relation already exists'.",
+      "classification": "code-bug",
+      "recommended_action": "Fixed in commit 9a2d2192: removed the four conflicting stub tables from 010a (they are defined canonically later) and removed the duplicate explicit index from 014. Clean staging DB state by dropping/recreating the ground_truth database or all L5 tables, then run 'make migrate-layer5' (or 'cd services/layer5-ground-truth && python -m alembic upgrade head').",
+      "cleanup_commands": [
+        "docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -c \"DROP DATABASE IF EXISTS ground_truth;\"",
+        "docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -c \"CREATE DATABASE ground_truth OWNER postgres;\"",
+        "make migrate-layer5"
+      ],
+      "resolved": true,
+      "verification_commands": [
+        "pytest services/layer5-ground-truth/tests/test_migration_validation.py::test_migration_012_adds_governance_entities services/layer5-ground-truth/tests/test_migration_validation.py::test_migration_014_adds_value_realization_ledger services/layer5-ground-truth/tests/test_migration_validation.py::test_all_migrations_have_downgrade -v",
+        "cd services/layer5-ground-truth && python -m alembic history --verbose",
+        "cd services/layer5-ground-truth && python -m alembic upgrade head"
+      ],
+      "residual_risk": "Any environment that already applied the old 010a with stub tables must be rebuilt or manually reconciled; the edited migration is safe for fresh installs and for any DB that had not yet reached 011/012."
+    },
+    {
+      "id": "B-02",
+      "component": "layer4-readiness",
+      "root_cause": "The /ready postgres probe in layer4_agents.api.app_factory._postgres_probe only checked getattr(saver, 'conn', None) and returned 'checkpointing_not_configured' if that attribute was absent or falsy. AsyncPostgresSaver stores the psycopg connection either as conn or _conn (the latter set by CheckpointConfig.create_saver when the public attribute is missing), so the probe could report postgres:unavailable even though the DB was reachable and /health and smoke tests passed.",
+      "classification": "code-bug",
+      "recommended_action": "Fixed in commit 9a2d2192: probe now resolves conn = getattr(saver, 'conn', None) or getattr(saver, '_conn', None), executes SELECT 1, and returns a distinct 'checkpoint_connection_not_found' detail only when neither reference exists. Redeploy L4 and re-check GET http://localhost:8004/ready.",
+      "resolved": true,
+      "verification_commands": [
+        "pytest services/layer4-agents/tests/test_observability_contract_integration.py -v",
+        "pytest tests/ci/test_metrics_fail_closed.py -v"
+      ],
+      "residual_risk": "None expected; the probe now reflects actual DB reachability rather than saver attribute naming."
+    },
+    {
+      "id": "B-03",
+      "component": "layer5-readiness",
+      "root_cause": "The Layer 5 readiness endpoint calls _check_schema_migration_alignment(), which returns schema_revision_behind when current_heads is empty. Because the migration failures broke before Alembic stamped the alembic_version table, the table is missing/empty even though some tables exist. Database connectivity itself is healthy (/health returns 200).",
+      "classification": "local-state",
+      "recommended_action": "This is a consequence of B-01. After applying the B-01 code fixes, perform the documented DB cleanup (drop/recreate ground_truth DB, then run migrations). Once migrations reach head 017, /ready will report aligned.",
+      "cleanup_commands": [
+        "docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -c \"DROP DATABASE IF EXISTS ground_truth;\"",
+        "docker compose -f docker-compose.dev.yml exec postgres psql -U postgres -c \"CREATE DATABASE ground_truth OWNER postgres;\"",
+        "make migrate-layer5",
+        "curl -s http://localhost:8005/ready"
+      ],
+      "resolved": false,
+      "verification_commands": [
+        "cd services/layer5-ground-truth && python -m alembic current",
+        "curl -s http://localhost:8005/ready"
+      ],
+      "residual_risk": "Cannot be marked fully resolved until the staging DB is cleaned and migrations rerun. The code path is correct; only state remains."
+    },
+    {
+      "id": "B-04",
+      "component": "metrics-access",
+      "root_cause": "verify_metrics_access in packages/shared/src/value_fabric/shared/observability/metrics_access.py treats RFC1918 private addresses (10/8, 172.16/12, 192.168/16, loopback, IPv4-mapped IPv6) as internal and allows unauthenticated access. Docker gateway IPs fall into these ranges, so unauthenticated requests from the Docker network return 200. This is intentional in the current implementation.",
+      "classification": "accepted-local-staging",
+      "recommended_action": "Accept for local staging: Prometheus scrapes originate from the same trusted Docker network, and internal-IP exemption is the intended behavior. For production or untrusted networks, set METRICS_INTERNAL_SCRAPE_TOKEN and configure Prometheus to use it; consider a feature flag to disable internal-IP exemption in high-trust environments.",
+      "resolved": true,
+      "verification_commands": [
+        "pytest tests/ci/test_metrics_fail_closed.py -v"
+      ],
+      "residual_risk": "Low for local staging. In a shared or untrusted network, internal-IP exemption could allow lateral movement; mitigate with scrape token enforcement."
+    }
+  ],
+  "fixed_files": [
+    "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/010_add_assumption_governance_models.py",
+    "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/014_add_value_realization_ledger.py",
+    "services/layer4-agents/src/layer4_agents/api/app_factory.py"
+  ],
+  "unfixed_state": [
+    "Staging Layer 5 PostgreSQL database must be cleaned and migrations rerun (B-03)."
+  ]
+}

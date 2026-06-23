@@ -9,6 +9,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+- **P0 Security patches**: Added pnpm overrides to resolve 24 frontend vulnerabilities (3 high, 14 moderate, 7 low)
+  - `dompurify`: upgraded to >=3.4.9 (fixes GHSA-vxr8-fq34-vvx9, GHSA-gvmj-g25r-r7wr)
+  - `jsdom`: upgraded to >=25.0.0 (fixes undici vulnerabilities GHSA-35p6-xmwp-9g52, GHSA-g8m3-5g58-fq7m)
+  - `@opentelemetry/core`: upgraded to >=2.8.0 (fixes GHSA-8988-4f7v-96qf)
+  - `esbuild`: upgraded to >=0.28.1 (fixes GHSA-g7r4-m6w7-qqqr)
+  - `@babel/core`: upgraded to >=7.29.6 (fixes GHSA-4x5r-pxfx-6jf8)
+  - `uuid`: upgraded to >=11.1.1 (fixes GHSA-w5hq-g745-h8pq)
+  - `qs`: upgraded to >=6.15.2 (fixes GHSA-q8mj-m7cp-5q26)
+  - `js-yaml`: upgraded to >=4.2.0 (fixes GHSA-h67p-54hq-rp68)
+- **Backend security audit**: Verified via `scripts/ci/supply_chain_gate.py audit` - PASSED (no known vulnerabilities in Python dependencies)
+- **Rollback plan**: Remove the 8 new pnpm override entries from `package.json` and run `pnpm install --no-frozen-lockfile` to restore previous versions
+
 ### Changed
 - **ADR-027 Layer 2 migration**: Moved `alignment.py`, `coreference.py`, `validation.py`, and `api/` wrappers from `value_fabric/layer2/` to `services/layer2-extraction/src/layer2_extraction/`. Deleted empty stale directories (`coreference/`, `db/`, `extraction/`). `value_fabric/layer2/` now contains only the path-appender shim `__init__.py`.
 - **ADR-027 Layer 6 migration**: Converted `value_fabric/layer6/` from active implementation namespace to path-appender shim. All implementation files (`api/`, `config.py`, `database.py`, `metrics/`, `models/`, `observability/`, `repositories/`, `settings.py`, `shared_bootstrap.py`) now live exclusively in `services/layer6-benchmarks/src/`.

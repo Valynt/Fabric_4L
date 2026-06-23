@@ -24,6 +24,7 @@ def _get_analyze_errors_ast_node():
         / "services"
         / "layer4-agents"
         / "src"
+        / "layer4_agents"
         / "api"
         / "routes"
         / "state_inspector.py"

@@ -1,0 +1,30 @@
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 1...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 2...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 2.5...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 3...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 4...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 5...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Linting Layer 6...
+All checks passed!
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+âœ…  Linting complete for all layers
+

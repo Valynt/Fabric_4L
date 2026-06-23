@@ -397,89 +397,7 @@ const mockUser = {
   tier: 'advanced',
 };
 
-// ---------------------------------------------------------------------------
-// OIDC / Auth handlers
-// ---------------------------------------------------------------------------
-
-const OIDC_BASE = '/api/v1/agents/auth/oidc';
-
-const oidcHandlers = [
-  // Initiate login — returns authorization URL + state
-  http.get(`${OIDC_BASE}/:tenantSlug/login`, ({ params }) => {
-    const { tenantSlug } = params as { tenantSlug: string };
-
-    if (tenantSlug === 'error-tenant') {
-      return HttpResponse.json({ detail: 'Tenant not found' }, { status: 404 });
-    }
-    if (tenantSlug === 'network-error') {
-      return HttpResponse.error();
-    }
-
-    return HttpResponse.json({
-      authorization_url: `https://idp.example.com/auth?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Flogin%2Fcallback&state=oidc-state-123`,
-      state: 'oidc-state-123',
-    });
-  }),
-
-  // OIDC callback — sets session cookie, returns non-secret metadata
-  http.get(`${OIDC_BASE}/callback`, ({ request }) => {
-    const url = new URL(request.url);
-    const code = url.searchParams.get('code');
-
-    if (code === 'invalid-code') {
-      return HttpResponse.json({ detail: 'Invalid authorization code' }, { status: 400 });
-    }
-
-    return HttpResponse.json(
-      {
-        token_type: 'Bearer',
-        expires_in: 3600,
-        user_id: 'user-new-001',
-        email: 'newuser@example.com',
-        role: 'analyst',
-      },
-      {
-        headers: {
-          // Simulate the httpOnly cookie the backend would set
-          'Set-Cookie': 'vf_session=mock-jwt-token; HttpOnly; Secure; SameSite=Strict; Max-Age=3600; Path=/',
-        },
-      }
-    );
-  }),
-
-  // Refresh — rotates session cookie, returns updated metadata
-  http.post(`${OIDC_BASE}/refresh`, () => {
-    return HttpResponse.json(
-      {
-        token_type: 'Bearer',
-        expires_in: 3600,
-        user_id: 'user-new-001',
-        email: 'newuser@example.com',
-        role: 'analyst',
-      },
-      {
-        headers: {
-          'Set-Cookie': 'vf_session=rotated-jwt-token; HttpOnly; Secure; SameSite=Strict; Max-Age=3600; Path=/',
-        },
-      }
-    );
-  }),
-
-  // Logout — clears session cookie
-  http.post(`${OIDC_BASE}/logout`, () => {
-    return HttpResponse.json(
-      { detail: 'Logged out' },
-      {
-        headers: {
-          'Set-Cookie': 'vf_session=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/',
-        },
-      }
-    );
-  }),
-];
-
 export const handlers = [
-  ...oidcHandlers,
 
 
   // Current L3 value-pack routes
@@ -1004,11 +922,6 @@ export const handlers = [
     });
   }),
 
-  // Auth - Current user
-  http.get('/api/auth/me', () => {
-    return HttpResponse.json(mockUser);
-  }),
-
   // Billing - Entitlements
   http.get('/api/billing/entitlements', () => {
     return HttpResponse.json([
@@ -1273,8 +1186,7 @@ export const handlers = [
   }),
 
   // ── Layer 1 — Scraping Targets ────────────────────────────────────────────
-  // Response shapes match ApiTargetListResponse / ScrapingTargetDetail /
-  // TargetStatsResponse as defined in useTargets.ts.
+  // Response shapes match the generated L1 API types.
 
   http.get('/api/v1/ingest/targets', () => {
     return HttpResponse.json({
@@ -1476,5 +1388,29 @@ export const handlers = [
       items: [],
       total: 0,
     });
+  }),
+
+  // ── Global Search ───────────────────────────────────────────────────────────
+
+  http.get('/api/v1/search', ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('q');
+    
+    if (!query) {
+      return HttpResponse.json({
+        query: '',
+        scope: 'tenant',
+        tenant_id: 'acme',
+        results: {},
+        total_by_type: {},
+        processing_time_ms: 0,
+      });
+    }
+    
+    // Import mock search data
+    const { createMockSearchResponse } = require('./searchMocks');
+    const response = createMockSearchResponse(query);
+    
+    return HttpResponse.json(response);
   }),
 ];

@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "validate_input",
+  "traces": [
+    {
+      "id": "vi-001",
+      "description": "Validate a prospect identifier payload",
+      "input": {
+        "schema_name": "prospect_id",
+        "data": {
+          "prospect_id": "prospect-acme-cio"
+        }
+      },
+      "assertions": {
+        "valid": true
+      }
+    }
+  ]
+}

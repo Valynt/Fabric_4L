@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer4.api.routes import signals
+from layer4_agents.api.routes import signals
 
 
 @pytest.fixture
@@ -44,20 +44,11 @@ class _FakeNeo4jDriver:
 
 
 @pytest.mark.asyncio
-async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app: FastAPI, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app: FastAPI) -> None:
     persisted: dict[str, dict] = {}
 
-    class FakeLayer3Client:
-        def __init__(self, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return None
-
-        async def review_signal(self, signal_id: str, account_id: str, review_status: str, reviewer_id: str, decision_note=None, tenant_id=None):
+    class FakeSignalReviewClient:
+        async def review_signal(self, *, signal_id: str, account_id: str, review_status: str, reviewer_id: str, decision_note=None, tenant_id: str):
             persisted[signal_id] = {
                 "signal_id": signal_id,
                 "account_id": account_id,
@@ -69,7 +60,7 @@ async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app
             }
             return persisted[signal_id]
 
-    monkeypatch.setattr("value_fabric.layer4.integration.layer3_client.Layer3Client", FakeLayer3Client)
+    app.dependency_overrides[signals.get_signal_review_client] = lambda: FakeSignalReviewClient()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         approve = await client.patch("/v1/signals/sig-1/review", json={"account_id": "acct-1", "review_status": "approved"})
@@ -83,25 +74,77 @@ async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app
 
 
 @pytest.mark.asyncio
-async def test_evidence_attach_writes_driver_relation(app: FastAPI) -> None:
-    fake_driver = _FakeNeo4jDriver()
-    app.state.neo4j_driver = fake_driver
+async def test_evidence_decision_uses_review_port(app: FastAPI) -> None:
+    calls: list[dict] = []
+
+    class FakeSignalReviewClient:
+        async def decide_evidence(self, **kwargs):
+            calls.append(kwargs)
+            return {
+                "decision": kwargs["decision"],
+                "reviewed_by": kwargs["reviewer_id"],
+                "reviewed_at": "2026-05-07T00:00:00Z",
+                "provenance": {"source": "fake"},
+                "confidence": 0.9,
+            }
+
+    app.dependency_overrides[signals.get_signal_review_client] = lambda: FakeSignalReviewClient()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.post(
-            "/v1/evidence/ev-1/decisions",
+        response = await client.patch(
+            "/v1/evidence/ev-1/decision",
             json={
                 "account_id": "acct-1",
                 "case_id": "case-1",
-                "decision": "attached_to_driver",
-                "driver_id": "drv-1",
-                "decision_note": "attach for model",
+                "decision": "accepted",
+                "decision_note": "good evidence",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "accepted"
+    assert response.json()["provenance"] == {"source": "fake"}
+    assert calls == [
+        {
+            "evidence_id": "ev-1",
+            "account_id": "acct-1",
+            "case_id": "case-1",
+            "decision": "accepted",
+            "reviewer_id": "reviewer-123",
+            "decision_note": "good evidence",
+            "tenant_id": "12345678-1234-1234-1234-123456789abc",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_evidence_attach_writes_driver_relation(app: FastAPI) -> None:
+    calls: list[dict] = []
+
+    class FakeSignalReviewClient:
+        async def link_evidence_driver(self, **kwargs):
+            calls.append(kwargs)
+            return {"decision": "attached_to_driver"}
+
+    app.dependency_overrides[signals.get_signal_review_client] = lambda: FakeSignalReviewClient()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/v1/evidence/ev-1/drivers/drv-1",
+            json={
+                "account_id": "acct-1",
+                "case_id": "case-1",
             },
         )
 
     assert response.status_code == 200
     assert response.json()["decision"] == "attached_to_driver"
-    assert len(fake_driver.calls) == 1
-    _, params = fake_driver.calls[0]
-    assert params["evidence_id"] == "ev-1"
-    assert params["driver_id"] == "drv-1"
+    assert calls == [
+        {
+            "evidence_id": "ev-1",
+            "driver_id": "drv-1",
+            "account_id": "acct-1",
+            "case_id": "case-1",
+            "tenant_id": "12345678-1234-1234-1234-123456789abc",
+        }
+    ]

@@ -83,3 +83,23 @@ SLSA level details, and the full production readiness checklist, see:
 - **Bandit** scans all Python layers for security anti-patterns
   (`.github/workflows/security-gates.yml`, `.github/workflows/pr-checks.yml`).
 - **OWASP ZAP** runs baseline DAST scans against an ephemeral stack on every PR.
+
+## Development Authentication Bypass
+
+For local development, the following environment variables may be set to bypass authentication:
+- `DEV_AUTH_BYPASS=true` - Bypasses JWT validation and injects dev tenant context
+- `ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK` - Legacy explicit acknowledgement token
+- `AUTH_BYPASS_ENABLED=true` - Global auth bypass flag
+- `ALLOW_INSECURE_DEV_AUTH_BYPASS=true` - Allows insecure dev auth bypass
+
+**CRITICAL:** These variables MUST NEVER be set in production, staging, or any production-like environment. The `ProductionSafetyValidator` will reject startup if any bypass flag is enabled in production-like environments.
+
+**CI Enforcement:**
+- PR checks scan docker-compose files for bypass flags (`.github/scripts/check-dev-auth-bypass.sh`)
+- ProductionSafetyValidator validates at service startup
+- Security tests verify bypass rejection in production-like environments (`tests/security/test_dev_bypass.py`)
+
+**Local Development (only accepted path):**
+- Keep bypass flags out of committed compose baselines (CI preflight enforces this).
+- Put bypass flags only in a local uncommitted env file such as `.env.dev` and an uncommitted compose override (for example `docker-compose.override.yml`).
+- Never copy local override env variables to shared, staging, or production environments.

@@ -26,6 +26,7 @@ export const STALE_TIME = {
   // Domain-specific durations (previously scattered across individual hook files)
   policies:  60_000,          //  1 minute  — benchmark/governance policies
   approvals: 10_000,          // 10 seconds — pending approval queues
+  tenant:    30_000,          // 30 seconds — Clerk org → Fabric tenant mapping
 } as const;
 
 // ── Retry configuration ───────────────────────────────────────────────────────
@@ -72,81 +73,7 @@ export class BaseApiError extends Error {
   }
 }
 
-// Domain-specific error classes
-export class FormulaApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'FormulaApiError';
-  }
-}
-
-export class BenchmarkApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'BenchmarkApiError';
-  }
-}
-
-export class VariableApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'VariableApiError';
-  }
-}
-
-export class HealthMonitorApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'HealthMonitorApiError';
-  }
-}
-
-export class FormulaVersionsApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'FormulaVersionsApiError';
-  }
-}
-
-export class FormulaDependentsApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'FormulaDependentsApiError';
-  }
-}
-
-export class BusinessCaseApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'BusinessCaseApiError';
-  }
-}
-
-export class PlatformSettingsApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'PlatformSettingsApiError';
-  }
-}
-
-export class SourceApiError extends BaseApiError {
-  constructor(message: string, statusCode?: number, responseData?: unknown) {
-    super(message, statusCode, responseData);
-    this.name = 'SourceApiError';
-  }
-}
-
-export type ApiErrorClass =
-  | typeof FormulaApiError
-  | typeof BenchmarkApiError
-  | typeof VariableApiError
-  | typeof HealthMonitorApiError
-  | typeof FormulaVersionsApiError
-  | typeof FormulaDependentsApiError
-  | typeof BusinessCaseApiError
-  | typeof PlatformSettingsApiError
-  | typeof SourceApiError
-  | typeof BaseApiError;
+export type ApiErrorClass = typeof BaseApiError;
 
 // ── Error wrapper ─────────────────────────────────────────────────────────────
 /**
@@ -178,8 +105,12 @@ export async function withApiError<T, E extends BaseApiError>(
       );
       if (typeof axiosErr.response?.data === 'object' && axiosErr.response?.data !== null) {
         const responseData = axiosErr.response.data as Record<string, unknown>;
-        newError.errorCode = typeof responseData.code === 'string' ? responseData.code : undefined;
-        newError.traceId = typeof responseData.trace_id === 'string' ? responseData.trace_id : null;
+        const envelope = responseData.error;
+        if (typeof envelope === 'object' && envelope !== null) {
+          const errorEnvelope = envelope as Record<string, unknown>;
+          newError.errorCode = typeof errorEnvelope.code === 'string' ? errorEnvelope.code : undefined;
+          newError.traceId = typeof errorEnvelope.request_id === 'string' ? errorEnvelope.request_id : null;
+        }
       }
       newError.cause = err;
       throw newError;

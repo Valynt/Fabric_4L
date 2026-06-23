@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.seed_data import seed_governance
 
 from .conftest import TENANT_ALPHA, auth_headers
 
@@ -18,12 +19,13 @@ def test_review_queue():
 
 
 def test_prod_gates():
+    seed_governance([TENANT_ALPHA])
     with TestClient(app) as client:
         response = client.get("/v1/governance/prod-gates", headers=HEADERS)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) >= 1
+        assert "items" in data
+        assert len(data["items"]) >= 1
 
 
 def test_create_review_decision():
@@ -40,3 +42,12 @@ def test_create_review_decision():
         assert response.status_code == 201
         data = response.json()
         assert data["decision"] == "approve"
+
+
+def test_audit_log_returns_list_envelope():
+    with TestClient(app) as client:
+        response = client.get("/v1/governance/audit-log", headers=HEADERS)
+        assert response.status_code == 200
+        data = response.json()
+        assert "items" in data
+        assert isinstance(data["items"], list)

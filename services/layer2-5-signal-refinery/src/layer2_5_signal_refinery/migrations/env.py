@@ -1,5 +1,3 @@
-"""Alembic environment for L2.5 Signal Refinery migrations."""
-
 from __future__ import annotations
 
 import asyncio
@@ -11,6 +9,8 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from layer2_5_signal_refinery.models.db_models import Base
+
+"""Alembic environment for L2.5 Signal Refinery migrations."""
 
 config = context.config
 if config.config_file_name is not None:

@@ -28,13 +28,15 @@ pytestmark = [
 ]
 
 # Bypass env vars checked by validate_production_safety.
-# Only ALLOW_INSECURE_DEV_AUTH_BYPASS is currently validated by ProductionSafetyValidator.
-# DEV_AUTH_BYPASS, ALLOW_DEV_AUTH_BYPASS, AUTH_BYPASS_ENABLED are not yet checked —
-# they are documented as P2 gaps to be addressed in the brittle-test follow-up sprint.
+# All bypass flags are now validated by ProductionSafetyValidator.
 _BYPASS_VARS = [
     ("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true"),
     ("ALLOW_INSECURE_DEV_AUTH_BYPASS", "1"),
     ("ALLOW_INSECURE_DEV_AUTH_BYPASS", "yes"),
+    ("DEV_AUTH_BYPASS", "true"),
+    ("DEV_AUTH_BYPASS", "1"),
+    ("ALLOW_DEV_AUTH_BYPASS", "true"),
+    ("AUTH_BYPASS_ENABLED", "true"),
 ]
 
 _PRODUCTION_ENVS = ["production", "prod", "staging", "stage", "preprod"]
@@ -77,10 +79,10 @@ class TestBypassFlagsRejectedInProduction:
     def test_bypass_rejected_across_all_production_like_envs(
         self, monkeypatch: pytest.MonkeyPatch, env: str
     ):
-        """NEGATIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS is rejected in all production-like envs."""
+        """NEGATIVE: DEV_AUTH_BYPASS is rejected in all production-like envs."""
         _set_base_env(monkeypatch, env)
-        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
-        with pytest.raises(RuntimeError):
+        monkeypatch.setenv("DEV_AUTH_BYPASS", "true")
+        with pytest.raises(RuntimeError, match="DEV_AUTH_BYPASS"):
             validate_production_safety(environment=env)
 
     def test_no_bypass_flags_set_passes_validation(self, monkeypatch: pytest.MonkeyPatch):
@@ -110,7 +112,7 @@ class TestDebugFlagRejectedInProduction:
         """NEGATIVE: DEBUG=true raises in production."""
         _set_base_env(monkeypatch, "production")
         monkeypatch.setenv("DEBUG", "true")
-        with pytest.raises((RuntimeError, ValueError)):
+        with pytest.raises(RuntimeError):
             validate_production_safety(environment="production")
 
     def test_debug_false_accepted_in_production(self, monkeypatch: pytest.MonkeyPatch):
@@ -120,7 +122,7 @@ class TestDebugFlagRejectedInProduction:
         # Should not raise due to DEBUG
         try:
             validate_production_safety(environment="production")
-        except (RuntimeError, ValueError) as exc:
+        except RuntimeError as exc:
             if "DEBUG" in str(exc):
                 pytest.fail(f"DEBUG=false must not raise. Got: {exc}")
 
@@ -130,7 +132,7 @@ class TestDebugFlagRejectedInProduction:
         monkeypatch.delenv("DEBUG", raising=False)
         try:
             validate_production_safety(environment="production")
-        except (RuntimeError, ValueError) as exc:
+        except RuntimeError as exc:
             if "DEBUG" in str(exc):
                 pytest.fail(f"Unset DEBUG must not raise. Got: {exc}")
 
@@ -144,7 +146,7 @@ class TestBypassFlagsAllowedInDevelopment:
     """Bypass flags must not raise in development — they should only log a warning."""
 
     def test_bypass_flag_does_not_raise_in_development(self, monkeypatch: pytest.MonkeyPatch):
-        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS=true is allowed in development."""
+        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS set to true is allowed in development."""
         monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
         # Must not raise in development
@@ -159,7 +161,7 @@ class TestBypassFlagsAllowedInDevelopment:
     def test_bypass_flag_logs_warning_in_development(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ):
-        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS=true logs at least one WARNING in development."""
+        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS set to true logs at least one WARNING in development."""
         monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
         with caplog.at_level("WARNING"):
@@ -170,7 +172,7 @@ class TestBypassFlagsAllowedInDevelopment:
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
         assert len(warning_records) >= 1, (
             "validate_production_safety must emit at least one WARNING when "
-            "ALLOW_INSECURE_DEV_AUTH_BYPASS=true in development."
+            "ALLOW_INSECURE_DEV_AUTH_BYPASS set to true in development."
         )
 
 

@@ -12,31 +12,36 @@ import pytest
 from unittest.mock import patch, MagicMock
 from uuid import uuid4, UUID
 
-from value_fabric.layer1.shared.exceptions import (
+import asyncio
+import inspect
+
+from layer1_ingestion.shared.exceptions import (
     TenantContextError,
     InvalidTenantContextError,
     CrossTenantAccessError,
     SystemMaintenanceAuthorizationError,
+    SecurityError,
 )
-from value_fabric.layer1.shared.database import get_db_session, validate_tenant_id
-from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, RawContent
-from value_fabric.layer1.shared.tasks import process_scraping_job, cleanup_old_content
+from layer1_ingestion.shared.database import get_db_session, validate_tenant_id
+from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, RawContent
+from layer1_ingestion.shared.tasks import process_scraping_job, cleanup_old_content
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestTenantIdValidation:
     """Test tenant_id validation and forgery prevention."""
 
     def test_valid_uuid_tenant_id(self):
-        """Test that valid UUID tenant_ids are accepted."""
+        """Test that valid UUID tenant_ids are accepted and returned as string."""
         valid_tenant_id = str(uuid4())
         result = validate_tenant_id(valid_tenant_id)
-        assert result == UUID(valid_tenant_id)
+        assert result == valid_tenant_id
 
     def test_invalid_uuid_tenant_id_fails(self):
         """Test that invalid UUID tenant_ids are rejected."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         invalid_tenant_ids = [
             "not-a-uuid",
             "123-456-789",
@@ -47,28 +52,31 @@ class TestTenantIdValidation:
         ]
         
         for invalid_id in invalid_tenant_ids:
-            with pytest.raises(TenantContextError) as exc_info:
+            with pytest.raises(DBTenantContextError) as exc_info:
                 validate_tenant_id(invalid_id)
             
             assert "Invalid tenant_id format" in str(exc_info.value)
 
     def test_none_tenant_id_handling(self):
         """Test that None tenant_id is handled appropriately."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         # In fail-safe mode, None should raise an error unless explicitly allowed
-        with pytest.raises(TenantContextError) as exc_info:
+        with pytest.raises(DBTenantContextError) as exc_info:
             validate_tenant_id(None)
         
-        assert "tenant_id cannot be None" in str(exc_info.value).lower()
+        assert "tenant context is mandatory" in str(exc_info.value).lower()
 
     def test_empty_string_tenant_id_fails(self):
         """Test that empty string tenant_ids are rejected."""
-        with pytest.raises(TenantContextError) as exc_info:
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
+        with pytest.raises(DBTenantContextError) as exc_info:
             validate_tenant_id("")
         
-        assert "Invalid tenant_id format" in str(exc_info.value)
+        assert "empty tenant_id" in str(exc_info.value).lower()
 
     def test_uuid_injection_attempts(self):
         """Test that UUID injection attempts are caught."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         malicious_ids = [
             "00000000-0000-0000-0000-000000000000'; DROP TABLE scraping_jobs; --",
             "123e4567-e89b-12d3-a456-426614174000 OR 1=1",
@@ -77,7 +85,7 @@ class TestTenantIdValidation:
         ]
         
         for malicious_id in malicious_ids:
-            with pytest.raises(TenantContextError):
+            with pytest.raises(DBTenantContextError):
                 validate_tenant_id(malicious_id)
 
 
@@ -93,33 +101,33 @@ class TestCrossTenantAccessPrevention:
         # Try to access with tenant B
         tenant_b = str(uuid4())
         
-        with pytest.raises(Exception):  # Should fail due to RLS or no results
-            with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
-                retrieved = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
-                # RLS should prevent access or return None
-                if retrieved:
-                    assert retrieved.tenant_id == tenant_b  # This should never happen
+        with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
+            retrieved = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
+            # RLS should prevent access by returning None
+            assert retrieved is None, "RLS must prevent cross-tenant job access"
 
-    def test_target_isolation_enforced(self, postgres_db):
+    def test_target_isolation_enforced(self, postgres_db, user_id):
         """Test that target isolation is properly enforced."""
         # Create targets for different tenants
         tenant_a = str(uuid4())
         tenant_b = str(uuid4())
-        
+
         target_a = ScrapingTarget(
             name="Target A",
             url="https://example-a.com",
             tenant_id=tenant_a,
             status="ACTIVE",
+            created_by=user_id,
         )
-        
+
         target_b = ScrapingTarget(
-            name="Target B", 
+            name="Target B",
             url="https://example-b.com",
             tenant_id=tenant_b,
             status="ACTIVE",
+            created_by=user_id,
         )
-        
+
         postgres_db.add(target_a)
         postgres_db.add(target_b)
         postgres_db.commit()
@@ -128,36 +136,64 @@ class TestCrossTenantAccessPrevention:
         with get_db_session(tenant_id=tenant_a, require_tenant=True) as session:
             targets = session.query(ScrapingTarget).all()
             assert len(targets) == 1
-            assert targets[0].tenant_id == tenant_a
+            assert str(targets[0].tenant_id) == tenant_a
             assert targets[0].name == "Target A"
         
         # Tenant B should only see Target B
         with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
             targets = session.query(ScrapingTarget).all()
             assert len(targets) == 1
-            assert targets[0].tenant_id == tenant_b
+            assert str(targets[0].tenant_id) == tenant_b
             assert targets[0].name == "Target B"
 
-    def test_raw_content_tenant_isolation(self, postgres_db):
+    def test_raw_content_tenant_isolation(self, postgres_db, user_id, make_target):
         """Test that raw content is properly isolated by tenant."""
+        from uuid import uuid4
         tenant_a = str(uuid4())
         tenant_b = str(uuid4())
-        
+
+        # Create jobs first (RawContent requires job_id)
+        target_a = make_target(tenant_id=tenant_a)
+        job_a = ScrapingJob(
+            id=uuid4(),
+            tenant_id=tenant_a,
+            target_id=target_a.id,
+            status="PENDING",
+            configuration={},
+            created_by=user_id,
+        )
+        postgres_db.add(job_a)
+        postgres_db.flush()
+
+        target_b = make_target(tenant_id=tenant_b)
+        job_b = ScrapingJob(
+            id=uuid4(),
+            tenant_id=tenant_b,
+            target_id=target_b.id,
+            status="PENDING",
+            configuration={},
+            created_by=user_id,
+        )
+        postgres_db.add(job_b)
+        postgres_db.flush()
+
         # Create content for different tenants
         content_a = RawContent(
-            url="https://example-a.com/page1",
-            content="Tenant A content",
+            job_id=job_a.id,
             tenant_id=tenant_a,
+            source_url="https://example-a.com/page1",
+            source_domain="example-a.com",
             processing_status="COMPLETED",
         )
-        
+
         content_b = RawContent(
-            url="https://example-b.com/page1", 
-            content="Tenant B content",
+            job_id=job_b.id,
             tenant_id=tenant_b,
+            source_url="https://example-b.com/page1",
+            source_domain="example-b.com",
             processing_status="COMPLETED",
         )
-        
+
         postgres_db.add(content_a)
         postgres_db.add(content_b)
         postgres_db.commit()
@@ -166,15 +202,15 @@ class TestCrossTenantAccessPrevention:
         with get_db_session(tenant_id=tenant_a, require_tenant=True) as session:
             content = session.query(RawContent).all()
             assert len(content) == 1
-            assert content[0].tenant_id == tenant_a
-            assert "Tenant A content" in content[0].content
+            assert str(content[0].tenant_id) == tenant_a
+            assert content[0].source_domain == "example-a.com"
 
     def test_forged_tenant_id_in_task_dispatch(self):
         """Test that forged tenant_id in task dispatch is caught."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         
         # Mock the task chain to verify tenant_id validation
-        with patch('value_fabric.layer1.shared.tasks.process_scraping_job') as mock_task:
+        with patch('layer1_ingestion.shared.tasks.process_scraping_job') as mock_task:
             # Try to dispatch with forged tenant_id
             forged_tenant_id = "admin-override-tenant"
             job_id = str(uuid4())
@@ -221,7 +257,7 @@ class TestSystemMaintenanceBypassAttempts:
         valid_token = f"fabric4l-maintenance:{timestamp}:test-sig"
         
         with patch.dict('os.environ', {'FABRIC4L_MAINTENANCE_TOKEN': valid_token}):
-            from value_fabric.layer1.shared.maintenance import authorize_maintenance_operation
+            from layer1_ingestion.shared.maintenance import authorize_maintenance_operation
             
             # Try unauthorized operation
             with pytest.raises(SystemMaintenanceAuthorizationError):
@@ -276,57 +312,65 @@ class TestTaskSecurityValidation:
 
     def test_process_scraping_job_validates_tenant_id(self):
         """Test that process_scraping_job validates tenant_id."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         
         # Mock the database operations to isolate validation
-        with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
             # Try with invalid tenant_id
             with pytest.raises(Exception):  # Should fail validation
                 process_scraping_job(str(uuid4()), "invalid-tenant-id")
 
-    def test_crawl_url_with_routing_validates_tenant(self):
+    @pytest.mark.asyncio
+    async def test_crawl_url_with_routing_validates_tenant(self):
         """Test that crawl_url_with_routing validates tenant context."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
-        
-        # Mock dependencies
-        with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
-            with patch('value_fabric.layer1.shared.tasks.validate_tenant_id') as mock_validate:
-                mock_validate.side_effect = InvalidTenantContextError("Invalid tenant")
-                
-                with pytest.raises(InvalidTenantContextError):
-                    crawl_url_with_routing(
-                        job_id=str(uuid4()),
-                        url="https://example.com",
-                        tenant_id="invalid-tenant"
-                    )
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
 
-    def test_pipeline_stages_require_tenant_context(self):
+        # Mock get_db_session to simulate tenant validation failure
+        with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+            mock_session.side_effect = TenantContextError("Invalid tenant")
+
+            with pytest.raises(TenantContextError):
+                await crawl_url_with_routing(
+                    job_id=str(uuid4()),
+                    url="https://example.com",
+                    tenant_id=str(uuid4())
+                )
+            # Verify get_db_session was called with require_tenant=True
+            _, kwargs = mock_session.call_args
+            assert kwargs.get('require_tenant') is True
+
+    @pytest.mark.asyncio
+    async def test_pipeline_stages_require_tenant_context(self):
         """Test that all pipeline stages require tenant context."""
-        from value_fabric.layer1.shared import tasks
-        
+        from layer1_ingestion.shared import tasks
+
         pipeline_stages = [
             'compliance_check_stage',
-            'browser_crawl_stage', 
+            'browser_crawl_stage',
             'ai_extraction_stage',
             'post_processing_stage',
             'validation_stage',
             'storage_stage',
             'notification_stage',
         ]
-        
+
         for stage_name in pipeline_stages:
             stage_func = getattr(tasks, stage_name)
-            
-            # Mock the task execution
-            with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
-                with patch('value_fabric.layer1.shared.tasks.validate_tenant_id') as mock_validate:
-                    mock_validate.side_effect = InvalidTenantContextError("Invalid tenant")
-                    
-                    with pytest.raises(InvalidTenantContextError):
-                        stage_func(
-                            job_id=str(uuid4()),
-                            tenant_id="invalid-tenant"
-                        )
+
+            # Mock get_db_session to simulate tenant validation failure
+            with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+                mock_session.side_effect = TenantContextError("Invalid tenant")
+
+                with pytest.raises(TenantContextError):
+                    result = stage_func(
+                        {"job_id": str(uuid4())},
+                        tenant_id=str(uuid4())
+                    )
+                    if inspect.isawaitable(result):
+                        await result
+                # Verify get_db_session was called with require_tenant=True
+                _, kwargs = mock_session.call_args
+                assert kwargs.get('require_tenant') is True
 
 
 class TestErrorHandlingSecurity:
@@ -337,16 +381,19 @@ class TestErrorHandlingSecurity:
         with pytest.raises(TenantContextError):
             validate_tenant_id("invalid-uuid")
 
-    def test_database_errors_dont_expose_tenant_data(self, postgres_db):
+    def test_database_errors_dont_expose_tenant_data(self, postgres_db, user_id, make_target):
         """Test that database errors don't expose cross-tenant data."""
         tenant_a = str(uuid4())
         tenant_b = str(uuid4())
-        
-        # Create data for tenant A
+
+        # Create target and job for tenant A
+        target = make_target(tenant_id=tenant_a)
         job_a = ScrapingJob(
-            url="https://tenant-a.com",
             tenant_id=tenant_a,
+            target_id=target.id,
             status="PENDING",
+            configuration={"url": "https://tenant-a.com"},
+            created_by=user_id,
         )
         postgres_db.add(job_a)
         postgres_db.commit()
@@ -377,7 +424,7 @@ class TestErrorHandlingSecurity:
             # that are meant for recoverable errors
             try:
                 raise error
-            except TenantContextError:
+            except SecurityError:
                 # This should catch security errors
                 pass
             except Exception:
@@ -391,17 +438,19 @@ class TestAuditLoggingSecurity:
 
     def test_maintenance_operations_are_audited(self):
         """Test that maintenance operations generate audit logs."""
-        from value_fabric.layer1.shared.maintenance import maintenance_audit_log
+        from layer1_ingestion.shared.maintenance import maintenance_audit_log, SystemMaintenanceIdentity, MaintenanceOperation
+        from unittest.mock import patch
         
         timestamp = int(__import__('time').time())
         token = f"fabric4l-maintenance:{timestamp}:test-sig"
+        identity = SystemMaintenanceIdentity(token)
         
-        with patch.dict('os.environ', {'FABRIC4L_MAINTENANCE_TOKEN': token}):
-            with maintenance_audit_log("test_operation", tenant_id="test-tenant") as record:
+        with patch('layer1_ingestion.shared.maintenance.get_maintenance_identity', return_value=identity):
+            with maintenance_audit_log(MaintenanceOperation.CLEANUP_OLD_CONTENT.value, tenant_id="test-tenant") as record:
                 record.rows_affected = 10
                 record.metadata = {"test": "data"}
             
-            assert record.operation == "test_operation"
+            assert record.operation == MaintenanceOperation.CLEANUP_OLD_CONTENT.value
             assert record.tenant_id == "test-tenant"
             assert record.success is True
             assert record.rows_affected == 10
@@ -409,21 +458,23 @@ class TestAuditLoggingSecurity:
 
     def test_failed_operations_are_audited(self):
         """Test that failed operations are properly audited."""
-        from value_fabric.layer1.shared.maintenance import maintenance_audit_log
+        from layer1_ingestion.shared.maintenance import maintenance_audit_log, SystemMaintenanceIdentity, MaintenanceOperation
+        from unittest.mock import patch
         
         timestamp = int(__import__('time').time())
         token = f"fabric4l-maintenance:{timestamp}:test-sig"
+        identity = SystemMaintenanceIdentity(token)
         
-        with patch.dict('os.environ', {'FABRIC4L_MAINTENANCE_TOKEN': token}):
+        with patch('layer1_ingestion.shared.maintenance.get_maintenance_identity', return_value=identity):
             try:
-                with maintenance_audit_log("failing_operation", tenant_id=None) as record:
+                with maintenance_audit_log(MaintenanceOperation.SYSTEM_HEALTH_CHECK.value, tenant_id=None) as record:
                     raise ValueError("Test failure")
             except ValueError:
                 pass  # Expected
             
-            assert record.operation == "failing_operation"
+            assert record.operation == MaintenanceOperation.SYSTEM_HEALTH_CHECK.value
             assert record.success is False
-            assert record.error_message == "Test failure"
+            assert "Test failure" in record.error_message
 
 
 class TestSecurityRegressionPrevention:
@@ -433,9 +484,10 @@ class TestSecurityRegressionPrevention:
         """Test that admin role bypass patterns are not present."""
         import os
         import re
+        from pathlib import Path
         
         # Check for dangerous patterns in task files
-        tasks_file = 'src/shared/tasks.py'
+        tasks_file = Path(__file__).parent.parent.parent / 'src' / 'layer1_ingestion' / 'shared' / 'tasks.py'
         
         with open(tasks_file, 'r') as f:
             content = f.read()
@@ -471,7 +523,7 @@ class TestSecurityRegressionPrevention:
 
     def test_system_operations_are_properly_documented(self):
         """Test that system operations have proper documentation."""
-        from value_fabric.layer1.shared.maintenance import MaintenanceOperation
+        from layer1_ingestion.shared.maintenance import MaintenanceOperation
         
         # All operations should be documented
         for op in MaintenanceOperation:

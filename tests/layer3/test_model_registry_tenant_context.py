@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from value_fabric.layer3.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
 
 # Alias kept for test readability — tests call extract_tenant_from_bearer directly below.
 _get_tenant_context = extract_tenant_from_bearer

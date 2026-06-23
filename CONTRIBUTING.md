@@ -9,7 +9,7 @@ repo structure, change safety rules, and how to add agents, skills, and provider
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (any patch release; Python 3.11.10 is not specifically required)
 - Node.js 22+ (>=22.12.0) and pnpm 10+
 - Docker + Docker Compose
 - `make`
@@ -24,23 +24,37 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 cp .env.example .env
 # Edit .env — fill in OPENAI_API_KEY (or LAYER4_TOGETHER_API_KEY) and JWT_SECRET at minimum
 
-# 3. Start infrastructure
-make up
-# Or directly: docker compose -f docker-compose.dev.yml up -d
+# 3. Select Python 3.11 if needed
+#    pyenv users can rely on the root .python-version series pin.
+#    Make targets resolve python3.11 first and otherwise require python3/python to be >=3.11.
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+#    Or select any concrete installed 3.11.x patch if your pyenv does not support series aliases.
+#    Use `make PYTHON=/path/to/python3.11 ...` if your shim path is non-standard.
 
-# 4. Install all service dev dependencies (installs into the pytest pipx venv)
+# 4. Enable the repo-pinned pnpm version
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+
+# 5. Install JavaScript/TypeScript workspace dependencies
+pnpm install --frozen-lockfile
+
+# 6. Install all service dev dependencies (installs into the pytest pipx venv)
 make setup
 
-# 5. Install frontend dependencies
-pnpm --dir apps/web install
-
-# 6. Run migrations
+# 7. Run migrations after infrastructure is available
 make migrate
 
-# 7. Verify everything passes
-make setup && make test-layer1 test-layer2 test-layer3 test-layer4 test-layer5 test-layer6
+# 8. Verify everything passes
 make verify
 ```
+
+The Makefile is the canonical build, test, migration, contract, and release gate interface.
+Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases. Use
+[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for command hierarchy and
+[`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
+Use [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) before implementation
+to route the change to canonical files, drift checks, validation commands, and evidence locations.
 
 ---
 
@@ -61,16 +75,16 @@ Use these companion governance references during onboarding and before opening a
 
 ## Before You Add A Service Layer
 
-Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
+Per **[ADR-027](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree for every layer is
-`services/layer{N}-*/src/`. The matching `value_fabric/layer{N}/` package is a
-**namespace shim only** — do not add new logic there. Concretely:
+`services/layer{N}-*/src/`. The legacy root `value_fabric/` package and
+`value_fabric/layer{N}/` shims have been removed — do not restore them.
+Concretely:
 
 - New runtime modules → `services/layer{N}-*/src/`.
 - New API routes → `services/layer{N}-*/src/api/routes/`.
 - New cross-layer imports → import from the service package
-  (`layer{N}_{name}.*`) or the shim (`value_fabric.layer{N}.*`); both resolve
-  to the same module.
+  (`layer{N}_{name}.*`) or use contracted HTTP/client boundaries.
 - Layer 6 wrappers under `services/layer6-benchmarks/src/` (if present) must
   remain thin re-exports — see [`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py).
 
@@ -106,11 +120,11 @@ Before adding compatibility wrappers or legacy aliases in runtime code, add/upda
 
 ### Layer placement rule (all layers)
 
-Per [ADR-021](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) and the
+Per [ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md) and the
 [layer runtime path governance matrix](docs/reference/layer-runtime-path-governance.md):
 
 - Canonical runtime code for every layer belongs in `services/layer{N}-*/src/`.
-- `value_fabric/layer{N}/` packages are **path-appender shims** only — do not add business logic there.
+- Do not restore `value_fabric/layer{N}/` path-appender shims or add business logic there.
 - Any compatibility wrappers still present under `services/layer6-benchmarks/src/` must remain thin re-exports registered in `scripts/mirrored_files.json` and validated by:
 
 ```bash
@@ -127,6 +141,13 @@ pnpm run check:default-scope
 ```
 
 This sanity check fails if CI would pick up excluded directories through default workspace tooling.
+
+### Root gate command surface
+
+The complete root script inventory, public Makefile target list, and CI-to-local command mapping
+live in [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md). The build-system policy
+and rules for when to use `make`, `pnpm`, or direct Python CI runners live in
+[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md).
 
 ### Lockfile expectations by directory class
 
@@ -162,7 +183,7 @@ Historical or ad hoc outputs (quality reports, test dumps, diagnostics, temporar
 
 ### TypeScript / React
 
-- Linter: **ESLint** (configured in `frontend/`)
+- Linter: **ESLint** (configured in `apps/web/`)
 - Formatter: **Prettier**
 - Avoid `any` unless strictly necessary and documented
 - Co-locate tests with components using Vitest
@@ -208,7 +229,7 @@ Test categories:
 |----------|----------|-------|
 | Unit | `services/*/tests/` | Deterministic, no external calls, fast |
 | Integration | `services/*/tests/` | May use Docker services, marked `@pytest.mark.integration` |
-| E2E | `frontend/e2e/` | Playwright, critical flows only |
+| E2E | `apps/web/e2e/` | Playwright, critical flows only |
 | Contract | `tests/contract/` | Validate tool manifest schemas |
 | Evals | `tests/evals/` | Golden traces for agent skills |
 
@@ -248,3 +269,20 @@ Releases follow [Semantic Versioning](https://semver.org/):
 - `PATCH` — bug fixes, no behavior changes
 
 Releases are tagged `vMAJOR.MINOR.PATCH` and documented in `CHANGELOG.md`.
+
+## PR Triage and Review Policy
+
+To keep the repository backlog manageable (goal: < 10 open PRs), we enforce the following policies:
+
+1. **Stale PR Management**: 
+   - A GitHub Action (`stale.yml`) automatically flags PRs with no activity for 30 days and closes them after 7 additional days.
+   - Maintainers will manually close PRs that are out of date and no longer actively worked on. (Comment "Closing due to inactivity, feel free to reopen" if manually closing).
+2. **Dependabot & Trivial PRs**:
+   - Dependency updates are grouped via Dependabot configuration to minimize PR volume.
+   - Maintainers should fast-track (bulk approve/merge) trivial PRs (docs, dependabot groups, minor fixes).
+3. **Review Delegation & Deadlines**:
+   - Active PRs must be assigned to specific team members.
+   - Reviewers should aim to complete reviews within a set deadline (e.g., "by Friday").
+4. **WIP / Draft Policy**:
+   - Use Draft PRs for work that is not yet ready for review.
+   - PRs must remain small and focused to enable faster reviews.

@@ -6,11 +6,13 @@ on:
     paths:
       - "k8s/**"
       - ".github/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
   push:
     branches: [main]
     paths:
       - "k8s/**"
       - ".github/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
   workflow_dispatch:
 
 permissions: read-all
@@ -40,7 +42,7 @@ jobs:
       - name: Install kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz -o kubeconform.tar.gz
-          echo "d9e5f5c19020e0af24e831e97a9d8bdac0e9e6b2841a2218651e9676de3619d7  kubeconform.tar.gz" | sha256sum -c
+          echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  kubeconform.tar.gz" | sha256sum -c
           tar -xzf kubeconform.tar.gz
           sudo mv kubeconform /usr/local/bin/kubeconform
           kubeconform -v
@@ -51,15 +53,21 @@ jobs:
           python-version: "3.11"
 
       - name: Install preflight dependencies
-        run: pip install pyyaml
+        run: python -m pip install pyyaml
 
       - name: Run Kubernetes preflight guardrails
-        run: python3 scripts/ci/k8s_preflight.py
+        run: python scripts/ci/k8s_preflight.py
+
+      - name: Reject :latest/:main in production K8s manifests
+        run: python scripts/ci/check_production_k8s_mutable_tags.py
+
+      - name: Validate production overlays and image references
+        run: python scripts/ci/validate_k8s_production_overlays.py
 
       - name: Render overlays
         run: |
-          kustomize build k8s/overlays/dev > /tmp/dev.yaml
-          kustomize build k8s/overlays/prod > /tmp/prod.yaml
+          kustomize build k8s/envs/dev --load-restrictor=LoadRestrictionsNone > /tmp/dev.yaml
+          kustomize build k8s/envs/prod --load-restrictor=LoadRestrictionsNone > /tmp/prod.yaml
 
       - name: Schema validate overlays
         run: |
@@ -109,11 +117,11 @@ jobs:
 
       - name: Server-side dry-run (dev overlay)
         run: |
-          kubectl apply --dry-run=server -k k8s/overlays/dev
+          kubectl apply --dry-run=server -k k8s/envs/dev
 
       - name: Server-side dry-run (prod overlay)
         run: |
-          kubectl apply --dry-run=server -k k8s/overlays/prod
+          kubectl apply --dry-run=server -k k8s/envs/prod
 
       - name: Upload rendered manifests on failure
         if: failure()

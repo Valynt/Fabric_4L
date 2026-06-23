@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { walkFiles } from '../lib/fs-scanner.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const webRoot = resolve(__dirname, '..', '..');
@@ -13,31 +14,13 @@ const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.scss',
 
 const violations = [];
 
-function walk(dir, extensions) {
-  const results = [];
-  for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.')) continue;
-    const fullPath = resolve(dir, entry);
-    const stats = statSync(fullPath);
-    if (stats.isDirectory()) {
-      results.push(...walk(fullPath, extensions));
-      continue;
-    }
-    const ext = entry.slice(entry.lastIndexOf('.'));
-    if (extensions.has(ext)) {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
 function addViolation(filePath, line, message) {
   const rel = relative(webRoot, filePath);
   violations.push(`${rel}:${line} ${message}`);
 }
 
 const conflictMarkers = [/^<<<<<<< /, /^=======\s*$/, /^>>>>>>> /];
-for (const filePath of walk(srcRoot, sourceExtensions)) {
+for (const filePath of walkFiles(srcRoot, { extensions: sourceExtensions })) {
   const lines = readFileSync(filePath, 'utf8').split(/\r?\n/);
   lines.forEach((line, index) => {
     if (conflictMarkers.some((pattern) => pattern.test(line))) {
@@ -55,7 +38,7 @@ const forbiddenImportRoots = [
 const importStatementRegex = /(?:import|export)\s+(?:[^;]*?\s+from\s+)?["']([^"']+)["']/g;
 const dynamicImportRegex = /import\(\s*["']([^"']+)["']\s*\)/g;
 
-for (const filePath of walk(srcRoot, sourceExtensions)) {
+for (const filePath of walkFiles(srcRoot, { extensions: sourceExtensions })) {
   const contents = readFileSync(filePath, 'utf8');
   const lines = contents.split(/\r?\n/);
 
@@ -84,7 +67,7 @@ const routeConcatPatterns = [
   },
 ];
 
-for (const filePath of walk(srcRoot, componentExtensions)) {
+for (const filePath of walkFiles(srcRoot, { extensions: componentExtensions })) {
   const lines = readFileSync(filePath, 'utf8').split(/\r?\n/);
   lines.forEach((line, index) => {
     for (const { regex, message } of routeConcatPatterns) {

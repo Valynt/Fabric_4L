@@ -81,13 +81,13 @@ export function InvoiceDetailDrawer({ invoice, onClose }: InvoiceDetailDrawerPro
             {invoice.paid_at && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">Paid On</Label>
-                <p className="font-medium text-green-600">{formatDate(invoice.paid_at)}</p>
+                <p className="font-medium text-success">{formatDate(invoice.paid_at)}</p>
               </div>
             )}
             {invoice.voided_at && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">Voided</Label>
-                <p className="font-medium text-gray-500">{formatDate(invoice.voided_at)}</p>
+                <p className="font-medium text-muted-foreground">{formatDate(invoice.voided_at)}</p>
               </div>
             )}
           </div>
@@ -155,7 +155,7 @@ export function InvoiceDetailDrawer({ invoice, onClose }: InvoiceDetailDrawerPro
                         {new Date(charge.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-success">
                       {formatCurrency(charge.amount_dollars)}
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export function InvoiceDetailDrawer({ invoice, onClose }: InvoiceDetailDrawerPro
               <span>{formatCurrency(invoice.total_dollars)}</span>
             </div>
             {invoice.amount_due_cents > 0 && (
-              <div className="flex justify-between text-sm text-red-600">
+              <div className="flex justify-between text-sm text-destructive">
                 <span>Amount Due</span>
                 <span className="font-medium">{formatCurrency(invoice.amount_due_dollars)}</span>
               </div>

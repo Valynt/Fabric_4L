@@ -3,9 +3,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer4.api.routes import tools
-from value_fabric.layer4.models.tool_schemas import ToolCategory
+from layer4_agents.api.routes import tools
+from layer4_agents.models.tool_schemas import ToolCategory
 
 
 class _StubTool:
@@ -30,12 +31,22 @@ class _StubRegistry:
         return _StubTool()
 
 
+def _ctx() -> RequestContext:
+    return RequestContext(
+        tenant_id="tenant-1",
+        user_id="user-tools",
+        roles=["tenant_member"],
+        permissions=frozenset({"read:agents"}),
+        request_id="req-tools",
+    )
+
+
 @pytest.mark.asyncio
 async def test_get_tool_schema_returns_typed_shape() -> None:
     response = await tools.get_tool_schema(
         tool_name="stub_tool",
         registry=_StubRegistry(),
-        ctx=SimpleNamespace(tenant_id="tenant-1"),
+        ctx=_ctx(),
     )
 
     payload = response.model_dump()
@@ -54,7 +65,7 @@ async def test_get_tool_schema_returns_typed_shape() -> None:
 
 @pytest.mark.asyncio
 async def test_list_tool_categories_returns_typed_items() -> None:
-    response = await tools.list_tool_categories(ctx=SimpleNamespace(tenant_id="tenant-1"))
+    response = await tools.list_tool_categories(ctx=_ctx())
 
     payload = response.model_dump()
     assert isinstance(payload["categories"], list)

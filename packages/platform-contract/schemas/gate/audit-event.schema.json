@@ -46,6 +46,14 @@
       "type": ["string", "null"],
       "description": "User or API key ID"
     },
+    "user_id": {
+      "type": ["string", "null"],
+      "description": "Deprecated compatibility alias for actor_id when the actor is a user"
+    },
+    "api_key_id": {
+      "type": ["string", "null"],
+      "description": "Deprecated compatibility alias for actor_id when the actor is an API key"
+    },
     "actor_type": {
       "type": "string",
       "default": "user"

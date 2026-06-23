@@ -1,0 +1,7 @@
+mkdocs
+mkdocs-material
+pymdown-extensions
+mkdocs-swagger-ui-tag
+mkdocs-minify-plugin
+mkdocs-glightbox
+Pillow

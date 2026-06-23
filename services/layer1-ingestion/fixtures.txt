@@ -1,0 +1,437 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\BBB\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+Using --randomly-seed=391983427
+rootdir: C:\Users\BBB\Fabric_4L\services\layer1-ingestion
+configfile: pyproject.toml
+plugins: anyio-4.13.0, Faker-40.15.0, hypothesis-6.152.4, langsmith-0.8.0, asyncio-1.3.0, cov-7.1.0, mock-3.15.1, randomly-4.1.0, timeout-2.4.0, xdist-3.8.0, respx-0.23.1, schemathesis-4.17.0, env-1.6.0, typeguard-4.5.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 207 items
+cache -- ...\_pytest\cacheprovider.py:566
+    Return a cache object that can persist state between testing sessions.
+    
+    cache.get(key, default)
+    cache.set(key, value)
+    
+    Keys must be ``/`` separated strings, where the first part is usually the
+    name of your plugin or application to avoid clashes with other cache users.
+    
+    Values can be any object handled by the json stdlib module.
+
+capsys -- ...\_pytest\capture.py:1000
+    Enable text capturing of writes to ``sys.stdout`` and ``sys.stderr``.
+    
+    The captured output is made available via ``capsys.readouterr()`` method
+    calls, which return a ``(out, err)`` namedtuple.
+    ``out`` and ``err`` will be ``text`` objects.
+    
+    Returns an instance of :class:`CaptureFixture[str] <pytest.CaptureFixture>`.
+    
+    Example:
+    
+    .. code-block:: python
+    
+        def test_output(capsys):
+            print("hello")
+            captured = capsys.readouterr()
+            assert captured.out == "hello\n"
+
+capteesys -- ...\_pytest\capture.py:1028
+    Enable simultaneous text capturing and pass-through of writes
+    to ``sys.stdout`` and ``sys.stderr`` as defined by ``--capture=``.
+    
+    
+    The captured output is made available via ``capteesys.readouterr()`` method
+    calls, which return a ``(out, err)`` namedtuple.
+    ``out`` and ``err`` will be ``text`` objects.
+    
+    The output is also passed-through, allowing it to be "live-printed",
+    reported, or both as defined by ``--capture=``.
+    
+    Returns an instance of :class:`CaptureFixture[str] <pytest.CaptureFixture>`.
+    
+    Example:
+    
+    .. code-block:: python
+    
+        def test_output(capteesys):
+            print("hello")
+            captured = capteesys.readouterr()
+            assert captured.out == "hello\n"
+
+capsysbinary -- ...\_pytest\capture.py:1063
+    Enable bytes capturing of writes to ``sys.stdout`` and ``sys.stderr``.
+    
+    The captured output is made available via ``capsysbinary.readouterr()``
+    method calls, which return a ``(out, err)`` namedtuple.
+    ``out`` and ``err`` will be ``bytes`` objects.
+    
+    Returns an instance of :class:`CaptureFixture[bytes] <pytest.CaptureFixture>`.
+    
+    Example:
+    
+    .. code-block:: python
+    
+        def test_output(capsysbinary):
+            print("hello")
+            captured = capsysbinary.readouterr()
+            assert captured.out == b"hello\n"
+
+capfd -- ...\_pytest\capture.py:1091
+    Enable text capturing of writes to file descriptors ``1`` and ``2``.
+    
+    The captured output is made available via ``capfd.readouterr()`` method
+    calls, which return a ``(out, err)`` namedtuple.
+    ``out`` and ``err`` will be ``text`` objects.
+    
+    Returns an instance of :class:`CaptureFixture[str] <pytest.CaptureFixture>`.
+    
+    Example:
+    
+    .. code-block:: python
+    
+        def test_system_echo(capfd):
+            os.system('echo "hello"')
+            captured = capfd.readouterr()
+            assert captured.out == "hello\n"
+
+capfdbinary -- ...\_pytest\capture.py:1119
+    Enable bytes capturing of writes to file descriptors ``1`` and ``2``.
+    
+    The captured output is made available via ``capfd.readouterr()`` method
+    calls, which return a ``(out, err)`` namedtuple.
+    ``out`` and ``err`` will be ``byte`` objects.
+    
+    Returns an instance of :class:`CaptureFixture[bytes] <pytest.CaptureFixture>`.
+    
+    Example:
+    
+    .. code-block:: python
+    
+        def test_system_echo(capfdbinary):
+            os.system('echo "hello"')
+            captured = capfdbinary.readouterr()
+            assert captured.out == b"hello\n"
+
+doctest_namespace [session scope] -- ...\_pytest\doctest.py:722
+    Fixture that returns a :py:class:`dict` that will be injected into the
+    namespace of doctests.
+    
+    Usually this fixture is used in conjunction with another ``autouse`` fixture:
+    
+    .. code-block:: python
+    
+        @pytest.fixture(autouse=True)
+        def add_np(doctest_namespace):
+            doctest_namespace["np"] = numpy
+    
+    For more details: :ref:`doctest_namespace`.
+
+pytestconfig [session scope] -- ...\_pytest\fixtures.py:1431
+    Session-scoped fixture that returns the session's :class:`pytest.Config`
+    object.
+    
+    Example::
+    
+        def test_foo(pytestconfig):
+            if pytestconfig.get_verbosity() > 0:
+                ...
+
+record_property -- ...\_pytest\junitxml.py:277
+    Add extra properties to the calling test.
+    
+    User properties become part of the test report and are available to the
+    configured reporters, like JUnit XML.
+    
+    The fixture is callable with ``name, value``. The value is automatically
+    XML-encoded.
+    
+    Example::
+    
+        def test_function(record_property):
+            record_property("example_key", 1)
+
+record_xml_attribute -- ...\_pytest\junitxml.py:300
+    Add extra xml attributes to the tag for the calling test.
+    
+    The fixture is callable with ``name, value``. The value is
+    automatically XML-encoded.
+
+record_testsuite_property [session scope] -- ...\_pytest\junitxml.py:338
+    Record a new ``<property>`` tag as child of the root ``<testsuite>``.
+    
+    This is suitable to writing global information regarding the entire test
+    suite, and is compatible with ``xunit2`` JUnit family.
+    
+    This is a ``session``-scoped fixture which is called with ``(name, value)``. Example:
+    
+    .. code-block:: python
+    
+        def test_foo(record_testsuite_property):
+            record_testsuite_property("ARCH", "PPC")
+            record_testsuite_property("STORAGE_TYPE", "CEPH")
+    
+    :param name:
+        The property name.
+    :param value:
+        The property value. Will be converted to a string.
+    
+    .. warning::
+    
+        Currently this fixture **does not work** with the
+        `pytest-xdist <https://github.com/pytest-dev/pytest-xdist>`__ plugin. See
+        :issue:`7767` for details.
+
+tmpdir_factory [session scope] -- ...\_pytest\legacypath.py:298
+    Return a :class:`pytest.TempdirFactory` instance for the test session.
+
+tmpdir -- ...\_pytest\legacypath.py:305
+    Return a temporary directory (as `legacy_path`_ object)
+    which is unique to each test function invocation.
+    The temporary directory is created as a subdirectory
+    of the base temporary directory, with configurable retention,
+    as discussed in :ref:`temporary directory location and retention`.
+    
+    .. note::
+        These days, it is preferred to use ``tmp_path``.
+    
+        :ref:`About the tmpdir and tmpdir_factory fixtures<tmpdir and tmpdir_factory>`.
+    
+    .. _legacy_path: https://py.readthedocs.io/en/latest/path.html
+
+caplog -- ...\_pytest\logging.py:596
+    Access and control log capturing.
+    
+    Captured logs are available through the following properties/methods::
+    
+    * caplog.messages        -> list of format-interpolated log messages
+    * caplog.text            -> string containing formatted log output
+    * caplog.records         -> list of logging.LogRecord instances
+    * caplog.record_tuples   -> list of (logger_name, level, message) tuples
+    * caplog.clear()         -> clear captured records and formatted log output string
+
+monkeypatch -- ...\_pytest\monkeypatch.py:33
+    A convenient fixture for monkey-patching.
+    
+    The fixture provides these methods to modify objects, dictionaries, or
+    :data:`os.environ`:
+    
+    * :meth:`monkeypatch.setattr(obj, name, value, raising=True) <pytest.MonkeyPatch.setattr>`
+    * :meth:`monkeypatch.delattr(obj, name, raising=True) <pytest.MonkeyPatch.delattr>`
+    * :meth:`monkeypatch.setitem(mapping, name, value) <pytest.MonkeyPatch.setitem>`
+    * :meth:`monkeypatch.delitem(obj, name, raising=True) <pytest.MonkeyPatch.delitem>`
+    * :meth:`monkeypatch.setenv(name, value, prepend=None) <pytest.MonkeyPatch.setenv>`
+    * :meth:`monkeypatch.delenv(name, raising=True) <pytest.MonkeyPatch.delenv>`
+    * :meth:`monkeypatch.syspath_prepend(path) <pytest.MonkeyPatch.syspath_prepend>`
+    * :meth:`monkeypatch.chdir(path) <pytest.MonkeyPatch.chdir>`
+    * :meth:`monkeypatch.context() <pytest.MonkeyPatch.context>`
+    
+    All modifications will be undone after the requesting test function or
+    fixture has finished. The ``raising`` parameter determines if a :class:`KeyError`
+    or :class:`AttributeError` will be raised if the set/deletion operation does not have the
+    specified target.
+    
+    To undo modifications done by the fixture in a contained scope,
+    use :meth:`context() <pytest.MonkeyPatch.context>`.
+
+recwarn -- ...\_pytest\recwarn.py:34
+    Return a :class:`WarningsRecorder` instance that records all warnings emitted by test functions.
+    
+    See :ref:`warnings` for information on warning categories.
+
+subtests -- ...\_pytest\subtests.py:129
+    Provides subtests functionality.
+
+tmp_path_factory [session scope] -- ...\_pytest\tmpdir.py:265
+    Return a :class:`pytest.TempPathFactory` instance for the test session.
+
+tmp_path -- ...\_pytest\tmpdir.py:280
+    Return a temporary directory (as :class:`pathlib.Path` object)
+    which is unique to each test function invocation.
+    The temporary directory is created as a subdirectory
+    of the base temporary directory, with configurable retention,
+    as discussed in :ref:`temporary directory location and retention`.
+
+
+------------------ fixtures defined from anyio.pytest_plugin ------------------
+anyio_backend [module scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:265
+    no docstring available
+
+anyio_backend_name -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:270
+    no docstring available
+
+anyio_backend_options -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:278
+    no docstring available
+
+free_tcp_port_factory [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:347
+    no docstring available
+
+free_udp_port_factory [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:352
+    no docstring available
+
+free_tcp_port -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:357
+    no docstring available
+
+free_udp_port -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\anyio\pytest_plugin.py:362
+    no docstring available
+
+
+-------------- fixtures defined from faker.contrib.pytest.plugin --------------
+_session_faker [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\faker\contrib\pytest\plugin.py:10
+    Fixture that stores the session level ``Faker`` instance.
+    
+    This fixture is internal and is only meant for use within the project.
+    Third parties should instead use the ``faker`` fixture for their tests.
+
+faker -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\faker\contrib\pytest\plugin.py:24
+    Fixture that returns a seeded and suitable ``Faker`` instance.
+
+
+----------------- fixtures defined from pytest_asyncio.plugin -----------------
+_class_scoped_runner [class scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:796
+    no docstring available
+
+_function_scoped_runner -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:796
+    no docstring available
+
+_module_scoped_runner [module scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:796
+    no docstring available
+
+_package_scoped_runner [package scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:796
+    no docstring available
+
+_session_scoped_runner [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:796
+    no docstring available
+
+event_loop_policy [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:834
+    Return an instance of the policy used to create asyncio event loops.
+
+unused_tcp_port -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:852
+    no docstring available
+
+unused_udp_port -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:857
+    no docstring available
+
+unused_tcp_port_factory [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:862
+    A factory function, producing different unused TCP ports.
+
+unused_udp_port_factory [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:881
+    A factory function, producing different unused UDP ports.
+
+
+------------------- fixtures defined from pytest_cov.plugin -------------------
+no_cover -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_cov\plugin.py:454
+    A pytest fixture to disable coverage.
+
+cov -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_cov\plugin.py:459
+    A pytest fixture to provide access to the underlying coverage object.
+
+
+------------------ fixtures defined from pytest_mock.plugin -------------------
+class_mocker [class scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_mock\plugin.py:463
+    Return an object that has the same interface to the `mock` module, but
+    takes care of automatically undoing all patches after each test method.
+
+mocker -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_mock\plugin.py:463
+    Return an object that has the same interface to the `mock` module, but
+    takes care of automatically undoing all patches after each test method.
+
+module_mocker [module scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_mock\plugin.py:463
+    Return an object that has the same interface to the `mock` module, but
+    takes care of automatically undoing all patches after each test method.
+
+package_mocker [package scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_mock\plugin.py:463
+    Return an object that has the same interface to the `mock` module, but
+    takes care of automatically undoing all patches after each test method.
+
+session_mocker [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_mock\plugin.py:463
+    Return an object that has the same interface to the `mock` module, but
+    takes care of automatically undoing all patches after each test method.
+
+
+-------------------- fixtures defined from pytest_randomly --------------------
+faker_seed -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\pytest_randomly\__init__.py:268
+    no docstring available
+
+
+--------------------- fixtures defined from respx.plugin ----------------------
+respx_mock -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\respx\plugin.py:20
+    no docstring available
+
+
+--------------------- fixtures defined from xdist.plugin ----------------------
+worker_id [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\xdist\plugin.py:392
+    Return the id of the current worker ('gw0', 'gw1', etc) or 'master'
+    if running on the master node.
+
+testrun_uid [session scope] -- ..\..\..\AppData\Roaming\Python\Python314\site-packages\xdist\plugin.py:401
+    Return the unique id of the current test.
+
+
+-------------------- fixtures defined from tests.conftest ---------------------
+engine [session scope] -- tests\conftest.py:163
+    In-memory SQLite engine shared across the test session.
+
+db -- tests\conftest.py:176
+    Per-test DB session that rolls back after each test.
+
+org_id -- tests\conftest.py:189
+    no docstring available
+
+other_org_id -- tests\conftest.py:194
+    no docstring available
+
+user_id -- tests\conftest.py:199
+    no docstring available
+
+client -- tests\conftest.py:204
+    TestClient with governance context injected and DB overridden.
+
+make_target -- tests\conftest.py:220
+    Factory: create a ScrapingTarget row in the test DB.
+
+
+---------------- fixtures defined from tests.security.conftest ----------------
+postgres_db -- tests\security\conftest.py:109
+    SQLAlchemy Session scoped to each test with PostgreSQL.
+
+make_job -- tests\security\conftest.py:134
+    Factory for creating ScrapingJob rows.
+
+org_id -- tests\security\conftest.py:165
+    Primary tenant ID for tests.
+
+other_org_id -- tests\security\conftest.py:171
+    Secondary tenant ID for cross-tenant isolation tests.
+
+user_id -- tests\security\conftest.py:177
+    User ID for tests.
+
+client -- tests\security\conftest.py:183
+    TestClient with fake governance context injected per request.
+
+make_target -- tests\security\conftest.py:220
+    Factory for creating ScrapingTarget rows.
+
+engine -- tests\security\conftest.py:75
+    In-memory SQLite engine for each test.
+
+db -- tests\security\conftest.py:81
+    SQLAlchemy Session scoped to each test.
+
+postgres_engine -- tests\security\conftest.py:99
+    PostgreSQL engine for security tests.
+
+
+--------- fixtures defined from tests.security.test_monkeypatch_diag ----------
+diag -- tests\security\test_monkeypatch_diag.py:5
+    no docstring available
+
+
+----- fixtures defined from tests.security.test_targets_tenant_isolation ------
+_mock_process_scraping_job -- tests\security\test_targets_tenant_isolation.py:26
+    Mock Celery task delay so batch tests don't fail when broker is unavailable.
+
+
+============================ no tests ran in 1.36s ============================

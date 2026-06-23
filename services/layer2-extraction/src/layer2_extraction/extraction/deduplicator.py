@@ -158,11 +158,12 @@ class EntityDeduplicator:
         """Merge a list of entities into the canonical entity in place."""
         # Keep highest confidence
         canonical.confidence = max(e.confidence for e in entities)
-        # Union source refs
-        all_refs: list[str] = []
-        for e in entities:
-            all_refs.extend(e.source_refs)
-        canonical.source_refs = list(dict.fromkeys(all_refs))
+        # Union source refs (only for types that support them)
+        if hasattr(canonical, "source_refs"):
+            all_refs: list[str] = []
+            for e in entities:
+                all_refs.extend(getattr(e, "source_refs", []))
+            canonical.source_refs = list(dict.fromkeys(all_refs))
 
         # Delegate to type-specific merge helpers
         if isinstance(canonical, Capability):
@@ -284,7 +285,6 @@ async def deduplicate_entities(
     """
     deduplicator = EntityDeduplicator(
         similarity_threshold=similarity_threshold,
-        api_key=api_key,
     )
     result: dict[str, list[Any]] = {}
     for entity_type, entity_list in entities.items():

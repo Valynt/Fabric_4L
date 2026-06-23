@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Graph query/search route helpers.
 
 Implements GraphRAG query, streaming GraphRAG, and hybrid search execution.
 Compatibility aliases for legacy paths are in ``routes/compat_aliases.py``.
 """
 
-from __future__ import annotations
 
 import json
 import logging
@@ -20,7 +21,13 @@ from value_fabric.shared.identity import RequestContext
 
 from ...api.cache import get_request_deduplicator
 from ...api.exception_mapping import map_exception_to_http_error
-from ...api.exceptions import SearchError, VectorStoreError
+from ...api.exceptions import (
+    ContractViolationError,
+    SearchError,
+    TenantAccessError,
+    ValidationError,
+    VectorStoreError,
+)
 from ...api.models import (
     GraphRAGQuery,
     GraphRAGResponse,
@@ -109,7 +116,7 @@ async def graph_rag_query_impl(
 ) -> GraphRAGResponse:
     try:
         if not (ctx and ctx.tenant_id):
-            raise ValueError("tenant context required for graph_rag_query")
+            raise TenantAccessError("tenant context required for graph_rag_query")
         deduplicator = get_request_deduplicator()
         if deduplicator:
             params = {
@@ -146,7 +153,7 @@ async def graph_rag_query_impl(
         )
         logger.warning("GraphRAG query mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except (PydanticValidationError, ValueError, TypeError) as exc:
+    except (PydanticValidationError, ValidationError, TypeError) as exc:
         context = _build_error_context(
             tenant_id=str(ctx.tenant_id) if ctx and ctx.tenant_id else None,
             endpoint="/v1/query",
@@ -166,14 +173,14 @@ async def graph_rag_query_impl(
         context["error_code"] = "UPSTREAM_TIMEOUT"
         logger.error("GraphRAG query timed out", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
+    except (RuntimeError, ContractViolationError) as exc:
         context = _build_error_context(
             tenant_id=str(ctx.tenant_id) if ctx and ctx.tenant_id else None,
             endpoint="/v1/query",
             operation="graph_rag_query",
             request_id=_request_id_from_context(request, ctx),
         )
-        logger.error("GraphRAG query failed", extra={"context": context}, exc_info=True)
+        logger.error("GraphRAG query unexpected failure", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
 
@@ -186,7 +193,7 @@ async def graph_rag_query_stream_impl(
     async def event_generator() -> Any:
         try:
             if not (ctx and ctx.tenant_id):
-                raise ValueError("tenant context required for graph_rag_query_stream")
+                raise TenantAccessError("tenant context required for graph_rag_query_stream")
             async for event in graph_rag.query_stream(
                 query_text=query.query,
                 entity_type=query.entity_type,
@@ -304,7 +311,7 @@ async def hybrid_search_impl(
         )
         logger.warning("Search mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except (PydanticValidationError, ValueError, TypeError) as exc:
+    except (PydanticValidationError, ValidationError, TypeError) as exc:
         context = _build_error_context(
             tenant_id=str(ctx.tenant_id) if ctx and ctx.tenant_id else None,
             endpoint="/v1/search",

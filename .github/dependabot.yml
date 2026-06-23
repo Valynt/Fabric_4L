@@ -1,273 +1,865 @@
 version: 2
 updates:
-  # ============================================================================
-  # Python Dependencies — Services and SDK (pip ecosystem)
-  # ============================================================================
-  - package-ecosystem: pip
-    directory: /services/api
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-api]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/backend-leads
-
-  - package-ecosystem: pip
-    directory: /services/layer1-ingestion
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer1]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/data-engineering
-
-  - package-ecosystem: pip
-    directory: /services/layer2-extraction
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer2]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/ai-ml-leads
-
-  - package-ecosystem: pip
-    directory: /services/layer3-knowledge
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer3]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/graph-specialists
-
-  - package-ecosystem: pip
-    directory: /services/layer4-agents
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer4]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/ai-ml-leads
-
-  - package-ecosystem: pip
-    directory: /services/layer5-ground-truth
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer5]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/data-engineering
-
-  - package-ecosystem: pip
-    directory: /services/layer6-benchmarks
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer6]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/qa-leads
-
-  - package-ecosystem: pip
-    directory: /services/layer2-5-signal-refinery
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, service-layer2-5]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/backend-leads
-
-  - package-ecosystem: pip
-    directory: /sdk/python
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, sdk-python]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/backend-leads
-
-  - package-ecosystem: pip
-    directory: /tests
-    schedule:
-      interval: weekly
-    labels: [dependencies, python, tests]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/backend-leads
-      - value-fabric/qa-leads
-
-  # ============================================================================
-  # Node.js Dependencies — Apps and Packages (npm ecosystem)
-  # ============================================================================
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-    labels: [dependencies, javascript, root-workspace]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/frontend-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: npm
-    directory: /apps/web
-    schedule:
-      interval: weekly
-    labels: [dependencies, javascript, app-web]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/frontend-leads
-
-  - package-ecosystem: npm
-    directory: /packages/config
-    schedule:
-      interval: weekly
-    labels: [dependencies, javascript, package-config]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/sre-leads
-
-  - package-ecosystem: npm
-    directory: /packages/eslint-plugin-fabric-contracts
-    schedule:
-      interval: weekly
-    labels: [dependencies, javascript, package-eslint]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/sre-leads
-
-  - package-ecosystem: npm
-    directory: /packages/platform-contract
-    schedule:
-      interval: weekly
-    labels: [dependencies, javascript, package-contract]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/sre-leads
-
-  # ============================================================================
-  # Docker Base Images — Services, Apps, and Devcontainer (docker ecosystem)
-  # ============================================================================
-  - package-ecosystem: docker
-    directory: /apps/web
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, app-web]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/frontend-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer1-ingestion
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer1]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/data-engineering
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer2-extraction
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer2]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/ai-ml-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer3-knowledge
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer3]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/graph-specialists
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer4-agents
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer4]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/ai-ml-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer5-ground-truth
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer5]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/data-engineering
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer6-benchmarks
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer6]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/qa-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /services/layer2-5-signal-refinery
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, service-layer2-5]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/backend-leads
-      - value-fabric/sre-leads
-
-  - package-ecosystem: docker
-    directory: /.devcontainer
-    schedule:
-      interval: weekly
-    labels: [dependencies, docker, devcontainer]
-    commit-message:
-      prefix: chore(deps)
-    reviewers:
-      - value-fabric/sre-leads
-
-  # ============================================================================
-  # GitHub Actions (github-actions ecosystem)
-  # ============================================================================
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-    labels: [dependencies, github-actions]
-    commit-message:
-      prefix: chore(ci)
-    reviewers:
-      - value-fabric/maintainers
+- package-ecosystem: pip
+  directory: /services/api
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-api
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/billing
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - legacy-billing-compat
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer7-billing
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer7
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer1-ingestion
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer1
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/data-engineering
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer2-extraction
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer2
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/ai-ml-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer3-knowledge
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer3
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/graph-specialists
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer4-agents
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer4
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/ai-ml-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer5-ground-truth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer5
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/data-engineering
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer6-benchmarks
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer6
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/qa-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer2-5-signal-refinery
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer2-5
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /sdk/python
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - sdk-python
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /packages/shared/src
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - package-shared
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/architects
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /packages/platform-contract/src/python
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - package-platform-contract
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/architects
+  - value-fabric/sre-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /tests
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - tests
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/qa-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - root-workspace
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  - value-fabric/sre-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /apps/web
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - app-web
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /packages/config
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - package-config
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/sre-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /packages/eslint-plugin-fabric-contracts
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - package-eslint
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/sre-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /packages/platform-contract
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - package-contract
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/sre-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /services/value-studio
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - service-value-studio
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-astro-patterns/templates/astro-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-expo-patterns/templates/expo-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-nextjs-patterns/templates/nextjs-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-nuxt-patterns/templates/nuxt-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-react-patterns/templates/react-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-react-router-patterns/templates/react-router-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-tanstack-patterns/templates/tanstack-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.claude/skills/clerk-vue-patterns/templates/vue-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-astro-patterns/templates/astro-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-chrome-extension-patterns/templates/chrome-ext-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-expo-patterns/templates/expo-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-nextjs-patterns/templates/nextjs-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-nuxt-patterns/templates/nuxt-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-react-patterns/templates/react-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-react-router-patterns/templates/react-router-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-tanstack-patterns/templates/tanstack-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directory: /.agents/skills/clerk-vue-patterns/templates/vue-basic-auth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - javascript
+  - skill-template
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  groups:
+    npm-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /apps/web
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - app-web
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/frontend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/api
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-api
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer7-billing
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer7
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer1-ingestion
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer1
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/data-engineering
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer2-extraction
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer2
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/ai-ml-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer3-knowledge
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer3
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/graph-specialists
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer4-agents
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer4
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/ai-ml-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer5-ground-truth
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer5
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/data-engineering
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer6-benchmarks
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer6
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/qa-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer2-5-signal-refinery
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer2-5
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /.devcontainer
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - devcontainer
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: github-actions
+  directory: /
+  open-pull-requests-limit: 0
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - github-actions
+  commit-message:
+    prefix: chore(ci)
+  reviewers:
+  - value-fabric/maintainers
+  groups:
+    github-actions-dependencies:
+      patterns:
+      - '*'

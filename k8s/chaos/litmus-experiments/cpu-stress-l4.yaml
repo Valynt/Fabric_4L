@@ -57,7 +57,7 @@ spec:
                 type: "int"
                 criteria: ">="
                 value: "2"
-            
+
             # Verify no job loss during stress
             - name: "job-queue-health"
               type: "httpProbe"
@@ -74,7 +74,7 @@ spec:
                   get:
                     criteria: "<"
                     responseCode: "500"
-            
+
             # Post-chaos: verify pod recovers
             - name: "cpu-recovery"
               type: "cmdProbe"
@@ -124,7 +124,7 @@ spec:
           - "patch"
           - "update"
           - "delete"
-    image: "litmuschaos/go-runner:latest"
+    image: "litmuschaos/go-runner:3.13.0"
     imagePullPolicy: Always
     args:
       - -c

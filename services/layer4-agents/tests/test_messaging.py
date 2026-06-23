@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 """Tests for L4 messaging types, bus, and router."""
 
-from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from value_fabric.layer4.messaging.bus import InMemoryMessageBus, create_message_bus
-from value_fabric.layer4.messaging.router import MessageRouter
-from value_fabric.layer4.messaging.types import (
+from layer4_agents.messaging.bus import InMemoryMessageBus, create_message_bus
+from layer4_agents.messaging.router import MessageRouter
+from layer4_agents.messaging.types import (
     AgentMessage,
     ErrorNotification,
     MessagePriority,

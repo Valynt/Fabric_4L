@@ -228,6 +228,7 @@ All endpoints are under the `/v1/harness` prefix and require an authenticated te
 | `ClaimValidationRequest` | Request | Individual claim to validate |
 | `ValidateClaimsRequest` | Request | Batch of claims to validate |
 | `ValidationResultResponse` | Response | Single claim validation result |
+| `ValidationSummaryResponse` | Response | Aggregate publish decision across validated claims |
 | `ValidateClaimsResponse` | Response | Batch validation results |
 | `HarnessHealthResponse` | Response | Health check payload |
 | `TraceEventResponse` | Response | Single trace event |

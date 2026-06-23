@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "skill": "analyze_competition",
+  "traces": [
+    {
+      "id": "ac-001",
+      "description": "Analyze known CRM competitors for a tenant workspace artifact",
+      "input": {
+        "context_artifact_id": "artifact-competitive-crm-001",
+        "tenant_id": "tenant-acme",
+        "workspace_id": "workspace-enterprise-sales",
+        "known_competitors": ["Salesforce", "HubSpot"]
+      },
+      "assertions": {
+        "min_competitors": 2,
+        "requires_differentiators": true
+      }
+    }
+  ]
+}

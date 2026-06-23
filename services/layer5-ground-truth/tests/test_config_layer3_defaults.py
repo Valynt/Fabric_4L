@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Regression tests for Layer 3 integration config defaults and validation."""
 
-from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError

@@ -11,9 +11,10 @@ os.environ.setdefault("SERVICE_AUTH_SECRET", "test-service-auth-secret")
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer4.api.routes import notifications
+from layer4_agents.api.routes import notifications
 
 
 TENANT_A = UUID("12345678-1234-1234-1234-123456789abc")
@@ -27,6 +28,7 @@ def clear_notification_store() -> None:
 
 def build_app(tenant_id: UUID = TENANT_A) -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(notifications.router, prefix="/v1")
     app.dependency_overrides[notifications.require_authenticated] = lambda: RequestContext(
         tenant_id=tenant_id,

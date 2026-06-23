@@ -1,0 +1,121 @@
+# Layer 2 Extraction Alert Rules
+# Production alerting rules for Layer 2 extraction pipeline
+# These rules are defined as code for version control and CI/CD integration
+
+groups:
+  - name: layer2_extraction_critical
+    interval: 30s
+    rules:
+      - alert: HighExtractionFailureRate
+        expr: rate(extraction_failure_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          layer: layer2
+          component: extraction
+        annotations:
+          summary: "Extraction failure rate exceeds 10%"
+          description: "Extraction failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          runbook_url: "/docs/runbooks/extraction-failures"
+
+      - alert: PromptInjectionAttempts
+        expr: rate(prompt_injection_attempts_total[1m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          layer: layer2
+          component: security
+        annotations:
+          summary: "Prompt injection attempts detected"
+          description: "{{ $value | humanize }} prompt injection attempts per minute"
+          runbook_url: "/docs/runbooks/prompt-injection"
+
+      - alert: TenantIsolationBreach
+        expr: rate(tenant_context_missing_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          layer: layer2
+          component: security
+        annotations:
+          summary: "Tenant context missing in extraction operations"
+          description: "{{ $value | humanize }} operations missing tenant context per minute"
+          runbook_url: "/docs/runbooks/tenant-isolation"
+
+  - name: layer2_extraction_warnings
+    interval: 1m
+    rules:
+      - alert: HighValidationFailureRate
+        expr: rate(validation_failure_total[5m]) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          layer: layer2
+          component: validation
+        annotations:
+          summary: "Validation failure rate exceeds 20%"
+          description: "Validation failure rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          runbook_url: "/docs/runbooks/validation-failures"
+
+      - alert: QuarantineRateSpike
+        expr: rate(quarantine_records_total[10m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          layer: layer2
+          component: quarantine
+        annotations:
+          summary: "Quarantine rate exceeds 5%"
+          description: "{{ $value | humanizePercentage }} of extractions quarantined over last 10 minutes"
+          runbook_url: "/docs/runbooks/quarantine-spikes"
+
+      - alert: LLMCostSpike
+        expr: rate(llm_cost_usd_total[1h]) > 10.0
+        for: 15m
+        labels:
+          severity: warning
+          layer: layer2
+          component: cost
+        annotations:
+          summary: "LLM cost exceeds $10/hour"
+          description: "Current LLM cost rate is ${{ $value }}/hour"
+          runbook_url: "/docs/runbooks/cost-monitoring"
+
+      - alert: ExtractionLatencyP99
+        expr: histogram_quantile(0.99, extraction_duration_seconds) > 300
+        for: 15m
+        labels:
+          severity: warning
+          layer: layer2
+          component: performance
+        annotations:
+          summary: "P99 extraction latency exceeds 5 minutes"
+          description: "P99 latency is {{ $value | humanizeDuration }}"
+          runbook_url: "/docs/runbooks/latency-issues"
+
+  - name: layer2_extraction_info
+    interval: 5m
+    rules:
+      - alert: ExtractionJobBacklog
+        expr: extraction_jobs_pending > 100
+        for: 5m
+        labels:
+          severity: info
+          layer: layer2
+          component: queue
+        annotations:
+          summary: "Extraction job backlog growing"
+          description: "{{ $value }} jobs pending in queue"
+          runbook_url: "/docs/runbooks/job-backlog"
+
+      - alert: LowEntityExtractionRate
+        expr: rate(entities_extracted_total[10m]) < 1.0
+        for: 15m
+        labels:
+          severity: info
+          layer: layer2
+          component: extraction
+        annotations:
+          summary: "Low entity extraction rate"
+          description: "{{ $value | humanize }} entities extracted per minute"
+          runbook_url: "/docs/runbooks/low-extraction-rate"

@@ -1,3 +1,8 @@
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -13,10 +18,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.routes._utils import get_tenant_id_from_api_key, semver_key
@@ -289,7 +294,7 @@ async def get_formula_governance(
         record = await result.single()
 
         if not record or not record["f"]:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         f = record["f"]
         versions_data = record["versions"]
@@ -344,7 +349,7 @@ async def create_formula_version(
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         result = await neo4j.run(check_query, formula_id=formula_id, tenant_id=tenant_id)
         if not await result.single():
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
     now = datetime.now(UTC).isoformat()
     version_id = str(uuid.uuid4())
@@ -397,7 +402,7 @@ async def create_formula_version(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to create version")
+            raise ServiceUnavailableError(message="Failed to create version")
 
         fv = record["fv"]
 
@@ -432,7 +437,7 @@ async def submit_for_review(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         current_status = record["status"] or "draft"
 
@@ -535,7 +540,7 @@ async def approve_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula or version not found")
+            raise NotFoundError(message = "Formula or version not found")
 
         # Audit log the governance action
         logger.info(
@@ -579,7 +584,7 @@ async def activate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         old_status = record["status"] or "draft"
 
@@ -620,7 +625,7 @@ async def activate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to activate formula")
+            raise ServiceUnavailableError(message="Failed to activate formula")
 
         # Audit log the governance action
         logger.info(
@@ -661,7 +666,7 @@ async def deprecate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         old_status = record["status"] or "draft"
 
@@ -698,7 +703,7 @@ async def deprecate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to deprecate formula")
+            raise ServiceUnavailableError(message="Failed to deprecate formula")
 
         # Audit log the governance action
         logger.info(

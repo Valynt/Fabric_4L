@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Deprecated compatibility shim for Layer 3 tenant Neo4j dependencies.
 
 Owner: layer3-knowledge
@@ -13,7 +15,6 @@ Deprecation warning is emitted at import time. Direct re-exports preserve
 FastAPI Depends() compatibility (function signatures are not wrapped).
 """
 
-from __future__ import annotations
 
 import logging
 import warnings

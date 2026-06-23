@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import sys
+from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 
 def _resolve_shared_src() -> Path | None:
@@ -33,3 +35,9 @@ verify_metrics_access = cast(Callable[..., bool], _observability.verify_metrics_
 validate_production_safety = cast(Callable[..., None], _security_config.validate_production_safety)
 SecurityConfig = _security_middleware.SecurityConfig
 add_security_middleware = cast(Callable[..., None], _security_middleware.add_security_middleware)
+
+
+def get_metrics() -> Any:
+    from layer2_extraction.metrics import get_metrics as _get_metrics
+
+    return _get_metrics()

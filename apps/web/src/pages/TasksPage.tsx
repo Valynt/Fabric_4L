@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/states';
+import { EmptyState, LoadingState, ErrorState } from '@/components/states';
 import { useCreateTask, useTasks, useUpdateTask, type TaskRecord } from '@/hooks/useTasks';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
 import { safeAsync } from '@/lib/async';
@@ -101,13 +101,14 @@ export default function TasksPage() {
 
         <section className="mt-6 space-y-3" aria-label="Persisted tasks">
           {tasks.isLoading ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-muted-foreground">Loading tasks...</CardContent>
-            </Card>
+            <LoadingState message="Loading tasks…" />
           ) : tasks.isError ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-destructive">Unable to load tasks.</CardContent>
-            </Card>
+            <ErrorState
+              title="Unable to load tasks"
+              description="The task list could not be retrieved. Check your network connection and try again."
+              error={tasks.error}
+              onRetry={() => safeAsync(tasks.refetch(), "tasks.refetch")}
+            />
           ) : tasks.data?.items.length ? (
             tasks.data.items.map((task) => (
               <Card key={task.id}>

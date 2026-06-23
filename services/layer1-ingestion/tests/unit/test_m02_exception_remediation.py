@@ -6,7 +6,18 @@ Covers:
 - content_extractor metadata extraction logging
 """
 
+import importlib
+import sys
+
 import pytest
+import redis as redis_lib
+
+
+def _reload_database_module():
+    """Force re-evaluation of the Redis availability block in database.py."""
+    import layer1_ingestion.shared.database as database_module
+
+    return importlib.reload(database_module)
 
 
 class TestNoOpExecutionLoggerProductionGuard:
@@ -15,20 +26,20 @@ class TestNoOpExecutionLoggerProductionGuard:
     def test_raises_in_production(self, monkeypatch):
         monkeypatch.setenv("ENVIRONMENT", "production")
         # Force re-import/re-evaluation of the production check
-        from value_fabric.layer1.crawler.execution_logger import NoOpExecutionLogger
+        from layer1_ingestion.crawler.execution_logger import NoOpExecutionLogger
         with pytest.raises(RuntimeError, match="NoOpExecutionLogger must not be used"):
             NoOpExecutionLogger()
 
     def test_allowed_in_development(self, monkeypatch):
         monkeypatch.setenv("ENVIRONMENT", "development")
-        from value_fabric.layer1.crawler.execution_logger import NoOpExecutionLogger
+        from layer1_ingestion.crawler.execution_logger import NoOpExecutionLogger
         # Should not raise
         logger = NoOpExecutionLogger()
         assert logger is not None
 
     def test_allowed_in_test(self, monkeypatch):
         monkeypatch.setenv("ENVIRONMENT", "test")
-        from value_fabric.layer1.crawler.execution_logger import NoOpExecutionLogger
+        from layer1_ingestion.crawler.execution_logger import NoOpExecutionLogger
         logger = NoOpExecutionLogger()
         assert logger is not None
 
@@ -36,15 +47,25 @@ class TestNoOpExecutionLoggerProductionGuard:
 class TestDatabaseRedisAvailability:
     """database.py must expose REDIS_AVAILABLE and log on import failure."""
 
-    def test_redis_available_flag_exists(self):
-        from value_fabric.layer1.shared.database import REDIS_AVAILABLE
-        # In test environments without a real Redis, this should be False
-        assert isinstance(REDIS_AVAILABLE, bool)
+    def test_redis_available_flag_exists(self, monkeypatch):
+        # Simulate Redis being unreachable so the availability block is deterministic.
+        class _FailingRedis(redis_lib.Redis):
+            def ping(self):
+                raise redis_lib.ConnectionError("test: redis unavailable")
 
-    def test_redis_client_none_when_unavailable(self):
-        from value_fabric.layer1.shared.database import redis_client
-        # In test environments without a real Redis, client should be None
-        assert redis_client is None
+        monkeypatch.setattr(redis_lib, "Redis", _FailingRedis)
+        database_module = _reload_database_module()
+        assert isinstance(database_module.REDIS_AVAILABLE, bool)
+
+    def test_redis_client_none_when_unavailable(self, monkeypatch):
+        class _FailingRedis(redis_lib.Redis):
+            def ping(self):
+                raise redis_lib.ConnectionError("test: redis unavailable")
+
+        monkeypatch.setattr(redis_lib, "Redis", _FailingRedis)
+        database_module = _reload_database_module()
+        assert database_module.redis_client is None
+        assert database_module.REDIS_AVAILABLE is False
 
 
 class TestContentExtractorMetadataLogging:
@@ -54,7 +75,7 @@ class TestContentExtractorMetadataLogging:
         import structlog
         import logging
 
-        from value_fabric.layer1.post_processor.content_extractor import ContentExtractor
+        from layer1_ingestion.post_processor.content_extractor import ContentExtractor
         from bs4 import BeautifulSoup
 
         extractor = ContentExtractor()

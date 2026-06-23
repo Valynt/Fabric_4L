@@ -66,12 +66,12 @@ def main() -> int:
             )
 
     if errors:
-        print("❌ readiness consistency check failed")
+        print("FAIL readiness consistency check failed")
         for err in errors:
             print(f" - {err}")
         return 1
 
-    print("✅ readiness consistency check passed")
+    print("PASS readiness consistency check passed")
     if readiness_values:
         for file_name, pct in readiness_values.items():
             print(f" - {file_name}: {pct}%")

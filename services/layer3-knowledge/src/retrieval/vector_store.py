@@ -20,7 +20,7 @@ Design notes:
 import logging
 from typing import Any
 
-from neo4j import AsyncDriver
+from neo4j import AsyncDriver, Record
 from neo4j.exceptions import ClientError, ServiceUnavailable
 from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.identity.isolation import (
@@ -31,8 +31,10 @@ from value_fabric.shared.identity.isolation import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
+from ..config.embedding_dimension import validate_embedding_dimension
 from ..db.driver import get_driver
 from ..db.query_execution import run_scoped_query
+from ..metrics.prometheus_metrics import get_metrics
 
 
 class Neo4jVectorStore_index_healthResult(TypedDictModel):
@@ -100,19 +102,35 @@ class Neo4jVectorStore:
 
             model_name = getattr(self.settings, "embedding_model", "all-MiniLM-L6-v2")
             self._embedding_model = SentenceTransformer(model_name)
+            validate_embedding_dimension(
+                configured_dimension=self.settings.embedding_dimension,
+                model=self._embedding_model,
+                model_name=model_name,
+            )
             logger.info("Loaded embedding model: %s", model_name)
         return self._embedding_model
 
     def _embed(self, text: str) -> list[float]:
         model = self._get_embedding_model()
-        return model.encode(text, normalize_embeddings=True).tolist()
+        embedding = model.encode(text, normalize_embeddings=True).tolist()
+        self._validate_vector_length(embedding)
+        return embedding
 
     def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         model = self._get_embedding_model()
-        return [
+        vectors = [
             v.tolist()
             for v in model.encode(texts, normalize_embeddings=True, batch_size=32)
         ]
+        for vector in vectors:
+            self._validate_vector_length(vector)
+        return vectors
+
+    def _validate_vector_length(self, vector: list[float]) -> None:
+        if len(vector) != self.settings.embedding_dimension:
+            raise VectorStoreError(
+                f"VECTOR_DIMENSION_MISMATCH: expected={self.settings.embedding_dimension} actual={len(vector)}"
+            )
 
     def _resolve_tenant_id(self, tenant_id: str | None = None) -> str:
         """Return the explicit or request-context tenant, failing closed if absent."""
@@ -123,11 +141,19 @@ class Neo4jVectorStore:
             return str(ctx.tenant_id)
         raise ValueError("tenant_id is required for tenant-scoped vector store operations")
 
-    async def _run_scoped(self, scoped: ScopedQuery):
-        """Execute a strict scoped query object through the Neo4j driver."""
+    async def _run_scoped_single(self, scoped: ScopedQuery) -> Record | None:
+        """Execute a scoped query and consume the first record inside the session."""
         driver = await self._get_driver()
         async with driver.session(database=self.settings.neo4j_database) as session:
-            return await run_scoped_query(session.run, scoped)
+            result = await run_scoped_query(session.run, scoped)
+            return await result.single()
+
+    async def _run_scoped_list(self, scoped: ScopedQuery) -> list[Record]:
+        """Execute a scoped query and consume all records inside the session."""
+        driver = await self._get_driver()
+        async with driver.session(database=self.settings.neo4j_database) as session:
+            result = await run_scoped_query(session.run, scoped)
+            return [record async for record in result]
 
     # ------------------------------------------------------------------
     # Write operations
@@ -147,7 +173,7 @@ class Neo4jVectorStore:
                 f"Unknown entity type '{entity_type}'. Supported: {VECTOR_ENTITY_TYPES}"
             )
 
-        tenant = self._resolve_tenant_id(tenant_id or (metadata or {}).get("tenant_id"))
+        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else (metadata or {}).get("tenant_id"))
         embedding = self._embed(text)
         clean_metadata = {
             k: v
@@ -179,8 +205,7 @@ class Neo4jVectorStore:
         )
 
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return Neo4jVectorStore_upsert_entityResult.model_validate({
                 "entity_id": record["entity_id"] if record else entity_id,
                 "entity_type": entity_type,
@@ -203,7 +228,7 @@ class Neo4jVectorStore:
         if not entities:
             return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": 0, "failed": []})
 
-        tenant = self._resolve_tenant_id(tenant_id or entities[0].get("tenant_id"))
+        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else entities[0].get("tenant_id"))
         texts = [e.get("text", e.get("name", "")) for e in entities]
         embeddings = self._embed_batch(texts)
 
@@ -243,8 +268,7 @@ class Neo4jVectorStore:
         )
 
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": record["upserted"] if record else 0, "failed": []})
         except (ClientError, ServiceUnavailable) as exc:
             logger.error("Batch upsert failed for %s: %s", entity_type, exc)
@@ -295,20 +319,20 @@ class Neo4jVectorStore:
                 labels=(etype,),
             )
             try:
-                result = await self._run_scoped(scoped)
-                async for record in result:
-                        all_results.append(
-                            (
-                                record["entity_id"],
-                                record["score"],
-                                {
-                                    "entity_type": record["entity_type"],
-                                    "name": record["name"],
-                                    "description": record["description"],
-                                    "confidence": record["confidence"],
-                                },
-                            )
+                records = await self._run_scoped_list(scoped)
+                for record in records:
+                    all_results.append(
+                        (
+                            record["entity_id"],
+                            record["score"],
+                            {
+                                "entity_type": record["entity_type"],
+                                "name": record["name"],
+                                "description": record["description"],
+                                "confidence": record["confidence"],
+                            },
                         )
+                    )
             except ClientError as exc:
                 if (
                     "index does not exist" in str(exc).lower()
@@ -354,8 +378,7 @@ class Neo4jVectorStore:
             labels=("*",),
         )
         try:
-            result = await self._run_scoped(scoped)
-            record = await result.single()
+            record = await self._run_scoped_single(scoped)
             return bool(record and record["updated"] > 0)
         except (ClientError, ServiceUnavailable) as exc:
             logger.error("Failed to delete embedding for %s: %s", entity_id, exc)
@@ -383,13 +406,23 @@ class Neo4jVectorStore:
                 online = state == "ONLINE"
                 if not online:
                     all_online = False
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.increment_index_constraint_health_failure(
+                            check_type="vector_index", component=index_name
+                        )
                 details[index_name] = {
                     "entity_type": etype,
                     "state": state or "MISSING",
                     "online": online,
                 }
 
-        except (ClientError, ServiceUnavailable) as exc:
+        except (ClientError, ServiceUnavailable):
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_index_constraint_health_failure(
+                    check_type="vector_index_query", component="neo4j_vector_store"
+                )
             return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": "Neo4j vector store health check failed", "error_code": "NEO4J_VECTOR_STORE_ERROR", "indexes": {}})
 
         return Neo4jVectorStore_index_healthResult.model_validate({

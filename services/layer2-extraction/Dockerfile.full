@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python:3.11.11-slim-bookworm
-
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+FROM python:3.11.13-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -23,8 +21,25 @@ COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY packages/platform-contract/src/python/canonical/ ./canonical/
 COPY services/layer2-extraction/src/layer2_extraction/ ./value_fabric/layer2/
 
+FROM python:3.11.13-slim-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src
+
+COPY services/layer2-extraction/src/ ./src/
+COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
+COPY packages/platform-contract/src/python/canonical/ ./canonical/
+COPY services/layer2-extraction/src/layer2_extraction/ ./value_fabric/layer2/
 
 RUN chown -R appuser:appgroup /app
 USER appuser

@@ -215,7 +215,7 @@ async def get_vault_health() -> get_vault_healthResult:
         _validate_vault_transport(vault_addr)
     except VaultConfigurationError as exc:
         return get_vault_healthResult.model_validate(
-            {"reachable": False, "status": "unreachable", "error": str(exc)}
+            {"reachable": False, "status": "unreachable", "error": type(exc).__name__}
         )
 
     timeout = httpx.Timeout(connect=_VAULT_CONNECT_TIMEOUT_SECONDS, read=_VAULT_READ_TIMEOUT_SECONDS, write=_VAULT_READ_TIMEOUT_SECONDS, pool=_VAULT_READ_TIMEOUT_SECONDS)
@@ -240,5 +240,5 @@ async def get_vault_health() -> get_vault_healthResult:
             )
     except Exception as exc:
         return get_vault_healthResult.model_validate(
-            {"reachable": False, "status": "unreachable", "error": str(exc)}
+            {"reachable": False, "status": "unreachable", "error": type(exc).__name__}
         )

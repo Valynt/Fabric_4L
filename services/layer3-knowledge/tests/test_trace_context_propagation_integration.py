@@ -5,7 +5,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from value_fabric.layer3.tracing.middleware import TracingMiddleware
+from src.tracing.middleware import TracingMiddleware
 
 
 def test_trace_context_propagates_between_upstream_and_layer3() -> None:

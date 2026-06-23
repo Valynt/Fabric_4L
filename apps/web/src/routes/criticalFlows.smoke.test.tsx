@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 
-import ProspectSetup from '../workflow/pages/ProspectSetup';
+import ProspectSetup from '../pages/ProspectSetup';
 
 describe('prospect setup interaction smoke', () => {
   it('submits after minimum context is provided', async () => {

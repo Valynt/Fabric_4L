@@ -1,5 +1,23 @@
 """Layer 5 Ground Truth — SQLAlchemy models."""
 
+from .academy import (
+    AcademyCertification,
+    AcademyMaturityAssessment,
+    AcademyPillar,
+    AcademyProgress,
+    AcademyQuizQuestion,
+    AcademyQuizResult,
+    AcademyResource,
+)
+from .assumption_governance import (
+    AssumptionApprovalDecision,
+    AssumptionApprovalRequest,
+    AssumptionRecord,
+    BenchmarkDataset,
+    FormulaDefinition,
+    LifecycleState,
+    PolicyRule,
+)
 from .model_registry import (
     DeploymentEnvironment,
     DeploymentStatus,
@@ -22,13 +40,57 @@ from .truth_object import (
     TruthStatus,
     ValidationEvent,
 )
+from .value_evidence_graph import (
+    BusinessProblem,
+    EvidenceLink,
+    Objection,
+    RealizationEvent,
+    Scenario,
+    Stakeholder,
+    ValueAssumption,
+    ValueCase,
+    ValueClaim,
+)
+from .value_evidence_graph_enums import (
+    ApprovalStatus,
+    AssumptionType,
+    ClaimStatus,
+    Confidence,
+    EvidenceType,
+    ImpactLevel,
+    ScenarioType,
+)
+from .value_evidence_graph_enums import (
+    ClaimType as ValueClaimType,
+)
 
 __all__ = [
+    "AcademyCertification",
+    "AcademyMaturityAssessment",
+    "AcademyPillar",
+    "AcademyProgress",
+    "AcademyQuizQuestion",
+    "AcademyQuizResult",
+    "AcademyResource",
+    "ApprovalStatus",
+    "AssumptionApprovalDecision",
+    "AssumptionApprovalRequest",
+    "AssumptionRecord",
+    "AssumptionType",
     "Base",
+    "BenchmarkDataset",
+    "BusinessProblem",
+    "ClaimStatus",
     "ClaimType",
+    "Confidence",
     "DeploymentEnvironment",
     "DeploymentStatus",
     "DisputeReason",
+    "EvidenceLink",
+    "EvidenceType",
+    "FormulaDefinition",
+    "ImpactLevel",
+    "LifecycleState",
     "MaturityHistory",
     "MaturityLevel",
     "ModelCapability",
@@ -36,10 +98,20 @@ __all__ = [
     "ModelEvaluation",
     "ModelProvider",
     "ModelVersion",
+    "Objection",
+    "PolicyRule",
+    "RealizationEvent",
     "RejectionReason",
+    "Scenario",
+    "ScenarioType",
     "SourceType",
+    "Stakeholder",
     "TruthObject",
     "TruthSource",
     "TruthStatus",
+    "ValueCase",
+    "ValueAssumption",
+    "ValueClaim",
+    "ValueClaimType",
     "ValidationEvent",
 ]

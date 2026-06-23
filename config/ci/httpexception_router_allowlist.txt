@@ -1,0 +1,8 @@
+# Router HTTPException baseline (PR3 of elevate-to-9 plan).
+#
+# Each line is a frozen pre-existing `raise HTTPException(...)` site in router
+# code. New entries require explicit migration to canonical exceptions in
+# value_fabric.shared.error_handling.exceptions. Removing entries (i.e.,
+# migrating them) is always welcome.
+#
+# Format: <repo-relative-posix-path>:<line-no>

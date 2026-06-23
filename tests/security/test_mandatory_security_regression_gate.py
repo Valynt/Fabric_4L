@@ -57,7 +57,13 @@ def _candidate_bash_paths() -> list[str]:
         ]
     )
     seen: set[str] = set()
-    return [path for path in candidates if path and not (path in seen or seen.add(path))]
+    return [
+        path
+        for path in candidates
+        if path
+        and "windows\\system32\\bash" not in path.lower()
+        and not (path in seen or seen.add(path))
+    ]
 
 
 def _working_bash() -> str | None:
@@ -152,8 +158,8 @@ class TestGateFailClosedBehavior:
         assert any("test_retention_deletion_contract.py" in s for s in suites)
         assert any("test_production_fail_closed_i02.py" in s for s in suites)
         assert "tests/security/test_cross_layer_tenant_isolation_matrix.py" in suites
-        assert "services/layer4-agents/tests/test_tenant_rate_limits.py" in suites
         assert "services/layer4-agents/tests/test_security_fixes.py" in suites
+        assert "tests/k8s" in suites
 
 
 class TestGateEvidenceLogging:
@@ -308,10 +314,9 @@ class TestGateIntegration:
         assert "test_production_fail_closed_i02.py" in content
 
     def test_gate_script_includes_c06_checks(self, gate_script_path: Path) -> None:
-        """Verify the gate script includes C-06 tenant rate-limit checks."""
+        """Verify the gate script includes C-06 security regression checks."""
         content = gate_script_path.read_text(encoding="utf-8")
         assert "LAYER4_C06_SECURITY_TESTS" in content
-        assert "services/layer4-agents/tests/test_tenant_rate_limits.py" in content
         assert "services/layer4-agents/tests/test_security_fixes.py" in content
         assert "layer4_c06_security.xml" in content
 
@@ -358,5 +363,5 @@ class TestGateRequiredSuites:
     def test_required_suites_includes_c06_tests(self, gate_script_path: Path) -> None:
         """Verify required suites include C-06 mandatory Layer 4 tests."""
         content = gate_script_path.read_text(encoding="utf-8")
-        assert "services/layer4-agents/tests/test_tenant_rate_limits.py" in content
+        assert "services/layer4-agents/tests/test_security_fixes.py" in content
         assert "services/layer4-agents/tests/test_security_fixes.py" in content

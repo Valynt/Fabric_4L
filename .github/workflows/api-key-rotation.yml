@@ -62,13 +62,13 @@ jobs:
       rotation_plan: ${{ steps.decide.outputs.rotation_plan }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
-      
+
       - name: Decide rotation plan
         id: decide
         env:
@@ -81,7 +81,7 @@ jobs:
           echo "Environment: $INPUT_ENV"
           echo "Scheduled: $IS_SCHEDULED"
           echo "::endgroup::"
-          
+
           # For scheduled runs, check if quarterly rotation is due
           if [[ "$IS_SCHEDULED" == "true" ]]; then
             # Quarterly: Jan, Apr, Jul, Oct
@@ -96,14 +96,14 @@ jobs:
           else
             # Manual trigger - always proceed
             echo "should_rotate=true" >> $GITHUB_OUTPUT
-            
+
             if [[ "$INPUT_PROVIDER" == "all" ]]; then
               echo "rotation_plan=[\"openai\",\"thesys\",\"clerk\",\"registry\"]" >> $GITHUB_OUTPUT
             else
               echo "rotation_plan=[\"$INPUT_PROVIDER\"]" >> $GITHUB_OUTPUT
             fi
           fi
-          
+
           echo "::group::Decision"
           echo "Should rotate: ${{ steps.decide.outputs.should_rotate }}"
           echo "Rotation plan: ${{ steps.decide.outputs.rotation_plan }}"
@@ -119,19 +119,19 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
-      
+
       - name: Setup Infisical CLI
         run: |
           curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
           sudo apt-get install -y infisical
           infisical --version
-      
+
       - name: Authenticate with Infisical
         run: |
           JWT=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -148,13 +148,13 @@ jobs:
           fi
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-      
+
       - name: Verify current key exists
         run: |
           ENV=${{ github.event.inputs.environment || 'staging' }}
           infisical secrets get --env=$ENV --path=/layer2-extraction OPENAI_API_KEY \
             || (echo "Error: No existing OPENAI_API_KEY found" && exit 1)
-      
+
       - name: Create rotation tracking issue
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -166,7 +166,7 @@ jobs:
             --body "OpenAI API key rotation initiated.\\n\\n**Steps:**\\n1. Generate new key at https://platform.openai.com/account/api-keys\\n2. Update Infisical secret OPENAI_API_KEY in environment: $INPUT_ENV\\n3. Verify services restart successfully\\n4. Revoke old key\\n5. Close this issue\\n\\nTriggered by: ${{ github.actor }}\\nRun: ${{ github.run_id }}" \
             --label "security,rotation-required,openai" \
             || echo "Issue may already exist"
-      
+
       - name: Run rotation script (dry-run)
         if: github.event.inputs.dry_run == 'true'
         run: |
@@ -175,7 +175,7 @@ jobs:
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --dry-run \
             --verbose
-      
+
       - name: Run rotation script (live)
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -185,16 +185,16 @@ jobs:
             echo "::warning::OPENAI_MANUAL_KEY not provided. Manual rotation required via issue tracking."
             exit 0
           fi
-          
+
           echo "::add-mask::$OPENAI_MANUAL_KEY"
           python scripts/security/key_rotation.py \
             --provider openai \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --audit-log rotation_audit_openai.json
-      
+
       - name: Upload audit log
         if: always() && github.event.inputs.dry_run != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: rotation-audit-openai-${{ github.run_id }}
           path: rotation_audit_openai.json
@@ -210,18 +210,18 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
-      
+
       - name: Setup Infisical CLI
         run: |
           curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
           sudo apt-get install -y infisical
-      
+
       - name: Authenticate with Infisical
         run: |
           JWT=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -238,7 +238,7 @@ jobs:
           fi
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-      
+
       - name: Create rotation tracking issue
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -250,7 +250,7 @@ jobs:
             --body "Clerk secret key rotation initiated.\\n\\n**Steps:**\\n1. Generate new key at https://dashboard.clerk.com\\n2. Update Infisical secret CLERK_SECRET_KEY in environment: $INPUT_ENV\\n3. Verify all services restart and authenticate correctly\\n4. Revoke old key\\n5. Close this issue\\n\\nTriggered by: ${{ github.actor }}\\nRun: ${{ github.run_id }}" \
             --label "security,rotation-required,clerk" \
             || echo "Issue may already exist"
-      
+
       - name: Run rotation script (dry-run)
         if: github.event.inputs.dry_run == 'true'
         run: |
@@ -258,7 +258,7 @@ jobs:
             --provider clerk \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --dry-run
-      
+
       - name: Run rotation script (live)
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -268,13 +268,13 @@ jobs:
             echo "::warning::CLERK_MANUAL_KEY not provided. Manual rotation required via issue tracking."
             exit 0
           fi
-          
+
           echo "::add-mask::$CLERK_MANUAL_KEY"
           python scripts/security/key_rotation.py \
             --provider clerk \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --audit-log rotation_audit_clerk.json
-      
+
       - name: Restart affected services
         if: github.event.inputs.dry_run != 'true' && github.event.inputs.manual_key != ''
         run: |
@@ -283,14 +283,14 @@ jobs:
           kubectl rollout restart deployment/layer2-extraction -n value-fabric
           kubectl rollout restart deployment/layer3-knowledge -n value-fabric
           kubectl rollout restart deployment/layer4-agents -n value-fabric
-          
+
           # Wait for critical services
           kubectl rollout status deployment/api-gateway -n value-fabric --timeout=300s
           kubectl rollout status deployment/layer4-agents -n value-fabric --timeout=300s
-      
+
       - name: Upload audit log
         if: always() && github.event.inputs.dry_run != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: rotation-audit-clerk-${{ github.run_id }}
           path: rotation_audit_clerk.json
@@ -306,18 +306,18 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
-      
+
       - name: Setup Infisical CLI
         run: |
           curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
           sudo apt-get install -y infisical
-      
+
       - name: Authenticate with Infisical
         run: |
           JWT=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -334,7 +334,7 @@ jobs:
           fi
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-      
+
       - name: Run rotation script (dry-run)
         if: github.event.inputs.dry_run == 'true'
         run: |
@@ -342,7 +342,7 @@ jobs:
             --provider thesys \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --dry-run
-      
+
       - name: Run rotation script (live)
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -352,16 +352,16 @@ jobs:
             echo "::warning::THESYS_MANUAL_KEY not provided. Manual rotation required."
             exit 0
           fi
-          
+
           echo "::add-mask::$THESYS_MANUAL_KEY"
           python scripts/security/key_rotation.py \
             --provider thesys \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --audit-log rotation_audit_thesys.json
-      
+
       - name: Upload audit log
         if: always() && github.event.inputs.dry_run != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: rotation-audit-thesys-${{ github.run_id }}
           path: rotation_audit_thesys.json
@@ -377,18 +377,18 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
-      
+
       - name: Setup Infisical CLI
         run: |
           curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
           sudo apt-get install -y infisical
-      
+
       - name: Authenticate with Infisical
         run: |
           JWT=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -405,7 +405,7 @@ jobs:
           fi
           echo "::add-mask::$INFISICAL_TOKEN"
           echo "INFISICAL_TOKEN=$INFISICAL_TOKEN" >> "$GITHUB_ENV"
-      
+
       - name: Run rotation script (dry-run)
         if: github.event.inputs.dry_run == 'true'
         run: |
@@ -413,7 +413,7 @@ jobs:
             --provider registry \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --dry-run
-      
+
       - name: Run rotation script (live)
         if: github.event.inputs.dry_run != 'true'
         env:
@@ -423,16 +423,16 @@ jobs:
             echo "::warning::REGISTRY_MANUAL_KEY not provided. Manual rotation required."
             exit 0
           fi
-          
+
           echo "::add-mask::$REGISTRY_MANUAL_KEY"
           python scripts/security/key_rotation.py \
             --provider registry \
             --env ${{ github.event.inputs.environment || 'staging' }} \
             --audit-log rotation_audit_registry.json
-      
+
       - name: Upload audit log
         if: always() && github.event.inputs.dry_run != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: rotation-audit-registry-${{ github.run_id }}
           path: rotation_audit_registry.json
@@ -447,24 +447,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
       - name: Download all audit logs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: audit-logs
           pattern: rotation-audit-*
-      
+
       - name: Verify rotation summary
         run: |
           echo "::group::Rotation Verification"
           echo "Checking all rotation jobs completed..."
-          
+
           # List all audit logs
           find audit-logs -name "*.json" -exec cat {} \; | jq -s '.' || echo "No audit logs found"
-          
+
           echo "::endgroup::"
-      
+
       - name: Notify on success
         if: success() && github.event.inputs.dry_run != 'true'
         run: |
@@ -474,14 +474,14 @@ jobs:
           echo "  1. Revoke old keys via provider dashboards"
           echo "  2. Verify all services are healthy"
           echo "  3. Close tracking issues once verified"
-      
+
       - name: Notify on failure
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "::error::API Key rotation failed"
-          
+
           # Create incident tracking issue
           gh issue create \
             --title "[INCIDENT] API Key Rotation Failed - ${{ github.run_id }}" \

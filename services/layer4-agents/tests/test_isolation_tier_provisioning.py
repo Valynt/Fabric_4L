@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for S2-07: Unsupported isolation tiers rejected at provisioning time.
 
 Verifies:
@@ -8,14 +10,13 @@ Verifies:
 - get_tiered_db_session raises 422 (not 501) for schema/database tiers
 """
 
-from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer4.services.tenant_provisioning import (
+from layer4_agents.services.tenant_provisioning import (
     TenantProvisionRequest,
     TenantProvisioningService,
 )
@@ -113,7 +114,7 @@ async def test_schema_tier_rejected_before_db_write():
 @pytest.mark.asyncio
 async def test_get_tiered_db_session_schema_raises_422():
     """get_tiered_db_session with schema tier must raise HTTP 422, not 501."""
-    from value_fabric.layer4.database import get_tiered_db_session
+    from layer4_agents.database import get_tiered_db_session
     import uuid
 
     tenant_id = uuid.uuid4()
@@ -129,7 +130,7 @@ async def test_get_tiered_db_session_schema_raises_422():
 @pytest.mark.asyncio
 async def test_get_tiered_db_session_database_raises_422():
     """get_tiered_db_session with database tier must raise HTTP 422, not 501."""
-    from value_fabric.layer4.database import get_tiered_db_session
+    from layer4_agents.database import get_tiered_db_session
     import uuid
 
     tenant_id = uuid.uuid4()
@@ -146,7 +147,7 @@ async def test_get_tiered_db_session_emits_deprecation_warning():
     """get_tiered_db_session must emit DeprecationWarning on every call."""
     import uuid
     import warnings
-    from value_fabric.layer4.database import get_tiered_db_session
+    from layer4_agents.database import get_tiered_db_session
 
     tenant_id = uuid.uuid4()
 
@@ -171,16 +172,16 @@ async def test_get_tiered_db_session_emits_deprecation_warning():
 async def test_db_session_for_context_unsupported_tier_raises_422():
     """db_session_for_context with an unsupported isolation tier must raise HTTP 422, not 501."""
     from unittest.mock import MagicMock, patch, AsyncMock
-    from value_fabric.layer4.database import db_session_for_context
+    from layer4_agents.database import db_session_for_context
 
     context = MagicMock()
     context.tenant_id = "00000000-0000-0000-0000-000000000001"
     context.isolation_tier = "database"  # unsupported
 
     # Patch SHARED_IDENTITY_AVAILABLE so the function proceeds past the guard
-    with patch("value_fabric.layer4.database.SHARED_IDENTITY_AVAILABLE", True), \
-         patch("value_fabric.layer4.database.validate_tenant_id", return_value="00000000-0000-0000-0000-000000000001"), \
-         patch("value_fabric.layer4.database.get_session_factory") as mock_factory:
+    with patch("layer4_agents.database.SHARED_IDENTITY_AVAILABLE", True), \
+         patch("layer4_agents.database.validate_tenant_id", return_value="00000000-0000-0000-0000-000000000001"), \
+         patch("layer4_agents.database.get_session_factory") as mock_factory:
 
         mock_session = AsyncMock()
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)

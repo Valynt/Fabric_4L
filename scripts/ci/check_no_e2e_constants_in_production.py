@@ -25,6 +25,21 @@ ALLOW_PATH_SEGMENTS = (
     "/e2e/",
     "/fixtures/",
 )
+SKIP_PATH_SEGMENTS = (
+    "/.venv",
+    "/.venv-verify",
+    "/.uv-cache",
+    "/__pycache__",
+    "/.pytest_cache",
+    "/.mypy_cache",
+    "/.ruff_cache",
+    "/.hypothesis",
+    "/node_modules",
+    "/dist",
+    "/build",
+    "/.git",
+    "/.tmp",
+)
 
 viol = []
 for base in PROD_DIRS:
@@ -41,6 +56,8 @@ for base in PROD_DIRS:
             continue
         sp = str(p).replace("\\", "/")
         if any(seg in sp for seg in ALLOW_PATH_SEGMENTS):
+            continue
+        if any(seg in sp for seg in SKIP_PATH_SEGMENTS):
             continue
         try:
             txt = p.read_text(encoding="utf-8")

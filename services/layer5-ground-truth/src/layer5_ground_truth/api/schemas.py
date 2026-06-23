@@ -467,7 +467,11 @@ class ValidateResponse(BaseModel):
 class AddSourceRequest(TruthSourceCreate):
     """Schema for POST /truths/{id}/sources."""
 
-    pass
+    @model_validator(mode="after")
+    def require_provenance_reference(self) -> "AddSourceRequest":
+        if not (self.source_id or self.source_url):
+            raise ValueError("Either source_id or source_url is required for provenance")
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -479,6 +483,7 @@ class HealthResponse(BaseModel):
     """Health check response - public endpoint returns only safe fields."""
 
     status: str
+    service: str = "layer5-ground-truth"
     version: str
     timestamp: datetime
     # Optional internal fields - NOT returned by public health endpoint
@@ -608,6 +613,8 @@ class ModelVersionResponse(BaseModel):
     is_default: bool
     description: str | None
     extra_metadata: dict[str, Any] | None = None
+    deprecated_at: datetime | None = None
+    deprecation_reason: str | None = None
     created_by: str | None
     created_at: datetime
     updated_at: datetime

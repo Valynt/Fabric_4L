@@ -61,6 +61,45 @@ _REQUIRED_REGISTERED_CLAIMS = ("exp", "iss", "aud")
 _ALLOWED_EXTERNAL_ALGORITHMS = {"RS256", "ES256"}
 
 
+def _normalize_origin(value: str) -> str:
+    return value.strip().rstrip("/")
+
+
+def _configured_clerk_issuers() -> set[str]:
+    return {
+        issuer
+        for issuer in (
+            os.getenv("CLERK_ISSUER", "").strip(),
+            os.getenv("CLERK_JWT_ISSUER", "").strip(),
+        )
+        if issuer
+    }
+
+
+def _is_clerk_issuer(issuer: Any) -> bool:
+    if not isinstance(issuer, str) or not issuer.strip():
+        return False
+    return issuer.strip().rstrip("/") in {_normalize_origin(value) for value in _configured_clerk_issuers()}
+
+
+def _configured_clerk_authorized_parties() -> set[str]:
+    return {
+        _normalize_origin(value)
+        for value in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",")
+        if value.strip()
+    }
+
+
+def _clerk_authorized_party_allowed(payload: Dict[str, Any]) -> bool:
+    allowed_parties = _configured_clerk_authorized_parties()
+    if not allowed_parties:
+        return True
+    azp = payload.get("azp")
+    if not isinstance(azp, str) or not azp.strip():
+        return False
+    return _normalize_origin(azp) in allowed_parties
+
+
 def _detect_environment() -> str:
     for key in _ENV_KEYS:
         value = os.getenv(key)
@@ -106,6 +145,12 @@ def _get_jwt_secret() -> str:
             "JWT_SECRET is required and is currently unset. "
             "Set JWT_SECRET in your environment (for local development, copy "
             ".env.example to .env/.env.dev and provide a strong secret)."
+        )
+
+    if len(secret) < 32:
+        raise RuntimeError(
+            f"JWT_SECRET must be at least 32 characters for security (got {len(secret)}). "
+            "Set a stronger secret in your environment."
         )
 
     return secret
@@ -316,8 +361,14 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    # Support both generic OIDC and Clerk-specific issuer configuration
-    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip() or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    # Support both generic OIDC and Clerk-specific issuer configuration.
+    # CLERK_ISSUER is the canonical gateway env; CLERK_JWT_ISSUER remains
+    # accepted as a compatibility alias for older deployment notes.
+    oidc_issuer = (
+        os.getenv("OIDC_ISSUER", "").strip()
+        or os.getenv("CLERK_ISSUER", "").strip()
+        or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    )
     oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip() or os.getenv("CLERK_JWT_AUDIENCE", "").strip()
     # Clerk-specific JWKS URL override
     clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()
@@ -377,6 +428,9 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                     "verify_nbf": True,
                 },
             )
+            if _is_clerk_issuer(expected_issuer) and not _clerk_authorized_party_allowed(payload):
+                logger.debug("Clerk JWT authorized party rejected")
+                return None
         else:
             keyset = _build_keyset()
             algorithm = keyset["algorithm"]
@@ -496,3 +550,93 @@ def encode_jwt(
 
     headers = {"kid": keyset["active_kid"]}
     return jwt.encode(payload, keyset["signing_key"], algorithm=algorithm, headers=headers)
+
+
+# ---------------------------------------------------------------------------
+# Service-to-service JWT helpers (P1-001)
+# ---------------------------------------------------------------------------
+
+_S2S_ISSUER = "value-fabric-s2s"
+_S2S_ALGORITHM = "HS256"
+
+
+class ServiceJwtClaims(TypedDictModel):
+    sub: str
+    aud: str
+    tenant_id: str
+    iat: int
+    exp: int
+    iss: str
+
+
+def _get_service_auth_secret() -> Optional[str]:
+    return os.getenv("SERVICE_AUTH_SECRET", "").strip() or None
+
+
+def encode_service_jwt(
+    tenant_id: UUID | str,
+    sub: str,
+    aud: str,
+    *,
+    expires_in_seconds: int = 300,
+) -> Optional[str]:
+    """Sign a service-to-service JWT using SERVICE_AUTH_SECRET.
+
+    Returns None when SERVICE_AUTH_SECRET is not configured.
+    """
+    secret = _get_service_auth_secret()
+    if not secret:
+        return None
+    now = int(time.time())
+    payload: dict = {
+        "sub": sub,
+        "aud": aud,
+        "tenant_id": str(tenant_id),
+        "iat": now,
+        "nbf": now,
+        "exp": now + expires_in_seconds,
+        "iss": _S2S_ISSUER,
+    }
+    return jwt.encode(payload, secret, algorithm=_S2S_ALGORITHM)
+
+
+def decode_service_jwt(token: str, expected_audience: Optional[str] = None) -> Optional[ServiceJwtClaims]:
+    """Verify a service-to-service JWT signed with SERVICE_AUTH_SECRET.
+
+    Returns None for invalid, expired, or malformed tokens.
+
+    Args:
+        token: The JWT token to verify.
+        expected_audience: Optional audience to validate. If provided, the token's
+            aud claim must match exactly. If not provided, audience validation
+            is skipped (caller must validate).
+
+    Raises:
+        jwt.ExpiredSignatureError: If the token has expired.
+    """
+    secret = _get_service_auth_secret()
+    if not secret:
+        return None
+    try:
+        options = {
+            "require": ["exp", "iss", "aud", "sub", "tenant_id"],
+            "verify_exp": True,
+            "verify_aud": expected_audience is not None,
+            "verify_iss": True,
+            "verify_iat": True,
+            "verify_nbf": True,
+        }
+        decode_kwargs = {
+            "algorithms": [_S2S_ALGORITHM],
+            "issuer": _S2S_ISSUER,
+            "options": options,
+        }
+        if expected_audience is not None:
+            decode_kwargs["audience"] = expected_audience
+
+        payload = jwt.decode(token, secret, **decode_kwargs)
+        return ServiceJwtClaims.model_validate(payload)
+    except jwt.ExpiredSignatureError:
+        raise
+    except Exception:
+        return None

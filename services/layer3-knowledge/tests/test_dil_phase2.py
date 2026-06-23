@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Data Intelligence Layer Phase 2 — L3 Tests.
 
@@ -9,7 +11,6 @@ These tests use mock Neo4j drivers to isolate service logic from the database.
 Run with: pytest tests/test_dil_phase2.py --noconftest -v
 """
 
-from __future__ import annotations
 
 import json
 import uuid
@@ -24,13 +25,13 @@ import pytest
 # Import services directly (no conftest dependency)
 # ---------------------------------------------------------------------------
 
-from value_fabric.layer3.services.competitive_intel_service import (
+from src.services.competitive_intel_service import (
     BattlecardCreate,
     CompetitorCreate,
     CompetitiveIntelService,
     WinLossRecord,
 )
-from value_fabric.layer3.services.roi_calculator_service import (
+from src.services.roi_calculator_service import (
     ROICalculatorService,
     ROIInputs,
     ROIOutputs,
@@ -746,4 +747,3 @@ class TestROIBenchmarks:
         assert result["has_benchmarks"] is False
         assert "defaults" in result
         assert result["defaults"]["productivity_gain_pct"] == 0.10
-

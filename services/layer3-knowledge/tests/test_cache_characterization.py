@@ -1,17 +1,18 @@
+from __future__ import annotations
+
 """OSS-0 characterization tests for L3 cache behavior.
 
 These tests freeze observable cache-manager and request-deduplication behavior before
 future OSS-backed cache implementations are introduced behind CachePort.
 """
 
-from __future__ import annotations
 
 import asyncio
 from typing import Any
 
 import pytest
 
-from value_fabric.layer3.cache.redis_cache import CacheManager, RequestDeduplicator
+from src.cache.redis_cache import CacheManager, RequestDeduplicator
 
 
 class FakeAsyncCache:

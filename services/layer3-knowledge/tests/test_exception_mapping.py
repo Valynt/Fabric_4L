@@ -1,5 +1,13 @@
-from value_fabric.layer3.api.exception_mapping import map_exception_to_http_error
-from value_fabric.layer3.api.exceptions import DatabaseError, SearchError, ValidationError
+from value_fabric.shared.error_handling.exceptions import NotFoundError
+
+from src.api.exception_mapping import map_exception_to_http_error
+from src.api.exceptions import (
+    ContractViolationError,
+    DatabaseError,
+    SearchError,
+    TenantAccessError,
+    ValidationError,
+)
 
 
 def test_validation_error_maps_to_422_with_context():
@@ -22,3 +30,29 @@ def test_search_error_maps_to_502():
     err = map_exception_to_http_error(exc, context={"tenant": "t1", "endpoint": "/v1/search", "operation": "search"})
     assert err.status_code == 502
     assert err.detail["code"] == "SEARCH_BACKEND_ERROR"
+
+
+def test_tenant_access_error_maps_to_403():
+    exc = TenantAccessError()
+    err = map_exception_to_http_error(exc, context={"tenant": "unknown", "endpoint": "/v1/entities", "operation": "list"})
+    assert err.status_code == 403
+    assert err.detail["code"] == "TENANT_ACCESS_DENIED"
+
+
+def test_timeout_maps_to_504():
+    err = map_exception_to_http_error(TimeoutError("timed out"), context={"tenant": "t1", "endpoint": "/v1/search", "operation": "query"})
+    assert err.status_code == 504
+    assert err.detail["code"] == "UPSTREAM_TIMEOUT"
+
+
+def test_contract_violation_maps_to_500_contract_code():
+    err = map_exception_to_http_error(ContractViolationError("bad shape"), context={"tenant": "t1", "endpoint": "/v1/query", "operation": "graph_rag"})
+    assert err.status_code == 500
+    assert err.detail["code"] == "CONTRACT_VIOLATION"
+
+
+def test_not_found_error_maps_to_404():
+    err = map_exception_to_http_error(NotFoundError(message="Entity missing not found"), context={"tenant": "t1", "endpoint": "/v1/entities/e1/context", "operation": "get_entity_context"})
+    assert err.status_code == 404
+    assert err.detail["code"] == "NOT_FOUND"
+    assert "missing" in err.detail["message"]

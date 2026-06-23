@@ -2,7 +2,7 @@ import socket
 
 import pytest
 
-from src.compliance.url_safety import URLSafetyError, enforce_rebinding_protection, validate_url_safety
+from layer1_ingestion.compliance.url_safety import URLSafetyError, enforce_rebinding_protection, validate_url_safety
 
 
 def test_rejects_malformed_url():

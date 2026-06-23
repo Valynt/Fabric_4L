@@ -72,7 +72,7 @@ WORKDIR /app
 # Copy uv virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 
 # Copy Playwright browsers from builder
 COPY --from=builder /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
@@ -97,4 +97,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 EXPOSE 8000
 
 # Default command
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "layer1_ingestion.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

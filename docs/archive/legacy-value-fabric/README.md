@@ -172,7 +172,7 @@ Validate the complete L2→L3→L4 integration pipeline with a single command.
 
 ```bash
 # From repo root
-python scripts/smoke/production_smoke.py
+make test-backend-integrated-release-smoke
 ```
 
 ### With Docker Compose
@@ -183,10 +183,10 @@ cd value-fabric
 docker-compose up -d
 
 # 2. Run smoke test (from repo root)
-python scripts/smoke/production_smoke.py
+make test-backend-integrated-release-smoke
 
 # 3. View detailed report
-cat artifacts/smoke-report-*.json
+find artifacts/release_smoke -maxdepth 2 -type f
 ```
 
 ### Smoke Test Stages
@@ -204,21 +204,16 @@ The smoke test validates 6 critical integration points:
 
 ### Configuration
 
-Override default URLs via environment variables or CLI args:
+Override default service URLs for the maintained release-smoke target with environment variables:
 
 ```bash
 # Environment variables
 export L2_URL=http://localhost:8002
 export L3_URL=http://localhost:8003
 export L4_URL=http://localhost:8004
-python scripts/smoke/production_smoke.py
+make test-backend-integrated-release-smoke
 
-# CLI arguments
-python scripts/smoke/production_smoke.py \
-  --l2-url http://localhost:8002 \
-  --l3-url http://localhost:8003 \
-  --l4-url http://localhost:8004 \
-  --output-dir ./reports
+# For artifact location overrides, set RELEASE_SMOKE_ARTIFACT_DIR before running the target.
 ```
 
 ### CI Integration
@@ -228,7 +223,7 @@ The smoke gate runs automatically on:
 - Daily at 2 AM UTC (scheduled)
 - Manual trigger via GitHub Actions
 
-See `.github/workflows/smoke-gate.yml` for workflow configuration.
+See `.github/workflows/pr-checks.yml` (`integration-checks`) for workflow configuration.
 
 ### Exit Codes
 

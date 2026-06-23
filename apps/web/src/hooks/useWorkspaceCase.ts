@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/api/client';
+import { apiGet, apiPost, apiPut, apiPatch } from '@/api/typedClient';
 import { QK } from './queryKeys';
 
 const CASE_STORAGE_PREFIX = 'vf.workspace.case';
@@ -27,9 +27,9 @@ export function useCanonicalCaseId(accountId: string | null) {
       const stored = getStoredCaseId(accountId);
       if (stored) return stored;
 
-      const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
-      const lookupData = lookup.data as Record<string, unknown>;
-      const items = (Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
+      const lookup = await apiGet<Record<string, unknown> | Array<Record<string, unknown>>>('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
+      const lookupData = Array.isArray(lookup.data) ? {} : lookup.data;
+      const items = (Array.isArray(lookup.data) ? lookup.data : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
       const existing = (items[0] ?? {}) as CaseRecord;
       const existingCaseId = existing.case_id || existing.id;
       if (existingCaseId) {
@@ -37,7 +37,7 @@ export function useCanonicalCaseId(accountId: string | null) {
         return existingCaseId;
       }
 
-      const created = await apiClient.post('l4', '/analysis/cases', {
+      const created = await apiPost<Record<string, unknown>>('l4', '/analysis/cases', {
         account_id: accountId,
         title: `Account ${accountId} workspace`,
       });
@@ -57,8 +57,8 @@ export function useWorkspaceTabQuery<TData>(caseId: string | null, tabKey: strin
     queryFn: async () => {
       if (!caseId) throw new Error('Missing case_id');
       try {
-        const response = await apiClient.get('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`);
-        return response.data as TData;
+        const response = await apiGet<TData>('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`);
+        return response.data;
       } catch (error: unknown) {
         // 501 = workspace tab persistence not yet implemented (H-01).
         // Return empty tab data so the UI renders empty states rather than errors.
@@ -76,7 +76,7 @@ export function usePersistWorkspaceTab(tabKey: string) {
   const mutation = useMutation({
     mutationFn: async ({ caseId, payload }: { caseId: string; payload: unknown }) => {
       try {
-        const response = await apiClient.put('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`, payload);
+        const response = await apiPut<unknown>('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`, payload);
         return response.data;
       } catch (error: unknown) {
         // 501 = workspace tab persistence not yet implemented (H-01).
@@ -102,7 +102,7 @@ export function usePersistWorkspaceTab(tabKey: string) {
 export function useValidateEvidenceClaim() {
   return useMutation({
     mutationFn: async ({ caseId, evidenceId, claim }: { caseId: string; evidenceId: string; claim: string }) => {
-      const response = await apiClient.post('l5', '/claims/validate', {
+      const response = await apiPost<unknown>('l5', '/claims/validate', {
         case_id: caseId,
         evidence_id: evidenceId,
         claim,
@@ -119,7 +119,17 @@ export function useValidateEvidenceClaim() {
 export function useGenerateWorkspaceIntelligence() {
   return useMutation({
     mutationFn: async (caseId: string) => {
-      const response = await apiClient.post('l4', `/analysis/cases/${caseId}/workspace/generate`, {});
+      const response = await apiPost<{
+        case_id: string;
+        account_id: string;
+        generated: boolean;
+        stats: {
+          signals: number;
+          drivers: number;
+          evidence: number;
+          stakeholders: number;
+        };
+      }>('l4', `/analysis/cases/${caseId}/workspace/generate`, {});
       return response.data as {
         case_id: string;
         account_id: string;
@@ -149,7 +159,7 @@ export function useSignalReview() {
       reviewStatus: 'approved' | 'rejected';
       decisionNote?: string;
     }) => {
-      const response = await apiClient.patch('l4', `/v1/signals/${signalId}/review`, {
+      const response = await apiPatch<unknown>('l4', `/v1/signals/${signalId}/review`, {
         account_id: accountId,
         review_status: reviewStatus,
         decision_note: decisionNote,
@@ -185,7 +195,7 @@ export function useEvidenceDecisionMutation() {
       decision: "accepted" | "rejected";
       decisionNote?: string;
     }) => {
-      const response = await apiClient.patch('l4', `/v1/evidence/${evidenceId}/decision`, {
+      const response = await apiPatch<unknown>('l4', `/v1/evidence/${evidenceId}/decision`, {
         account_id: accountId,
         case_id: caseId,
         decision,
@@ -202,33 +212,6 @@ export function useEvidenceDecisionMutation() {
     },
   });
 }
-
-export function useAttachEvidenceToDriverMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      evidenceId,
-      driverId,
-      accountId,
-      caseId,
-    }: { evidenceId: string; driverId: string; accountId: string; caseId: string }) => {
-      const response = await apiClient.post('l4', `/v1/evidence/${evidenceId}/drivers/${driverId}`, {
-        account_id: accountId,
-        case_id: caseId,
-      });
-      return response.data;
-    },
-    onSuccess: async (_result, vars) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: QK.workspace.evidenceDriverLinks(vars.caseId, vars.accountId) }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'tab', vars.caseId, 'drivers'] }),
-        queryClient.invalidateQueries({ queryKey: QK.calculators.all }),
-      ]);
-    },
-  });
-}
-
-export const useReviewSignalMutation = useSignalReview;
 
 // ── Generic workspace page action dispatcher ──────────────────────────────────
 
@@ -254,7 +237,7 @@ export function useApplyWorkspacePageAction() {
 
       switch (intendedOperation) {
         case 'signal_review': {
-          const response = await apiClient.patch('l4', `/v1/signals/${entityId}/review`, {
+          const response = await apiPatch<unknown>('l4', `/v1/signals/${entityId}/review`, {
             account_id: accountId,
             review_status: payload.reviewStatus,
             decision_note: payload.decisionNote,
@@ -264,7 +247,7 @@ export function useApplyWorkspacePageAction() {
         }
         case 'evidence_attach': {
           const hypothesisId = encodeURIComponent(String(payload.hypothesisId ?? ''));
-          const response = await apiClient.post('l4', `/v1/hypotheses/${hypothesisId}/attach-evidence`, {
+          const response = await apiPost<unknown>('l4', `/v1/hypotheses/${hypothesisId}/attach-evidence`, {
             evidence_id: entityId,
             account_id: accountId,
             case_id: caseId,
@@ -272,7 +255,7 @@ export function useApplyWorkspacePageAction() {
           return response.data;
         }
         case 'hypothesis_convert': {
-          const response = await apiClient.post('l4', `/v1/hypotheses/${entityId}/validate`, {
+          const response = await apiPost<unknown>('l4', `/v1/hypotheses/${entityId}/validate`, {
             new_status: 'converted',
             feedback: payload.feedback,
             account_id: accountId,
@@ -281,7 +264,7 @@ export function useApplyWorkspacePageAction() {
           return response.data;
         }
         case 'scenario_update': {
-          const response = await apiClient.patch('l4', `/analysis/cases/${caseId}/workspace/value-model/scenarios/${entityId}`, {
+          const response = await apiPatch<unknown>('l4', `/analysis/cases/${caseId}/workspace/value-model/scenarios/${entityId}`, {
             updates: payload,
             account_id: accountId,
             ...(runMetadataIds ? { run_metadata_ids: runMetadataIds } : {}),
@@ -307,9 +290,9 @@ export async function getOrCreateCanonicalCaseId(accountId: string): Promise<str
   const stored = getStoredCaseId(accountId);
   if (stored) return stored;
 
-  const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
-  const lookupData = lookup.data as Record<string, unknown>;
-  const items = (Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
+  const lookup = await apiGet<Record<string, unknown> | Array<Record<string, unknown>>>('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
+  const lookupData = Array.isArray(lookup.data) ? {} : lookup.data;
+  const items = (Array.isArray(lookup.data) ? lookup.data : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
   const existing = (items[0] ?? {}) as CaseRecord;
   const existingCaseId = existing.case_id || existing.id;
   if (existingCaseId) {
@@ -317,11 +300,11 @@ export async function getOrCreateCanonicalCaseId(accountId: string): Promise<str
     return existingCaseId;
   }
 
-  const created = await apiClient.post('l4', '/analysis/cases', {
+  const created = await apiPost<Record<string, unknown>>('l4', '/analysis/cases', {
     account_id: accountId,
     title: `Account ${accountId} workspace`,
   });
-  const createdData = created.data as Record<string, unknown>;
+  const createdData = created.data;
   const createdCaseId = String(createdData?.case_id ?? createdData?.id ?? '');
   if (!createdCaseId) throw new Error('Unable to create case for account workspace');
   setStoredCaseId(accountId, createdCaseId);
@@ -334,7 +317,7 @@ export async function getOrCreateCanonicalCaseId(accountId: string): Promise<str
  */
 export async function persistWorkspaceTab(caseId: string, tabKey: string, payload: unknown): Promise<unknown> {
   try {
-    const response = await apiClient.put('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`, payload);
+    const response = await apiPut<unknown>('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`, payload);
     return response.data;
   } catch (error: unknown) {
     const apiError = error as { statusCode?: number };

@@ -18,13 +18,14 @@ from typing import Any
 
 import structlog
 from neo4j import AsyncDriver
-from value_fabric.layer3.security.query_validator import ValidatedNeo4jSession
-from value_fabric.layer3.services.cypher_scope_guard import (
-    validate_tenant_scoped_cypher,
-)
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
+from ..security.query_validator import ValidatedNeo4jSession
+from .cypher_scope_guard import (
+    validate_tenant_scoped_cypher,
+)
 
 
 class ProductService_create_productResult(TypedDictModel):
@@ -145,12 +146,19 @@ class ProductService:
     ) -> Any:
         """Execute Cypher through mandatory validation gateway."""
         params = parameters or {}
-        tenant_id = params.get("tenant_id")
+        tenant_id = params.get("tenant_id", None)
         if not tenant_id:
             raise RuntimeError("tenant_id is required for ProductService cypher execution")
         self._validate_query_scope(query)
         validated_session = ValidatedNeo4jSession(session, tenant_id=str(tenant_id), strict=True)
-        return await run_validated_query(validated_session, query, params)
+        return await run_validated_query(
+            validated_session,
+            query,
+            params,
+            tenant_id=str(tenant_id),
+            require_explicit_tenant_id=True,
+            query_name="product_service.run_cypher",
+        )
 
     # ------------------------------------------------------------------
     # Product CRUD
@@ -165,49 +173,34 @@ class ProductService:
         product_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        query = """
-        CREATE (p:Product {
-            id: $id,
-            tenant_id: $tenant_id,
-            name: $name,
-            description: $description,
-            category: $category,
-            sku: $sku,
-            pricing_model: $pricing_model,
-            target_personas: $target_personas,
-            industries: $industries,
-            entity_type: 'Product',
-            created_at: datetime($now),
-            updated_at: datetime($now)
-        })
-        RETURN p {.id, .name, .description, .category, .sku,
-                   .pricing_model, .target_personas, .industries,
-                   .created_at} AS product
-        """
+        product_props = {
+            "id": product_id,
+            "tenant_id": tenant_id,
+            "name": product.name,
+            "description": product.description,
+            "category": product.category,
+            "sku": product.sku,
+            "pricing_model": product.pricing_model,
+            "target_personas": product.target_personas,
+            "industries": product.industries,
+            "entity_type": "Product",
+            "created_at": now,
+            "updated_at": now,
+        }
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "id": product_id,
-                    "tenant_id": tenant_id,
-                    "name": product.name,
-                    "description": product.description,
-                    "category": product.category,
-                    "sku": product.sku,
-                    "pricing_model": product.pricing_model,
-                    "target_personas": product.target_personas,
-                    "industries": product.industries,
-                    "now": now,
-                },
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.create_product",
             )
-            record = await result.single()
+            await mutation.write_node("Product", product_id, product_props)
             logger.info(
                 "product_created",
                 product_id=product_id,
                 tenant_id=tenant_id,
                 name=product.name,
             )
-            return ProductService_create_productResult.model_validate({"id": product_id, **(record["product"] if record else {})})
+            return ProductService_create_productResult.model_validate(product_props)
 
     async def get_product(
         self,
@@ -347,22 +340,58 @@ class ProductService:
 
     async def delete_product(self, tenant_id: str, product_id: str) -> bool:
         """Delete a product and its orphaned features."""
-        query = """
+        exists_query = """
         MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-        OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature {tenant_id: $tenant_id})
-        WHERE NOT exists { (f)<-[:HAS_FEATURE]-(other:Product) WHERE other.tenant_id = $tenant_id AND NOT (f)<-[:HAS_FEATURE]-(p) }
-        DETACH DELETE p, f
-        RETURN count(p) AS deleted
+        RETURN count(p) AS found
+        """
+        orphan_features_query = """
+        MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})-[:HAS_FEATURE]->(f:Feature {tenant_id: $tenant_id})
+        WHERE NOT exists {
+            (f)<-[:HAS_FEATURE]-(other:Product {tenant_id: $tenant_id})
+            WHERE other.id <> p.id
+        }
+        RETURN collect(f.id) AS feature_ids
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query, {"product_id": product_id, "tenant_id": tenant_id}
+            exists_result = await self._run_cypher(
+                session,
+                exists_query,
+                {"product_id": product_id, "tenant_id": tenant_id},
             )
-            record = await result.single()
-            deleted = record["deleted"] > 0 if record else False
-            if deleted:
-                logger.info("product_deleted", product_id=product_id, tenant_id=tenant_id)
-            return deleted
+            exists_record = await exists_result.single()
+            found_count = 0
+            if exists_record:
+                try:
+                    found_count = exists_record["found"]
+                except KeyError:
+                    found_count = exists_record["deleted"]
+            if found_count <= 0:
+                return False
+
+            orphan_result = await self._run_cypher(
+                session,
+                orphan_features_query,
+                {"product_id": product_id, "tenant_id": tenant_id},
+            )
+            orphan_record = await orphan_result.single()
+            orphan_feature_ids = []
+            if orphan_record:
+                try:
+                    orphan_feature_ids = orphan_record["feature_ids"]
+                except KeyError:
+                    orphan_feature_ids = []
+
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.delete_product",
+            )
+            await mutation.delete_node("Product", product_id)
+            for feature_id in orphan_feature_ids:
+                await mutation.delete_node("Feature", feature_id)
+
+            logger.info("product_deleted", product_id=product_id, tenant_id=tenant_id)
+            return True
 
     # ------------------------------------------------------------------
     # Feature Management
@@ -375,45 +404,50 @@ class ProductService:
         feature_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        query = """
+        product_query = """
         MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-        CREATE (f:Feature {
-            id: $feature_id,
-            tenant_id: $tenant_id,
-            name: $name,
-            description: $description,
-            feature_type: $feature_type,
-            maturity: $maturity,
-            entity_type: 'Feature',
-            created_at: datetime($now),
-            updated_at: datetime($now)
-        })
-        CREATE (p)-[:HAS_FEATURE {created_at: datetime($now)}]->(f)
-        RETURN f {.id, .name, .description, .feature_type, .maturity} AS feature
+        RETURN p.id AS product_id
         """
+        feature_props = {
+            "id": feature_id,
+            "tenant_id": tenant_id,
+            "name": feature.name,
+            "description": feature.description,
+            "feature_type": feature.feature_type,
+            "maturity": feature.maturity,
+            "entity_type": "Feature",
+            "created_at": now,
+            "updated_at": now,
+        }
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "product_id": product_id,
-                    "tenant_id": tenant_id,
-                    "feature_id": feature_id,
-                    "name": feature.name,
-                    "description": feature.description,
-                    "feature_type": feature.feature_type,
-                    "maturity": feature.maturity,
-                    "now": now,
-                },
+            product_result = await self._run_cypher(
+                session,
+                product_query,
+                {"product_id": product_id, "tenant_id": tenant_id},
             )
-            record = await result.single()
-            if not record:
+            product_record = await product_result.single()
+            if not product_record:
                 return None  # Product not found
+
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.add_feature",
+            )
+            await mutation.write_node("Feature", feature_id, feature_props)
+            await mutation.write_relationship(
+                product_id,
+                "HAS_FEATURE",
+                feature_id,
+                {"created_at": now},
+                versioned=False,
+            )
             logger.info(
                 "feature_added",
                 feature_id=feature_id,
                 product_id=product_id,
             )
-            return ProductService_add_featureResult.model_validate({"id": feature_id, **record["feature"]})
+            return ProductService_add_featureResult.model_validate(feature_props)
 
     async def remove_feature(
         self, tenant_id: str, product_id: str, feature_id: str
@@ -452,57 +486,55 @@ class ProductService:
         capability_id: str,
         strength: float = 1.0,
     ) -> dict[str, Any] | None:
-        """Link a product to an existing capability node."""
-        query = """
-        MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-        MATCH (c:Capability {id: $capability_id})
-        WHERE c.tenant_id = $tenant_id
-        MERGE (p)-[r:ENABLES_CAPABILITY]->(c)
-        ON CREATE SET r.strength = $strength, r.created_at = datetime()
-        ON MATCH SET r.strength = $strength, r.updated_at = datetime()
-        RETURN c {.id, .name} AS capability, r.strength AS strength
+        """Link a product to an existing capability node.
+
+        Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "product_id": product_id,
-                    "tenant_id": tenant_id,
-                    "capability_id": capability_id,
-                    "strength": strength,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.link_capability",
             )
+
+            await mutation.write_relationship(product_id, "ENABLES_CAPABILITY", capability_id, {"strength": strength})
+
+            # Query to return capability info
+            query = """
+            MATCH (c:Capability {id: $capability_id, tenant_id: $tenant_id})
+            RETURN c {.id, .name} AS capability
+            """
+            result = await self._run_cypher(session, query, {
+                "capability_id": capability_id,
+                "tenant_id": tenant_id,
+            })
             record = await result.single()
             if not record:
                 return None
             return ProductService_link_capabilityResult.model_validate({
                 "capability": record["capability"],
-                "strength": record["strength"],
+                "strength": strength,
             })
 
 
     async def unlink_capability(
         self, tenant_id: str, product_id: str, capability_id: str
     ) -> bool:
-        """Remove the ENABLES_CAPABILITY relationship."""
-        query = """
-        MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-              -[r:ENABLES_CAPABILITY]->(c:Capability {id: $capability_id})
-        WHERE c.tenant_id = $tenant_id
-        DELETE r
-        RETURN true AS removed
+        """Remove the ENABLES_CAPABILITY relationship.
+
+        Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "product_id": product_id,
-                    "tenant_id": tenant_id,
-                    "capability_id": capability_id,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship deletion
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.unlink_capability",
             )
-            record = await result.single()
-            return bool(record)
+
+            await mutation.delete_relationship(product_id, "ENABLES_CAPABILITY", capability_id)
+            return True
 
     # ------------------------------------------------------------------
     # Signal-to-Product Matching

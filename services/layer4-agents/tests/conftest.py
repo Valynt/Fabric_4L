@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 """Pytest configuration for Layer 4 Agents tests.
 """
 
-from __future__ import annotations
 
-import sys
 import os
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
 
 # ── Path Setup ─────────────────────────────────────────────────────────────
 _tests_dir = Path(__file__).parent.resolve()
@@ -16,10 +20,18 @@ _repo_root = _layer4_dir.parent.parent.resolve()  # layer4-agents -> services ->
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
+# Add service root so legacy package imports like ``src.models`` resolve.
+if str(_layer4_dir) not in sys.path:
+    sys.path.insert(0, str(_layer4_dir))
+
 # Add src/ so bare `from harness.X` imports in src/harness/__init__.py resolve
 _src_dir = _layer4_dir / "src"
 if str(_src_dir) not in sys.path:
     sys.path.insert(0, str(_src_dir))
+
+# Ensure the real compatibility package is present before collection-time tests
+# that register targeted ``src.models.*`` mocks with sys.modules.setdefault().
+import src.models  # noqa: E402,F401
 
 # Settings are instantiated by several service imports during collection.
 # Keep tests hermetic while still allowing callers to provide real endpoints.
@@ -27,10 +39,142 @@ os.environ.setdefault("LAYER4_LAYER1_API_URL", "http://localhost:8001")
 os.environ.setdefault("LAYER4_LAYER2_API_URL", "http://localhost:8002")
 os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
-os.environ.setdefault("LAYER4_ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
+os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+os.environ.setdefault("NEO4J_PASSWORD", "test-neo4j-password")
+# Allow insecure HTTP for test environment (local development only)
+os.environ.setdefault("ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
 
-import pytest
-from unittest.mock import MagicMock
+# ── Stripe Mocking (must happen before any stripe imports) ───────────────────
+os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fake_key_for_testing")
+
+# Mock stripe module before any imports
+mock_stripe = MagicMock()
+mock_stripe.api_key = "sk_test_fake_key_for_testing"
+mock_stripe.error = MagicMock()
+mock_stripe.error.StripeError = Exception
+mock_stripe.error.SignatureVerificationError = Exception
+mock_stripe.Webhook = MagicMock()
+mock_stripe.Webhook.construct_event = MagicMock()
+mock_stripe.Webhook.verify_header = MagicMock()
+mock_stripe.Customer = MagicMock()
+mock_stripe.checkout = MagicMock()
+mock_stripe.billing_portal = MagicMock()
+
+sys.modules['stripe'] = mock_stripe
+sys.modules['stripe._error'] = mock_stripe.error
+sys.modules['stripe._webhook'] = mock_stripe.Webhook
+
+# ── PostgreSQL Test Lane ─────────────────────────────────────────────────────
+try:
+    from testcontainers.postgres import PostgresContainer
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+
+
+def _docker_available() -> bool:
+    """Check whether a Docker daemon is reachable from the test environment."""
+    try:
+        import docker
+
+        docker.from_env().version()
+        return True
+    except Exception:
+        return False
+
+
+DOCKER_AVAILABLE = _docker_available()
+
+
+def pytest_configure(config):
+    """Register custom pytest markers."""
+    config.addinivalue_line("markers", "postgres: Tests requiring PostgreSQL (JSONB, RLS, etc.)")
+    config.addinivalue_line("markers", "integration: Integration tests requiring external services")
+    config.addinivalue_line("markers", "docker: Tests requiring a Docker daemon")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip postgres/docker tests when their runtime dependencies are unavailable.
+
+    This keeps local ``make test-layer4`` deterministic when Docker is not running
+    while still allowing CI to run the full Docker/PostgreSQL integration lane via
+    ``make test-layer4-live``.
+    """
+    if not POSTGRES_AVAILABLE:
+        skip_postgres = pytest.mark.skip(reason="testcontainers.postgres not installed - run: pip install testcontainers")
+        for item in items:
+            if "postgres" in item.keywords:
+                item.add_marker(skip_postgres)
+        return
+
+    if not DOCKER_AVAILABLE:
+        skip_docker = pytest.mark.skip(
+            reason="Docker daemon not available locally; run Docker or use CI for postgres/docker tests"
+        )
+        for item in items:
+            if "postgres" in item.keywords or "docker" in item.keywords:
+                item.add_marker(skip_docker)
+
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    """Shared PostgreSQL container for all postgres-marked tests."""
+    if not POSTGRES_AVAILABLE:
+        pytest.skip("testcontainers.postgres not installed")
+    if not DOCKER_AVAILABLE:
+        pytest.skip("Docker daemon not available; cannot start PostgreSQL testcontainer")
+
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        yield postgres
+
+
+# ── External Dependency Mocking ───────────────────────────────────────────────
+@pytest.fixture(scope="session")
+def fake_crm_provider():
+    """Provide a fake CRM provider for Salesforce/HubSpot tests."""
+    from layer4_agents.models.account import CRMProvider
+    
+    mock_crm = MagicMock()
+    mock_crm.SALESFORCE = CRMProvider.SALESFORCE
+    mock_crm.HUBSPOT = CRMProvider.HUBSPOT
+    
+    # Mock Salesforce OAuth client
+    mock_salesforce_client = MagicMock()
+    mock_salesforce_client.refresh_token.return_value = {
+        "access_token": "fake_access_token",
+        "instance_url": "https://test.salesforce.com",
+    }
+    mock_crm.salesforce_client = mock_salesforce_client
+    
+    # Mock HubSpot client
+    mock_hubspot_client = MagicMock()
+    mock_crm.hubspot_client = mock_hubspot_client
+    
+    yield mock_crm
+
+
+# MagicMock imported above
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.permissions import Role
+
+# ── Shared Fixtures ───────────────────────────────────────────────────────────
+
+@pytest.fixture
+def mock_tenant_context():
+    """Fixture that provides a mock RequestContext with tenant context for tests.
+    
+    This fixture uses RequestContextManager to set a test RequestContext,
+    allowing tests that depend on tenant context to run without full auth middleware.
+    """
+    from value_fabric.shared.identity.context import RequestContextManager
+    
+    ctx = RequestContext(
+        tenant_id="test-tenant-001",
+        user_id="test-user-001",
+        roles=[Role.TENANT_ADMIN.value]
+    )
+    with RequestContextManager(ctx):
+        yield
 
 # Stub optional heavy deps before any imports that transitively require them
 
@@ -40,13 +184,17 @@ try:
     import neo4j  # noqa: F401
 except ImportError:
     import types as _types
+    from importlib.machinery import ModuleSpec
     _neo4j = _types.ModuleType("neo4j")
+    _neo4j.__spec__ = ModuleSpec("neo4j", loader=None, is_package=True)
     _neo4j.__path__ = []  # type: ignore[attr-defined]
     _neo4j.AsyncDriver = MagicMock()
     _neo4j.AsyncSession = MagicMock()
     _neo4j.AsyncGraphDatabase = MagicMock()
     _neo4j_exc = _types.ModuleType("neo4j.exceptions")
+    _neo4j_exc.__spec__ = ModuleSpec("neo4j.exceptions", loader=None)
     _neo4j_graph = _types.ModuleType("neo4j.graph")
+    _neo4j_graph.__spec__ = ModuleSpec("neo4j.graph", loader=None)
     sys.modules["neo4j"] = _neo4j
     sys.modules["neo4j.exceptions"] = _neo4j_exc
     sys.modules["neo4j.graph"] = _neo4j_graph
@@ -64,8 +212,8 @@ except ImportError:
 try:
     from canonical.llm_output_parser import parse_llm_json  # noqa: F401
 except (ImportError, ModuleNotFoundError):
-    import types as _types
     import json as _json
+    import types as _types
 
     def _parse_llm_json(text: str):  # type: ignore[return]
         try:
@@ -87,8 +235,8 @@ except (ImportError, ModuleNotFoundError):
 try:
     from services.llm_output_parser import parse_llm_json as _  # noqa: F401
 except (ImportError, ModuleNotFoundError):
-    import types as _types
     import json as _json2
+    import types as _types
 
     def _parse_llm_json2(text: str):  # type: ignore[return]
         try:
@@ -123,8 +271,9 @@ try:
 except ImportError:
     pass
 
-import types
 import importlib.util
+import types
+
 
 def _make_pkg(name):
     m = types.ModuleType(name)
@@ -238,7 +387,7 @@ def mock_tool_registry():
             mock_tool_registry.execute.return_value = {"result": "mocked"}
             workflow = BusinessCaseGeneratorWorkflow(tool_registry=mock_tool_registry)
     """
-    from value_fabric.layer4.tools.registry import ToolRegistry
+    from layer4_agents.tools.registry import ToolRegistry
     registry = Mock(spec=ToolRegistry)
     registry.execute = AsyncMock()
     return registry
@@ -282,7 +431,7 @@ def business_case_workflow(mock_tool_registry, mock_openai_client):
     This fixture provides a workflow instance ready for testing with
     all external calls (LLM, tools) pre-mocked.
     """
-    from value_fabric.layer4.workflows.business_case import BusinessCaseGeneratorWorkflow
+    from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
     return BusinessCaseGeneratorWorkflow(
         tool_registry=mock_tool_registry,
         openai_client=mock_openai_client,
@@ -292,7 +441,7 @@ def business_case_workflow(mock_tool_registry, mock_openai_client):
 @pytest.fixture
 def roi_calculator_workflow(mock_tool_registry):
     """Create a ROICalculatorWorkflow with mocked dependencies."""
-    from value_fabric.layer4.workflows.roi_calculator import ROICalculatorWorkflow
+    from layer4_agents.workflows.roi_calculator import ROICalculatorWorkflow
     return ROICalculatorWorkflow(
         tool_registry=mock_tool_registry,
     )
@@ -307,9 +456,9 @@ from typing import Any
 import pytest_asyncio
 from langgraph.checkpoint.memory import InMemorySaver
 
-from value_fabric.layer4.engine.executor import OrchestrationController
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.engine.executor import OrchestrationController
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
 
 TEST_WORKFLOW_TYPE = "roi_calculator"
 
@@ -449,9 +598,10 @@ def completed_workflow_state() -> BaseAgentState:
 # ── SimpleTestWorkflow Fixture ─────────────────────────────────────────────
 # Extracted from test_checkpoint_resume.py to reduce duplication
 
-from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig, NodeType
-from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowConfig
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from layer4_agents.models.workflow_config import EdgeConfig, NodeConfig, NodeType
+from layer4_agents.workflows.base import BaseWorkflow, WorkflowConfig
 
 
 class SimpleTestWorkflow__execute_toolResult(TypedDictModel):

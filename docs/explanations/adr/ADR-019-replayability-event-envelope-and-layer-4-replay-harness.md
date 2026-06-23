@@ -60,7 +60,7 @@ Envelope records are append-only and must not be mutated in-place.
 
 Initial harness implementation is provided at Layer 4 service boundary:
 
-- `services/layer4-agents/src/workflows/replay.py`
+- `services/layer4-agents/src/layer4_agents/workflows/replay.py`
 
 It replays `layer4.workflow_state` events into `BaseAgentState` deterministically for non-production use.
 The harness now exposes a repository interface boundary (`ReplayEventStream`) via

@@ -1,3 +1,9 @@
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -19,10 +25,10 @@ from pydantic import BaseModel, Field
 
 from ...api.dependencies import AppState, _extract_tenant_id, get_app_state
 from ...db.query_execution import (
-    MAX_QUERY_DEPTH,
     QUERY_TIMEOUT_SECONDS,
     CypherDepthLimitExceeded,
 )
+from ...graph.query_guards import sanitize_query_depth, sanitize_query_timeout_seconds
 
 router = APIRouter()
 
@@ -134,15 +140,15 @@ async def get_value_tree(
     try:
         neo4j = app_state.neo4j_driver
         if not neo4j:
-            raise HTTPException(status_code=503, detail="Neo4j not available")
+            raise ServiceUnavailableError(message = "Neo4j not available")
 
         # Extract tenant_id for multi-tenant security
         tenant_id = _extract_tenant_id(request)
         if not tenant_id:
-            raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
+            raise ValidationError(message = "tenant_id is required for value tree access")
 
         # Clamp depth to global limit
-        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
+        max_depth = sanitize_query_depth(max_depth, default_depth=4)
 
         # Verify entity exists with mandatory tenant filtering
         root_query = """
@@ -151,10 +157,10 @@ async def get_value_tree(
         """
         root_result = await asyncio.wait_for(
             neo4j.execute_query(root_query, {"entity_id": entity_id, "tenant_id": tenant_id}),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         if not root_result:
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
 
         root = root_result[0]
         root_type = root.get("type", "Unknown")
@@ -185,7 +191,7 @@ async def get_value_tree(
             neo4j.execute_query(
                 path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         # Collect nodes and edges
@@ -281,20 +287,12 @@ async def get_value_tree(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
-        ) from exc
+        raise ValidationError(message = "Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)") from exc
     except TimeoutError:
-        raise HTTPException(
-            status_code=400,
-            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
-        )
+        raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve value tree: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve value tree"
-        ) from e
+        raise ServiceUnavailableError(message="Failed to retrieve value tree") from e
 
 
 @router.get(
@@ -315,14 +313,14 @@ async def get_value_tree_paths(
     try:
         neo4j = app_state.neo4j_driver
         if not neo4j:
-            raise HTTPException(status_code=503, detail="Neo4j not available")
+            raise ServiceUnavailableError(message = "Neo4j not available")
 
         # Extract tenant_id for multi-tenant security
         tenant_id = _extract_tenant_id(request)
         if not tenant_id:
-            raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
+            raise ValidationError(message = "tenant_id is required for value tree access")
 
-        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
+        max_depth = sanitize_query_depth(max_depth, default_depth=4)
 
         if direction == "upward":
             query = """
@@ -341,7 +339,7 @@ async def get_value_tree_paths(
             neo4j.execute_query(
                 query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         paths = []
@@ -359,17 +357,9 @@ async def get_value_tree_paths(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
-        ) from exc
+        raise ValidationError(message = "Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)") from exc
     except TimeoutError:
-        raise HTTPException(
-            status_code=400,
-            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
-        )
+        raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve value tree paths: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve paths"
-        ) from e
+        raise ServiceUnavailableError(message="Failed to retrieve paths") from e

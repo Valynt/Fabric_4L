@@ -4,8 +4,8 @@
  * Primary data: workspace case narratives (existing)
  * DIL enrichment: DIL Narrative Builder for tone/audience-specific generation
  */
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Users,
   Download,
@@ -15,10 +15,8 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
 import { cn } from "@/lib/utils";
-import { useAgentEvents } from "@/agui";
+import { useStudioDetailRail } from "@/features/value-studio/StudioRightRailContext";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
@@ -28,6 +26,7 @@ import {
   useWorkspaceTabQuery,
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -40,6 +39,14 @@ import {
 } from "@/hooks/useNarratives";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard, Btn } from "@/components/ui/fabric";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface NarrativeVersion {
@@ -57,20 +64,20 @@ const STATUS_CONFIG: Record<
   NarrativeVersion["status"],
   { label: string; color: string; bg: string }
 > = {
-  ready: { label: "Ready", color: "text-green-600", bg: "bg-green-500" },
-  draft: { label: "Draft", color: "text-orange-600", bg: "bg-orange-500" },
+  ready: { label: "Ready", color: "text-success", bg: "bg-success" },
+  draft: { label: "Draft", color: "text-warning", bg: "bg-warning" },
   generating: {
     label: "Generating",
-    color: "text-blue-600",
-    bg: "bg-blue-500",
+    color: "text-primary",
+    bg: "bg-primary",
   },
 };
 
 const DIL_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   draft: { label: "Draft", color: "text-muted-foreground", bg: "bg-muted" },
-  review: { label: "Review", color: "text-orange-600", bg: "bg-orange-500" },
-  approved: { label: "Approved", color: "text-green-600", bg: "bg-green-500" },
-  delivered: { label: "Delivered", color: "text-blue-600", bg: "bg-blue-500" },
+  review: { label: "Review", color: "text-warning", bg: "bg-warning" },
+  approved: { label: "Approved", color: "text-success", bg: "bg-success" },
+  delivered: { label: "Delivered", color: "text-primary", bg: "bg-primary" },
 };
 
 const TONE_OPTIONS = ["executive", "technical", "financial", "consultative"] as const;
@@ -107,17 +114,17 @@ function DILNarrativeCard({
           <span className="text-xs font-medium truncate">
             {narrative.title}
           </span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-semibold shrink-0">
+          <span className="vf-text-micro px-1.5 py-0.5 bg-primary/10 text-primary rounded font-semibold shrink-0">
             DIL
           </span>
         </div>
-        <div className="text-[10px] text-muted-foreground">
+        <div className="vf-text-micro text-muted-foreground">
           {narrative.tone} · {narrative.audience}
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <div className={cn("w-1.5 h-1.5 rounded-full", sc.bg)} />
-        <span className={cn("text-[10px] font-semibold", sc.color)}>
+        <span className={cn("vf-text-micro font-semibold", sc.color)}>
           {sc.label}
         </span>
       </div>
@@ -126,8 +133,7 @@ function DILNarrativeCard({
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function NarrativeTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function NarrativeTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -137,7 +143,6 @@ export default function NarrativeTab() {
   const [selectedNarrative, setSelectedNarrative] =
     useState<NarrativeVersion | null>(null);
   const [selectedDIL, setSelectedDIL] = useState<Narrative | null>(null);
-  const [railMode, setRailMode] = useState<RightRailMode>("detail");
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [genTone, setGenTone] = useState<string>("executive");
   const [genAudience, setGenAudience] = useState<string>("c_suite");
@@ -159,12 +164,44 @@ export default function NarrativeTab() {
       setSelectedNarrative(narratives[0]);
   }, [narratives, selectedNarrative, selectedDIL]);
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "narrative",
-    accountName: account?.name ?? "Account",
-  });
-
   const generateMutation = useGenerateWorkspaceIntelligence();
+
+  const detailNode = useMemo<ReactNode>(() => {
+    if (selectedNarrative) {
+      const status = STATUS_CONFIG[selectedNarrative.status];
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedNarrative.stakeholder}</h3>
+          <p className="text-xs text-muted-foreground">{selectedNarrative.role}</p>
+          {status && (
+            <span className={cn("vf-text-micro font-semibold", status.color)}>
+              {status.label}
+            </span>
+          )}
+        </div>
+      );
+    }
+    if (selectedDIL) {
+      return (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {selectedDIL.tone} · {selectedDIL.audience}
+          </p>
+          <span
+            className={cn(
+              "vf-text-micro font-semibold",
+              DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-muted-foreground"
+            )}
+          >
+            {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }, [selectedNarrative, selectedDIL]);
+  useStudioDetailRail(detailNode);
 
   useEffect(() => {
     if (
@@ -216,81 +253,28 @@ export default function NarrativeTab() {
   }
   if (error || generateMutation.isError) {
     return (
-      <div className="p-6 text-sm text-destructive">
-        Failed to load narratives.
-      </div>
+      <ErrorState
+        title="Failed to load narratives"
+        description="An error occurred while loading narrative data."
+        error={error || generateMutation.error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return (
+      <ErrorState
+        title="Account not found"
+        description="The requested account could not be found."
+      />
+    );
   }
 
   const readyCount = narratives.filter((n) => n.status === "ready").length;
-  const selectedStatus = selectedNarrative
-    ? STATUS_CONFIG[selectedNarrative.status]
-    : null;
 
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue
-          ? `$${account.annual_revenue.toLocaleString()}`
-          : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          detailContent={
-            selectedNarrative ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">
-                  {selectedNarrative.stakeholder}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedNarrative.role}
-                </p>
-                {selectedStatus && (
-                  <span
-                    className={cn(
-                      "text-[10px] font-semibold",
-                      selectedStatus.color
-                    )}
-                  >
-                    {selectedStatus.label}
-                  </span>
-                )}
-              </div>
-            ) : selectedDIL ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold">{selectedDIL.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedDIL.tone} · {selectedDIL.audience}
-                </p>
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold",
-                    DIL_STATUS_CONFIG[selectedDIL.status]?.color ?? "text-gray-600"
-                  )}
-                >
-                  {DIL_STATUS_CONFIG[selectedDIL.status]?.label ?? selectedDIL.status}
-                </span>
-              </div>
-            ) : null
-          }
-          activeTab="narrative"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-            steps={steps}
-            isStreaming={isStreaming}
-            runMetadata={metadata}
-        />
-      }
-    >
+    <div className="space-y-6">
       {/* Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <MetricCard
@@ -318,40 +302,42 @@ export default function NarrativeTab() {
         <SectionCard title="Generate DIL Narrative" className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles size={13} className="text-primary" />
-            <span className="text-[11px] text-muted-foreground">
+            <span className="vf-text-caption text-muted-foreground">
               Generate a narrative using the DIL Narrative Builder engine
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
-              <label className="text-[11px] font-medium block mb-1">Tone</label>
-              <select
-                value={genTone}
-                onChange={(e) => setGenTone(e.target.value)}
-                className="w-full text-xs border border-border rounded-md px-2 py-1.5"
-              >
-                {TONE_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
+              <label className="vf-text-caption font-medium block mb-1">Tone</label>
+              <Select value={genTone} onValueChange={setGenTone}>
+                <SelectTrigger className="w-full vf-text-body-s">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="text-[11px] font-medium block mb-1">
+              <label className="vf-text-caption font-medium block mb-1">
                 Audience
               </label>
-              <select
-                value={genAudience}
-                onChange={(e) => setGenAudience(e.target.value)}
-                className="w-full text-xs border border-border rounded-md px-2 py-1.5"
-              >
-                {AUDIENCE_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                  </option>
-                ))}
-              </select>
+              <Select value={genAudience} onValueChange={setGenAudience}>
+                <SelectTrigger className="w-full vf-text-body-s">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUDIENCE_OPTIONS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-2">
@@ -375,14 +361,14 @@ export default function NarrativeTab() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Sparkles size={13} className="text-primary" />
-              <span className="text-[11px] text-muted-foreground">
+              <span className="vf-text-caption text-muted-foreground">
                 Generated by the DIL Narrative Builder
               </span>
             </div>
             {!showGenerateForm && (
               <Btn
                 variant="outline"
-                className="text-[10px]"
+                className="vf-text-micro"
                 onClick={() => setShowGenerateForm(true)}
               >
                 + New DIL Narrative
@@ -447,18 +433,18 @@ export default function NarrativeTab() {
                       <span className="text-xs font-medium">
                         {narrative.stakeholder}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="vf-text-micro text-muted-foreground">
                         {narrative.role}
                       </span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground truncate">
+                    <div className="vf-text-micro text-muted-foreground truncate">
                       {narrative.headline}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className={cn("w-1.5 h-1.5 rounded-full", sc.bg)} />
                     <span
-                      className={cn("text-[10px] font-semibold", sc.color)}
+                      className={cn("vf-text-micro font-semibold", sc.color)}
                     >
                       {sc.label}
                     </span>
@@ -499,8 +485,8 @@ export default function NarrativeTab() {
           <div className="space-y-3">
             {selectedDIL.sections?.map((section: { title: string; summary: string }, i: number) => (
               <div key={i}>
-                <h4 className="text-[12px] font-semibold mb-1">{section.title}</h4>
-                <p className="text-[12px] text-muted-foreground">{section.summary}</p>
+                <h4 className="vf-text-body-s font-semibold mb-1">{section.title}</h4>
+                <p className="vf-text-body-s text-muted-foreground">{section.summary}</p>
               </div>
             ))}
           </div>
@@ -516,6 +502,6 @@ export default function NarrativeTab() {
           </div>
         </SectionCard>
       ) : null}
-    </ValueStudioShellComponent>
+    </div>
   );
 }

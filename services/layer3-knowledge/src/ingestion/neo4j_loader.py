@@ -21,6 +21,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from ..config import Settings, get_settings
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.driver import get_driver
 from ..ingestion.validators import RequiredFieldValidator
 from ..schema.constraints import ENTITY_TYPES, RELATIONSHIP_TYPES
@@ -70,7 +71,9 @@ def _validate_internal_system_tenant_id(tenant_id: str) -> str:
     """Validate the explicit internal-only platform ingestion scope."""
     normalized = str(tenant_id).strip().lower()
     if normalized != "system":
-        raise TenantValidationError("internal system ingestion requires tenant_id='system'")
+        raise TenantValidationError(
+            "internal system ingestion requires tenant_id='system'"
+        )
     return normalized
 
 
@@ -211,7 +214,9 @@ class Neo4jLoader:
         for entity_type in ENTITY_TYPES:
             type_uris = (VF[entity_type], VF_HTTPS[entity_type])
 
-            for subject in {s for type_uri in type_uris for s in graph.subjects(RDF.type, type_uri)}:
+            for subject in {
+                s for type_uri in type_uris for s in graph.subjects(RDF.type, type_uri)
+            }:
                 entity_data: dict[str, Any] = {"uri": str(subject)}
 
                 for predicate, obj in graph.predicate_objects(subject):
@@ -494,45 +499,23 @@ class Neo4jLoader:
 
         entities = self._attach_embeddings(entity_type, entities)
 
-        # Inject tenant_id into each entity
+        # Inject tenant_id and metadata into each entity
         for entity in entities:
             entity["tenant_id"] = validated_tenant_id
+            entity["source_id"] = source_id
+            entity["extraction_job_id"] = extraction_job_id
+            entity["loaded_at"] = datetime.utcnow().isoformat()
 
-        entity_data = {
-            "entities": entities,
-            "source_id": source_id,
-            "extraction_job_id": extraction_job_id,
-            "loaded_at": datetime.utcnow().isoformat(),
-        }
-
-        if self.use_apoc:
-            query = f"""
-            UNWIND $entities as entity
-            MERGE (n:{entity_type} {{id: entity.id, tenant_id: entity.tenant_id}})
-            SET n += apoc.map.removeKeys(entity, ['id', 'tenant_id'])
-            SET n.source_id = $source_id
-            SET n.extraction_job_id = $extraction_job_id
-            SET n.loaded_at = datetime($loaded_at)
-            RETURN count(n) as loaded
-            """
-        else:
-            # Native Cypher: MERGE on id+tenant_id, then spread the full map.
-            # The 'id' and 'tenant_id' keys are harmlessly re-set to the same value.
-            query = f"""
-            UNWIND $entities as entity
-            MERGE (n:{entity_type} {{id: entity.id, tenant_id: entity.tenant_id}})
-            ON CREATE SET n = entity
-            ON MATCH SET n += entity
-            SET n.source_id = $source_id
-            SET n.extraction_job_id = $extraction_job_id
-            SET n.loaded_at = datetime($loaded_at)
-            RETURN count(n) as loaded
-            """
+        # Phase 1 hardening: Use AuditedGraphMutation for bulk node writes
+        mutation = AuditedGraphMutation(
+            tenant_id=validated_tenant_id,
+            session=session,
+            operation_source="neo4j_loader._load_entities_batch",
+        )
 
         try:
-            result = await session.run(query, entity_data)
-            record = await result.single()
-            return record["loaded"] if record else 0
+            result = await mutation.write_nodes_batch(entity_type, entities)
+            return result.get("count", 0)
         except Exception as e:
             logger.error(f"Failed to load {entity_type} entities: {e}")
             return 0
@@ -569,50 +552,43 @@ class Neo4jLoader:
         for rel in all_relationships:
             rel["tenant_id"] = validated_tenant_id
 
-        if not self.use_apoc:
-            return await self._load_relationships_native(
-                session,
-                all_relationships,
-                source_id,
-                extraction_job_id,
-                validated_tenant_id,
+        # Phase 1 hardening: Use AuditedGraphMutation for bulk relationship writes
+        mutation = AuditedGraphMutation(
+            tenant_id=validated_tenant_id,
+            session=session,
+            operation_source="neo4j_loader._load_relationships_batch",
+        )
+
+        # Group by relationship type for batch operations
+        by_type: dict[str, list[dict]] = defaultdict(list)
+        for rel in all_relationships:
+            predicate = (
+                rel.get("predicate", "").lower().replace("-", "_").replace(" ", "_")
             )
+            if predicate in RELATIONSHIP_TYPES:
+                by_type[predicate].append(
+                    {
+                        "src_id": rel.get("source_id"),
+                        "tgt_id": rel.get("target_id"),
+                    }
+                )
+            else:
+                logger.warning(
+                    "Skipping unknown relationship type '%s' (source=%s → target=%s)",
+                    predicate,
+                    rel.get("source_id"),
+                    rel.get("target_id"),
+                )
 
-        # APOC path (opt-in) - use flattened list
-        rel_data = {
-            "relationships": all_relationships,
-            "source_id": source_id,
-            "extraction_job_id": extraction_job_id,
-            "loaded_at": datetime.utcnow().isoformat(),
-        }
+        total_loaded = 0
+        for rel_type, triples in by_type.items():
+            try:
+                result = await mutation.write_relationships_batch(rel_type, triples)
+                total_loaded += result.get("count", 0)
+            except Exception as e:
+                logger.error(f"Failed to load {rel_type} relationships: {e}")
 
-        query = """
-        UNWIND $relationships as rel
-        MATCH (source {id: rel.source_id, tenant_id: rel.tenant_id})
-        MATCH (target {id: rel.target_id, tenant_id: rel.tenant_id})
-        WITH source, target, rel
-        CALL apoc.merge.relationship(
-            source,
-            rel.predicate,
-            {source_id: rel.source_id, target_id: rel.target_id},
-            {
-                source_id: $source_id,
-                extraction_job_id: $extraction_job_id,
-                loaded_at: datetime($loaded_at)
-            },
-            target
-        ) YIELD rel as created_rel
-        RETURN count(created_rel) as loaded
-        """
-
-        try:
-            # tenant_id is carried per relationship in rel_data and matched on both endpoints.
-            result = await session.run(query, rel_data)
-            record = await result.single()
-            return record["loaded"] if record else 0
-        except Exception as e:
-            logger.error(f"Failed to load relationships (APOC): {e}")
-            return 0
+        return total_loaded
 
     async def _load_relationships_native(
         self,
@@ -632,7 +608,6 @@ class Neo4jLoader:
         validated against RELATIONSHIP_TYPES before interpolation to prevent
         injection.
         """
-        loaded_at = datetime.utcnow().isoformat()
         by_type: dict[str, list[dict]] = defaultdict(list)
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
 
@@ -651,105 +626,66 @@ class Neo4jLoader:
                 )
 
         total_loaded = 0
+        loaded_at = datetime.utcnow().isoformat()
+        mutation = AuditedGraphMutation(
+            tenant_id=validated_tenant_id,
+            session=session,
+            operation_source="neo4j_loader._load_relationships_native",
+        )
+
         for rel_type, rels in by_type.items():
-            params = {
-                "relationships": rels,
-                "source_id": source_id,
-                "extraction_job_id": extraction_job_id,
-                "loaded_at": loaded_at,
-                "tenant_id": validated_tenant_id,
-            }
-            # rel_type is validated against RELATIONSHIP_TYPES above — safe to
-            # interpolate into the query string.
-            query = f"""
-            UNWIND $relationships AS rel
-            MATCH (source {{id: rel.source_id, tenant_id: $tenant_id}})
-            MATCH (target {{id: rel.target_id, tenant_id: $tenant_id}})
-            MERGE (source)-[r:{rel_type} {{source_id: rel.source_id, target_id: rel.target_id}}]->(target)
-            ON CREATE SET
-                r.source_id = $source_id,
-                r.extraction_job_id = $extraction_job_id,
-                r.loaded_at = datetime($loaded_at),
-                r.confidence = rel.confidence,
-                r.raw_predicate = rel.raw_predicate,
-                r.impact_level = rel.impact_level,
-                r.strength = rel.strength,
-                r.enablement_type = rel.enablement_type,
-                r.benefit_type = rel.benefit_type,
-                r.driver_type = rel.driver_type,
-                r.contribution_weight = rel.contribution_weight,
-                r.influence_weight = rel.influence_weight,
-                r.created_at = datetime()
-            ON MATCH SET
-                r.source_id = $source_id,
-                r.extraction_job_id = $extraction_job_id,
-                r.loaded_at = datetime($loaded_at),
-                r.confidence = rel.confidence,
-                r.raw_predicate = rel.raw_predicate,
-                r.impact_level = rel.impact_level,
-                r.strength = rel.strength,
-                r.enablement_type = rel.enablement_type,
-                r.benefit_type = rel.benefit_type,
-                r.driver_type = rel.driver_type,
-                r.contribution_weight = rel.contribution_weight,
-                r.influence_weight = rel.influence_weight,
-                r.updated_at = datetime()
-            RETURN count(r) AS loaded
-            """
             try:
-                result = await session.run(query, params)
-                record = await result.single()
-                total_loaded += record["loaded"] if record else 0
+                for rel in rels:
+                    await mutation.write_relationship(
+                        rel["source_id"],
+                        rel_type,
+                        rel["target_id"],
+                        properties={
+                            "source_id": source_id,
+                            "source_entity_id": rel["source_id"],
+                            "target_entity_id": rel["target_id"],
+                            "extraction_job_id": extraction_job_id,
+                            "loaded_at": loaded_at,
+                            "confidence": rel.get("confidence"),
+                            "raw_predicate": rel.get("raw_predicate"),
+                            "impact_level": rel.get("impact_level"),
+                            "strength": rel.get("strength"),
+                            "enablement_type": rel.get("enablement_type"),
+                            "benefit_type": rel.get("benefit_type"),
+                            "driver_type": rel.get("driver_type"),
+                            "contribution_weight": rel.get("contribution_weight"),
+                            "influence_weight": rel.get("influence_weight"),
+                        },
+                    )
+                    total_loaded += 1
             except Exception as exc:
                 logger.error("Failed to load %s relationships: %s", rel_type, exc)
 
         return total_loaded
 
-    async def delete_by_source(self, source_id: str, tenant_id: str | None = None) -> dict:
+    async def delete_by_source(
+        self, source_id: str, tenant_id: str | None = None
+    ) -> dict:
         """Delete all entities and relationships from a specific source.
 
-        Args:
-            source_id: Source document ID to delete
-            tenant_id: Validated tenant UUID for isolation
-
-        Returns:
-            Dictionary with deletion statistics
+        Phase 1 hardening: Uses AuditedGraphMutation for bulk deletion.
         """
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
         driver = await self._get_driver()
-        stats = {"entities_deleted": 0, "relationships_deleted": 0}
 
         async with driver.session(database=self.settings.neo4j_database) as session:
-            # Delete relationships first (match through nodes to ensure tenant isolation)
-            rel_result = await session.run(
-                """
-                MATCH (n)-[r]->(m)
-                WHERE n.source_id = $source_id AND n.tenant_id = $tenant_id
-                DELETE r
-                RETURN count(r) as deleted
-                """,
-                {"source_id": source_id, "tenant_id": validated_tenant_id},
+            # Phase 1 hardening: Use AuditedGraphMutation for bulk deletion
+            mutation = AuditedGraphMutation(
+                tenant_id=validated_tenant_id,
+                session=session,
+                operation_source="neo4j_loader.delete_by_source",
             )
-            record = await rel_result.single()
-            stats["relationships_deleted"] = record["deleted"] if record else 0
 
-            # Delete entities
-            entity_result = await session.run(
-                """
-                MATCH (n)
-                WHERE n.source_id = $source_id AND n.tenant_id = $tenant_id
-                DELETE n
-                RETURN count(n) as deleted
-                """,
-                {"source_id": source_id, "tenant_id": validated_tenant_id},
-            )
-            record = await entity_result.single()
-            stats["entities_deleted"] = record["deleted"] if record else 0
+            stats = await mutation.delete_by_source(source_id)
 
         logger.info(
             f"Deleted {stats['entities_deleted']} entities and "
             f"{stats['relationships_deleted']} relationships for source {source_id} "
             f"in tenant {validated_tenant_id}"
         )
-
         return stats

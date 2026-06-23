@@ -1,7 +1,7 @@
-from value_fabric.layer3.backup.backup_manager import BackupConfig as ServiceBackupConfig
-from value_fabric.layer3.backup.backup_manager import BackupManager as ServiceBackupManager
-from value_fabric.layer3.backup.backup_manager import LocalStorage as ServiceLocalStorage
-from value_fabric.layer3.backup.backup_manager import BackupConfig, BackupManager, LocalStorage
+from src.backup.backup_manager import BackupConfig as ServiceBackupConfig
+from src.backup.backup_manager import BackupManager as ServiceBackupManager
+from src.backup.backup_manager import LocalStorage as ServiceLocalStorage
+from src.backup.backup_manager import BackupConfig, BackupManager, LocalStorage
 
 
 def test_backup_manager_uses_concrete_storage(tmp_path):

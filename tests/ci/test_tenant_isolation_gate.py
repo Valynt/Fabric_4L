@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _read(path: str) -> str:
+    return (REPO_ROOT / path).read_text(encoding="utf-8")
+
+
+def test_root_isolation_script_uses_first_class_runner() -> None:
+    package_json = _read("package.json")
+
+    assert '"test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation"' in package_json
+
+
+def test_tenant_isolation_runner_groups_required_boundaries() -> None:
+    script_path = REPO_ROOT / "scripts" / "ci" / "run_tenant_isolation_gate.py"
+    module = ast.parse(script_path.read_text(encoding="utf-8"))
+    constants = {
+        value
+        for node in ast.walk(module)
+        if isinstance(node, ast.Constant) and isinstance((value := node.value), str)
+    }
+
+    expected_group_ids = {
+        "cross-layer",
+        "l1-rls-jobs",
+        "l2-extraction",
+        "l3-graph",
+        "l4-agents-jobs",
+        "l5-ground-truth",
+        "l6-benchmarks",
+        "cache",
+    }
+    assert expected_group_ids <= constants
+
+    expected_targets = {
+        "tests/security/test_cross_layer_tenant_isolation_matrix.py",
+        "tests/security/test_tenant_boundary_fails_closed.py",
+        "tests/security/test_rls_enforcement_postgres.py",
+        "tests/security/test_celery_tenant_isolation_postgres.py",
+        "services/layer3-knowledge/tests/test_tenant_isolation.py",
+        "services/layer4-agents/tests/test_workflow_tenant_isolation.py",
+        "tests/test_api.py::TestGetTruth::test_org_isolation",
+        "services/layer6-benchmarks/tests/test_repository_tenant_isolation.py",
+        "tests/cache/test_redis_tenant_isolation.py",
+    }
+    assert expected_targets <= constants
+
+
+def test_ci_uses_first_class_tenant_isolation_gate() -> None:
+    pr_checks = _read(".github/workflows/pr-checks.yml")
+    critical_gates = _read(".github/workflows/critical-gates.yml")
+
+    assert "tenant-isolation-gate:" in pr_checks
+    assert "name: Tenant Isolation Gate" in pr_checks
+    assert "run: pnpm test:isolation" in pr_checks
+    assert "- tenant-isolation-gate" in pr_checks
+    assert '["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"' in pr_checks
+    assert 'command: "pnpm test:isolation"' in critical_gates
+
+
+def test_pytest_marker_inventory_includes_tenant_isolation() -> None:
+    pytest_ini = _read("pytest.ini")
+    conftest = _read("conftest.py")
+
+    assert "tenant_isolation: First-class tenant isolation gate tests" in pytest_ini
+    assert '"tenant_boundary", "tenant_matrix", "cross_tenant_write"' in conftest
+    assert '"tenant_isolation"' in conftest

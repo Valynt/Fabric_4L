@@ -1,6 +1,9 @@
 BEGIN;
 
 -- Running upgrade 030 -> 031
+-- MIGRATION_REVIEW_REQUIRED: This migration creates tables with RLS policies
+-- that are Enterprise-only. Community Edition fallback: skip RLS sections if
+-- row_security setting is not available.
 
 CREATE TABLE harness_runs (
     id VARCHAR(64) NOT NULL, 

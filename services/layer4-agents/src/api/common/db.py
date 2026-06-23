@@ -1,7 +1,7 @@
-"""Shared DB dependency helpers for API routes."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.api.common.db``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from ...database import get_db_from_context
-
-get_route_db = get_db_from_context
+from layer4_agents.api.common.db import *  # noqa: F401,F403

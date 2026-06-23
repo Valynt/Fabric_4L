@@ -190,6 +190,38 @@ ROLE_PERMISSIONS: dict[Role, RolePermissions] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Role hierarchy for escalation guard (F-11)
+# ---------------------------------------------------------------------------
+
+# An inviter may only grant roles strictly below their own rank.
+# Higher rank = more privilege.
+ROLE_RANK: dict[str, int] = {
+    Role.SUPER_ADMIN.value: 100,
+    Role.TENANT_ADMIN.value: 80,
+    Role.CONTENT_ADMIN.value: 60,
+    Role.ANALYST.value: 40,
+    Role.READ_ONLY.value: 20,
+}
+
+
+def get_role_rank(role: str | Role) -> int:
+    """Return the rank for a role string or enum. Unknown roles resolve to 0."""
+    raw = role.value if isinstance(role, Role) else role
+    return ROLE_RANK.get(raw, 0)
+
+
+def can_grant_role(inviter_role: str | Role, invitee_role: str | Role) -> bool:
+    """Return True if *inviter_role* may grant *invitee_role*.
+
+    An inviter may only grant roles with a rank **strictly lower** than their
+    own.  Unrecognised roles resolve to rank 0 and are always blocked.
+    """
+    inviter_rank = get_role_rank(inviter_role)
+    invitee_rank = get_role_rank(invitee_role)
+    return inviter_rank > 0 and invitee_rank > 0 and invitee_rank < inviter_rank
+
+
 def get_role_permissions(role: Role) -> FrozenSet[Permission]:
     """Return the canonical permission set for a role."""
     return ROLE_PERMISSIONS[role].permissions

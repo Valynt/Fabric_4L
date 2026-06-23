@@ -6,7 +6,7 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "launch-readiness.yml"
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "prod-readiness.yml"
 
 
 def _workflow() -> dict:
@@ -19,16 +19,16 @@ def test_launch_readiness_workflow_is_stage_gated() -> None:
     workflow = _workflow()
     jobs = workflow["jobs"]
 
-    assert "stage-1-baseline" in jobs
-    assert "stage-2-frontend-tests" in jobs
-    assert "stage-2-journey-smoke" in jobs
-    assert "stage-3-contract-security" in jobs
-    assert "stage-4-evidence-archive" in jobs
-    assert "stage-5-staging-evidence" in jobs
-    assert jobs["stage-2-frontend-tests"]["needs"] == "stage-1-baseline"
-    assert set(jobs["stage-3-contract-security"]["needs"]) == {"stage-2-frontend-tests", "stage-2-journey-smoke"}
-    assert jobs["stage-4-evidence-archive"]["needs"] == "stage-3-contract-security"
-    assert jobs["stage-5-staging-evidence"]["needs"] == "stage-4-evidence-archive"
+    assert "setup" in jobs
+    assert "security-isolation" in jobs
+    assert "observability-readiness" in jobs
+    assert "readiness-10" in jobs
+    assert "release-policy" in jobs
+    assert "prod-readiness-summary" in jobs
+    assert jobs["setup"]["needs"] == ["determine-profile"]
+    assert jobs["readiness-10"]["needs"] == ["setup"]
+    assert "readiness-10" in jobs["release-policy"]["needs"]
+    assert "release-policy" in jobs["prod-readiness-summary"]["needs"]
 
 
 def test_launch_readiness_workflow_is_artifact_only_no_ci_push() -> None:
@@ -40,16 +40,28 @@ def test_launch_readiness_workflow_is_artifact_only_no_ci_push() -> None:
     assert "git push" not in content
     assert "git commit" not in content
     assert "upload-artifact" in content
-    assert "generate_launch_evidence_bundle.py" in content
+    assert "Build launch-readiness evidence bundle" in content
+    assert "validate-release-manifest.py" in content
+
+
+def test_launch_readiness_workflow_runs_blocking_readiness_10_gate() -> None:
+    content = WORKFLOW.read_text(encoding="utf-8")
+    workflow = _workflow()
+    job = workflow["jobs"]["readiness-10"]
+
+    assert job["needs"] == ["setup"]
+    assert "pnpm readiness:10" in content
+    assert "pnpm readiness:10 || true" not in content
+    assert "artifacts/readiness-10/**" in content
 
 
 def test_launch_readiness_workflow_uses_expected_stage_inputs() -> None:
     content = WORKFLOW.read_text(encoding="utf-8")
 
-    for stage in ("baseline", "local_quality", "contract_security", "evidence_archive", "staging"):
-        assert stage in content
-    assert "--up-to-stage evidence_archive" in content
-    assert "environment: staging" in content
+    for gate in ("gate-policy", "gate-security", "gate-obs", "gate-release-policy"):
+        assert gate in content
+    assert "tenant-isolation-results.json" in content
+    assert "red-dashboard-snapshot-metadata.json" in content
 
 
 def test_pnpm_is_setup_before_setup_node_pnpm_cache() -> None:
@@ -78,10 +90,10 @@ def test_pnpm_is_setup_before_setup_node_pnpm_cache() -> None:
     assert not violations, "setup-node pnpm cache appears before pnpm setup in: " + ", ".join(violations)
 
 
-def test_stage_1_installs_python_gate_dependencies_before_validators() -> None:
-    """Regression for PR #347: PyYAML must be installed before launch gate validators run."""
+def test_setup_installs_python_gate_dependencies_before_validators() -> None:
+    """PyYAML must be installed before Python policy validators run."""
     workflow = _workflow()
-    steps = workflow["jobs"]["stage-1-baseline"]["steps"]
+    steps = workflow["jobs"]["setup"]["steps"]
 
     validator_idx = None
     pyyaml_idx = None
@@ -89,41 +101,31 @@ def test_stage_1_installs_python_gate_dependencies_before_validators() -> None:
         if not isinstance(step, dict):
             continue
         name = step.get("name", "")
-        if "Launch gate validators" in name:
+        if "Validate policy enforcement matrix coverage" in name:
             validator_idx = i
-        if "Install Python gate dependencies" in name:
+        if "Enforce release P0 skip policy" in name:
             pyyaml_idx = i
 
-    assert pyyaml_idx is not None, "Missing 'Install Python gate dependencies' step in stage-1-baseline"
-    assert validator_idx is not None, "Missing 'Launch gate validators' step in stage-1-baseline"
+    assert pyyaml_idx is not None, "Missing Python gate dependency install in setup"
+    assert validator_idx is not None, "Missing policy validator step in setup"
     assert pyyaml_idx < validator_idx, (
         f"Python gate dependency install (step {pyyaml_idx}) must come before "
-        f"launch validators (step {validator_idx})"
+        f"policy validators (step {validator_idx})"
     )
 
 
-def test_stage_3_uses_existing_requirements_file() -> None:
-    """Regression for PR #347: Stage 3 must reference an existing requirements file."""
+def test_security_gate_installs_pytest_without_deleted_requirements_file() -> None:
+    """Active security gate must not point at a deleted test requirements file."""
     workflow = _workflow()
-    steps = workflow["jobs"]["stage-3-contract-security"]["steps"]
+    steps = workflow["jobs"]["security-isolation"]["steps"]
 
-    req_step = None
-    for step in steps:
-        if not isinstance(step, dict):
-            continue
-        name = step.get("name", "")
-        if "Install test dependencies" in name:
-            req_step = step
-            break
-
-    assert req_step is not None, "Missing test dependency install step in stage-3-contract-security"
-    run_cmd = req_step.get("run", "")
-    assert "tests/requirements-test.txt" in run_cmd, (
-        f"Stage 3 must use tests/requirements-test.txt, got: {run_cmd}"
-    )
-    assert (REPO_ROOT / "tests" / "requirements-test.txt").exists(), (
-        "tests/requirements-test.txt must exist on disk"
-    )
+    install_steps = [
+        step
+        for step in steps
+        if isinstance(step, dict) and "pip install" in step.get("run", "")
+    ]
+    assert any("pytest" in step.get("run", "") for step in install_steps)
+    assert "requirements-test.txt" not in WORKFLOW.read_text(encoding="utf-8")
 
 
 def test_launch_pipeline_does_not_reference_generated_bytecode() -> None:

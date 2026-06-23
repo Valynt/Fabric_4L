@@ -1,6 +1,5 @@
-import { describeDenialReason, type SettingsCapability, useSettingsAccess } from "../access";
-
-const ORDERED_CAPABILITIES: SettingsCapability[] = ["personal", "billing", "team", "integrations", "governance", "super_admin"];
+import { describeDenialReason, useSettingsAccess } from "../access";
+import { orderedCapabilities, type SettingsCapability } from "../schemas";
 
 export function PersonalPreferences() {
   const { getCapabilityDecision, isUsingServerPolicy } = useSettingsAccess();
@@ -27,13 +26,13 @@ export function PersonalPreferences() {
         <h3 className="text-sm font-semibold">Access & Permissions</h3>
         <p className="text-xs text-muted-foreground">Read-only effective permissions from {isUsingServerPolicy ? "tenant policy" : "local role fallback"}.</p>
         <div className="mt-3 space-y-2">
-          {ORDERED_CAPABILITIES.map((capability) => {
+          {orderedCapabilities.map((capability) => {
             const decision = getCapabilityDecision(capability);
             return (
               <div key={capability} className="rounded border p-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-medium uppercase">{capability.replace("_", " ")}</span>
-                  <span className={decision.allowed ? "text-emerald-700" : "text-amber-700"}>{decision.allowed ? "Allowed" : "Denied"}</span>
+                  <span className={decision.allowed ? "text-success" : "text-warning"}>{decision.allowed ? "Allowed" : "Denied"}</span>
                 </div>
                 {!decision.allowed && decision.reasons.length > 0 && (
                   <p className="mt-1 text-muted-foreground">{decision.reasons.map(describeDenialReason).join(", ")}</p>

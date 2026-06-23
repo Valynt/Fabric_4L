@@ -4,8 +4,11 @@ import os
 import sqlite3
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from layer2_extraction.validation.artifact_validator import ArtifactValidationError
 
 
 class QuarantineRecord(BaseModel):
@@ -18,6 +21,8 @@ class QuarantineRecord(BaseModel):
     source_hash: str
     model_version: str
     schema_version: str
+    prompt_template_version: str
+    prompt_template_hash: str | None = None
     payload_json: str
     validation_errors: list[str] = Field(default_factory=list)
     reason: str = "validation_error"
@@ -42,6 +47,22 @@ class InMemoryQuarantineStore(QuarantineStore):
         self._records: dict[str, QuarantineRecord] = {}
 
     async def put(self, record: QuarantineRecord) -> None:
+        # MANDATORY VALIDATION GATE: Validate quarantine record before persistence
+        if not record.tenant_id or not record.tenant_id.strip():
+            raise ArtifactValidationError(
+                missing_fields=["tenant_id"],
+                invalid_fields=[],
+            )
+        if not record.model_version or not record.model_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["model_version"],
+                invalid_fields=[],
+            )
+        if not record.schema_version or not record.schema_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["schema_version"],
+                invalid_fields=[],
+            )
         self._records[record.job_id] = record
 
     async def get_by_job(self, *, tenant_id: str, job_id: str) -> QuarantineRecord | None:
@@ -71,6 +92,8 @@ class SqliteQuarantineStore(QuarantineStore):
                     source_hash TEXT NOT NULL,
                     model_version TEXT NOT NULL,
                     schema_version TEXT NOT NULL,
+                    prompt_template_version TEXT NOT NULL,
+                    prompt_template_hash TEXT,
                     payload_json TEXT NOT NULL,
                     validation_errors_json TEXT NOT NULL,
                     reason TEXT NOT NULL,
@@ -82,12 +105,29 @@ class SqliteQuarantineStore(QuarantineStore):
             )
 
     async def put(self, record: QuarantineRecord) -> None:
+        # MANDATORY VALIDATION GATE: Validate quarantine record before persistence
+        if not record.tenant_id or not record.tenant_id.strip():
+            raise ArtifactValidationError(
+                missing_fields=["tenant_id"],
+                invalid_fields=[],
+            )
+        if not record.model_version or not record.model_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["model_version"],
+                invalid_fields=[],
+            )
+        if not record.schema_version or not record.schema_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["schema_version"],
+                invalid_fields=[],
+            )
+        
         with sqlite3.connect(self._db_path) as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO extraction_quarantine
-                (quarantine_id, job_id, tenant_id, source_url, source_hash, model_version, schema_version, payload_json,
+                (quarantine_id, job_id, tenant_id, source_url, source_hash, model_version, schema_version, prompt_template_version, prompt_template_hash, payload_json,
                  validation_errors_json, reason, review_status, retry_eligible, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     record.quarantine_id,
                     record.job_id,
@@ -96,6 +136,8 @@ class SqliteQuarantineStore(QuarantineStore):
                     record.source_hash,
                     record.model_version,
                     record.schema_version,
+                    record.prompt_template_version,
+                    record.prompt_template_hash,
                     record.payload_json,
                     __import__('json').dumps(record.validation_errors),
                     record.reason,
@@ -118,12 +160,13 @@ class SqliteQuarantineStore(QuarantineStore):
             rows = conn.execute("SELECT * FROM extraction_quarantine WHERE tenant_id=? ORDER BY created_at DESC", (tenant_id,)).fetchall()
         return [self._row_to_record(r) for r in rows]
 
-    def _row_to_record(self, row: tuple) -> QuarantineRecord:
+    def _row_to_record(self, row: tuple[Any, ...]) -> QuarantineRecord:
         import json
         return QuarantineRecord(
             quarantine_id=row[0], job_id=row[1], tenant_id=row[2], source_url=row[3], source_hash=row[4],
-            model_version=row[5], schema_version=row[6], payload_json=row[7], validation_errors=json.loads(row[8]),
-            reason=row[9], review_status=row[10], retry_eligible=bool(row[11]), created_at=datetime.fromisoformat(row[12])
+            model_version=row[5], schema_version=row[6], prompt_template_version=row[7], prompt_template_hash=row[8],
+            payload_json=row[9], validation_errors=json.loads(row[10]),
+            reason=row[11], review_status=row[12], retry_eligible=bool(row[13]), created_at=datetime.fromisoformat(row[14])
         )
 
 

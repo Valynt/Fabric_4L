@@ -43,6 +43,26 @@ except ImportError:
     )
 
 
+def _lock_file(f):
+    if _HAS_FLOCK:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+
+
+def _unlock_file(f):
+    if not _HAS_FLOCK:
+        return
+    try:
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    except OSError as exc:
+        # Release-on-close is the kernel default; swallowing a late
+        # release failure doesn't leak the lock.
+        warnings.warn(
+            f"Failed to release lessons.jsonl lock before close: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+
 @contextmanager
 def _locked_jsonl(path):
     """Open lessons.jsonl with an advisory exclusive flock held for the scope.
@@ -63,17 +83,10 @@ def _locked_jsonl(path):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     f = open(path, "a+")
     try:
-        if _HAS_FLOCK:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        _lock_file(f)
         yield f
     finally:
-        if _HAS_FLOCK:
-            try:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-            except OSError:
-                # Release-on-close is the kernel default; swallowing a late
-                # release failure doesn't leak the lock.
-                pass
+        _unlock_file(f)
         f.close()
 
 
@@ -135,19 +148,8 @@ def _build_auto_section(lessons):
     # before its replacement has been accepted, leaving no active guidance
     # on that topic at all (retrieval skips both provisional and
     # strikethrough).
-    superseded_by = {}
-    for L in lessons:
-        if L.get("status") != "accepted":
-            continue
-        sup = L.get("supersedes")
-        if sup:
-            superseded_by[sup] = L.get("id")
-
-    groups = defaultdict(list)
-    for L in lessons:
-        month = (L.get("accepted_at") or "")[:7] or "unknown"
-        groups[month].append(L)
-
+    superseded_by = _accepted_supersessions(lessons)
+    groups = _lessons_by_month(lessons)
     lines = []
     for month in sorted(groups.keys(), reverse=True):
         lines.append(f"### {month}")
@@ -156,6 +158,92 @@ def _build_auto_section(lessons):
             lines.append(_bullet_for(L, superseded_by))
         lines.append("")
     return "\n".join(lines).rstrip() + "\n" if lines else ""
+
+
+def _accepted_supersessions(lessons):
+    superseded_by = {}
+    for lesson in lessons:
+        if lesson.get("status") != "accepted":
+            continue
+        supersedes = lesson.get("supersedes")
+        if supersedes:
+            superseded_by[supersedes] = lesson.get("id")
+    return superseded_by
+
+
+def _lessons_by_month(lessons):
+    groups = defaultdict(list)
+    for lesson in lessons:
+        month = (lesson.get("accepted_at") or "")[:7] or "unknown"
+        groups[month].append(lesson)
+    return groups
+
+
+def _legacy_text_from_line(line):
+    s = line.strip()
+    if not s.startswith("- ") or len(s) <= 2:
+        return ""
+    text = s[2:].split("<!--")[0].strip()
+    if text.startswith("~~") and text.endswith("~~"):
+        return ""
+    if text.startswith("[PROVISIONAL]"):
+        text = text[len("[PROVISIONAL]"):].strip()
+    return text
+
+
+def _legacy_bullets_from_content(content):
+    if SENTINEL not in content:
+        return []
+    below = content.split(SENTINEL, 1)[1]
+    return [
+        text for text in (
+            _legacy_text_from_line(line)
+            for line in below.splitlines()
+        )
+        if text
+    ]
+
+
+def _existing_claims(semantic_dir):
+    return {
+        (lesson.get("claim") or "").strip().lower()
+        for lesson in load_lessons(semantic_dir)
+    }
+
+
+def _accepted_at_from_file(path):
+    try:
+        return datetime.datetime.fromtimestamp(
+            os.path.getmtime(path), tz=datetime.timezone.utc).isoformat()
+    except OSError:
+        return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def _legacy_lesson(claim, accepted_at):
+    lid = "lesson_legacy_" + hashlib.md5(claim.lower().encode()).hexdigest()[:12]
+    return {
+        "id": lid, "claim": claim,
+        "conditions": [], "evidence_ids": [],
+        "status": "legacy", "accepted_at": accepted_at,
+        "reviewer": "render_lessons_migration",
+        "rationale": "Imported from pre-restructure LESSONS.md bullets below sentinel",
+        "cluster_size": 1, "canonical_salience": 5.0,
+        "confidence": 0.7, "support_count": 0, "contradiction_count": 0,
+        "supersedes": None, "source_candidate": None,
+    }
+
+
+def _migrate_claims(claims, semantic_dir, accepted_at):
+    existing_claims = _existing_claims(semantic_dir)
+    migrated = 0
+    for claim in claims:
+        normalized = claim.strip().lower()
+        if normalized in existing_claims:
+            continue
+        append_lesson(_legacy_lesson(claim, accepted_at), semantic_dir)
+        existing_claims.add(normalized)
+        migrated += 1
+    return migrated
 
 
 def migrate_legacy_bullets(semantic_dir):
@@ -172,55 +260,11 @@ def migrate_legacy_bullets(semantic_dir):
     if not os.path.exists(md_path):
         return 0
     content = open(md_path).read()
-    if SENTINEL not in content:
-        return 0
-
-    below = content.split(SENTINEL, 1)[1]
-    bullets = []
-    for line in below.splitlines():
-        s = line.strip()
-        if not s.startswith("- ") or len(s) <= 2:
-            continue
-        text = s[2:].split("<!--")[0].strip()
-        # Skip superseded entries — they're historical, not content to re-ingest
-        if text.startswith("~~") and text.endswith("~~"):
-            continue
-        # Strip provisional prefix if present
-        if text.startswith("[PROVISIONAL]"):
-            text = text[len("[PROVISIONAL]"):].strip()
-        if text:
-            bullets.append(text)
+    bullets = _legacy_bullets_from_content(content)
 
     if not bullets:
         return 0
-
-    existing_claims = {(L.get("claim") or "").strip().lower()
-                       for L in load_lessons(semantic_dir)}
-    try:
-        accepted_at = datetime.datetime.fromtimestamp(
-            os.path.getmtime(md_path), tz=datetime.timezone.utc).isoformat()
-    except OSError:
-        accepted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-    migrated = 0
-    for claim in bullets:
-        if claim.strip().lower() in existing_claims:
-            continue
-        lid = "lesson_legacy_" + hashlib.md5(claim.lower().encode()).hexdigest()[:12]
-        lesson = {
-            "id": lid, "claim": claim,
-            "conditions": [], "evidence_ids": [],
-            "status": "legacy", "accepted_at": accepted_at,
-            "reviewer": "render_lessons_migration",
-            "rationale": "Imported from pre-restructure LESSONS.md bullets below sentinel",
-            "cluster_size": 1, "canonical_salience": 5.0,
-            "confidence": 0.7, "support_count": 0, "contradiction_count": 0,
-            "supersedes": None, "source_candidate": None,
-        }
-        append_lesson(lesson, semantic_dir)
-        existing_claims.add(claim.strip().lower())
-        migrated += 1
-    return migrated
+    return _migrate_claims(bullets, semantic_dir, _accepted_at_from_file(md_path))
 
 
 def _dedupe_by_id(lessons):

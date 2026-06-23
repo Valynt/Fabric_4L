@@ -1,3 +1,21 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+import uuid
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+
+from ...clients.l3_graph_client import get_l3_client
+from ...database import get_db_from_context
+from ...repositories.signal_repository import SignalRepository
+from ...services.signal_refinery import refine_batch
+from ..auth import get_tenant_id_from_context
+
 """Signal API routes for L2.5 Signal Refinery.
 
 All endpoints enforce tenant_id from authenticated context.
@@ -15,38 +33,19 @@ Routes:
   POST   /api/v1/signals/refine                 Trigger L2.5 refinement batch
 """
 
-from __future__ import annotations
-
-import asyncio
-import logging
-import uuid
-from datetime import UTC, datetime
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ...clients.l3_graph_client import get_l3_client
-from ...database import get_db_from_context
-from ...repositories.signal_repository import SignalRepository
-from ...services.signal_refinery import refine_batch, refine_signal
-from ..auth import get_tenant_id_from_context
-
-try:
-    from value_fabric.shared.models.value_signal import (
+try:  # noqa: E402
+    from value_fabric.shared.models.value_signal import (  # noqa: E402
         SignalPromoteRequest,
         SignalRefineRequest,
         SignalReviewRequest,
-        ValueSignal,
         ValueSignalCreate,
-        ValueSignalLifecycleState,
         ValueSignalListResponse,
         ValueSignalUpdate,
     )
 except ImportError:
     # Fallback: use local Pydantic models when shared package unavailable
-    from pydantic import BaseModel
-    from typing import Optional
+    from pydantic import BaseModel  # noqa: E402
+    from typing import Optional  # noqa: E402
 
     class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]
         account_id: str
@@ -124,18 +123,13 @@ async def create_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    data = body.model_dump()
-    # Serialize nested models to plain dicts
-    data["provenance"] = data["provenance"] if isinstance(data["provenance"], dict) else data["provenance"].model_dump() if hasattr(data["provenance"], "model_dump") else dict(data["provenance"])
-    data["evidence"] = [
-        e if isinstance(e, dict) else e.model_dump() if hasattr(e, "model_dump") else dict(e)
-        for e in (data.get("evidence") or [])
-    ]
+    data = body.model_dump(mode="json")
     # Ensure evidence items have IDs
-    for item in data["evidence"]:
+    for item in data.get("evidence") or []:
         if not item.get("id"):
             item["id"] = str(uuid.uuid4())
-    # Stringify UUIDs for storage
+    # Stringify UUIDs for storage (model_dump(mode='json') already converts most,
+    # but belt-and-suspenders for any nested objects that may have slipped through)
     for field in ("account_id", "opportunity_id", "value_driver_id", "stakeholder_id", "reviewer_id"):
         if data.get(field):
             data[field] = str(data[field])
@@ -145,7 +139,12 @@ async def create_signal(
     # Push to L3 asynchronously (best-effort, non-blocking)
     try:
         asyncio.create_task(
-            get_l3_client().push_signal(signal, tenant_id, request.headers.get("X-Request-ID"))
+            get_l3_client().push_signal(
+                signal, 
+                tenant_id, 
+                request.headers.get("X-Request-ID"),
+                request.headers.get("X-Correlation-ID")
+            )
         )
     except RuntimeError:
         # No running event loop in test environments — skip background push
@@ -234,7 +233,7 @@ async def get_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -253,9 +252,9 @@ async def update_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = {k: v for k, v in body.model_dump(mode="json").items() if v is not None}
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+        raise ValidationError(message = "No fields to update")
 
     # Stringify UUID fields
     for field in ("reviewer_id", "value_driver_id", "supersedes_signal_id"):
@@ -270,7 +269,7 @@ async def update_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -290,7 +289,7 @@ async def delete_signal(
 
     deleted = await repo.soft_delete(signal_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
 
 # ---------------------------------------------------------------------------
@@ -308,12 +307,9 @@ async def review_signal(
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
-    new_state = str(body.status) if hasattr(body.status, "value") else body.status
+    new_state = body.status.value if hasattr(body.status, "value") else str(body.status)
     if new_state not in _VALID_REVIEW_STATES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Review status must be one of: {_VALID_REVIEW_STATES}",
-        )
+        raise ValidationError(message=f"Review status must be one of: {_VALID_REVIEW_STATES}")
 
     updates: dict[str, Any] = {
         "lifecycle_state": new_state,
@@ -324,7 +320,7 @@ async def review_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -345,13 +341,10 @@ async def promote_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     if signal["lifecycle_state"] not in ("validated", "extracted"):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted.",
-        )
+        raise ConflictError(message=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted.")
 
     updates: dict[str, Any] = {"lifecycle_state": "promoted"}
     if body.value_driver_id:
@@ -359,7 +352,7 @@ async def promote_signal(
 
     promoted = await repo.update(signal_id, updates)
     if not promoted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     return {
         **promoted,
@@ -393,7 +386,7 @@ async def refine_signals(
         # Preferred path: caller supplied actual L2 extraction payloads.
         raws = []
         for rs in body.raw_signals:
-            raw = rs.model_dump() if hasattr(rs, "model_dump") else dict(rs)
+            raw = rs.model_dump(mode="json") if hasattr(rs, "model_dump") else dict(rs)
             raw["account_id"] = str(raw["account_id"])
             # Ensure provenance has required fields
             prov = raw.get("provenance") or {}
@@ -409,10 +402,7 @@ async def refine_signals(
         # Backward-compatible fallback: source_refs only.
         # Produces signals with synthetic content — not suitable for production use.
         if not body.source_refs:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Provide raw_signals (preferred) or source_refs.",
-            )
+            raise ValidationError(message="Provide raw_signals (preferred) or source_refs.")
         raws = [
             {
                 "account_id": str(body.account_id),
@@ -440,7 +430,12 @@ async def refine_signals(
         created.append(signal)
         try:
             asyncio.create_task(
-                get_l3_client().push_signal(signal, tenant_id, request.headers.get("X-Request-ID"))
+                get_l3_client().push_signal(
+                    signal, 
+                    tenant_id, 
+                    request.headers.get("X-Request-ID"),
+                    request.headers.get("X-Correlation-ID")
+                )
             )
         except RuntimeError:
             pass

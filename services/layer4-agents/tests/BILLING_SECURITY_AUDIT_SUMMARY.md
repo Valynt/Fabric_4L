@@ -126,16 +126,16 @@ if not signature:
 ## Files Modified
 
 ### Security Fixes
-- `services/layer4-agents/src/services/billing_service.py` - Webhook rollback, race condition handling
+- `services/layer4-agents/src/layer4_agents/services/billing_service.py` - Webhook rollback, race condition handling
 
 ### Pre-existing Bug Fixes
 - `services/layer4-agents/src/database.py` - `__future__` annotations
-- `services/layer4-agents/src/config/checkpoint.py` - `__future__` annotations
-- `services/layer4-agents/src/models/billing.py` - metadata field names
-- `services/layer4-agents/src/services/usage_service.py` - event_metadata usage
-- `services/layer4-agents/src/models/pain_signal.py` - ErrorCategory class
-- `services/layer4-agents/src/messaging/signal_events.py` - SignalStreamCompleteEvent name
-- `services/layer4-agents/src/messaging/__init__.py` - Export name
+- `services/layer4-agents/src/layer4_agents/config/checkpoint.py` - `__future__` annotations
+- `services/layer4-agents/src/layer4_agents/models/billing.py` - metadata field names
+- `services/layer4-agents/src/layer4_agents/services/usage_service.py` - event_metadata usage
+- `services/layer4-agents/src/layer4_agents/models/pain_signal.py` - ErrorCategory class
+- `services/layer4-agents/src/layer4_agents/messaging/signal_events.py` - SignalStreamCompleteEvent name
+- `services/layer4-agents/src/layer4_agents/messaging/__init__.py` - Export name
 
 ### Test Files Created
 - `services/layer4-agents/tests/test_webhook_security.py` - 12 webhook security tests

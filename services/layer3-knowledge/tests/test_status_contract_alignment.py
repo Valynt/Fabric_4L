@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 from value_fabric.shared.contracts.layer3_statuses import (
-    BENCHMARK_STATUSES,
     ENTITY_STATUSES,
     HEALTH_STATUSES,
     INGEST_STATUSES,
@@ -20,5 +19,5 @@ def test_status_constants_align_with_openapi_contract() -> None:
     assert tuple(schemas['DependencyStatus']['properties']['status']['enum']) == HEALTH_STATUSES
     assert tuple(schemas['IngestResponse']['properties']['status']['enum']) == INGEST_STATUSES
     assert tuple(schemas['SyncStatusResponse']['properties']['status']['anyOf'][0]['enum']) == SYNC_STATUSES
-    assert tuple(schemas['Entity']['properties']['status']['enum']) == ENTITY_STATUSES
-    assert tuple(schemas['BenchmarkPolicy']['properties']['status']['enum']) == BENCHMARK_STATUSES
+    assert tuple(schemas['EntitySummary']['properties']['status']['enum']) == ENTITY_STATUSES
+    assert tuple(schemas['EntityDetail']['properties']['status']['enum']) == ENTITY_STATUSES

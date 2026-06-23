@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Regression tests for Layer 4 production readiness fixes.
 
 Covers critical bugs fixed during the production readiness pass:
@@ -10,7 +12,6 @@ Covers critical bugs fixed during the production readiness pass:
 - Checkpoint connection lifecycle
 """
 
-from __future__ import annotations
 
 import asyncio
 import json
@@ -21,18 +22,18 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.api.routes.workflows import WorkflowEvent, WorkflowEventPayload
-from value_fabric.layer4.config.checkpoint import CheckpointConfig
-from value_fabric.layer4.engine.executor import OrchestrationController
-from value_fabric.layer4.engine.scheduler import ScheduledTask, TaskScheduler, TaskStatus
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.api.routes.workflows import WorkflowEvent, WorkflowEventPayload
+from layer4_agents.config.checkpoint import CheckpointConfig
+from layer4_agents.engine.executor import OrchestrationController
+from layer4_agents.engine.scheduler import ScheduledTask, TaskScheduler, TaskStatus
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import (
     BaseAgentState,
     WorkflowStatus,
     WorkflowType,
 )
-from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowBuilder
-from value_fabric.layer4.workflows import WORKFLOW_TYPES
+from layer4_agents.workflows.base import BaseWorkflow, WorkflowBuilder
+from layer4_agents.workflows import WORKFLOW_TYPES
 
 
 class TestSettingsImportSafety:
@@ -45,7 +46,7 @@ class TestSettingsImportSafety:
         # must be safe.
         import importlib
 
-        from value_fabric.layer4.config import settings as settings_mod
+        from layer4_agents.config import settings as settings_mod
 
         # Re-importing should not raise
         reloaded = importlib.reload(settings_mod)
@@ -53,7 +54,7 @@ class TestSettingsImportSafety:
         assert hasattr(reloaded, "configure_settings")
 
     def test_configure_settings_is_idempotent(self):
-        from value_fabric.layer4.config.settings import configure_settings
+        from layer4_agents.config.settings import configure_settings
 
         # Calling twice should not raise
         configure_settings()
@@ -70,7 +71,7 @@ class TestStateManagerInMemoryFallback:
     @pytest.mark.asyncio
     async def test_lru_eviction_when_capacity_exceeded(self, manager):
         """Oldest entries must be evicted when in-memory capacity is exceeded."""
-        from value_fabric.layer4.models.agent_state import ROIAgentState
+        from layer4_agents.models.agent_state import ROIAgentState
 
         for i in range(7):
             state = ROIAgentState(tenant_id="test-tenant", 
@@ -87,7 +88,7 @@ class TestStateManagerInMemoryFallback:
 
     @pytest.mark.asyncio
     async def test_secret_redaction(self, manager):
-        from value_fabric.layer4.models.agent_state import ROIAgentState
+        from layer4_agents.models.agent_state import ROIAgentState
 
         state = ROIAgentState(tenant_id="test-tenant", 
             workflow_id="wf-secret",
@@ -181,7 +182,7 @@ class TestBaseWorkflowConditionalRouting:
     """Conditional edges must return string keys, not booleans."""
 
     def test_router_returns_string_keys(self):
-        from value_fabric.layer4.models.workflow_config import EdgeConfig, EdgeType
+        from layer4_agents.models.workflow_config import EdgeConfig, EdgeType
 
         class FakeWorkflow(BaseWorkflow):
             def create_initial_state(self, input_data):
@@ -248,18 +249,12 @@ class TestOrchestrationControllerValidation:
                     workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR
                 ),
                 "workflow_id": "wf-1",
+                "timeout_seconds": 0.01,
             },
         )
 
-        # Patch settings to use a very short timeout
-        mock_settings = Mock()
-        mock_settings.workflow_timeout_seconds = 0.01
-        with patch(
-            "value_fabric.layer4.config.settings.settings",
-            mock_settings,
-        ):
-            with pytest.raises(Exception) as exc_info:
-                await controller._run_workflow_task(task)
+        with pytest.raises(Exception) as exc_info:
+            await controller._run_workflow_task(task)
 
         assert "timeout" in str(exc_info.value).lower() or "exceeded" in str(
             exc_info.value
@@ -270,7 +265,7 @@ class TestOrchestrationControllerValidation:
         controller = OrchestrationController(tool_registry=Mock())
 
         with patch(
-            "value_fabric.layer4.engine.executor.resolve_llm_model",
+            "layer4_agents.engine.executor.resolve_llm_model",
             side_effect=ConnectionError("DB down"),
         ):
             model = await controller.resolve_model(

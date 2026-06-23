@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 pytest configuration and shared fixtures for Layer 5 Ground Truth tests.
 
@@ -11,7 +13,6 @@ Fixture hierarchy:
   client (function-scoped) →  httpx.AsyncClient wrapping the FastAPI app
 """
 
-from __future__ import annotations
 
 import os
 import sys
@@ -54,9 +55,9 @@ os.environ["AUTO_ADVANCE_TO_VALIDATED"] = "true"
 os.environ["MIN_CONFIDENCE_FOR_VALIDATED"] = "0.5"
 os.environ["MIN_SOURCES_FOR_VALIDATED"] = "2"
 os.environ["JWT_FALLBACK_TO_QUERY_PARAM"] = "true"
-os.environ["SERVICE_AUTH_SECRET"] = "test-service-auth-secret-that-is-32-chars-long-ok"
-os.environ["ALLOW_INSECURE_DEV_AUTH_BYPASS"] = "true"
-os.environ["JWT_SECRET"] = "test-jwt-secret-that-is-at-least-32-chars"
+os.environ["SERVICE_AUTH_SECRET"] = "layer5-service-auth-local-suite-secret-32chars"
+# P0-008: Dev auth bypass flags removed — no longer needed
+os.environ["JWT_SECRET"] = "layer5-local-suite-jwt-signing-secret-32chars"
 
 from layer5_ground_truth import database as db_module  # noqa: E402
 from layer5_ground_truth.api.main import create_app  # noqa: E402
@@ -221,6 +222,126 @@ def auth_headers() -> dict:
     """
     return {
         "Content-Type": "application/json",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Governance API test fixtures
+# ---------------------------------------------------------------------------
+
+TENANT_A_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+TENANT_B_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+
+
+@pytest_asyncio.fixture
+async def client_no_permissions(db) -> AsyncGenerator[AsyncClient, None]:
+    """Test client with user that has no governance permissions."""
+    from layer5_ground_truth.api.auth import TokenClaims, get_current_user
+    from layer5_ground_truth.database import get_db, get_db_from_context
+
+    app = create_app()
+
+    async def override_get_db():
+        yield db
+
+    async def override_get_db_from_context():
+        yield db
+
+    def override_get_current_user():
+        """Return test user with no governance permissions."""
+        return TokenClaims(
+            tenant_id=TEST_ORG_ID,
+            user_id="test-user-no-perm",
+            roles=["user"],  # No admin role
+        )
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_db_from_context] = override_get_db_from_context
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={
+            "X-Tenant-ID": str(TEST_ORG_ID),
+            "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
+        },
+    ) as ac:
+        yield ac
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def client_full_permissions(db) -> AsyncGenerator[AsyncClient, None]:
+    """Test client with user that has full governance permissions."""
+    from layer5_ground_truth.api.auth import TokenClaims, get_current_user
+    from layer5_ground_truth.database import get_db, get_db_from_context
+
+    app = create_app()
+
+    async def override_get_db():
+        yield db
+
+    async def override_get_db_from_context():
+        yield db
+
+    def override_get_current_user():
+        """Return test user with full governance permissions."""
+        return TokenClaims(
+            tenant_id=TEST_ORG_ID,
+            user_id="test-user-full-perm",
+            roles=["admin"],
+        )
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_db_from_context] = override_get_db_from_context
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={
+            "X-Tenant-ID": str(TEST_ORG_ID),
+            "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
+        },
+    ) as ac:
+        yield ac
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_headers_no_permission() -> dict:
+    """Headers for client with no permissions."""
+    return {
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def auth_headers_full_permissions() -> dict:
+    """Headers for client with full permissions."""
+    return {
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def auth_headers_tenant_a() -> dict:
+    """Headers for tenant A."""
+    return {
+        "Content-Type": "application/json",
+        "X-Test-Tenant": str(TENANT_A_ID),
+    }
+
+
+@pytest.fixture
+def auth_headers_tenant_b() -> dict:
+    """Headers for tenant B."""
+    return {
+        "Content-Type": "application/json",
+        "X-Test-Tenant": str(TENANT_B_ID),
     }
 
 

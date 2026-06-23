@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/states';
+import { EmptyState, LoadingState, ErrorState } from '@/components/states';
 import { useCreateNotification, useMarkNotificationRead, useNotifications } from '@/hooks/useNotifications';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
+import { Textarea } from '@/components/ui/textarea';
 import { safeAsync } from '@/lib/async';
 import { toast } from 'sonner';
 
@@ -86,9 +87,9 @@ export default function NotificationsPage() {
               </div>
               <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="notification-message">Message</Label>
-                <textarea
+                <Textarea
                   id="notification-message"
-                  className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-24"
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder="Jordan Lee requested review on the business case."
@@ -112,13 +113,14 @@ export default function NotificationsPage() {
             Unread notifications: {notifications.data?.unread_count ?? 0}
           </div>
           {notifications.isLoading ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-muted-foreground">Loading notifications...</CardContent>
-            </Card>
+            <LoadingState message="Loading notifications…" />
           ) : notifications.isError ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-destructive">Unable to load notifications.</CardContent>
-            </Card>
+            <ErrorState
+              title="Unable to load notifications"
+              description="The notification feed could not be retrieved. Check your network connection and try again."
+              error={notifications.error}
+              onRetry={() => safeAsync(notifications.refetch(), "notifications.refetch")}
+            />
           ) : notifications.data?.items.length ? (
             notifications.data.items.map((notification) => (
               <Card key={notification.id}>

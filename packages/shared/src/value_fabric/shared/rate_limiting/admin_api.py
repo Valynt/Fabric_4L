@@ -17,7 +17,7 @@ try:
     from neo4j import AsyncDriver
 except ImportError:  # pragma: no cover - optional dependency for test/runtime variants
     AsyncDriver = Any  # type: ignore[misc,assignment]
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
@@ -56,8 +56,8 @@ class RateLimitConfigRequest(BaseModel):
     requests_per_day: int = Field(..., gt=0, description="Requests per day")
     burst_allowance: int = Field(0, ge=0, description="Burst allowance")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "requests_per_minute": 1000,
                 "requests_per_hour": 50000,
@@ -65,6 +65,7 @@ class RateLimitConfigRequest(BaseModel):
                 "burst_allowance": 200,
             }
         }
+    )
 
 
 class TenantQuotaResponse(BaseModel):
@@ -151,7 +152,7 @@ async def _get_tenant_tier_from_db(
     """
     if driver_factory is None:
         try:
-            from value_fabric.layer3.db.driver import get_driver as _get_driver
+            from db.driver import get_driver as _get_driver  # noqa: PLC0415
             driver_factory = _get_driver  # type: ignore[assignment]
         except ImportError:
             pass
@@ -344,7 +345,7 @@ async def get_tenant_usage(
         logger.error(f"Failed to get tenant usage: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve usage statistics: {str(e)}",
+            detail=f"Failed to retrieve usage statistics: {e!r}",
         )
 
 
@@ -409,7 +410,7 @@ async def set_custom_limits(
         logger.error(f"Failed to set custom limits: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to set custom limits: {str(e)}",
+            detail=f"Failed to set custom limits: {e!r}",
         )
 
 
@@ -458,7 +459,7 @@ async def reset_tenant_limits(
         logger.error(f"Failed to reset tenant limits: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to reset rate limits: {str(e)}",
+            detail=f"Failed to reset rate limits: {e!r}",
         )
 
 

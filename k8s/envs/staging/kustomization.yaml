@@ -1,12 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: value-fabric
+namespace: value-fabric-staging
 
 resources:
   - ../../base
   - ../../external-secrets/vault-integration.yml
   - ../../external-secrets/vault-database-dynamic.yml
+  - ../../external-secrets/redis-secrets.yaml
+  - ../../external-secrets/wal-g-backup-secrets.yaml
   - ../../monitoring/placeholder-secret-scanner-cronjob.yaml
 
 labels:
@@ -14,37 +16,48 @@ labels:
       environment: staging
 
 patches:
+  # Patch all ExternalSecrets to render into the staging namespace so generated
+  # Kubernetes Secrets are created in the same namespace as the pods that
+  # consume them.
+  - target:
+      kind: ExternalSecret
+      name: .*
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: value-fabric-staging
+
   - path: staging-replicas-patch.yml
 
-# Staging images use SHA digest pinning (immutable), mirroring production.
-# CI updates digests via: scripts/ci/prepare_kustomize_deploy.sh staging <output>
-# The digests below are CI-resolved sentinels (non-repeating, non-placeholder).
-# They are replaced with real immutable digests by the environment-promotion
-# workflow before any staging deploy. Do NOT use these values in production.
+# Image overrides: match exact base image names, redirect to GHCR.
+# Base manifests use digest-pinned service placeholders (services/<name>@sha256:<digest>, apps/web@sha256:<digest>).
+#
+# Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
+# This file must not contain mutable tags (latest, main, semver, branch names).
+# CI enforces this via scripts/ci/validate-k8s-image-tags.sh.
 images:
-  # Base images (resolved to real digests by CI before staging deploy)
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
-    digest: sha256:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+    digest: sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
-    digest: sha256:b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
+    digest: sha256:13029594c9b8a1084e95fddac9b5143605f947b974c742ff8c84b2a0729423ec
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
-    digest: sha256:c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+    digest: sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d
   - name: services/layer4-agents
     newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
-    digest: sha256:d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5
+    digest: sha256:0300c79009d884d2576a6b7dcb15606316f02fcadb9a6800a7da4fcf1e205f29
   - name: services/layer5-ground-truth
     newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
-    digest: sha256:e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6
+    digest: sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
   - name: services/layer6-benchmarks
     newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
-    digest: sha256:f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1
+    digest: sha256:2093ee632e2db237f9fb25e32d487fa9e157c26b35679886fd928b98618bae19
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
-    digest: sha256:a1b2c3d4e5f6f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5
-  # Infrastructure images (use specific versions, not :latest)
+    digest: sha256:0aa8f24975fc35f039525dcfabdb6d50b76699407090df0d4c4f73d32cb0e4a7
+  # Infrastructure images use explicit versions.
   - name: postgres
     newTag: "15.10-alpine"
   - name: redis

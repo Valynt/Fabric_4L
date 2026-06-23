@@ -20,17 +20,60 @@
  * This component renders nothing. Mount it once near the root, inside
  * the ClerkProvider and AuthProvider.
  */
-import { useEffect, useRef } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useAuth, useOrganization } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
+import { useAccountContextStore } from "@/stores/accountContextStore";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
+import clerkDefaults from "@fabric/platform-contract/clerk-defaults";
 
 const FABRIC_AUTH_TEMPLATE_NAME =
-  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
+  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? clerkDefaults.clerk.jwtTemplate).toString().trim() || undefined;
 
-export function ClerkAuthBridge(): null {
-  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
+  // OrgSync is only rendered from <ClerkAuthBridge> after its isClerkAuthEnabled()
+  // gate and an isSignedIn check, so <ClerkProvider> is guaranteed to be mounted
+  // and the hook may be called unconditionally.
   const { organization } = useOrganization();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setActiveClerkOrgId(organization?.id ?? null);
+    syncTenant();
+    // Tenant/org switch: do not reuse any cached account or tenant-scoped data
+    // from the previous organization. The gateway is the authority, but this
+    // prevents the frontend from momentarily displaying stale data.
+    queryClient.invalidateQueries();
+    return () => {
+      setActiveClerkOrgId(null);
+    };
+  }, [organization?.id, syncTenant, queryClient]);
+
+  return null;
+}
+
+interface ClerkAuthBridgeProps {
+  children?: ReactNode;
+}
+
+export function ClerkAuthBridge({
+  children = null,
+}: ClerkAuthBridgeProps = {}): ReactElement | null {
+  // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not mounted.
+  if (!isClerkAuthEnabled()) {
+    return <>{children}</>;
+  }
+
+  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+  const syncTenant = useAccountContextStore(s => s.syncTenant);
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -43,7 +86,9 @@ export function ClerkAuthBridge(): null {
   //    sign-out and on unmount. We intentionally depend only on the
   //    boolean transitions, not on `getToken` identity.
   useEffect(() => {
-    if (!authLoaded) return;
+    if (!authLoaded) {
+      return;
+    }
     if (!isSignedIn) {
       setClerkTokenGetter(null);
       return;
@@ -69,14 +114,19 @@ export function ClerkAuthBridge(): null {
     };
   }, [authLoaded, isSignedIn]);
 
-  // 2) Track active org. Clear on unmount so HMR / layout swaps do not
-  //    leak a stale org id into the module-scope bridge state.
-  useEffect(() => {
-    setActiveClerkOrgId(organization?.id ?? null);
-    return () => {
-      setActiveClerkOrgId(null);
-    };
-  }, [organization?.id]);
+  // 2) Track active org only when signed in to avoid Clerk useOrganization
+  //    dev warning on the sign-in page. Clear on unmount so HMR / layout
+  //    swaps do not leak a stale org id into the module-scope bridge state.
+  //    Also call syncTenant so the accountContextStore purges any persisted
+  //    account selection that belongs to a different tenant (P1-010).
+  if (!authLoaded || !isSignedIn) {
+    return <>{children}</>;
+  }
 
-  return null;
+  return (
+    <Fragment>
+      <OrgSync syncTenant={syncTenant} />
+      {children}
+    </Fragment>
+  );
 }

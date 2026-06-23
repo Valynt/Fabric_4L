@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 """Tests for structured reasoning trace schema enforcement."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.models.reasoning_trace import (
+from layer4_agents.models.reasoning_trace import (
     ReasoningTrace,
     ToolCallTrace,
     validate_reasoning_trace,
@@ -144,3 +145,38 @@ class TestReasoningTraceSchema:
         assert data["run_id"] == "run_123"
         assert data["trace_id"] == "trace_123"
         assert data["confidence"] == 0.85
+
+    def test_build_reasoning_trace_from_state(self) -> None:
+        from layer4_agents.models.reasoning_trace import build_reasoning_trace
+        from layer4_agents.models.agent_state import BaseAgentState, WorkflowType
+
+        state = BaseAgentState(
+            workflow_type=WorkflowType.ROI_CALCULATOR,
+            tenant_id="tenant-123",
+            input_data={"prospect_id": "p1", "value_driver_ids": ["vd1"]},
+            metadata={
+                "confidence": 0.9,
+                "assumptions": ["benchmark data is current"],
+                "evidence_considered": ["evidence_1"],
+                "node_trace_log": [
+                    {
+                        "node_type": "tool",
+                        "tool_name": "get_prospect_data",
+                        "node_id": "node_1",
+                        "timestamp": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            },
+            output_data={"result": {"id": "output_1"}},
+        )
+        trace = build_reasoning_trace(state=state, run_id="run_123", trace_id="trace_123")
+        assert trace.run_id == "run_123"
+        assert trace.trace_id == "trace_123"
+        assert trace.inputs_used == ["prospect_id", "value_driver_ids"]
+        assert len(trace.tools_called) == 1
+        assert trace.tools_called[0].tool_name == "get_prospect_data"
+        assert trace.evidence_considered == ["evidence_1"]
+        assert trace.assumptions == ["benchmark data is current"]
+        assert trace.output_object_ids == ["output_1"]
+        assert trace.confidence == 0.9
+        validate_reasoning_trace(trace, strict=True)

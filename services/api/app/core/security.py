@@ -7,12 +7,12 @@ import threading
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import jwt as pyjwt
 from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-import jwt as pyjwt
-from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
+from jwt import ExpiredSignatureError, InvalidTokenError
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.core.database import db
@@ -54,7 +54,7 @@ def get_pwd_context() -> CryptContext:
             if _pwd_context is None:  # Double-checked locking
                 import os as _os
                 _use_bcrypt = _os.getenv("USE_BCRYPT", "true").lower() == "true"
-                
+
                 # Production guard: prevent USE_BCRYPT=false in production-like environments
                 env = _os.getenv("ENVIRONMENT", "development").lower()
                 production_like_envs = {"production", "prod", "staging", "stage", "preprod", "pre-production"}
@@ -64,7 +64,7 @@ def get_pwd_context() -> CryptContext:
                         "This would disable secure password hashing and expose the application to "
                         "password cracking attacks. Set USE_BCRYPT=true or unset the variable."
                     )
-                
+
                 _pwd_context = CryptContext(
                     schemes=["bcrypt"] if _use_bcrypt else ["sha256_crypt"],
                     deprecated="auto"
@@ -104,6 +104,8 @@ class TokenPayload(BaseModel):
     impersonated_by: str | None = None
     impersonation_session_id: str | None = None
     impersonation_reason: str | None = None
+    account_id: str | None = None
+    account_ids: list[str] = Field(default_factory=list)
 
 
 
@@ -146,6 +148,8 @@ def is_token_revoked(tenant_id: str, jti: str, fingerprint_hash: str) -> bool:
             stored = r.get(key)
             if stored is None:
                 return False
+            if isinstance(stored, bytes):
+                stored = stored.decode("utf-8")
             return stored == fingerprint_hash
     except Exception as exc:
         logger.warning("Redis is_token_revoked failed, falling back to memory: %s", exc)
@@ -283,7 +287,7 @@ def hash_password(password: str) -> str:
         password_bytes = password.encode("utf-8")
         if len(password_bytes) > MAX_BCRYPT_PASSWORD_BYTES:
             raise PasswordTooLongError(len(password_bytes))
-    
+
     return get_pwd_context().hash(password)
 
 
@@ -383,7 +387,7 @@ def decode_token(token: str) -> TokenPayload | None:
         )
         if not isinstance(data.get("sub"), str) or not data["sub"].strip():
             return None
-        tenant_id = data.get("tenant_id")
+        tenant_id = data["tenant_id"] if "tenant_id" in data else None
         if not isinstance(tenant_id, str) or not tenant_id.strip():
             return None
         jti = data.get("jti")
@@ -402,6 +406,11 @@ def decode_token(token: str) -> TokenPayload | None:
             nbf=data.get("nbf"),
             iss=data["iss"],
             aud=data["aud"],
+            account_id=data.get("account_id"),
+            account_ids=[str(v) for v in data.get("account_ids", []) if isinstance(v, str)],
+            impersonated_by=data.get("impersonated_by"),
+            impersonation_session_id=data.get("impersonation_session_id"),
+            impersonation_reason=data.get("impersonation_reason"),
         )
     except ExpiredSignatureError:
         raise TokenExpiredError("Token has expired")

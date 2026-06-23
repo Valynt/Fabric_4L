@@ -10,6 +10,11 @@ metadata:
     component: signal-refinery
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: layer2-5-signal-refinery
@@ -20,6 +25,7 @@ spec:
         layer: layer2-5
         component: signal-refinery
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -44,8 +50,16 @@ spec:
           emptyDir: {}
       containers:
         - name: layer2-5-signal-refinery
-          image: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery:main
+          image: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery@sha256:723c8398bfc10e4ba47fe654e1a6b5ed37a109765419d55518995a01c262f208
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 8007
               name: http
@@ -76,7 +90,7 @@ spec:
               value: "info"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: 8007
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -97,6 +111,9 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          volumeMounts:
+            - name: init-tmp
+              mountPath: /tmp
 ---
 apiVersion: v1
 kind: Service

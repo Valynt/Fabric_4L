@@ -12,6 +12,8 @@ Tests covering:
 
 import os
 import uuid
+import importlib.util
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -36,21 +38,35 @@ def mock_settings():
 
 
 @pytest.fixture
-def app_factory():
+def app_factory(monkeypatch: pytest.MonkeyPatch):
     """Factory to create test apps with different configurations."""
     def _create_app(env="test", bypass_auth=False, jwt_secret=None):
         # Set environment
         env_vars = {
             "ENVIRONMENT": env,
+            "APP_ENV": env,
             "ALLOW_INSECURE_DEV_AUTH_BYPASS": "true" if bypass_auth else "false",
+            "CORS_ORIGINS": "https://app.valuefabric.example",
+            "DATABASE_URL": "postgresql+asyncpg://vf_user:vf_pass@postgres.internal:5432/layer5",
+            "DATABASE_URL_SYNC": "postgresql://vf_user:vf_pass@postgres.internal:5432/layer5",
+            "DEFAULT_TENANT_ID": "11111111-1111-4111-8111-111111111111",
+            "JWT_FALLBACK_TO_QUERY_PARAM": "false",
+            "LAYER3_BASE_URL": "https://layer3.internal:8003",
+            "SERVICE_AUTH_SECRET": "layer5-service-auth-local-suite-secret-32chars",
         }
         if jwt_secret:
             env_vars["JWT_SECRET"] = jwt_secret
+        else:
+            env_vars["JWT_SECRET"] = "layer5-local-suite-jwt-signing-secret-32chars"
         
-        with patch.dict(os.environ, env_vars, clear=False):
-            # Import here to pick up env vars
-            from layer5_ground_truth.api.main import create_app
-            return create_app()
+        for name, value in env_vars.items():
+            monkeypatch.setenv(name, value)
+
+        # Import here to pick up env vars
+        from layer5_ground_truth.config import get_settings
+        from layer5_ground_truth.api.main import create_app
+        get_settings.cache_clear()
+        return create_app()
     
     return _create_app
 
@@ -93,7 +109,7 @@ class TestMetricsAccessControl:
     def test_metrics_allowed_from_internal_ip(self, app_factory):
         """Metrics access from internal network should succeed."""
         app = app_factory(env="production")
-        client = TestClient(app, base_url="http://10.0.0.1")
+        client = TestClient(app, client=("10.0.0.1", 50000))
         
         # Mock the client address
         with patch.object(app.state, 'metrics', None):
@@ -382,14 +398,13 @@ class TestExternalSecretsValidation:
     
     def test_handles_nested_yaml(self):
         """Script should handle nested YAML structures."""
-        # Import the script functions
-        import sys
-        from pathlib import Path
-        
         script_path = Path(__file__).parent.parent.parent.parent / ".github" / "scripts" / "validate-external-secrets.py"
-        sys.path.insert(0, str(script_path.parent))
-        
-        from validate_external_secrets import _find_secret_refs_recursive
+        spec = importlib.util.spec_from_file_location("validate_external_secrets", script_path)
+        assert spec is not None
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        _find_secret_refs_recursive = module._find_secret_refs_recursive
         
         # Test nested structure
         nested = {

@@ -163,7 +163,11 @@ async def test_list_endpoints_cross_tenant_enumeration_blocked(tenant_aware_clie
 
     create_eval = await tenant_aware_client.post(
         "/api/v1/evaluations",
-        json={"model_version_id": model_id, "test_dataset": "tenant-test", "overall_score": 0.9},
+        json={
+            "model_version_id": model_id,
+            "benchmark_name": "tenant-test",
+            "score": 0.9,
+        },
         headers={"X-Test-Tenant": tenant_a},
     )
     assert create_eval.status_code == 201

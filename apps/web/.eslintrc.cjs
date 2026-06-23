@@ -55,23 +55,13 @@ const wfPrimitivesAllowlist = [
   "client/src/pages/hypothesis/AssumptionsTab.tsx",
   "client/src/pages/hypothesis/DiscoveryQuestionsTab.tsx",
   "client/src/pages/hypothesis/PersonaFitTab.tsx",
-  "client/src/pages/intelligence/CompetitiveTab.tsx",
-  "client/src/pages/intelligence/DriversTab.tsx",
   "client/src/pages/intelligence/EnrichmentTab.tsx",
-  "client/src/pages/intelligence/EvidenceLibraryTab.tsx",
-  "client/src/pages/intelligence/EvidenceTab.tsx",
   "client/src/pages/intelligence/HypothesesTab.tsx",
   "client/src/pages/intelligence/OntologyMatchTab.tsx",
   "client/src/pages/intelligence/ROITab.tsx",
-  "client/src/pages/intelligence/SignalsTab.tsx",
-  "client/src/pages/intelligence/StakeholdersTab.tsx",
   "client/src/pages/realization/RealizationPage.tsx",
   "client/src/pages/studio/ActionPlanTab.tsx",
   "client/src/pages/studio/NarrativeTab.tsx",
-  "client/src/pages/studio/StudioCompetitiveTab.tsx",
-  "client/src/pages/studio/StudioEnrichmentTab.tsx",
-  "client/src/pages/studio/StudioEvidenceTab.tsx",
-  "client/src/pages/studio/StudioROITab.tsx",
   "client/src/pages/studio/ValueModelTab.tsx",
   "client/src/pages/value-case/ValueCasePage.tsx",
 ];
@@ -133,6 +123,14 @@ module.exports = {
     // Phase 2: Already enforced
     "fabric-contracts/no-imperative-navigation": "error",
     "fabric-contracts/no-url-concatenation": "error",
+    // P1-006: Block hardcoded real customer names outside of the canonical demoData module
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: "Literal[value=/Medtronic|Stryker|Baxter|Finastra|Goldman Sachs|Johnson & Johnson MedTech/]",
+        message: "Hardcoded customer names are not allowed outside of src/lib/demoData.ts. Use generic placeholders or import from demoData.ts.",
+      },
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -167,6 +165,13 @@ module.exports = {
       files: ["src/lib/telemetry.ts"],
       rules: {
         "no-console": "off",
+      },
+    },
+    {
+      // demoData.ts IS the canonical location for real customer demo data
+      files: ["src/lib/demoData.ts"],
+      rules: {
+        "no-restricted-syntax": "off",
       },
     },
     {

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Focused Layer 4 agent tenant-isolation tests."""
 
-from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
@@ -9,20 +10,31 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
+from value_fabric.shared.error_handling import register_exception_handlers
 
-from value_fabric.layer4.api.routes import agent_stream
-from value_fabric.layer4.services.conversation import (
+from layer4_agents.api.routes import agent_stream
+from layer4_agents.services.conversation import (
     ConversationService,
     ConversationTenantValidationError,
 )
-from value_fabric.layer4.tools.registry import TenantAwareTool, ToolResult
-from value_fabric.shared.identity.context import RequestContext
+from layer4_agents.tools.registry import TenantAwareTool, ToolResult
+from value_fabric.shared.identity.context import RequestContext, RequestContextManager
+from value_fabric.shared.identity.dependencies import require_authenticated
+from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import AsyncMock
 
 
 @pytest.fixture
 def app() -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(agent_stream.router, prefix="/v1")
+    
+    # Mock database dependency to avoid PostgreSQL connection
+    async def mock_get_db():
+        return AsyncMock(spec=AsyncSession)
+    
+    app.dependency_overrides[agent_stream.get_route_db] = mock_get_db
     return app
 
 
@@ -53,7 +65,7 @@ async def test_agent_missing_tenant_context_fails_closed(app: FastAPI) -> None:
     async def missing_tenant_context() -> RequestContext:
         return RequestContext(user_id="user-without-tenant")
 
-    app.dependency_overrides[agent_stream.require_authenticated] = missing_tenant_context
+    app.dependency_overrides[require_authenticated] = missing_tenant_context
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
@@ -64,8 +76,8 @@ async def test_agent_missing_tenant_context_fails_closed(app: FastAPI) -> None:
             },
         )
 
-    assert response.status_code == 400
-    assert "tenant context" in response.text.lower()
+    assert response.status_code == 422
+    assert "tenant context" in response.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -99,8 +111,8 @@ async def test_forged_tenant_header_cannot_override_validated_context(
     async def valid_context() -> RequestContext:
         return RequestContext(tenant_id=validated_tenant, user_id="user-a")
 
-    app.dependency_overrides[agent_stream.require_authenticated] = valid_context
-    monkeypatch.setattr(agent_stream, "_get_conversation_service", lambda: service)
+    app.dependency_overrides[require_authenticated] = valid_context
+    monkeypatch.setattr(agent_stream, "_get_conversation_service", lambda **kwargs: service)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
@@ -129,8 +141,8 @@ async def test_agent_stream_passes_entity_context_to_conversation_service(
     async def valid_context() -> RequestContext:
         return RequestContext(tenant_id=validated_tenant, user_id="user-a")
 
-    app.dependency_overrides[agent_stream.require_authenticated] = valid_context
-    monkeypatch.setattr(agent_stream, "_get_conversation_service", lambda: service)
+    app.dependency_overrides[require_authenticated] = valid_context
+    monkeypatch.setattr(agent_stream, "_get_conversation_service", lambda **kwargs: service)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(

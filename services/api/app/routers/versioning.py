@@ -1,10 +1,11 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import AccountVersionSnapshot, PaginatedResponse
+from app.models.schemas import AccountVersionSnapshot, PaginatedResponse, SnapshotDiffResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Versioning"])
 
@@ -34,7 +35,7 @@ async def list_snapshots(
         limit=limit,
         offset=offset,
     )
-    total = len(db.snapshots.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.snapshots.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -46,11 +47,11 @@ async def get_snapshot(
 ):
     snapshot = db.snapshots.get(snapshot_id, tenant_id=tenant_id)
     if not snapshot or snapshot.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Snapshot not found")
+        raise NotFoundError(message="Snapshot not found")
     return snapshot
 
 
-@router.post("/snapshots/{snapshot_id}/diff")
+@router.post("/snapshots/{snapshot_id}/diff", response_model=SnapshotDiffResponse)
 async def diff_snapshots(
     account_id: str,
     snapshot_id: str,
@@ -60,9 +61,9 @@ async def diff_snapshots(
     base = db.snapshots.get(snapshot_id, tenant_id=tenant_id)
     compare = db.snapshots.get(compare_to_id, tenant_id=tenant_id)
     if not base or base.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Base snapshot not found")
+        raise NotFoundError(message="Base snapshot not found")
     if not compare or compare.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Compare snapshot not found")
+        raise NotFoundError(message="Compare snapshot not found")
 
     # Simple field-level diff on scalar properties
     changes: list[dict[str, Any]] = []
@@ -92,7 +93,7 @@ async def restore_snapshot(
 ):
     snapshot = db.snapshots.get(snapshot_id, tenant_id=tenant_id)
     if not snapshot or snapshot.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Snapshot not found")
+        raise NotFoundError(message="Snapshot not found")
 
     # Create a new snapshot representing the restored state
     restored = AccountVersionSnapshot(

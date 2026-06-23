@@ -1,92 +1,157 @@
-"""Authentication mode inspection and startup validation utilities."""
+"""Authentication mode inspection — dev auth bypass detection helpers.
+
+Dev auth bypass has been permanently removed from the platform. This module
+retains canonical helper functions that detect legacy bypass environment
+variables and act on them safely:
+
+* ``_bypass_flags_are_set`` returns the set of active legacy flag names.
+* ``_raise_if_bypass_in_nonlocal_env`` raises ``RuntimeError`` when any
+  bypass flag is set outside an explicit local/test environment.
+* Public functions remain no-ops for backward compatibility, but warn when
+  legacy flags are present.
+
+Bypass flags are permitted only in local, development, dev, test, testing,
+and ci environments. In any non-local environment they are fatal at startup.
+"""
 
 from __future__ import annotations
 
 import logging
 import os
-
-from value_fabric.shared.security.config import is_production_like_environment
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_BYPASS_ACK_VALUE = "I_UNDERSTAND_RISK"
+_BYPASS_FLAGS = (
+    "DEV_AUTH_BYPASS",
+    "ALLOW_INSECURE_DEV_AUTH_BYPASS",
+    "ALLOW_DEV_AUTH_BYPASS",
+    "AUTH_BYPASS_ENABLED",
+)
+
+_FALSE_VALUES = frozenset({"false", "0"})
+_EXPLICIT_LOCAL_ENVIRONMENTS = frozenset(
+    {"local", "development", "dev", "test", "testing", "ci"}
+)
 
 
-def _normalized_env() -> str:
-    return (os.getenv("ENVIRONMENT", "production") or "production").strip().lower()
+def _flag_value_is_truthy(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    if normalized == "":
+        return False
+    return normalized not in _FALSE_VALUES
+
+
+def _bypass_flags_are_set() -> set[str]:
+    """Return the set of active legacy bypass flag names.
+
+    A flag is considered active when its value is set to anything other than
+    unset, ``false``, or ``0``. Empty strings and ``None`` are treated as unset.
+    """
+    active: set[str] = set()
+    for flag in _BYPASS_FLAGS:
+        if _flag_value_is_truthy(os.getenv(flag)):
+            active.add(flag)
+    return active
+
+
+def _raise_if_bypass_in_nonlocal_env(
+    service_name: str, environment: str | None = None
+) -> None:
+    if environment is not None:
+        env = environment.strip().lower()
+    else:
+        env = (
+            (
+                os.getenv("ENVIRONMENT")
+                or os.getenv("ENV")
+                or os.getenv("APP_ENV")
+                or "unknown"
+            )
+            .strip()
+            .lower()
+        )
+
+    active_flags = _bypass_flags_are_set()
+    if env in _EXPLICIT_LOCAL_ENVIRONMENTS:
+        if active_flags:
+            logger.warning(
+                "%s: auth bypass flag(s) %s are set in %s environment. "
+                "These flags are permitted only in local/test environments.",
+                service_name,
+                ", ".join(sorted(active_flags)),
+                env,
+            )
+        return
+
+    if active_flags:
+        joined = ", ".join(sorted(active_flags))
+        raise RuntimeError(
+            f"{service_name} startup rejected: production-like environment cannot enable auth bypass flags: {joined}."
+        )
+
+
+def _warn_if_legacy_flags() -> None:
+    for flag in _BYPASS_FLAGS:
+        val = os.getenv(flag)
+        if _flag_value_is_truthy(val):
+            logger.warning(
+                "Legacy auth bypass flag %s is set (%r) but dev auth bypass has been "
+                "permanently removed from the platform. Remove this flag from your environment.",
+                flag,
+                val,
+            )
 
 
 def is_dev_bypass_enabled() -> bool:
-    return os.getenv("DEV_AUTH_BYPASS", "").strip().lower() == "true"
+    """Return False; legacy flags are detected by ``_bypass_flags_are_set``.
+
+    Outside explicit local/test environments, ``_raise_if_bypass_in_nonlocal_env``
+    treats those flags as fatal at startup.
+    """
+    _warn_if_legacy_flags()
+    return False
 
 
 def is_dev_bypass_acknowledged() -> bool:
-    # ALLOW_DEV_AUTH_BYPASS is the canonical acknowledgement variable.
-    # ALLOW_INSECURE_DEV_AUTH_BYPASS is a legacy alias that some compose files
-    # set; treat it as equivalent so the runtime and the CI gate are consistent.
-    canonical = os.getenv("ALLOW_DEV_AUTH_BYPASS", "").strip() == _BYPASS_ACK_VALUE
-    legacy = os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    return canonical or legacy
+    """Return False; legacy flags are detected by ``_bypass_flags_are_set``.
+
+    Outside explicit local/test environments, ``_raise_if_bypass_in_nonlocal_env``
+    treats those flags as fatal at startup.
+    """
+    _warn_if_legacy_flags()
+    return False
 
 
 def validate_dev_bypass_configuration() -> None:
-    """Fail closed when dev-bypass toggles are unsafe."""
-    if not is_dev_bypass_enabled():
-        return
+    """No-op for backward compatibility; warns if legacy bypass flags are set.
 
-    environment = _normalized_env()
-    if environment != "development":
-        raise RuntimeError(
-            "FATAL: DEV_AUTH_BYPASS=true is only permitted when ENVIRONMENT=development."
-        )
-    if not is_dev_bypass_acknowledged():
-        raise RuntimeError(
-            "FATAL: DEV_AUTH_BYPASS=true requires "
-            "ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK."
-        )
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
+    _warn_if_legacy_flags()
 
 
 def assert_safe_jwt_and_bypass_configuration() -> None:
-    """Refuse startup when production-like environments enable bypass toggles."""
-    environment = _normalized_env()
-    insecure_bypass_set = (
-        os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    )
-    if is_production_like_environment(environment) and (
-        is_dev_bypass_enabled() or is_dev_bypass_acknowledged() or insecure_bypass_set
-    ):
-        raise RuntimeError(
-            "FATAL: Production-like environment cannot run with dev auth bypass toggles. "
-            "Unset DEV_AUTH_BYPASS, ALLOW_DEV_AUTH_BYPASS, and ALLOW_INSECURE_DEV_AUTH_BYPASS."
-        )
+    """No-op for backward compatibility; warns if legacy bypass flags are set.
+
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
+    _warn_if_legacy_flags()
 
 
 def log_auth_mode_report() -> None:
-    """Log active/disabled auth sources for startup observability."""
-    environment = _normalized_env()
-    bypass_enabled = is_dev_bypass_enabled()
-    bypass_ack = is_dev_bypass_acknowledged()
-    insecure_bypass_set = (
-        os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    )
+    """Log active auth sources. Dev bypass is always reported as removed.
 
-    active_sources = ["jwt_middleware"]
-    if bypass_enabled:
-        active_sources.append("dev_auth_bypass")
-    if insecure_bypass_set:
-        active_sources.append("insecure_dev_bypass_ack")
-
-    disabled_sources: list[str] = []
-    if not bypass_enabled:
-        disabled_sources.append("dev_auth_bypass")
-    if not bypass_ack:
-        disabled_sources.append("dev_bypass_ack")
-    disabled_sources.append("api_key_auth")
-
+    Legacy flags are detected by ``_bypass_flags_are_set`` and are fatal outside
+    explicit local/test environments.
+    """
+    _warn_if_legacy_flags()
     logger.info(
-        "Auth mode report: environment=%s active_sources=%s disabled_sources=%s",
-        environment,
-        ",".join(active_sources),
-        ",".join(disabled_sources),
+        "Auth mode report: dev_auth_bypass=removed active_sources=jwt_middleware,governance_middleware"
     )
-

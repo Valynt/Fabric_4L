@@ -1,0 +1,9 @@
+STDOUT:
+
+> fabric-4l-monorepo@1.0.0 sbom C:\Users\BBB\Fabric_4L
+> python scripts/ci/supply_chain_gate.py sbom
+
+Generated artifacts/supply-chain/fabric-4l-source-sbom.cdx.json
+
+
+STDERR:

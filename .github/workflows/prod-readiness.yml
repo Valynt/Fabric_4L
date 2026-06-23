@@ -5,9 +5,9 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main, "release/**" ]
+    branches: [main, "release/**"]
   workflow_dispatch:
 
 env:
@@ -18,7 +18,7 @@ jobs:
   determine-profile:
     runs-on: ubuntu-latest
     outputs:
-      profile: ${{ steps.profile.outputs.profile }}
+      profile: ${{steps.profile.outputs.profile}}
     steps:
       - id: profile
         run: |
@@ -35,11 +35,19 @@ jobs:
     needs: [determine-profile]
     steps:
       - uses: actions/checkout@v4
+      - name: Enforce release P0 skip policy
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+          python scripts/ci/check_test_skip_governance.py \
+            --register config/ci/test_skip_register.yaml \
+            --fail-mandatory-p0
       - name: Create artifact directories
         run: |
-          mkdir -p ${ARTIFACT_DIR}/{arch,security,chaos,smoke,agent,state,obs,readiness,release}
+          mkdir -p ${ARTIFACT_DIR}/{arch,security,chaos,smoke,agent,state,obs,readiness,release,junit}
       - name: Validate policy schema
-        run: make gates-validate-policy POLICY_FILE=${POLICY_FILE}
+        run: make gate-policy POLICY_FILE=${POLICY_FILE}
       - name: Validate policy enforcement matrix coverage
         run: python scripts/ci/validate_policy_enforcement_matrix.py
       - uses: actions/upload-artifact@v4
@@ -53,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run architecture conformance gate
-        run: make gate-arch PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: arch-artifacts
@@ -65,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run security & isolation gate
-        run: make gate-security PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-security PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Enforce tenant boundary release tests
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         run: |
@@ -97,54 +105,19 @@ jobs:
 
           python -m pytest -v -m tenant_matrix tests/security/test_cross_layer_tenant_isolation_matrix.py --maxfail=1
 
-          cat > "${TENANT_BUNDLE_DIR}/bundle-latest.json" <<EOF
-          {
-            "suite": "tenant-boundary",
-            "status": "green",
-            "timestamp_utc": "${BUNDLE_TS}",
-            "commit_sha": "${BUNDLE_SHA}",
-            "retention_expectation_hours": 24,
-            "security_tests": ${#SECURITY_TENANT_TESTS[@]},
-            "service_tenant_tests": ${#SERVICE_TENANT_TESTS[@]}
-          }
-          EOF
+          python scripts/ci/generate_tenant_isolation_bundle.py \
+            "${TENANT_BUNDLE_DIR}/bundle-latest.json" \
+            "${BUNDLE_TS}" \
+            "${BUNDLE_SHA}" \
+            "${#SECURITY_TENANT_TESTS[@]}" \
+            "${#SERVICE_TENANT_TESTS[@]}"
 
           cp "${TENANT_BUNDLE_DIR}/bundle-latest.json" "${TENANT_BUNDLE_DIR}/bundle-${BUNDLE_TS_SAFE}-${BUNDLE_SHA}.json"
 
       - name: Enforce tenant-isolation bundle freshness for release-candidate
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         run: |
-          python - <<'PY'
-          import json
-          import os
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          bundle_path = Path("artifacts/security/tenant-isolation/bundle-latest.json")
-          if not bundle_path.exists():
-              raise SystemExit("ERROR: tenant-isolation bundle-latest.json is missing")
-
-          data = json.loads(bundle_path.read_text())
-          if data.get("status") != "green":
-              raise SystemExit("ERROR: latest tenant-isolation bundle is not green")
-
-          ts = data.get("timestamp_utc")
-          try:
-              dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-          except Exception as exc:
-              raise SystemExit(f"ERROR: invalid timestamp_utc in tenant bundle: {ts!r} ({exc})")
-
-          age_hours = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
-          if age_hours > 24:
-              raise SystemExit(f"ERROR: latest tenant-isolation bundle is stale ({age_hours:.2f}h old; limit 24h)")
-
-          if data.get("commit_sha") != os.environ.get("GITHUB_SHA"):
-              raise SystemExit(
-                  "ERROR: latest tenant-isolation bundle commit SHA does not match release candidate commit"
-              )
-
-          print(f"Tenant-isolation bundle freshness check passed: age={age_hours:.2f}h")
-          PY
+          python scripts/ci/check_tenant_isolation_bundle_freshness.py
       - uses: actions/upload-artifact@v4
         with:
           name: security-artifacts
@@ -157,7 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run dependency chaos gate
-        run: make gate-chaos PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: chaos-artifacts
@@ -170,7 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run cross-domain smoke gate
-        run: make gate-smoke PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: smoke-artifacts
@@ -182,7 +155,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run agent provenance gate
-        run: make gate-agent PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: agent-artifacts
@@ -194,11 +167,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run state consistency gate
-        run: make gate-state PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: state-artifacts
           path: artifacts/state/
+
+  db-production-readiness-gate:
+    runs-on: ubuntu-latest
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run DB production readiness gate
+        run: |
+          make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+          test -s artifacts/database/migration-status.json
+          test -s artifacts/database/migration-status.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-readiness-artifacts
+          path: |
+            artifacts/release/junit/
+            artifacts/database/**
 
   observability-readiness:
     if: needs.determine-profile.outputs.profile != 'pr-fast'
@@ -207,11 +197,111 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run observability readiness gate
-        run: make gate-obs PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: obs-artifacts
           path: artifacts/obs/
+
+  repo-maturity-scorecard:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate repo maturity scorecard
+        id: scorecard
+        shell: bash
+        run: |
+          set +e
+          python scripts/reports/generate_repo_maturity_scorecard.py
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload repo maturity scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-maturity-scorecard
+          path: |
+            reports/scorecards/repo-maturity.json
+            reports/scorecards/repo-maturity.schema.json
+      - name: Publish repo maturity summary
+        if: always()
+        shell: bash
+        run: |
+          python -c "import json; d=json.load(open('reports/scorecards/repo-maturity.json', encoding='utf-8')); print(f\"Repo maturity: {d['overall_score']}/{d['max_score']} ({d['status']})\")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce repo maturity scorecard
+        if: always()
+        run: exit ${{steps.scorecard.outputs.exit_code}}
+
+  readiness-10:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run readiness 10 gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm readiness:10
+          test -s artifacts/readiness-10/readiness-10-summary.json
+          test -s artifacts/readiness-10/readiness-10-summary.md
+      - name: Upload readiness 10 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-10-artifacts
+          path: artifacts/readiness-10/**
+
+  gate-engineering:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install jsonschema pyyaml
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2.4.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check canonical gate artifact paths
+        run: |
+          python scripts/ci/canonicalize_gate_artifact_paths.py --check
+      - name: Generate gate-engineering evidence
+        run: |
+          python scripts/ci/generate_gate_evidence.py --run-real-producers
+      - name: Validate release readiness report
+        run: |
+          python scripts/ci/gate_engineering_validator.py report \
+            --release-id "checkpoint-5" \
+            --artifact-digest "sha256:${GITHUB_SHA}" \
+            --environment production \
+            --risk-class release-candidate \
+            --mode release \
+            --strict
+          test -n "$(find artifacts/release -name 'gate-*.json' -print -quit)"
+          test -s artifacts/release/release-readiness-report.json
+          test -s artifacts/release/release-readiness-report.md
+      - name: Upload gate-engineering artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-engineering-results
+          path: |
+            artifacts/release/gate-*.json
+            artifacts/release/release-readiness-report.json
+            artifacts/release/release-readiness-report.md
+          retention-days: 14
 
   release-policy:
     runs-on: ubuntu-latest
@@ -221,9 +311,13 @@ jobs:
       - security-isolation
       - agent-provenance
       - state-consistency
+      - db-production-readiness-gate
       - dependency-chaos
       - cross-domain-smoke
       - observability-readiness
+      - repo-maturity-scorecard
+      - readiness-10
+      - gate-engineering
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -237,7 +331,10 @@ jobs:
           BUNDLE_STAMP="$(date -u +%Y%m%d)"
           SECURITY_DIR="${ARTIFACT_DIR}/security"
           READINESS_DIR="${ARTIFACT_DIR}/readiness"
+          mkdir -p artifacts/readiness
           mkdir -p "${SECURITY_DIR}" "${READINESS_DIR}"
+          ENV_REQUIRED_FILE="${READINESS_DIR}/environment-required-evidence-${BUNDLE_STAMP}.json"
+          PROFILE="${{needs.determine-profile.outputs.profile}}"
 
           resolve_required_artifact() {
             local pattern="$1"
@@ -251,30 +348,84 @@ jobs:
             printf '%s\n' "${resolved}"
           }
 
-          tenant_isolation_file="$(resolve_required_artifact "*/artifacts/security/tenant-isolation-results.json" "tenant isolation test results")"
-          auth_coverage_file="$(resolve_required_artifact "*/artifacts/security/auth-endpoint-coverage.json" "auth endpoint coverage report")"
-          migration_rollback_file="$(resolve_required_artifact "*/artifacts/state/migration-rollback-test-output.txt" "migration rollback test output")"
-          red_snapshot_file="$(resolve_required_artifact "*/artifacts/obs/red-dashboard-snapshot-metadata.json" "RED dashboard snapshot metadata")"
+          resolve_first_artifact() {
+            local label="$1"
+            shift
+            local pattern
+            local resolved
+            for pattern in "$@"; do
+              resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+              if [[ -n "${resolved}" ]]; then
+                printf '%s\n' "${resolved}"
+                return 0
+              fi
+            done
+            echo "Missing required artifact for ${label}: $*" >&2
+            exit 1
+          }
+
+          record_environment_required_artifact() {
+            local label="$1"
+            local pattern="$2"
+            local resolved
+            resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+            if [[ -n "${resolved}" ]]; then
+              printf '%s\n' "${resolved}"
+              return 0
+            fi
+            python scripts/ci/record_environment_required_artifact.py "$ENV_REQUIRED_FILE" "$label" "$pattern"
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate environment artifact for ${label}: ${pattern}" >&2
+              exit 1
+            fi
+            return 1
+          }
+
+          tenant_isolation_file="$(resolve_first_artifact \
+            "tenant isolation test results" \
+            "*/artifacts/security/tenant-isolation-results.json" \
+            "*/artifacts/security/tenant-isolation/bundle-latest.json" \
+            "*/artifacts/tenant-isolation/summary.json")"
+          auth_coverage_file="$(resolve_first_artifact \
+            "auth endpoint coverage report" \
+            "*/artifacts/security/auth-endpoint-coverage.json" \
+            "*/artifacts/security/report.json" \
+            "*/artifacts/route-tenant-propagation.json")"
+          migration_rollback_file=""
+          if migration_candidate="$(record_environment_required_artifact "migration rollback test output" "*/artifacts/state/migration-rollback-test-output.txt")"; then
+            migration_rollback_file="${migration_candidate}"
+          fi
+          red_snapshot_file=""
+          if red_candidate="$(record_environment_required_artifact "RED dashboard snapshot metadata" "*/artifacts/obs/red-dashboard-snapshot-metadata.json")"; then
+            red_snapshot_file="${red_candidate}"
+          fi
 
           cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
           cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
           cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
           cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
 
-          cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
-          cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output.txt"
-          cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
-          cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
+          if [[ -n "${migration_rollback_file}" ]]; then
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output.txt"
+          fi
+          if [[ -n "${red_snapshot_file}" ]]; then
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
+          fi
+          if [[ -f "${ENV_REQUIRED_FILE}" ]]; then
+            cp "${ENV_REQUIRED_FILE}" "${READINESS_DIR}/environment-required-evidence.json"
+          fi
       - name: Evaluate release policy
-        run: make gate-release-policy PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-release-policy PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Run canonical release gate
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/ops/release-gate.sh "${{ needs.determine-profile.outputs.profile }}"
+          bash scripts/ops/release-gate.sh "${{needs.determine-profile.outputs.profile}}"
       - name: Sign release manifest
         if: success() && needs.determine-profile.outputs.profile != 'pr-fast'
-        run: make gates-sign-manifest
+        run: make gate-sign-manifest
       - name: Validate canonical release artifacts
         if: success()
         run: |
@@ -293,12 +444,12 @@ jobs:
     name: prod-readiness
     runs-on: ubuntu-latest
     if: always()
-    needs: [release-policy]
+    needs: [release-policy, repo-maturity-scorecard, readiness-10, gate-engineering]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/download-artifact@v4
       - name: Build PR summary
-        run: make gates-render-summary
+        run: make gate-summary
       - name: Assert machine-readable gate result exists
         run: test -s artifacts/release/gate-result.json
       - name: Publish summary

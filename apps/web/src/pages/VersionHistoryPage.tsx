@@ -6,6 +6,8 @@ import { useAccountContextStore } from "@/stores/accountContextStore";
 import { useSnapshots, useCreateSnapshot, useSnapshotDiff } from "@/hooks/useVersioning";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 export default function VersionHistoryPage() {
   const { accountId: paramAccountId } = useParams<{ accountId: string }>();
@@ -13,28 +15,46 @@ export default function VersionHistoryPage() {
   const accountId = paramAccountId || selectedAccountId;
   const [compareBase, setCompareBase] = useState<string | null>(null);
 
-  const { data: snapshots, isLoading } = useSnapshots(accountId);
+  const { data: snapshots, isLoading, error, refetch } = useSnapshots(accountId);
   const createSnapshot = useCreateSnapshot();
   const diffMutation = useSnapshotDiff();
 
   if (!accountId) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700">
+      <PageShell>
+        <PageHeader title="Version History" />
+        <div className="rounded-lg border border-warning/20 bg-warning/5 p-4 text-warning">
           No account selected. Please select an account to view version history.
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl space-y-4">
-        <Skeleton className="h-8 w-64" />
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 w-full" />
-        ))}
-      </div>
+      <PageShell>
+        <PageHeader title="Version History" subtitle={`Account: ${accountId}`} />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageShell>
+        <ErrorState
+          title="Failed to load version history"
+          description="Snapshots could not be retrieved. The versioning service may be degraded."
+          error={error}
+          onRetry={refetch}
+          retryLabel="Retry"
+        />
+      </PageShell>
     );
   }
 
@@ -56,7 +76,7 @@ export default function VersionHistoryPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell>
       <PageHeader title="Version History" subtitle={`Account: ${accountId}`} />
 
       <div className="mb-4 flex items-center justify-between">
@@ -109,7 +129,7 @@ export default function VersionHistoryPage() {
                   onClick={() => handleCompare(snapshot.id)}
                   className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                     compareBase === snapshot.id
-                      ? "bg-blue-600 text-white"
+                      ? "bg-primary text-primary-foreground"
                       : "bg-secondary hover:bg-secondary/80"
                   }`}
                 >
@@ -134,6 +154,6 @@ export default function VersionHistoryPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for Data Intelligence Layer Phase 1 — Layer 4 Components.
 
@@ -8,7 +10,6 @@ These tests use mock-based isolation to avoid the full import chain
 (database.py requires __future__ annotations for Python 3.11 compat).
 """
 
-from __future__ import annotations
 
 import sys
 import uuid
@@ -111,7 +112,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_enrich_account_not_found(self):
         """enrich_account returns error when account doesn't exist."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         db = AsyncMock()
         db.get = AsyncMock(return_value=None)
@@ -125,7 +126,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_enrich_account_already_enriched_skip(self):
         """enrich_account skips already-enriched accounts unless force=True."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         account = _make_mock_account(enrichment_status="enriched")
         account.enriched_at = datetime.now(UTC)
@@ -141,7 +142,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_enrich_account_force_reenrich(self):
         """enrich_account re-enriches when force=True even if already enriched."""
-        from value_fabric.layer4.services.enrichment_orchestrator import (
+        from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
             EnrichmentSource,
         )
@@ -168,7 +169,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_enrich_account_with_specific_sources(self):
         """enrich_account uses only specified sources when provided."""
-        from value_fabric.layer4.services.enrichment_orchestrator import (
+        from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
             EnrichmentSource,
         )
@@ -196,7 +197,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_close_cleans_up_http_client(self):
         """close() properly closes the HTTP client."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         db = AsyncMock()
         orch = EnrichmentOrchestrator(db)
@@ -212,7 +213,7 @@ class TestEnrichmentOrchestrator:
     @pytest.mark.asyncio
     async def test_close_noop_when_no_client(self):
         """close() is safe to call when no HTTP client exists."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         db = AsyncMock()
         orch = EnrichmentOrchestrator(db)
@@ -231,7 +232,7 @@ class TestEnrichmentSources:
     @pytest.mark.asyncio
     async def test_sec_edgar_enrichment_makes_http_call(self):
         """SEC EDGAR enrichment attempts HTTP call to EDGAR API."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         account = _make_mock_account(name="Acme Corp")
         db = AsyncMock()
@@ -256,7 +257,7 @@ class TestEnrichmentSources:
     @pytest.mark.asyncio
     async def test_web_crawl_enrichment_no_domain(self):
         """Web crawl enrichment returns error when no domain available."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentOrchestrator
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentOrchestrator
 
         account = _make_mock_account(domain="")
         account.website = ""
@@ -270,7 +271,7 @@ class TestEnrichmentSources:
 
     def test_determine_sources_with_revenue(self):
         """_determine_sources includes SEC EDGAR for high-revenue accounts."""
-        from value_fabric.layer4.services.enrichment_orchestrator import (
+        from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
             EnrichmentSource,
         )
@@ -286,7 +287,7 @@ class TestEnrichmentSources:
 
     def test_determine_sources_no_revenue(self):
         """_determine_sources excludes SEC EDGAR for low/no-revenue accounts."""
-        from value_fabric.layer4.services.enrichment_orchestrator import (
+        from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
             EnrichmentSource,
         )
@@ -301,7 +302,7 @@ class TestEnrichmentSources:
 
     def test_determine_sources_includes_news_scan(self):
         """_determine_sources includes news scan when account has a name."""
-        from value_fabric.layer4.services.enrichment_orchestrator import (
+        from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
             EnrichmentSource,
         )
@@ -325,7 +326,7 @@ class TestEnrichmentEnums:
 
     def test_enrichment_status_values(self):
         """EnrichmentStatus enum has expected values."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentStatus
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentStatus
 
         assert EnrichmentStatus.PENDING == "pending"
         assert EnrichmentStatus.IN_PROGRESS == "in_progress"
@@ -335,7 +336,7 @@ class TestEnrichmentEnums:
 
     def test_enrichment_source_values(self):
         """EnrichmentSource enum has expected values."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentSource
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentSource
 
         assert EnrichmentSource.SEC_EDGAR == "sec_edgar"
         assert EnrichmentSource.WEB_CRAWL == "web_crawl"
@@ -344,7 +345,7 @@ class TestEnrichmentEnums:
 
     def test_enrichment_source_list(self):
         """All enrichment sources are enumerable."""
-        from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentSource
+        from layer4_agents.services.enrichment_orchestrator import EnrichmentSource
 
         all_sources = list(EnrichmentSource)
         assert len(all_sources) == 4

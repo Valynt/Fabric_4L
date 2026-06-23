@@ -89,6 +89,16 @@ class TestLLMCostMetrics:
         assert metrics._accumulated_costs[("openai", "gpt-4o", "tenant-a")] == 0.10
         assert metrics._accumulated_costs[("openai", "gpt-4o", "tenant-b")] == 0.20
 
+    def test_set_health_status(self):
+        """Health status can be recorded and appears in metrics output."""
+        metrics = PrometheusMetrics()
+        metrics.set_health_status(True, component="api")
+        metrics.set_health_status(False, component="layer3")
+        output = metrics.get_metrics()
+        assert "vf_health_status" in output
+        assert 'component="api"' in output
+        assert 'component="layer3"' in output
+
 
 class TestGlobalMetrics:
     """Verify global metrics singleton works."""

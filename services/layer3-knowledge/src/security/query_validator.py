@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Cypher query validator for tenant isolation enforcement.
 
 .. deprecated::
@@ -30,7 +32,6 @@ Usage:
     ...     print("Query rejected - missing tenant_id")
 """
 
-from __future__ import annotations
 
 import logging
 import re
@@ -38,7 +39,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, TypedDict
 
-from value_fabric.layer3.utils.cypher_security import (
+from src.utils.cypher_security import (
     TENANT_OWNED_LABELS,
     validate_tenant_scoped_cypher,
 )
@@ -240,13 +241,13 @@ class QueryValidator:
         except ValueError as exc:
             finding = ValidationFinding(
                 severity=ValidationSeverity.ERROR,
-                message=str(exc),
+                message="unscoped_query",
                 line_number=None,
                 pattern=None,
                 suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
             )
             if self.fail_closed:
-                raise UnscopedQueryError(str(exc)) from exc
+                raise UnscopedQueryError("unscoped_query") from exc
             return [finding]
     
     def _check_entity_tenant_scoping(self, query: str, query_name: str) -> None:
@@ -259,10 +260,10 @@ class QueryValidator:
             validate_tenant_scoped_cypher(
                 query, tenant_owned_labels=TENANT_OWNED_LABELS, query_name=query_name
             )
-        except ValueError as exc:
+        except ValueError:
             self._findings.append(ValidationFinding(
                 severity=ValidationSeverity.ERROR,
-                message=str(exc),
+                message="unscoped_query",
                 line_number=None,
                 pattern=None,
                 suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
@@ -406,7 +407,7 @@ class ValidatedNeo4jSession:
         Raises:
             UnscopedQueryError: If query fails tenant isolation validation
         """
-        from value_fabric.layer3.db.query_execution import (
+        from ..db.query_execution import (
             TenantExecutionContext,
             TenantQueryExecutor,
             TenantQueryValidationError,
@@ -431,7 +432,7 @@ class ValidatedNeo4jSession:
                 context=context,
             )
         except TenantQueryValidationError as exc:
-            raise UnscopedQueryError(str(exc)) from exc
+            raise UnscopedQueryError("tenant_query_validation_failed") from exc
     
     async def close(self) -> None:
         """Close underlying session."""

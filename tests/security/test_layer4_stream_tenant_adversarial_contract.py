@@ -10,10 +10,11 @@ import pytest
 pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_WORKFLOWS_FILE = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "workflows.py"
-_CHECKPOINTS_FILE = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "checkpoints.py"
-_AGENT_STREAM_FILE = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "agent_stream.py"
-_C1_FILE = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "c1.py"
+_LAYER4_ROUTES = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes"
+_WORKFLOWS_FILE = _LAYER4_ROUTES / "workflows.py"
+_CHECKPOINTS_FILE = _LAYER4_ROUTES / "checkpoints.py"
+_AGENT_STREAM_FILE = _LAYER4_ROUTES / "agent_stream.py"
+_C1_FILE = _LAYER4_ROUTES / "c1.py"
 
 
 def _function_node(filepath: Path, func_name: str) -> ast.FunctionDef | ast.AsyncFunctionDef:

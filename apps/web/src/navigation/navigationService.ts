@@ -43,6 +43,7 @@ export type RouteState =
   // Home
   | "root"
   | "home"
+  | "workspaces"
   | "command-center"
   // Accounts
   | "accounts"
@@ -50,6 +51,7 @@ export type RouteState =
   | "account-overview"
   // Intelligence Workspace (account-scoped)
   | "intelligence"
+  | "intelligence-overview"
   | "intelligence-signals"
   | "intelligence-stakeholders"
   | "intelligence-enrichment"
@@ -109,11 +111,18 @@ export type RouteState =
   | "governance-policies"
   | "governance-audit-log"
   | "governance-health"
+  | "governance-billing"
   // Agents & Workflows (account-scoped)
   | "agents"
   | "agents-thread"
   | "workflows"
   | "workflow-run"
+  // Academy (tenant-scoped)
+  | "academy"
+  | "academy-pillar"
+  | "academy-quiz"
+  | "academy-resources"
+  | "academy-profile"
   // Settings — Personal (global)
   | "settings-profile"
   | "settings-security"
@@ -171,6 +180,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   // Home
   root: { path: "/", analyticsRouteId: "home.root" },
   home: { path: "/home", analyticsRouteId: "home.dashboard" },
+  workspaces: { path: "/workspaces", analyticsRouteId: "auth.workspaces" },
   "command-center": { path: "/command-center", analyticsRouteId: "home.command-center" },
 
   // Accounts
@@ -180,6 +190,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
 
   // Intelligence Workspace
   intelligence: { path: "/t/:tenantSlug/accounts/:accountId/intelligence", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.workspace" },
+  "intelligence-overview": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/overview", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.overview" },
   "intelligence-signals": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.signals" },
   "intelligence-stakeholders": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.stakeholders" },
   "intelligence-enrichment": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/enrichment", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.enrichment" },
@@ -243,12 +254,20 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "governance-policies": { path: "/t/:tenantSlug/governance/policies", params: ["tenantSlug"], analyticsRouteId: "governance.policies" },
   "governance-audit-log": { path: "/t/:tenantSlug/governance/audit-log", params: ["tenantSlug"], analyticsRouteId: "governance.audit-log" },
   "governance-health": { path: "/t/:tenantSlug/governance/health", params: ["tenantSlug"], analyticsRouteId: "governance.health" },
+  "governance-billing": { path: "/t/:tenantSlug/governance/billing", params: ["tenantSlug"], analyticsRouteId: "governance.billing" },
 
   // Agents & Workflows
   agents: { path: "/t/:tenantSlug/accounts/:accountId/agents", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.console" },
   "agents-thread": { path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId", params: ["tenantSlug", "accountId", "threadId"], analyticsRouteId: "agents.thread" },
   workflows: { path: "/t/:tenantSlug/accounts/:accountId/workflows", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.workflows" },
   "workflow-run": { path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId", params: ["tenantSlug", "accountId", "workflowRunId"], analyticsRouteId: "agents.workflow-run" },
+
+  // Academy (tenant-scoped)
+  academy: { path: "/t/:tenantSlug/academy", params: ["tenantSlug"], analyticsRouteId: "academy.workspace" },
+  "academy-pillar": { path: "/t/:tenantSlug/academy/pillars/:pillarId", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.pillar" },
+  "academy-quiz": { path: "/t/:tenantSlug/academy/pillars/:pillarId/quiz", params: ["tenantSlug", "pillarId"], analyticsRouteId: "academy.quiz" },
+  "academy-resources": { path: "/t/:tenantSlug/academy/resources", params: ["tenantSlug"], analyticsRouteId: "academy.resources" },
+  "academy-profile": { path: "/t/:tenantSlug/academy/profile", params: ["tenantSlug"], analyticsRouteId: "academy.profile" },
 
   // Settings — Personal (global)
   "settings-profile": { path: "/settings/profile", analyticsRouteId: "settings.profile" },
@@ -384,35 +403,6 @@ export function validateStateParams(
   return { valid: missing.length === 0, missing };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reverse lookup
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function pathToState(path: string): {
-  state: RouteState | null;
-  params: NavigationParams;
-} {
-  for (const [state, config] of Object.entries(ROUTE_MAP)) {
-    const paramNames = config.params ?? [];
-
-    let pattern = config.path.replace(/:[^/]+/g, "([^/]+)");
-    pattern = "^" + pattern + "$";
-
-    const regex = new RegExp(pattern);
-    const match = path.match(regex);
-
-    if (match) {
-      const params: NavigationParams = {};
-      paramNames.forEach((name, i) => {
-        params[name] = match[i + 1];
-      });
-      return { state: state as RouteState, params };
-    }
-  }
-
-  return { state: null, params: {} };
-}
-
 // ── Legacy compatibility helpers ─────────────────────────────────────────────
 
 const WORKSPACE_PREFIXES = [
@@ -477,5 +467,13 @@ export function isItemVisible(
 }
 
 export function isRouteActive(location: string, resolvedPath: string): boolean {
-  return location === resolvedPath || location.startsWith(resolvedPath + "/");
+  const normalize = (value: string) => value.replace(/\/+$/, "") || "/";
+  const current = normalize(location);
+  const route = normalize(resolvedPath.replace(/\/\*$/, ""));
+
+  if (route === "/") {
+    return current === "/";
+  }
+
+  return current === route || current.startsWith(route + "/");
 }

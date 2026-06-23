@@ -600,6 +600,7 @@ class GraphRAGEngine:
             MATCH path = (seed)-[r*1..{max_hops}]-(connected)
             WHERE seed.id IN $seed_ids
               AND ALL(node IN nodes(path) WHERE node.confidence >= $min_confidence AND node.tenant_id = $_tenant_id)
+              AND ALL(rel IN relationships(path) WHERE rel.tenant_id = $_tenant_id)
             RETURN seed.id as seed_id,
                    nodes(path) as path_nodes,
                    relationships(path) as path_rels,
@@ -794,6 +795,7 @@ class GraphRAGEngine:
                 WHERE seed.id IN $seed_ids
                   AND length(path) = {current_hop}
                   AND ALL(node IN nodes(path) WHERE node.confidence >= $min_confidence AND node.tenant_id = $_tenant_id)
+                  AND ALL(rel IN relationships(path) WHERE rel.tenant_id = $_tenant_id)
                   AND connected.id NOT IN $existing_ids
                 RETURN nodes(path) as path_nodes,
                        relationships(path) as path_rels,

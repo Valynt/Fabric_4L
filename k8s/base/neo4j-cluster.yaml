@@ -1,0 +1,213 @@
+# P0-002: Neo4j Enterprise Causal Cluster
+# 3-core causal clustering with read replicas
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j-core
+  namespace: value-fabric
+  labels:
+    app: neo4j
+    tier: database
+    role: core
+spec:
+  serviceName: neo4j-core
+  replicas: 3
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app: neo4j
+      role: core
+  template:
+    metadata:
+      labels:
+        app: neo4j
+        role: core
+    spec:
+      containers:
+        - name: neo4j
+          image: neo4j:5.18.1-enterprise
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-credentials
+                  key: auth
+            - name: NEO4J_dbms_mode
+              value: "CORE"
+            - name: NEO4J_causal__clustering_discovery__type
+              value: "K8S"
+            - name: NEO4J_causal__clustering_kubernetes_label__selector
+              value: "app=neo4j,role=core"
+            - name: NEO4J_causal__clustering_kubernetes_namespace
+              value: "value-fabric"
+            - name: NEO4J_causal__clustering_minimum__core__cluster__size__at__formation
+              value: "3"
+            - name: NEO4J_dbms_memory_heap_initial__size
+              value: "1G"
+            - name: NEO4J_dbms_memory_heap_max__size
+              value: "2G"
+            - name: NEO4J_dbms_memory_pagecache_size
+              value: "1G"
+            - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+              value: "yes"
+            - name: NEO4J_dbms_security_procedures_unrestricted
+              value: "apoc.*,gds.*"
+            - name: NEO4J_dbms_connector_bolt_listen__address
+              value: "0.0.0.0:7687"
+            - name: NEO4J_dbms_connector_http_listen__address
+              value: "0.0.0.0:7474"
+            - name: NEO4J_dbms_connector_https_listen__address
+              value: "0.0.0.0:7473"
+          ports:
+            - containerPort: 7474
+              name: http
+            - containerPort: 7473
+              name: https
+            - containerPort: 7687
+              name: bolt
+            - containerPort: 6362
+              name: backup
+            - containerPort: 5000
+              name: discovery
+            - containerPort: 7000
+              name: tx
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /db/manage/server/jmx/domain/org.neo4j/instance%3Dkernel%230%2Cname%3DConfiguration
+              port: 7474
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /db/manage/server/readiness
+              port: 7474
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+            - name: neo4j-plugins
+              mountPath: /plugins
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 50Gi
+    - metadata:
+        name: neo4j-plugins
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: value-fabric
+  labels:
+    app: neo4j
+spec:
+  type: ClusterIP
+  publishNotReadyAddresses: true
+  ports:
+    - port: 7687
+      name: bolt
+    - port: 7474
+      name: http
+    - port: 7473
+      name: https
+    - port: 6362
+      name: backup
+  selector:
+    app: neo4j
+    role: core
+---
+# Read Replica StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j-read-replica
+  namespace: value-fabric
+  labels:
+    app: neo4j
+    role: read-replica
+spec:
+  serviceName: neo4j-read-replica
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+      role: read-replica
+  template:
+    metadata:
+      labels:
+        app: neo4j
+        role: read-replica
+    spec:
+      containers:
+        - name: neo4j
+          image: neo4j:5.18.1-enterprise
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-credentials
+                  key: auth
+            - name: NEO4J_dbms_mode
+              value: "READ_REPLICA"
+            - name: NEO4J_causal__clustering_discovery__type
+              value: "K8S"
+            - name: NEO4J_causal__clustering_kubernetes_label__selector
+              value: "app=neo4j,role=core"
+            - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+              value: "yes"
+          ports:
+            - containerPort: 7687
+              name: bolt
+            - containerPort: 7474
+              name: http
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 30Gi

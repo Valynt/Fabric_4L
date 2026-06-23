@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer4.startup_dependencies import verify_startup_dependencies
+from layer4_agents.startup_dependencies import verify_startup_dependencies
 
 
 def test_dependency_gate_fail_closed_in_production_for_missing_required_module(monkeypatch):

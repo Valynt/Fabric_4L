@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Adversarial unit tests for TruthObject validation and state machine.
 
 Covers:
@@ -14,7 +16,6 @@ Covers:
 - Auto-advance stops at VALIDATED (never auto-validates without evidence)
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path

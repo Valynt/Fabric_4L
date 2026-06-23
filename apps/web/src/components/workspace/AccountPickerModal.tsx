@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Account Picker Modal
  */
 import { useCallback } from "react";
@@ -25,9 +25,11 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import {
-  resolveAccountScopedWorkspacePath,
+  getWorkspaceTabState,
+  getWorkspaceTabOrDefault,
   type AccountWorkspace,
 } from "@/navigation/accountRouting";
+import type { RouteState } from "@/navigation/navigationService";
 import type { Account } from "@/hooks/useAccounts";
 
 interface AccountPickerModalProps {
@@ -65,13 +67,12 @@ export default function AccountPickerModal({
   const handleSelect = useCallback(
     (account: Account) => {
       setSelectedAccountId(account.id);
-      const path = resolveAccountScopedWorkspacePath({
-        workspace,
+      const resolvedTab = getWorkspaceTabOrDefault(workspace, tab);
+      const state: RouteState = getWorkspaceTabState(workspace, resolvedTab);
+      navigateTo(state, {
+        tenantSlug: currentTenantSlug ?? 'default',
         accountId: account.id,
-        tab,
-        tenantSlug: currentTenantSlug,
       });
-      navigateTo(path);
     },
     [workspace, tab, setSelectedAccountId, navigateTo, currentTenantSlug]
   );
@@ -98,10 +99,10 @@ export default function AccountPickerModal({
         onInteractOutside={preventDismiss}
       >
         <DialogHeader className="px-6 pt-6 pb-3">
-          <DialogTitle className="text-[18px] font-semibold">
+          <DialogTitle className="text-lg font-semibold">
             Select an Account
           </DialogTitle>
-          <DialogDescription className="text-[13px]">
+          <DialogDescription className="vf-text-body-m">
             Choose an account to continue to the{" "}
             <span className="font-medium text-foreground capitalize">
               {workspace}

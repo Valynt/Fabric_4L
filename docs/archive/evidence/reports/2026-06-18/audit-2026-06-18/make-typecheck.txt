@@ -1,0 +1,48 @@
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 1...
+Success: no issues found in 99 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 2...
+Success: no issues found in 63 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 2.5...
+Success: no issues found in 17 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 3...
+pyproject.toml: note: unused section(s): module = ['src.api.__init__', 'src.api.app_factory', 'src.api.app_monolith', 'src.api.compat_wiring', 'src.api.middleware_setup', 'src.api.router_groups', 'src.api.routes.tenant_resolution', 'src.api.shared_bootstrap', 'src.api.telemetry', 'src.migrations.028_l3_tenant_standardization', 'src.migrations.029_backfill_sync_metadata_tenant', 'src.migrations.create_composite_tenant_indexes', 'src.migrations.migrate_tenant_ids', 'src.tracing.tracer']
+Success: no issues found in 141 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 4...
+src\resilience.py:118:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\resilience.py:301:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\provenance\store.py:97:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\provenance\store.py:99:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\provenance\store.py:101:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\harness\tests\test_harness_persistence.py:119:5: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\messaging\bus.py:135:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\messaging\bus.py:139:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\services\value_flow_facade.py:19:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\resilience.py:118:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\resilience.py:301:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\api\websocket\manager.py:140:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\api\websocket\manager.py:142:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\api\websocket\manager.py:144:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\api\websocket\manager.py:147:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src\layer4_agents\api\websocket\manager.py:148:9: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+pyproject.toml: note: unused section(s): module = ['src.layer4_agents.tools.analytics', 'src.layer4_agents.tools.workflows']
+Success: no issues found in 545 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 5...
+Success: no issues found in 85 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+make[1]: Entering directory 'C:/Users/BBB/Fabric_4L'
+â†’ Type-checking Layer 6...
+Success: no issues found in 24 source files
+make[1]: Leaving directory 'C:/Users/BBB/Fabric_4L'
+âœ…  Type-checking complete for all layers
+

@@ -20,15 +20,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# Allow ``from src.crawler...`` and ``value_fabric...`` imports when the script
+# Allow ``from layer1_ingestion.crawler...`` and ``value_fabric...`` imports when the script
 # is run directly.
 _SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(_SCRIPT_DIR.parent))          # services/layer1-ingestion
+sys.path.insert(0, str(_SCRIPT_DIR.parent / "src"))   # services/layer1-ingestion/src
 sys.path.insert(0, str(_SCRIPT_DIR.parents[2]))      # repo root (value_fabric)
 
-from src.crawler.smart_router import SmartRouter, RouteType
-from src.crawler.httpx_crawler import HttpxCrawler
-from src.crawler.decision_store import InMemoryCrawlDecisionRepository
+from layer1_ingestion.crawler.smart_router import SmartRouter, RouteType
+from layer1_ingestion.crawler.httpx_crawler import HttpxCrawler
+from layer1_ingestion.crawler.decision_store import InMemoryCrawlDecisionRepository
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 

@@ -11,12 +11,14 @@
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (any patch release; the repo does not require Python 3.11.10 specifically)
 - Node.js ≥ 22.12.0 and pnpm 10.18.1
 - Docker + Docker Compose
 - `make`
 
 ### First-time setup
+
+Use the same canonical command map as human contributors: [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) defines when to use `make`, `pnpm`, or direct Python CI runners, [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) lists every public root script and Makefile target, and [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) routes issue types to source-of-truth files, drift checks, validation commands, and evidence.
 
 ```bash
 # 1. Clone and install tooling
@@ -24,26 +26,34 @@
 #    Then log in:
 infisical login
 
-# 2. Enable pnpm via corepack (do not use npm/yarn)
+# 2. Select a local Python 3.11 interpreter (optional if python3.11 is already on PATH)
+#    pyenv users can install the latest known 3.11 patch and keep .python-version pinned to the 3.11 series.
+#    The Makefile resolves python3.11 first and then only accepts python3/python shims that are >=3.11;
+#    use `make PYTHON=/path/to/python3.11 ...` if your local shim path is unusual.
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+#    If your pyenv does not support series aliases, choose any installed 3.11.x patch explicitly.
+
+# 3. Enable pnpm via corepack (do not use npm/yarn)
 corepack enable
 corepack prepare pnpm@10.18.1 --activate
 
-# 3. Install frontend dependencies
+# 4. Install frontend dependencies
 pnpm install --frozen-lockfile
 
-# 4. Install Python service dependencies into the pytest pipx venv
+# 5. Install Python service dependencies into the pytest pipx venv
 make setup
 
-# 5. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
+# 6. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
 #    Using Infisical-generated env (recommended):
-pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 #    Or legacy manual .env:
-#    cp .env.example .env && docker compose -f docker-compose.dev.yml up -d
+#    cp .env.example .env && docker compose -f infra/compose/docker-compose.dev.yml up -d
 
-# 6. Run database migrations
+# 7. Run database migrations
 make migrate
 
-# 7. Verify everything passes
+# 8. Verify everything passes
 make verify
 ```
 
@@ -52,11 +62,11 @@ make verify
 ## Dev Server
 
 ```bash
-# Local Docker Compose stack (frontend + supporting backend services defined in docker-compose.dev.yml)
+# Local Docker Compose stack (frontend + supporting backend services defined in infra/compose/docker-compose.dev.yml)
 # With Infisical (recommended):
-pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up
 # Legacy manual .env:
-# docker compose -f docker-compose.dev.yml up
+# docker compose -f infra/compose/docker-compose.dev.yml up
 
 # Frontend only (Vite, port 3001, with mock API)
 pnpm dev:web
@@ -265,6 +275,7 @@ All PRs targeting `main` must pass the GitHub checks as named in the workflow:
 - `structural-preflight` — import topology, Python contract lint, frontend root policy, and pnpm-only/package-manager enforcement
 - Per-layer lint, typecheck, and test jobs
 - `contract-checks` — OpenAPI drift detection and related contract coverage
+- `production-readiness-gate` — canonical production-readiness gate (`make production-readiness-gate`) required by CI
 - Any additional required jobs shown in the PR’s Checks tab under `.github/workflows/pr-checks.yml`
 
 ### PR body
@@ -289,9 +300,8 @@ services/
   layer5-ground-truth/       L5: TruthObject validation, maturity ladder (port 8005)
   layer6-benchmarks/         L6: Peer comparison, statistical validation (port 8006)
   api/                       Shared API gateway / auth enforcement
-value_fabric/                Runtime Python packages (canonical source for L1–L4, L6, shared)
 packages/
-  shared/                    Shared Python library (tenant context, base models)
+  shared/                    Shared Python library (tenant context, base models; exposes value_fabric.shared.*)
   platform-contract/         Cross-layer contract definitions and test harness
 contracts/
   openapi/                   OpenAPI specs (source of truth for API contracts)
@@ -317,6 +327,7 @@ monitoring/                  Observability configuration
 |---|---|
 | `DESIGN.md` | **Required reading** before modifying `apps/web/` |
 | `docs/contract.md` | Canonical platform contract (tenant context, middleware, agent output shape) |
+| `docs/development/DISCOVERY_MAP.md` | Issue-to-implementation routing map for source-of-truth files, drift checks, validation, and evidence |
 | `docs/governance.md` | Engineering governance entry points |
 | `canonical-paths-policy.md` | Runtime path governance matrix |
 | `.env.example` | All required environment variables with safe defaults |
@@ -402,23 +413,24 @@ Use these canonical paths first.
 ### Runtime packages
 
 ```text
-value_fabric/layer1/
-value_fabric/layer2/
-value_fabric/layer3/
-value_fabric/layer4/
+services/layer1-ingestion/src/layer1_ingestion/
+services/layer2-extraction/src/layer2_extraction/
+services/layer3-knowledge/src/
+services/layer4-agents/src/layer4_agents/
 services/layer5-ground-truth/src/layer5_ground_truth/
-value_fabric/layer6/
-value_fabric/shared/
+services/layer6-benchmarks/src/layer6_benchmarks/
+packages/shared/src/value_fabric/shared/
 ```
 
 ### Runtime API modules
 
 ```text
-value_fabric/layer1/api/routes/
-value_fabric/layer2/api/routes/
-value_fabric/layer3/api/routes/
+services/layer1-ingestion/src/layer1_ingestion/api/routes/
+services/layer2-extraction/src/layer2_extraction/api/routes/
+services/layer3-knowledge/src/api/routes/
+services/layer4-agents/src/api/routes/
 services/layer5-ground-truth/src/layer5_ground_truth/api/
-value_fabric/layer6/api/routes/
+services/layer6-benchmarks/src/layer6_benchmarks/api/routes/
 ```
 
 ### Maintained deployable services
@@ -751,17 +763,53 @@ A manufacturing value driver, SaaS ROI formula, healthcare benchmark, or public-
 
 ## 14. Testing Rules
 
-Every meaningful change should include or preserve tests.
+### Operating Principle
 
-Prioritize:
+> **No critical behavior exists unless it is tested.**
+
+### Enforcement Rule
+
+- **Intended behavior passes.**
+- **Unintended behavior fails.**
+- **Untested behavior is not production-ready.**
+
+Every meaningful change should include or preserve tests. The test suite is the executable contract for intended behavior. Troubleshooting should not be the primary mechanism for discovering security, configuration, or runtime gaps.
+
+For the canonical governance statement, see [`docs/governance/behavior-first-testing.md`](docs/governance/behavior-first-testing.md).
+
+### Priorities
 
 - Unit tests for pure logic
 - Integration tests for service boundaries
-- Contract tests for API shapes
+- Contract tests for API shapes **and failure modes**
 - Tenant-isolation tests for data access
 - Regression tests for drift fixes
 - Frontend behavior tests over brittle CSS tests
 - E2E tests only where workflow coverage matters
+
+### Behavior-First Requirements
+
+For every production-critical workflow, encode:
+
+1. **The intended allowed behavior** — a passing test.
+2. **The intended denied behavior** — a passing test that asserts denial.
+3. **The expected failure mode** — explicit error codes, safe defaults, or structured rejections.
+4. **The test or gate that proves the behavior before release** — pytest marker, CI job, or Makefile target.
+
+If behavior is not explicitly intended, it **fails closed by default**.
+
+### Readiness Ladder (do not claim "ready" from static resolution alone)
+
+"Ready" is a four-stage ladder; no stage may be skipped:
+
+1. **Static contract resolved** — `make check-behavior-contract` (capabilities map to allowed + denied tests; static only).
+2. **Behavior tests executed** — `pnpm run test:critical-behaviors` (the tests actually run and pass).
+3. **Readiness audit passed** — `make check-behavior-readiness-audit` (executes the suites, enforces skip discipline, emits GREEN/YELLOW/RED to `artifacts/readiness/behavior-readiness-audit.json`).
+4. **Production ready** — `make production-readiness-gate` (canonical gate; the `behavior-readiness` gate is wired into the `mainline-full`, `release-candidate`, `production-core`, and `tier0-production-safety` profiles).
+
+A passing static contract (Stage 1) does **not** authorize a "ready" claim. Skips/xfails are only tolerated if benign + not-applicable or covered by an active, time-boxed waiver in `config/ci/behavior_readiness_waivers.yaml`; anything else is **RED**. See [`docs/governance/behavior-first-testing.md`](docs/governance/behavior-first-testing.md#readiness-ladder-from-static-resolution-to-production-ready).
+
+### Security-Sensitive Changes
 
 For security-sensitive changes, include hostile tests.
 
@@ -773,9 +821,27 @@ Tenant A cannot mutate Tenant B data.
 Missing tenant context fails closed.
 Invalid contract payload is rejected.
 Agent output schema mismatch is caught.
+Unauthenticated request is rejected with 401.
+Cross-tenant read fails with 403.
 ```
 
+### Naming
+
+Name tests after the behavior they prove, not the method they call:
+
+- Good: `test_authenticated_user_can_read_own_data`
+- Bad: `test_get_user_returns_200`
+
+### Maintenance
+
 Do not remove failing tests unless they are demonstrably obsolete and replaced with better coverage.
+
+When a critical behavior is discovered to be untested:
+
+1. File a behavior-debt ticket.
+2. Add a `TODO(behavior-debt)` comment in code with the ticket link.
+3. Prioritize the test in the next sprint.
+4. Do not merge additional logic on top of the untested behavior until the contract is encoded.
 
 ---
 
@@ -865,6 +931,15 @@ When adding environment variables:
 - Ensure tests and Docker Compose files are aligned
 
 Do not rename environment variables without updating all consumers.
+
+**Dev Auth Bypass Flags:**
+The following environment variables are for local development only and MUST NEVER be set in production:
+- `DEV_AUTH_BYPASS=true`
+- `ALLOW_DEV_AUTH_BYPASS=true`
+- `AUTH_BYPASS_ENABLED=true`
+- `ALLOW_INSECURE_DEV_AUTH_BYPASS=true`
+
+These flags are validated by `ProductionSafetyValidator` and will cause startup failure in production-like environments. See SECURITY.md for details.
 
 ---
 
@@ -1065,6 +1140,7 @@ Optimize for long-term platform integrity over short-term patching.
 ## Project Docs
 
 - [Agent Architecture](docs/AGENTS.md)
+- [Development Discovery Map](docs/development/DISCOVERY_MAP.md)
 - [Frontend Governance Contract](DESIGN.md) — required reading before modifying `apps/web/`
 - [Layer 4 Agents Service](services/layer4-agents/README.md)
 - [ADR-002: Six-Layer Architecture](docs/explanations/adr/ADR-002-six-layer-architecture.md)

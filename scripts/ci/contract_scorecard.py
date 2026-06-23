@@ -183,7 +183,7 @@ def main() -> int:
             print(f"| {status} {c['contract']} | {c['name']} | {c['total_violations']} |")
         print()
         if scorecard["overall_score"] >= scorecard["target_score"]:
-            print("✅ **Target attained**")
+            print("PASS **Target attained**")
         else:
             gap = scorecard["target_score"] - scorecard["overall_score"]
             print(f"⚠️ **{gap:.1f} points below target**")

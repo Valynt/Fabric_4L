@@ -4,12 +4,12 @@ import logging
 from typing import Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
-from value_fabric.layer3.config import Settings, get_settings
 from value_fabric.shared.identity.context import require_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from db.query_execution import run_scoped_query, run_validated_query
+from ..config import Settings, get_settings
+from ..db.query_execution import run_scoped_query, run_validated_query
 
 
 class CommunityDetector__fallback_community_detectionResult(TypedDictModel):
@@ -127,7 +127,12 @@ class CommunityDetector:
         async with driver.session(database=self.settings.neo4j_database) as session:
             # Check if GDS is available
             try:
-                await run_validated_query(session, "RETURN gds.version() as version")
+                await run_validated_query(
+                    session,
+                    "RETURN gds.version() as version",
+                    allow_system_query=True,
+                    query_name="communities.gds_version.louvain",
+                )
             except Exception as e:
                 logger.warning(f"GDS not available: {e}")
                 return await self._fallback_community_detection(
@@ -155,6 +160,8 @@ class CommunityDetector:
                     RETURN gds.util.asNode(nodeId) as node, communityId
                     """,
                     {"graph_name": graph_name, "max_levels": max_levels},
+                    allow_system_query=True,
+                    query_name="communities.gds_louvain_stream",
                 )
 
                 # Collect results
@@ -206,6 +213,8 @@ class CommunityDetector:
                     await run_validated_query(session,
                         "CALL gds.graph.drop($graph_name)",
                         {"graph_name": graph_name},
+                        allow_system_query=True,
+                        query_name="communities.gds_drop_graph.louvain",
                     )
                 except Exception as e:
                     logger.debug(f"Could not drop graph projection: {e}")
@@ -234,7 +243,12 @@ class CommunityDetector:
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             try:
-                await run_validated_query(session, "RETURN gds.version() as version")
+                await run_validated_query(
+                    session,
+                    "RETURN gds.version() as version",
+                    allow_system_query=True,
+                    query_name="communities.gds_version.leiden",
+                )
             except Exception as e:
                 logger.warning(f"GDS not available: {e}")
                 return await self._fallback_community_detection(
@@ -258,6 +272,8 @@ class CommunityDetector:
                     RETURN gds.util.asNode(nodeId) as node, communityId
                     """,
                     {"graph_name": graph_name},
+                    allow_system_query=True,
+                    query_name="communities.gds_leiden_stream",
                 )
 
                 communities: dict[int, list[dict]] = {}
@@ -303,6 +319,8 @@ class CommunityDetector:
                     await run_validated_query(session,
                         "CALL gds.graph.drop($graph_name)",
                         {"graph_name": graph_name},
+                        allow_system_query=True,
+                        query_name="communities.gds_drop_graph.leiden",
                     )
                 except Exception as e:
                     logger.debug(f"Could not drop graph projection: {e}")
@@ -489,6 +507,8 @@ class CommunityDetector:
                 RETURN avg(modularity) as avg_modularity
                 """,
                 {"graph_name": graph_name},
+                allow_system_query=True,
+                query_name="communities.gds_modularity_stream",
             )
             record = await result.single()
             return record["avg_modularity"] if record else 0.0

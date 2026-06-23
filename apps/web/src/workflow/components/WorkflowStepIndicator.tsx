@@ -1,93 +1,258 @@
-import * as React from "react";
-import { Link, useSearchParams, useParams } from "react-router-dom";
-import { Radar, Building2, BrainCircuit, GitFork, Database, Calculator, FileText, ChevronRight, Sparkles, LucideIcon, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Radio } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { WORKFLOW_STEPS } from "../types";
 
-type IconName = 'Radar' | 'Building2' | 'BrainCircuit' | 'GitFork' | 'Database' | 'Calculator' | 'FileText';
+export type WorkflowStepStatus = "pending" | "active" | "completed" | "error";
 
-const iconMap: Record<IconName, LucideIcon> = {
-  Radar, Building2, BrainCircuit, GitFork, Database, Calculator, FileText,
-};
-
-function getIcon(name: string): LucideIcon {
-  return (iconMap as Record<string, LucideIcon>)[name] || Sparkles;
+export interface WorkflowStep {
+  id: string;
+  label: string;
+  description?: string;
+  status?: WorkflowStepStatus;
 }
 
-function buildStepPath(
-  step: typeof WORKFLOW_STEPS[number],
-  tenantSlug: string,
-  accountId: string
-): string {
-  return step.canonicalPath
-    .replace(':tenantSlug', tenantSlug)
-    .replace(':accountId', accountId);
+export interface WorkflowStepIndicatorProps {
+  steps: WorkflowStep[];
+  activeStepId?: string;
+  completedStepIds?: string[];
+  isLoading?: boolean;
+  error?: string | Error | null;
+  ariaLabel?: string;
+  className?: string;
 }
 
-export function WorkflowStepIndicator() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
-  const mode = searchParams.get('mode');
-  const stepParam = searchParams.get('step');
-  const currentStep = stepParam ? parseInt(stepParam, 10) : 0;
+export const ACCOUNT_WORKFLOW_STEPS: WorkflowStep[] = [
+  {
+    id: "scope",
+    label: "Scope",
+    description: "Select account context and workflow inputs",
+  },
+  {
+    id: "intelligence",
+    label: "Intelligence",
+    description: "Validate signals, hypotheses, and evidence",
+  },
+  {
+    id: "studio",
+    label: "Model",
+    description: "Build value drivers, assumptions, and scenarios",
+  },
+  {
+    id: "deliverables",
+    label: "Deliver",
+    description: "Package the business case and executive views",
+  },
+];
 
-  if (mode !== 'value-pilot') return null;
-  if (!tenantSlug || !accountId) return null;
+function normalizeError(
+  error: WorkflowStepIndicatorProps["error"]
+): string | null {
+  if (!error) {
+    return null;
+  }
 
-  const handleClose = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('mode');
-    next.delete('step');
-    setSearchParams(next, { replace: true });
-  };
+  return typeof error === "string" ? error : error.message;
+}
+
+function getStepStatus(
+  step: WorkflowStep,
+  activeStepId: string | undefined,
+  completedStepIds: Set<string>
+): WorkflowStepStatus {
+  if (step.status) {
+    return step.status;
+  }
+
+  if (step.id === activeStepId) {
+    return "active";
+  }
+
+  if (completedStepIds.has(step.id)) {
+    return "completed";
+  }
+
+  return "pending";
+}
+
+function getStatusLabel(status: WorkflowStepStatus): string {
+  switch (status) {
+    case "active":
+      return "Current step";
+    case "completed":
+      return "Completed";
+    case "error":
+      return "Needs attention";
+    case "pending":
+      return "Pending";
+  }
+}
+
+function StepStatusIcon({ status }: { status: WorkflowStepStatus }) {
+  const iconClassName = "size-3.5 shrink-0";
+
+  if (status === "completed") {
+    return (
+      <CheckCircle2
+        aria-hidden="true"
+        className={cn(iconClassName, "text-primary")}
+      />
+    );
+  }
+
+  if (status === "active") {
+    return (
+      <Radio aria-hidden="true" className={cn(iconClassName, "text-primary")} />
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <AlertCircle
+        aria-hidden="true"
+        className={cn(iconClassName, "text-destructive")}
+      />
+    );
+  }
 
   return (
-    <div className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-12">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
+    <Circle
+      aria-hidden="true"
+      className={cn(iconClassName, "text-muted-foreground")}
+    />
+  );
+}
+
+export function WorkflowStepIndicator({
+  steps,
+  activeStepId,
+  completedStepIds = [],
+  isLoading = false,
+  error = null,
+  ariaLabel = "Workflow progress",
+  className,
+}: WorkflowStepIndicatorProps) {
+  const errorMessage = normalizeError(error);
+
+  if (isLoading) {
+    return (
+      <section
+        aria-label={ariaLabel}
+        aria-busy="true"
+        className={cn("border-b bg-background/95 px-4 py-2", className)}
+      >
+        <div className="mx-auto flex max-w-screen-2xl items-center gap-2 text-xs text-muted-foreground">
+          <Spinner className="size-3.5" />
+          <span>Loading workflow progress…</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <section
+        aria-label={ariaLabel}
+        className={cn("border-b bg-background/95 px-4 py-2", className)}
+      >
+        <Alert variant="destructive" className="mx-auto max-w-screen-2xl py-2">
+          <AlertDescription className="text-xs">
+            Workflow progress unavailable: {errorMessage}
+          </AlertDescription>
+        </Alert>
+      </section>
+    );
+  }
+
+  if (steps.length === 0) {
+    return (
+      <section
+        aria-label={ariaLabel}
+        className={cn("border-b bg-background/95 px-4 py-2", className)}
+      >
+        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          <span>No workflow steps available.</span>
+          <Badge variant="outline">Empty</Badge>
+        </div>
+      </section>
+    );
+  }
+
+  const completedIds = new Set(completedStepIds);
+  const statuses = steps.map(step =>
+    getStepStatus(step, activeStepId, completedIds)
+  );
+  const completedCount = statuses.filter(
+    status => status === "completed"
+  ).length;
+  const activeStep = steps.find((step, index) => statuses[index] === "active");
+  const progressValue = Math.round((completedCount / steps.length) * 100);
+
+  return (
+    <section className={cn("border-b bg-background/95 px-4 py-2", className)}>
+      <nav aria-label={ariaLabel} className="mx-auto max-w-screen-2xl">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <Badge variant="secondary" className="shrink-0">
+              Workflow
+            </Badge>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {activeStep
+                  ? `${activeStep.label} in progress`
+                  : "Workflow ready"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {completedCount} of {steps.length} steps completed
+              </p>
             </div>
-            <span className="text-sm font-semibold text-foreground">ValuePilot</span>
           </div>
 
-          <nav aria-label="ValuePilot steps" className="hidden md:flex items-center gap-1">
-            {WORKFLOW_STEPS.map((step, idx) => (
-              <React.Fragment key={step.path}>
-                <Link
-                  to={{
-                    pathname: buildStepPath(step, tenantSlug, accountId),
-                    search: `?mode=value-pilot&step=${idx}`,
-                  }}
-                  replace
-                >
-                  <div className={cn(
-                    'flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors',
-                    idx === currentStep ? 'bg-primary/10' : 'hover:bg-muted'
-                  )}>
-                    {React.createElement(getIcon(step.icon), {
-                      className: cn('w-3.5 h-3.5', idx <= currentStep ? 'text-primary' : 'text-muted-foreground')
-                    })}
-                    <span className={cn('text-xs font-medium hidden lg:block', idx === currentStep ? 'text-foreground' : 'text-muted-foreground')}>
-                      {step.label}
-                    </span>
-                  </div>
-                </Link>
-                {idx < WORKFLOW_STEPS.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />}
-              </React.Fragment>
-            ))}
-          </nav>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 lg:max-w-3xl">
+            <Progress
+              aria-label={`${completedCount} of ${steps.length} workflow steps completed`}
+              value={progressValue}
+              className="h-1.5"
+            />
+            <ol
+              className="flex min-w-0 gap-1 overflow-x-auto"
+              aria-label="Workflow steps"
+            >
+              {steps.map((step, index) => {
+                const status = statuses[index];
+                const statusLabel = getStatusLabel(status);
 
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close ValuePilot mode"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
+                return (
+                  <li key={step.id} className="min-w-fit flex-1">
+                    <div
+                      aria-current={status === "active" ? "step" : undefined}
+                      aria-label={`${step.label}: ${statusLabel}`}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+                        status === "active" &&
+                          "border-primary bg-primary/10 text-primary",
+                        status === "completed" &&
+                          "border-primary/30 bg-primary/5 text-foreground",
+                        status === "pending" &&
+                          "border-border bg-card text-muted-foreground",
+                        status === "error" &&
+                          "border-destructive/40 bg-destructive/10 text-destructive"
+                      )}
+                    >
+                      <StepStatusIcon status={status} />
+                      <span className="truncate font-medium">{step.label}</span>
+                      <span className="sr-only">{statusLabel}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </div>
-      </div>
-    </div>
+      </nav>
+    </section>
   );
 }

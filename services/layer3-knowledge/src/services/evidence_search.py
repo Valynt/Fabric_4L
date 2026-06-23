@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Evidence vector search service for Layer 3.
 
 Provides semantic search capabilities to match pain signals
 against evidence sources (case studies, benchmarks, etc.).
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging
@@ -13,6 +14,7 @@ from typing import Any
 
 from neo4j import AsyncDriver
 
+from ..config.embedding_dimension import validate_embedding_dimension
 from ..db.query_execution import run_validated_query
 from .embedding_errors import EmbeddingProviderUnavailableError
 
@@ -31,7 +33,7 @@ def _get_embedding_model():
             "sentence-transformers is not installed. "
             "Install it to use real embeddings."
         ) from exc
-    from config import get_settings
+    from ..config import get_settings
 
     settings = get_settings()
     return SentenceTransformer(settings.embedding_model)
@@ -41,9 +43,6 @@ class EvidenceSearchService:
     Searches case studies, benchmarks, and other evidence sources
     to find supporting material for pain signals.
     """
-
-    # Default vector dimensions (must match schema constraint)
-    VECTOR_DIMENSIONS = 384
 
     def __init__(self, driver: AsyncDriver):
         """Initialize with Neo4j driver.
@@ -134,7 +133,14 @@ class EvidenceSearchService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.find_matching_evidence",
+            )
             records = await result.data()
 
             # Transform to match schema and add reasoning
@@ -218,7 +224,14 @@ class EvidenceSearchService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.search_by_keywords",
+            )
             records = await result.data()
 
             return [
@@ -261,9 +274,13 @@ class EvidenceSearchService:
             } as evidence
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {"evidence_id": evidence_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.get_evidence_details",
             )
             record = await result.single()
             return record["evidence"] if record else None
@@ -301,7 +318,8 @@ class EvidenceSearchService:
             RETURN e.id as evidence_id
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "evidence_id": evidence_id,
@@ -314,6 +332,9 @@ class EvidenceSearchService:
                     "source_url": evidence_data.get("source_url"),
                     "embedding": content_embedding,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.index_evidence",
             )
             record = await result.single()
             return record["evidence_id"] if record else evidence_id
@@ -330,7 +351,19 @@ class EvidenceSearchService:
         try:
             model = _get_embedding_model()
             embedding = await asyncio.to_thread(model.encode, text)
-            return embedding.tolist()
+            embedding_list = embedding.tolist()
+            from ..config import get_settings
+
+            validate_embedding_dimension(
+                configured_dimension=get_settings().embedding_dimension,
+                model=model,
+                model_name=get_settings().embedding_model,
+            )
+            if len(embedding_list) != get_settings().embedding_dimension:
+                raise ValueError(
+                    f"VECTOR_DIMENSION_MISMATCH: expected={get_settings().embedding_dimension} actual={len(embedding_list)}"
+                )
+            return embedding_list
         except Exception as exc:
             raise EmbeddingProviderUnavailableError(
                 "Embedding provider unavailable",

@@ -1,0 +1,1674 @@
+{
+  "registry_version": "1.1.0",
+  "schema": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json",
+  "generated_at": "2026-06-20T16:00:00Z",
+  "source_of_truth": [
+    ".fabric/prod-gates.policy.yaml",
+    ".github/workflows/critical-gates.yml",
+    ".github/workflows/pr-checks.yml",
+    ".github/workflows/prod-readiness.yml",
+    ".github/workflows/deploy.yml",
+    ".github/workflows/environment-promotion.yml",
+    "contracts/behavior-contract.yaml",
+    "production-readiness/scorecard.md",
+    "scripts/ci/gate_engineering_validator.py",
+    "scripts/ci/contract_compliance_gate.py",
+    "scripts/ci/check_behavior_contract.py",
+    "apps/web/e2e/behaviors/",
+    "apps/web/e2e/journeys/"
+  ],
+  "gates": [
+    {
+      "gate_id": "design.acceptance_criteria",
+      "version": 1,
+      "name": "Design acceptance criteria defined",
+      "scope": "design",
+      "criticality": "blocking",
+      "protected_invariant": "Critical behavior is expressed as testable acceptance criteria before implementation begins.",
+      "applies_when": "Any change touches product-visible behavior, security boundaries, data models, or workflow states.",
+      "measurement": {
+        "type": "manual_review",
+        "source": "design-rfc-or-issue",
+        "query_or_command": "Verify acceptance criteria, threat model, migration/rollback plan, and observability plan are present in the design artifact.",
+        "threshold": "All required sections present and reviewed"
+      },
+      "pass_criteria": [
+        "Acceptance criteria are explicit and testable",
+        "Affected contracts are listed",
+        "Threat model is updated for security changes",
+        "Migration and rollback strategies are documented"
+      ],
+      "fail_criteria": [
+        "Critical behavior is expressed only as narrative",
+        "No rollback strategy exists",
+        "Security change lacks threat-model update"
+      ],
+      "inconclusive_criteria": [
+        "Design artifact exists but required sections are missing",
+        "Review is pending"
+      ],
+      "not_applicable_criteria": [
+        "Pure refactor with no observable behavior change"
+      ],
+      "warning_criteria": [
+        "Observability plan deferred but owner assigned"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "release",
+        "retention": "1y",
+        "required_fields": [
+          "design_artifact_uri",
+          "reviewer_identity",
+          "acceptance_criteria_count"
+        ]
+      },
+      "enforcement_point": "design-approval",
+      "failure_action": "block",
+      "owner": "value-fabric/architects",
+      "approvers": [
+        "value-fabric/architects",
+        "value-fabric/security-leads"
+      ],
+      "override_policy": "requires_architect",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "Superseded by design.acceptance_criteria.v2 when contract coverage model changes.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_design_acceptance_criteria.py",
+        "artifact_path": "artifacts/release/gate-design-acceptance_criteria.json",
+        "freshness": "release",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/architects"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/architects",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "change.tests_added",
+      "version": 1,
+      "name": "Relevant tests added with behavior changes",
+      "scope": "change",
+      "criticality": "blocking",
+      "protected_invariant": "Behavior changes are accompanied by tests that prove the intended behavior and guard against regression.",
+      "applies_when": "Any PR that changes production code paths.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "behavior-contract-registry",
+        "query_or_command": "python scripts/ci/check_behavior_contract.py --strict",
+        "threshold": "Every modified capability has allowed and denied tests; no unexplained skips"
+      },
+      "pass_criteria": [
+        "Behavior contract coverage for changed domains is non-regressing",
+        "No new unexplained pytest skips",
+        "No new quarantined tests without exception"
+      ],
+      "fail_criteria": [
+        "Changed behavior lacks test",
+        "Behavior contract coverage regresses below baseline",
+        "New skip added without allowlist"
+      ],
+      "inconclusive_criteria": [
+        "Test collection fails",
+        "Behavior contract script cannot run"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "behavior_contract_report",
+          "pytest_skip_report"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/qa-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "per-release",
+      "deprecation_policy": "Superseded when test coverage is derived from code-coverage-to-gate binding.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json",
+        "artifact_path": "artifacts/release/gate-change-tests_added.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/qa-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/qa-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "change.static_analysis",
+      "version": 1,
+      "name": "Static analysis and type checking pass",
+      "scope": "change",
+      "criticality": "blocking",
+      "protected_invariant": "Code conforms to lint, type, and contract-lint rules before merge.",
+      "applies_when": "Every PR.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "ruff-mypy-contract-lint",
+        "query_or_command": "make lint && make typecheck && make verify-structure",
+        "threshold": "Zero errors"
+      },
+      "pass_criteria": [
+        "Lint passes with no errors",
+        "Type checking passes",
+        "Python contract lint passes",
+        "Structural preflight passes"
+      ],
+      "fail_criteria": [
+        "Any lint/type/contract error"
+      ],
+      "inconclusive_criteria": [
+        "Tool unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "lint_report",
+          "typecheck_report"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "Updated when lint/type tools change.",
+      "evidence_producer": {
+        "command": "make lint && make typecheck && make verify-structure",
+        "artifact_path": "artifacts/release/gate-change-static_analysis.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "change.secret_scan",
+      "version": 1,
+      "name": "No secrets or hardcoded credentials introduced",
+      "scope": "change",
+      "criticality": "blocking",
+      "protected_invariant": "No uncommitted secret material, auth bypass flags, or hardcoded credentials reach main.",
+      "applies_when": "Every PR.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "gitleaks-and-custom-checks",
+        "query_or_command": "bash scripts/ci/check-dev-auth-bypass.sh && python scripts/ci/check_hardcoded_credentials.py && python scripts/ci/check_manifest_secret_hygiene.py",
+        "threshold": "Zero findings"
+      },
+      "pass_criteria": [
+        "gitleaks reports no findings",
+        "Dev auth bypass flags not committed in production-like configs",
+        "No hardcoded credentials"
+      ],
+      "fail_criteria": [
+        "Any secret leak finding",
+        "Dev auth bypass in production config"
+      ],
+      "inconclusive_criteria": [
+        "Scanner unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "gitleaks_report",
+          "auth_bypass_check_log"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/check-dev-auth-bypass.sh && python scripts/ci/check_hardcoded_credentials.py && python scripts/ci/check_manifest_secret_hygiene.py",
+        "artifact_path": "artifacts/release/gate-change-secret_scan.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "build.reproducible",
+      "version": 1,
+      "name": "Build reproducibility and SBOM",
+      "scope": "build",
+      "criticality": "blocking",
+      "protected_invariant": "Build artifacts are reproducible, immutable, and traceable to a source revision.",
+      "applies_when": "Every build that produces a deployable artifact.",
+      "measurement": {
+        "type": "artifact_check",
+        "source": "build-metadata-and-sbom",
+        "query_or_command": "python scripts/ci/check_hermetic_build_inputs.py && python scripts/ci/supply_chain_gate.py sbom",
+        "threshold": "Build metadata and SBOM generated; no mutable tags"
+      },
+      "pass_criteria": [
+        "SBOM exists for each layer",
+        "Build metadata includes source SHA and image digest",
+        "No mutable image tags"
+      ],
+      "fail_criteria": [
+        "Missing SBOM",
+        "Mutable image reference",
+        "Build metadata missing source SHA"
+      ],
+      "inconclusive_criteria": [
+        "Build skipped",
+        "Registry unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "artifact lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "sbom",
+          "build_metadata",
+          "image_digest"
+        ]
+      },
+      "enforcement_point": "build",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_hermetic_build_inputs.py && python scripts/ci/supply_chain_gate.py sbom",
+        "artifact_path": "artifacts/release/gate-build-reproducible.json",
+        "freshness": "artifact lifetime",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "build.vulnerability_policy",
+      "version": 1,
+      "name": "Container vulnerability policy passes",
+      "scope": "build",
+      "criticality": "blocking",
+      "protected_invariant": "No HIGH or CRITICAL unpatched vulnerabilities in deployable images.",
+      "applies_when": "Every build producing container images.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "trivy-pip-audit",
+        "query_or_command": "trivy image scan and pip-audit per security-gates.yml",
+        "threshold": "No HIGH/CRITICAL findings except documented KEV exceptions"
+      },
+      "pass_criteria": [
+        "Trivy scan passes",
+        "pip-audit passes",
+        "Known exceptions are documented and time-bounded"
+      ],
+      "fail_criteria": [
+        "HIGH or CRITICAL finding without exception",
+        "Exception expired"
+      ],
+      "inconclusive_criteria": [
+        "Scanner database unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "7d",
+        "retention": "1y",
+        "required_fields": [
+          "trivy_sarif",
+          "pip_audit_report",
+          "exceptions"
+        ]
+      },
+      "enforcement_point": "build",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "requires_ciso",
+      "review_cadence": "weekly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm run audit:ci && pnpm run container:scan",
+        "artifact_path": "artifacts/release/gate-build-vulnerability_policy.json",
+        "freshness": "7d",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "pre_production.migration_safety",
+      "version": 1,
+      "name": "Database migration safety",
+      "scope": "pre_production",
+      "criticality": "blocking",
+      "protected_invariant": "Database migrations are safe during mixed-version deployment and have a rollback/roll-forward path.",
+      "applies_when": "Any PR with database migrations.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "migration-gate-suite",
+        "query_or_command": "make gate-database-live DB_MIGRATION_DATABASE_URL=<isolated>",
+        "threshold": "Forward, backward, and round-trip migrations pass with drift check"
+      },
+      "pass_criteria": [
+        "Exactly one Alembic head per service",
+        "Migration entrypoints exist",
+        "Round-trip upgrade/downgrade passes",
+        "Rollback policy documented"
+      ],
+      "fail_criteria": [
+        "Multiple heads",
+        "Missing rollback policy",
+        "Round-trip migration fails"
+      ],
+      "inconclusive_criteria": [
+        "No live database available"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "migration-version",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "migration_status_json",
+          "round_trip_report",
+          "rollback_policy"
+        ]
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/data-platform",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "make gate-database-live",
+        "artifact_path": "artifacts/release/gate-pre_production-migration_safety.json",
+        "freshness": "24h",
+        "artifact_binding": "migration-version",
+        "owner": "value-fabric/data-platform"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/data-platform",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "pre_production.tenant_isolation",
+      "version": 1,
+      "name": "Tenant isolation hostile tests",
+      "scope": "pre_production",
+      "criticality": "blocking",
+      "protected_invariant": "A principal may access only authorized tenant resources.",
+      "applies_when": "Any change touches storage, queries, authorization, workers, events, connectors, or tenancy context.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "tenant-isolation-suite",
+        "query_or_command": "bash scripts/ci/tenant_isolation_readiness_gate.sh",
+        "minimum_sample_size": 20,
+        "threshold": "All cross-tenant reads and writes blocked"
+      },
+      "pass_criteria": [
+        "All cross-tenant reads return authorization-safe denial",
+        "All cross-tenant writes are rejected",
+        "No resource metadata leaked"
+      ],
+      "fail_criteria": [
+        "Any unauthorized read or write succeeds",
+        "Tenant identifier accepted from untrusted request body"
+      ],
+      "inconclusive_criteria": [
+        "Test infra unavailable (Redis/Postgres)",
+        "Fewer than 20 hostile samples"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "junit_xml",
+          "tenant_isolation_bundle",
+          "commit_sha"
+        ]
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "approvers": [
+        "value-fabric/security-leads",
+        "value-fabric/ciso"
+      ],
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/tenant_isolation_readiness_gate.sh",
+        "artifact_path": "artifacts/release/gate-pre_production-tenant_isolation.json",
+        "freshness": "24h",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "pre_production.contract_compatibility",
+      "version": 1,
+      "name": "API and event contract compatibility",
+      "scope": "pre_production",
+      "criticality": "blocking",
+      "protected_invariant": "Contract changes are compatible with supported consumers or follow a coordinated migration plan.",
+      "applies_when": "Any change to OpenAPI, JSON Schema, event schemas, or generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "openapi-breaking-change-gate",
+        "query_or_command": "pnpm contract:breaking --base-ref origin/main",
+        "threshold": "Zero breaking changes except approved exceptions"
+      },
+      "pass_criteria": [
+        "OpenAPI diff passes",
+        "Generated clients are current",
+        "Schema index coverage passes"
+      ],
+      "fail_criteria": [
+        "Breaking change without approved RFC",
+        "Generated clients stale"
+      ],
+      "inconclusive_criteria": [
+        "Base reference not fetchable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "openapi_breaking_report",
+          "schema_index_report"
+        ]
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/architects",
+      "override_policy": "requires_architect",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm contract:breaking --base-ref origin/main",
+        "artifact_path": "artifacts/release/gate-pre_production-contract_compatibility.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/architects"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/architects",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "release_authorization.evidence_freshness",
+      "version": 1,
+      "name": "All release evidence is current and artifact-bound",
+      "scope": "release_authorization",
+      "criticality": "blocking",
+      "protected_invariant": "Evidence for every blocking gate is tied to the exact artifact digest and has not expired.",
+      "applies_when": "Every production promotion.",
+      "measurement": {
+        "type": "composite",
+        "source": "release-evidence-packet",
+        "query_or_command": "python scripts/ci/generate_release_evidence_packet.py && python scripts/ops/validate-release-manifest.py artifacts/release",
+        "threshold": "All required artifacts present and SHA/digest-bound"
+      },
+      "pass_criteria": [
+        "Evidence packet exists",
+        "Release manifest matches artifact digest",
+        "No stale evidence (>24h for critical gates)"
+      ],
+      "fail_criteria": [
+        "Missing artifact",
+        "Evidence digest mismatch",
+        "Stale evidence"
+      ],
+      "inconclusive_criteria": [
+        "Evidence packet generator failed"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "artifact-digest",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "release_evidence_packet",
+          "manifest_signature",
+          "artifact_digest"
+        ]
+      },
+      "enforcement_point": "release-authorization",
+      "failure_action": "block",
+      "owner": "value-fabric/release-engineering",
+      "override_policy": "prohibited",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/generate_release_evidence_packet.py",
+        "artifact_path": "artifacts/release/gate-release_authorization-evidence_freshness.json",
+        "freshness": "24h",
+        "artifact_binding": "artifact-digest",
+        "owner": "value-fabric/release-engineering"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/release-engineering",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "deployment.artifact_integrity",
+      "version": 1,
+      "name": "Deployed artifact is signed and immutable",
+      "scope": "deployment",
+      "criticality": "blocking",
+      "protected_invariant": "Only signed, immutable, SBOM-attested artifacts are deployed.",
+      "applies_when": "Every deployment.",
+      "measurement": {
+        "type": "artifact_check",
+        "source": "cosign-sbom-attestations",
+        "query_or_command": "cosign verify and SBOM digest check per deploy.yml preflight",
+        "threshold": "All layer images verified; SBOM references deployed digest"
+      },
+      "pass_criteria": [
+        "Image reference is immutable (sha256 or sha-<40> or semver release tag)",
+        "Cosign signature verifies",
+        "SBOM references the deployed image digest"
+      ],
+      "fail_criteria": [
+        "Mutable image tag",
+        "Signature verification fails",
+        "SBOM/digest mismatch"
+      ],
+      "inconclusive_criteria": [
+        "Registry or cosign unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "deployment",
+        "retention": "1y",
+        "required_fields": [
+          "cosign_verification_log",
+          "sbom_digest_match_log"
+        ]
+      },
+      "enforcement_point": "deployment",
+      "failure_action": "block",
+      "owner": "value-fabric/release-engineering",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "cosign verify and SBOM digest check per deploy.yml preflight",
+        "artifact_path": "artifacts/release/gate-deployment-artifact_integrity.json",
+        "freshness": "deployment",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/release-engineering"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/release-engineering",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "canary.critical_paths",
+      "version": 1,
+      "name": "Canary exercises real critical paths",
+      "scope": "canary",
+      "criticality": "blocking",
+      "protected_invariant": "Canary traffic proves real production behavior, not just ingress health.",
+      "applies_when": "Production deployments with canary/staged rollout.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "canary-golden-path-suite",
+        "query_or_command": "Run J1/J2/J3/J4 behavior journeys and L1-L6 end-to-end workflows against canary traffic",
+        "minimum_sample_size": 100,
+        "threshold": "100% end-to-end completion; error rate < 0.1%; latency P99 < baseline + 20%"
+      },
+      "pass_criteria": [
+        "Minimum request volume reached",
+        "Critical source types represented",
+        "End-to-end completion observed",
+        "Error rate and latency within thresholds"
+      ],
+      "fail_criteria": [
+        "Insufficient canary volume",
+        "Error rate threshold exceeded",
+        "Critical path fails"
+      ],
+      "inconclusive_criteria": [
+        "Canary receives zero traffic"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "canary window",
+        "retention": "1y",
+        "required_fields": [
+          "canary_metrics",
+          "golden_path_results",
+          "comparison_baseline"
+        ]
+      },
+      "enforcement_point": "canary",
+      "failure_action": "auto_rollback",
+      "owner": "value-fabric/sre-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "Run J1/J2/J3/J4 behavior journeys and L1-L6 end-to-end workflows against canary traffic",
+        "artifact_path": "artifacts/release/gate-canary-critical_paths.json",
+        "freshness": "canary window",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "post_deployment.synthetic_workflows",
+      "version": 1,
+      "name": "Post-deployment synthetic workflows pass",
+      "scope": "post_deployment",
+      "criticality": "blocking",
+      "protected_invariant": "A release is not complete until critical synthetic workflows complete through the final read model.",
+      "applies_when": "Every production deployment.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "post-deploy-smoke-suite",
+        "query_or_command": "bash scripts/ci/k8s_postdeploy_smoke.sh or equivalent live smoke",
+        "threshold": "All critical paths complete; projection freshness within SLO"
+      },
+      "pass_criteria": [
+        "Source-to-summary lineage retrievable",
+        "Expected data artifacts exist",
+        "Audit events complete"
+      ],
+      "fail_criteria": [
+        "Any critical synthetic workflow fails"
+      ],
+      "inconclusive_criteria": [
+        "Smoke environment not ready"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "container-image-digest",
+        "maximum_age": "1h",
+        "retention": "1y",
+        "required_fields": [
+          "smoke_results",
+          "lineage_query_result",
+          "audit_event_count"
+        ]
+      },
+      "enforcement_point": "post-deploy",
+      "failure_action": "auto_rollback",
+      "owner": "value-fabric/sre-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "bash scripts/ci/k8s_postdeploy_smoke.sh",
+        "artifact_path": "artifacts/release/gate-post_deployment-synthetic_workflows.json",
+        "freshness": "1h",
+        "artifact_binding": "container-image-digest",
+        "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "continuous_production.slo_budgets",
+      "version": 1,
+      "name": "SLO error budgets remain healthy",
+      "scope": "continuous_production",
+      "criticality": "blocking",
+      "protected_invariant": "Production SLOs are not breached beyond error budget.",
+      "applies_when": "Continuous production operation.",
+      "measurement": {
+        "type": "runtime_metric",
+        "source": "prometheus-slo-rules",
+        "query_or_command": "Prometheus query for burn rate and error budget",
+        "threshold": "Error budget < 100% over rolling window"
+      },
+      "pass_criteria": [
+        "No SLO burn-rate alert firing",
+        "Error budget not exhausted"
+      ],
+      "fail_criteria": [
+        "Error budget exhausted"
+      ],
+      "inconclusive_criteria": [
+        "Metrics missing"
+      ],
+      "warning_criteria": [
+        "Error budget > 50%"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "environment",
+        "maximum_age": "5m",
+        "retention": "1y",
+        "required_fields": [
+          "slo_query_result",
+          "alert_state"
+        ]
+      },
+      "enforcement_point": "runtime",
+      "failure_action": "release_freeze",
+      "owner": "value-fabric/sre-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "continuous",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "Prometheus query for burn rate and error budget",
+        "artifact_path": "artifacts/release/gate-continuous_production-slo_budgets.json",
+        "freshness": "5m",
+        "artifact_binding": "environment",
+        "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "rollback_recovery.rollback_path",
+      "version": 1,
+      "name": "Rollback path is tested and compatible",
+      "scope": "rollback_recovery",
+      "criticality": "blocking",
+      "protected_invariant": "A previous artifact can be safely restored and new-version data is readable or a roll-forward path exists.",
+      "applies_when": "Every production release.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "rollback-verifier",
+        "query_or_command": "pnpm release:rollback:verify",
+        "threshold": "Rollback verification passes; previous artifact available"
+      },
+      "pass_criteria": [
+        "Previous artifact digest recorded",
+        "Rollback does not duplicate side effects",
+        "Migration compatibility known"
+      ],
+      "fail_criteria": [
+        "Rollback path untested",
+        "Previous artifact unavailable"
+      ],
+      "inconclusive_criteria": [
+        "Live environment unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "artifact-digest",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "rollback_verification_report",
+          "previous_artifact_digest",
+          "migration_compatibility"
+        ]
+      },
+      "enforcement_point": "release-authorization",
+      "failure_action": "block",
+      "owner": "value-fabric/sre-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "pnpm release:rollback:verify",
+        "artifact_path": "artifacts/release/gate-rollback_recovery-rollback_path.json",
+        "freshness": "24h",
+        "artifact_binding": "artifact-digest",
+        "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "api.contract_lint",
+      "version": 1,
+      "name": "API contract lint passes",
+      "scope": "api",
+      "criticality": "blocking",
+      "protected_invariant": "API contracts conform to canonical rules and have no breaking drift.",
+      "applies_when": "Any change to API routes, schemas, or OpenAPI specs.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "python-contract-lint",
+        "query_or_command": "python scripts/ci/python_contract_lint.py --strict",
+        "threshold": "Zero contract lint errors"
+      },
+      "pass_criteria": [
+        "Contract lint passes"
+      ],
+      "fail_criteria": [
+        "Contract lint error"
+      ],
+      "inconclusive_criteria": [
+        "Contract lint report missing"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "python_contract_lint_report"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/python_contract_lint.py --strict",
+        "artifact_path": "artifacts/release/gate-api-contract_lint.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "ai_agent.structured_output",
+      "version": 1,
+      "name": "Agent structured output validates",
+      "scope": "ai_agent",
+      "criticality": "blocking",
+      "protected_invariant": "AI-generated outputs reaching trusted projections conform to schema, provenance, and policy constraints.",
+      "applies_when": "Changes to agents, prompts, models, or structured outputs.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "agent-eval-suite",
+        "query_or_command": "make evals && pytest tests/agents/",
+        "threshold": "Structured output validation passes; no critical policy violations"
+      },
+      "pass_criteria": [
+        "Output schema validates",
+        "Provenance present",
+        "Unsupported-claim handling passes"
+      ],
+      "fail_criteria": [
+        "Fabricated evidence",
+        "Unsupported financial claim presented as validated",
+        "Missing provenance"
+      ],
+      "inconclusive_criteria": [
+        "Evaluation dataset missing",
+        "Model or prompt version not recorded"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "model-version",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "eval_report",
+          "prompt_version",
+          "model_version"
+        ]
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/agent-leads",
+      "override_policy": "requires_architect",
+      "review_cadence": "per-release",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "make evals && pytest tests/agents/",
+        "artifact_path": "artifacts/release/gate-ai_agent-structured_output.json",
+        "freshness": "24h",
+        "artifact_binding": "model-version",
+        "owner": "value-fabric/agent-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/agent-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "security.p0_auth_boundaries",
+      "version": 1,
+      "name": "P0 auth boundaries",
+      "scope": "security",
+      "criticality": "blocking",
+      "protected_invariant": "Auth boundaries enforce authentication, tenant context, and safe error envelopes.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "automated_test",
+        "source": "security-gates",
+        "query_or_command": "python -m pytest -q tests/security/test_auth_boundaries.py --maxfail=1",
+        "threshold": "All tests pass"
+      },
+      "pass_criteria": [
+        "Auth boundary tests pass"
+      ],
+      "fail_criteria": [
+        "Any auth boundary test fails"
+      ],
+      "inconclusive_criteria": [
+        "Security test suite did not run"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "junit_xml"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python -m pytest -q tests/security/test_auth_boundaries.py --maxfail=1",
+        "artifact_path": "artifacts/release/gate-security-p0_auth_boundaries.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 7,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "operability.alert_metadata",
+      "version": 1,
+      "name": "Production alerts have owner and runbook",
+      "scope": "operability",
+      "criticality": "blocking",
+      "protected_invariant": "Every production alert routes to an active owner with an executable runbook.",
+      "applies_when": "Any change to production alert rules.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "alert-metadata-check",
+        "query_or_command": "python scripts/ci/check_production_alert_metadata.py",
+        "threshold": "Every alert has owner and runbook link"
+      },
+      "pass_criteria": [
+        "Alert metadata present",
+        "Runbook link resolves",
+        "Owner is active"
+      ],
+      "fail_criteria": [
+        "Alert without owner",
+        "Runbook missing"
+      ],
+      "inconclusive_criteria": [
+        "Alert metadata report not generated"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "alert_metadata_report"
+        ]
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/sre-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "evidence_producer": {
+        "command": "python scripts/ci/check_production_alert_metadata.py",
+        "artifact_path": "artifacts/release/gate-operability-alert_metadata.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/sre-leads"
+      },
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/sre-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "contract.l1_target_schema",
+      "version": 1,
+      "name": "L1 OpenAPI target schemas include expected fields",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Layer 1 ingestion exposes target CRUD, stats, and batch operations with required fields.",
+      "applies_when": "Any change to Layer 1 routes or contracts/openapi/layer1-ingestion.json.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "openapi-l1-schema-check",
+        "query_or_command": "python scripts/ci/check_l1_target_schema.py",
+        "threshold": "Required paths and schemas present"
+      },
+      "pass_criteria": [
+        "/api/v1/ingestion/targets schema exists",
+        "/api/v1/ingestion/targets/stats schema exists",
+        "Required fields (id, domain, status, pages_crawled) are present"
+      ],
+      "fail_criteria": [
+        "Missing required path",
+        "Missing required field"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI spec not generated"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "l1_schema_check_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_l1_target_schema.py",
+        "artifact_path": "artifacts/release/gate-contract-l1_target_schema.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.ingestion"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "contract.targets_stats_named_schema",
+      "version": 1,
+      "name": "/targets/stats exports a named schema",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "The target stats endpoint returns a named schema so generated clients are stable.",
+      "applies_when": "Any change to /api/v1/ingestion/targets/stats.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "openapi-target-stats-schema-check",
+        "query_or_command": "python scripts/ci/check_targets_stats_named_schema.py",
+        "threshold": "Response schema is a named component schema"
+      },
+      "pass_criteria": [
+        "Response uses $ref to a named schema",
+        "Named schema exists in components/schemas"
+      ],
+      "fail_criteria": [
+        "Response is inline object",
+        "Named schema missing"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI spec not generated"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "targets_stats_schema_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_targets_stats_named_schema.py",
+        "artifact_path": "artifacts/release/gate-contract-targets_stats_named_schema.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/backend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/backend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.ingestion"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/backend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "contract.generated_clients_current",
+      "version": 1,
+      "name": "Frontend generated API clients are current",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Committed generated clients match the current OpenAPI specs.",
+      "applies_when": "Any change to OpenAPI specs or generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "generated-api-freshness",
+        "query_or_command": "pnpm run check:contract-compliance",
+        "threshold": "No drift after regeneration"
+      },
+      "pass_criteria": [
+        "Generated clients match regenerated output",
+        "No manual patches in generated files",
+        "OpenAPI specs export hermetically (no live stack required)"
+      ],
+      "fail_criteria": [
+        "Generated clients drift from specs",
+        "Manual override marker in generated files"
+      ],
+      "inconclusive_criteria": [
+        "Generation command failed"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "generated_client_diff_report",
+          "client_hash"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_generated_client_reproducibility.py",
+        "artifact_path": "artifacts/release/gate-contract-generated_clients_current.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.openapi"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "contract.l4_jsonvalue_compiles",
+      "version": 1,
+      "name": "L4 generated JsonValue compiles without manual override",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "Layer 4 generated TypeScript contains a valid JsonValue definition and compiles without hand-edited overrides.",
+      "applies_when": "Any change to Layer 4 schemas or generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "l4-generated-type-check",
+        "query_or_command": "python scripts/ci/check_l4_generated_jsonvalue.py",
+        "threshold": "l4/index.ts exists and compiles; no manual override markers"
+      },
+      "pass_criteria": [
+        "apps/web/src/api/generated/l4/index.ts exists",
+        "Generated TypeScript compiles without manual overrides",
+        "No manual override markers"
+      ],
+      "fail_criteria": [
+        "L4 generated client missing",
+        "TypeScript compile error",
+        "Manual override marker present"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI generation skipped"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "l4_generated_type_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_l4_generated_jsonvalue.py",
+        "artifact_path": "artifacts/release/gate-contract-l4_jsonvalue_compiles.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.agents",
+        "fabric.api.openapi"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "contract.clerk_tenant_mapping",
+      "version": 1,
+      "name": "Clerk org to Fabric tenant mapping contract is present and tested",
+      "scope": "contract",
+      "criticality": "blocking",
+      "protected_invariant": "The gateway exports a Clerk org \u2192 Fabric tenant mapping endpoint, the response schema is exported, and the auth boundary is covered by regression tests.",
+      "applies_when": "Any change to auth, tenant mapping, or organization selection.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "clerk-tenant-mapping-contract-check",
+        "query_or_command": "python scripts/ci/check_clerk_tenant_mapping_contract.py",
+        "threshold": "Required OpenAPI path/schema present and required regression tests exist"
+      },
+      "pass_criteria": [
+        "GET /v1/auth/clerk/tenant exists in fabric-4l-api.json",
+        "ClerkTenantResponse schema is exported",
+        "useResolvedTenant hook tests exist",
+        "RequireClerkAuth route guard tests exist",
+        "Backend missing/invalid token tests exist",
+        "Backend wrong-org isolation test exists",
+        "Backend metadata leakage test exists"
+      ],
+      "fail_criteria": [
+        "Mapping endpoint or schema missing from OpenAPI",
+        "Required regression test missing"
+      ],
+      "inconclusive_criteria": [
+        "OpenAPI spec not generated",
+        "Contract check script cannot run"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "contract_check_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_clerk_tenant_mapping_contract.py",
+        "artifact_path": "artifacts/release/gate-contract-clerk_tenant_mapping.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.security.auth"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "build.generated_client_reproducible",
+      "version": 1,
+      "name": "Generated API clients are reproducible and unpatched",
+      "scope": "build",
+      "criticality": "blocking",
+      "protected_invariant": "Regenerating OpenAPI type artifacts produces the same committed output and contains no manual patches.",
+      "applies_when": "Every build that produces or consumes generated clients.",
+      "measurement": {
+        "type": "static_analysis",
+        "source": "generated-client-reproducibility",
+        "query_or_command": "node scripts/quality/assert-generated-api-types-current.mjs",
+        "threshold": "No diff and no manual override markers"
+      },
+      "pass_criteria": [
+        "pnpm run generate:api produces no diff",
+        "No manual override markers in generated files"
+      ],
+      "fail_criteria": [
+        "Generated files differ after regeneration",
+        "Manual override marker found"
+      ],
+      "inconclusive_criteria": [
+        "Generation command failed"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "PR lifetime",
+        "retention": "1y",
+        "required_fields": [
+          "generated_client_hash",
+          "diff_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "python scripts/ci/check_generated_client_reproducibility.py",
+        "artifact_path": "artifacts/release/gate-build-generated_client_reproducible.json",
+        "freshness": "PR lifetime",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/frontend-leads"
+      },
+      "enforcement_point": "merge",
+      "failure_action": "block",
+      "owner": "value-fabric/frontend-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "related_contracts": [
+        "fabric.api.openapi"
+      ],
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-6",
+        "owner": "value-fabric/frontend-leads",
+        "target_date": "2026-07-15",
+        "target_checkpoint": 6,
+        "description": "Resolve missing evidence or skipped producer before release."
+      }
+    },
+    {
+      "gate_id": "e2e.tenant_account_route",
+      "version": 1,
+      "name": "Tenant and account route journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "Authenticated users can access tenant/account routes and unauthorized users are denied.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-tenant-route-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/security/tenant-route-journey.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Tenant route accessible with valid tenant",
+        "Cross-tenant route denied"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/security/tenant-route-journey.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-tenant_account_route.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the tenant/account route journey spec if not present.",
+        "target_checkpoint": 7
+      },
+      "related_contracts": [
+        "fabric.security.tenant_isolation",
+        "fabric.security.auth"
+      ]
+    },
+    {
+      "gate_id": "e2e.notes_to_fabric_found_summary",
+      "version": 1,
+      "name": "Notes ingestion to Fabric Found Summary journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "A user can ingest notes and retrieve a generated Fabric Found Summary.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-notes-to-summary-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/journeys/notes-to-summary-journey.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Notes can be submitted",
+        "Summary is generated and visible"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/journeys/notes-to-summary-journey.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-notes_to_fabric_found_summary.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/qa-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/qa-leads",
+      "override_policy": "requires_release_manager",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/qa-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage.",
+        "target_checkpoint": 7
+      },
+      "related_contracts": [
+        "fabric.workflow.ingestion_to_summary"
+      ]
+    },
+    {
+      "gate_id": "e2e.unauthorized_account_denial",
+      "version": 1,
+      "name": "Unauthorized account denial journey is executable",
+      "scope": "e2e",
+      "criticality": "blocking",
+      "protected_invariant": "Unauthenticated or unauthorized users cannot access account-scoped resources.",
+      "applies_when": "Every release candidate.",
+      "measurement": {
+        "type": "synthetic_workflow",
+        "source": "playwright-unauthorized-denial-journey",
+        "query_or_command": "pnpm exec playwright test apps/web/e2e/security/unauthorized-account-denial.spec.ts",
+        "threshold": "Journey passes in mock and live mode"
+      },
+      "pass_criteria": [
+        "Unauthenticated request redirects to sign-in",
+        "Unauthorized tenant request returns forbidden state"
+      ],
+      "fail_criteria": [
+        "Journey fails"
+      ],
+      "inconclusive_criteria": [
+        "Journey spec not implemented",
+        "Live backend unavailable"
+      ],
+      "evidence": {
+        "required": true,
+        "artifact_binding": "commit-sha",
+        "maximum_age": "24h",
+        "retention": "1y",
+        "required_fields": [
+          "playwright_report"
+        ]
+      },
+      "evidence_producer": {
+        "command": "pnpm exec playwright test apps/web/e2e/security/unauthorized-account-denial.spec.ts",
+        "artifact_path": "artifacts/release/gate-e2e-unauthorized_account_denial.json",
+        "freshness": "24h",
+        "artifact_binding": "commit-sha",
+        "owner": "value-fabric/security-leads"
+      },
+      "enforcement_point": "production-promotion",
+      "failure_action": "block",
+      "owner": "value-fabric/security-leads",
+      "override_policy": "prohibited",
+      "review_cadence": "quarterly",
+      "deprecation_policy": "None.",
+      "remediation": {
+        "ticket": "TODO-CHECKPOINT-7",
+        "owner": "value-fabric/security-leads",
+        "target_date": "2026-07-15",
+        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage.",
+        "target_checkpoint": 7
+      },
+      "related_contracts": [
+        "fabric.security.auth"
+      ]
+    }
+  ]
+}

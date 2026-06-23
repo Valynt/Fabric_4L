@@ -40,32 +40,33 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
-        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "worker"
           - "--loglevel=info"
           - "--concurrency=4"
           - "-Q"
-          - "celery,ingestion,processing"
+          - "default,celery,ingestion,processing"
         env:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: database_url
+              name: layer1-db-credentials
+              key: DATABASE_URL
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: jwt_secret
+              name: layer1-auth
+              key: JWT_SECRET
         - name: PYTHONPATH
           value: "/app"
         - name: C_FORCE_ROOT
@@ -82,7 +83,7 @@ spec:
             command:
             - celery
             - -A
-            - layer1_ingestion.src.shared.tasks
+            - layer1_ingestion.shared.tasks
             - inspect
             - --timeout
             - "5"
@@ -95,7 +96,7 @@ spec:
             command:
               - celery
               - -A
-              - layer1_ingestion.src.shared.tasks
+              - layer1_ingestion.shared.tasks
               - inspect
               - --timeout
               - "5"
@@ -145,11 +146,11 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
-        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "beat"
           - "--loglevel=info"
           - "--scheduler"
@@ -158,18 +159,19 @@ spec:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: database_url
+              name: layer1-db-credentials
+              key: DATABASE_URL
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: jwt_secret
+              name: layer1-auth
+              key: JWT_SECRET
         - name: PYTHONPATH
           value: "/app"
         - name: C_FORCE_ROOT
@@ -260,28 +262,35 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
-        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+        image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "flower"
           - "--port=5555"
           - "--url_prefix=/flower"
-          - "--basic_auth=admin:admin"  # Change in production
+          - "--basic_auth=$(FLOWER_BASIC_AUTH)"
         env:
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: database_url
+              name: layer1-db-credentials
+              key: DATABASE_URL
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: PYTHONPATH
           value: "/app"
+        - name: FLOWER_BASIC_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: layer1-secrets
+              key: FLOWER_BASIC_AUTH
+              optional: false
         - name: C_FORCE_ROOT
           value: "false"
         resources:

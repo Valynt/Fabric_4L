@@ -2,7 +2,7 @@
 title: "Layer Runtime Path Governance Matrix"
 category: "reference"
 audience: "contributors"
-last-reviewed: "2026-05-12"
+last-reviewed: "2026-06-22"
 freshness: "current"
 related: ["../source-tree-canonicalization", "service-routing-and-api-version-matrix", "../../AGENTS", "../getting-started/quickstart"]
 ---
@@ -16,7 +16,7 @@ Use this before creating files so we avoid drift into archived, compatibility-on
 ## Policy
 
 - **Canonical runtime paths** are the source of truth for business logic and runtime modules.
-- **Legacy/compatibility paths** may remain for wiring, migration support, or compatibility imports.
+- **Legacy/compatibility paths** are historical unless explicitly listed as active; removed paths must not be restored.
 - **Allowed new development target** is the only approved destination for net-new logic.
 - **Deprecation owner/date** identifies who governs removal or further migration.
 
@@ -24,12 +24,24 @@ Use this before creating files so we avoid drift into archived, compatibility-on
 
 | Layer | Canonical runtime paths | Legacy / compatibility paths (no net-new logic) | Allowed new development target | Deprecation owner / date |
 | :---- | :---------------------- | :---------------------------------------------- | :----------------------------- | :----------------------- |
-| Layer 1 — Ingestion | `services/layer1-ingestion/src/` | `value_fabric/layer1/` (namespace shim only) | `services/layer1-ingestion/src/` | Layer 1 Maintainers — shim removal review by **2026-09-30** |
-| Layer 2 — Extraction | `services/layer2-extraction/src/` | `value_fabric/layer2/` (namespace shim only) | `services/layer2-extraction/src/` | Layer 2 Maintainers — shim removal review by **2026-09-30** |
-| Layer 3 — Knowledge Graph | `services/layer3-knowledge/src/` | `value_fabric/layer3/` (namespace shim only; migrated 2026-05-13) | `services/layer3-knowledge/src/` | Layer 3 Maintainers — shim removal review by **2026-09-30** |
-| Layer 4 — Agents | `services/layer4-agents/src/` | `value_fabric/layer4/` (namespace shim only), `layer4_agents/` (deprecated) | `services/layer4-agents/src/` | Layer 4 Maintainers — `layer4_agents/` deprecation started **2026-05-12**, shim removal review by **2026-09-30** |
-| Layer 5 — Ground Truth | `services/layer5-ground-truth/src/layer5_ground_truth/` | `value_fabric/layer5/` (compatibility shims only) | `services/layer5-ground-truth/src/layer5_ground_truth/` | Layer 5 Maintainers — shim removal review by **2026-09-30** |
-| Layer 6 — Benchmarks | `services/layer6-benchmarks/src/` | `value_fabric/layer6/` (namespace shim only) | `services/layer6-benchmarks/src/` | Layer 6 Maintainers — shim removal review by **2026-09-30** |
+| Layer 1 — Ingestion | `services/layer1-ingestion/src/` | none; `value_fabric/layer1/` removed | `services/layer1-ingestion/src/` | Layer 1 Maintainers — shim removal completed **2026-06-22** |
+| Layer 2 — Extraction | `services/layer2-extraction/src/` | none; `value_fabric/layer2/` removed | `services/layer2-extraction/src/` | Layer 2 Maintainers — shim removal completed **2026-06-22** |
+| Layer 3 — Knowledge Graph | `services/layer3-knowledge/src/` | none; `value_fabric/layer3/` removed | `services/layer3-knowledge/src/` | Layer 3 Maintainers — shim removal completed **2026-06-22** |
+| Layer 4 — Agents | `services/layer4-agents/src/` | none; `value_fabric/layer4/` removed | `services/layer4-agents/src/` | Layer 4 Maintainers — shim removal completed **2026-06-22** |
+| Layer 5 — Ground Truth | `services/layer5-ground-truth/src/layer5_ground_truth/` | none; `value_fabric/layer5/` removed | `services/layer5-ground-truth/src/layer5_ground_truth/` | Layer 5 Maintainers — shim removal completed **2026-06-22** |
+| Layer 6 — Benchmarks | `services/layer6-benchmarks/src/` | none; `value_fabric/layer6/` removed | `services/layer6-benchmarks/src/` | Layer 6 Maintainers — shim removal completed **2026-06-22** |
+
+## Adjacent service path matrix
+
+Signal refinement and billing are deployable bounded capabilities, not additional
+horizontal core pipeline layers. They must communicate with the six core layers
+through contracted HTTP/client boundaries and must not import non-adjacent service
+runtime modules directly.
+
+| Capability | Canonical runtime paths | Legacy / compatibility paths (no net-new logic) | Allowed new development target | Owner / review |
+| :--------- | :---------------------- | :---------------------------------------------- | :----------------------------- | :------------- |
+| Signal Refinery | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | none approved outside service-local wrappers | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/` | Signal Refinery Maintainers |
+| Billing | `services/layer7-billing/src/layer7_billing/` | `services/billing/` (non-deployable legacy compatibility only) | `services/layer7-billing/src/layer7_billing/` | Billing Maintainers |
 
 Layer 6 note: when compatibility wrappers are present under `services/layer6-benchmarks/src/`, they are wrapper-only and cannot contain local domain logic; CI enforces this via `scripts/ci/check_layer6_wrapper_drift.py`, and `scripts/check_mirrored_files.py` enforces byte-alignment against the manifest-declared wrapper template in `scripts/mirrored_files.json`.
 
@@ -37,14 +49,16 @@ Layer 6 note: when compatibility wrappers are present under `services/layer6-ben
 
 ### Allowed imports in production/runtime code
 
-- Runtime-to-runtime imports within canonical roots (for example `value_fabric/layerX/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
-- Compatibility imports that remain inside approved compatibility wrappers documented in this matrix.
+- Runtime-to-runtime imports within canonical roots (for example `services/layer3-knowledge/src/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
+- Compatibility imports that remain inside approved service-local compatibility wrappers documented in this matrix.
+- Adjacent service clients that call another service through an explicit HTTP/client adapter and do not import the target service's runtime modules.
 
 ### Forbidden imports in production/runtime code
 
 - Any import from `prototypes/`.
 - Any import from `docs/archive/`.
 - Any import from other non-runtime roots that are not canonical runtime or approved compatibility wrapper paths.
+- Direct imports from another service runtime root when a contracted client boundary should be used instead.
 
 These restrictions are enforced by architecture tests (`tests/arch/test_no_non_runtime_imports.py`) and frontend hygiene linting (`apps/web/scripts/quality/assert-frontend-hygiene.mjs`).
 
@@ -68,27 +82,27 @@ Before opening a PR with backend runtime changes:
 
 ## Layer 3 settings module ownership
 
-- **Canonical settings module:** `value_fabric/layer3/config/settings.py`.
-- **Compatibility-only shim:** `value_fabric/layer3/config.py` (must only re-export `Settings` and `get_settings`).
+- **Canonical settings module:** `services/layer3-knowledge/src/config/settings.py`.
+- **Compatibility namespace:** `value_fabric/layer3/` is a namespace placeholder only; do not add a duplicate settings shim there.
 - **CI drift guardrail:** `scripts/ci/check_layer3_settings_shim_drift.py` via `.github/workflows/layer3-wrapper-drift.yml`.
 
 ## Layer 3 app_monolith ownership note
 
-- Canonical implementation: `value_fabric/layer3/api/app_monolith.py`.
-- Compatibility shim only: `services/layer3-knowledge/src/api/app_monolith.py` (must remain a thin re-export of the canonical module with no local endpoint logic).
-- CI guardrail: `services/layer3-knowledge/scripts/check_app_monolith_shim_drift.py` (fails when compatibility shim drifts from the approved re-export template).
+- Canonical runtime route modules: `services/layer3-knowledge/src/api/routes/`.
+- Legacy compatibility surface: `services/layer3-knowledge/src/api/app_monolith.py` may expose only approved compatibility delegates such as tenant-resolution helpers; do not add route handlers or endpoint logic there.
+- CI guardrails: `scripts/ci/check_l3_monolith_freeze.py` and `services/layer3-knowledge/scripts/check_runtime_shim_drift.py`.
 
 ## Layer 3 API model ownership note
 
-- Canonical implementation: `value_fabric/layer3/api/models.py`.
-- Compatibility shim only: `services/layer3-knowledge/src/api/models.py` (must only re-export canonical models; no local Pydantic model implementations).
+- Canonical implementation: `services/layer3-knowledge/src/api/models.py`.
+- Compatibility namespace: `value_fabric/layer3/` must not grow a duplicate `api/models.py`; the service tree owns Layer 3 Pydantic model implementations.
 
 
 ## Layer 3 backup ownership boundary
 
-- Canonical implementation: `value_fabric/layer3/backup/`.
-- Compatibility wrappers only: `services/layer3-knowledge/src/backup/`.
-- CI guardrail: `services/layer3-knowledge/scripts/check_backup_shim_drift.py` (fails when compatibility wrappers diverge from explicit forwarders).
+- Canonical implementation: `services/layer3-knowledge/src/backup/`.
+- Compatibility namespace: `value_fabric/layer3/` must not grow duplicate backup modules.
+- CI guardrail: `services/layer3-knowledge/scripts/check_runtime_shim_drift.py`.
 
 
 ## Required parity checkpoints (CI-enforced)
@@ -131,6 +145,6 @@ Avoid adding low-value or highly volatile modules to keep this guardrail low-noi
 
 ## Layer 4 namespace policy
 
-- **Authoritative import namespace:** `value_fabric.layer4.*`.
-- **Deprecated compatibility namespace:** `layer4_agents.*` (shims only; no net-new imports).
+- **Authoritative import namespace:** `layer4_agents.*`.
+- **Removed compatibility namespace:** `value_fabric.layer4.*` (do not restore; no net-new imports).
 - **CI guardrail:** `scripts/ci/check_layer4_canonical_imports.py` with test coverage in `tests/ci/test_check_layer4_canonical_imports.py`.

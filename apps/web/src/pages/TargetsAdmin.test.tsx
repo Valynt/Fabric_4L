@@ -39,7 +39,7 @@ const mockTargets = [
   },
 ];
 
-const mockStats = { total: 3, connected: 1, disconnected: 1, error: 1, totalRecords: 0, averageHealthScore: 58 };
+const mockStats = { total: 3, connected: 1, disconnected: 1, error: 1, total_records: 0, average_health_score: 58 };
 
 // ── Mock factories ────────────────────────────────────────────────────────────
 

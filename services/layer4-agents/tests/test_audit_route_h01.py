@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """H-01 regression tests for the audit-log route.
 
 The production route must query durable audit records rather than returning a
@@ -5,7 +7,6 @@ local-development stub, and unsupported provenance-only requests must fail
 closed instead of inventing data.
 """
 
-from __future__ import annotations
 
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -14,8 +15,9 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from value_fabric.shared.error_handling import register_exception_handlers
 
-from value_fabric.layer4.api.routes import audit
+from layer4_agents.api.routes import audit
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -68,6 +70,7 @@ class _AuditDb:
 @pytest.fixture
 def audit_app() -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(audit.router, prefix="/v1")
     return app
 
@@ -112,5 +115,5 @@ async def test_audit_logs_provenance_source_fails_closed(audit_app: FastAPI) -> 
     async with AsyncClient(transport=ASGITransport(app=audit_app), base_url="http://test") as client:
         response = await client.get("/v1/audit/logs", params={"source": "provenance"})
 
-    assert response.status_code == 501
-    assert "Provenance" in response.json()["detail"]
+    assert response.status_code == 503
+    assert "Provenance" in response.json()["error"]["message"]

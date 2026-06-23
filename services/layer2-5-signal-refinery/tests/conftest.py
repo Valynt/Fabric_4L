@@ -35,8 +35,7 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["DATABASE_URL"] = TEST_DB_URL
 os.environ["JWT_SECRET"] = "test-secret-32-chars-long-ok-yes"
 os.environ["TESTING"] = "true"
-os.environ["ALLOW_INSECURE_DEV_AUTH_BYPASS"] = "true"
-os.environ["DEV_AUTH_BYPASS"] = "true"
+# P0-008: Dev auth bypass flags removed — no longer needed
 
 from layer2_5_signal_refinery import database as db_module  # noqa: E402
 from layer2_5_signal_refinery.api.main import create_app  # noqa: E402
@@ -131,14 +130,14 @@ def _make_client_fixture(tenant_id: uuid.UUID):
         
         @app.middleware("http")
         async def _inject_test_request_context(request, call_next):
-            set_request_context(
-                RequestContext(
-                    tenant_id=str(tenant_id),
-                    user_id="test-user",
-                    roles=["admin"],
-                    auth_source="jwt_claim",
-                )
+            ctx = RequestContext(
+                tenant_id=str(tenant_id),
+                user_id="test-user",
+                roles=["admin"],
+                auth_source="jwt_claim",
             )
+            request.state.governance_context = ctx
+            set_request_context(ctx)
             try:
                 return await call_next(request)
             finally:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Security tests for workflow endpoint tenant isolation.
 
 Verifies that cross-tenant access is blocked for all workflow operations:
@@ -11,7 +13,6 @@ Verifies that cross-tenant access is blocked for all workflow operations:
 Pattern: inline FastAPI app with FakeOrchestrationController and auth override.
 """
 
-from __future__ import annotations
 
 import json
 from typing import Any

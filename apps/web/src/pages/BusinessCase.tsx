@@ -25,6 +25,7 @@ import {
   useRegenerateBusinessCase,
 } from "@/hooks/useDocuments";
 import { useNavigation } from "@/hooks";
+import { ErrorState } from "@/components/states/ErrorState";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
@@ -62,10 +63,10 @@ function deriveOverallValidationState(
 
 function validationBadgeClass(state: ValidationState): string {
   return {
-    validated: "border-green-300 bg-green-50 text-green-700",
-    pending: "border-yellow-300 bg-yellow-50 text-yellow-700",
-    failed: "border-red-300 bg-red-50 text-red-700",
-    partial: "border-blue-300 bg-blue-50 text-blue-700",
+    validated: "border-success/30 bg-success/10 text-success",
+    pending: "border-warning/30 bg-warning/10 text-warning",
+    failed: "border-destructive/30 bg-destructive/10 text-destructive",
+    partial: "border-info/30 bg-info/10 text-info",
   }[state];
 }
 
@@ -143,31 +144,31 @@ const TRUST_CONFIG: Record<
 > = {
   degraded: {
     label: "Degraded",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-destructive/10 text-destructive border-destructive/20",
     showDraftBadge: true,
     tooltip: "LLM, validation, or evidence enrichment was incomplete. Human review required.",
   },
   pending_review: {
     label: "Pending Review",
-    badgeClass: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    badgeClass: "bg-warning/10 text-warning border-warning/20",
     showDraftBadge: true,
     tooltip: "Claims require validation or human approval before export.",
   },
   validated: {
     label: "Validated",
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-success/10 text-success border-success/20",
     showDraftBadge: false,
     tooltip: "Business case has been validated. Generate a document to enable export.",
   },
   export_blocked: {
     label: "Export Blocked",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-destructive/10 text-destructive border-destructive/20",
     showDraftBadge: false,
     tooltip: "Export is blocked due to a failed or rejected status.",
   },
   export_ready: {
     label: "Export Ready",
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    badgeClass: "bg-primary/10 text-primary border-primary/20",
     showDraftBadge: false,
     tooltip: "Business case is validated and a document is ready for export.",
   },
@@ -186,7 +187,7 @@ function TrustStatusRow({ trustState }: { trustState: BusinessCaseTrustState }) 
         {config.label}
       </span>
       {config.showDraftBadge && (
-        <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+        <span className="inline-flex items-center rounded-full border border-muted bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
           Internal draft only
         </span>
       )}
@@ -207,11 +208,15 @@ export default function BusinessCase() {
   // Handle missing ID gracefully
   if (!businessCaseId) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700">
-          No business case ID provided. Please select a business case to view.
+      <PageShell>
+        <PageHeader title="Business Case" />
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-warning">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <span>No business case ID provided. Please select a business case to view.</span>
+          </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -245,7 +250,7 @@ export default function BusinessCase() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl">
+      <PageShell>
         {/* Header skeleton */}
         <div className="mb-5">
           <Skeleton className="h-4 w-48 mb-2" />
@@ -262,7 +267,7 @@ export default function BusinessCase() {
         </div>
 
         {/* Hero ROI card skeleton */}
-        <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-blue-700/20 to-blue-900/20 border border-blue-200">
+        <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-primary/20 to-primary/40 border border-primary/20">
           <Skeleton className="h-3 w-32 mb-1" />
           <Skeleton className="h-12 w-48 mb-1" />
           <Skeleton className="h-4 w-64 mb-4" />
@@ -304,20 +309,22 @@ export default function BusinessCase() {
             <Skeleton className="h-4 w-full" />
           </div>
         </SectionCard>
-      </div>
+      </PageShell>
     );
   }
 
   if (error || !businessCase) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{error instanceof Error ? error.message : 'Failed to load business case. Please try again.'}</span>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load business case"
+          description="The business case could not be loaded. It may have been deleted or you may not have permission to view it."
+          error={error}
+          onRetry={() => window.location.reload()}
+          retryLabel="Refresh"
+          fullPage
+        />
+      </PageShell>
     );
   }
 
@@ -355,7 +362,7 @@ export default function BusinessCase() {
             <Btn
               variant="ghost"
               onClick={handleExploreInteractive}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+              className="text-primary hover:text-primary hover:bg-primary/5"
             >
               <Sparkles size={12} className="mr-1" />
               Explore
@@ -384,7 +391,7 @@ export default function BusinessCase() {
 
       {/* Export error */}
       {exportMutation.error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2 text-red-700 text-sm">
+        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive text-sm">
           <AlertCircle className="w-4 h-4" />
           <span>{exportMutation.error.message}</span>
         </div>
@@ -393,21 +400,21 @@ export default function BusinessCase() {
       <SectionCard title="Business Case Lifecycle" className="mb-5">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <FileText size={13} />
               Business Case
             </div>
-            <p className="mt-2 text-[13px] text-foreground">{businessCase.case_id}</p>
+            <p className="mt-2 vf-text-body-m text-foreground">{businessCase.case_id}</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <CheckCircle2 size={13} />
               Approval Status
             </div>
-            <p className="mt-2 text-[13px] font-semibold text-foreground">{isApproved ? "Approved" : "Draft"}</p>
+            <p className="mt-2 vf-text-body-m font-semibold text-foreground">{isApproved ? "Approved" : "Draft"}</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <CheckCircle2 size={13} />
               Claim Validation
             </div>
@@ -419,47 +426,47 @@ export default function BusinessCase() {
                 return overallState ? (
                   <Badge
                     variant="outline"
-                    className={cn("text-[11px]", validationBadgeClass(overallState))}
+                    className={cn("vf-text-caption", validationBadgeClass(overallState))}
                   >
                     {validationBadgeLabel(overallState)}
                   </Badge>
                 ) : (
-                  <p className="text-[13px] text-muted-foreground">Not validated</p>
+                  <p className="vf-text-body-m text-muted-foreground">Not validated</p>
                 );
               })()}
             </div>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <Download size={13} />
               Export Gate
             </div>
-            <p className="mt-2 text-[13px] text-foreground">{exportState}</p>
+            <p className="mt-2 vf-text-body-m text-foreground">{exportState}</p>
           </div>
         </div>
       </SectionCard>
 
       {/* Hero ROI card */}
       <div className="bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl p-6 mb-6 text-white shadow-lg">
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-70 mb-1">Total Estimated Value</div>
-        <div className="text-[48px] font-extrabold leading-none mb-1">
+        <div className="vf-text-caption font-bold uppercase tracking-wider opacity-70 mb-1">Total Estimated Value</div>
+        <div className="text-5xl font-extrabold leading-none mb-1">
           ${businessCase.total_value.toLocaleString()}
         </div>
-        <div className="text-[13px] opacity-80">
+        <div className="vf-text-body-m opacity-80">
           ROI Ratio: {businessCase.roi_ratio.toFixed(2)}x · Payback: {businessCase.payback_months} months
         </div>
         <div className="flex gap-6 mt-4">
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Confidence</div>
-            <div className="text-[18px] font-bold">{Math.round(businessCase.confidence_score * 100)}%</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Confidence</div>
+            <div className="text-lg font-bold">{Math.round(businessCase.confidence_score * 100)}%</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Implementation Cost</div>
-            <div className="text-[18px] font-bold">${businessCase.implementation_cost.toLocaleString()}</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Implementation Cost</div>
+            <div className="text-lg font-bold">${businessCase.implementation_cost.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Pages</div>
-            <div className="text-[18px] font-bold">{businessCase.page_count}</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Pages</div>
+            <div className="text-lg font-bold">{businessCase.page_count}</div>
           </div>
         </div>
       </div>
@@ -474,13 +481,13 @@ export default function BusinessCase() {
                 idx,
               );
               return (
-                <li key={idx} className="flex items-start gap-2 text-[13px] text-neutral-700">
-                  <span className="text-blue-600 font-bold shrink-0">{idx + 1}.</span>
+                <li key={idx} className="flex items-start gap-2 vf-text-body-m text-foreground">
+                  <span className="text-primary font-bold shrink-0">{idx + 1}.</span>
                   <span className="flex-1">{rec}</span>
                   {claimState && (
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px] shrink-0 self-start mt-0.5", validationBadgeClass(claimState))}
+                      className={cn("vf-text-micro shrink-0 self-start mt-0.5", validationBadgeClass(claimState))}
                     >
                       {validationBadgeLabel(claimState)}
                     </Badge>
@@ -494,18 +501,18 @@ export default function BusinessCase() {
 
       {/* Executive Summary */}
       <SectionCard title="Executive Summary">
-        <div className="prose prose-sm max-w-none text-neutral-700 text-[13px] leading-relaxed whitespace-pre-wrap">
+        <div className="prose prose-sm max-w-none text-foreground vf-text-body-m leading-relaxed whitespace-pre-wrap">
           {businessCase.summary}
         </div>
       </SectionCard>
       <SectionCard title="Post-Approval Actions" className="mt-5">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <div className="flex items-center gap-2 vf-text-body-s font-semibold text-foreground">
               <Send size={14} />
               CRM Push
             </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 vf-text-body-s leading-relaxed text-muted-foreground">
               {crmReady
                 ? "Approved case is ready to push to CRM as a renewal or expansion proof package."
                 : "CRM push is held until the business case is approved and export metadata is ready."}
@@ -515,11 +522,11 @@ export default function BusinessCase() {
             </Btn>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <div className="flex items-center gap-2 vf-text-body-s font-semibold text-foreground">
               <TrendingUp size={14} />
               Value Realization
             </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 vf-text-body-s leading-relaxed text-muted-foreground">
               {realizationReady
                 ? "Convert this approved business case into post-sale realization tracking for baseline, actuals, outcomes, and renewal narrative."
                 : "Realization conversion becomes available after approval and case handoff metadata are ready."}
@@ -538,7 +545,7 @@ export default function BusinessCase() {
       {/* Claim Traceability — evidence, benchmarks, assumptions */}
       {businessCase.truth_references && businessCase.truth_references.length > 0 && (
         <SectionCard title="Claim Traceability" className="mt-5">
-          <p className="text-[11px] text-muted-foreground mb-3">
+          <p className="vf-text-caption text-muted-foreground mb-3">
             Every claim in this business case is traceable to a source: evidence, benchmark, or assumption.
           </p>
           <ul className="space-y-2">
@@ -547,7 +554,7 @@ export default function BusinessCase() {
               const refType = String(r.type ?? 'reference');
               const typeLabel = refType === 'evidence' ? 'Evidence' : refType === 'benchmark' ? 'Benchmark' : 'Assumption';
               return (
-                <li key={idx} className="flex items-start gap-2 text-[12px] border-l-2 border-primary/30 pl-3">
+                <li key={idx} className="flex items-start gap-2 vf-text-body-s border-l-2 border-primary/30 pl-3">
                   <span className="font-semibold text-primary shrink-0">{typeLabel}:</span>
                   <span className="text-foreground">{String(r.claim ?? r.text ?? '')}</span>
                   {r.source != null && (
@@ -561,12 +568,12 @@ export default function BusinessCase() {
       )}
       {businessCase.diff_summary && (
         <SectionCard title="Regeneration Diff Summary" className="mt-5">
-          <pre className="text-[12px] whitespace-pre-wrap">{JSON.stringify(businessCase.diff_summary, null, 2)}</pre>
+          <pre className="vf-text-body-s whitespace-pre-wrap">{JSON.stringify(businessCase.diff_summary, null, 2)}</pre>
         </SectionCard>
       )}
       {businessCase.revision_history && businessCase.revision_history.length > 0 && (
         <SectionCard title="Revision History" className="mt-5">
-          <ul className="space-y-1 text-[12px]">
+          <ul className="space-y-1 vf-text-body-s">
             {businessCase.revision_history.map((entry, idx) => (
               <li key={idx}>{String(entry.case_id)} · {String(entry.created_at ?? "unknown")}</li>
             ))}

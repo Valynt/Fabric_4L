@@ -37,6 +37,16 @@ import useOntologyStore from '@/stores/ontologyStore';
 import { toast } from 'sonner';
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { Textarea } from "@/components/ui/textarea";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function OntologyEditor() {
   // Data fetching
@@ -196,46 +206,39 @@ export default function OntologyEditor() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="p-6">
+      <PageShell fullWidth>
         <PageHeader
           breadcrumbs={[{ label: "Discover" }, { label: "Knowledge" }, { label: "Ontology" }]}
           title="Ontology Editor"
           subtitle="Define and manage the knowledge model ontology"
         />
         <div className="flex items-center justify-center h-[400px]">
-          <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-neutral-700 animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-muted-foreground border-t-foreground animate-spin" />
           <span className="ml-3 text-sm text-muted-foreground">Loading ontology schema...</span>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="p-6">
+      <PageShell fullWidth>
         <PageHeader
           breadcrumbs={[{ label: "Discover" }, { label: "Knowledge" }, { label: "Ontology" }]}
           title="Ontology Editor"
           subtitle="Define and manage the knowledge model ontology"
         />
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold text-destructive">Failed to load ontology</h3>
-              <p className="text-sm text-destructive/80 mt-1">
-                {error instanceof Error ? error.message : 'Unknown error'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <ErrorState
+          title="Failed to load ontology"
+          error={error}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 h-[calc(100vh-64px)] flex flex-col">
+    <PageShell fullWidth className="h-[calc(100vh-64px)] flex flex-col">
       {/* Header */}
       <PageHeader
         breadcrumbs={[{ label: "Discover" }, { label: "Knowledge" }, { label: "Ontology" }]}
@@ -246,9 +249,9 @@ export default function OntologyEditor() {
             {/* Validation indicator */}
             {validationResult && (
               <div className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium",
+                "flex items-center gap-1.5 px-2 py-1 rounded-md vf-text-caption font-medium",
                 validationResult.valid
-                  ? "bg-emerald-100 text-emerald-700"
+                  ? "bg-success/10 text-success"
                   : "bg-destructive/10 text-destructive"
               )}>
                 {validationResult.valid ? <Check size={12} /> : <X size={12} />}
@@ -357,8 +360,8 @@ export default function OntologyEditor() {
       {validationResult && (validationResult.errors.length > 0 || validationResult.warnings.length > 0) && (
         <div className="mt-4 p-3 border rounded-lg bg-muted/30">
           <div className="flex items-center gap-2 mb-2">
-            <AlertCircle size={14} className={validationResult.errors.length > 0 ? "text-destructive" : "text-amber-500"} />
-            <span className="text-[12px] font-semibold">
+            <AlertCircle size={14} className={validationResult.errors.length > 0 ? "text-destructive" : "text-warning"} />
+            <span className="vf-text-body-s font-semibold">
               {validationResult.errors.length > 0
                 ? `${validationResult.errors.length} error${validationResult.errors.length > 1 ? 's' : ''}`
                 : `${validationResult.warnings.length} warning${validationResult.warnings.length > 1 ? 's' : ''}`}
@@ -366,13 +369,13 @@ export default function OntologyEditor() {
           </div>
           <div className="space-y-1 max-h-[120px] overflow-y-auto">
             {validationResult.errors.map((error, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-[11px] text-destructive">
+              <div key={idx} className="flex items-start gap-2 vf-text-caption text-destructive">
                 <X size={12} className="mt-0.5 shrink-0" />
                 <span>{error.message}</span>
               </div>
             ))}
             {validationResult.warnings.map((warning, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-[11px] text-amber-600">
+              <div key={idx} className="flex items-start gap-2 vf-text-caption text-warning">
                 <AlertCircle size={12} className="mt-0.5 shrink-0" />
                 <span>{warning.message}</span>
               </div>
@@ -387,44 +390,45 @@ export default function OntologyEditor() {
           <div className="bg-card border border-border rounded-lg shadow-lg w-[400px] max-w-[90vw]">
             <div className="p-4 border-b border-border">
               <h3 className="text-sm font-semibold">Add Relationship</h3>
-              <p className="text-[12px] text-muted-foreground mt-1">
+              <p className="vf-text-body-s text-muted-foreground mt-1">
                 Define a relationship between two ontology types
               </p>
             </div>
             <div className="p-4 space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Source Type</label>
-                <select
-                  value={newRelSource}
-                  onChange={(e) => setNewRelSource(e.target.value)}
-                  className="w-full px-3 py-2 text-[12px] bg-muted/50 border border-border rounded-md"
-                >
-                  <option value="">Select source type...</option>
-                  {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Source Type</label>
+                <Select value={newRelSource} onValueChange={setNewRelSource}>
+                  <SelectTrigger className="w-full vf-text-body-s">
+                    <SelectValue placeholder="Select source type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Relationship Type</label>
-                <select
-                  value={newRelType}
-                  onChange={(e) => setNewRelType(e.target.value)}
-                  className="w-full px-3 py-2 text-[12px] bg-muted/50 border border-border rounded-md"
-                >
-                  {['RELATES_TO', 'DEPENDS_ON', 'ENABLES', 'EXTENDS', 'CONTAINS', 'PART_OF'].map(rt => (
-                    <option key={rt} value={rt}>{rt}</option>
-                  ))}
-                </select>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Relationship Type</label>
+                <Select value={newRelType} onValueChange={setNewRelType}>
+                  <SelectTrigger className="w-full vf-text-body-s">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['RELATES_TO', 'DEPENDS_ON', 'ENABLES', 'EXTENDS', 'CONTAINS', 'PART_OF'].map(rt => (
+                      <SelectItem key={rt} value={rt}>{rt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Target Type</label>
-                <select
-                  value={newRelTarget}
-                  onChange={(e) => setNewRelTarget(e.target.value)}
-                  className="w-full px-3 py-2 text-[12px] bg-muted/50 border border-border rounded-md"
-                >
-                  <option value="">Select target type...</option>
-                  {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Target Type</label>
+                <Select value={newRelTarget} onValueChange={setNewRelTarget}>
+                  <SelectTrigger className="w-full vf-text-body-s">
+                    <SelectValue placeholder="Select target type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
@@ -467,17 +471,17 @@ export default function OntologyEditor() {
           <div className="bg-card border border-border rounded-lg shadow-lg w-[500px] max-w-[90vw]">
             <div className="p-4 border-b border-border">
               <h3 className="text-sm font-semibold">Import Ontology</h3>
-              <p className="text-[12px] text-muted-foreground mt-1">
+              <p className="vf-text-body-s text-muted-foreground mt-1">
                 Paste JSON ontology schema to import
               </p>
             </div>
             <div className="p-4">
-              <textarea
+              <Textarea
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 placeholder={`{\n  "types": [...],\n  "relationships": [...]\n}`}
                 rows={10}
-                className="w-full px-3 py-2 text-[12px] bg-muted/50 border border-border rounded-md font-mono resize-none"
+                className="w-full vf-text-body-s font-mono"
               />
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
@@ -491,6 +495,6 @@ export default function OntologyEditor() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

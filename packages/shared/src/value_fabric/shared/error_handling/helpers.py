@@ -23,7 +23,7 @@ def sanitize_log_error(error: BaseException | str, /) -> str:
       - access_token / refresh_token
       - api_key
     """
-    redacted = str(error) if isinstance(error, BaseException) else error
+    redacted = repr(error) if isinstance(error, BaseException) else error  # ban-str-e-allow: sanitization-helper
     for pattern in ("Bearer ", "access_token", "refresh_token", "api_key"):
         if pattern in redacted.lower():
             return f"[REDACTED: contains {pattern}]"

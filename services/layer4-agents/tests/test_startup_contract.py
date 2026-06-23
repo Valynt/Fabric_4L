@@ -1,15 +1,32 @@
 from __future__ import annotations
 
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 import pytest
 
-from value_fabric.layer4.api.app_factory import create_app
-from value_fabric.layer4.api.startup import (
+from layer4_agents.api.app_factory import create_app
+from layer4_agents.api.startup import (
     StartupCheckResult,
     check_database_ready,
     check_redis_ready,
     check_vault_ready,
 )
+
+
+def _collect_paths(routes, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        if isinstance(route, APIRoute):
+            paths.add(prefix + route.path)
+        elif hasattr(route, "original_router"):
+            include_context = getattr(route, "include_context", None)
+            sub_prefix = prefix + (
+                getattr(include_context, "prefix", "") if include_context else ""
+            )
+            paths.update(_collect_paths(route.original_router.routes, sub_prefix))
+        elif hasattr(route, "routes"):
+            paths.update(_collect_paths(route.routes, prefix + getattr(route, "path", "")))
+    return paths
 
 
 @pytest.mark.asyncio
@@ -24,7 +41,7 @@ async def test_dependency_checks_contract(monkeypatch):
         async def ping(self):
             return await ok_ping()
 
-    monkeypatch.setattr("value_fabric.layer4.api.startup.init_db", ok_db)
+    monkeypatch.setattr("layer4_agents.api.startup.init_db", ok_db)
     db_result = await check_database_ready()
     assert isinstance(db_result, StartupCheckResult)
     assert db_result.ok is True
@@ -42,15 +59,15 @@ async def test_dependency_checks_fail_contract(monkeypatch):
     async def fail_db():
         raise RuntimeError("db down")
 
-    monkeypatch.setattr("value_fabric.layer4.api.startup.init_db", fail_db)
+    monkeypatch.setattr("layer4_agents.api.startup.init_db", fail_db)
     db_result = await check_database_ready()
     assert db_result.ok is False
-    assert "db down" in (db_result.detail or "")
+    assert db_result.detail == "Database connection failed"
 
 
 def test_route_table_integrity_after_refactor():
     app = create_app()
-    paths = {route.path for route in app.routes}
+    paths = _collect_paths(app.routes)
     assert "/" in paths
     assert "/health" in paths
     assert "/metrics" in paths
@@ -65,7 +82,7 @@ def test_request_id_middleware_contract_is_canonical_and_stable(monkeypatch):
         yield
 
     # Bypass all infrastructure startup checks (DB, Redis, checkpoint, etc.)
-    monkeypatch.setattr("value_fabric.layer4.api.app_factory.build_lifespan", lambda **_: _noop_lifespan)
+    monkeypatch.setattr("layer4_agents.api.app_factory.build_lifespan", lambda **_: _noop_lifespan)
 
     app = create_app()
 

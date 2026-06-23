@@ -5,14 +5,11 @@
  * DIL enrichment: ROI calculator for financial modeling + industry benchmarks
  */
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
 import { Settings2, Calculator, TrendingUp, BarChart3 } from "lucide-react";
-import ValueStudioShellComponent from "@/components/workspace/ValueStudioShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import {
   useCanonicalCaseId,
   usePersistWorkspaceTab,
@@ -20,6 +17,7 @@ import {
   useGenerateWorkspaceIntelligence,
 } from "@/hooks/useWorkspaceCase";
 import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // DIL hooks
 import {
@@ -63,32 +61,32 @@ function ROISummaryCard({ result }: { result: ROICalculationResult }) {
     <SectionCard title="ROI Analysis" className="mt-4">
       <div className="flex items-center gap-2 mb-3">
         <Calculator size={13} className="text-primary" />
-        <span className="text-[11px] text-muted-foreground">
+        <span className="vf-text-caption text-muted-foreground">
           Calculated by the DIL ROI Engine
         </span>
       </div>
       <div className="grid grid-cols-4 gap-3">
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">NPV</p>
-          <p className="text-[14px] font-bold text-primary">
+          <p className="vf-text-micro text-muted-foreground">NPV</p>
+          <p className="vf-text-body-l font-bold text-primary">
             {formatCurrency(result.npv)}
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">IRR</p>
-          <p className="text-[14px] font-bold text-green-600">
+          <p className="vf-text-micro text-muted-foreground">IRR</p>
+          <p className="vf-text-body-l font-bold text-success">
             {formatPercent(result.irr)}
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">Payback</p>
-          <p className="text-[14px] font-bold">
+          <p className="vf-text-micro text-muted-foreground">Payback</p>
+          <p className="vf-text-body-l font-bold">
             {result.payback_months} mo
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">3-Year ROI</p>
-          <p className="text-[14px] font-bold text-primary">
+          <p className="vf-text-micro text-muted-foreground">3-Year ROI</p>
+          <p className="vf-text-body-l font-bold text-primary">
             {formatPercent(result.total_roi_pct / 100)}
           </p>
         </div>
@@ -103,22 +101,22 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark | null }) {
   return (
     <SectionCard title="Industry Benchmarks" className="mt-4">
       <div className="flex items-center gap-2 mb-3">
-        <BarChart3 size={13} className="text-amber-500" />
-        <span className="text-[11px] text-muted-foreground">
+        <BarChart3 size={13} className="text-warning" />
+        <span className="vf-text-caption text-muted-foreground">
           Sourced from the DIL Evidence Library — {benchmark.industry} (n={benchmark.sample_size})
         </span>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg ROI</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg ROI</span>
           <span className="font-bold">{benchmark.avg_roi_pct.toFixed(1)}%</span>
         </div>
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg Payback</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg Payback</span>
           <span className="font-bold">{benchmark.avg_payback_months} mo</span>
         </div>
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg NPV</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg NPV</span>
           <span className="font-bold">${(benchmark.avg_npv / 1000).toFixed(0)}K</span>
         </div>
       </div>
@@ -127,8 +125,7 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark | null }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function ValueModelTab() {
-  const { accountId } = useParams<{ accountId: string }>();
+export default function ValueModelTab({ accountId }: StudioTabProps) {
   const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { data: caseId } = useCanonicalCaseId(accountId ?? null);
   const { data, isLoading, error } = useWorkspaceTabQuery<{
@@ -138,7 +135,6 @@ export default function ValueModelTab() {
   const persistTab = usePersistWorkspaceTab("value-model");
   const [scenario, setScenario] = useState<Scenario>("expected");
   const [showStrategic, setShowStrategic] = useState(true);
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
 
   // DIL data
   const calculateROI = useCalculateROI();
@@ -150,11 +146,6 @@ export default function ValueModelTab() {
   useEffect(() => {
     if (caseId && data) persistTab.mutate({ caseId, payload: data });
   }, [caseId, data]);
-
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "value-model",
-    accountName: account?.name ?? "Account",
-  });
 
   const lines = data?.valueLines ?? [];
   const acceptedEvidence = (evidenceData?.evidence ?? []).filter((item) => item.decision_status === "accepted");
@@ -215,39 +206,21 @@ export default function ValueModelTab() {
   }
   if (error || generateMutation.isError) {
     return (
-      <div className="p-6 text-sm text-destructive">
-        Failed to load value model.
-      </div>
+      <ErrorState
+        title="Failed to load value model"
+        description="The value model data could not be retrieved."
+        error={error || generateMutation.error}
+        fullPage
+      />
     );
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return (
-    <ValueStudioShellComponent
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue
-          ? `$${account.annual_revenue.toLocaleString()}`
-          : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="value-model"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-            steps={steps}
-            isStreaming={isStreaming}
-            runMetadata={metadata}
-        />
-      }
-    >
+    <div className="space-y-6">
       {lines.length === 0 ? (
         <SectionCard title="Value Breakdown">
           <div className="text-sm text-muted-foreground">
@@ -300,18 +273,14 @@ export default function ValueModelTab() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
               {(Object.keys(SCENARIO_LABELS) as Scenario[]).map((s) => (
-                <button
+                <Btn
                   key={s}
+                  variant={scenario === s ? "primary" : "ghost"}
                   onClick={() => setScenario(s)}
-                  className={cn(
-                    "px-3 py-1.5 text-[11px] font-semibold rounded-md",
-                    scenario === s
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  )}
+                  className="vf-text-caption"
                 >
                   {SCENARIO_LABELS[s]}
-                </button>
+                </Btn>
               ))}
             </div>
             <div className="flex gap-3 items-center">
@@ -340,7 +309,7 @@ export default function ValueModelTab() {
 
           {/* Value breakdown table */}
           <SectionCard title="Value Breakdown">
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-2 vf-text-micro font-semibold text-muted-foreground border-b border-border">
               <span>Driver</span>
               <span>Conservative</span>
               <span>Expected</span>
@@ -350,7 +319,7 @@ export default function ValueModelTab() {
             {visibleLines.map((line) => (
               <div
                 key={line.id}
-                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-3 text-[12px] border-b border-border"
+                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-3 vf-text-body-s border-b border-border"
               >
                 <span>{line.driver}</span>
                 <span
@@ -374,7 +343,7 @@ export default function ValueModelTab() {
                 >
                   {formatCurrency(line.optimistic)}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="vf-text-micro text-muted-foreground">
                   {line.source}
                 </span>
               </div>
@@ -394,6 +363,6 @@ export default function ValueModelTab() {
           <BenchmarkCard benchmark={benchmark} />
         </>
       )}
-    </ValueStudioShellComponent>
+    </div>
   );
 }

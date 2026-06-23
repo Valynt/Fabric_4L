@@ -12,6 +12,12 @@ These documents define the required engineering governance path for platform cha
 - [`../CONTRIBUTING.md`](../CONTRIBUTING.md): contributor onboarding entry point
 - [`governance/launch-drift-prevention-sop.md`](governance/launch-drift-prevention-sop.md):
   required approvals for contract, tenant-isolation, and compatibility-shim changes
+- [`governance/pre-stabilization-intake.md`](governance/pre-stabilization-intake.md):
+  operational branch, PR, freeze, and entry gate before stabilization begins
+- [`launch/stabilization-gate-0-intake-2026-06-03.md`](launch/stabilization-gate-0-intake-2026-06-03.md):
+  current Gate 0 intake snapshot and blocker register for the stabilization start decision
+- [`governance/pr-triage-policy.md`](governance/pr-triage-policy.md): stalled PR definitions,
+  disposition labels, owner/next-action requirements, and stale-branch stabilization rules
 - [`../.github/pull_request_template.md`](../.github/pull_request_template.md): PR confirmations
   required before review
 
@@ -92,3 +98,15 @@ Architecture Decision Records use a single canonical filename and header format:
 Legacy ADR IDs are normalized during migration by reindexing to the next available sequential ID and preserving the original title/decision content.
 
 CI enforcement: `python scripts/ci/check_adr_numbering.py` fails if IDs are duplicated, sequence IDs are missing, or filename/header IDs drift.
+
+## Kubernetes Deployment SecurityContext Standard
+
+All rendered deployment bundles under `k8s/deployments/*` must enforce baseline Kubernetes hardening on every `Deployment`:
+
+- Pod `securityContext.runAsNonRoot: true`
+- Pod `securityContext.seccompProfile.type: RuntimeDefault`
+- Container `securityContext.allowPrivilegeEscalation: false`
+- Container `securityContext.readOnlyRootFilesystem: true` (unless a documented technical exception is required)
+- Container `securityContext.capabilities.drop` includes `ALL`
+
+CI enforcement: `python scripts/ci/k8s_routing_check.py` now fails when rendered deployment manifests violate this baseline, so regressions are blocked during PR validation.

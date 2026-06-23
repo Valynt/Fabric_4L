@@ -29,13 +29,13 @@ pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 # ---------------------------------------------------------------------------
 # Module path constants for mocking
 # ---------------------------------------------------------------------------
-MOCK_PROVISIONING_MODULE = "value_fabric.layer4.tenants.provisioning"
+MOCK_PROVISIONING_MODULE = "layer4_agents.tenants.provisioning"
 MOCK_TENANT_SECRET_MANAGER = f"{MOCK_PROVISIONING_MODULE}.TenantSecretManager"
 MOCK_EMIT_AUDIT = f"{MOCK_PROVISIONING_MODULE}.emit_audit_event"
 
 # Provisioning route module for webhook tests
 MOCK_WEBHOOK_MODULE = (
-    "value_fabric.layer4.tenants.api.routes.provisioning"
+    "layer4_agents.tenants.api.routes.provisioning"
 )
 
 # Default environments expected by the provisioning service
@@ -128,7 +128,7 @@ class TestProvisioningWorkflow:
         mock_audit_emitter,
     ):
         """Test successful tenant provisioning through all steps."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             ProvisioningStep,
             TenantProvisioningService,
@@ -161,7 +161,7 @@ class TestProvisioningWorkflow:
         mock_audit_emitter,
     ):
         """Test that provisioning is idempotent — second call returns completed."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )
@@ -197,7 +197,7 @@ class TestProvisioningWorkflow:
         mock_audit_emitter,
     ):
         """Test force retry re-runs provisioning even if already completed."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )
@@ -231,7 +231,7 @@ class TestProvisioningFailureHandling:
         mock_audit_emitter,
     ):
         """Test rollback when Infisical path creation fails."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )
@@ -268,7 +268,7 @@ class TestProvisioningFailureHandling:
         mock_audit_emitter,
     ):
         """Test automatic retry on transient errors (e.g., TimeoutError)."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )
@@ -345,7 +345,7 @@ class TestWebhookSecurity:
 
     def test_valid_signature_accepted(self):
         """Test that a correctly signed payload passes verification."""
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _verify_hmac_signature,
         )
 
@@ -355,7 +355,7 @@ class TestWebhookSecurity:
 
     def test_invalid_signature_rejected(self):
         """Test that a tampered payload fails verification."""
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _verify_hmac_signature,
         )
 
@@ -365,7 +365,7 @@ class TestWebhookSecurity:
 
     def test_wrong_secret_rejected(self):
         """Test that a signature made with the wrong secret fails."""
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _verify_hmac_signature,
         )
 
@@ -386,7 +386,7 @@ class TestWebhookSecurity:
         )
 
         # Parse the payload and check timestamp tolerance
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _WEBHOOK_SIGNATURE_TOLERANCE_SECONDS,
         )
 
@@ -395,7 +395,7 @@ class TestWebhookSecurity:
 
     def test_idempotency_cache_deduplicates(self):
         """Test that the idempotency cache returns cached results for duplicate IDs."""
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _processed_webhooks,
         )
 
@@ -414,7 +414,7 @@ class TestWebhookSecurity:
 
     def test_idempotency_cache_expires(self):
         """Test that expired entries are cleaned from the idempotency cache."""
-        from value_fabric.layer4.tenants.api.routes.provisioning import (
+        from layer4_agents.tenants.api.routes.provisioning import (
             _WEBHOOK_CACHE_TTL_SECONDS,
             _cleanup_expired_webhooks,
             _processed_webhooks,
@@ -459,7 +459,7 @@ class TestConvenienceFunction:
         mock_audit_emitter,
     ):
         """Test the simple provision_tenant function."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             provision_tenant,
         )
@@ -492,7 +492,7 @@ class TestProvisioningAuditEvents:
     ):
         """Test that successful provisioning emits TENANT_PROVISIONED audit event."""
         from value_fabric.shared.audit import AuditAction
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             TenantProvisioningService,
         )
 
@@ -525,7 +525,7 @@ class TestProvisioningAuditEvents:
         mock_tenant,
     ):
         """Test that failed provisioning emits TENANT_PROVISIONING_FAILED audit event."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             TenantProvisioningService,
         )
 
@@ -572,7 +572,7 @@ class TestTenantProvisioningEdgeCases:
 
     async def test_duplicate_slug_conflict(self, mock_db_session, mock_tenant, mock_infisical_client, mock_audit_emitter):
         """Provisioning must handle duplicate slug gracefully."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )
@@ -599,7 +599,7 @@ class TestTenantProvisioningEdgeCases:
 
     async def test_rollback_clears_partial_state(self, mock_db_session, mock_tenant, mock_audit_emitter):
         """Rollback must remove partial tenant state after Infisical failure."""
-        from value_fabric.layer4.tenants.provisioning import (
+        from layer4_agents.tenants.provisioning import (
             ProvisioningStatus,
             TenantProvisioningService,
         )

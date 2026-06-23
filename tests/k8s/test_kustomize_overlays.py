@@ -250,13 +250,13 @@ class TestKustomizeStagingOverlay:
         assert "../../base" in resources, "Staging must extend base layer"
 
     def test_staging_namespace_set(self, k8s_overlays_dir: Path) -> None:
-        """Verify staging overlay sets the namespace to value-fabric."""
+        """Verify staging overlay sets the namespace to value-fabric-staging."""
         kustomization = k8s_overlays_dir / "staging" / "kustomization.yaml"
 
         with open(kustomization) as f:
             content = yaml.safe_load(f)
 
-        assert content.get("namespace") == "value-fabric"
+        assert content.get("namespace") == "value-fabric-staging"
 
     def test_staging_environment_label(self, k8s_overlays_dir: Path) -> None:
         """Verify staging overlay adds environment=staging label."""

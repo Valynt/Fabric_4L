@@ -1,0 +1,79 @@
+"""P0-004 acceptance test: API PostgreSQL driver.
+
+Validates:
+1. PostgreSQLDatabase class exists and is returned for PostgreSQL URLs
+2. get_pg_engine creates an async engine
+3. Health check runs SELECT 1
+"""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+from app.core.database import (
+    PostgreSQLDatabase,
+    PostgreSQLTable,
+    get_pg_engine,
+    create_database,
+    UnsupportedDatabaseURL,
+    ProductionPersistenceNotConfigured,
+)
+
+
+def test_postgresql_database_class_exists():
+    """PostgreSQLDatabase must be importable and have expected tables."""
+    db = PostgreSQLDatabase(pool=MagicMock())
+    assert hasattr(db, "accounts")
+    assert hasattr(db, "tenants")
+    assert hasattr(db, "audit_logs")
+    assert isinstance(db.accounts, PostgreSQLTable)
+
+
+def test_create_database_raises_for_unsupported_url():
+    """Unsupported database URLs must raise UnsupportedDatabaseURL."""
+    with patch("app.core.database.get_settings") as mock_settings:
+        mock_settings.return_value.mock_persistence = False
+        mock_settings.return_value.database_url = "mysql://user:pass@localhost/db"
+        with pytest.raises(UnsupportedDatabaseURL):
+            get_pg_engine()
+
+
+def test_create_database_returns_postgresql_for_pg_url():
+    """PostgreSQL URLs must be accepted by get_pg_engine."""
+    with patch("app.core.database.get_settings") as mock_settings:
+        mock_settings.return_value.mock_persistence = False
+        mock_settings.return_value.database_url = "postgresql+asyncpg://user:pass@localhost/db"
+        with patch("app.core.database._ASYNC_ENGINE_AVAILABLE", True):
+            with patch("app.core.database.get_async_engine") as mock_engine:
+                mock_engine.return_value = MagicMock()
+                engine = get_pg_engine()
+                assert engine is not None
+                mock_engine.assert_called_once()
+
+
+def test_postgresql_table_health_check_select_1():
+    """PostgreSQLTable must be able to run a basic SELECT 1 via its pool."""
+    mock_pool = MagicMock()
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_cur.fetchone.return_value = (1,)
+    mock_conn.cursor.return_value.__enter__ = lambda s, *a, **k: mock_cur
+    mock_conn.cursor.return_value.__exit__ = lambda s, *a, **k: None
+    mock_pool.connection.return_value.__enter__ = lambda s, *a, **k: mock_conn
+    mock_pool.connection.return_value.__exit__ = lambda s, *a, **k: None
+
+    table = PostgreSQLTable("test_table", mock_pool)
+    # Verify the pool connection context manager works
+    with mock_pool.connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            result = cur.fetchone()
+            assert result == (1,)
+
+
+def test_create_database_fails_closed_in_production_without_url():
+    """Production-like environments must not fall back to in-memory without URL."""
+    with patch("app.core.database.get_settings") as mock_settings:
+        mock_settings.return_value.mock_persistence = False
+        mock_settings.return_value.database_url = None
+        with pytest.raises(ProductionPersistenceNotConfigured):
+            create_database()

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """System Maintenance Identity and Authorization Framework.
 
 Provides dedicated system maintenance identity separate from tenant admin roles.
@@ -19,23 +21,22 @@ Usage:
         pass
 """
 
-from __future__ import annotations
 
 import os
+import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Generator
+from typing import Any
 
 import structlog
 from value_fabric.shared.error_handling import sanitize_log_error
 
 from .exceptions import (
     SystemMaintenanceAuthorizationError,
-    TenantContextError,
 )
-import uuid
 
 logger = structlog.get_logger()
 
@@ -325,12 +326,12 @@ def maintenance_audit_log(operation: str, tenant_id: str | None = None) -> Gener
             operation=operation,
             tenant_id=tenant_id,
             rows_affected=record.rows_affected,
-            duration_seconds=(record.completed_at - record.started_at).total_seconds()
+            duration_seconds=(record.completed_at - record.started_at).total_seconds() if record.started_at else 0.0
         )
         
     except Exception as e:
         record.success = False
-        record.error_message = sanitize_log_error(str(e))
+        record.error_message = sanitize_log_error(e)
         record.completed_at = datetime.now(UTC)
         
         logger.error(
@@ -338,7 +339,7 @@ def maintenance_audit_log(operation: str, tenant_id: str | None = None) -> Gener
             operation=operation,
             tenant_id=tenant_id,
             error=record.error_message,
-            duration_seconds=(record.completed_at - record.started_at).total_seconds()
+            duration_seconds=(record.completed_at - record.started_at).total_seconds() if record.started_at else 0.0
         )
         raise
     

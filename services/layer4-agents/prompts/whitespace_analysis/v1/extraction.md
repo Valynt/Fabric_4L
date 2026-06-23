@@ -12,7 +12,9 @@ max_tokens: 3000
 Extract structured needs from the following prospect data for account "{{ account_name }}":
 
 ## Source Material
+<<<USER_CONTENT>>>
 {{ source_material }}
+<<</USER_CONTENT>>>
 
 Return JSON matching this schema exactly:
 

@@ -10,11 +10,11 @@ import pytest
 import respx
 from httpx import Response
 
-from value_fabric.layer1.crawler.execution_logger import ExecutionLogger, ExecutionPath
-from value_fabric.layer1.crawler.httpx_crawler import HttpxCrawler
-from value_fabric.layer1.crawler.quality_gate import QualityGate
-from value_fabric.layer1.crawler.smart_router import RouteType, SmartRouter
-from value_fabric.layer1.shared.models import CrawlPath
+from layer1_ingestion.crawler.execution_logger import ExecutionLogger, ExecutionPath
+from layer1_ingestion.crawler.httpx_crawler import HttpxCrawler
+from layer1_ingestion.crawler.quality_gate import QualityGate
+from layer1_ingestion.crawler.smart_router import RouteType, SmartRouter
+from layer1_ingestion.shared.models import CrawlPath
 
 
 class TestTargetLevelModes:
@@ -49,7 +49,7 @@ class TestTargetLevelModes:
         """BROWSER mode skips HTTPX entirely."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/sitemap.xml",  # Would normally be fast
             target_mode=RouteType.BROWSER,
         )
@@ -106,7 +106,7 @@ class TestPerURLSmartRouting:
         """Sitemap.xml routes to fast with high priority."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/sitemap.xml",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
@@ -140,13 +140,13 @@ class TestPerURLSmartRouting:
         """URLs with fragments/query params route to browser."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/page#section",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
         assert decision.route == RouteType.BROWSER
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/search?q=test",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
@@ -157,7 +157,7 @@ class TestPerURLSmartRouting:
         """Previous browser crawl maintains consistency."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/page",
             target_mode=RouteType.FAST_WITH_FALLBACK,
             previous_route=RouteType.BROWSER,
@@ -344,6 +344,7 @@ class TestExecutionLogging:
                         <script src="3.js"></script>
                         <script src="4.js"></script>
                         <script src="5.js"></script>
+                        <script src="6.js"></script>
                     </head>
                     <body><div id="app"></div></body>
                 </html>
@@ -393,7 +394,11 @@ class TestEndToEndPipeline:
             )
         )
         respx.get("https://example.com/sitemap.xml").mock(
-            return_value=Response(200, xml="<xml></xml>")
+            return_value=Response(
+                200,
+                content=b"<xml></xml>",
+                headers={"content-type": "application/xml"},
+            )
         )
 
         router = SmartRouter()
@@ -501,7 +506,7 @@ class TestPerformanceCharacteristics:
     def test_execution_logger_handles_invalid_utf8(self) -> None:
         """P1 Regression: ExecutionLogger handles binary/invalid UTF-8 content."""
         from unittest.mock import MagicMock
-        from value_fabric.layer1.crawler.execution_logger import ExecutionLogger
+        from layer1_ingestion.crawler.execution_logger import ExecutionLogger
 
         logger = ExecutionLogger()
 
@@ -533,7 +538,7 @@ class TestPerformanceCharacteristics:
     def test_content_ratio_uses_original_html_length(self) -> None:
         """P1 Regression: Content ratio uses original HTML length, not truncated."""
         from unittest.mock import MagicMock
-        from value_fabric.layer1.crawler.quality_gate import QualityGate, QualityThresholds
+        from layer1_ingestion.crawler.quality_gate import QualityGate, QualityThresholds
 
         # Use a high threshold that would fail if using truncated length
         thresholds = QualityThresholds(min_content_ratio=0.5)

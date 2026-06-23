@@ -1,15 +1,7 @@
-"""Model Registry package for Layer 4 Agents."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.registry``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .eval_gate import check_eval_gate
-from .models import ModelPromotionLog, ModelVersion
-from .service import ModelRegistryService, resolve_llm_model
-
-__all__ = [
-    "ModelVersion",
-    "ModelPromotionLog",
-    "ModelRegistryService",
-    "check_eval_gate",
-    "resolve_llm_model",
-]
+from layer4_agents.registry import *  # noqa: F401,F403

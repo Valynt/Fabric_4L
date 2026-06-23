@@ -29,15 +29,6 @@ When working in this repo:
 ## Repository structure at a glance
 
 ```
-value_fabric/                 # Canonical runtime package root
-  layer1/                     # Data ingestion runtime modules
-  layer2/                     # Ontology-guided extraction runtime modules
-  layer3/                     # Knowledge/retrieval runtime modules
-  layer4/                     # Agent orchestration runtime modules
-  layer5/                     # Ground-truth runtime modules
-  layer6/                     # Benchmark runtime modules
-  shared/                     # Shared runtime packages (identity, security, models)
-
 services/                     # Maintained service deployment layer (apps, migrations, manifests)
   layer1-ingestion/           # Layer 1 service entrypoint + infra wrapper
   layer2-extraction/          # Layer 2 service entrypoint + infra wrapper
@@ -45,6 +36,9 @@ services/                     # Maintained service deployment layer (apps, migra
   layer4-agents/              # Layer 4 service entrypoint + agent artifacts
   layer5-ground-truth/        # Layer 5 service entrypoint + infra wrapper
   layer6-benchmarks/          # Layer 6 service entrypoint + infra wrapper
+
+packages/shared/src/value_fabric/shared/
+                              # Shared runtime packages exposed as value_fabric.shared.*
 
 contracts/             # Source of truth for all interfaces
   tool-manifests/      # JSON Schema for every agent tool/skill
@@ -69,7 +63,7 @@ emerges from interactions between agents, tools, and the knowledge graph.
 ### P0 — Never do these
 
 1. **Do not commit secrets.** No API keys, passwords, or tokens in any file. Use `.env` (gitignored).
-2. **Do not modify `value_fabric/shared/identity/` without a security review.** This is the
+2. **Do not modify `packages/shared/src/value_fabric/shared/identity/` without a security review.** This is the
    cross-layer authentication and authorization library. Bugs here affect every service.
 3. **Do not modify `services/layer4-agents/migrations/` by hand.** Use Alembic to generate
    new migration files: `alembic revision --autogenerate -m "description"`.
@@ -80,7 +74,7 @@ emerges from interactions between agents, tools, and the knowledge graph.
 
 ### P1 — Be careful with these
 
-- **Provider changes** (`services/layer*/src/ (service code) and/or value_fabric/layer*/ (runtime package code)`) — These affect live data flows. Changing
+- **Provider changes** (`services/layer*/src/`) — These affect live data flows. Changing
   extraction logic can alter the shape of the knowledge graph, breaking downstream agents.
 - **Ontology changes** (`packs/*/ontology.json`) — Entity type and relationship changes are
   effectively schema migrations for the knowledge graph.
@@ -193,9 +187,9 @@ If it fails, keep the canonical implementation in `services/layer5-ground-truth/
    }
    ```
 
-3. Implement the tool function in `services/layer4-agents/src/tools/`.
+3. Implement the tool function in `services/layer4-agents/src/layer4_agents/tools/`.
 
-4. Register the tool in `services/layer4-agents/src/tools/__init__.py`.
+4. Register the tool in `services/layer4-agents/src/layer4_agents/tools/__init__.py`.
 
 5. Add a golden-trace eval in `tests/evals/skills/test_<name>.py`.
 
@@ -207,7 +201,7 @@ If it fails, keep the canonical implementation in `services/layer5-ground-truth/
 
 1. Create the agent definition in `layer4-agents/agents/<name>_agent.md` with frontmatter
    listing its allowed skills.
-2. Implement the agent in `services/layer4-agents/src/agents/<name>.py`.
+2. Implement the agent in `services/layer4-agents/src/layer4_agents/agents/<name>.py`.
 3. Register it in the agent router.
 4. Add integration tests in `services/layer4-agents/tests/`.
 5. Document its purpose and constraints in the definition file.
@@ -253,10 +247,9 @@ For production traces, see `monitoring/` for Grafana dashboards.
 
 ## Runtime request limiting canonical module
 
-- Canonical implementation: `value_fabric/shared/rate_limiting/tenant_rate_limiter.py`.
+- Canonical implementation: `packages/shared/src/value_fabric/shared/rate_limiting/tenant_rate_limiter.py`.
 - Non-canonical adapters (for compatibility only):
-  - `value_fabric/shared/identity/rate_limiter.py`
-  - `value_fabric/layer3/api/rate_limiter.py`
+  - `packages/shared/src/value_fabric/shared/identity/rate_limiter.py`
 - Rule: adapter modules must delegate through a narrow interface and must not duplicate
   sliding-window state math or Redis counter semantics.
 - Contract: HTTP adapters return `X-RateLimit-Limit`, `X-RateLimit-Remaining`,
@@ -284,3 +277,29 @@ For launch decisions, treat the following as authoritative in this order:
 4. Gate validator outputs referenced by the checklist (for example `scripts/ci/validate_final_testing_launch_gate.py`)
 
 `reports/` documents can support context but do not override the launch docs above.
+
+### Canonical release evidence packet
+
+Use `scripts/ci/generate_release_evidence_packet.py` as the canonical repository-owned evidence-pack generator. Its canonical outputs are:
+
+- `artifacts/release/evidence-packet/release-evidence-packet.json`
+- `artifacts/release/evidence-packet/release-evidence-summary.md`
+
+Do not duplicate evidence-generation logic for alternate layouts. If an external consumer requires `./evidence_pack/`, add an explicit wrapper or documented copy step that copies the canonical outputs into `./evidence_pack/` after generation.
+
+---
+
+## QA audit reproducibility requirement (PR merge triage)
+
+When running `scripts/audit/pr_bug_triage.py`, contributors must use explicit upstream history from `origin/main` (not local branch `HEAD` assumptions).
+
+Required behavior:
+
+- Preflight must verify `origin/main` exists locally; fail fast with a clear remediation message if unavailable.
+- The "last 20 PRs" retrieval must be executed against `origin/main`.
+- Audit output must record the exact commit window used, including:
+  - `start_sha` (oldest commit in the sampled window)
+  - `end_sha` (newest commit in the sampled window)
+  - full `retrieval_command`
+
+This is required so audit results are reproducible and independently verifiable across machines and CI environments.

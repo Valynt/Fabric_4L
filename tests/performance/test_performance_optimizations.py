@@ -22,12 +22,6 @@ import pytest
 
 pytestmark = [pytest.mark.performance, pytest.mark.slow, pytest.mark.requires_infra]
 
-# Add canonical Layer 3 path to sys.path for type checker resolution
-_repo_root = Path(__file__).resolve().parent.parent.parent
-_l3_canonical = _repo_root / "services" / "layer3-knowledge" / "src"
-if str(_l3_canonical) not in sys.path:
-    sys.path.insert(0, str(_l3_canonical))
-
 # Timing threshold constants (configurable for different CI environments)
 PARALLEL_EXECUTION_MAX_TIME_MS = 150  # Maximum time for parallel execution (150ms)
 PARALLEL_SEARCH_DELAYS = {"bm25": 0.05, "vector": 0.08, "graph": 0.03}  # Simulated delays in seconds
@@ -36,11 +30,11 @@ SUBGRAPH_P95_MAX_TIME_MS = 100  # 95th percentile subgraph query budget
 LAYOUT_CALCULATION_MAX_TIME_MS = 10  # Layout calculation budget
 
 try:
-    from retrieval.hybrid_search import HybridSearch
-    from retrieval.graph_rag import GraphRAGEngine
+    from src.retrieval.hybrid_search import HybridSearch
+    from src.retrieval.graph_rag import GraphRAGEngine
 except ImportError as _exc:
     pytest.skip(
-        f"[LAYER3_IMPORT_PATH] Layer 3 canonical import failed: {_exc}",
+        f"Layer 3 retrieval import failed: {_exc}",
         allow_module_level=True,
     )
 

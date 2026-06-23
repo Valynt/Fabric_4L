@@ -52,6 +52,7 @@ const E2E_SALES_USER_ID = 'e2e-sales-user';
 const MERIDIAN_BACKEND_ACCOUNT_UUID = '00000000-0000-4000-e2e0-000000000101';
 const DRAFT_BUSINESS_CASE_ID = 'case-draft-001';
 const APPROVED_BUSINESS_CASE_ID = 'case-e2e-approved-001';
+const MERIDIAN_BUSINESS_CASE_ID = 'case-meridian-e2e-001';
 const E2E_TENANT_SLUG = 'tenant-e2e-001';
 const E2E_VALIDATION_API_KEY_ID = 'vf_e2e_backend_integrated_validation';
 const E2E_VALIDATION_API_KEY = process.env.E2E_VALIDATION_API_KEY ?? '';
@@ -421,6 +422,7 @@ async function seedBusinessCaseLifecycle(accountId: string): Promise<boolean> {
     account_id: accountId,
     draft_case_id: DRAFT_BUSINESS_CASE_ID,
     approved_case_id: APPROVED_BUSINESS_CASE_ID,
+    approved_case_aliases: [APPROVED_BUSINESS_CASE_ID, MERIDIAN_BUSINESS_CASE_ID],
   });
 
   const blocked = Array.isArray((result.data as any)?.required_seed_rows_blocked)
@@ -544,23 +546,38 @@ async function upsertAccount(account: typeof MERIDIAN_FIXTURE.account): Promise<
   throw new Error(`Unable to seed account ${account.name}: status ${createResult.status}`);
 }
 
-async function ensureCase(accountId: string, caseData: typeof MERIDIAN_FIXTURE.case) {
-  // Check if case already exists
+async function ensureCase(
+  accountId: string,
+  caseData: typeof MERIDIAN_FIXTURE.case,
+  deterministicCaseId?: string,
+): Promise<string | undefined> {
   const existing = await api('GET', `/v1/cases?account_id=${accountId}`);
   const items = Array.isArray((existing.data as any)?.items)
     ? (existing.data as any).items
     : [];
 
-  if (items.length > 0) {
+  const matched = deterministicCaseId
+    ? items.find((item: any) => (item.case_id || item.id) === deterministicCaseId)
+    : undefined;
+  if (matched) {
+    console.log(`  ✓ Case ${deterministicCaseId} already exists`);
+    return deterministicCaseId;
+  }
+
+  if (items.length > 0 && !deterministicCaseId) {
     console.log(`  ✓ Case already exists for account ${accountId}`);
     return items[0].case_id || items[0].id;
   }
 
-  // Create case
-  const result = await api('POST', '/v1/cases', {
+  const body: Record<string, unknown> = {
     account_id: accountId,
     title: caseData.title,
-  });
+  };
+  if (deterministicCaseId) {
+    body.case_id = deterministicCaseId;
+  }
+
+  const result = await api('POST', '/v1/cases', body);
 
   const caseId = (result.data as any)?.case_id || (result.data as any)?.id;
   if (caseId) {
@@ -644,6 +661,7 @@ async function main() {
   const caseId = await ensureCase(
     backendAccountId,
     MERIDIAN_FIXTURE.case,
+    MERIDIAN_BUSINESS_CASE_ID,
   );
 
   if (!caseId) {
@@ -749,28 +767,32 @@ async function main() {
   const lifecycleSeeded = await seedBusinessCaseLifecycle(backendAccountId);
   const draftVerified = await verifyBusinessCase(DRAFT_BUSINESS_CASE_ID, 'draft', false);
   const approvedVerified = await verifyBusinessCase(APPROVED_BUSINESS_CASE_ID, 'approved', true);
+  const meridianVerified = await verifyBusinessCase(MERIDIAN_BUSINESS_CASE_ID, 'approved', true);
   const workflowResultsVerified =
     (await verifyWorkflowResult(DRAFT_BUSINESS_CASE_ID)) &&
-    (await verifyWorkflowResult(APPROVED_BUSINESS_CASE_ID));
+    (await verifyWorkflowResult(APPROVED_BUSINESS_CASE_ID)) &&
+    (await verifyWorkflowResult(MERIDIAN_BUSINESS_CASE_ID));
   const workflowListVerified = await verifyWorkflowListIncludes(
     DRAFT_BUSINESS_CASE_ID,
     APPROVED_BUSINESS_CASE_ID,
+    MERIDIAN_BUSINESS_CASE_ID,
   );
   const lifecycleVerified =
     lifecycleSeeded &&
     draftVerified &&
     approvedVerified &&
+    meridianVerified &&
     workflowResultsVerified &&
     workflowListVerified;
 
   recordSeed({
     seedArea: 'Business case draft / approved / approval history / export state / audit trail',
     recordsCreated:
-      '2 deterministic business-case records, 2 workflow result states, approval/export/CRM/realization metadata',
+      '3 deterministic business-case records, 3 workflow result states, approval/export/CRM/realization metadata',
     method: 'Seeded through non-production Layer 4 validation API and verified through public case/workflow reads',
     persistenceVerified: lifecycleVerified
-      ? 'draft, approved, workflow result, workflow list, export gate metadata, approval history, and audit emission metadata verified'
-      : `draft=${draftVerified}; approved=${approvedVerified}; workflowResults=${workflowResultsVerified}; workflowList=${workflowListVerified}`,
+      ? 'draft, approved, meridian, workflow result, workflow list, export gate metadata, approval history, and audit emission metadata verified'
+      : `draft=${draftVerified}; approved=${approvedVerified}; meridian=${meridianVerified}; workflowResults=${workflowResultsVerified}; workflowList=${workflowListVerified}`,
     status: lifecycleVerified ? 'present' : 'blocked',
   });
 

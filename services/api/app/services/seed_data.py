@@ -1,8 +1,10 @@
 import json
-import logging
 import os
 from typing import Any
 
+import structlog
+
+from app.core.config import _is_production_like
 from app.core.database import db
 from app.core.security import hash_password
 from app.models.schemas import (
@@ -25,7 +27,15 @@ from app.models.schemas import (
 
 PACKS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "packs")
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
+
+
+def _required_dev_seed_password(env_name: str) -> str:
+    password = os.getenv(env_name, "").strip()
+    if not password:
+        message = f"{env_name} must be set to seed demo users in non-production environments"
+        raise RuntimeError(message)
+    return password
 
 
 def load_json(path: str) -> Any:
@@ -54,8 +64,11 @@ def seed_tenants():
 
 
 def seed_users(tenant_ids: list[str]):
-    # Seed passwords are intentionally weak for demo/dev only.
-    # These accounts must never exist in production (F-02, F-14).
+    if _is_production_like(os.getenv("APP_ENV", "")):
+        _SEED_USERS_PRODUCTION_MESSAGE = "seed_users is disabled in production-like environments"
+        raise RuntimeError(_SEED_USERS_PRODUCTION_MESSAGE)
+    admin_password = _required_dev_seed_password("DEV_SEED_ADMIN_PASSWORD")
+    analyst_password = _required_dev_seed_password("DEV_SEED_ANALYST_PASSWORD")
     users = [
         User(
             id="user-1",
@@ -63,7 +76,7 @@ def seed_users(tenant_ids: list[str]):
             email="admin@alpha.com",
             name="Admin User",
             role="tenant_admin",
-            password_hash=hash_password("SeedAdmin!Dev2024"),
+            password_hash=hash_password(admin_password),
             status="active",
         ),
         User(
@@ -72,7 +85,7 @@ def seed_users(tenant_ids: list[str]):
             email="analyst@beta.com",
             name="Analyst User",
             role="analyst",
-            password_hash=hash_password("SeedAnalyst!Dev2024"),
+            password_hash=hash_password(analyst_password),
             status="active",
         ),
     ]

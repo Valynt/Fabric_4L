@@ -18,12 +18,9 @@ from uuid import uuid4
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
     decode_jwt,
-    _is_public_path,
-    TENANT_ID_HEADER,
-    SERVICE_AUTH_HEADER,
+    _is_external_auth_bootstrap_path,
     extract_context_from_jwt,
 )
-from value_fabric.shared.identity.context import RequestContext, set_current_context
 
 
 class TestGovernanceMiddlewareResolutionOrder:
@@ -60,32 +57,32 @@ class TestGovernanceMiddlewareResolutionOrder:
         assert middleware._api_key_resolver is resolver
 
 
-class TestPublicPathBypass:
-    """Test that public paths bypass authentication correctly."""
+class TestExternalAuthBootstrapPathBypass:
+    """Test that external-auth-bootstrap paths bypass central authentication."""
 
-    def test_health_path_is_public(self):
-        """POSITIVE: /health path should bypass authentication."""
-        assert _is_public_path("/health") is True
+    def test_health_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /health path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/health") is True
 
-    def test_metrics_path_is_public(self):
-        """POSITIVE: /metrics path should bypass authentication."""
-        assert _is_public_path("/metrics") is True
+    def test_metrics_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /metrics path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/metrics") is True
 
-    def test_docs_path_is_public(self):
-        """POSITIVE: /docs path should bypass authentication."""
-        assert _is_public_path("/docs") is True
+    def test_docs_path_is_external_auth_bootstrap(self):
+        """POSITIVE: /docs path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/docs") is True
 
-    def test_openapi_json_is_public(self):
-        """POSITIVE: /openapi.json should bypass authentication."""
-        assert _is_public_path("/openapi.json") is True
+    def test_openapi_json_is_external_auth_bootstrap(self):
+        """POSITIVE: /openapi.json should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/openapi.json") is True
 
     def test_api_path_requires_auth(self):
         """NEGATIVE: /api/v1/* paths should require authentication."""
-        assert _is_public_path("/api/v1/test") is False
+        assert _is_external_auth_bootstrap_path("/api/v1/test") is False
 
-    def test_root_path_is_public(self):
-        """POSITIVE: / root path should bypass authentication."""
-        assert _is_public_path("/") is True
+    def test_root_path_is_external_auth_bootstrap(self):
+        """POSITIVE: / root path should bypass central authentication."""
+        assert _is_external_auth_bootstrap_path("/") is True
 
 
 class TestJWTDecodingSecurity:
@@ -176,13 +173,12 @@ class TestGovernanceMiddlewareFailureModes:
         request = self._build_request({"Authorization": "Bearer invalid-token", "X-Request-ID": "req-123"})
 
         with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
-            import jwt as pyjwt
-            mock_decode.side_effect = pyjwt.InvalidTokenError("bad token")
+            mock_decode.return_value = None
             with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)
 
         assert exc_info.value.status_code == 401
-        assert exc_info.value.detail["error_code"] == "AUTH_INVALID_TOKEN"
+        assert "Invalid token" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_malformed_claims_fail_closed_with_tenant_context_error(self):
@@ -198,7 +194,8 @@ class TestGovernanceMiddlewareFailureModes:
         assert exc_info.value.detail["error_code"] == "AUTH_CONTEXT_INVALID"
 
     @pytest.mark.asyncio
-    async def test_auth_backend_outage_denies_by_default(self):
+    async def test_unexpected_exception_in_decode_jwt_fails_closed_with_stable_code(self):
+        """JWT service failures fail closed with a stable auth error code."""
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer service-down", "X-Correlation-ID": "corr-456"})
 
@@ -209,3 +206,79 @@ class TestGovernanceMiddlewareFailureModes:
 
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail["error_code"] == "AUTH_SERVICE_UNAVAILABLE"
+
+
+class TestGovernanceMiddlewareDispatch:
+    """Integration tests for GovernanceMiddleware.dispatch (P1-012)."""
+
+    def _make_app(self) -> Mock:
+        app = Mock()
+        app.routes = []
+        return app
+
+    @pytest.mark.asyncio
+    async def test_public_path_bypasses_auth(self):
+        """POSITIVE: /health bypasses authentication via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        async def mock_app(scope, receive, send):
+            response = JSONResponse({"status": "ok"})
+            await response(scope, receive, send)
+
+        middleware = GovernanceMiddleware(app=mock_app, api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/health",
+            "headers": [],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"status": "ok"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_missing_credentials_returns_401(self):
+        """NEGATIVE: Missing auth header on protected path → 401 via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/protected",
+            "headers": [],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"data": "secret"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 401
+        body = response.body.decode()
+        assert "authentication_required" in body
+
+    @pytest.mark.asyncio
+    async def test_invalid_jwt_returns_401(self):
+        """NEGATIVE: Invalid JWT token → 401 via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/protected",
+            "headers": [
+                (b"authorization", b"Bearer invalid-token"),
+            ],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"data": "secret"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 401
+        body = response.body.decode()
+        assert "Invalid token" in body or "AUTH_INVALID_TOKEN" in body

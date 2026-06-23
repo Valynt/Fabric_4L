@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRouteActive } from "./navHelpers";
+import { isRouteActive } from "./navigationService";
 
 describe("isRouteActive", () => {
   it("returns true for exact match", () => {

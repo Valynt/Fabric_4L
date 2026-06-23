@@ -6,13 +6,12 @@ after approval → S3 key tenant scoping → provenance manifest structure.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 
-from value_fabric.layer4.services.export_provenance import build_export_provenance_manifest
-from value_fabric.layer4.tools.document_export import DocumentExportTool
+from layer4_agents.services.export_provenance import build_export_provenance_manifest
+from layer4_agents.tools.document_export import DocumentExportTool
 from value_fabric.shared.identity.context import RequestContext
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
@@ -51,7 +50,7 @@ class TestDataExportJourney:
 
     async def test_document_export_tool_generates_output(self):
         """DocumentExportTool must generate a valid export output."""
-        from value_fabric.layer4.models.tool_schemas import ExportDocumentInput
+        from layer4_agents.models.tool_schemas import ExportDocumentInput
 
         tool = DocumentExportTool()
         input_data = ExportDocumentInput(

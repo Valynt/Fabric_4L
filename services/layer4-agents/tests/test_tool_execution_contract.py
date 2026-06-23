@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tool Execution Contract Validation Tests - P0 Critical Gap Remediation
 
 Validates that tool execution follows the canonical contract per docs/contract.md §2.4.
@@ -9,12 +11,11 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-23
 """
 
-from __future__ import annotations
 
 import pytest
 from uuid import uuid4
 
-from value_fabric.layer4.tools.registry import BaseTool, ToolResult
+from layer4_agents.tools.registry import BaseTool, ToolResult
 
 
 pytestmark = [

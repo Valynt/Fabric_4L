@@ -108,8 +108,8 @@ Phase 1 supported targets:
 | `dev-nginx` | dev | NGINX Ingress + cert-manager | Supported |
 | `staging-nginx` | staging | NGINX Ingress + cert-manager | Supported (pre-production validation) |
 | `prod-nginx` | prod | NGINX Ingress + cert-manager | Supported (default production path) |
-| `prod-gateway-api` | prod | Gateway API + cert-manager | Supported (requires Gateway API CRDs + controller) |
-| `prod-istio` | prod | Istio Gateway / VirtualService | EXPERIMENTAL (CI-render only) |
+| `prod-gateway-api` | prod | Gateway API + cert-manager | Experimental (non-production; validation only) |
+| `prod-istio` | prod | Istio Gateway / VirtualService | Experimental (CI-render only) |
 
 ```bash
 # Render manifests (use --load-restrictor=LoadRestrictionsNone for prod
@@ -238,6 +238,14 @@ Monitoring manifests:
 
 - `base/monitoring-alertmanager.yml` - Canonical Alertmanager manifest used by overlays
 - `monitoring-prometheus.yml` - Prometheus server with alerting rules
+- `monitoring/jaeger-deployment.yaml` - Jaeger all-in-one deployment with persistent span storage configured via OpenSearch/Elasticsearch
+
+### Jaeger Storage and Recovery Runbook
+
+- **Storage backend**: Jaeger uses `SPAN_STORAGE_TYPE=elasticsearch` and connects to the cluster endpoint from `ConfigMap/jaeger-storage-config` (`ES_SERVER_URLS`, TLS toggle, and index prefix). Credentials are loaded from `Secret/jaeger-storage-credentials` and should be supplied by External Secrets or Infisical in non-dev clusters.
+- **Retention policy**: Trace retention is governed by the OpenSearch/Elasticsearch Index State Management (or ILM) policy for the `jaeger-span*` index prefix. Default platform target is **7 days hot retention** unless SRE sets an environment-specific override.
+- **Recovery expectations after pod restart**: Jaeger UI/query/collector restarts do **not** erase historical spans; traces remain queryable as long as they are still retained in OpenSearch/Elasticsearch. Only in-memory buffers for in-flight requests are lost during abrupt termination.
+- **Failure mode**: If storage is unavailable or credentials are invalid, Jaeger admin readiness (`:14269`) fails and the pod remains unready until storage connectivity is restored.
 
 ### Alertmanager Configuration
 
@@ -392,3 +400,19 @@ kubectl port-forward -n value-fabric svc/layer5-ground-truth 8005:8005
 ## Migration Note
 
 Flat manifests are intentionally preserved during migration. New CI and production checks should target `k8s/deployments/<env>-<routing>/` first.
+
+## Graph storage encryption policy
+
+Neo4j PVCs (`neo4j-data-pvc`, `neo4j-logs-pvc`) require encrypted storage classes and must include compliance annotations:
+
+- `storageClassName: encrypted-rwo`
+- `security.valuefabric.io/encryption-at-rest: "required"`
+- `security.valuefabric.io/kms-provider: "external"`
+
+Production uses Aura-first deployment (`k8s/envs/prod/neo4j-aura-patch.yml` deletes in-cluster Neo4j). If self-hosted Neo4j is enabled in prod-like environments, the same encryption policy is mandatory.
+
+Validation hook:
+
+```bash
+python3 scripts/ci/check_graph_storage_encryption.py
+```

@@ -22,6 +22,7 @@ spec:
         app: layer3-knowledge
         component: layer3
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -62,7 +63,7 @@ spec:
               cpu: "50m"
       containers:
         - name: api
-          image: ghcr.io/bmsull560/fabric_4l/layer3-knowledge:main
+          image: ghcr.io/bmsull560/fabric_4l/layer3-knowledge@sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -92,7 +93,11 @@ spec:
                   name: neo4j-secret
                   key: neo4j_password
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: PINECONE_API_KEY
               valueFrom:
                 secretKeyRef:

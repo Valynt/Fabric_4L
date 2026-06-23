@@ -22,6 +22,7 @@ spec:
         app: layer4-agents
         component: layer4
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -47,7 +48,7 @@ spec:
               cpu: "50m"
       containers:
         - name: api
-          image: ghcr.io/bmsull560/fabric_4l/layer4-agents:main
+          image: ghcr.io/bmsull560/fabric_4l/layer4-agents@sha256:0300c79009d884d2576a6b7dcb15606316f02fcadb9a6800a7da4fcf1e205f29
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -74,7 +75,11 @@ spec:
             - name: LLM_MODEL
               value: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: NEO4J_URI
               value: "bolt://neo4j-db:7687"
             - name: NEO4J_USER
@@ -85,13 +90,13 @@ spec:
                   name: neo4j-secret
                   key: neo4j_password
             - name: LAYER1_API_URL
-              value: "https://layer1-ingestion.value-fabric.svc.cluster.local:8000"
+              value: "https://layer1-ingestion:8000"
             - name: LAYER2_API_URL
-              value: "https://layer2-extraction.value-fabric.svc.cluster.local:8000"
+              value: "https://layer2-extraction:8000"
             - name: LAYER3_API_URL
-              value: "https://layer3-knowledge.value-fabric.svc.cluster.local:8001"
+              value: "https://layer3-knowledge:8001"
             - name: LAYER5_API_URL
-              value: "https://layer5-ground-truth.value-fabric.svc.cluster.local:8005"
+              value: "https://layer5-ground-truth:8005"
             - name: SERVICE_MESH_MTLS_ENABLED
               value: "true"
             - name: LAYER6_BENCHMARKS_URL

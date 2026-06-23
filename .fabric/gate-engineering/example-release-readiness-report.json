@@ -1,0 +1,52 @@
+{
+  "release_id": "rel_2026_06_19_abcdef12",
+  "artifact_digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+  "commit_sha": "abcdef1234567890abcdef1234567890abcdef12",
+  "environment": "production",
+  "risk_class": "high",
+  "decision": "blocked",
+  "gates": {
+    "passed": 14,
+    "failed": 1,
+    "inconclusive": 1,
+    "not_applicable": 0,
+    "warnings": 1
+  },
+  "blocking_results": [
+    {
+      "gate_id": "rollback_recovery.rollback_path",
+      "result": "FAIL",
+      "criterion": "Rollback path untested",
+      "evidence_uri": "artifacts/release/rollback/rollback-verify.json",
+      "owner": "value-fabric/sre-leads"
+    },
+    {
+      "gate_id": "canary.critical_paths",
+      "result": "INCONCLUSIVE",
+      "criterion": "Canary receives zero traffic",
+      "evidence_uri": "artifacts/release/canary/canary-results.json",
+      "owner": "value-fabric/sre-leads"
+    }
+  ],
+  "warnings": [
+    {
+      "gate_id": "build.vulnerability_policy",
+      "result": "WARNING",
+      "reason": "one MEDIUM finding within exception CVE-2025-3000",
+      "owner": "value-fabric/security-leads"
+    }
+  ],
+  "exceptions": [
+    {
+      "gate_id": "build.vulnerability_policy",
+      "exception_id": "exc-vuln-20260618-001",
+      "expires_at": "2026-07-02T00:00:00Z",
+      "approver": "value-fabric/security-leads",
+      "requester": "value-fabric/release-engineering",
+      "compensating_controls": ["network isolation of affected component", "scheduled patch window"]
+    }
+  ],
+  "generated_at": "2026-06-19T05:00:00Z",
+  "evidence_expiration": "24h",
+  "schema": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json"
+}

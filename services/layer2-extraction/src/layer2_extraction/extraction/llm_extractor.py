@@ -12,6 +12,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from layer2_extraction.extraction.entity_id import compute_deterministic_id, compute_source_hash
 from layer2_extraction.metrics import get_metrics
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
@@ -42,14 +43,30 @@ from layer2_extraction.models.extraction_response import (
 )
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
-from .prompt_loader import render_entity_prompt, render_relationship_prompt
-from .security_guard import enforce_untrusted_output_policy, preprocess_source_content
+from .prompt_loader import RenderedPrompt, render_entity_prompt, render_relationship_prompt
+from .prompt_registry import get_prompt_registry
+from .security_guard import (
+    enforce_untrusted_output_policy,
+    preprocess_source_content,
+    security_metadata_from_preprocessed,
+)
 
 
 class LLMExtractionError(Exception):
     """Raised when LLM extraction fails or returns invalid data."""
 
     pass
+
+
+def _prompt_lineage(prompt: RenderedPrompt, context: dict[str, str]) -> tuple[str, str | None]:
+    """Resolve immutable prompt version and hash from the registry-selected prompt."""
+    version_id = context.get("prompt_version_id") or context.get("prompt_version") or prompt.version_id
+    version = get_prompt_registry().get_version(version_id)
+    if version is None:
+        version_id = prompt.version_id
+        version = get_prompt_registry().get_version(version_id)
+    prompt_hash = f"sha256:{version.template_hash}" if version is not None else None
+    return version_id, prompt_hash
 
 
 def _logprob_confidence_from_response(response: Any) -> float | None:
@@ -318,13 +335,22 @@ class EntityExtractor:
         "additionalProperties": False,
     }
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o", timeout: float = 60.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "gpt-4o",
+        timeout: float = 60.0,
+        job_id: str = "",
+        tenant_id: str = "",
+    ):
         """Initialize extractor with OpenAI client.
 
         Args:
             api_key: OpenAI API key (or set OPENAI_API_KEY env var)
             model: Model to use (gpt-4o, gpt-4o-mini, etc.)
             timeout: Timeout for API calls in seconds (default: 60.0)
+            job_id: Extraction job ID for cost tracking
+            tenant_id: Tenant ID for cost tracking
         """
         self.client = LLMClient(
             provider="openai",
@@ -333,8 +359,14 @@ class EntityExtractor:
             timeout=timeout,
             max_retries=3,
             cost_tracking_enabled=True,
+            job_id=job_id,
+            tenant_id=tenant_id,
         )
         self.model = self.client.model
+        self.security_signals: list[dict[str, object]] = []
+
+    def get_security_signals(self) -> list[dict[str, object]]:
+        return list(self.security_signals)
 
     def get_cost_records(self) -> list[CostRecord]:
         """Return per-call cost records for this extractor."""
@@ -372,6 +404,7 @@ class EntityExtractor:
             List of extracted entities meeting confidence threshold
         """
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_entity_prompt(
             entity_type=entity_type,
             text=preprocessed.delimited_content,
@@ -380,17 +413,21 @@ class EntityExtractor:
 
         context = telemetry_context or {}
         model_version = context.get("model_version", self.model)
-        schema_version = context.get("schema_version", "unknown")
-        value_pack_id = context.get("value_pack_id", "unknown")
-        tenant_id = context.get("tenant_id", "unknown")
-        ingestion_id = context.get("ingestion_id", "unknown")
+        schema_version = context.get("schema_version", "")
+        value_pack_id = context.get("value_pack_id", "default")
+        tenant_id = context.get("tenant_id")
+        ingestion_id = context.get("ingestion_id", "")
+        prompt_version_id, prompt_template_hash = _prompt_lineage(prompt, context)
+        source_hash = compute_source_hash(source_url)
+        if not tenant_id or not tenant_id.strip():
+            raise LLMExtractionError("tenant_id is required in telemetry_context (no fallbacks)")
         metrics = get_metrics()
         start = time.perf_counter()
         try:
             response, _ = await self.client.chat_completion_structured(
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
+                    {"role": "user", "content": prompt.content},
                 ],
                 extraction_job_id=extraction_job_id,
                 endpoint=endpoint,
@@ -399,24 +436,39 @@ class EntityExtractor:
             )
 
             latency = time.perf_counter() - start
-            if metrics:
+            if metrics and hasattr(metrics, "record_model_latency"):
                 metrics.record_model_latency(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint, latency_seconds=latency)
             entities: list[T] = []
             entities_list: list[T] = getattr(response, entity_attr, [])
-            enforce_untrusted_output_policy(entities_list)
+            enforce_untrusted_output_policy(entities_list, tenant_id)
             for entity in entities_list:
                 if entity.confidence >= confidence_threshold:
                     entity.extraction_job_id = extraction_job_id
                     if hasattr(entity, "source_refs"):
                         entity.source_refs = [source_url]
+                    entity.tenant_id = tenant_id
+                    entity.schema_version = schema_version or ""
+                    entity.prompt_version_id = prompt_version_id
+                    if hasattr(entity, "prompt_template_hash"):
+                        entity.prompt_template_hash = prompt_template_hash or ""
+                    entity.model_version = model_version or ""
+                    deterministic_id = compute_deterministic_id(
+                        tenant_id=tenant_id,
+                        source_hash=source_hash,
+                        entity_type=entity_type,
+                        entity=entity,
+                        extraction_version=telemetry_context.get("extraction_version", "v1") if telemetry_context else "v1",
+                    )
+                    entity.id = deterministic_id
+                    entity.deterministic_id = deterministic_id
                     entities.append(entity)
-                    if metrics:
+                    if metrics and hasattr(metrics, "record_confidence"):
                         metrics.record_confidence(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, entity_type=entity_type, confidence=float(entity.confidence))
 
             return entities
 
         except ValidationError as e:
-            if metrics:
+            if metrics and hasattr(metrics, "record_schema_validation_failure"):
                 metrics.record_schema_validation_failure(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint)
             logger.warning("Schema validation failure during extraction", extra={"tenant_id": tenant_id, "ingestion_id": ingestion_id, "extraction_job_id": extraction_job_id, "model_version": model_version, "schema_version": schema_version, "value_pack_id": value_pack_id, "endpoint": endpoint})
             raise LLMExtractionError(
@@ -529,7 +581,23 @@ class EntityExtractor:
 class RelationshipExtractor:
     """Extract relationships between entities using LLM."""
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o", timeout: float = 60.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "gpt-4o",
+        timeout: float = 60.0,
+        job_id: str = "",
+        tenant_id: str = "",
+    ):
+        """Initialize relationship extractor with OpenAI client.
+
+        Args:
+            api_key: OpenAI API key (or set OPENAI_API_KEY env var)
+            model: Model to use (gpt-4o, gpt-4o-mini, etc.)
+            timeout: Timeout for API calls in seconds (default: 60.0)
+            job_id: Extraction job ID for cost tracking
+            tenant_id: Tenant ID for cost tracking
+        """
         self.client = LLMClient(
             provider="openai",
             api_key=api_key,
@@ -537,8 +605,14 @@ class RelationshipExtractor:
             timeout=timeout,
             max_retries=3,
             cost_tracking_enabled=True,
+            job_id=job_id,
+            tenant_id=tenant_id,
         )
         self.model = self.client.model
+        self.security_signals: list[dict[str, object]] = []
+
+    def get_security_signals(self) -> list[dict[str, object]]:
+        return list(self.security_signals)
 
     def get_cost_records(self) -> list[CostRecord]:
         """Return per-call cost records for this extractor."""
@@ -577,14 +651,19 @@ class RelationshipExtractor:
             return []
 
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
         context = telemetry_context or {}
         model_version = context.get("model_version", self.model)
-        schema_version = context.get("schema_version", "unknown")
-        value_pack_id = context.get("value_pack_id", "unknown")
-        tenant_id = context.get("tenant_id", "unknown")
-        ingestion_id = context.get("ingestion_id", "unknown")
+        schema_version = context.get("schema_version", "")
+        value_pack_id = context.get("value_pack_id", "default")
+        tenant_id = context.get("tenant_id")
+        ingestion_id = context.get("ingestion_id", "")
+        prompt_version_id, prompt_template_hash = _prompt_lineage(prompt, context)
+        source_hash = compute_source_hash(source_url)
+        if not tenant_id or not tenant_id.strip():
+            raise LLMExtractionError("tenant_id is required in telemetry_context (no fallbacks)")
         metrics = get_metrics()
         endpoint = "extract_relationships"
         try:
@@ -594,7 +673,7 @@ class RelationshipExtractor:
                         "role": "system",
                         "content": "You are an enterprise ontology extractor. Be conservative - only extract relationships with explicit evidence.",
                     },
-                    {"role": "user", "content": prompt},
+                    {"role": "user", "content": prompt.content},
                 ],
                 extraction_job_id=extraction_job_id,
                 endpoint="extract_relationships",
@@ -602,19 +681,33 @@ class RelationshipExtractor:
                 temperature=0.0,
             )
 
-            enforce_untrusted_output_policy(response.relationships)
+            enforce_untrusted_output_policy(response.relationships, tenant_id)
             relationships = []
             for rel in response.relationships:
                 if rel.confidence >= confidence_threshold:
                     # Add provenance metadata
                     rel.source_url = source_url
                     rel.extraction_job_id = extraction_job_id
+                    rel.tenant_id = tenant_id
+                    rel.schema_version = schema_version or ""
+                    rel.prompt_version_id = prompt_version_id
+                    if hasattr(rel, "prompt_template_hash"):
+                        rel.prompt_template_hash = prompt_template_hash or ""
+                    rel.model_version = model_version or ""
+                    rel.deterministic_id = compute_deterministic_id(
+                        tenant_id=tenant_id,
+                        source_hash=source_hash,
+                        source_url=source_url,
+                        entity_type="relationship",
+                        entity=rel,
+                        extraction_version=telemetry_context.get("extraction_version", "v1") if telemetry_context else "v1",
+                    )
                     relationships.append(rel)
 
             return relationships
 
         except ValidationError as e:
-            if metrics:
+            if metrics and hasattr(metrics, "record_schema_validation_failure"):
                 metrics.record_schema_validation_failure(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint)
             logger.warning("Schema validation failure during extraction", extra={"tenant_id": tenant_id, "ingestion_id": ingestion_id, "extraction_job_id": extraction_job_id, "model_version": model_version, "schema_version": schema_version, "value_pack_id": value_pack_id, "endpoint": endpoint})
             raise LLMExtractionError(f"Failed to extract relationships - schema validation error: {e}")

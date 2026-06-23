@@ -5,9 +5,11 @@
     "tests"
   ],
   "extraPaths": [
+    "services/api",
     "packages/shared/src",
     "services/layer1-ingestion/src",
-    "services/layer2-extraction/src"
+    "services/layer2-extraction/src",
+    "services/layer4-agents/src"
   ],
   "strict": [
     "tests/layer3/test_typed_payloads.py"

@@ -105,7 +105,7 @@ Based on ROADMAP audit + code inspection, the following gaps are genuinely incom
 
 ```bash
 # Frontend unit tests
-cd apps/web && pnpm test
+cd apps/web && pnpm run test
 
 # Backend mandatory profile (contract + security + unit)
 python -m pytest tests/ -m mandatory -v

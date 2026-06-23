@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -13,11 +17,10 @@ Competitor updates use an allowlisted field set (V-006).
 Win/loss outcomes are validated against an enum (V-011).
 """
 
-from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (
@@ -188,7 +191,7 @@ async def get_competitor(
 
     result = await svc.get_competitor(tenant_id, competitor_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Competitor not found")
+        raise NotFoundError(message = "Competitor not found")
     return result
 
 
@@ -210,20 +213,20 @@ async def update_competitor(
 
     raw_updates = body.model_dump(exclude_none=True)
     if not raw_updates:
-        raise HTTPException(status_code=400, detail="No updates provided")
+        raise ValidationError(message = "No updates provided")
 
     # V-006: Validate field names against allowlist before passing to service
     try:
         safe_updates, _, _ = _COMPETITOR_UPDATER.build("c", raw_updates)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Invalid competitor update fields") from exc
+        raise ValidationError(message="Invalid competitor update fields") from exc
 
     if not safe_updates:
-        raise HTTPException(status_code=422, detail="No valid fields in update")
+        raise ValidationError(message="No valid fields in update")
 
     result = await svc.update_competitor(tenant_id, competitor_id, safe_updates)
     if not result:
-        raise HTTPException(status_code=404, detail="Competitor not found")
+        raise NotFoundError(message = "Competitor not found")
     return update_competitorResult.model_validate({"status": "updated", **result})
 
 
@@ -241,7 +244,7 @@ async def delete_competitor(
 
     deleted = await svc.delete_competitor(tenant_id, competitor_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Competitor not found")
+        raise NotFoundError(message = "Competitor not found")
     return delete_competitorResult.model_validate({"status": "deleted", "competitor_id": competitor_id})
 
 

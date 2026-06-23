@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python:3.11.11-slim-bookworm
+FROM python:3.11.13-slim-bookworm AS builder
 
 LABEL maintainer="Value Fabric Engineering"
 LABEL description="Layer 5 — Ground Truth Service"
@@ -23,10 +23,26 @@ COPY services/layer5-ground-truth/alembic.ini ./
 COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
+FROM python:3.11.13-slim-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app
+COPY services/layer5-ground-truth/src/ ./src/
+COPY services/layer5-ground-truth/alembic.ini ./
+COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
+
+RUN chown -R appuser:appgroup /app
 USER appuser
 
 EXPOSE 8005

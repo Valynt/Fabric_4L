@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -11,11 +15,10 @@ All endpoints require authentication via GovernanceMiddleware.
 Tenant identity is extracted from the verified JWT/API-key context (V-001, V-002).
 """
 
-from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
@@ -358,7 +361,7 @@ async def get_calculation(
 
     result = await svc.get_calculation(calc_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Calculation not found")
+        raise NotFoundError(message = "Calculation not found")
     return result
 
 

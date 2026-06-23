@@ -20,6 +20,13 @@ pytestmark = [
     pytest.mark.unit,
 ]
 
+LAYER4_HARNESS_ROUTE = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/api/routes/harness.py"
+)
+LAYER4_CHECKPOINTS_ROUTE = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/api/routes/checkpoints.py"
+)
+
 
 # ---------------------------------------------------------------------------
 # S5-R4.1 — Harness runs: Tenant A cannot read Tenant B's run
@@ -43,9 +50,7 @@ class TestHarnessRunIsolation:
 
     def test_run_route_does_not_accept_body_tenant_id(self) -> None:
         """get_run route must not accept tenant_id as a parameter (AST check)."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
-        ).read_text()
+        source = LAYER4_HARNESS_ROUTE.read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -82,9 +87,7 @@ class TestGateIsolation:
 
     def test_gate_decision_uses_content_admin_dep(self) -> None:
         """decide_gate endpoint uses ContentAdminCtxDep — verified via source AST."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
-        ).read_text()
+        source = LAYER4_HARNESS_ROUTE.read_text()
         # ContentAdminCtxDep must be defined and used in decide_gate
         assert "ContentAdminCtxDep" in source, (
             "harness.py must define ContentAdminCtxDep for gate decision RBAC"
@@ -104,9 +107,7 @@ class TestGateIsolation:
 
     def test_decision_by_is_server_derived(self) -> None:
         """decision_by in decide_gate is set from ctx.user_id, not from request body."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
-        ).read_text()
+        source = LAYER4_HARNESS_ROUTE.read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -146,9 +147,7 @@ class TestCheckpointIsolation:
 
     def test_checkpoint_route_uses_authenticated_tenant(self) -> None:
         """Checkpoint routes pass ctx.tenant_id to registry, not a body value."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/checkpoints.py"
-        ).read_text()
+        source = LAYER4_CHECKPOINTS_ROUTE.read_text()
         assert "ctx.tenant_id" in source or "_ctx.tenant_id" in source, (
             "Checkpoint routes must use ctx.tenant_id from authenticated context"
         )
@@ -164,9 +163,7 @@ class TestValidationIsolation:
 
     def test_validate_claims_checks_tenant_before_proceeding(self) -> None:
         """validate_claims calls registry.get_run(run_id, ctx.tenant_id) first."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
-        ).read_text()
+        source = LAYER4_HARNESS_ROUTE.read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -278,12 +275,17 @@ class TestFrontendTenantHeaderSpoof:
 
         pytest.fail("TenantRequired.__call__ not found in tenant_context.py")
 
-    def test_tenant_required_sets_context_from_jwt(self) -> None:
-        """TenantRequired sets TenantContext from JWT tenant_id, not header."""
+    def test_tenant_required_sets_shared_context_from_jwt(self) -> None:
+        """TenantRequired sets the shared RequestContext from JWT tenant_id, not header."""
         source = pathlib.Path(
             "services/api/app/core/tenant_context.py"
         ).read_text()
-        # Must set context from jwt_tenant, not header_tenant
-        assert "TenantContext.set(jwt_tenant)" in source, (
-            "TenantRequired must set TenantContext from jwt_tenant (JWT-derived), not header"
+        assert "RequestContext(" in source, (
+            "TenantRequired must populate the shared RequestContext"
+        )
+        assert "tenant_id=jwt_tenant" in source, (
+            "TenantRequired must set tenant_id from jwt_tenant (JWT-derived), not header"
+        )
+        assert "set_request_context(" in source, (
+            "TenantRequired must use the shared identity context store"
         )

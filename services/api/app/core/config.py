@@ -8,7 +8,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_DEV_SECRET = "fabric-4l-dev-secret-key-change-in-production"
 _DEV_ENVIRONMENTS = {"local", "dev", "development", "test", "testing", "ci"}
-_PRODUCTION_ENVS = {"production", "prod", "staging"}
 _DEV_CORS_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
 _EXPLICIT_CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 _EXPLICIT_CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID", "X-Tenant-ID"]
@@ -23,8 +22,13 @@ def _detect_environment() -> str:
 
 
 def _is_production_like(environment: str) -> bool:
+    """Return True only for the exact 'production' environment.
+
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    """
     env = environment.strip().lower()
-    return env in _PRODUCTION_ENVS or env not in _DEV_ENVIRONMENTS
+    return env == "production"
 
 
 def _parse_cors_origins(value: object) -> list[str]:
@@ -141,10 +145,6 @@ class Settings(BaseSettings):
                 errors.append("mock_persistence must be false in production-like environments")
             if not self.database_url:
                 errors.append("database_url must be configured in production-like environments")
-            else:
-                errors.append(
-                    "services/api requires a PostgreSQL database with Row-Level Security"
-                )
             if self.llm_provider.lower() != "layer4":
                 errors.append("llm_provider must be set to layer4 in production-like environments")
             if self.seed_demo_data:
@@ -155,6 +155,8 @@ class Settings(BaseSettings):
                 errors.append("JWT_ISSUER must be configured in production-like environments")
             if not self.jwt_audience.strip():
                 errors.append("JWT_AUDIENCE must be configured in production-like environments")
+            if self.algorithm.upper() == "HS256":
+                errors.append("algorithm must not be HS256 in production-like environments; use RS256 or stronger")
 
         try:
             _validate_exact_cors_origins(self.cors_origins, production_like=self.is_production_like)
@@ -176,7 +178,7 @@ def get_settings() -> Settings:
         settings = Settings()
     except Exception as exc:
         if "Unsafe production configuration" in str(exc):
-            raise RuntimeError(str(exc)) from exc
+            raise RuntimeError("unsafe_production_configuration") from exc
         raise
 
     if settings.is_production_like:

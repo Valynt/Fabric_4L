@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "create_task",
+  "traces": [
+    {
+      "id": "ct-001",
+      "description": "Create follow-up task for value hypothesis validation",
+      "input": {
+        "title": "Validate procurement cycle-time savings",
+        "description": "Confirm baseline procurement cycle time and approval bottlenecks with the account team.",
+        "priority": "high",
+        "assignee_id": "user-value-analyst"
+      },
+      "assertions": {
+        "status": "created"
+      }
+    }
+  ]
+}

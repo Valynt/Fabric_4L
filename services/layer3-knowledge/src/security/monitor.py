@@ -747,7 +747,7 @@ class SecurityStore:
 
             events = []
             for event_id in event_ids:
-                event_key = f"security:event:{event_id}"
+                event_key = f"security:event:{event_id.decode() if isinstance(event_id, bytes) else event_id}"
                 event_data = await self.redis_client.get(event_key)
                 if event_data:
                     event_dict = json.loads(event_data)
@@ -780,7 +780,7 @@ class SecurityStore:
 
             alerts = []
             for alert_id in alert_ids:
-                alert_key = f"security:alert:{alert_id}"
+                alert_key = f"security:alert:{alert_id.decode() if isinstance(alert_id, bytes) else alert_id}"
                 alert_data = await self.redis_client.get(alert_key)
                 if alert_data:
                     alerts.append(SecurityAlert.parse_raw(alert_data))

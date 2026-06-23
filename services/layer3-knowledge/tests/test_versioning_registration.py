@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from value_fabric.layer3.api import main as main_module
-from value_fabric.layer3.api import versioning as versioning_module
-from value_fabric.layer3.api.versioning import VersionCompatibility
+from src.api import main as main_module
+from src.api import versioning as versioning_module
+from src.api.versioning import VersionCompatibility
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -59,19 +59,34 @@ def test_register_migration_handler_rejects_incompatible_signature() -> None:
         compatibility.register_migration_handler("v1", "v2", incompatible_handler)
 
 
+@pytest.fixture
+def _patch_lifespan_deps(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prevent lifespan from loading heavy optional dependencies during unit tests."""
+    monkeypatch.setattr(
+        "src.retrieval.vector_store.Neo4jVectorStore._get_embedding_model",
+        lambda self: None,
+    )
+
+
 @pytest.mark.asyncio
-async def test_startup_fails_with_descriptive_error_for_bad_migration_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_startup_fails_with_descriptive_error_for_bad_migration_handler(
+    monkeypatch: pytest.MonkeyPatch,
+    _patch_lifespan_deps: None,
+) -> None:
     monkeypatch.setattr(main_module, "init_app_state", AsyncMock(return_value=None))
     monkeypatch.setattr(main_module, "close_app_state", AsyncMock(return_value=None))
     monkeypatch.setattr(versioning_module, "migrate_v1_to_v2_search_request", "not-callable")
 
-    with pytest.raises(RuntimeError, match="actual_type=str"):
+    with pytest.raises(TypeError, match="got str"):
         async with main_module.lifespan(main_module.app):
             pass
 
 
 @pytest.mark.asyncio
-async def test_startup_registers_versioning_handlers_successfully(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_startup_registers_versioning_handlers_successfully(
+    monkeypatch: pytest.MonkeyPatch,
+    _patch_lifespan_deps: None,
+) -> None:
     monkeypatch.setattr(main_module, "init_app_state", AsyncMock(return_value=None))
     monkeypatch.setattr(main_module, "close_app_state", AsyncMock(return_value=None))
 
@@ -97,7 +112,8 @@ async def test_migrate_request_data_async_supports_async_handler() -> None:
     assert result["migrated"] is True
 
 
-def test_migrate_request_data_supports_async_handler_from_sync_context() -> None:
+@pytest.mark.asyncio
+async def test_migrate_request_data_supports_async_handler_from_sync_context() -> None:
     compatibility = VersionCompatibility(current_version="v1")
 
     async def async_handler(data: dict) -> dict:
@@ -105,7 +121,7 @@ def test_migrate_request_data_supports_async_handler_from_sync_context() -> None
 
     compatibility.register_migration_handler("v1", "v2", async_handler)
 
-    result = compatibility.migrate_request_data({"k": "v"}, "v1", "v2")
+    result = await compatibility.migrate_request_data({"k": "v"}, "v1", "v2")
 
     assert result["k"] == "v"
     assert result["migrated_sync"] is True

@@ -36,27 +36,26 @@ export const settingsRoutes = {
 
   teamAccess: {
     label: "Team & Access",
-    basePath: "/settings/team",
+    basePath: "/settings/users",
     scope: "workspace" as const,
     routes: {
-      members: "/settings/team",
-      invitations: "/settings/team/invitations",
-      roles: "/settings/team/roles",
-      permissions: "/settings/team/permissions",
-      apiKeys: "/settings/team/api-keys",
+      members: "/settings/users",
+      roles: "/settings/roles",
+      permissions: "/settings/permissions",
+      apiKeys: "/settings/api-keys",
     },
   },
 
   dataIntegrations: {
     label: "Data & Integrations",
-    basePath: "/settings/data",
+    basePath: "/settings/data-sources",
     scope: "workspace" as const,
     routes: {
-      dataSources: "/settings/data/sources",
-      integrations: "/settings/data/integrations",
-      variables: "/settings/data/variables",
-      valuePacks: "/settings/data/value-packs",
-      ingestionRules: "/settings/data/ingestion-rules",
+      dataSources: "/settings/data-sources",
+      integrations: "/settings/integrations",
+      variables: "/settings/variables",
+      valuePacks: "/settings/value-packs",
+      ingestionRules: "/settings/ingestion-rules",
     },
   },
 
@@ -68,8 +67,8 @@ export const settingsRoutes = {
       policies: "/settings/governance/policies",
       compliance: "/settings/governance/compliance",
       health: "/settings/governance/health",
-      auditTrail: "/settings/governance/audit-trail",
-      adminControls: "/settings/governance/admin-controls",
+      auditTrail: "/settings/governance/audit",
+      adminControls: "/settings/governance/admin",
     },
   },
 } as const;
@@ -136,6 +135,14 @@ export const settingsAccessRules = {
       "Audit trail is read-only for most admins.",
       "Policy edits require elevated permissions.",
     ],
+  },
+
+  superAdmin: {
+    scope: "admin" as const,
+    capability: "super_admin" as const,
+    allowedRoles: ["super_admin"],
+    rule: "Platform-level super-admin operations are restricted to the super admin role.",
+    restrictions: [],
   },
 } as const;
 
@@ -239,7 +246,7 @@ export const settingsScreens: SettingsScreen[] = [
     id: "team-access",
     title: "Team & Access Configuration",
     category: "Team & Access",
-    route: "/settings/team",
+    route: "/settings/users",
     scope: "workspace",
     subnav: ["Members", "Invitations", "Roles", "Permissions", "API Keys"],
     primaryActions: ["Invite user", "Assign role", "Assign policy", "Create API key"],
@@ -267,7 +274,7 @@ export const settingsScreens: SettingsScreen[] = [
     id: "data-integrations",
     title: "Data & Integration Setup",
     category: "Data & Integrations",
-    route: "/settings/data/sources",
+    route: "/settings/data-sources",
     scope: "workspace",
     subnav: [
       "Data Sources",
@@ -355,27 +362,26 @@ export const settingsNavigation: SettingsNavItem[] = [
   {
     label: "Team & Access",
     icon: "Users",
-    path: "/settings/team",
+    path: "/settings/users",
     scope: "workspace",
     children: [
-      { label: "Members", path: "/settings/team" },
-      { label: "Invitations", path: "/settings/team/invitations" },
-      { label: "Roles", path: "/settings/team/roles" },
-      { label: "Permissions", path: "/settings/team/permissions" },
-      { label: "API Keys", path: "/settings/team/api-keys" },
+      { label: "Members", path: "/settings/users" },
+      { label: "Roles", path: "/settings/roles" },
+      { label: "Permissions", path: "/settings/permissions" },
+      { label: "API Keys", path: "/settings/api-keys" },
     ],
   },
   {
     label: "Data & Integrations",
     icon: "Database",
-    path: "/settings/data/sources",
+    path: "/settings/data-sources",
     scope: "workspace",
     children: [
-      { label: "Data Sources", path: "/settings/data/sources" },
-      { label: "Integrations", path: "/settings/data/integrations" },
-      { label: "Variables", path: "/settings/data/variables" },
-      { label: "Value Packs", path: "/settings/data/value-packs" },
-      { label: "Ingestion Rules", path: "/settings/data/ingestion-rules" },
+      { label: "Data Sources", path: "/settings/data-sources" },
+      { label: "Integrations", path: "/settings/integrations" },
+      { label: "Variables", path: "/settings/variables" },
+      { label: "Value Packs", path: "/settings/value-packs" },
+      { label: "Ingestion Rules", path: "/settings/ingestion-rules" },
     ],
   },
   {
@@ -387,8 +393,8 @@ export const settingsNavigation: SettingsNavItem[] = [
       { label: "Policies", path: "/settings/governance/policies" },
       { label: "Compliance", path: "/settings/governance/compliance" },
       { label: "Health", path: "/settings/governance/health" },
-      { label: "Audit Trail", path: "/settings/governance/audit-trail" },
-      { label: "Admin Controls", path: "/settings/governance/admin-controls" },
+      { label: "Audit Trail", path: "/settings/governance/audit" },
+      { label: "Admin Controls", path: "/settings/governance/admin" },
     ],
   },
 ];
@@ -406,13 +412,13 @@ export const settingsCategories = [
   {
     key: "teamAccess",
     label: "Team & Access",
-    basePath: "/settings/team",
+    basePath: "/settings/users",
     scope: "workspace",
   },
   {
     key: "dataIntegrations",
     label: "Data & Integrations",
-    basePath: "/settings/data",
+    basePath: "/settings/data-sources",
     scope: "workspace",
   },
   {
@@ -424,3 +430,74 @@ export const settingsCategories = [
 ] as const;
 
 export type SettingsCategoryKey = (typeof settingsCategories)[number]["key"];
+
+export type SettingsCapabilityKey =
+  (typeof settingsAccessRules)[keyof typeof settingsAccessRules]["capability"];
+
+export type SettingsCapability = SettingsCapabilityKey;
+
+export const orderedCapabilities: SettingsCapability[] = [
+  "personal",
+  "billing",
+  "team",
+  "integrations",
+  "governance",
+  "super_admin",
+];
+
+export const settingsCapabilityRoutePrefixes: Array<{
+  capability: SettingsCapabilityKey;
+  prefixes: readonly string[];
+}> = [
+  { capability: "personal", prefixes: ["/personal"] },
+  {
+    capability: "billing",
+    prefixes: ["/settings/workspace", "/settings/billing"],
+  },
+  {
+    capability: "team",
+    prefixes: [
+      "/settings/users",
+      "/settings/roles",
+      "/settings/permissions",
+      "/settings/api-keys",
+    ],
+  },
+  {
+    capability: "integrations",
+    prefixes: [
+      "/settings/data-sources",
+      "/settings/integrations",
+      "/settings/variables",
+      "/settings/value-packs",
+      "/settings/ingestion-rules",
+    ],
+  },
+  { capability: "governance", prefixes: ["/settings/governance"] },
+] as const;
+
+export function getSettingsCapabilityForPath(
+  path: string
+): SettingsCapabilityKey | undefined {
+  return settingsCapabilityRoutePrefixes.find((group) =>
+    group.prefixes.some((prefix) => path.startsWith(prefix))
+  )?.capability;
+}
+
+export function getCapabilitiesForRole(role: string | null | undefined): Set<SettingsCapability> {
+  const normalized = (role ?? "").trim().toLowerCase();
+  const capabilities = new Set<SettingsCapability>();
+  for (const rule of Object.values(settingsAccessRules)) {
+    if ((rule.allowedRoles as readonly string[]).includes(normalized)) {
+      capabilities.add(rule.capability);
+    }
+  }
+  return capabilities.size > 0 ? capabilities : new Set<SettingsCapability>(["personal"]);
+}
+
+export const governanceAdminControlMetrics = [
+  { key: "tenantStatus", label: "Tenant status" },
+  { key: "mfaRequirement", label: "MFA requirement" },
+  { key: "sessionTimeout", label: "Session timeout" },
+  { key: "auditTrail", label: "Audit trail feature" },
+] as const;

@@ -7,8 +7,7 @@
  * initiative cards with milestone progress. Tracking state is local-only until a
  * dedicated realization backend is built in a future phase.
  */
-import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useMemo } from "react";
 import {
   TrendingUp,
   CheckCircle2,
@@ -20,9 +19,6 @@ import {
   Zap,
   ShieldCheck,
 } from "lucide-react";
-import RealizationShell from "@/components/workspace/RealizationShell";
-import RightRail, { type RightRailMode } from "@/components/workspace/RightRail";
-import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
@@ -34,6 +30,7 @@ import { useNavigation } from "@/hooks";
 import { createNextAction } from "@/components/workspace/nextAction";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -130,33 +127,30 @@ function mapHypothesesToInitiatives(
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
-  critical: "bg-red-50 text-red-700 border-red-200",
-  high: "bg-orange-50 text-orange-700 border-orange-200",
-  medium: "bg-blue-50 text-blue-700 border-blue-200",
+  critical: "bg-destructive/10 text-destructive border-destructive/20",
+  high: "bg-warning/10 text-warning border-warning/20",
+  medium: "bg-primary/10 text-primary border-primary/20",
 };
 
 const STATUS_STYLES: Record<string, { icon: React.ReactNode; class: string; text: string }> = {
-  on_track: { icon: <TrendingUp size={12} />, class: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "On Track" },
-  at_risk: { icon: <AlertTriangle size={12} />, class: "bg-amber-50 text-amber-700 border-amber-200", text: "At Risk" },
-  completed: { icon: <CheckCircle2 size={12} />, class: "bg-blue-50 text-blue-700 border-blue-200", text: "Completed" },
+  on_track: { icon: <TrendingUp size={12} />, class: "bg-success/10 text-success border-success/20", text: "On Track" },
+  at_risk: { icon: <AlertTriangle size={12} />, class: "bg-warning/10 text-warning border-warning/20", text: "At Risk" },
+  completed: { icon: <CheckCircle2 size={12} />, class: "bg-primary/10 text-primary border-primary/20", text: "Completed" },
   not_started: { icon: <Circle size={12} />, class: "bg-muted text-muted-foreground border-border", text: "Not Started" },
 };
 
 const MILESTONE_ICON: Record<MilestoneStatus, React.ReactNode> = {
-  completed: <CheckCircle2 size={14} className="text-emerald-600" />,
-  in_progress: <Zap size={14} className="text-amber-600" />,
-  pending: <Circle size={14} className="text-gray-400" />,
-  at_risk: <AlertTriangle size={14} className="text-red-500" />,
+  completed: <CheckCircle2 size={14} className="text-success" />,
+  in_progress: <Zap size={14} className="text-warning" />,
+  pending: <Circle size={14} className="text-muted-foreground" />,
+  at_risk: <AlertTriangle size={14} className="text-destructive" />,
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function RealizationPage() {
-  const params = useParams<{ accountId: string }>();
-  const accountId = params.accountId ?? null;
-  const { data: account, isLoading: accountLoading } = useAccount(accountId);
+export default function RealizationPage({ accountId }: StudioTabProps) {
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
   const { navigateTo } = useNavigation();
-  const [railMode, setRailMode] = useState<RightRailMode>("agent");
 
   const { data: hypothesesData, isLoading: hypothesesLoading } = useAccountHypotheses(
     accountId ?? null,
@@ -188,12 +182,6 @@ export default function RealizationPage() {
       )
     : 0;
 
-  const { messages, sendMessage, suggestedActions, steps, isStreaming, metadata } = useAgentEvents({
-    activeTab: "realization",
-    accountName: account?.name ?? "Account",
-    accountId: accountId ?? undefined,
-  });
-
   if (!accountId) {
     return <AccountRequiredGuard accountId={accountId} />;
   }
@@ -207,27 +195,7 @@ export default function RealizationPage() {
   }
 
   return (
-    <RealizationShell
-      account={{
-        accountName: account?.name ?? "Account",
-        industry: account?.industry ?? "Unknown",
-        revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A",
-      }}
-      rightRail={
-        <RightRail
-          mode={railMode}
-          onModeChange={setRailMode}
-          activeTab="realization"
-          messages={messages}
-          onSendMessage={sendMessage}
-          suggestedActions={suggestedActions}
-          steps={steps}
-          isStreaming={isStreaming}
-          runMetadata={metadata}
-        />
-      }
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -272,37 +240,37 @@ export default function RealizationPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Projected Value</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Approved initiatives become the value target that realization work is measured against.
                   </p>
                 </div>
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Baseline</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Customer-approved starting metrics are captured before rollout begins.
                   </p>
                 </div>
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Actual Value</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Actuals record realized value during execution and compare it with the target.
                   </p>
                 </div>
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Outcomes</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Outcome tracking keeps owners, metrics, milestones, and risks visible.
                   </p>
                 </div>
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Renewal Narrative</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Realized value becomes customer-facing proof for renewal and expansion reviews.
                   </p>
                 </div>
                 <div className="rounded-md border bg-background p-3">
                   <p className="text-xs font-semibold text-foreground">Next Step</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 vf-text-caption text-muted-foreground">
                     Generate initiatives from validated signals to create the first action plan.
                   </p>
                 </div>
@@ -322,10 +290,10 @@ export default function RealizationPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-[13px] font-bold text-foreground truncate">{init.title}</h3>
+                        <h3 className="vf-text-body-m font-bold text-foreground truncate">{init.title}</h3>
                         <span
                           className={cn(
-                            "text-[9px] px-1.5 py-0.5 rounded border font-semibold",
+                            "vf-text-micro px-1.5 py-0.5 rounded border font-semibold",
                             PRIORITY_STYLES[init.priority]
                           )}
                         >
@@ -333,7 +301,7 @@ export default function RealizationPage() {
                         </span>
                         <span
                           className={cn(
-                            "text-[9px] px-1.5 py-0.5 rounded border font-semibold inline-flex items-center gap-1",
+                            "vf-text-micro px-1.5 py-0.5 rounded border font-semibold inline-flex items-center gap-1",
                             statusMeta.class
                           )}
                         >
@@ -341,7 +309,7 @@ export default function RealizationPage() {
                           {statusMeta.text}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="vf-text-caption text-muted-foreground mt-1">
                         {init.horizon} · {init.projectedValue >= 1000 ? `$${(init.projectedValue / 1000).toFixed(1)}K` : `$${init.projectedValue.toLocaleString()}`} projected · {init.confidence} confidence
                       </p>
                     </div>
@@ -349,7 +317,7 @@ export default function RealizationPage() {
 
                   {/* Progress bar */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                    <div className="flex items-center justify-between vf-text-micro text-muted-foreground mb-1">
                       <span>Progress</span>
                       <span>{progressPct}%</span>
                     </div>
@@ -358,10 +326,10 @@ export default function RealizationPage() {
                         className={cn(
                           "h-full rounded-full transition-all",
                           init.status === "at_risk"
-                            ? "bg-amber-500"
+                            ? "bg-warning/100"
                             : init.status === "completed"
-                            ? "bg-blue-500"
-                            : "bg-emerald-500"
+                            ? "bg-primary/100"
+                            : "bg-success/100"
                         )}
                         style={{ width: `${progressPct}%` }}
                       />
@@ -376,23 +344,23 @@ export default function RealizationPage() {
                         className={cn(
                           "rounded-md border p-2.5 text-center",
                           m.status === "completed"
-                            ? "border-emerald-200 bg-emerald-50/30"
+                            ? "border-success/20 bg-success/10"
                             : m.status === "in_progress"
-                            ? "border-amber-200 bg-amber-50/30"
+                            ? "border-warning/20 bg-warning/10"
                             : m.status === "at_risk"
-                            ? "border-red-200 bg-red-50/30"
+                            ? "border-destructive/20 bg-destructive/10"
                             : "border-border bg-muted/20"
                         )}
                       >
                         <div className="flex justify-center mb-1">{MILESTONE_ICON[m.status]}</div>
-                        <p className="text-[11px] font-medium text-foreground">{m.label}</p>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">{m.dueDate}</p>
+                        <p className="vf-text-caption font-medium text-foreground">{m.label}</p>
+                        <p className="vf-text-micro text-muted-foreground mt-0.5">{m.dueDate}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Detail row */}
-                  <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+                  <div className="mt-3 flex items-center gap-4 vf-text-caption text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <ShieldCheck size={11} /> {init.capability}
                     </span>
@@ -413,7 +381,6 @@ export default function RealizationPage() {
             </Button>
           </div>
         )}
-      </div>
-    </RealizationShell>
+    </div>
   );
 }

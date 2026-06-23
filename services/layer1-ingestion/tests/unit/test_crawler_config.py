@@ -8,7 +8,11 @@ from pathlib import Path
 
 import pytest
 
-from value_fabric.layer1.crawler.crawler_config import CrawlerConfig, load_config
+from layer1_ingestion.crawler.crawler_config import (
+    CrawlerConfig,
+    _config_cache,
+    load_config,
+)
 
 
 class TestCrawlerConfig:
@@ -141,10 +145,55 @@ class TestLoadConfig:
         """Test that defaults are used when no config file exists."""
         # Ensure we don't accidentally find a config file
         monkeypatch.chdir(tmp_path)
-        
+        _config_cache.clear()
+
         config = load_config()
-        
+
         # Should return defaults, not raise
         assert isinstance(config, CrawlerConfig)
         assert config.max_concurrent == 5  # Default value
+
+    def test_load_config_caches_result(self, tmp_path: Path):
+        """Test that repeated loads of the same file return a cached instance."""
+        _config_cache.clear()
+        config_file = tmp_path / "cached.yml"
+        config_file.write_text("max_concurrent: 7\n")
+
+        first = load_config(config_file)
+        second = load_config(config_file)
+
+        assert first is second
+        assert first.max_concurrent == 7
+
+    def test_load_config_cache_invalidated_on_file_change(self, tmp_path: Path):
+        """Test that modifying the config file returns a new instance."""
+        _config_cache.clear()
+        config_file = tmp_path / "changed.yml"
+        config_file.write_text("max_concurrent: 7\n")
+
+        first = load_config(config_file)
+        # Ensure mtime changes by writing after a small delay
+        config_file.write_text("max_concurrent: 9\n")
+
+        second = load_config(config_file)
+
+        assert first is not second
+        assert first.max_concurrent == 7
+        assert second.max_concurrent == 9
+
+    def test_load_config_cache_returns_distinct_instances_for_different_files(
+        self, tmp_path: Path
+    ):
+        """Test that different config files are cached independently."""
+        _config_cache.clear()
+        file_a = tmp_path / "a.yml"
+        file_b = tmp_path / "b.yml"
+        file_a.write_text("max_concurrent: 3\n")
+        file_b.write_text("max_concurrent: 8\n")
+
+        config_a = load_config(file_a)
+        config_b = load_config(file_b)
+
+        assert config_a.max_concurrent == 3
+        assert config_b.max_concurrent == 8
 

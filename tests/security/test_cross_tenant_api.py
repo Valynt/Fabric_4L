@@ -38,6 +38,9 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 # Constants
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_LAYER4_SRC = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents"
+_LAYER4_ROUTES = _LAYER4_SRC / "api" / "routes"
+_LAYER4_TENANT_ROUTES = _LAYER4_SRC / "tenants" / "api" / "routes"
 
 TENANT_A_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -118,7 +121,7 @@ class TestAccountsRouteTenantEnforcement:
     """
 
     ACCOUNTS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "accounts.py"
+        _LAYER4_ROUTES / "accounts.py"
     )
 
     ACCOUNT_ENDPOINTS = [
@@ -172,7 +175,7 @@ class TestAnalysisRouteTenantEnforcement:
     """Verify that analysis/business case routes enforce tenant isolation."""
 
     ANALYSIS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "analysis.py"
+        _LAYER4_ROUTES / "analysis.py"
     )
 
     def test_generate_business_case_requires_auth(self):
@@ -226,7 +229,7 @@ class TestWorkflowRouteTenantEnforcement:
     """Verify that workflow routes enforce tenant isolation."""
 
     WORKFLOWS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "workflows.py"
+        _LAYER4_ROUTES / "workflows.py"
     )
 
     WORKFLOW_ENDPOINTS = [
@@ -254,7 +257,7 @@ class TestSignalRouteTenantEnforcement:
     """Verify that signal/prospect routes enforce tenant isolation."""
 
     SIGNALS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "signals.py"
+        _LAYER4_ROUTES / "signals.py"
     )
 
     def test_setup_prospect_requires_auth(self):
@@ -291,13 +294,13 @@ class TestTenantAdminRouteTenantEnforcement:
     """
 
     ADMIN_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "api" / "routes" / "admin.py"
+        _LAYER4_TENANT_ROUTES / "admin.py"
     )
     USERS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "api" / "routes" / "users.py"
+        _LAYER4_TENANT_ROUTES / "users.py"
     )
     API_KEYS_FILE = (
-        _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "api" / "routes" / "api_keys.py"
+        _LAYER4_TENANT_ROUTES / "api_keys.py"
     )
 
     def _count_get_db_usages(self, filepath: Path) -> int:
@@ -421,10 +424,10 @@ class TestAggregateDepAudit:
         uses the deprecated dependency.
         """
         route_dirs = [
-            _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes",
-            _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "api" / "routes",
-            _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "feature_flags" / "api",
-            _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "registry" / "api",
+            _LAYER4_ROUTES,
+            _LAYER4_TENANT_ROUTES,
+            _LAYER4_SRC / "feature_flags" / "api",
+            _LAYER4_SRC / "registry" / "api",
         ]
 
         total = 0

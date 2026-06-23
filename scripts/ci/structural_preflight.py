@@ -53,9 +53,71 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]
         return 2, "", f"Command not found: {cmd[0]}"
 
 
-def check_secret_file_risk(repo_root: Path, include_ignored: bool) -> list[Finding]:
+def _load_preflight_allowlist(repo_root: Path) -> dict[str, set[str]]:
+    """Load reviewed structural-preflight false positives.
+
+    The allowlist uses a constrained YAML subset so this gate has no PyYAML
+    runtime dependency: top-level section names with ``- path`` string entries.
+    """
+    allowlist_path = repo_root / "config" / "ci" / "structural_preflight_allowlist.yaml"
+    allowlist: dict[str, set[str]] = {
+        "secret_file_risk_allow": set(),
+        "hardcoded_db_credentials_allow": set(),
+    }
+    if not allowlist_path.exists():
+        return allowlist
+
+    current_section: str | None = None
+    for raw_line in allowlist_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if not raw_line.startswith((" ", "\t")) and line.endswith(":"):
+            section = line[:-1].strip()
+            current_section = section if section in allowlist else None
+            continue
+        if current_section is None or not line.startswith("- "):
+            continue
+        value = line[2:].split(" #", 1)[0].strip().strip("\"'")
+        if value:
+            allowlist[current_section].add(value.replace("\\", "/"))
+    return allowlist
+
+
+def _is_allowlisted_path(path: str, allowlist: set[str]) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized in allowlist:
+        return True
+    file_path = normalized.rsplit(":", 1)[0] if ":" in normalized else normalized
+    return file_path in allowlist
+
+
+def _is_external_secret_manifest(repo_root: Path, file_path: str) -> bool:
+    """Return true when a YAML file contains only ESO/SecretStore resources."""
+    if not file_path.endswith((".yaml", ".yml")):
+        return False
+    try:
+        content = (repo_root / file_path).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+
+    safe_kinds = {"ExternalSecret", "SecretStore", "ClusterSecretStore", "PushSecret"}
+    kinds: set[str] = set()
+    for line in content.splitlines():
+        match = re.match(r"^\s*kind:\s*['\"]?([^'\"\s{}]+)['\"]?\s*$", line)
+        if match:
+            kinds.add(match.group(1))
+    return bool(kinds) and kinds <= safe_kinds
+
+
+def check_secret_file_risk(
+    repo_root: Path,
+    include_ignored: bool,
+    allowlist: set[str] | None = None,
+) -> list[Finding]:
     """Detect secret-risk filenames and git tracking state."""
     findings = []
+    allowlist = allowlist or set()
     risky_patterns = [
         (r"\.env$", ".env file"),
         (r"\.env\.", ".env.* file"),
@@ -83,6 +145,10 @@ def check_secret_file_risk(repo_root: Path, include_ignored: bool) -> list[Findi
     for pattern, description in risky_patterns:
         for file_path in tracked_files:
             if re.search(pattern, file_path, re.IGNORECASE):
+                if _is_allowlisted_path(file_path, allowlist):
+                    continue
+                if _is_external_secret_manifest(repo_root, file_path):
+                    continue
                 findings.append(Finding(
                     check_id="secret_file_risk",
                     severity="critical",
@@ -113,73 +179,56 @@ def check_secret_file_risk(repo_root: Path, include_ignored: bool) -> list[Findi
 
 
 def check_import_namespace_mismatch(repo_root: Path) -> list[Finding]:
-    """Detect value_fabric vs value-fabric divergence."""
+    """Detect legacy value_fabric root-package drift."""
     findings = []
 
-    hyphen_dir = repo_root / "value-fabric"
     underscore_dir = repo_root / "value_fabric"
 
-    # Check what tests expect
-    test_imports = []
-    tests_dir = repo_root / "tests"
-    if tests_dir.exists():
-        for py_file in tests_dir.rglob("*.py"):
-            try:
-                content = py_file.read_text(encoding="utf-8", errors="ignore")
-                if "from value_fabric" in content or "import value_fabric" in content:
-                    test_imports.append(str(py_file.relative_to(repo_root)))
-            except Exception:
-                pass
-
-    if test_imports and not underscore_dir.exists():
+    if underscore_dir.exists():
         findings.append(Finding(
             check_id="import_namespace_mismatch",
-            severity="critical",
-            path="tests/",
-            finding_type="missing_value_fabric_package",
-            message=f"Tests import value_fabric but package doesn't exist. Files: {len(test_imports)}",
-            recommendation="Create value_fabric/ compatibility package with forwarding imports",
+            severity="high",
+            path="value_fabric/",
+            finding_type="legacy_value_fabric_root_remains",
+            message="Root value_fabric/ compatibility package still exists",
+            recommendation="Delete value_fabric/ and resolve value_fabric.shared from packages/shared/src",
         ))
-
-    if hyphen_dir.exists() and underscore_dir.exists():
-        # Check if underscore is a junction/pointer
-        underscore_init = underscore_dir / "__init__.py"
-        if underscore_init.exists():
-            init_content = underscore_init.read_text(encoding="utf-8", errors="ignore")
-            if not init_content.strip():
-                findings.append(Finding(
-                    check_id="import_namespace_mismatch",
-                    severity="high",
-                    path="value_fabric/__init__.py",
-                    finding_type="empty_compatibility_package",
-                    message="value_fabric/__init__.py is empty - needs forwarding imports",
-                    recommendation="Add explicit imports to forward to value-fabric modules",
-                ))
 
     # Test actual import
     exit_code, _, stderr = run_command(
-        [sys.executable, "-c", "import value_fabric; print(value_fabric.__file__)"],
+        [sys.executable, "-c", "import value_fabric.shared; print(value_fabric.shared.__file__)"],
         cwd=repo_root
     )
     if exit_code != 0:
         findings.append(Finding(
             check_id="import_namespace_mismatch",
             severity="critical",
-            path="value_fabric/",
+            path="packages/shared/src/value_fabric/shared/",
             finding_type="import_resolution_failure",
-            message="Cannot import value_fabric package",
-            recommendation="Fix import path in pytest.ini or create proper package junctions",
+            message="Cannot import value_fabric.shared package",
+            recommendation="Fix import path in pytest.ini so packages/shared/src exposes the namespace package",
         ))
 
     return findings
 
 
 def check_namespace_shadowing(repo_root: Path) -> list[Finding]:
-    """Detect legacy root value_fabric/shared/ that should have been removed."""
+    """Detect legacy root value_fabric/ content that should have been removed."""
     findings = []
 
+    root_pkg = repo_root / "value_fabric"
     root_shared = repo_root / "value_fabric" / "shared"
     pkg_shared = repo_root / "packages" / "shared" / "src" / "value_fabric" / "shared"
+
+    if root_pkg.exists():
+        findings.append(Finding(
+            check_id="namespace_shadowing",
+            severity="high",
+            path="value_fabric/",
+            finding_type="legacy_root_namespace_remains",
+            message="Root value_fabric/ still exists",
+            recommendation="Delete value_fabric/ so value_fabric.shared resolves only from packages/shared/src",
+        ))
 
     if root_shared.exists():
         findings.append(Finding(
@@ -300,7 +349,7 @@ def check_tool_manifest_alignment(repo_root: Path) -> list[Finding]:
         findings.append(Finding(
             check_id="tool_manifest_alignment",
             severity="medium",
-            path="services/layer4-agents/src/tools/__init__.py",
+            path="services/layer4-agents/src/layer4_agents/tools/__init__.py",
             finding_type="missing_tools_init",
             message="Tools registry init not found",
             recommendation="Verify layer4-agents structure",
@@ -364,7 +413,64 @@ def check_ci_wiring(repo_root: Path) -> list[Finding]:
     return findings
 
 
-def main():
+def check_hardcoded_db_credentials(
+    repo_root: Path,
+    allowlist: set[str] | None = None,
+) -> list[Finding]:
+    """Detect hardcoded postgres:postgres credentials in K8s manifests and configs.
+
+    Hardcoded credentials in K8s manifests are exposed to anyone with read access to
+    the repo AND to anyone who can run `kubectl describe pod`. They must always be
+    injected via secretKeyRef.
+    """
+    findings: list[Finding] = []
+    allowlist = allowlist or set()
+    # Pattern: literal postgres:postgres in a URL string (catches the most common form)
+    credential_pattern = re.compile(
+        r"postgres:postgres@|:[Pp]assword@|postgresql://\w+:\w+@"
+    )
+    # Only scan infrastructure files (K8s manifests, Docker Compose, shell scripts)
+    scan_dirs = ["k8s", "infra", "scripts"]
+    scan_suffixes = {".yml", ".yaml", ".sh", ".env.example"}
+
+    for scan_dir in scan_dirs:
+        target = repo_root / scan_dir
+        if not target.is_dir():
+            continue
+        for file in target.rglob("*"):
+            # Skip template files that intentionally document the pattern
+            if file.suffix not in scan_suffixes:
+                continue
+            if "secrets.yml.template" in file.name or "secrets.yaml.template" in file.name:
+                continue
+            try:
+                content = file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for i, line in enumerate(content.splitlines(), start=1):
+                if credential_pattern.search(line):
+                    finding_path = f"{file.relative_to(repo_root)}:{i}"
+                    if _is_allowlisted_path(finding_path, allowlist):
+                        continue
+                    findings.append(Finding(
+                        check_id="hardcoded_db_credentials",
+                        severity="critical",
+                        path=finding_path,
+                        finding_type="hardcoded_credentials",
+                        message=(
+                            f"Hardcoded database credentials detected at line {i}. "
+                            "Use secretKeyRef to inject credentials from a K8s Secret."
+                        ),
+                        recommendation=(
+                            "Replace `value: \"postgresql://user:pass@...\"` with "
+                            "`valueFrom: secretKeyRef: name: <secret> key: <key>` and "
+                            "add the corresponding Secret to k8s/secrets.yml.template."
+                        ),
+                    ))
+    return findings
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Structural preflight scanner for Fabric_4L"
     )
@@ -377,18 +483,33 @@ def main():
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
+    allowlist = _load_preflight_allowlist(repo_root)
 
     # Run all checks
-    all_findings = []
-    all_findings.extend(check_secret_file_risk(repo_root, args.include_ignored))
+    all_findings: list[Finding] = []
+    all_findings.extend(
+        check_secret_file_risk(
+            repo_root,
+            args.include_ignored,
+            allowlist["secret_file_risk_allow"],
+        )
+    )
     all_findings.extend(check_import_namespace_mismatch(repo_root))
     all_findings.extend(check_namespace_shadowing(repo_root))
     all_findings.extend(check_pytest_config(repo_root))
     all_findings.extend(check_tool_manifest_alignment(repo_root))
     all_findings.extend(check_ci_wiring(repo_root))
+    all_findings.extend(
+        check_hardcoded_db_credentials(
+            repo_root,
+            allowlist["hardcoded_db_credentials_allow"],
+        )
+    )
 
     # Determine strict failures
-    strict_failures = [f for f in all_findings if f.severity in ("critical", "high")]
+    strict_failures: list[Finding] = [
+        f for f in all_findings if f.severity in ("critical", "high")
+    ]
 
     report = PreflightReport(
         repo_root=str(repo_root),

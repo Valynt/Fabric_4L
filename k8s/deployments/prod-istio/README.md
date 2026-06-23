@@ -16,8 +16,8 @@ kustomize build k8s/deployments/prod-istio | kubectl apply -f -
 
 | Field | Value |
 |---|---|
-| Frontend host | `app.value-fabric.example.com` |
-| API host | `api.value-fabric.example.com` |
+| Frontend host | `www.valuepact.ai` |
+| API host | `api.valuepact.ai` |
 
 ## Validation
 

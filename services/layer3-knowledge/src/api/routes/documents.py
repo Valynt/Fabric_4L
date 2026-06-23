@@ -1,9 +1,16 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Documents domain router — business case PDF export via Layer 4.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
 """
 
-from __future__ import annotations
 
 import logging
 import os
@@ -12,7 +19,6 @@ from datetime import datetime, timedelta
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from value_fabric.shared.error_handling import build_error_detail
 
 from ...api.dependencies import AppState, get_app_state
 from ...api.models import DocumentExportRequest, DocumentExportResponse
@@ -20,6 +26,17 @@ from ...api.models import DocumentExportRequest, DocumentExportResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["Documents"])
+
+
+def _tenant_headers_from_request(http_request: Request) -> dict[str, str]:
+    state = getattr(http_request, "state", None)
+    for attr in ("governance_context", "auth_context"):
+        context = getattr(state, attr, None)
+        tenant_id = getattr(context, "tenant_id", None)
+        if tenant_id:
+            resolved = str(tenant_id)
+            return {"X-Tenant-ID": resolved, "X-Value-Fabric-Tenant-ID": resolved}
+    raise ValidationError(message="tenant_id is required for document export")
 
 
 @router.post("/documents/export", response_model=DocumentExportResponse)
@@ -33,18 +50,16 @@ async def export_document(
     l4_api_url = os.getenv("LAYER4_API_URL", "http://layer4-agents:8004")
 
     try:
+        tenant_headers = _tenant_headers_from_request(http_request)
         async with httpx.AsyncClient(timeout=60.0) as client:
             l4_response = await client.get(
                 f"{l4_api_url}/v1/analysis/cases/{request.business_case_id}/export",
                 params={"format": request.format},
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", **tenant_headers},
             )
 
             if l4_response.status_code == 404:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Business case {request.business_case_id} not found",
-                )
+                raise NotFoundError(message = str(f"Business case {request.business_case_id} not found"))
             if l4_response.status_code != 200:
                 logger.error(
                     "L4 export service returned %s for case %s: %s",
@@ -52,7 +67,7 @@ async def export_document(
                     request.business_case_id,
                     l4_response.text,
                 )
-                raise HTTPException(status_code=502, detail="Export service error")
+                raise ServiceUnavailableError(message="Export service error")
 
             l4_data = l4_response.json()
 
@@ -65,6 +80,7 @@ async def export_document(
                         "format": request.format,
                         "include_provenance": request.include_provenance,
                     },
+                    headers={"Content-Type": "application/json", **tenant_headers},
                     timeout=120.0,
                 )
                 if gen_response.status_code != 200:
@@ -74,8 +90,8 @@ async def export_document(
                         request.business_case_id,
                         gen_response.text,
                     )
-                    raise HTTPException(
-                        status_code=502, detail="Document generation failed"
+                    raise ServiceUnavailableError(
+                        message="Document generation failed"
                     )
                 gen_data = gen_response.json()
                 return DocumentExportResponse(
@@ -108,22 +124,18 @@ async def export_document(
         logger.error(
             "Document export timed out for case %s", request.business_case_id
         )
-        raise HTTPException(status_code=504, detail="Document generation timed out")
+        raise ServiceUnavailableError(message="Document generation timed out")
     except httpx.ConnectError as e:
         logger.error("Cannot connect to L4 service: %s", e)
-        raise HTTPException(
-            status_code=503, detail="Document generation service unavailable"
-        )
+        raise ServiceUnavailableError(message = "Document generation service unavailable")
+    except (NotFoundError, ServiceUnavailableError, ValidationError):
+        raise
     except HTTPException:
         raise
     except Exception as exc:
         request_id = getattr(getattr(http_request, "state", None), "request_id", None)
         logger.exception("Document export failed", extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(exc).__name__})
-        raise HTTPException(
-            status_code=500,
-            detail=build_error_detail(
-                message="Document export failed",
-                error_code="L3_DOCUMENT_EXPORT_FAILED",
-                request_id=request_id,
-            ),
+        raise ServiceUnavailableError(
+            message="Document export failed",
+            details={"error_code": "L3_DOCUMENT_EXPORT_FAILED", "request_id": request_id}
         )

@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 """Focused service-level tests for Layer 4 agent grounding and refusal behavior."""
 
-from __future__ import annotations
 
 from typing import Any
 
 import pytest
 
-import value_fabric.layer4.services.conversation as conversation_module
-from value_fabric.layer4.services.conversation import ConversationService
+import layer4_agents.services.conversation as conversation_module
+from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
 
 try:

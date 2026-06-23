@@ -1,0 +1,95 @@
+{
+  "version": "1.0.0",
+  "description": "Governance evidence for file-level attention findings surfaced by the Layer Quality Scorecard.",
+  "ungoverned_hotspots": [
+    {
+      "id": "LQ-HOTSPOT-L4-GENERATED-CONTRACT",
+      "path": "packages/platform-contract/src/typescript/generated/layer4_agents.ts",
+      "owner": "@platform-contracts",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "governing_decision": "Layer 4 generated TypeScript contracts are governed by contracts/openapi/layer4-agents.json and API type drift checks; generated files are not edited directly.",
+      "generated": true,
+      "source_contract": "contracts/openapi/layer4-agents.json",
+      "generation_command": "corepack pnpm run check:api-types",
+      "review_due": "2026-09-30",
+      "remediation_state": "governed"
+    },
+    {
+      "id": "LQ-HOTSPOT-L3-API-MODELS",
+      "path": "services/layer3-knowledge/src/api/models.py",
+      "owner": "@layer3-knowledge",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "governing_decision": "Layer 3 service-local API models remain an allowed wrapper exception with compatibility ownership and contract drift checks.",
+      "generated": false,
+      "review_due": "2026-09-30",
+      "remediation_state": "governed"
+    },
+    {
+      "id": "LQ-HOTSPOT-WEB-L4-GENERATED-API",
+      "path": "apps/web/src/api/generated/l4/index.ts",
+      "owner": "@frontend-platform",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "governing_decision": "Frontend Layer 4 generated API types are governed by contracts/openapi/layer4-agents.json and the apps/web type-generation pipeline.",
+      "generated": true,
+      "source_contract": "contracts/openapi/layer4-agents.json",
+      "generation_command": "corepack pnpm run check:api-types",
+      "review_due": "2026-09-30",
+      "remediation_state": "governed"
+    }
+  ],
+  "stale_decisions": [
+    {
+      "id": "LQ-DECISION-DB-POOL-EXHAUSTION",
+      "path": "monitoring/alerting/rules-production.yml",
+      "owner": "@platform-sre",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "runbook_path": "docs/operations/runbooks/database-pool-exhaustion.md",
+      "decision_date": "2026-06-21",
+      "decision": "Keep DatabasePoolExhausted critical at >95% pool utilization for 2m to catch imminent exhaustion before query failures cascade.",
+      "review_due": "2026-09-30",
+      "remediation_state": "fresh"
+    },
+    {
+      "id": "LQ-DECISION-CRITICAL-LLM-COST",
+      "path": "monitoring/alerting/rules-production.yml",
+      "owner": "@finops",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "runbook_path": "docs/troubleshooting/runbooks/application/high-llm-cost.md",
+      "decision_date": "2026-06-21",
+      "decision": "Keep CriticalLLMCost at >$100 hourly increase for 5m, aligned to the $500/day budget target and immediate FinOps intervention.",
+      "review_due": "2026-09-30",
+      "remediation_state": "fresh"
+    },
+    {
+      "id": "LQ-DECISION-CRASHLOOP-RESTARTS",
+      "path": "monitoring/alerting/rules-production.yml",
+      "owner": "@platform-sre",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "runbook_path": "docs/troubleshooting/runbooks/infrastructure/service-down.md",
+      "decision_date": "2026-06-21",
+      "decision": "Keep PodCrashLooping at >=3 restarts over 15m for 5m to suppress one-off restart noise while preserving crashloop detection.",
+      "review_due": "2026-09-30",
+      "remediation_state": "fresh"
+    }
+  ],
+  "knowledge_silos": [
+    {
+      "id": "LQ-SILO-AGENT-CONDUCTOR",
+      "path": ".agent/harness/conductor.py",
+      "owner": "Brian",
+      "secondary_owner": "@platform-agent-runtime",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "review_due": "2026-09-30",
+      "remediation_state": "backup-owner-assigned"
+    },
+    {
+      "id": "LQ-SILO-AGENT-HOOKS-INIT",
+      "path": ".agent/harness/hooks/init.py",
+      "owner": "Brian",
+      "secondary_owner": "@platform-agent-runtime",
+      "evidence_path": "docs/governance/layer-quality-attention-records.md",
+      "review_due": "2026-09-30",
+      "remediation_state": "normalized-to-__init__-with-backup-owner"
+    }
+  ]
+}

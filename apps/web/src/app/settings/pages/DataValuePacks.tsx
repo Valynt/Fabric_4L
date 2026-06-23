@@ -16,7 +16,7 @@ export function DataValuePacks() {
             <div key={p.name} className="rounded-md border p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">{p.name}</p>
-                <span className={p.status === "Enabled" ? "text-[10px] font-medium text-primary" : "text-[10px] font-medium text-muted-foreground"}>{p.status}</span>
+                <span className={p.status === "Enabled" ? "vf-text-micro font-medium text-primary" : "vf-text-micro font-medium text-muted-foreground"}>{p.status}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
               <div className="mt-3">

@@ -53,14 +53,14 @@ def require_gitops_config():
 class TestArgoRollouts:
     """Test Argo Rollouts configuration."""
 
+    rollout_files = [
+        "k8s/gitops/rollouts/layer4-agents-rollout.yaml",
+        "k8s/gitops/rollouts/layer1-ingestion-rollout.yaml",
+    ]
+
     def test_rollout_yaml_valid(self, require_gitops_config):
         """Rollout YAML files are valid Kubernetes resources."""
-        rollout_files = [
-            "k8s/gitops/rollouts/layer4-agents-rollout.yaml",
-            "k8s/gitops/rollouts/layer1-ingestion-rollout.yaml",
-        ]
-
-        for file in rollout_files:
+        for file in self.rollout_files:
             docs = _load_manifest_yaml(file, fail_in_ci=True)
             rollout = docs[0]
 
@@ -84,9 +84,10 @@ class TestArgoRollouts:
 
     def test_auto_rollback_enabled(self):
         """Auto-rollback is enabled for safety."""
-        rollout = _load_manifest_yaml("k8s/gitops/rollouts/layer4-agents-rollout.yaml", fail_in_ci=True)[0]
-        canary = rollout["spec"]["strategy"]["canary"]
-        assert canary.get("autoRollbackEnabled") is True
+        for file in self.rollout_files:
+            rollout = _load_manifest_yaml(file, fail_in_ci=True)[0]
+            canary = rollout["spec"]["strategy"]["canary"]
+            assert canary.get("autoRollbackEnabled") is True
 
     def test_analysis_templates_defined(self):
         """Analysis templates are properly configured."""
@@ -103,6 +104,51 @@ class TestArgoRollouts:
                 assert "name" in metric
                 assert "interval" in metric
                 assert "provider" in metric
+
+    def test_prometheus_analysis_templates_are_rollback_safe(self):
+        """Prometheus analysis must fail closed enough to trigger rollback."""
+        for file in self.rollout_files:
+            docs = _load_manifest_yaml(file, fail_in_ci=True)
+            templates = [d for d in docs if d.get("kind") == "AnalysisTemplate"]
+            assert templates, f"{file} must define AnalysisTemplate resources"
+
+            for template in templates:
+                for metric in template["spec"]["metrics"]:
+                    provider = metric.get("provider", {})
+                    assert "prometheus" in provider, (
+                        f"{file}:{template['metadata']['name']}:{metric['name']} "
+                        "must use Prometheus-backed analysis"
+                    )
+                    assert metric.get("successCondition"), (
+                        f"{file}:{template['metadata']['name']}:{metric['name']} "
+                        "must define successCondition"
+                    )
+                    assert metric.get("failureCondition"), (
+                        f"{file}:{template['metadata']['name']}:{metric['name']} "
+                        "must define failureCondition"
+                    )
+                    assert isinstance(metric.get("failureLimit"), int), (
+                        f"{file}:{template['metadata']['name']}:{metric['name']} "
+                        "must define integer failureLimit"
+                    )
+                    assert 1 <= metric["failureLimit"] <= 3, (
+                        f"{file}:{template['metadata']['name']}:{metric['name']} "
+                        "failureLimit must trigger rollback before unsafe promotion"
+                    )
+
+    def test_ratio_queries_guard_against_empty_denominators(self):
+        """Prometheus ratio checks should not divide by an empty request series."""
+        for file in self.rollout_files:
+            docs = _load_manifest_yaml(file, fail_in_ci=True)
+            templates = [d for d in docs if d.get("kind") == "AnalysisTemplate"]
+            for template in templates:
+                for metric in template["spec"]["metrics"]:
+                    query = metric["provider"]["prometheus"]["query"]
+                    if "/" in query:
+                        assert "clamp_min(" in query, (
+                            f"{file}:{template['metadata']['name']}:{metric['name']} "
+                            "ratio query must clamp the denominator"
+                        )
 
 
 class TestHealthGates:
@@ -202,6 +248,15 @@ class TestFeatureFlags:
 class TestArgoCD:
     """Test ArgoCD application configuration."""
 
+    def test_argocd_bootstrap_manifest_declares_namespace_and_base_application(self):
+        docs = _load_manifest_yaml("k8s/gitops/argocd-install.yaml", fail_in_ci=True)
+
+        namespaces = [d for d in docs if d.get("kind") == "Namespace"]
+        apps = [d for d in docs if d.get("kind") == "Application"]
+
+        assert any(ns.get("metadata", {}).get("name") == "argocd" for ns in namespaces)
+        assert any(app.get("metadata", {}).get("name") == "fabric-4l-base" for app in apps)
+
     def test_argocd_applications_yaml_valid(self):
         """ArgoCD applications YAML is valid."""
         docs = _load_manifest_yaml("k8s/gitops/argocd-applications.yaml", fail_in_ci=True)
@@ -213,6 +268,25 @@ class TestArgoCD:
         # Should have AppProject
         projects = [d for d in docs if d.get("kind") == "AppProject"]
         assert len(projects) >= 1
+
+        app_sets = [d for d in docs if d.get("kind") == "ApplicationSet"]
+        assert len(app_sets) >= 1
+
+    def test_argocd_operational_docs_do_not_claim_missing_manifests(self):
+        workflow = open(".github/workflows/environment-promotion.yml", encoding="utf-8").read()
+        checklist = open("docs/PRODUCTION_READINESS_CHECKLIST.md", encoding="utf-8").read()
+
+        stale_claims = [
+            "ArgoCD not installed",
+            "no ArgoCD installation manifest",
+            "no argocd namespace setup",
+        ]
+        for claim in stale_claims:
+            assert claim not in workflow
+            assert claim not in checklist
+
+        assert "cluster sync/rollback evidence is still missing" in checklist
+        assert "cluster sync unverified" in workflow
 
     def test_production_requires_manual_sync(self):
         """Production application requires manual sync."""

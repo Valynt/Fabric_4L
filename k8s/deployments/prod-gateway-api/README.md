@@ -39,8 +39,8 @@ kustomize build k8s/deployments/prod-gateway-api \
 
 | Field | Value |
 |---|---|
-| Frontend host | `app.value-fabric.example.com` |
-| API host | `api.value-fabric.example.com` |
+| Frontend host | `www.valuepact.ai` |
+| API host | `api.valuepact.ai` |
 
 Edit `hostname-config.yaml` to change these values before deployment.
 
@@ -97,8 +97,8 @@ kubectl get httproute -n value-fabric
 kubectl get certificate -n value-fabric
 
 # Verify DNS resolves
-nslookup app.value-fabric.example.com
-nslookup api.value-fabric.example.com
+nslookup www.valuepact.ai
+nslookup api.valuepact.ai
 ```
 
 ## Troubleshooting

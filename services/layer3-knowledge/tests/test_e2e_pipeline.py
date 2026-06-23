@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """End-to-end pipeline test for Layer 3 Knowledge Graph.
 
 This test verifies the complete flow from extraction to query:
@@ -17,7 +19,6 @@ Requirements:
     - Neo4j image available
 """
 
-from __future__ import annotations
 
 import asyncio
 import os
@@ -36,20 +37,20 @@ try:
 except ImportError:
     HAS_TESTCONTAINERS = False
 
-from value_fabric.layer3.api.dependencies import (
+from src.api.dependencies import (
     get_graph_rag,
     get_hybrid_search,
     get_schema_initializer,
     get_sync_manager,
 )
-from value_fabric.layer3.api.main import app
-from value_fabric.layer3.config import Settings
-from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
-from value_fabric.layer3.ingestion.sync_manager import SyncManager
-from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import VectorStore
-from value_fabric.layer3.schema.initializer import SchemaInitializer
+from src.api.main import app
+from src.config import Settings
+from src.ingestion.neo4j_loader import Neo4jLoader
+from src.ingestion.sync_manager import SyncManager
+from src.retrieval.graph_rag import GraphRAGEngine
+from src.retrieval.hybrid_search import HybridSearch
+from src.retrieval.vector_store import VectorStore
+from src.schema.initializer import SchemaInitializer
 
 # Skip entire module if testcontainers not installed
 pytestmark = [
@@ -252,11 +253,11 @@ class TestSchemaInitialization:
         # Verify constraints match edition expectations
         if neo4j_edition == "community":
             # Community should have fewer constraints (no TENANT_CONSTRAINTS)
-            from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS)
         else:
             # Enterprise should have all constraints
-            from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS) + len(TENANT_CONSTRAINTS)
 
         # Schema should be valid

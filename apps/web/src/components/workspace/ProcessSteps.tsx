@@ -52,7 +52,7 @@ const STATUS_CONFIG: Record<
 > = {
   done: {
     icon: CheckCircle2,
-    className: "text-emerald-500",
+    className: "text-success",
     labelClass: "text-foreground",
   },
   active: {
@@ -138,7 +138,7 @@ export function ProcessSteps({ steps, className }: ProcessStepsProps) {
         aria-expanded={!collapsed}
       >
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-foreground">
+          <span className="vf-text-caption font-semibold text-foreground">
             {hasError
               ? "Processing failed"
               : allDone
@@ -147,7 +147,7 @@ export function ProcessSteps({ steps, className }: ProcessStepsProps) {
                   ? "Processing…"
                   : "Queued"}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="vf-text-micro text-muted-foreground">
             {doneCount}/{steps.length} steps
           </span>
         </div>

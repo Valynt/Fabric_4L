@@ -7,11 +7,13 @@ import sys
 import traceback
 from datetime import datetime
 
+from value_fabric.shared.security.redaction import install_redaction_filter
+
 try:
     from .config import Settings, get_settings
 except ImportError as _import_exc:  # pragma: no cover - fallback for top-level module imports
     if "attempted relative import with no known parent package" in str(_import_exc):
-        from config import Settings, get_settings
+        from src.config import Settings, get_settings
     else:
         raise
 
@@ -123,6 +125,7 @@ class StructuredLogger:
         # Get the root logger
         root_logger = logging.getLogger()
         root_logger.setLevel(getattr(logging, self.settings.log_level.upper()))
+        redaction_filter = install_redaction_filter(root_logger)
 
         # Remove existing handlers
         for handler in root_logger.handlers[:]:
@@ -147,12 +150,14 @@ class StructuredLogger:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         console_handler.setLevel(getattr(logging, self.settings.log_level.upper()))
+        console_handler.addFilter(redaction_filter)
         root_logger.addHandler(console_handler)
 
         # File handler for ERROR level and above (if needed)
         error_handler = logging.StreamHandler(sys.stderr)
         error_handler.setFormatter(formatter)
         error_handler.setLevel(logging.ERROR)
+        error_handler.addFilter(redaction_filter)
         root_logger.addHandler(error_handler)
 
     @staticmethod

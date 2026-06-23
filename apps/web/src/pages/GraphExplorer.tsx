@@ -130,24 +130,24 @@ export default function GraphExplorer() {
 
               {/* Zoom Controls */}
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Zoom</div>
+                <div className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider">Zoom</div>
                 <div className="flex gap-2">
-                  <Btn variant="ghost" className="flex-1 text-[11px]" onClick={canvas.actions.zoomIn}>
+                  <Btn variant="ghost" className="flex-1 vf-text-caption" onClick={canvas.actions.zoomIn}>
                     <ZoomIn className="w-3 h-3 mr-1" /> In
                   </Btn>
-                  <Btn variant="ghost" className="flex-1 text-[11px]" onClick={canvas.actions.zoomOut}>
+                  <Btn variant="ghost" className="flex-1 vf-text-caption" onClick={canvas.actions.zoomOut}>
                     <ZoomOut className="w-3 h-3 mr-1" /> Out
                   </Btn>
                 </div>
-                <div className="text-[10px] text-muted-foreground/70 text-center">
+                <div className="vf-text-micro text-muted-foreground/70 text-center">
                   {Math.round(canvas.view.scale * 100)}%
                 </div>
               </div>
 
               {/* View Controls */}
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">View</div>
-                <Btn variant="ghost" className="w-full text-[11px] justify-center" onClick={canvas.actions.resetView}>
+                <div className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider">View</div>
+                <Btn variant="ghost" className="w-full vf-text-caption justify-center" onClick={canvas.actions.resetView}>
                   <RotateCcw className="w-3 h-3 mr-1" /> Reset View
                 </Btn>
               </div>
@@ -203,7 +203,7 @@ export default function GraphExplorer() {
           {!isLoading && !error && !isEmpty && (
             <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-md border border-border shadow-sm">
               <Move className="w-3 h-3 text-muted-foreground" />
-              <span className="text-[11px] text-muted-foreground">Drag to pan</span>
+              <span className="vf-text-caption text-muted-foreground">Drag to pan</span>
             </div>
           )}
 
@@ -211,7 +211,7 @@ export default function GraphExplorer() {
           {!isLoading && !error && !isEmpty && graphData.nodes.length >= GRAPH_NODE_LIMIT && (
             <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 bg-warning/10 backdrop-blur-sm px-3 py-1.5 rounded-md border border-warning/20 shadow-sm">
               <AlertCircle className="w-3 h-3 text-warning" />
-              <span className="text-[11px] text-warning-foreground">
+              <span className="vf-text-caption text-warning-foreground">
                 Showing {GRAPH_NODE_LIMIT} nodes. Refine search to see more.
               </span>
             </div>
@@ -244,15 +244,15 @@ export default function GraphExplorer() {
           {/* Stats */}
           <SectionCard title="Graph Statistics" className="h-[130px]">
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[12px]">
+              <div className="flex justify-between vf-text-body-s">
                 <span className="text-muted-foreground">Nodes</span>
                 <span className="font-bold text-foreground">{graphData.stats.totalNodes.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[12px]">
+              <div className="flex justify-between vf-text-body-s">
                 <span className="text-muted-foreground">Edges</span>
                 <span className="font-bold text-foreground">{graphData.stats.totalEdges.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-[12px]">
+              <div className="flex justify-between vf-text-body-s">
                 <span className="text-muted-foreground">Density</span>
                 <span className="font-bold text-foreground">{graphData.stats.density.toFixed(2)}</span>
               </div>
@@ -260,7 +260,7 @@ export default function GraphExplorer() {
                 {Object.entries(nodeTypeCounts).slice(0, 3).map(([nodeType, count]) => {
                   const classes = getEntityBadgeClasses(nodeType);
                   return (
-                    <div key={nodeType} className="flex items-center gap-2 text-[11px]">
+                    <div key={nodeType} className="flex items-center gap-2 vf-text-caption">
                       <div className={cn("w-2 h-2 rounded-full shrink-0", classes.dot)}/>
                       <span className="text-muted-foreground flex-1 truncate">{nodeType}</span>
                       <span className="font-semibold text-foreground">{count}</span>

@@ -3,24 +3,26 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock
 
+import layer6_benchmarks.api.main as main_module
 import pytest
-import value_fabric.layer6.api.main as main_module
 from httpx import ASGITransport, AsyncClient
-from prometheus_client import CollectorRegistry
-from value_fabric.layer6.api.main import app
-from value_fabric.layer6.metrics.prometheus_metrics import (
+from layer6_benchmarks.api.main import app
+from layer6_benchmarks.metrics.prometheus_metrics import (
     MetricsConfig,
     MetricsMiddleware,
     PrometheusMetrics,
 )
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
 )
-from value_fabric.layer6.observability.metrics_contract import metric_names
+from layer6_benchmarks.observability.metrics_contract import metric_names
+from prometheus_client import CollectorRegistry
 
-CONTRACT = Path(__file__).resolve().parents[3] / "contracts" / "observability" / "layer6-metrics.json"
+CONTRACT = (
+    Path(__file__).resolve().parents[3] / "contracts" / "observability" / "layer6-metrics.json"
+)
 
 
 def _contract_metrics() -> dict[str, dict]:
@@ -65,7 +67,9 @@ def isolated_metrics(monkeypatch) -> PrometheusMetrics:
     metrics = PrometheusMetrics(MetricsConfig(registry=CollectorRegistry()))
     monkeypatch.setattr(main_module, "authorize_action", lambda *args, **kwargs: None)
     monkeypatch.setattr(main_module.app.state, "metrics", metrics, raising=False)
-    metrics_module = __import__("value_fabric.layer6.metrics.prometheus_metrics", fromlist=["_metrics"])
+    metrics_module = __import__(
+        "layer6_benchmarks.metrics.prometheus_metrics", fromlist=["_metrics"]
+    )
     monkeypatch.setattr(metrics_module, "_metrics", metrics)
     return metrics
 
@@ -108,11 +112,14 @@ async def test_required_metrics_are_emitted_with_expected_labels(
 
     assert response.status_code == 200
     exposition = isolated_metrics.get_metrics()
-    assert 'layer6_requests_total{' in exposition
+    assert "layer6_requests_total{" in exposition
     assert 'route="/v1/benchmarks/compare"' in exposition
     assert 'method="POST"' in exposition
     assert 'status_class="2xx"' in exposition
-    assert 'layer6_dataset_comparisons_total{industry="manufacturing",outcome="success"} 1.0' in exposition
+    assert (
+        'layer6_dataset_comparisons_total{industry="manufacturing",outcome="success"} 1.0'
+        in exposition
+    )
     assert 'layer6_health_status{service="layer6-benchmarks"} 1.0' in exposition
     assert "layer6_request_duration_seconds_bucket" in exposition
 

@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
+
+from layer4_agents.api.app_factory import create_app
+
+
+def _app_with_noop_lifespan(monkeypatch):
+    @asynccontextmanager
+    async def _noop_lifespan(app):
+        yield
+
+    monkeypatch.setattr(
+        "layer4_agents.api.app_factory.build_lifespan",
+        lambda **_: _noop_lifespan,
+    )
+    return create_app()
+
+
+def _collect_paths(routes, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        if isinstance(route, APIRoute):
+            paths.add(prefix + route.path)
+        elif hasattr(route, "original_router"):
+            include_context = getattr(route, "include_context", None)
+            sub_prefix = prefix + (
+                getattr(include_context, "prefix", "") if include_context else ""
+            )
+            paths.update(_collect_paths(route.original_router.routes, sub_prefix))
+        elif hasattr(route, "routes"):
+            paths.update(_collect_paths(route.routes, prefix + getattr(route, "path", "")))
+    return paths
+
+
+def test_l4_middleware_registration_and_effective_wrapping_order(monkeypatch):
+    app = _app_with_noop_lifespan(monkeypatch)
+
+    middleware_names = [mw.cls.__name__ for mw in app.user_middleware]
+    # user_middleware is reverse-registration order (outermost first)
+    assert middleware_names[:3] == [
+        "CORSMiddleware",
+        "SecurityMiddleware",
+        "GovernanceMiddleware",
+    ]
+
+
+def test_l4_health_and_metrics_route_contract_presence(monkeypatch):
+    app = _app_with_noop_lifespan(monkeypatch)
+
+    paths = _collect_paths(app.routes)
+    assert "/health" in paths
+    assert "/metrics" in paths
+
+
+def test_l4_health_and_metrics_response_contract(monkeypatch):
+    app = _app_with_noop_lifespan(monkeypatch)
+
+    with TestClient(app) as client:
+        health = client.get("/health")
+        assert health.status_code == 200
+        payload = health.json()
+        assert payload["status"] == "ok"
+        assert payload["service"] == "layer4-agents"
+        assert "timestamp" in payload
+
+        metrics = client.get("/metrics")
+        assert metrics.status_code in {200, 403, 503}
+        assert metrics.headers["content-type"].startswith("text/plain")

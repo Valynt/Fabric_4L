@@ -231,7 +231,7 @@ class RequiredFieldValidator:
             Set of missing field names
         """
         required = self.required_fields.get(entity_type, set())
-        return RequiredFieldValidator_get_missing_fieldsResult.model_validate({field for field in required if field not in data or data[field] is None})
+        return {field for field in required if field not in data or data[field] is None}
 
     def is_known_entity_type(self, entity_type: str) -> bool:
         """Check if entity type has validation rules defined.

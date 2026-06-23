@@ -1,0 +1,128 @@
+:root {
+  --vp-primary: #4f46e5;
+  --vp-primary-light: #818cf8;
+  --vp-accent: #6366f1;
+  --vp-success: #22c55e;
+  --vp-warning: #f59e0b;
+  --vp-danger: #ef4444;
+  --vp-info: #3b82f6;
+}
+
+.md-header__topic {
+  font-weight: 600;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  color: var(--vp-primary);
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  padding-bottom: 0.3em;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 6px;
+}
+
+.md-typeset .admonition.note {
+  border-left-color: var(--vp-info);
+}
+
+.md-typeset .admonition.warning {
+  border-left-color: var(--vp-warning);
+}
+
+.md-typeset .admonition.danger {
+  border-left-color: var(--vp-danger);
+}
+
+.md-typeset .admonition.tip {
+  border-left-color: var(--vp-success);
+}
+
+.md-typeset code {
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+.md-typeset pre > code {
+  border-radius: 6px;
+}
+
+.md-typeset table {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.md-typeset table th {
+  background-color: var(--md-default-fg-color--lightest);
+  font-weight: 600;
+}
+
+.md-typeset .md-button {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.md-typeset .md-button--primary {
+  background-color: var(--vp-primary);
+  border-color: var(--vp-primary);
+}
+
+.md-typeset .tabbed-set {
+  border-radius: 6px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-typeset .tabbed-labels {
+  border-radius: 6px 6px 0 0;
+}
+
+.vp-badge {
+  display: inline-block;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.vp-badge--role {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.vp-badge--limit {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vp-badge--permission {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-md-color-scheme="slate"] .vp-badge--role {
+  background: #312e81;
+  color: #c7d2fe;
+}
+
+[data-md-color-scheme="slate"] .vp-badge--limit {
+  background: #451a03;
+  color: #fde68a;
+}
+
+[data-md-color-scheme="slate"] .vp-badge--permission {
+  background: #064e3b;
+  color: #a7f3d0;
+}

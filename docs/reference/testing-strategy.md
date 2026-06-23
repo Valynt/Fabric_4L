@@ -1,37 +1,76 @@
 # Value Fabric Test Strategy
-## Silicon Valley Production Testing Standard
+## Behavior-First Production Testing Standard
 
-**Version:** 1.0
-**Date:** April 19, 2026
+**Version:** 2.0
+**Date:** June 5, 2026
 **Scope:** Fabric_4L Platform (Layers 1-6 + Frontend)
 
 ---
 
 ## Executive Summary
 
-This document defines the comprehensive testing strategy for the Value Fabric platform, bringing it to Silicon Valley production standards (Google/Netflix/Meta caliber). The strategy enforces a strict test pyramid with 70% unit tests, 20% integration tests, and 10% E2E tests, with ≥80% line coverage across all backend layers.
+This repository uses tests as the **executable contract for intended behavior**.
+
+The standard is not "does the code work locally?" The standard is: **"Does the repo continuously prove that the implementation matches the intended behavior?"**
+
+For every production-critical workflow, the repo must define:
+
+1. **The intended allowed behavior** — encoded as a passing test.
+2. **The intended denied behavior** — encoded as a passing test that asserts denial.
+3. **The expected failure mode** — explicit error codes, safe defaults, or structured rejections.
+4. **The test or gate that proves the behavior before release** — a pytest marker, CI job, or Makefile target.
+
+If behavior is not explicitly intended, it **fails closed by default**.
+
+> **Operating Principle:** No critical behavior exists unless it is tested.  
+> **Enforcement Rule:** Intended behavior passes. Unintended behavior fails. Untested behavior is not production-ready.
+
+Troubleshooting should not be the primary mechanism for discovering security, configuration, or runtime gaps. Those gaps should surface as failing tests, failing CI gates, or explicit contract violations before deployment.
+
+For the canonical governance statement, see [`docs/governance/behavior-first-testing.md`](../governance/behavior-first-testing.md).
+
+---
+
+## Behavior Domains
+
+Every major domain must have a clear behavioral contract that encodes both the allowed path and the denied path:
+
+| Domain | What Must Be Proven | Typical Markers |
+|---|---|---|
+| Auth behavior | Valid auth succeeds; invalid auth fails closed | `security`, `contract_static` |
+| Tenant isolation | Cross-tenant access is denied; same-tenant access succeeds | `tenant_boundary`, `security` |
+| API access rules | Endpoints enforce auth, authorization, and shape | `contract_static`, `service_required` |
+| Configuration validity | Invalid config is rejected at startup or in gates | `contract_static` |
+| Environment safety | Dev bypass flags cannot activate in production | `contract_static`, `security` |
+| Data boundaries | Data is scoped to tenant, user, and role | `tenant_boundary`, `integration` |
+| Failure behavior | Degradation is graceful; errors are safe and structured | `contract_static`, `integration` |
+| Frontend user flows | UI states match intended allowed and denied paths | Frontend `*.behavior.test.*` |
+| Service-to-service permissions | Internal calls carry and validate tenant context | `integration`, `contract_static` |
+| Production readiness gates | Every release proves required invariants before deploy | CI gates, `mandatory` |
 
 ---
 
 ## Test Pyramid
 
+The pyramid still governs execution economics, but every layer must encode behavior contracts:
+
 ```
        /\
       /  \      E2E Tests (10%)
-     /    \     Critical User Journeys
+     /    \     Critical User Journeys + End-to-End Behaviors
     /------\
    /        \   Integration Tests (20%)
-  /          \  Service Boundaries, APIs
+  /          \  Service Boundaries, APIs, Tenant Isolation
  /------------\
 /              \ Unit Tests (70%)
-/                \ Fast, Isolated, No I/O
+/                \ Fast, Isolated, No I/O, Behavior-Focused
 ------------------
 ```
 
 ### Pyramid Discipline Rules
 
-1. **Unit Tests: 70%** - Target 100ms execution, no external dependencies
-2. **Integration Tests: 20%** - Test service boundaries with real dependencies
+1. **Unit Tests: 70%** - Target 100ms execution, no external dependencies, behavior-named
+2. **Integration Tests: 20%** - Test service boundaries with real dependencies, include hostile cases
 3. **E2E Tests: 10%** - Critical user journeys only, never invert the pyramid
 4. **Coverage: ≥80%** - Enforced in CI for all backend layers
 5. **Flaky Rate: <1%** - Flaky tests are P0 to fix
@@ -50,7 +89,9 @@ This document defines the comprehensive testing strategy for the Value Fabric pl
 | L4 Agents | `services/layer4-agents/tests/unit/` | Workflow state machine | 80% |
 | L5 Ground Truth | `services/layer5-ground-truth/tests/unit/` | Evidence, audit log | 80% |
 | L6 Benchmarks | `services/layer6-benchmarks/tests/` | Calculations, metrics | 80% |
-| Frontend | `frontend/client/src/**/*.test.tsx` | Components, hooks, utils | 70% |
+| Frontend | `apps/web/src/**/*.test.tsx` | Components, hooks, utils | 70% |
+
+**Behavior-first requirement:** Every unit test that covers a security or boundary decision must assert both the allowed path and a representative denied path (or reference the dedicated hostile/contract test that covers it).
 
 ### 2. Integration Tests (20%)
 
@@ -62,13 +103,19 @@ This document defines the comprehensive testing strategy for the Value Fabric pl
 | Graph DB Tests | `services/layer3-knowledge/tests/` | Neo4j | `requires_neo4j` |
 | Cache Tests | `services/layer*/tests/` | Redis | `requires_redis` |
 
-### 3. Contract Tests (10% of Integration)
+**Behavior-first requirement:** Integration tests must include hostile cross-tenant cases where applicable. Tenant A must not read Tenant B data, and that must be proven in the test suite.
+
+### 3. Contract Tests (Behavior Contracts)
+
+Contract tests are the primary enforcement mechanism for behavior-first testing.
 
 | Type | Location | Tool | Coverage |
 |------|----------|------|----------|
 | OpenAPI Schema | `tests/contract/` | schemathesis | All endpoints |
 | Response Models | `tests/contract/` | pydantic | All responses |
 | Tool Manifests | `tests/contract/` | JSON Schema | All skills |
+| Startup Guards | `tests/contract/` | pytest | Dev-bypass safety |
+| Auth/Route Inventory | `tests/contract/` | pytest | Unauthenticated route coverage |
 
 #### Contract invocation matrix (CI + local deterministic mode)
 
@@ -90,15 +137,19 @@ This document defines the comprehensive testing strategy for the Value Fabric pl
 - `LAYER5_API_URL` (default `http://localhost:8005`)
 - Health endpoints must be reachable unless `CONTRACT_TEST_MODE=mock`.
 
+**Behavior-first requirement:** Every contract test must assert a failure mode. A contract test that only validates happy-path shapes is incomplete.
+
 ### 4. E2E Tests (10%)
 
 | Journey | Location | Tool | Browsers |
 |---------|----------|------|----------|
-| Authentication | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Value Pack Workflow | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Agent Workflow | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Knowledge Graph | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Evidence Export | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
+| Authentication | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Value Pack Workflow | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Agent Workflow | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Knowledge Graph | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Evidence Export | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+
+**Behavior-first requirement:** E2E tests must cover critical denied paths (e.g., unauthenticated redirect, insufficient permissions) in addition to golden paths.
 
 ### 5. Performance Tests
 
@@ -107,31 +158,31 @@ This document defines the comprehensive testing strategy for the Value Fabric pl
 | API Latency | `tests/performance/` | p95 < 200ms | `performance` |
 | Search Latency | `tests/performance/` | p95 < 2s | `performance` |
 | Load Tests | `tests/performance/` | 50 concurrent | `performance` |
-| Frontend LCP | `frontend/e2e/performance/` | < 2.5s | `performance` |
+| Frontend LCP | `apps/web/e2e/` | < 2.5s | `performance` |
 
 ### 6. Security Tests
 
-| OWASP Category | Location | Coverage |
-|----------------|----------|----------|
-| A01: Broken Access Control | `tests/security/` | ✓ IDOR, authz |
-| A02: Cryptographic Failures | `tests/security/` | ✓ TLS, password policy |
-| A03: Injection | `tests/security/` | ✓ SQL, NoSQL, command |
-| A04: Insecure Design | `tests/security/` | ✓ Rate limiting |
-| A05: Security Misconfiguration | `tests/security/` | ✓ Headers, debug mode |
-| A06: Vulnerable Components | `tests/security/` | ✓ Dependency scanning |
-| A07: Auth Failures | `tests/security/` | ✓ Brute force, MFA |
-| A08: Integrity Failures | `tests/security/` | ✓ CSRF, webhooks |
-| A09: Logging Failures | `tests/security/` | ✓ Audit, alerts |
-| A10: SSRF | `tests/security/` | ✓ URL validation |
+| OWASP Category | Location | Coverage | Behavior-First Requirement |
+|----------------|----------|----------|---------------------------|
+| A01: Broken Access Control | `tests/security/` | ✓ IDOR, authz | Denied paths must fail with correct status |
+| A02: Cryptographic Failures | `tests/security/` | ✓ TLS, password policy | Invalid crypto is rejected |
+| A03: Injection | `tests/security/` | ✓ SQL, NoSQL, command | Malicious input is sanitized/rejected |
+| A04: Insecure Design | `tests/security/` | ✓ Rate limiting | Excess requests are throttled |
+| A05: Security Misconfiguration | `tests/security/` | ✓ Headers, debug mode | Unsafe config fails startup gates |
+| A06: Vulnerable Components | `tests/security/` | ✓ Dependency scanning | CVEs block CI |
+| A07: Auth Failures | `tests/security/` | ✓ Brute force, MFA | Invalid credentials fail closed |
+| A08: Integrity Failures | `tests/security/` | ✓ CSRF, webhooks | Forged requests are rejected |
+| A09: Logging Failures | `tests/security/` | ✓ Audit, alerts | Sensitive events are logged |
+| A10: SSRF | `tests/security/` | ✓ URL validation | Unauthorized outbound requests are blocked |
 
 ### 7. Accessibility Tests
 
 | Test | Location | Standard | Tool |
 |------|----------|----------|------|
-| WCAG 2.1 AA Audit | `frontend/e2e/accessibility/` | WCAG 2.1 AA | axe-core |
-| Keyboard Navigation | `frontend/e2e/accessibility/` | WCAG 2.1.1 | Playwright |
-| Screen Reader | `frontend/e2e/accessibility/` | WCAG 4.1.2 | Playwright |
-| Mobile A11y | `frontend/e2e/accessibility/` | WCAG 2.1 | axe-core |
+| WCAG 2.1 AA Audit | `apps/web/scripts/a11y/` (axe scan) | WCAG 2.1 AA | axe-core |
+| Keyboard Navigation | `apps/web/e2e/` | WCAG 2.1.1 | Playwright |
+| Screen Reader | `apps/web/e2e/` | WCAG 4.1.2 | Playwright |
+| Component A11y | `apps/web/src/**/*.a11y.spec.tsx` | WCAG 2.1 | jest-axe |
 
 ---
 
@@ -191,12 +242,21 @@ All test data created via Factory Boy patterns in `tests/factories.py`:
 
 ### Test Markers
 
+> The canonical, authoritative marker list lives in [`pytest.ini`](../../pytest.ini)
+> (55 markers). The subset below is the most commonly used; do not treat it as
+> exhaustive. Security/isolation markers such as `tenant_boundary`,
+> `cross_tenant_write`, `auth_boundaries`, `production_safety`, and
+> `contract_static` are also enforced by CI gates.
+
 ```ini
 markers =
     unit: Fast unit tests (no I/O, <100ms)
     integration: Integration tests with real dependencies
     e2e: End-to-end tests
     contract: API contract tests (OpenAPI schema validation)
+    contract_static: Static contract checks with no live services
+    service_required: Contract tests requiring live endpoints
+    tenant_boundary: Cross-tenant isolation regression tests
     performance: Performance benchmarks and SLO validation
     security: Security tests (OWASP Top 10)
     accessibility: WCAG 2.1 AA compliance tests
@@ -205,6 +265,7 @@ markers =
     requires_postgres: Tests requiring PostgreSQL
     requires_redis: Tests requiring Redis
     requires_neo4j: Tests requiring Neo4j
+    mandatory: Required for PR merge; behavior-critical gates
 ```
 
 ---
@@ -213,13 +274,15 @@ markers =
 
 ### GitHub Actions Workflow
 
-**File:** `.github/workflows/test.yml`
+**File:** `.github/workflows/pr-checks.yml`
 
 **Jobs:**
 1. **backend-tests** - Unit, integration, contract, security tests
-2. **frontend-tests** - Unit tests, lint, type check
+2. **frontend-tests** - Unit tests, lint, type check, behavior tests
 3. **e2e-tests** - Playwright E2E tests (depends on backend/frontend)
 4. **performance-tests** - Benchmarks (main branch only)
+5. **contract-checks** - Cross-layer contract, OpenAPI drift, tool contracts
+6. **production-readiness-gate** - `make production-readiness-gate`
 
 **Services:**
 - PostgreSQL 16
@@ -231,6 +294,12 @@ markers =
 - Frontend: ≥70% line coverage
 - Security: All OWASP tests pass
 - Accessibility: WCAG 2.1 AA compliance
+
+**Behavior-first gates:**
+- Every PR must pass `contract_static` tests.
+- Every PR must pass `tenant_boundary` tests.
+- Every PR must pass `mandatory` markers.
+- Missing tests for new critical behavior may be blocked in review.
 
 ### Parallel Execution
 
@@ -252,8 +321,8 @@ pytest -m integration --timeout=120
 pytest -m contract --timeout=60
 pytest -m security --timeout=60
 
-# Frontend
-pnpm test -- --coverage
+# Frontend (apps/web)
+pnpm run test -- --coverage
 
 # E2E
 pnpm exec playwright test
@@ -279,6 +348,12 @@ pytest -m security
 
 # Contract tests
 pytest -m contract
+
+# Tenant boundary (behavior-first isolation)
+pytest -m tenant_boundary
+
+# Mandatory gates (behavior-critical)
+pytest -m mandatory
 
 # Single layer
 pytest services/layer3-knowledge/tests/ -m unit
@@ -314,16 +389,17 @@ make test-frontend
 
 ### CI Gates
 
-| Gate | Requirement | Blocking |
-|------|-------------|----------|
-| Unit Tests | ≥80% coverage | Yes |
-| Integration Tests | All pass | Yes |
-| Contract Tests | All pass | Yes |
-| Security Tests | All pass | Yes |
-| E2E Tests | All pass | Yes |
-| Accessibility | WCAG 2.1 AA | Yes |
-| Performance | SLOs met | Yes (main only) |
-| Flaky Rate | <1% | Yes |
+| Gate | Requirement | Blocking | Behavior-First Note |
+|------|-------------|----------|---------------------|
+| Unit Tests | ≥80% coverage | Yes | Must include boundary assertions |
+| Integration Tests | All pass | Yes | Must include hostile cross-tenant cases |
+| Contract Tests | All pass | Yes | Must assert failure modes |
+| Security Tests | All pass | Yes | Must cover denied paths |
+| Tenant Boundary | All pass | Yes | Cross-tenant isolation is non-negotiable |
+| E2E Tests | All pass | Yes | Must cover denied paths |
+| Accessibility | WCAG 2.1 AA | Yes | |
+| Performance | SLOs met | Yes (main only) | |
+| Flaky Rate | <1% | Yes | |
 
 ---
 
@@ -337,7 +413,14 @@ make test-frontend
 4. **Fix** - Stabilize or rewrite test
 5. **Re-enable** - Remove flaky marker after 5 consecutive passes
 
-### Test Debt Tracking
+### Behavior Test Debt Tracking
+
+When a critical behavior is discovered to be untested:
+
+1. File a behavior-debt ticket referencing `docs/governance/behavior-first-testing.md`.
+2. Add a `TODO(behavior-debt)` comment in code with the ticket link.
+3. Prioritize the test in the next sprint.
+4. Do not merge additional logic on top of the untested behavior until the contract is encoded.
 
 ### KPI Completeness Audit
 
@@ -352,6 +435,7 @@ _Snapshot source: local-fallback / repository snapshot_
 | Unit Test Count | 1000+ | 644 | <950 | <900 | pr-checks / layer jobs + cross-layer |
 | Integration Test Count | 200+ | 43 | <190 | <180 | pr-checks / Integration Tests (Docker) |
 | E2E Test Count | 50+ | 118 | <48 | <45 | pr-checks / Frontend + Playwright |
+| Behavior Contract Test Count | 100+ | TBD | <90 | <80 | pr-checks / contract + security |
 | Line Coverage | ≥80% | 80.0% (fallback CI gate) | <82% | <80% | pr-checks / *-coverage.xml |
 | Branch Coverage | ≥70% | 70.0% (fallback CI gate) | <72% | <70% | pr-checks / frontend coverage + backend thresholds |
 | Flaky Test Rate | <1% | 0.0% (fallback: no quarantined flaky markers) | >0.5% | >1.0% | pr-checks / flaky tracker |
@@ -371,6 +455,9 @@ _Snapshot source: local-fallback / repository snapshot_
 - Use factories for test data
 - Mock external APIs, not your own code
 - Follow AAA pattern: Arrange, Act, Assert
+- **Behavior-first:** Name tests after the behavior they prove, not the method they call.
+  - Good: `test_authenticated_user_can_read_own_data`
+  - Bad: `test_get_user_returns_200`
 
 ### Integration Tests
 
@@ -378,6 +465,7 @@ _Snapshot source: local-fallback / repository snapshot_
 - Test service boundaries
 - Verify data flows between layers
 - Clean up test data after each test
+- **Behavior-first:** Always include a hostile cross-tenant case where data boundaries exist.
 
 ### E2E Tests
 
@@ -385,6 +473,7 @@ _Snapshot source: local-fallback / repository snapshot_
 - Use Page Object Model pattern
 - Avoid testing implementation details
 - Parallel execution with independent test data
+- **Behavior-first:** Cover the denied path (unauthenticated, unauthorized) for every critical journey.
 
 ### Security Tests
 
@@ -392,6 +481,7 @@ _Snapshot source: local-fallback / repository snapshot_
 - Include both positive and negative cases
 - Automate in CI/CD pipeline
 - Regular penetration testing supplement
+- **Behavior-first:** Every security test must prove denial, not just validate presence of a control.
 
 ### Accessibility Tests
 
@@ -410,6 +500,7 @@ _Snapshot source: local-fallback / repository snapshot_
 - Coverage trends by layer
 - Flaky test rate
 - Test failure rates
+- **Behavior contract coverage** - ratio of critical behaviors with encoded tests
 
 ### Alerts
 
@@ -417,6 +508,7 @@ _Snapshot source: local-fallback / repository snapshot_
 - Flaky test rate exceeds 1%
 - E2E test failures in main branch
 - Security test failures
+- **New critical behavior merged without a behavior contract test**
 
 ---
 
@@ -428,6 +520,7 @@ _Snapshot source: local-fallback / repository snapshot_
 4. **Contract Testing Expansion** - Pact for cross-service
 5. **Performance Baselines** - Automated regression detection
 6. **Test Impact Analysis** - Run only affected tests
+7. **Behavior Contract Dashboard** - Automated discovery of untested critical paths
 
 ---
 
@@ -438,6 +531,9 @@ _Snapshot source: local-fallback / repository snapshot_
 - Unit tests: `test_*.py` or `*_test.py`
 - Integration tests: `test_*_integration.py`
 - Contract tests: `test_*_contract.py`
+- Behavior tests: `test_*_behavior.py` (backend), `*.behavior.test.ts` (frontend)
+- Hostile tests: `test_*_hostile.py`
+- Gate tests: `test_*_gate.py`
 - E2E tests: `*.spec.ts`
 - Accessibility tests: `*.a11y.spec.ts`
 
@@ -448,6 +544,9 @@ _Snapshot source: local-fallback / repository snapshot_
 @pytest.mark.integration             # Needs real services
 @pytest.mark.e2e                     # Full browser test
 @pytest.mark.contract                # API contract test
+@pytest.mark.contract_static         # Static contract check
+@pytest.mark.service_required        # Needs live endpoints
+@pytest.mark.tenant_boundary         # Cross-tenant isolation
 @pytest.mark.performance             # SLO benchmark
 @pytest.mark.security                # Security test
 @pytest.mark.slow                    # >1s execution
@@ -455,6 +554,7 @@ _Snapshot source: local-fallback / repository snapshot_
 @pytest.mark.requires_postgres       # Needs PostgreSQL
 @pytest.mark.requires_redis          # Needs Redis
 @pytest.mark.requires_neo4j          # Needs Neo4j
+@pytest.mark.mandatory               # Behavior-critical gate
 ```
 
 ### C. Coverage Exclusions
@@ -472,4 +572,4 @@ omit =
 
 **Document Owner:** Value Fabric Engineering
 **Review Cycle:** Quarterly
-**Next Review:** July 19, 2026
+**Next Review:** September 19, 2026

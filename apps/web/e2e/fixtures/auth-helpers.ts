@@ -48,7 +48,9 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
 async function ensureSameOrigin(page: Page): Promise<void> {
   const url = page.url();
   if (url === 'about:blank' || url === '' || url === 'chrome://newtab/') {
-    await page.goto('/login', { waitUntil: 'commit' });
+    // Navigate to the app root rather than /login; /login may not exist in
+    // legacy auth builds and would cause a 404 before localStorage seeding.
+    await page.goto('/', { waitUntil: 'commit' });
   }
 }
 
@@ -149,9 +151,17 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
     throw new Error('SERVICE_AUTH_SECRET is required for backend-integrated Playwright auth seeding.');
   }
 
+  const backendUrl = process.env.PLAYWRIGHT_BACKEND_URL;
   const frontendOrigin = liveFrontendOrigin(page);
+  // Use the backend directly when available to avoid Vite proxy timeouts/noise
+  // during test fixture setup. The validation/session endpoint is still
+  // requested service-to-service (X-Service-Auth), so the URL origin does not
+  // affect authorization semantics.
+  const sessionUrl = backendUrl
+    ? `${backendUrl.replace(/\/$/, '')}/v1/validation/session`
+    : `${frontendOrigin}/api/v1/agents/validation/session`;
   const requestUser = normalizeLiveUser(user);
-  const response = await page.request.post(`${frontendOrigin}/api/v1/agents/validation/session`, {
+  const response = await page.request.post(sessionUrl, {
     headers: {
       'Content-Type': 'application/json',
       'X-Tenant-ID': requestUser.tenantId,
@@ -171,7 +181,109 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
   }
 
   const payload = await response.json();
+
+  // Persist the httpOnly vf_session cookie into the Playwright browser context
+  // so that legacy mode API requests are authenticated. Playwright's
+  // page.request does not automatically transfer Set-Cookie into the browser
+  // context, and httpOnly cookies cannot be set from JavaScript.
+  const setCookieHeader = response.headers()['set-cookie'];
+  if (setCookieHeader) {
+    // The browser sends API requests to the frontend origin (Vite proxies them
+    // to the backend in legacy mode), so the cookie must be scoped to the
+    // frontend hostname — not the backend host the session was minted from.
+    const cookieDomain = new URL(frontendOrigin).hostname;
+    const cookies = parseSetCookieHeader(setCookieHeader, cookieDomain);
+    if (cookies.length > 0) {
+      await page.context().addCookies(
+        cookies.map((c) => ({
+          name: c.name,
+          value: c.value,
+          domain: cookieDomain,
+          path: c.path,
+          httpOnly: c.httpOnly,
+          secure: c.secure,
+          sameSite: c.sameSite as 'Strict' | 'Lax' | 'None' | undefined,
+          expires: c.expires,
+        }))
+      );
+    }
+  }
+
   return payload.user as TestUserInfo;
+}
+
+/**
+ * Parse a raw Set-Cookie header value (possibly comma-joined) into cookie
+ * objects suitable for Playwright's context.addCookies().
+ */
+function parseSetCookieHeader(
+  header: string | string[],
+  defaultDomain: string
+): Array<{
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'Strict' | 'Lax' | 'None' | undefined;
+  expires: number;
+}> {
+  const raw = Array.isArray(header) ? header.join(', ') : header;
+  // Split on cookie-name boundaries; a new cookie starts with a name=value pair
+  // followed by attributes. The two cookie names we issue are vf_session and
+  // vf_csrf_token.
+  const cookieTexts = raw
+    .split(/,(?=[^\s=]+=)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return cookieTexts
+    .map((text) => {
+      const parts = text.split(';').map((p) => p.trim());
+      const [name, ...valueParts] = parts[0].split('=');
+      if (!name) return null;
+      const value = valueParts.join('=').trim();
+      const attrs = new Map<string, string>();
+      let httpOnly = false;
+      let secure = false;
+      let sameSite: 'Strict' | 'Lax' | 'None' | undefined = undefined;
+      let path = '/';
+      let maxAge: number | undefined;
+      let expires: number | undefined;
+
+      for (let i = 1; i < parts.length; i++) {
+        const part = parts[i];
+        const [attrName, ...attrValueParts] = part.split('=');
+        const normalized = attrName.trim().toLowerCase();
+        const attrValue = attrValueParts.join('=').trim();
+        if (normalized === 'httponly') httpOnly = true;
+        else if (normalized === 'secure') secure = true;
+        else if (normalized === 'samesite') {
+          const v = attrValue.toLowerCase();
+          if (v === 'strict') sameSite = 'Strict';
+          else if (v === 'lax') sameSite = 'Lax';
+          else if (v === 'none') sameSite = 'None';
+        } else if (normalized === 'path') path = attrValue || '/';
+        else if (normalized === 'max-age') maxAge = parseInt(attrValue, 10);
+        else if (normalized === 'expires') {
+          const ts = Date.parse(attrValue);
+          if (!Number.isNaN(ts)) expires = Math.round(ts / 1000);
+        }
+      }
+
+      return {
+        name: name.trim(),
+        value,
+        domain: defaultDomain,
+        path,
+        httpOnly,
+        secure,
+        sameSite,
+        expires: expires ?? (maxAge ? Math.floor(Date.now() / 1000) + maxAge : Math.floor(Date.now() / 1000) + 3600),
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 }
 
 /**
@@ -242,4 +354,97 @@ export async function clearAuthState(page: Page): Promise<void> {
   } catch {
     // Page may already be closed or on about:blank — safe to ignore
   }
+}
+
+/**
+ * Set an expired access token to simulate session expiry.
+ * This is used to test token refresh and expiry handling.
+ */
+export async function setExpiredToken(page: Page, user: TestUserInfo = DEFAULT_TEST_USER): Promise<void> {
+  await ensureSameOrigin(page);
+
+  await page.evaluate((u) => {
+    // Generate a token that is already expired
+    const payload = {
+      exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
+      iat: Math.floor(Date.now() / 1000) - 7200,
+      sub: u.id,
+      tenant_id: u.tenantId,
+    };
+    const base64Payload = btoa(JSON.stringify(payload));
+    const token = `header.${base64Payload}.signature`;
+
+    localStorage.setItem('accessToken', token);
+    localStorage.setItem('userInfo', JSON.stringify(u));
+    localStorage.setItem('tenantId', u.tenantId);
+    sessionStorage.setItem('vf.auth.session.meta', JSON.stringify({ user: u, tenantId: u.tenantId }));
+  }, user);
+}
+
+/**
+ * Set a token that will expire soon (within 30 seconds).
+ * This is used to test proactive token refresh.
+ */
+export async function setExpiringToken(page: Page, user: TestUserInfo = DEFAULT_TEST_USER): Promise<void> {
+  await ensureSameOrigin(page);
+
+  await page.evaluate((u) => {
+    // Generate a token that expires in 30 seconds
+    const payload = {
+      exp: Math.floor(Date.now() / 1000) + 30,
+      iat: Math.floor(Date.now() / 1000),
+      sub: u.id,
+      tenant_id: u.tenantId,
+    };
+    const base64Payload = btoa(JSON.stringify(payload));
+    const token = `header.${base64Payload}.signature`;
+
+    localStorage.setItem('accessToken', token);
+    localStorage.setItem('userInfo', JSON.stringify(u));
+    localStorage.setItem('tenantId', u.tenantId);
+    sessionStorage.setItem('vf.auth.session.meta', JSON.stringify({ user: u, tenantId: u.tenantId }));
+  }, user);
+}
+
+/**
+ * Check if the current session is expired based on token payload.
+ */
+export async function isSessionExpired(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return true;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return true;
+
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      return payload.exp < now;
+    } catch {
+      return true;
+    }
+  });
+}
+
+/**
+ * Simulate a multi-tab session by copying session state to another page.
+ * This is used to test session synchronization across tabs.
+ */
+export async function syncSessionToPage(sourcePage: Page, targetPage: Page): Promise<void> {
+  const sessionData = await sourcePage.evaluate(() => {
+    return {
+      accessToken: localStorage.getItem('accessToken'),
+      userInfo: localStorage.getItem('userInfo'),
+      tenantId: localStorage.getItem('tenantId'),
+      sessionMeta: sessionStorage.getItem('vf.auth.session.meta'),
+    };
+  });
+
+  await targetPage.evaluate((data) => {
+    if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+    if (data.userInfo) localStorage.setItem('userInfo', data.userInfo);
+    if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+    if (data.sessionMeta) sessionStorage.setItem('vf.auth.session.meta', data.sessionMeta);
+  }, sessionData);
 }

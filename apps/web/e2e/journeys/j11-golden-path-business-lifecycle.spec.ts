@@ -42,7 +42,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
 
     await expectRouteSupportsWorkflow(
       page,
-      '/workflow',
+      '/accounts/new',
       [/start a new value case/i, /launch intelligence/i, /attach source material/i, /discovery/i],
       'prospect intake and launch workflow',
     );

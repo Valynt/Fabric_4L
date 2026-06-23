@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/states';
+import { EmptyState, LoadingState, ErrorState } from '@/components/states';
 import { useComments, useCreateComment } from '@/hooks/useComments';
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { Textarea } from '@/components/ui/textarea';
 import { safeAsync } from '@/lib/async';
 
 export default function CollaborationCommentsPage() {
@@ -85,9 +86,9 @@ export default function CollaborationCommentsPage() {
               </div>
               <div className="space-y-2 md:col-span-3">
                 <Label htmlFor="comment-body">Comment</Label>
-                <textarea
+                <Textarea
                   id="comment-body"
-                  className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-28"
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   placeholder="Add review context, evidence notes, or teammate feedback"
@@ -108,13 +109,14 @@ export default function CollaborationCommentsPage() {
 
         <section className="mt-6 space-y-3" aria-label="Persisted comments">
           {comments.isLoading ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-muted-foreground">Loading comments...</CardContent>
-            </Card>
+            <LoadingState message="Loading comments…" />
           ) : comments.isError ? (
-            <Card>
-              <CardContent className="py-8 text-sm text-destructive">Unable to load comments.</CardContent>
-            </Card>
+            <ErrorState
+              title="Unable to load comments"
+              description="The comments feed could not be retrieved. Check your network connection and try again."
+              error={comments.error}
+              onRetry={() => safeAsync(comments.refetch(), "comments.refetch")}
+            />
           ) : comments.data?.items.length ? (
             comments.data.items.map((comment) => (
               <Card key={comment.id}>

@@ -20,7 +20,7 @@ async def test_cross_tenant_account_access_fails_closed(backend, seed_ids):
 @pytest.mark.asyncio
 async def test_cross_tenant_document_access_fails_closed(backend, seed_ids):
     await backend.create_seed_graph()
-    await backend.assert_cross_tenant_denied("l1", f"/api/v1/ingestion/sources/{seed_ids.document_id}")
+    await backend.assert_cross_tenant_denied("l1", f"/api/v1/ingestion/sources/{backend.seed_source_id}")
 
 
 @pytest.mark.asyncio

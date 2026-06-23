@@ -92,7 +92,32 @@ This journey validates that the platform correctly enforces RBAC and tier-based 
 | `j10-layer-ui-validation.spec.ts` + `j10-layer-ui-validation-deep.spec.ts` | UI contract drift detection | happy path + deep | mocked | cross-layer data-shape resilience and PII redaction checks | Consolidated cross-cutting quality suite |
 | `j11-golden-path-business-lifecycle.spec.ts` | End-to-end business lifecycle | deep | integrated (@backend) | approval-to-export-to-CRM and post-sale realization chain | Integrated super-journey spanning J1–J5 |
 | `j12`–`j24` (excluding debug specs) | Domain extensions (resilience, narrative, CRM, personas, admin, adversarial) | happy path/deep/adversarial | mostly mocked; some backend-aware | scenario-specific assertions tied to feature module outcomes | Non-canonical extensions mapped to closest J1–J5 journey |
+| `j6-account-tenant-switching.spec.ts` | Account/tenant switching | happy path | mocked + integrated | data scope updates, navigation context, API tenant context, session validity, deep link respect | **P0 production gate** — multi-tenant isolation |
+| `j13-long-running-workflow-progress.spec.ts` | Long-running workflow progress | happy path | mocked | meaningful progress indicators, ETA/stage breakdown, cancel operations, progress persistence, error handling | **P1 production confidence** — UX for long operations |
+| `j20-billing-entitlement-gates.spec.ts` | Billing/entitlement gates | happy path + adversarial | mocked + integrated | plan/entitlement gates, billing status, API failure degradation, webhook results, usage limits | **P0 production gate** — billing UX |
+| `session-refresh-edge-cases.spec.ts` | Session refresh edge cases | happy path + edge case | mocked | silent token refresh, expiry during workflow, multi-tab sync, logout propagation, network recovery | **P1 production confidence** — session management |
+| `api-failure-recovery-deep.spec.ts` | API failure recovery (deep) | resilience | mocked | timeout handling, 5xx errors, offline mode, partial failures, retry mechanisms, error recovery | **P1 production confidence** — degraded UX |
+| `deep-link-tenant-isolation-deep.spec.ts` | Deep link tenant isolation (deep) | security | integrated (@backend) | deep link context respect, stale cache prevention, forged header blocking, expiry handling, cross-tenant blocking | **P0 production gate** — deep link security |
+| `j23-personal-settings.spec.ts` | Personal profile/security/preferences/notifications/sessions/activity | happy path | mocked | direct `/personal/*` route coverage, session controls, notification preferences, and personal audit activity | **P1 production confidence** — personal settings |
 | `debug-sidebar.spec.ts`, `debug-ui.spec.ts`, `full-ui-debug.spec.ts` | Diagnostics only | debug | mocked/manual | route/surface diagnostics and exploratory smoke output | **Excluded from normal CI via `@debug` tag** |
+
+## Behavior-First Contracts
+
+Each canonical journey has a corresponding **behavior contract** in `e2e/behaviors/` that explicitly encodes:
+
+1. **Allowed behaviors** — what must happen when a valid actor performs a valid action.
+2. **Denied behaviors** — what must happen when an invalid actor, action, or request occurs.
+3. **Expected failure modes** — explicit redirects, error states, disabled actions, or safe defaults.
+4. **Cross-layer proof** — UI action → API call → persistence → UI update.
+
+| Behavior Spec | Journey | Allowed | Denied |
+|---|---|---|---|
+| `j1-ingestion.behavior.spec.ts` | J1 | Submit domain, track job, explore value tree | Invalid domain, empty submission, cross-tenant leakage |
+| `j2-intelligence.behavior.spec.ts` | J2 | View signals/drivers/evidence, agent synthesis | Unsupported claims, low-confidence promotion, cross-tenant signals |
+| `j3-value-studio.behavior.spec.ts` | J3 | Tab nav, formula recalc, narrative, approved export | Export before approval, invalid formula, unauthorized access |
+| `j4-governance.behavior.spec.ts` | J4 | Decision traces, audit log, health monitor | Cross-tenant audit, missing provenance, unauthorized access |
+
+These behavior specs run in mocked mode by default and complement the golden-path journey tests by proving the **denied paths** and **failure modes** that journeys alone do not cover.
 
 ## Consolidation Decisions
 

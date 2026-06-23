@@ -12,15 +12,16 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone, timedelta
 
-from value_fabric.layer1.shared.exceptions import (
+from layer1_ingestion.shared.exceptions import (
     RobotsCacheError,
     InvalidTenantContextError,
+    RobotsFetchError,
 )
-from value_fabric.layer1.compliance.robots_checker import RobotsChecker
-from value_fabric.layer1.shared.models import RobotsTxtCache
+from layer1_ingestion.compliance.robots_checker import RobotsChecker
+from layer1_ingestion.shared.models import RobotsTxtCache
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestGlobalRobotsCacheIsolation:
@@ -78,7 +79,7 @@ class TestGlobalRobotsCacheIsolation:
         postgres_db.commit()
         
         # Access without tenant context should work
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "public.com").first()
@@ -106,7 +107,7 @@ class TestGlobalRobotsCacheIsolation:
         # Access from different tenant contexts should all work
         tenant_ids = [str(uuid4()), str(uuid4()), str(uuid4())]
         
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         for tenant_id in tenant_ids:
             with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
@@ -119,7 +120,7 @@ class TestGlobalRobotsCacheIsolation:
         # Create cache entry from one tenant context
         tenant_id_1 = str(uuid4())
         
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         with get_db_session(tenant_id=tenant_id_1, require_tenant=True) as session:
             cache_entry = RobotsTxtCache(
@@ -146,7 +147,7 @@ class TestGlobalRobotsCacheIsolation:
 
     def test_cache_does_not_store_tenant_specific_urls(self, postgres_db):
         """Test that cache doesn't store tenant-specific URLs or content."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Attempt to cache tenant-specific data should be prevented
         tenant_id = str(uuid4())
@@ -190,7 +191,7 @@ class TestGlobalRobotsCacheIsolation:
 
     def test_legacy_tenant_id_column_is_system_owned_only(self, postgres_db):
         """Test that tenant_id column is only used for system ownership."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Create entries with different tenant_id values
         with get_db_session(tenant_id=None, require_tenant=False) as session:
@@ -238,7 +239,8 @@ class TestGlobalRobotsCacheIsolation:
 class TestRobotsCheckerGlobalCacheAccess:
     """Test RobotsChecker access to global cache."""
 
-    def test_robots_checker_accesses_global_cache(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_accesses_global_cache(self, postgres_db):
         """Test that RobotsChecker can access global cache without tenant context."""
         # Setup cache entry
         cache_entry = RobotsTxtCache(
@@ -261,13 +263,13 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=tenant_id)
         
         # Should access global cache successfully
-        import asyncio
-        cached = asyncio.run(checker._get_cached_robots_txt("checker.com"))
+        cached = await checker._get_cached_robots_txt("checker.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] == 5.0
 
-    def test_robots_checker_without_tenant_context(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_without_tenant_context(self, postgres_db):
         """Test that RobotsChecker works without tenant context."""
         # Setup cache entry
         cache_entry = RobotsTxtCache(
@@ -289,36 +291,35 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=None)
         
         # Should access global cache successfully
-        import asyncio
-        cached = asyncio.run(checker._get_cached_robots_txt("notenant.com"))
+        cached = await checker._get_cached_robots_txt("notenant.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] is None
 
-    def test_robots_checker_invalid_tenant_id_fails(self):
+    @pytest.mark.asyncio
+    async def test_robots_checker_invalid_tenant_id_fails(self):
         """Test that RobotsChecker fails with invalid tenant_id."""
         checker = RobotsChecker(tenant_id="invalid-uuid")
         
-        import asyncio
         with pytest.raises(InvalidTenantContextError) as exc_info:
-            asyncio.run(checker._get_cached_robots_txt("example.com"))
+            await checker._get_cached_robots_txt("example.com")
         
         assert "Invalid tenant_id format" in str(exc_info.value)
 
-    def test_robots_checker_cache_error_handling(self, postgres_db):
+    @pytest.mark.asyncio
+    async def test_robots_checker_cache_error_handling(self, postgres_db):
         """Test that RobotsChecker properly handles cache errors."""
         # Mock a database error
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         from unittest.mock import patch
         
-        with patch('value_fabric.layer1.shared.database.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.database.get_db_session') as mock_session:
             mock_session.side_effect = Exception("Database connection failed")
             
             checker = RobotsChecker(tenant_id=str(uuid4()))
             
-            import asyncio
             with pytest.raises(RobotsCacheError) as exc_info:
-                asyncio.run(checker._get_cached_robots_txt("error.com"))
+                await checker._get_cached_robots_txt("error.com")
             
             assert "Failed to retrieve cached robots.txt" in str(exc_info.value)
             assert exc_info.value.domain == "error.com"
@@ -329,19 +330,20 @@ class TestCacheSecurityProperties:
 
     def test_cache_cannot_store_tenant_owned_data(self, postgres_db):
         """Test that cache cannot be used to store tenant-owned data."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         tenant_id = str(uuid4())
+        test_domain = f"tenant-{tenant_id[:8]}.com"
         
         # Attempt to store tenant-owned data should be prevented by design
         with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
             # RobotsTxtCache model doesn't have tenant-owned fields
             # Only public robots.txt response data can be stored
             cache_entry = RobotsTxtCache(
-                domain="tenant.com",
+                domain=test_domain,
                 tenant_id=None,  # Always system-owned for global cache
                 content="Public robots.txt only",  # No tenant-specific content
-                url="https://tenant.com/robots.txt",  # Only robots.txt URLs
+                url=f"https://{test_domain}/robots.txt",  # Only robots.txt URLs
                 rules={},  # Only parsed rules, not crawl decisions
                 fetched_at=datetime.now(timezone.utc),
                 expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
@@ -353,14 +355,15 @@ class TestCacheSecurityProperties:
             session.commit()
         
         # Verify no tenant-owned data is stored
-        retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "tenant.com").first()
-        assert retrieved is not None
-        assert retrieved.tenant_id is None  # System-owned only
-        assert "tenant" not in retrieved.content.lower()  # No tenant-specific content
+        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
+            retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == test_domain).first()
+            assert retrieved is not None
+            assert retrieved.tenant_id is None  # System-owned only
+            assert "tenant" not in retrieved.content.lower()  # No tenant-specific content
 
     def test_cache_rls_not_required(self, postgres_db):
         """Test that cache doesn't require RLS policies."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Create cache entry without any tenant context
         with get_db_session(tenant_id=None, require_tenant=False) as session:
@@ -382,6 +385,28 @@ class TestCacheSecurityProperties:
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "norls.com").first()
             assert retrieved is not None
+
+
+class TestStrictRobotsEnforcementSetting:
+    """Security-relevant checks for strict robots enforcement behavior."""
+
+    @pytest.mark.asyncio
+    async def test_strict_robots_enforcement_blocks_fetch_failures_with_reason_code(self):
+        checker = RobotsChecker(
+            tenant_id=str(uuid4()),
+            strict_mode=True,
+        )
+
+        from unittest.mock import AsyncMock, patch
+
+        with patch.object(checker, "_get_robots_txt", new_callable=AsyncMock) as mock_get:
+            mock_get.side_effect = RobotsFetchError("network down", domain="example.com")
+            allowed, reason, rules = await checker.check_url("https://example.com/path", job_id="job-123")
+
+        assert allowed is False
+        assert "strict mode" in (reason or "").lower()
+        assert rules is not None
+        assert rules["reason_code"] == "ROBOTS_FETCH_ERROR"
 
 
 # Helper function for URL parsing

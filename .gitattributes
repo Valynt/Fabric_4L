@@ -1,7 +1,11 @@
 # Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
 
 # Shell scripts must always use Unix line endings (LF)
 *.sh text eol=lf
 *.bash text eol=lf
 *.zsh text eol=lf
+
+# Generated OpenAPI TypeScript contracts — do not edit manually
+packages/platform-contract/src/typescript/generated/*.ts linguist-generated=true
+apps/web/src/api/generated/**/*.ts linguist-generated=true

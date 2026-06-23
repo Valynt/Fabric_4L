@@ -422,53 +422,17 @@ test.describe('UI Audit — Screen by Screen', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // 13. WORKFLOW
+  // 13. ACCOUNT CREATION
   // ═══════════════════════════════════════════════════════════════
-  test.describe('Workflow', () => {
+  test.describe('Account Creation', () => {
     test.beforeEach(async ({ page }) => {
       await seedAdmin(page);
     });
 
-    test('Prospect Setup', async ({ page }) => {
-      await page.goto('/workflow');
+    test('Account creation page', async ({ page }) => {
+      await page.goto('/accounts/new');
       await waitForStable(page);
-      await screenshot(page, '43-workflow-prospect');
-    });
-
-    test('Workflow Intelligence', async ({ page }) => {
-      await page.goto('/workflow/intelligence');
-      await waitForStable(page);
-      await screenshot(page, '44-workflow-intelligence');
-    });
-
-    test('Workflow AI Model', async ({ page }) => {
-      await page.goto('/workflow/ai-model');
-      await waitForStable(page);
-      await screenshot(page, '45-workflow-ai-model');
-    });
-
-    test('Workflow Driver Tree', async ({ page }) => {
-      await page.goto('/workflow/driver-tree');
-      await waitForStable(page);
-      await screenshot(page, '46-workflow-driver-tree');
-    });
-
-    test('Workflow Evidence', async ({ page }) => {
-      await page.goto('/workflow/evidence');
-      await waitForStable(page);
-      await screenshot(page, '47-workflow-evidence');
-    });
-
-    test('Workflow Calculator', async ({ page }) => {
-      await page.goto('/workflow/calculator');
-      await waitForStable(page);
-      await screenshot(page, '48-workflow-calculator');
-    });
-
-    test('Workflow Value Case', async ({ page }) => {
-      await page.goto('/workflow/value-case');
-      await waitForStable(page);
-      await screenshot(page, '49-workflow-value-case');
+      await screenshot(page, '43-accounts-new');
     });
   });
 

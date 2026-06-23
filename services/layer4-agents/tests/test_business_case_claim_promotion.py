@@ -1,18 +1,20 @@
+from __future__ import annotations
+
 """Integration-ish tests for deterministic claim promotion into Layer 5."""
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from value_fabric.layer4.services.export_provenance import build_export_provenance_manifest
-from value_fabric.layer4.workflows.business_case import (
+from layer4_agents.services.export_provenance import build_export_provenance_manifest
+from layer4_agents.workflows.business_case import (
     BusinessCaseGeneratorWorkflow,
     MissingTenantContextError,
+    _to_layer5_claim_type,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class _FakeLayer5Client_list_truthsResult(TypedDictModel):
@@ -30,9 +32,12 @@ class _FakeLayer5Client_sync_validated_truthsResult(TypedDictModel):
 
 
 class _FakeLayer5Client:
+    last_instance: "_FakeLayer5Client | None" = None
+
     def __init__(self, *args, **kwargs):
         self.created_truths: list[dict] = []
         self.validations: list[dict] = []
+        _FakeLayer5Client.last_instance = self
 
     async def list_truths(self, **kwargs):
         return {"items": []}
@@ -46,6 +51,10 @@ class _FakeLayer5Client:
         self.validations.append(kwargs)
         return {"ok": True}
 
+    async def validate_claim(self, **kwargs):
+        self.validations.append(kwargs)
+        return {"status": "passed", "reason": None, "evidence_refs": []}
+
     async def sync_validated_truths(self, **kwargs):
         return {"synced": 0, "failed": 0}
 
@@ -53,11 +62,19 @@ class _FakeLayer5Client:
         return None
 
 
+def _fake_ground_truth_factory(_organization_id: str) -> _FakeLayer5Client:
+    return _FakeLayer5Client()
+
+
 @pytest.mark.asyncio
 async def test_promotes_claims_and_persists_traceability(monkeypatch):
     registry = AsyncMock()
     registry.execute = AsyncMock(return_value={"document_url": "https://example/doc.pdf"})
-    workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+    _FakeLayer5Client.last_instance = None
+    workflow = BusinessCaseGeneratorWorkflow(
+        tool_registry=registry,
+        ground_truth_client_factory=_fake_ground_truth_factory,
+    )
     state = workflow.create_initial_state(
         {
             "account_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -94,7 +111,6 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     }
 
     state.metadata["authenticated_tenant_id"] = "test-tenant"
-    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
     result = await workflow._execute_assemble_document(state)
@@ -102,6 +118,16 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     assert result["truth_object_ids"]
     assert result["case_metadata"]["truth_object_ids"] == result["truth_object_ids"]
     assert result["case_metadata"]["claim_traceability"]
+    fake_client = _FakeLayer5Client.last_instance
+    assert fake_client is not None
+    created_claim_types = {truth["claim_type"] for truth in fake_client.created_truths}
+    assert "roi_assumption" not in created_claim_types
+    assert "metric" not in created_claim_types
+    assert created_claim_types <= {
+        "value_driver_metric",
+        "cost_savings_baseline",
+        "customer_outcome",
+    }
     assert any(
         d["decision"] in {"promoted", "existing"} for d in result["case_metadata"]["threshold_decisions"]
     )
@@ -111,7 +137,11 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
 async def test_skips_claims_below_threshold(monkeypatch):
     registry = AsyncMock()
     registry.execute = AsyncMock(return_value={"document_url": "https://example/doc.pdf"})
-    workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+    _FakeLayer5Client.last_instance = None
+    workflow = BusinessCaseGeneratorWorkflow(
+        tool_registry=registry,
+        ground_truth_client_factory=_fake_ground_truth_factory,
+    )
     state = workflow.create_initial_state(
         {
             "account_id": "550e8400-e29b-41d4-a716-446655440002",
@@ -140,7 +170,6 @@ async def test_skips_claims_below_threshold(monkeypatch):
         "run_roi": {"roi_results": {}},
     }
 
-    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     state.metadata["authenticated_tenant_id"] = "test-tenant"
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
@@ -182,6 +211,12 @@ def test_export_manifest_reads_persisted_case_linkage():
     assert manifest["source_references"] == [{"pointer": "truth-123", "type": "claim", "locator": None}]
 
 
+def test_layer4_claim_type_mapping_fails_closed_for_unknown_values():
+    assert _to_layer5_claim_type("metric") == "value_driver_metric"
+    with pytest.raises(ValueError, match="Unmapped Layer 4 claim_type"):
+        _to_layer5_claim_type("legacy_unknown")
+
+
 def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
     workflow = BusinessCaseGeneratorWorkflow(tool_registry=AsyncMock())
     state = workflow.create_initial_state(
@@ -193,7 +228,12 @@ def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
         },
         tenant_id="test-tenant",
     )
+    # Simulate a forged runtime context: the raw tenant_id is present but the
+    # authenticated claim has been cleared. Only the authenticated claim is
+    # trusted by _resolve_organization_id.
     state.metadata["tenant_id"] = "forged-metadata-tenant"
+    state.metadata.pop("authenticated_tenant_id", None)
+    state.tenant_id = ""
 
     with pytest.raises(MissingTenantContextError):
         workflow._resolve_organization_id(state)

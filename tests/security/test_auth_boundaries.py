@@ -442,10 +442,7 @@ class TestJWTExpirationEdgeCases:
             "P1: Future token accepted (clock skew vulnerability)."
         )
 
-    @pytest.mark.xfail(
-        reason="Test app returns 501 for unimplemented endpoints even with valid auth; "
-               "re-run against live L4 app to confirm sub claim enforcement."
-    )
+    @pytest.mark.service_required
     def test_jwt_missing_sub_claim_rejected(self, client: TestClient, jwt_encoder):
         """P1: JWT without required 'sub' claim is rejected.
 

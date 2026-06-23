@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/fabric/gate-engineering/gate-schema.json",
+  "title": "Fabric_4L Release Gate Definition Schema",
+  "description": "Machine-readable schema for a release gate. Every gate must be explicit, measurable, evidence-backed, and assigned.",
+  "type": "object",
+  "required": [
+    "gate_id",
+    "version",
+    "name",
+    "scope",
+    "criticality",
+    "protected_invariant",
+    "applies_when",
+    "measurement",
+    "pass_criteria",
+    "fail_criteria",
+    "inconclusive_criteria",
+    "evidence",
+    "enforcement_point",
+    "failure_action",
+    "owner",
+    "override_policy",
+    "review_cadence",
+    "deprecation_policy"
+  ],
+  "properties": {
+    "gate_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "Stable dotted identifier. Example: release.tenant_isolation.v1"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version of this gate definition."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "design",
+        "change",
+        "build",
+        "pre_production",
+        "release_authorization",
+        "deployment",
+        "canary",
+        "post_deployment",
+        "continuous_production",
+        "rollback_recovery",
+        "product",
+        "api",
+        "event",
+        "data",
+        "workflow",
+        "connector",
+        "ai_agent",
+        "security",
+        "operability",
+        "contract",
+        "e2e"
+      ],
+      "description": "Lifecycle stage or contract domain this gate belongs to."
+    },
+    "criticality": {
+      "type": "string",
+      "enum": ["blocking", "advisory", "artifact_only"],
+      "description": "blocking gates fail the release; advisory gates produce warnings; artifact_only gates generate required evidence."
+    },
+    "protected_invariant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Exact invariant being protected."
+    },
+    "applies_when": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic rule that decides when this gate must be evaluated."
+    },
+    "measurement": {
+      "type": "object",
+      "required": ["type", "source", "query_or_command"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "automated_test",
+            "static_analysis",
+            "manual_review",
+            "synthetic_workflow",
+            "runtime_metric",
+            "audit_record",
+            "artifact_check",
+            "composite"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "description": "Authoritative evidence source or test suite name."
+        },
+        "query_or_command": {
+          "type": "string",
+          "description": "Exact command, query, or path to reproduce the measurement."
+        },
+        "minimum_sample_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "threshold": {
+          "type": "string",
+          "description": "Numeric or semantic threshold for pass/warn/fail."
+        },
+        "duration": {
+          "type": "string",
+          "description": "Observation window or max duration."
+        }
+      },
+      "additionalProperties": false
+    },
+    "pass_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "fail_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "inconclusive_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "not_applicable_criteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "warning_criteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["required", "artifact_binding", "maximum_age", "retention"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "artifact_binding": {
+          "type": "string",
+          "description": "What the evidence must be bound to: container-image-digest, commit-sha, artifact-digest, etc."
+        },
+        "maximum_age": {
+          "type": "string",
+          "description": "Maximum age of evidence (e.g., 24h, 7d, 1y)."
+        },
+        "retention": {
+          "type": "string",
+          "description": "How long evidence must be retained (e.g., 1y, 7y)."
+        },
+        "required_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "enforcement_point": {
+      "type": "string",
+      "description": "Where the gate is enforced: e.g., production-promotion, merge, build, deploy, canary, post-deploy."
+    },
+    "failure_action": {
+      "type": "string",
+      "enum": ["block", "alert", "auto_rollback", "reduce_traffic", "disable_feature", "queue_pause", "human_review", "incident_declare", "release_freeze"],
+      "description": "Action taken when the gate fails."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Exactly one accountable owner (team or role)."
+    },
+    "approvers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence_producer": {
+      "type": "object",
+      "description": "Authoritative evidence producer for this gate.",
+      "required": ["command", "artifact_path", "freshness", "artifact_binding", "owner"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Exact CLI command that produces the evidence."
+        },
+        "artifact_path": {
+          "type": "string",
+          "description": "Path to the evidence artifact or directory."
+        },
+        "freshness": {
+          "type": "string",
+          "description": "Maximum age of the evidence (e.g., PR lifetime, 24h, 7d)."
+        },
+        "artifact_binding": {
+          "type": "string",
+          "description": "What the evidence must be bound to: commit-sha, container-image-digest, artifact-digest, etc."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Team or system responsible for keeping the producer green."
+        }
+      },
+      "additionalProperties": false
+    },
+    "enforcement_system_owner": {
+      "type": "string"
+    },
+    "remediation_owner": {
+      "type": "string"
+    },
+    "remediation": {
+      "type": "object",
+      "description": "Remediation plan when a gate is INCONCLUSIVE or not yet executable.",
+      "properties": {
+        "ticket": { "type": "string" },
+        "owner": { "type": "string" },
+        "target_date": { "type": "string" },
+        "target_checkpoint": { "type": "integer" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "override_policy": {
+      "type": "string",
+      "enum": ["prohibited", "requires_ciso", "requires_release_manager", "requires_owner", "requires_architect"],
+      "description": "Who can approve an exception."
+    },
+    "review_cadence": {
+      "type": "string",
+      "description": "How often the gate definition is reviewed (e.g., quarterly, per-release)."
+    },
+    "deprecation_policy": {
+      "type": "string",
+      "description": "How the gate is deprecated or superseded."
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "policy_doc": { "type": "string", "format": "uri" },
+        "implementation": { "type": "string" },
+        "test_command": { "type": "string" },
+        "ci_workflow": { "type": "string" },
+        "runbook": { "type": "string" }
+      }
+    },
+    "related_contracts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

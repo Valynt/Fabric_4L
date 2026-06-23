@@ -106,10 +106,10 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 
 ### Task 2B — Wire OIDC backend routes in Layer 4
 
-**Context:** `apps/web/src/services/authClient.ts` calls `/auth/oidc/{tenant}/login` and `/auth/oidc/{tenant}/callback`. The OIDC client (`packages/shared/src/value_fabric/shared/identity/oidc.py`) and middleware exist. The `InMemoryOIDCStateStore` / `RedisOIDCStateStore` exist. But no FastAPI route file for these endpoints exists in `services/layer4-agents/src/api/routes/`. The frontend auth flow is broken end-to-end until these routes are wired.
+**Context:** `apps/web/src/services/authClient.ts` calls `/auth/oidc/{tenant}/login` and `/auth/oidc/{tenant}/callback`. The OIDC client (`packages/shared/src/value_fabric/shared/identity/oidc.py`) and middleware exist. The `InMemoryOIDCStateStore` / `RedisOIDCStateStore` exist. But no FastAPI route file for these endpoints exists in `services/layer4-agents/src/layer4_agents/api/routes/`. The frontend auth flow is broken end-to-end until these routes are wired.
 
 **Work items:**
-- Create `services/layer4-agents/src/api/routes/auth.py` with:
+- Create `services/layer4-agents/src/layer4_agents/api/routes/auth.py` with:
   - `GET /auth/oidc/{tenant}/login` — initiates PKCE flow, stores state in `RedisOIDCStateStore` (production) or `InMemoryOIDCStateStore` (dev-guarded), redirects to provider
   - `GET /auth/oidc/{tenant}/callback` — validates state, exchanges code, issues httpOnly cookie, returns to frontend
   - `POST /auth/logout` — clears session cookie, revokes token if provider supports it
@@ -125,8 +125,8 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 - `authClient.ts` flow is end-to-end traceable from frontend call to backend handler.
 
 **Files to touch:**
-- `services/layer4-agents/src/api/routes/auth.py` (new)
-- `services/layer4-agents/src/api/app.py` or equivalent router registration
+- `services/layer4-agents/src/layer4_agents/api/routes/auth.py` (new)
+- `services/layer4-agents/src/layer4_agents/api/app.py` or equivalent router registration
 - `contracts/openapi/layer4.json`
 - `services/layer4-agents/tests/test_auth_routes.py` (new)
 
@@ -138,7 +138,7 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 
 ### Task 3A — Enforce model registry as sole runtime selection path
 
-**Context:** `config/production-readiness/model_governance_policy.json` requires `mustResolveFromRegistry: true` and `environmentOverridesAllowed: false`. The `resolve_llm_model` function in `services/layer4-agents/src/registry/service.py` still falls back to `os.getenv('LLM_MODEL', 'gpt-4o')`. This means a misconfigured or missing registry entry silently falls back to a hardcoded model, bypassing governance.
+**Context:** `config/production-readiness/model_governance_policy.json` requires `mustResolveFromRegistry: true` and `environmentOverridesAllowed: false`. The `resolve_llm_model` function in `services/layer4-agents/src/layer4_agents/registry/service.py` still falls back to `os.getenv('LLM_MODEL', 'gpt-4o')`. This means a misconfigured or missing registry entry silently falls back to a hardcoded model, bypassing governance.
 
 **Work items:**
 - Modify `resolve_llm_model` to raise a `ModelRegistryError` (not fall back silently) when the registry has no active deployment for the requested model class and tenant.
@@ -156,7 +156,7 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 - Tests pass.
 
 **Files to touch:**
-- `services/layer4-agents/src/registry/service.py`
+- `services/layer4-agents/src/layer4_agents/registry/service.py`
 - `services/layer4-agents/src/model_registry_client.py`
 - `config/production-readiness/model_governance_policy.json`
 - `services/layer4-agents/tests/test_model_registry.py` (expansion)
@@ -238,7 +238,7 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 
 **Files to touch:**
 - `docs/launch/launch-control-room.md` (new)
-- `.github/workflows/launch-readiness.yml` (add control room validation step)
+- `.github/workflows/prod-readiness.yml` (add control room validation step)
 
 ---
 

@@ -24,7 +24,7 @@ export function GateStatusBanner({ accountId }: GateStatusBannerProps) {
 
   if (error || !gateSummary) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4 text-red-700 text-sm">
+      <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 mb-4 text-destructive text-sm">
         Unable to load gate status. Export and sharing may be unavailable.
       </div>
     );
@@ -34,11 +34,11 @@ export function GateStatusBanner({ accountId }: GateStatusBannerProps) {
 
   if (all_passed) {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-4 mb-4 flex items-center gap-3">
-        <ShieldCheck className="h-5 w-5 text-green-600 shrink-0" />
+      <div className="rounded-lg border border-success/20 bg-success/10 p-4 mb-4 flex items-center gap-3">
+        <ShieldCheck className="h-5 w-5 text-success shrink-0" />
         <div>
-          <p className="text-sm font-medium text-green-800">All gates closed</p>
-          <p className="text-xs text-green-600">This account is ready for export and CRM push.</p>
+          <p className="text-sm font-medium text-success">All gates closed</p>
+          <p className="text-xs text-success">This account is ready for export and CRM push.</p>
         </div>
       </div>
     );
@@ -47,10 +47,10 @@ export function GateStatusBanner({ accountId }: GateStatusBannerProps) {
   const openGates = gates.filter((g) => g.status === "open");
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-4">
+    <div className="rounded-lg border border-warning/20 bg-warning/10 p-4 mb-4">
       <div className="flex items-center gap-2 mb-2">
-        <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0" />
-        <p className="text-sm font-medium text-amber-800">
+        <ShieldAlert className="h-5 w-5 text-warning shrink-0" />
+        <p className="text-sm font-medium text-warning">
           {openGates.length} gate{openGates.length > 1 ? "s" : ""} open — export blocked
         </p>
       </div>
@@ -62,8 +62,8 @@ export function GateStatusBanner({ accountId }: GateStatusBannerProps) {
               key={gate.type}
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                 isClosed
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700"
+                  ? "bg-success/10 text-success"
+                  : "bg-warning/10 text-warning"
               }`}
               title={gate.reason || undefined}
             >

@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 
-from value_fabric.layer3.ingestion import Neo4jLoader, RDFLoadError
-from value_fabric.layer3.ingestion.neo4j_loader import (
+from src.ingestion import Neo4jLoader, RDFLoadError
+from src.ingestion.neo4j_loader import (
     TenantValidationError,
     validate_ingestion_tenant_id,
 )
@@ -34,10 +34,10 @@ class _FakeSession:
 
     async def run(self, query, params):
         self.calls.append((query, params))
-        if "entities" in params:
-            return _FakeResult(len(params["entities"]))
-        if "relationships" in params:
-            return _FakeResult(len(params["relationships"]))
+        if "nodes" in params:
+            return _FakeResult(len(params["nodes"]))
+        if "triples" in params:
+            return _FakeResult(len(params["triples"]))
         return _FakeResult(0)
 
 
@@ -223,20 +223,16 @@ async def test_load_rdf_graph_persists_valid_tenant_on_entities_and_relationship
     assert stats["relationships_loaded"] >= 1
     assert len(session.calls) >= 3
 
-    entity_calls = [params for _, params in session.calls if "entities" in params]
-    relationship_calls = [params for _, params in session.calls if "relationships" in params]
+    entity_calls = [params for _, params in session.calls if "nodes" in params]
+    relationship_calls = [params for _, params in session.calls if "triples" in params]
 
     assert entity_calls
     assert relationship_calls
     assert all(
-        entity["tenant_id"] == TEST_TENANT_ID
+        node["properties"]["tenant_id"] == TEST_TENANT_ID
         for call in entity_calls
-        for entity in call["entities"]
+        for node in call["nodes"]
     )
-    assert all(
-        rel["tenant_id"] == TEST_TENANT_ID
-        for call in relationship_calls
-        for rel in call["relationships"]
-    )
+    assert all(call["tenant_id"] == TEST_TENANT_ID for call in entity_calls)
     assert all(call["tenant_id"] == TEST_TENANT_ID for call in relationship_calls)
 

@@ -882,7 +882,7 @@ class AnalyticsManager:
         if query.group_by:
             key_parts.append(",".join(query.group_by))
 
-        return hashlib.md5(":".join(key_parts).encode()).hexdigest()
+        return hashlib.md5(":".join(key_parts).encode(), usedforsecurity=False).hexdigest()
 
     async def _execute_query(self, query: AnalyticsQuery) -> list[dict[str, Any]]:
         """Execute analytics query.

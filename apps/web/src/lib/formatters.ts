@@ -69,6 +69,15 @@ export function formatCurrency(value: number | undefined, fallback = "—"): str
 }
 
 /**
+ * Format cents to USD currency string
+ * @param cents - Amount in cents
+ * @returns Formatted USD string (e.g., "$12.34")
+ */
+export function formatCurrencyFromCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+/**
  * Format a number as compact currency (K/M/B)
  * @param value - Number to format
  * @returns Compact currency string (e.g., "$1.2M", "$850K")

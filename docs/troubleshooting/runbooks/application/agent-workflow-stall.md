@@ -273,7 +273,7 @@ kubectl logs -n value-fabric -l app=layer4-agents --tail=50 | grep -c "checkpoin
 ## References
 
 - LangGraph Documentation: https://langchain-ai.github.io/langgraph/
-- Layer 4 Workflow API: `services/layer4-agents/src/api/workflows.py`
+- Layer 4 Workflow API: `services/layer4-agents/src/layer4_agents/api/workflows.py`
 - Checkpoint Implementation: `services/layer4-agents/src/checkpoint/`
 
 ---

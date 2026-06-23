@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore
+from src.retrieval.vector_store import Neo4jVectorStore
 
 
 class _FakeResult:
@@ -26,11 +26,11 @@ async def test_upsert_entity_uses_explicit_tenant_and_strips_forged_metadata(mon
     store = Neo4jVectorStore(driver=object(), settings=_settings_stub())
     captured = {}
 
-    async def _fake_run_scoped(scoped):
+    async def _fake_run_scoped_single(scoped):
         captured["scoped"] = scoped
-        return _FakeResult()
+        return await _FakeResult().single()
 
-    monkeypatch.setattr(store, "_run_scoped", _fake_run_scoped)
+    monkeypatch.setattr(store, "_run_scoped_single", _fake_run_scoped_single)
     monkeypatch.setattr(store, "_embed", lambda _: [0.1, 0.2])
 
     await store.upsert_entity(
@@ -68,11 +68,11 @@ async def test_hostile_metadata_override_cannot_cross_tenant(monkeypatch):
     store = Neo4jVectorStore(driver=object(), settings=_settings_stub())
     captured = {}
 
-    async def _fake_run_scoped(scoped):
+    async def _fake_run_scoped_single(scoped):
         captured["scoped"] = scoped
-        return _FakeResult()
+        return await _FakeResult().single()
 
-    monkeypatch.setattr(store, "_run_scoped", _fake_run_scoped)
+    monkeypatch.setattr(store, "_run_scoped_single", _fake_run_scoped_single)
     monkeypatch.setattr(store, "_embed_batch", lambda _: [[0.1, 0.2]])
 
     await store.upsert_batch(

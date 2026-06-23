@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+import asyncio
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
+
+INTENTIONAL_DB_ADAPTER_BYPASS = True
+
 """
 Async SQLAlchemy engine and session management for Layer 4.
 
@@ -7,8 +15,6 @@ for accounts, CRM sync metadata, and workflow state.
 P0-08: Supports PostgreSQL Row-Level Security via SET LOCAL app.tenant_id
 SECURITY: Fail-safe tenant isolation - tenant context is mandatory
 """
-
-from __future__ import annotations
 
 import logging
 import os
@@ -20,7 +26,10 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 # Import settings at module level for early validation and clarity
-from .config.settings import settings
+try:
+    from .config.settings import get_settings
+except ImportError:  # Compatibility for legacy top-level ``import database``.
+    from layer4_agents.config.settings import get_settings
 
 # Task 4.1: Default isolation tier constant
 DEFAULT_ISOLATION_TIER = "shared"
@@ -145,6 +154,8 @@ async def _emit_tenant_context_set_audit(
             request_id=context.request_id,
             details=details.model_dump(exclude_none=True),
         )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:
         # Audit emission must never break request flow — log and continue.
         logger.debug("Tenant context audit emission failed (non-critical): %s", exc)
@@ -178,7 +189,10 @@ _RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azur
 
 def _record_pool_state(engine: AsyncEngine) -> None:
     try:
-        from .metrics import get_metrics
+        try:
+            from .metrics import get_metrics
+        except ImportError:  # Compatibility for legacy top-level ``import database``.
+            from layer4_agents.metrics import get_metrics
 
         metrics = get_metrics()
         if metrics is None:
@@ -188,6 +202,8 @@ def _record_pool_state(engine: AsyncEngine) -> None:
         size = int(pool.size())
         idle = max(size - active, 0)
         metrics.set_db_pool_state(pool_size=size, active=active, idle=idle)
+    except asyncio.CancelledError:
+        raise
     except Exception:
         logger.debug("DB pool state metric emission failed", exc_info=True)
 
@@ -197,21 +213,28 @@ def get_database_url() -> str:
 
     Falls back to checkpoint database URL for compatibility,
     but allows separate configuration for operational data.
+    
+    In production-like environments, fails fast if neither URL is configured.
     """
-    return os.getenv(
-        "LAYER4_DATABASE_URL",
-        os.getenv(
-            "CHECKPOINT_DATABASE_URL",
-            "postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents",
-        ),
-    )
+    database_url = os.getenv("LAYER4_DATABASE_URL") or os.getenv("CHECKPOINT_DATABASE_URL")
+    
+    if not database_url:
+        if _is_production_like_runtime():
+            raise RuntimeError(
+                "LAYER4_DATABASE_URL or CHECKPOINT_DATABASE_URL must be set in production-like environments. "
+                "Configure these environment variables via Kubernetes secrets."
+            )
+        # Allow local development with SQLite or other local databases
+        return "sqlite+aiosqlite:///:memory:"
+    
+    return database_url
 
 
 def _is_production_like_runtime() -> bool:
     env = os.getenv("ENVIRONMENT", "").strip().lower()
     app_env = os.getenv("APP_ENV", "").strip().lower()
     value = env or app_env
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+    return value == "production"
 
 
 def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
@@ -269,11 +292,16 @@ class TenantEnforcedAsyncSession(AsyncSession):
             return await super().execute(statement, params, **kwargs)
         except SATimeoutError:
             try:
-                from .metrics import get_metrics
+                try:
+                    from .metrics import get_metrics
+                except ImportError:  # Compatibility for legacy top-level ``import database``.
+                    from layer4_agents.metrics import get_metrics
 
                 metrics = get_metrics()
                 if metrics is not None:
                     metrics.increment_db_pool_timeout()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.debug("DB pool timeout metric emission failed", exc_info=True)
             raise
@@ -292,9 +320,10 @@ def get_engine() -> AsyncEngine:
         _assert_rls_safe_database_url(database_url, source="Layer 4 database URL")
         _engine = create_async_engine(
             database_url,
-            pool_size=settings.database_pool_size,
-            max_overflow=settings.database_max_overflow,
+            pool_size=get_settings().database_pool_size,
+            max_overflow=get_settings().database_max_overflow,
             pool_pre_ping=True,
+            pool_timeout=30.0,
             echo=False,
             future=True,
         )
@@ -310,11 +339,16 @@ def get_engine() -> AsyncEngine:
             start = connection_record.info.pop("pool_checkout_start", None)
             if start is not None:
                 try:
-                    from .metrics import get_metrics
+                    try:
+                        from .metrics import get_metrics
+                    except ImportError:  # Compatibility for legacy top-level ``import database``.
+                        from layer4_agents.metrics import get_metrics
 
                     metrics = get_metrics()
                     if metrics is not None:
                         metrics.observe_db_pool_wait(time.perf_counter() - start)
+                except asyncio.CancelledError:
+                    raise
                 except Exception:
                     logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
@@ -333,6 +367,19 @@ def get_session_factory() -> async_sessionmaker[TenantEnforcedAsyncSession]:
             expire_on_commit=False,
         )
     return _session_factory
+
+
+async def close_db() -> None:
+    """Dispose of the database engine and connection pool.
+
+    Should be called during application shutdown to ensure clean connection cleanup.
+    """
+    global _engine, _session_factory
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+        logger.info("Layer 4 database engine disposed")
+    _session_factory = None
 
 
 # ---------------------------------------------------------------------------
@@ -442,7 +489,7 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
             _tenant_validation_metrics["validation_failures"] += 1
             # Re-raise as local TenantContextError for a stable exception contract.
             if not isinstance(exc, TenantContextError):
-                raise TenantContextError(str(exc)) from exc
+                raise TenantContextError("tenant_context_invalid") from exc
             raise
 
     # Fallback to local implementation
@@ -494,7 +541,6 @@ async def _set_local_tenant_context(session: AsyncSession, tenant_id: str) -> No
 
 async def _clear_local_tenant_context(session: AsyncSession) -> None:
     """Clear the transaction-local tenant context for explicit admin/system bypass."""
-    await session.execute(text("SELECT set_config('app.tenant_id', '', true)"))
     _mark_session_tenant_bypass(session, reason="system_operation")
 
 
@@ -517,7 +563,10 @@ def _record_privileged_db_session_activation(
         },
     )
     try:
-        from .metrics import get_metrics
+        try:
+            from .metrics import get_metrics
+        except ImportError:  # Compatibility for legacy top-level ``import database``.
+            from layer4_agents.metrics import get_metrics
 
         metrics = get_metrics()
         if metrics is not None:
@@ -525,6 +574,8 @@ def _record_privileged_db_session_activation(
                 str(context.tenant_id) if context.tenant_id is not None else None,
                 mode,
             )
+    except asyncio.CancelledError:
+        raise
     except Exception as exc:  # pragma: no cover - metrics must not block authz
         logger.debug("Privileged DB activation metric emission failed: %s", exc)
 
@@ -536,18 +587,12 @@ def _require_privileged_cross_tenant_reason(
     """Require explicit super-admin context plus an audited reason for cross-tenant DB access."""
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cross-tenant database access requires super admin role.",
-        )
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.",
-        )
+        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
     return reason
 
 
@@ -599,6 +644,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -649,20 +696,14 @@ async def get_db_from_context(
         raise RuntimeError("shared.identity package required for get_db_from_context")
 
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required. Ensure request has passed through GovernanceMiddleware.",
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request has passed through GovernanceMiddleware.")
 
     # SECURITY: Fail-safe validation via validate_tenant_id
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
-        logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
+        raise ValidationError(message = "Invalid tenant context") from e
 
     factory = get_session_factory()
     async with factory() as session:
@@ -692,6 +733,8 @@ async def get_db_from_context(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -744,11 +787,8 @@ async def get_db_with_optional_tenant(
             try:
                 effective_tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
-                logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid tenant context",
-                ) from e
+                logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
+                raise ValidationError(message = "Invalid tenant context") from e
             await _set_local_tenant_context(session, effective_tenant_id)
         elif context.is_super_admin():
             bypass_reason = _require_privileged_cross_tenant_reason(request, context)
@@ -761,10 +801,7 @@ async def get_db_with_optional_tenant(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cross-tenant database access requires super admin role.",
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
         # Task 3.1: Emit tenant context set audit event (with bypass flag for super-admin)
         await _emit_tenant_context_set_audit(
@@ -777,6 +814,8 @@ async def get_db_with_optional_tenant(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -841,6 +880,8 @@ async def get_tiered_db_session(
             try:
                 yield session
                 await session.commit()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 await session.rollback()
                 raise
@@ -860,10 +901,7 @@ async def get_tiered_db_session(
         )
 
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'.",
-        )
+        raise ValidationError(message = str(f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'."))
 
 
 # ---------------------------------------------------------------------------
@@ -917,6 +955,8 @@ async def db_session(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -971,6 +1011,8 @@ async def db_session_for_context(
         try:
             yield session
             await session.commit()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             await session.rollback()
             raise
@@ -986,12 +1028,3 @@ async def init_db() -> None:
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-
-async def close_db() -> None:
-    """Dispose the engine connection pool on shutdown."""
-    global _engine, _session_factory
-    if _engine is not None:
-        await _engine.dispose()
-        _engine = None
-        _session_factory = None

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Approved Neo4j execution surface for Layer 3 runtime modules.
 
 Runtime code in ``services/layer3-knowledge/src`` must not call
@@ -20,7 +22,6 @@ High-risk runtime folders (``api/routes``, ``services``, ``agents``, and
 unless they are moved behind this boundary.
 """
 
-from __future__ import annotations
 
 import asyncio
 import re
@@ -28,8 +29,16 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from value_fabric.layer3.utils.cypher_security import TENANT_OWNED_LABELS
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
+
+from src.utils.cypher_security import TENANT_OWNED_LABELS
+
+from ..graph.query_guards import (
+    DEFAULT_MAX_QUERY_DEPTH,
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
+    sanitize_query_depth,
+    sanitize_query_timeout_seconds,
+)
 
 try:
     from metrics.prometheus_metrics import get_metrics
@@ -38,9 +47,9 @@ except Exception:
 
 SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
 
-# Global Cypher query limits (PERF-001)
-MAX_QUERY_DEPTH = 10
-QUERY_TIMEOUT_SECONDS = 30.0
+# Backward-compatible aliases for existing imports.
+MAX_QUERY_DEPTH = DEFAULT_MAX_QUERY_DEPTH
+QUERY_TIMEOUT_SECONDS = DEFAULT_QUERY_TIMEOUT_SECONDS
 
 
 class TenantQueryValidationError(ValueError):
@@ -164,7 +173,25 @@ class TenantQueryExecutor:
 
         start = time.monotonic()
         coro = run_callable(query, params)
-        result = await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+        try:
+            result = await asyncio.wait_for(
+                coro, timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS)
+            )
+        except TimeoutError:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_graph_query_failure(
+                    category="timeout", operation="run", route="tenant_query_executor"
+                )
+            raise
+        except Exception:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_graph_query_failure(
+                    category="execution_error", operation="run", route="tenant_query_executor"
+                )
+            raise
+
         elapsed = time.monotonic() - start
 
         metrics = get_metrics() if get_metrics else None
@@ -202,16 +229,43 @@ class TenantQueryExecutor:
         if context.is_bypass:
             return
 
+        # Phase 1 hardening: Block direct CREATE/MERGE/DELETE on tenant-owned labels
+        # These must go through AuditedGraphMutation for audit trail
+        mutation_keywords = re.compile(r'\b(CREATE|MERGE|DELETE)\b', re.IGNORECASE)
+        if mutation_keywords.search(query) and _touches_tenant_owned_label(query):
+            if not context.allow_system_query:
+                metrics = get_metrics() if get_metrics else None
+                if metrics:
+                    metrics.increment_tenant_isolation_violation(
+                        component="query_execution", violation_type="direct_mutation_bypass"
+                    )
+                    metrics.increment_unauthorized_traversal(
+                        category="mutation_bypass",
+                        route="tenant_query_executor",
+                        violation_type="direct_mutation_bypass",
+                    )
+                raise TenantQueryValidationError(
+                    "Direct CREATE/MERGE/DELETE on tenant-owned labels is prohibited. "
+                    "Use AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead. "
+                    "This ensures audit trail and metrics collection for all graph mutations."
+                )
+
         # Depth limit check (PERF-001)
         max_depth = cls._extract_max_depth(query, params)
-        if max_depth is not None and max_depth > MAX_QUERY_DEPTH:
+        safe_max_depth = sanitize_query_depth(MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH)
+        if max_depth is not None and max_depth > safe_max_depth:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.observe_graph_traversal_depth(
                     depth=max_depth, endpoint="tenant_query_executor", operation="validate"
                 )
+                metrics.increment_unauthorized_traversal(
+                    category="depth_limit",
+                    route="tenant_query_executor",
+                    violation_type="depth_exceeded",
+                )
             raise CypherDepthLimitExceeded(
-                f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"
+                f"Query exceeds maximum depth of {safe_max_depth} (found {max_depth})"
             )
 
         touches_tenant_data = _touches_tenant_owned_label(query)
@@ -220,6 +274,11 @@ class TenantQueryExecutor:
             if metrics:
                 metrics.increment_tenant_isolation_violation(
                     component="query_execution", violation_type="missing_tenant_context"
+                )
+                metrics.increment_unauthorized_traversal(
+                    category="tenant_boundary",
+                    route="tenant_query_executor",
+                    violation_type="missing_tenant_context",
                 )
             raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
 
@@ -303,6 +362,7 @@ async def run_validated_query(
     allow_system_query: bool = False,
     is_bypass: bool = False,
     query_name: str | None = None,
+    require_explicit_tenant_id: bool = True,
     **kwargs: Any,
 ) -> Any:
     """Execute legacy Cypher through fail-closed tenant validation.
@@ -310,16 +370,19 @@ async def run_validated_query(
     This compatibility wrapper is the approved temporary surface for migrated
     high-risk runtime modules that still hold raw Cypher strings. It merges
     positional and keyword parameters, derives the tenant from the explicit
-    ``tenant_id`` argument or existing ``tenant_id`` / ``_tenant_id`` parameters,
-    and rejects any tenant-owned label query missing explicit tenant predicates
-    before delegating to the Neo4j session.
+    authenticated ``tenant_id`` argument, and rejects any tenant-owned label
+    query missing explicit tenant predicates before delegating to the Neo4j
+    session.
+
+    ``require_explicit_tenant_id`` is retained as an explicit migration marker
+    for call sites that have been audited. Parameter-derived tenant context is
+    not accepted.
     """
 
     params = dict(parameters or {})
     params.update(kwargs)
-    resolved_tenant_id = tenant_id or params.get("tenant_id") or params.get("_tenant_id")
     context = TenantExecutionContext(
-        tenant_id=str(resolved_tenant_id) if resolved_tenant_id else None,
+        tenant_id=str(tenant_id) if tenant_id else None,
         is_bypass=is_bypass,
         allow_system_query=allow_system_query,
         allow_multi_clause_tenant_query=True,

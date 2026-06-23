@@ -70,14 +70,14 @@ class PrometheusMetrics:
         self._metrics["requests_total"] = Counter(
             f"{prefix}http_requests_total",
             "Total HTTP requests",
-            ["method", "endpoint", "status_code"],
+            ["method", "endpoint", "status_code", "tenant_id"],
             registry=self.config.registry,
         )
 
         self._metrics["request_duration"] = Histogram(
             f"{prefix}http_request_duration_seconds",
             "HTTP request duration",
-            ["method", "endpoint"],
+            ["method", "endpoint", "tenant_id"],
             buckets=self.config.default_buckets,
             registry=self.config.registry,
         )
@@ -215,6 +215,11 @@ class PrometheusMetrics:
             "Total DB pool checkout timeouts",
             registry=self.config.registry,
         )
+        self._metrics["audit_write_failures_total"] = Counter(
+            f"{prefix}audit_write_failures_total",
+            "Total failed audit/event write attempts",
+            registry=self.config.registry,
+        )
 
         # Build info
         self._metrics["build_info"] = Info(
@@ -225,19 +230,32 @@ class PrometheusMetrics:
         )
 
     def increment_requests_total(
-        self, method: str, endpoint: str, status_code: int
+        self,
+        method: str,
+        endpoint: str,
+        status_code: int,
+        tenant_id: str = "unknown",
     ) -> None:
         if self.config.enabled:
             self._metrics["requests_total"].labels(
-                method=method, endpoint=endpoint, status_code=str(status_code)
+                method=method,
+                endpoint=endpoint,
+                status_code=str(status_code),
+                tenant_id=tenant_id,
             ).inc()
 
     def observe_request_duration(
-        self, duration: float, method: str, endpoint: str
+        self,
+        duration: float,
+        method: str,
+        endpoint: str,
+        tenant_id: str = "unknown",
     ) -> None:
         if self.config.enabled:
             self._metrics["request_duration"].labels(
-                method=method, endpoint=endpoint
+                method=method,
+                endpoint=endpoint,
+                tenant_id=tenant_id,
             ).observe(duration)
 
     def increment_truth_objects(self, claim_type: str, status: str) -> None:
@@ -333,6 +351,10 @@ class PrometheusMetrics:
         if self.config.enabled:
             self._metrics["privileged_db_session_activations_total"].labels(mode=mode).inc()
 
+    def increment_audit_write_failures(self) -> None:
+        if self.config.enabled:
+            self._metrics["audit_write_failures_total"].inc()
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics output."""
         if not self.config.enabled:
@@ -385,12 +407,20 @@ class MetricsMiddleware:
 
         # Normalize the endpoint path for metrics
         endpoint = self._normalize_path(request.url.path)
+        context = getattr(request.state, "governance_context", None)
+        tenant_id = str(getattr(context, "tenant_id", None) or "unknown")
 
         self.metrics.increment_requests_total(
-            method=request.method, endpoint=endpoint, status_code=response.status_code
+            method=request.method,
+            endpoint=endpoint,
+            status_code=response.status_code,
+            tenant_id=tenant_id,
         )
         self.metrics.observe_request_duration(
-            duration=duration, method=request.method, endpoint=endpoint
+            duration=duration,
+            method=request.method,
+            endpoint=endpoint,
+            tenant_id=tenant_id,
         )
 
         if response.status_code >= 400:
@@ -412,3 +442,4 @@ def initialize_metrics(config: MetricsConfig | None = None) -> PrometheusMetrics
     _metrics = PrometheusMetrics(config)
     logger.info("Layer 5 Prometheus metrics initialized")
     return _metrics
+

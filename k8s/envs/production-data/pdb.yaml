@@ -1,0 +1,56 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-patroni-pdb
+  namespace: production-data
+  labels:
+    app: postgres-patroni
+    component: database
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: postgres-patroni
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-data-pdb
+  namespace: production-data
+  labels:
+    app: redis
+    component: cache
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-sentinel-pdb
+  namespace: production-data
+  labels:
+    app: redis-sentinel
+    component: cache
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: redis-sentinel
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: neo4j-core-pdb
+  namespace: production-data
+  labels:
+    app: neo4j
+    component: database
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: neo4j
+      role: core

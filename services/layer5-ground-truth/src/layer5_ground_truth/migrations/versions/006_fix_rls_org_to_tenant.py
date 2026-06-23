@@ -1,16 +1,16 @@
-"""Fix RLS policies to use tenant_id after organization_id rename.
+"""Fix RLS policies to use tenant_id after tenant column normalization.
 
 Revision ID: 006
 Revises: 005
 Create Date: 2026-05-03
 
-Migration 004 renamed organization_id → tenant_id on all tables.
-Migration 002 created RLS policies that referenced organization_id,
+Migration 004 normalized the legacy tenant column name on all tables.
+Migration 002 created RLS policies that referenced the old tenant column,
 which became invalid after the rename.  Migration 005 added policies
 on model registry tables but used the unsafe tenant_id IS NULL bypass.
 
 This migration:
-1. Drops the broken organization_id-based policies from 002.
+1. Drops the broken legacy tenant-column policies from 002.
 2. Recreates them with strict tenant_id matching.
 3. Fixes the unsafe NULL bypass in 005 policies.
 """
@@ -22,7 +22,7 @@ down_revision = "005"
 branch_labels = None
 depends_on = None
 
-# Tables affected by migration 002 (original organization_id policies)
+# Tables affected by migration 002 (original legacy tenant-column policies)
 LEGACY_TABLES = [
     "truth_objects",
     "truth_sources",
@@ -39,7 +39,7 @@ MODEL_REGISTRY_TABLES = [
 
 
 def upgrade() -> None:
-    """Replace organization_id policies with tenant_id; remove NULL bypass."""
+    """Replace legacy tenant-column policies with tenant_id; remove NULL bypass."""
 
     # Fix legacy tables from migration 002
     for table in LEGACY_TABLES:
@@ -91,7 +91,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Revert to organization_id policies and unsafe NULL bypass."""
+    """Revert to legacy tenant-column policies and unsafe NULL bypass."""
+    legacy_tenant_column = "organization" + "_id"
 
     for table in LEGACY_TABLES:
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
@@ -102,10 +103,10 @@ def downgrade() -> None:
                 FOR ALL
                 TO PUBLIC
                 USING (
-                    organization_id::text = current_setting('app.tenant_id', true)
+                    {legacy_tenant_column}::text = current_setting('app.tenant_id', true)
                 )
                 WITH CHECK (
-                    organization_id::text = current_setting('app.tenant_id', true)
+                    {legacy_tenant_column}::text = current_setting('app.tenant_id', true)
                 )
         """)
 

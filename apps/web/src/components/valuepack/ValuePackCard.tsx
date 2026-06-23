@@ -7,7 +7,7 @@
 import { Building2, TrendingUp, Users, Clock, Database, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { ValuePackFrameworkData } from "@/hooks/useValuePacks";
+import type { ValuePackFrameworkData } from "@/api/valuePackFramework";
 
 interface ValuePackCardProps {
   valuepack: ValuePackFrameworkData;
@@ -18,9 +18,9 @@ interface ValuePackCardProps {
 }
 
 const tierConfig = {
-  1: { label: "Tier 1", color: "bg-green-100 text-green-800", description: "Immediate Traction" },
-  2: { label: "Tier 2", color: "bg-blue-100 text-blue-800", description: "High ROI, Underserved" },
-  3: { label: "Tier 3", color: "bg-purple-100 text-purple-800", description: "Complex but Powerful" },
+  1: { label: "Tier 1", color: "bg-success/10 text-success", description: "Immediate Traction" },
+  2: { label: "Tier 2", color: "bg-primary/10 text-primary", description: "High ROI, Underserved" },
+  3: { label: "Tier 3", color: "bg-primary/10 text-primary", description: "Complex but Powerful" },
 };
 
 const switchingCostIcon = {
@@ -85,8 +85,8 @@ export function ValuePackCard({
         {showMatchScore !== undefined && (
           <span className={cn(
             "flex items-center gap-1 font-medium",
-            showMatchScore >= 0.8 ? "text-green-600" :
-            showMatchScore >= 0.6 ? "text-yellow-600" :
+            showMatchScore >= 0.8 ? "text-success" :
+            showMatchScore >= 0.6 ? "text-warning" :
             "text-muted-foreground"
           )}>
             <Zap className="w-3 h-3" />
@@ -100,13 +100,13 @@ export function ValuePackCard({
         {valuepack.primary_value_drivers.slice(0, 3).map((driver) => (
           <span
             key={driver.id}
-            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-muted text-muted-foreground"
+            className="inline-flex items-center px-2 py-0.5 rounded vf-text-micro bg-muted text-muted-foreground"
           >
             {driver.name}
           </span>
         ))}
         {driverCount > 3 && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center px-2 py-0.5 rounded vf-text-micro text-muted-foreground">
             +{driverCount - 3} more
           </span>
         )}
@@ -114,7 +114,7 @@ export function ValuePackCard({
 
       {/* Metadata Indicators */}
       <div className="flex items-center justify-between pt-3 border-t border-border">
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-3 vf-text-micro text-muted-foreground">
           <span className="flex items-center gap-1" title="Switching Cost">
             {switchingCostIcon[valuepack.metadata.switching_cost]}
             <span className="capitalize">{valuepack.metadata.switching_cost}</span>
@@ -124,7 +124,7 @@ export function ValuePackCard({
             <span className="capitalize">{valuepack.metadata.data_richness}</span>
           </span>
         </div>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="vf-text-micro text-muted-foreground">
           {valuepack.metadata.deal_size_range}
         </span>
       </div>
@@ -136,8 +136,8 @@ export function ValuePackCard({
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                showMatchScore >= 0.8 ? "bg-green-500" :
-                showMatchScore >= 0.6 ? "bg-yellow-500" :
+                showMatchScore >= 0.8 ? "bg-success/100" :
+                showMatchScore >= 0.6 ? "bg-warning/100" :
                 "bg-muted-foreground"
               )}
               style={{ width: `${showMatchScore * 100}%` }}

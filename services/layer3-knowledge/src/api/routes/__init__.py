@@ -32,11 +32,13 @@ try:
         provenance_audit,
         query_search,
         roi_calculator,
+        signals,
         system,
         value_packs,
         value_trees,
         variables,
     )
+
     _ROUTES_AVAILABLE = True
 except (ImportError, Exception):
     _ROUTES_AVAILABLE = False
@@ -63,6 +65,7 @@ __all__ = [
     "provenance_audit",
     "query_search",
     "roi_calculator",
+    "signals",
     "system",
     "value_packs",
     "value_trees",

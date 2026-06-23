@@ -17,17 +17,25 @@ type migration first. This is tracked separately as P2-1 (database consolidation
 """
 
 from collections.abc import Sequence
+import logging
 from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
+logger = logging.getLogger(__name__)
+
 # revision identifiers, used by Alembic.
 revision: str = "022"
 down_revision: Union[str, None] = "021"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+MIGRATION_REVIEW_REQUIRED = (
+    "Drops and recreates ix_usage_events_account_id during upgrade so the "
+    "foreign key can be added without index-name conflicts."
+)
 
 
 def upgrade() -> None:
@@ -68,7 +76,7 @@ def upgrade() -> None:
     except Exception as e:
         # If constraint fails due to type mismatch, log and skip
         # This will be addressed in P2-1 database consolidation
-        print(f"Skipping usage_events.tenant_id FK due to type mismatch: {e}")
+        logger.warning("Skipping usage_events.tenant_id FK due to type mismatch: %s", e)
     
     # integrations.tenant_id -> tenants.id
     # Same type mismatch issue as usage_events
@@ -82,7 +90,7 @@ def upgrade() -> None:
             NOT VALID
         """)
     except Exception as e:
-        print(f"Skipping integrations.tenant_id FK due to type mismatch: {e}")
+        logger.warning("Skipping integrations.tenant_id FK due to type mismatch: %s", e)
 
 
 def downgrade() -> None:

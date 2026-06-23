@@ -23,6 +23,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useModels,
   useModelFolders,
@@ -57,8 +68,8 @@ const FOLDER_ICONS: Record<string, React.ReactNode> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  draft: "bg-amber-100 text-amber-800 border-amber-200",
+  active: "bg-success/10 text-success border-success/20",
+  draft: "bg-warning/10 text-warning border-warning/20",
   archived: "bg-muted text-muted-foreground border-border",
 };
 
@@ -102,7 +113,7 @@ function FolderSidebar({
 
   return (
     <nav className="w-[200px] shrink-0 border-r border-border bg-muted/30 rounded-l-lg p-3 space-y-0.5">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 pb-2">
+      <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground px-2 pb-2">
         Folders
       </div>
       {folders.map((folder) => (
@@ -110,7 +121,7 @@ function FolderSidebar({
           key={folder.id}
           onClick={() => onSelect(folder.id)}
           className={cn(
-            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[12px] font-medium transition-colors text-left",
+            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md vf-text-body-s font-medium transition-colors text-left",
             activeFolder === folder.id
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -118,7 +129,7 @@ function FolderSidebar({
         >
           <span className="shrink-0">{FOLDER_ICONS[folder.id] || <Folder size={14} />}</span>
           <span className="truncate flex-1">{folder.name}</span>
-          <span className="text-[10px] text-muted-foreground tabular-nums">{folder.count}</span>
+          <span className="vf-text-micro text-muted-foreground tabular-nums">{folder.count}</span>
         </button>
       ))}
     </nav>
@@ -138,12 +149,12 @@ function ModelCard({
       className="bg-card border border-border rounded-lg p-4 text-left hover:border-primary/30 hover:shadow-sm transition-all group w-full"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-[13px] font-bold text-foreground leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+        <h3 className="vf-text-body-m font-bold text-foreground leading-snug line-clamp-1 group-hover:text-primary transition-colors">
           {model.name}
         </h3>
         <span
           className={cn(
-            "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border shrink-0",
+            "inline-flex items-center px-1.5 py-0.5 rounded vf-text-micro font-semibold border shrink-0",
             STATUS_STYLES[model.status] || STATUS_STYLES.draft
           )}
         >
@@ -151,11 +162,11 @@ function ModelCard({
         </span>
       </div>
 
-      <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 mb-3">
+      <p className="vf-text-caption text-muted-foreground leading-relaxed line-clamp-2 mb-3">
         {model.description}
       </p>
 
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-3">
+      <div className="flex items-center gap-3 vf-text-micro text-muted-foreground mb-3">
         <span className="flex items-center gap-1">
           <GitBranch size={10} />
           {model.driverCount} drivers
@@ -176,20 +187,20 @@ function ModelCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="text-[9px] px-1.5 py-0 h-4"
+              className="vf-text-micro px-1.5 py-0 h-4"
             >
               {tag}
             </Badge>
           ))}
         </div>
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <span className="vf-text-micro text-muted-foreground flex items-center gap-1">
           <Clock size={10} />
           {formatRelativeDate(model.updatedAt)}
         </span>
       </div>
 
       {model.isShared && (
-        <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1 mt-2 vf-text-micro text-muted-foreground">
           <Share2 size={10} />
           <span>Shared by {model.owner}</span>
         </div>
@@ -212,33 +223,33 @@ function ModelListRow({
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[12px] font-bold text-foreground truncate">{model.name}</span>
+          <span className="vf-text-body-s font-bold text-foreground truncate">{model.name}</span>
           <span
             className={cn(
-              "inline-flex items-center px-1.5 py-0 rounded text-[9px] font-semibold border shrink-0",
+              "inline-flex items-center px-1.5 py-0 rounded vf-text-micro font-semibold border shrink-0",
               STATUS_STYLES[model.status] || STATUS_STYLES.draft
             )}
           >
             {model.status}
           </span>
           {model.isShared && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5 vf-text-micro text-muted-foreground">
               <Share2 size={10} /> {model.owner}
             </span>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground truncate">{model.description}</p>
+        <p className="vf-text-caption text-muted-foreground truncate">{model.description}</p>
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
         {model.tags.slice(0, 2).map((tag) => (
-          <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+          <Badge key={tag} variant="secondary" className="vf-text-micro px-1.5 py-0 h-4">
             {tag}
           </Badge>
         ))}
       </div>
 
-      <div className="flex items-center gap-4 text-[10px] text-muted-foreground shrink-0 w-[180px] justify-end">
+      <div className="flex items-center gap-4 vf-text-micro text-muted-foreground shrink-0 w-[180px] justify-end">
         <span>{model.formulaCount} formulas</span>
         <span>{model.entityCount} entities</span>
         <span>{formatRelativeDate(model.updatedAt)}</span>
@@ -279,10 +290,10 @@ function EmptyState({
       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
         <AlertCircle size={20} className="text-muted-foreground" />
       </div>
-      <h3 className="text-[14px] font-bold text-foreground mb-1">
+      <h3 className="vf-text-body-l font-bold text-foreground mb-1">
         {search ? "No models match your search" : "No models yet"}
       </h3>
-      <p className="text-[12px] text-muted-foreground max-w-[300px] mb-4">
+      <p className="vf-text-body-s text-muted-foreground max-w-[300px] mb-4">
         {search
           ? `Try adjusting your search term or clearing filters.`
           : folder === "shared"
@@ -331,47 +342,46 @@ function NewModelDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-[16px] font-extrabold text-foreground mb-1">New Value Model</h2>
-        <p className="text-[11px] text-muted-foreground mb-5">
+        <h2 className="text-base font-extrabold text-foreground mb-1">New Value Model</h2>
+        <p className="vf-text-caption text-muted-foreground mb-5">
           Create a new model to organize value drivers, formulas, and entities.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Name</label>
-            <input
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Name</label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. SaaS Revenue Optimization"
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full vf-text-body-s"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Industry</label>
-            <select
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-              {INDUSTRY_OPTIONS.filter((i) => i !== "All Industries").map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Industry</label>
+            <Select value={industry} onValueChange={(v) => setIndustry(v)}>
+              <SelectTrigger className="w-full vf-text-body-s">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INDUSTRY_OPTIONS.filter((i) => i !== "All Industries").map((ind) => (
+                  <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Description</label>
-            <textarea
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Description</label>
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this value model..."
               rows={3}
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              className="w-full vf-text-body-s resize-none"
             />
           </div>
 
@@ -379,14 +389,14 @@ function NewModelDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
+              className="px-4 py-2 vf-text-body-s font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || isCreating}
-              className="px-4 py-2 text-[12px] font-bold text-white bg-primary rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="px-4 py-2 vf-text-body-s font-bold text-white bg-primary rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               {isCreating && <Loader2 size={12} className="animate-spin" />}
               Create Model
@@ -499,47 +509,39 @@ export default function MyModels() {
             <div className="relative flex-1 max-w-[300px]">
               <Search
                 size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10"
               />
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search models..."
-                className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full pl-8 pr-3 py-1.5 vf-text-body-s"
               />
             </div>
 
             <div className="flex items-center gap-1.5">
               <SortAsc size={12} className="text-muted-foreground" />
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as "updatedAt" | "name" | "createdAt")
-                }
-                className="px-2 py-1.5 text-[11px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "updatedAt" | "name" | "createdAt")}>
+                <SelectTrigger className="w-[140px] vf-text-caption"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center gap-1.5">
               <Filter size={12} className="text-muted-foreground" />
-              <select
-                value={industryFilter}
-                onChange={(e) => setIndustryFilter(e.target.value)}
-                className="px-2 py-1.5 text-[11px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {INDUSTRY_OPTIONS.map((ind) => (
-                  <option key={ind} value={ind}>
-                    {ind}
-                  </option>
-                ))}
-              </select>
+              <Select value={industryFilter} onValueChange={(v) => setIndustryFilter(v)}>
+                <SelectTrigger className="w-[140px] vf-text-caption"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((ind) => (
+                    <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {(searchQuery || industryFilter !== "All Industries") && (
@@ -548,7 +550,7 @@ export default function MyModels() {
                   setSearchQuery("");
                   setIndustryFilter("All Industries");
                 }}
-                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="vf-text-micro text-muted-foreground hover:text-foreground transition-colors"
               >
                 Clear
               </button>
@@ -560,10 +562,11 @@ export default function MyModels() {
             {isLoading ? (
               <GridSkeleton />
             ) : isError ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <AlertCircle size={20} className="text-destructive mb-2" />
-                <p className="text-[12px] text-destructive">Failed to load models</p>
-              </div>
+              <ErrorState
+                title="Failed to load models"
+                description="Unable to fetch your models. Please try again."
+                onRetry={() => window.location.reload()}
+              />
             ) : !models || models.length === 0 ? (
               <EmptyState
                 folder={activeFolder}

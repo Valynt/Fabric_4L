@@ -101,7 +101,7 @@ describe('BusinessCaseList', () => {
     render(<BusinessCaseList />, { wrapper });
 
     // The sort direction button should have an aria-label
-    const sortToggle = document.querySelector('button[aria-label*="sort"]');
+    const sortToggle = screen.getByRole('button', { name: /sort/i });
     expect(sortToggle).toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-# Clerk Configuration for ValuePact
+sa# Clerk Configuration for ValuePact
 
 > Canonical reference for Clerk authentication integration.
 > For agent orchestration rules, see `.windsurf/AGENTS.md`.
@@ -18,7 +18,9 @@ Infisical stores:
   Clerk keys, webhook secrets, JWT verification config, per-env auth config
 ```
 
-Clerk session tokens are JWTs sent to the backend. Backend verification uses JWKS/public keys or `verifyToken()` with `CLERK_JWT_KEY` and `authorizedParties`. See [Clerk docs](https://clerk.com/docs/guides/sessions/session-tokens).
+Clerk session tokens are JWTs sent to the backend. The API gateway verifies
+them with `CLERK_JWKS_URL` or a local/testing-only `CLERK_PINNED_JWT_PEM`, then
+re-wraps the identity into Fabric's signed internal auth envelope.
 
 ---
 
@@ -74,8 +76,8 @@ Recommended domains:
 
 ```txt
 dev:      http://localhost:3001
-staging:  https://staging.valuepact.com
-prod:     https://app.valuepact.com
+staging:  https://staging.valuepact.ai
+prod:     https://www.valuepact.ai
 ```
 
 ---
@@ -128,6 +130,8 @@ Recommended Clerk org roles:
 ```txt
 org:owner
 org:admin
+org:member
+org:guest
 org:value_engineer
 org:sales_leader
 org:account_executive
@@ -174,6 +178,15 @@ org:admin:manage_integrations
 org:admin:manage_api_keys
 ```
 
+The gateway normalizes Clerk's built-in organization roles before creating the
+Fabric internal auth context:
+
+```txt
+org:admin / admin              -> tenant_admin
+org:member / basic_member      -> analyst
+org:guest / guest_member       -> read_only
+```
+
 Important boundary:
 
 ```txt
@@ -205,8 +218,8 @@ For staging/prod:
 
 ```txt
 Allowed origins:
-https://staging.valuepact.com
-https://app.valuepact.com
+https://staging.valuepact.ai
+https://www.valuepact.ai
 
 After sign-in: /workspaces
 After sign-up: /onboarding
@@ -228,7 +241,7 @@ Frontend-safe only:
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_or_pk_live_xxx
 VITE_CLERK_SIGN_IN_URL=/sign-in
 VITE_CLERK_SIGN_UP_URL=/sign-up
-VITE_CLERK_AFTER_SIGN_IN_URL=/workspaces
+VITE_CLERK_AFTER_SIGN_IN_URL=/home
 VITE_CLERK_AFTER_SIGN_UP_URL=/onboarding
 VITE_CLERK_JWT_TEMPLATE=valuepact-api
 ```
@@ -240,7 +253,6 @@ Never put this in `/apps/web`:
 ```env
 VITE_CLERK_SECRET_KEY=
 VITE_CLERK_WEBHOOK_SECRET=
-VITE_CLERK_JWT_KEY=
 ```
 
 ### `/shared/auth`
@@ -248,9 +260,10 @@ VITE_CLERK_JWT_KEY=
 Backend/gateway auth config:
 
 ```env
-CLERK_ISSUER=
+CLERK_ISSUER=https://accounts.valuepact.ai
 CLERK_JWT_AUDIENCE=valuepact-api
-CLERK_AUTHORIZED_PARTIES=http://localhost:3001,https://staging.valuepact.com,https://app.valuepact.com
+CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai,https://app.valuepact.ai
+CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 ```
 
 ### `/api-gateway`
@@ -259,9 +272,13 @@ Gateway-only secrets:
 
 ```env
 CLERK_SECRET_KEY=
-CLERK_JWT_KEY=
-FABRIC_AUTH_SIGNING_PRIVATE_KEY=
-FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
+CLERK_WEBHOOK_SECRET=
+FABRIC_AUTH_SIGNING_KEY=
+FABRIC_AUTH_SIGNING_KID=gateway-k1
+FABRIC_AUTH_PUBLIC_KEYS=[{"kid":"gateway-k1","public_pem":"-----BEGIN PUBLIC KEY-----..."}]
+FABRIC_AUTH_ISSUER=fabric4l-gateway
+FABRIC_AUTH_AUDIENCE=fabric4l-internal
+FABRIC_AUTH_ENVELOPE_TTL_SECONDS=300
 ```
 
 ### `/layer1-ingestion` through `/layer6-benchmarks`
@@ -271,9 +288,9 @@ Downstream services should not need Clerk secrets if you choose **gateway-only C
 They need only the ValuePact internal auth verification key:
 
 ```env
-FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
-FABRIC_AUTH_ISSUER=valuepact-api-gateway
-FABRIC_AUTH_AUDIENCE=valuepact-internal-services
+FABRIC_AUTH_PUBLIC_KEYS=[{"kid":"gateway-k1","public_pem":"-----BEGIN PUBLIC KEY-----..."}]
+FABRIC_AUTH_ISSUER=fabric4l-gateway
+FABRIC_AUTH_AUDIENCE=fabric4l-internal
 ```
 
 ### `/webhooks`
@@ -467,7 +484,7 @@ Clerk tells you **who** the user is. ValuePact decides **what tenant/account/res
 Webhook endpoint:
 
 ```txt
-POST https://api.valuepact.com/internal/webhooks/clerk
+POST https://api.valuepact.ai/internal/webhooks/clerk
 ```
 
 For dev, use a tunnel if needed:

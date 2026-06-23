@@ -20,16 +20,16 @@ async def test_backend_integrated_account_to_approved_business_case(backend, see
         "l2",
         "POST",
         "/api/v1/extractions",
-        json={"source_id": seed_ids.document_id, "account_id": seed_ids.account_id},
+        json={"source_id": backend.seed_source_id, "account_id": seed_ids.account_id},
         expected=(200, 201, 202),
     )
-    assert seed_ids.document_id in str(extraction), "Extraction must consume the seeded L1 source document."
+    assert backend.seed_source_id in str(extraction), "Extraction must consume the seeded L1 source document."
 
     graph, _ = await backend.request(
         "l3",
         "POST",
         "/api/v1/graph/context",
-        json={"account_id": seed_ids.account_id, "source_id": seed_ids.document_id},
+        json={"account_id": seed_ids.account_id, "source_id": backend.seed_source_id},
         expected=(200, 201, 202),
     )
     assert seed_ids.account_id in str(graph), "Graph context must preserve account lineage."
@@ -95,7 +95,7 @@ async def test_backend_integrated_claims_trace_to_raw_sources(backend, seed_ids)
         expected=(200,),
     )
     trace_text = str(trace).lower()
-    assert seed_ids.document_id in str(trace), "Business-case trace must include the raw source document id."
+    assert backend.seed_source_id in str(trace), "Business-case trace must include the raw source document id."
     assert all(token in trace_text for token in ("claim", "evidence", "source")), trace
 
 

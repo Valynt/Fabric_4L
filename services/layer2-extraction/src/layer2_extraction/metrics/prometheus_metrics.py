@@ -99,6 +99,19 @@ class PrometheusMetrics:
             'failure_type': failure_type,'tenant_id': tenant_id,'ingestion_id': ingestion_id,'extraction_job_id': extraction_job_id,'model_version': model_version,'schema_version': schema_version,'value_pack_id': value_pack_id,'operation': operation,
         })
 
+    def record_prompt_injection_attempt(self, *, tenant_id: str, risk_level: str, violation_count: int) -> None:
+        """Record prompt-injection detection attempt with tenant context (no fallbacks)."""
+        if not tenant_id or not tenant_id.strip():
+            raise ValueError("tenant_id is required for prompt-injection telemetry")
+        self._record_counter('vf_prompt_injection_attempts_total', {
+            'tenant_id': tenant_id,
+            'risk_level': risk_level,
+        })
+
+    def set_health_status(self, healthy: bool, component: str = "api") -> None:
+        """Record health status for a component (1=healthy, 0=unhealthy)."""
+        self._record_gauge('vf_health_status', {'component': component}, 1.0 if healthy else 0.0)
+
     def get_metrics(self) -> str:
         """Generate Prometheus exposition format output."""
         lines: list[str] = []

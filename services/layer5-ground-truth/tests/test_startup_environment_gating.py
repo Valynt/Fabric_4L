@@ -23,6 +23,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "ENVIRONMENT",
         "APP_ENV",
         "JWT_SECRET",
+        "JWT_ALGORITHM",
         "JWT_ISSUER",
         "JWT_AUDIENCE",
         "JWT_FALLBACK_TO_QUERY_PARAM",
@@ -41,6 +42,7 @@ def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
 def _set_valid_production_env(monkeypatch: pytest.MonkeyPatch) -> None:
     _clear_env(monkeypatch)
     monkeypatch.setenv("JWT_SECRET", VALID_JWT_SECRET)
+    monkeypatch.setenv("JWT_ALGORITHM", "RS256")
     monkeypatch.setenv("JWT_ISSUER", "value-fabric-internal")
     monkeypatch.setenv("JWT_AUDIENCE", "value-fabric-services")
     monkeypatch.setenv("JWT_FALLBACK_TO_QUERY_PARAM", "false")

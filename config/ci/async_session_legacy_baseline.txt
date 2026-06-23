@@ -1,0 +1,13 @@
+# Async-session architectural baseline (PR2 of elevate-to-9 plan).
+#
+# Files in this list are pre-existing sync sqlalchemy.create_engine call sites
+# that intentionally remain sync due to deep coupling with PostgreSQL RLS via
+# SET LOCAL and per-transaction tenant context. Migrating them to async
+# requires a service-level refactor that is out of scope for PR2.
+#
+# Adding new entries to this baseline requires architecture-review approval.
+# Removing entries (i.e., flipping the call site to async) is always welcome.
+#
+# Format: one repo-relative POSIX path per line. Comments start with '#'.
+
+services/layer1-ingestion/src/layer1_ingestion/shared/database.py

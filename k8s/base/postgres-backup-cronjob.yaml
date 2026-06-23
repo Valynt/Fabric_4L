@@ -1,7 +1,43 @@
 # PostgreSQL Backup CronJob
 # Runs daily at 2 AM UTC
-# Backs up application databases (ingestion, extraction, ground_truth)
-# Retains backups for 7 days
+# Backs up all application databases (ingestion, extraction, signal_refinery,
+# layer4_agents, ground_truth, benchmarks, layer7_billing)
+#
+# BACKUP STRATEGY (as of V14.1 hotfix):
+#   ACTIVE PATH: pg_dump logical backups to PVC (retained 7 days).
+#   pg_dump uses the postgres-patroni hostname for consistency with the
+#   Patroni-managed Postgres service.
+#
+#   STAGED PATH: WAL-G physical base backup to S3 (DISABLED).
+#   WAL-G infrastructure is present (service account, config map, image) but
+#   ENABLE_WALG_BACKUP is intentionally "false". WAL-G MUST NOT be enabled
+#   until backup-push and restore validation both pass and restore evidence
+#   is captured.
+#
+# WAL-G ENABLEMENT CHECKLIST (complete all before setting ENABLE_WALG_BACKUP="true"):
+#   [ ] service account / IRSA confirmed (wal-g-backup SA + IAM role)
+#   [ ] WAL-G static config mounted and aws-backup-credentials ExternalSecret synced
+#   [ ] S3 destination reachable from cluster (network policy + IAM permissions)
+#   [ ] wal-g backup-push succeeds in a manual / canary run
+#   [ ] restore drill succeeds (restore to a test instance, verify data integrity)
+#   [ ] restore evidence captured (logs, checksums, sign-off in runbook)
+#
+# Retains pg_dump backups for 7 days
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backup-pvc
+  namespace: value-fabric
+  labels:
+    app: postgres-backup
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -21,38 +57,87 @@ spec:
       backoffLimit: 3
       template:
         spec:
+          serviceAccountName: wal-g-backup
+          # SECURITY: automountServiceAccountToken is true because WAL-G S3 backup
+          # requires IRSA token injection by the EKS webhook. The previous pg_dump-only
+          # CronJob had this set to false since it had no cloud dependencies.
+          automountServiceAccountToken: true
           restartPolicy: OnFailure
           containers:
             - name: postgres-backup
-              image: postgres:15-alpine
+              image: ghcr.io/zalando/spilo-16:3.2-p1
               command:
                 - sh
                 - -c
                 - |
+                  set -e
                   BACKUP_DIR=/backups/postgres
                   mkdir -p $$BACKUP_DIR
                   TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-                  
-                  # Backup application databases only
-                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql
-                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql
-                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql
-                  
-                  # Keep last 7 days of backups
-                  find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
-                  
-                  echo "Backup completed: $$TIMESTAMP"
+                  FAILED=0
+
+                  # All application databases
+                  DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
+
+                  for DB in $$DATABASES; do
+                    # Check if the database exists before attempting backup
+                    EXISTS=$$(PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='$$DB'" 2>/dev/null || echo "")
+                    if [ "$$EXISTS" = "1" ]; then
+                      if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres-patroni -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
+                        echo "OK: $$DB backed up to backup_$${DB}_$${TIMESTAMP}.dump"
+                      else
+                        echo "ERROR: pg_dump failed for $$DB" >&2
+                        FAILED=1
+                      fi
+                    else
+                      echo "SKIP: database $$DB does not exist yet (migration pending)"
+                    fi
+                  done
+
+                  # Remove pg_dump backups older than 7 days
+                  find $$BACKUP_DIR -name 'backup_*.dump' -mtime +7 -delete
+
+                  # WAL-G physical base backup (gated; requires IRSA or AWS credentials)
+                  if [ "$${ENABLE_WALG_BACKUP:-false}" = "true" ]; then
+                    echo "WAL-G: starting physical base backup..."
+                    TMP_PGDATA="/tmp/pgdata_walg_$${TIMESTAMP}"
+                    mkdir -p "$$TMP_PGDATA"
+                    # Stream base backup from postgres leader via replication protocol
+                    if PGPASSWORD=$${POSTGRES_PASSWORD} pg_basebackup -h postgres -U $${POSTGRES_USER} -D "$$TMP_PGDATA" -Fp -Xs -P -v; then
+                      if wal-g backup-push "$$TMP_PGDATA"; then
+                        echo "WAL-G: base backup pushed successfully"
+                      else
+                        echo "ERROR: wal-g backup-push failed" >&2
+                        FAILED=1
+                      fi
+                      rm -rf "$$TMP_PGDATA"
+                    else
+                      echo "ERROR: pg_basebackup failed" >&2
+                      FAILED=1
+                    fi
+                    # Enforce S3 retention count
+                    wal-g delete retain $${WALG_RETAIN_COUNT:-30} --confirm || true
+                  fi
+
+                  echo "Backup run completed: $$TIMESTAMP"
+                  exit $$FAILED
+              envFrom:
+                - configMapRef:
+                    name: wal-g-config
+                - secretRef:
+                    name: aws-backup-credentials
               env:
+                # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
+                # Only password is sourced from the secret.
                 - name: POSTGRES_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: postgres-credentials
-                      key: username
+                  value: "postgres"
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: postgres-credentials
-                      key: password
+                      name: postgres-patroni-credentials
+                      key: superuser-password
+                - name: ENABLE_WALG_BACKUP
+                  value: "false"
               volumeMounts:
                 - name: postgres-backups
                   mountPath: /backups

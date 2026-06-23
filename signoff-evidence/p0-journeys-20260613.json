@@ -1,0 +1,50 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging-surrogate",
+  "executed_at_utc": "2026-06-14T21:30:00Z",
+  "result": "RE_TESTABLE",
+  "playwright_command": "E2E_SEED_DATA=false PLAYWRIGHT_LIVE_MODE=true PLAYWRIGHT_BACKEND_URL=http://127.0.0.1:8004 PLAYWRIGHT_BASE_URL=http://localhost:3001 PLAYWRIGHT_SKIP_WEBSERVER=true SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 npx playwright test --project=backend-integrated e2e/journeys/j1-golden-path-backend-integrated.spec.ts",
+  "summary": {
+    "total": 15,
+    "passed": 1,
+    "failed": 14,
+    "skipped": 0,
+    "status": "auth and runtime crash resolved; remaining failures are frontend route/UX drift"
+  },
+  "resolved_issues": [
+    {
+      "category": "auth_provider_boundary",
+      "description": "Frontend no longer crashes with 'useAuth can only be used within the <ClerkProvider /> component' when VITE_AUTH_PROVIDER=legacy. AuthContext, ClerkAuthBridge, RootRedirect, RequireClerkAuth, RequireOrganization, AppHeader, useTenantMembership, ClerkSignIn, ClerkSignUp, SelectOrganization, and Onboarding now short-circuit or conditionally invoke Clerk hooks in legacy mode."
+    },
+    {
+      "category": "missing_seed_data",
+      "description": "case-meridian-e2e-001 is now seeded via the Layer 4 validation endpoint approved_case_aliases. Seeder output confirms business-case records present."
+    },
+    {
+      "category": "playwright_auth_fixture",
+      "description": "Backend-integrated auth fixture now calls the Layer 4 /v1/validation/session endpoint directly, parses the Set-Cookie header, and injects vf_session/vf_csrf_token cookies into the Playwright browser context so legacy-mode API requests are authenticated."
+    },
+    {
+      "category": "legacy_mock_auth_stack",
+      "description": "docker-compose.live.yml frontend service now explicitly sets VITE_AUTH_PROVIDER=legacy and VITE_ENABLE_MOCK_AUTH=true, aligning the live validation stack with docker-compose.dev.yml."
+    }
+  ],
+  "remaining_blockers": [
+    {
+      "category": "frontend_route_drift",
+      "description": "J1 tests navigate to legacy non-tenant-scoped routes (e.g., /settings/data/value-packs) that no longer exist in the current tenant-scoped router. The canonical route is /t/:tenantSlug/settings/value-packs. These are test-debt failures, not runtime auth blockers."
+    },
+    {
+      "category": "missing_pages",
+      "description": "Some J1 routes (e.g., /value-case/:accountId) have no matching page component in the current frontend, yielding 404."
+    }
+  ],
+  "sample_error": "GP-BI-002: navigating to /settings/data/value-packs renders 404 because the router expects /t/:tenantSlug/settings/value-packs.",
+  "evidence_artifacts": [
+    "apps/web/playwright-report/index.html",
+    "apps/web/e2e-results/error-context.md",
+    "apps/web/e2e-results/journeys-j1-golden-path-ba-1888f-through-prospect-setup-form-backend-integrated/test-failed-1.png"
+  ],
+  "classification": "RE_TESTABLE",
+  "recommendation": "Either align J1 test routes/selectors with the current tenant-scoped UI and page components, or run P0 journeys in a Clerk-configured staging environment. The runtime auth path is now stable and the candidate is re-testable."
+}

@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 """Stable Layer 4 database facade used by cross-repo tests.
 
 This module prefers the canonical implementation at
 ``services/layer4-agents/src/database.py`` and falls back to a lightweight,
 dependency-minimal shim when optional service dependencies are unavailable.
 """
-
-from __future__ import annotations
-
+import asyncio
 import importlib
 import logging
 import sys
@@ -42,6 +42,8 @@ else:
         class Base(DeclarativeBase):
             """Fail-safe declarative base for model imports in constrained tests."""
 
+    except asyncio.CancelledError:
+        raise
     except Exception:  # pragma: no cover - only used if SQLAlchemy is unavailable
         class Base:  # type: ignore[no-redef]
             """Minimal fallback so fail-safe imports do not hide auth regressions."""
@@ -120,7 +122,9 @@ else:
                 request_id=context.request_id,
                 details=details.model_dump(exclude_none=True),
             )
-        except (AttributeError, TypeError) as exc:  # pragma: no cover
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # pragma: no cover
             logger.debug("Tenant context audit emission failed (non-critical): %s", exc)
 
     async def get_db_from_context(*args, **kwargs):

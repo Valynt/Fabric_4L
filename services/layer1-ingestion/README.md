@@ -5,6 +5,26 @@
 
 A production-grade web data ingestion service that continuously acquires unstructured enterprise data from public sources and converts it to clean, structured Markdown ready for semantic processing by Layer 2.
 
+## L2 Integration (Celery Dispatch)
+
+Layer 1 dispatches extraction tasks to Layer 2 using Celery for async queue-based processing. This provides:
+
+- **Scalability**: Tasks are queued and processed by L2 workers
+- **Retry logic**: Failed extractions are automatically retried
+- **Graceful degradation**: Falls back to HTTP if Celery is unavailable
+
+### Configuration
+
+Environment variables for L2 Celery dispatch:
+
+```bash
+LAYER2_API_URL=http://layer2:8000
+LAYER2_CELERY_BROKER_URL=redis://redis:6379/0
+USE_CELERY_FOR_L2=true
+```
+
+Set `USE_CELERY_FOR_L2=false` to disable Celery and use HTTP fallback only.
+
 ## Quick Start
 
 ### Prerequisites
@@ -47,17 +67,17 @@ export LAYER1_REDIS_URL="redis://localhost:6379/0"
 alembic upgrade head
 
 # Start API server
-uvicorn src.api.main:app --reload --port 8000
+uvicorn layer1_ingestion.api.main:app --reload --port 8000
 
 # Start Celery worker (in another terminal)
-celery -A src.shared.tasks worker --loglevel=info
+celery -A layer1_ingestion.shared.tasks worker --loglevel=info
 ```
 
 ## Architecture
 
 ### Services
 
-- **API** (`src/api/main.py`): FastAPI REST endpoints
+- **API** (`src/layer1_ingestion/api/main.py`): FastAPI REST endpoints
 - **Crawler** (`src/crawler/`): Playwright-based web crawling
 - **Post-Processor** (`src/post_processor/`): Content extraction and Markdown conversion
 - **Scheduler**: Priority-based job scheduling via Celery

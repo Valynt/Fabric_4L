@@ -12,7 +12,9 @@ import { useBusinessCase } from "@/hooks/useDocuments";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { Toolbar } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, Btn, StatusBadge, LegacyDataTable } from "@/components/ui/fabric";
+import { PageHeader, Btn, StatusBadge, DataTable } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 const log = createFeatureLogger('DecisionTrace');
 
@@ -50,11 +52,23 @@ export default function DecisionTrace() {
     return () => window.clearTimeout(timer);
   }, [location, selectedEntityId, sourceFilter]);
 
-  const { data: auditLogs, isLoading: isLoadingAudit } = useAuditLogs(
+  const {
+    data: auditLogs,
+    isLoading: isLoadingAudit,
+    isError: isAuditError,
+    error: auditError,
+    refetch: refetchAudit,
+  } = useAuditLogs(
     { source: sourceFilter },
     { enabled: shouldLoadTraceData, retry: false }
   );
-  const { data: provenanceTrail, isLoading: isLoadingProvenance } = useProvenanceTrail(
+  const {
+    data: provenanceTrail,
+    isLoading: isLoadingProvenance,
+    isError: isProvenanceError,
+    error: provenanceError,
+    refetch: refetchProvenance,
+  } = useProvenanceTrail(
     selectedEntityId,
     { enabled: shouldLoadTraceData, retry: false }
   );
@@ -62,6 +76,7 @@ export default function DecisionTrace() {
   const { data: governanceCase } = useBusinessCase(caseIdFromUrl);
 
   const isLoading = shouldLoadTraceData && (isLoadingAudit || (selectedEntityId && isLoadingProvenance));
+  const hasError = isAuditError || isProvenanceError;
 
   const handleExportProvO = async () => {
     if (!selectedEntityId) return;
@@ -79,27 +94,26 @@ export default function DecisionTrace() {
 
   const auditEntries: AuditLogEntry[] = auditLogs?.entries || [];
 
-  // Convert audit entries to table rows
   const auditRows = auditEntries.map((entry) => [
     <button
       key="id"
       onClick={() => entry.entity_id && handleViewEntity(entry.entity_id)}
-      className={`font-mono text-[11px] ${
+      className={`font-mono vf-text-caption ${
         selectedEntityId === entry.entity_id
-          ? "text-blue-700 font-bold"
-          : "text-neutral-600 hover:text-blue-600"
+          ? "text-primary font-bold"
+          : "text-muted-foreground hover:text-primary"
       }`}
     >
       {entry.id.slice(0, 12)}
     </button>,
-    <span key="entity" className="font-semibold text-neutral-800">
+    <span key="entity" className="font-semibold text-foreground">
       {entry.entity_type || "System"}
     </span>,
-    <span key="action" className="text-neutral-600">{entry.action}</span>,
-    <span key="agent" className="text-neutral-500 text-[11px] font-mono">
+    <span key="action" className="text-muted-foreground">{entry.action}</span>,
+    <span key="agent" className="text-muted-foreground vf-text-caption font-mono">
       {entry.agent}
     </span>,
-    <span key="ts" className="text-neutral-400 text-[11px] font-mono">
+    <span key="ts" className="text-muted-foreground/60 vf-text-caption font-mono">
       {formatTimestamp(entry.timestamp)}
     </span>,
     <StatusBadge key="status" status={entry.event_type === 'error' ? 'failed' : 'completed'} />,
@@ -107,7 +121,7 @@ export default function DecisionTrace() {
       {entry.entity_id && (
         <button
           onClick={() => handleViewEntity(entry.entity_id!)}
-          className="text-blue-600 text-[11px] hover:underline"
+          className="text-primary vf-text-caption hover:underline"
         >
           View
         </button>
@@ -115,12 +129,11 @@ export default function DecisionTrace() {
     </div>,
   ]);
 
-  // Use provenance steps from API or fallback
   const provenanceSteps = provenanceTrail?.steps || [];
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl">
+      <PageShell>
         <PageHeader
           breadcrumbs={[{ label: "Governance" }, { label: sectionTitles[activeSection] ?? "Decision Traces" }]}
           title={sectionTitles[activeSection] ?? "Decision Trace Viewer"}
@@ -133,7 +146,6 @@ export default function DecisionTrace() {
           }
         />
 
-        {/* Toolbar skeleton */}
         <Toolbar>
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-28" />
@@ -141,39 +153,36 @@ export default function DecisionTrace() {
         </Toolbar>
 
         <div className="flex gap-5">
-          {/* Audit log table skeleton */}
           <div className="flex-1">
             <SectionCard title="Decision Trace" className="mb-5">
-              <div className="grid gap-3 md:grid-cols-3 text-[12px]">
-                <div className="rounded-md border border-neutral-200 p-3">
-                  <div className="font-semibold text-neutral-800">Provenance Timeline</div>
-                  <p className="mt-1 text-neutral-600">
+              <div className="grid gap-3 md:grid-cols-3 vf-text-body-s">
+                <div className="rounded-md border border-border p-3">
+                  <div className="font-semibold text-foreground">Provenance Timeline</div>
+                  <p className="mt-1 text-muted-foreground">
                     Claim lineage, source evidence, confidence, and approval context are loading.
                   </p>
                 </div>
-                <div className="rounded-md border border-neutral-200 p-3">
-                  <div className="font-semibold text-neutral-800">Truth References</div>
-                  <p className="mt-1 text-neutral-600">
+                <div className="rounded-md border border-border p-3">
+                  <div className="font-semibold text-foreground">Truth References</div>
+                  <p className="mt-1 text-muted-foreground">
                     Evidence-backed truth objects remain tenant-scoped while references load.
                   </p>
                 </div>
-                <div className="rounded-md border border-neutral-200 p-3">
-                  <div className="font-semibold text-neutral-800">Audit Log</div>
-                  <p className="mt-1 text-neutral-600">
+                <div className="rounded-md border border-border p-3">
+                  <div className="font-semibold text-foreground">Audit Log</div>
+                  <p className="mt-1 text-muted-foreground">
                     Approval, export, and governance actions are attributable and traceable.
                   </p>
                 </div>
               </div>
             </SectionCard>
             <SectionCard title="Audit Log" noPad>
-              {/* Table header skeleton */}
-              <div className="flex bg-neutral-50 border-b border-neutral-200 px-4 py-2.5">
+              <div className="flex bg-muted border-b border-border px-4 py-2.5">
                 {["Trace ID", "Entity", "Action", "Agent", "Timestamp", "Status", "Actions"].map((_, i) => (
                   <Skeleton key={i} className="h-3 w-16 mr-4" />
                 ))}
               </div>
-              {/* Table rows skeleton */}
-              <div className="divide-y divide-neutral-100">
+              <div className="divide-y divide-border">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center px-4 py-3">
                     <Skeleton className="h-3 w-20 mr-4" />
@@ -189,7 +198,6 @@ export default function DecisionTrace() {
             </SectionCard>
           </div>
 
-          {/* Provenance timeline skeleton */}
           <div className="w-[260px] shrink-0">
             <SectionCard title="Select an Entity">
               <div className="text-center py-8">
@@ -199,12 +207,26 @@ export default function DecisionTrace() {
             </SectionCard>
           </div>
         </div>
-      </div>
+      </PageShell>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <PageShell>
+        <ErrorState
+          title="Failed to load decision trace"
+          description="The audit log or provenance data could not be loaded. The governance service may be degraded."
+          error={auditError || provenanceError}
+          onRetry={() => { refetchAudit(); refetchProvenance(); }}
+          retryLabel="Retry"
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell>
       <PageHeader
         breadcrumbs={[{ label: "Governance" }, { label: sectionTitles[activeSection] ?? "Decision Traces" }]}
         title={sectionTitles[activeSection] ?? "Decision Trace Viewer"}
@@ -248,22 +270,22 @@ export default function DecisionTrace() {
       </Toolbar>
 
       <SectionCard title="Decision Trace" className="mb-5">
-        <div className="grid gap-3 md:grid-cols-3 text-[12px]">
-          <div className="rounded-md border border-neutral-200 p-3">
-            <div className="font-semibold text-neutral-800">Provenance Timeline</div>
-            <p className="mt-1 text-neutral-600">
+        <div className="grid gap-3 md:grid-cols-3 vf-text-body-s">
+          <div className="rounded-md border border-border p-3">
+            <div className="font-semibold text-foreground">Provenance Timeline</div>
+            <p className="mt-1 text-muted-foreground">
               Review claim lineage from source evidence through agent recommendation and approval.
             </p>
           </div>
-          <div className="rounded-md border border-neutral-200 p-3">
-            <div className="font-semibold text-neutral-800">Truth References</div>
-            <p className="mt-1 text-neutral-600">
+          <div className="rounded-md border border-border p-3">
+            <div className="font-semibold text-foreground">Truth References</div>
+            <p className="mt-1 text-muted-foreground">
               Claims remain tied to tenant-scoped truth objects, confidence, and source metadata.
             </p>
           </div>
-          <div className="rounded-md border border-neutral-200 p-3">
-            <div className="font-semibold text-neutral-800">Audit Log</div>
-            <p className="mt-1 text-neutral-600">
+          <div className="rounded-md border border-border p-3">
+            <div className="font-semibold text-foreground">Audit Log</div>
+            <p className="mt-1 text-muted-foreground">
               Approval, export, and governance actions are attributable and traceable.
             </p>
           </div>
@@ -276,12 +298,12 @@ export default function DecisionTrace() {
             {governanceCase.truth_references.map((truthRef, idx) => {
               const ref = truthRef;
               return (
-                <div key={`${String(ref.truth_object_id || idx)}`} className="rounded-md border border-neutral-200 p-3 text-[12px]">
-                  <div className="font-semibold text-neutral-800">Requirement: {String(ref.requirement || ref.claim || "Truth reference")}</div>
-                  <div className="text-neutral-600 mt-1">
-                    ID: <span className="font-mono text-[11px]">{String(ref.truth_object_id || "n/a")}</span>
+                <div key={`${String(ref.truth_object_id || idx)}`} className="rounded-md border border-border p-3 vf-text-body-s">
+                  <div className="font-semibold text-foreground">Requirement: {String(ref.requirement || ref.claim || "Truth reference")}</div>
+                  <div className="text-muted-foreground mt-1">
+                    ID: <span className="font-mono vf-text-caption">{String(ref.truth_object_id || "n/a")}</span>
                   </div>
-                  <div className="text-neutral-600">
+                  <div className="text-muted-foreground">
                     Status: {String(ref.status || "unknown")} · Maturity: {String(ref.maturity_level || "n/a")}
                   </div>
                 </div>
@@ -289,7 +311,7 @@ export default function DecisionTrace() {
             })}
           </div>
           {governanceCase.remediation_items && governanceCase.remediation_items.length > 0 && (
-            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[12px] text-amber-800">
+            <div className="mt-3 rounded-md border border-warning/20 bg-warning/5 p-3 vf-text-body-s text-warning">
               <div className="font-semibold mb-1">Remediation Required</div>
               <ul className="list-disc pl-5 space-y-1">
                 {governanceCase.remediation_items.map((item, idx) => {
@@ -303,10 +325,9 @@ export default function DecisionTrace() {
       )}
 
       <div className="flex gap-5">
-        {/* Trace list */}
         <div className="flex-1">
           <SectionCard title={`Audit Log (${auditLogs?.total || 0} entries)`} noPad>
-            <LegacyDataTable
+            <DataTable
               columns={["Trace ID", "Entity", "Action", "Agent", "Timestamp", "Status", "Actions"]}
               rows={auditRows}
               emptyMessage="No audit entries found"
@@ -314,7 +335,6 @@ export default function DecisionTrace() {
           </SectionCard>
         </div>
 
-        {/* Provenance panel */}
         <div className="w-[260px] shrink-0">
           <SectionCard
             title={selectedEntityId ? "Provenance Timeline" : "Select an Entity"}
@@ -322,18 +342,18 @@ export default function DecisionTrace() {
             {selectedEntityId ? (
               <>
                 {provenanceTrail && (
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <div className="text-[12px] font-semibold text-blue-900">
+                  <div className="mb-4 p-3 bg-primary/5 rounded-lg">
+                    <div className="vf-text-body-s font-semibold text-foreground">
                       {provenanceTrail.entity_name}
                     </div>
-                    <div className="text-[11px] text-blue-700">
+                    <div className="vf-text-caption text-muted-foreground">
                       Type: {provenanceTrail.entity_type}
                     </div>
-                    <div className="text-[11px] text-blue-700">
+                    <div className="vf-text-caption text-muted-foreground">
                       Source: {provenanceTrail.source}
                     </div>
                     {provenanceTrail.confidence_score && (
-                      <div className="text-[11px] text-blue-700">
+                      <div className="vf-text-caption text-muted-foreground">
                         Confidence: {(provenanceTrail.confidence_score * 100).toFixed(1)}%
                       </div>
                     )}
@@ -345,21 +365,21 @@ export default function DecisionTrace() {
                     <div key={s.step} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                          i < provenanceSteps.length ? "bg-emerald-100" : "bg-neutral-100"
+                          i < provenanceSteps.length ? "bg-success/10" : "bg-muted"
                         }`}>
-                          <CheckCircle2 size={14} className="text-emerald-600" />
+                          <CheckCircle2 size={14} className="text-success" />
                         </div>
                         {i < provenanceSteps.length - 1 && (
-                          <div className="w-px flex-1 bg-neutral-200 my-1 min-h-[16px]"/>
+                          <div className="w-px flex-1 bg-border my-1 min-h-[16px]"/>
                         )}
                       </div>
                       <div className="pb-4">
-                        <div className="text-[12px] font-semibold text-neutral-800">{s.label}</div>
-                        <div className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">
+                        <div className="vf-text-body-s font-semibold text-foreground">{s.label}</div>
+                        <div className="vf-text-caption text-muted-foreground mt-0.5 leading-relaxed">
                           {s.detail}
                         </div>
                         {s.agent && (
-                          <div className="text-[10px] text-neutral-400 mt-1">
+                          <div className="vf-text-micro text-muted-foreground/60 mt-1">
                             by {s.agent}
                           </div>
                         )}
@@ -368,13 +388,13 @@ export default function DecisionTrace() {
                   ))}
                 </div>
 
-                <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-neutral-100">
-                  <Btn variant="ghost" className="text-[11px] justify-center">
+                <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
+                  <Btn variant="ghost" className="vf-text-caption justify-center">
                     View Complete Provenance Graph
                   </Btn>
                   <Btn
                     variant="ghost"
-                    className="text-[11px] justify-center"
+                    className="vf-text-caption justify-center"
                     onClick={handleExportProvO}
                     disabled={exportMutation.isPending}
                   >
@@ -385,20 +405,20 @@ export default function DecisionTrace() {
                     )}
                     Export PROV-O
                   </Btn>
-                  <Btn variant="outline" className="text-[11px] justify-center">
+                  <Btn variant="outline" className="vf-text-caption justify-center">
                     <Shield size={10}/> Verify Hash
                   </Btn>
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-neutral-500">
-                <p className="text-[13px] mb-2">Select an entity from the audit log</p>
-                <p className="text-[11px]">to view its provenance timeline</p>
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="vf-text-body-m mb-2">Select an entity from the audit log</p>
+                <p className="vf-text-caption">to view its provenance timeline</p>
               </div>
             )}
           </SectionCard>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

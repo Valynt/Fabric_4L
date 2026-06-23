@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 ROI Calculator Service — Data Intelligence Layer Phase 2, Task 2.3.
 
@@ -32,7 +34,6 @@ Neo4j Node Schema:
     created_at
 """
 
-from __future__ import annotations
 
 import json
 import math
@@ -45,7 +46,9 @@ import structlog
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
+from .cypher_scope_guard import validate_tenant_scoped_cypher
 
 
 class ROICalculatorService_compare_scenariosResult(TypedDictModel):
@@ -421,51 +424,69 @@ class ROICalculatorService:
     # ------------------------------------------------------------------
 
     async def create_template(
-        self, tenant_or_template: str | ROITemplateCreate, template: ROITemplateCreate | None = None
+        self, template: ROITemplateCreate
     ) -> dict[str, Any]:
-        """Create an ROI calculation template."""
-        if template is None:
-            template = tenant_or_template  # type: ignore[assignment]
-            tenant_id = _get_tenant_id()
-        else:
-            tenant_id = str(tenant_or_template)
+        """Create an ROI calculation template using current tenant context."""
+        tenant_id = _get_tenant_id()
         template_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        query = """
-        CREATE (t:ROITemplate {
-            id: $id,
-            tenant_id: $tenant_id,
-            name: $name,
-            description: $description,
-            category: $category,
-            input_schema: $input_schema,
-            default_assumptions: $default_assumptions,
-            applicable_industries: $applicable_industries,
-            applicable_products: $applicable_products,
-            entity_type: 'ROITemplate',
-            created_at: $now,
-            updated_at: $now
-        })
-        RETURN t {.*} AS template
-        """
+        template_props = {
+            "id": template_id,
+            "tenant_id": tenant_id,
+            "name": template.name,
+            "description": template.description,
+            "category": template.category,
+            "input_schema": json.dumps(template.input_schema),
+            "default_assumptions": json.dumps(template.default_assumptions),
+            "applicable_industries": template.applicable_industries,
+            "applicable_products": template.applicable_products,
+            "entity_type": "ROITemplate",
+            "created_at": now,
+            "updated_at": now,
+        }
         async with self._driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "id": template_id,
-                "tenant_id": tenant_id,
-                "name": template.name,
-                "description": template.description,
-                "category": template.category,
-                "input_schema": json.dumps(template.input_schema),
-                "default_assumptions": json.dumps(template.default_assumptions),
-                "applicable_industries": template.applicable_industries,
-                "applicable_products": template.applicable_products,
-                "now": now,
-            })
-            record = await result.single()
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="roi_calculator_service.create_template",
+            )
+            await mutation.write_node("ROITemplate", template_id, template_props)
 
         logger.info("roi_template_created", template_id=template_id, name=template.name)
-        return ROICalculatorService_create_templateResult.model_validate({"id": template_id, **(record["template"] if record else {})})
+        return ROICalculatorService_create_templateResult.model_validate(template_props)
+
+    async def create_template_for_tenant(
+        self, tenant_id: str, template: ROITemplateCreate
+    ) -> dict[str, Any]:
+        """Create an ROI calculation template for an explicit tenant."""
+        template_id = str(uuid.uuid4())
+        now = datetime.now(UTC).isoformat()
+
+        template_props = {
+            "id": template_id,
+            "tenant_id": str(tenant_id),
+            "name": template.name,
+            "description": template.description,
+            "category": template.category,
+            "input_schema": json.dumps(template.input_schema),
+            "default_assumptions": json.dumps(template.default_assumptions),
+            "applicable_industries": template.applicable_industries,
+            "applicable_products": template.applicable_products,
+            "entity_type": "ROITemplate",
+            "created_at": now,
+            "updated_at": now,
+        }
+        async with self._driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=str(tenant_id),
+                session=session,
+                operation_source="roi_calculator_service.create_template_for_tenant",
+            )
+            await mutation.write_node("ROITemplate", template_id, template_props)
+
+        logger.info("roi_template_created", template_id=template_id, name=template.name, tenant_id=tenant_id)
+        return ROICalculatorService_create_templateResult.model_validate(template_props)
 
     async def get_templates(
         self,
@@ -503,14 +524,31 @@ class ROICalculatorService:
         """
         count_query = f"MATCH (t:ROITemplate) WHERE {where} RETURN count(t) AS total"
 
+        validate_tenant_scoped_cypher(query)
+        validate_tenant_scoped_cypher(count_query)
+
         async with self._driver.session() as session:
             # strict-scoped-query-execution: dynamic query parameters include tenant_id
-            count_result = await run_validated_query(session, count_query, params)
+            count_result = await run_validated_query(
+                session,
+                count_query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.get_templates.count",
+            )
             count_record = await count_result.single()
             total = count_record["total"] if count_record else 0
 
             # strict-scoped-query-execution: dynamic query parameters include tenant_id
-            list_result = await run_validated_query(session, query, params)
+            list_result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.get_templates",
+            )
             records = [record async for record in list_result]
 
         return ROICalculatorService_get_templatesResult.model_validate({
@@ -544,43 +582,31 @@ class ROICalculatorService:
         calc_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        query = """
-        CREATE (rc:ROICalculation {
-            id: $id,
-            tenant_id: $tenant_id,
-            account_id: $account_id,
-            template_id: $template_id,
-            template_name: $template_name,
-            inputs: $inputs,
-            outputs: $outputs,
-            assumptions: $assumptions,
-            scenario_name: $scenario_name,
-            time_horizon_months: $time_horizon_months,
-            discount_rate: $discount_rate,
-            entity_type: 'ROICalculation',
-            created_at: $now
-        })
-        RETURN rc {.*} AS calculation
-        """
+        calculation_props = {
+            "id": calc_id,
+            "tenant_id": tenant_id,
+            "account_id": account_id or "",
+            "template_id": template_id or "",
+            "template_name": template_name,
+            "inputs": json.dumps(inputs),
+            "outputs": json.dumps(outputs),
+            "assumptions": json.dumps(assumptions or {}),
+            "scenario_name": scenario_name,
+            "time_horizon_months": time_horizon_months,
+            "discount_rate": discount_rate,
+            "entity_type": "ROICalculation",
+            "created_at": now,
+        }
         async with self._driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "id": calc_id,
-                "tenant_id": tenant_id,
-                "account_id": account_id or "",
-                "template_id": template_id or "",
-                "template_name": template_name,
-                "inputs": json.dumps(inputs),
-                "outputs": json.dumps(outputs),
-                "assumptions": json.dumps(assumptions or {}),
-                "scenario_name": scenario_name,
-                "time_horizon_months": time_horizon_months,
-                "discount_rate": discount_rate,
-                "now": now,
-            })
-            record = await result.single()
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="roi_calculator_service.save_calculation",
+            )
+            await mutation.write_node("ROICalculation", calc_id, calculation_props)
 
         logger.info("roi_calculation_saved", calc_id=calc_id, scenario=scenario_name)
-        return ROICalculatorService_save_calculationResult.model_validate({"id": calc_id, **(record["calculation"] if record else {})})
+        return ROICalculatorService_save_calculationResult.model_validate(calculation_props)
 
     async def get_calculation(
         self, tenant_or_calc_id: str, calc_id: str | None = None
@@ -596,10 +622,17 @@ class ROICalculatorService:
         RETURN rc {.*} AS calculation
         """
         async with self._driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "calc_id": calc_id,
-                "tenant_id": tenant_id,
-            })
+            result = await run_validated_query(
+                session,
+                query,
+                {
+                    "calc_id": calc_id,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.get_calculation",
+            )
             record = await result.single()
 
         if not record or not record["calculation"]:
@@ -646,14 +679,31 @@ class ROICalculatorService:
         """
         count_query = f"MATCH (rc:ROICalculation) WHERE {where} RETURN count(rc) AS total"
 
+        validate_tenant_scoped_cypher(query)
+        validate_tenant_scoped_cypher(count_query)
+
         async with self._driver.session() as session:
             # strict-scoped-query-execution: dynamic query parameters include tenant_id
-            count_result = await run_validated_query(session, count_query, params)
+            count_result = await run_validated_query(
+                session,
+                count_query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.list_calculations.count",
+            )
             count_record = await count_result.single()
             total = count_record["total"] if count_record else 0
 
             # strict-scoped-query-execution: dynamic query parameters include tenant_id
-            list_result = await run_validated_query(session, query, params)
+            list_result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.list_calculations",
+            )
             records = [record async for record in list_result]
 
         calculations = []
@@ -704,10 +754,17 @@ class ROICalculatorService:
                collect(DISTINCT e.company_size) AS company_sizes
         """
         async with self._driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "tenant_id": tenant_id,
-                "industry": industry,
-            })
+            result = await run_validated_query(
+                session,
+                query,
+                {
+                    "tenant_id": tenant_id,
+                    "industry": industry,
+                },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculator_service.get_industry_benchmarks",
+            )
             record = await result.single()
 
         if not record or record["case_count"] == 0:
@@ -739,5 +796,3 @@ class ROICalculatorService:
                 "avg_time_to_value_days": round(record["avg_time_to_value_days"] or 180, 0),
             },
         })
-
-

@@ -34,14 +34,13 @@ Fabric_4L/
 ├── .github/
 │   ├── workflows/             # 10 CI/CD workflows
 │   │   ├── build-deploy.yml           # Build → Sign → Attest → Deploy
-│   │   ├── codeql-analysis.yml        # CodeQL SAST (Python + JS/TS)
+│   │   ├── codeql.yml                 # CodeQL SAST (Python + JS/TS)
 │   │   ├── security-gates.yml         # Trivy, gitleaks, bandit, DAST, SBOM
-│   │   ├── pr-checks.yml             # Lint, typecheck, test, contract gates
+│   │   ├── pr-checks.yml             # Lint, typecheck, test, contract, release-smoke gates
 │   │   ├── integration-tests.yml      # Cross-layer integration
 │   │   ├── k8s-readiness.yml         # K8s manifest validation
 │   │   ├── performance-load-tests.yml # k6 SLO evaluation
 │   │   ├── zero-trust-validation.yml  # Network policy enforcement
-│   │   ├── smoke-gate.yml            # Post-deploy smoke tests
 │   │   └── publish-sdk.yml           # SDK artifact publication
 │   ├── scripts/               # CI helper scripts
 │   └── pull_request_template.md
@@ -113,6 +112,7 @@ Fabric_4L/
 | Node.js (frontend) | pnpm | `pnpm-lock.yaml` | `--frozen-lockfile` enforced |
 | GitHub Actions | version pins | N/A | SHA-pinned (`actions/checkout@v4` = specific SHA) |
 | Container base images | Docker | N/A | Tag-pinned (`python:3.11-slim`, `node:20-alpine`) |
+| Rust/Cargo | Not used | N/A | Not required; no tracked `Cargo.toml`, `Cargo.lock`, or `.rs` files |
 
 ### Versioning Strategy
 
@@ -260,7 +260,7 @@ ghcr.io/bmsull560/fabric_4l/<layer>:latest             # Optional (workflow_disp
 
 | Tool | Target | Gate Level | Workflow |
 |------|--------|------------|----------|
-| **CodeQL** | Python + JavaScript/TypeScript | PR-blocking | `codeql-analysis.yml` |
+| **CodeQL** | Python + JavaScript/TypeScript | PR-blocking | `codeql.yml` |
 | **Bandit** | Python (all 6 layers) | PR-blocking (MEDIUM+) | `security-gates.yml`, `pr-checks.yml` |
 | **Ruff** | Python lint + format | PR-blocking | `pr-checks.yml` |
 | **ESLint** | TypeScript/React | PR-blocking | `pr-checks.yml` |
@@ -372,6 +372,21 @@ Every container image receives a SLSA provenance attestation pushed to the regis
 
 Every service and the frontend receive individual SBOMs uploaded as GitHub Actions artifacts with 30-day retention.
 
+Release evidence workflows use stable SBOM artifact naming per service and commit SHA:
+
+- `sbom-<service>-<git_sha>.cdx.json` (CycloneDX JSON)
+- artifact bundle: `scan-<service>-<git_sha>`
+
+### PR vs Main/Release Behavior
+
+- **Pull requests (`main` / `release/**` targets):** build images locally, run container scans, and publish SBOM artifacts only (no registry push/signing).
+- **Main / release / tags:** push publishable images, sign each image keylessly with GitHub OIDC (Cosign), attach SBOM attestations to the registry, and verify signature/attestation metadata in CI.
+
+Policy enforcement is handled by `scripts/ci/check_image_supply_chain_metadata.py`, which fails CI when expected metadata is missing:
+
+- PR mode: requires SBOM artifacts for each expected service image.
+- Release mode: requires both SBOM and signing/attestation verification outputs for each expected service image.
+
 ### Artifact Verification Before Deploy
 
 **Script:** `scripts/security/verify-artifact.sh`
@@ -389,6 +404,19 @@ Output: Structured JSON report in `artifacts/verification/`.
 ```bash
 # Verify before deploying
 ./scripts/security/verify-artifact.sh ghcr.io/bmsull560/fabric_4l/layer3-knowledge:sha-abc12345
+
+# Verify image signature directly (OIDC keyless)
+cosign verify \
+  --certificate-identity-regexp "https://github.com/<org>/<repo>/.github/workflows/release-evidence-bundle.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/<org>/fabric_4l/layer3-knowledge:<git_sha>
+
+# Verify CycloneDX SBOM attestation in registry
+cosign verify-attestation \
+  --certificate-identity-regexp "https://github.com/<org>/<repo>/.github/workflows/release-evidence-bundle.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  --type cyclonedx \
+  ghcr.io/<org>/fabric_4l/layer3-knowledge:<git_sha>
 ```
 
 ### Trust Model for Dependencies
@@ -398,6 +426,7 @@ Output: Structured JSON report in `artifacts/verification/`.
 | Base images (python, node) | High — Docker Official | Tag-pinned, Trivy-scanned |
 | Python packages (PyPI) | Medium | pip-audit, bandit, hash-verified |
 | Node packages (npm) | Medium | pnpm audit, lockfile frozen |
+| Rust crates (crates.io) | N/A | Not part of current production toolchain; `cargo clippy` and `cargo audit` are deferred until Rust code is added |
 | GitHub Actions | High — first-party or verified | Version-pinned, OIDC |
 | Internal shared libraries | High — owned | Contract tests, architecture tests |
 
@@ -429,13 +458,13 @@ Output: Structured JSON report in `artifacts/verification/`.
 |----------|---------|-----------|
 | `pr-checks.yml` | PR to main | **Required** — blocks merge |
 | `security-gates.yml` | PR + push to main + weekly | **Required** — blocks merge |
-| `codeql-analysis.yml` | PR + push to main + weekly | **Required** — blocks merge |
-| `integration-tests.yml` | PR to main | **Required** — blocks merge |
+| `codeql.yml` | PR + push to main + weekly | **Required** — blocks merge |
+| `backend-integrated-reproducibility.yml` | Manual backend-integrated evidence | Release evidence |
 | `k8s-readiness.yml` | PR to main | **Required** — blocks merge |
 | `build-deploy.yml` | Push to main | **Release** — builds and deploys |
 | `performance-load-tests.yml` | Push to main | **Advisory** — SLO tracking |
 | `zero-trust-validation.yml` | Push to main | **Advisory** — security validation |
-| `smoke-gate.yml` | Post-deploy | **Release gate** — blocks promotion |
+| `pr-checks.yml` / `integration-checks` | PR validation | **Release-smoke gate** — runs `make test-backend-integrated-release-smoke` |
 | `publish-sdk.yml` | Manual | **Release** — SDK publication |
 
 ### Failure Gating Rules
@@ -672,7 +701,7 @@ See [PRODUCTION_READINESS_CHECKLIST.md](../PRODUCTION_READINESS_CHECKLIST.md) fo
 
 **Day 0–3: Foundation**
 - [x] Dev Container configuration (`.devcontainer/`)
-- [x] CodeQL SAST workflow (`codeql-analysis.yml`)
+- [x] CodeQL SAST workflow (`codeql.yml`)
 - [x] Artifact verification script (`verify-artifact.sh`)
 - [x] Build reproducibility checker (`build-reproducibility-check.sh`)
 - [x] Supply chain documentation (this document)

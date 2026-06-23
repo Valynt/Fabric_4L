@@ -16,12 +16,30 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
+from fastapi import Request
+
 from layer2_extraction.api import main as api_main
 from layer2_extraction.integration.job_store import PipelineJob
+from value_fabric.shared.identity.context import RequestContext
+
 
 # Attach the test-tenant middleware once, before the app starts, so that
 # X-Test-Tenant headers are resolved to a governance context in all tests.
-api_main._attach_test_tenant_middleware(api_main.app)
+def _attach_test_tenant_middleware(app):
+    @app.middleware("http")
+    async def _test_tenant_middleware(request: Request, call_next):
+        tenant_id = request.headers.get("X-Test-Tenant")
+        if tenant_id:
+            request.state.governance_context = RequestContext(
+                tenant_id=tenant_id,
+                user_id="test-user",
+                roles=["analyst"],
+                source="jwt",
+            )
+        return await call_next(request)
+
+
+_attach_test_tenant_middleware(api_main.app)
 
 # Test defaults for job creation
 DEFAULT_ENTITIES_EXTRACTED = 5
@@ -101,14 +119,14 @@ class TestSSEErrorPaths:
         resp = await async_client.get("/v1/extract/jobs/no-such-job/events")
         assert resp.status_code == 404
         body = resp.json()
-        assert "not found" in body["detail"].lower()
+        assert "not found" in body["error"]["message"].lower()
 
     @pytest.mark.asyncio
     async def test_returns_404_with_job_id_in_detail(self, async_client):
         """404 detail should mention the requested job_id."""
         resp = await async_client.get("/v1/extract/jobs/missing-123/events")
         assert resp.status_code == 404
-        assert "missing-123" in resp.json()["detail"]
+        assert "missing-123" in resp.json()["error"]["message"]
 
 
 # -----------------------------------------------------------------------
@@ -278,7 +296,10 @@ class TestSSEFailedJob:
             last_error="timeout",
         )
         resp = await async_client.get("/v1/extract/jobs/f-4/events")
+        print("STATUS:", resp.status_code)
+        print("TEXT:", resp.text[:500])
         events = _parse_sse_events(resp.text)
+        print("EVENTS:", events)
         progress_events = [e for e in events if e["type"] == "progress"]
         assert any(e["data"] == 100 for e in progress_events)
 

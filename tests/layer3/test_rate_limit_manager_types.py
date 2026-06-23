@@ -1,5 +1,5 @@
-from value_fabric.layer3.rate_limiting.manager import RateLimitStore
-from value_fabric.layer3.rate_limiting.types import LeakyBucketState, TokenBucketState
+from src.rate_limiting.manager import RateLimitStore
+from src.rate_limiting.types import LeakyBucketState, TokenBucketState
 
 
 def test_bucket_state_typed_dict_shapes() -> None:

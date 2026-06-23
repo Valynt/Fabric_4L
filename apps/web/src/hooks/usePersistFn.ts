@@ -1,5 +1,7 @@
 import { useRef } from "react";
 
+type PersistableFunction = (...args: never[]) => unknown;
+
 /**
  * usePersistFn instead of useCallback to reduce cognitive load.
  *
@@ -10,14 +12,13 @@ import { useRef } from "react";
  * @param fn - The function to persist across renders
  * @returns A stable function reference with the same signature
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function usePersistFn<T extends (...args: any[]) => any>(fn: T): T {
+export function usePersistFn<T extends PersistableFunction>(fn: T): T {
   const fnRef = useRef<T>(fn);
   fnRef.current = fn;
 
   const persistFn = useRef<T>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((...args: any[]) => fnRef.current(...args)) as T
+    ((...args: Parameters<T>): ReturnType<T> =>
+      fnRef.current(...args) as ReturnType<T>) as T
   );
 
   return persistFn.current;

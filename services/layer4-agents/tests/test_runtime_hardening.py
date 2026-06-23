@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 """Runtime hardening regressions for production blocker closure."""
 
-from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
 from uuid import uuid4
 
-import value_fabric.layer4.services.llm_budget_guardrails as budget_module
-from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetGuardrails
-from value_fabric.layer4.workflows.whitespace import ExtractedNeedsResponse
+import layer4_agents.services.llm_budget_guardrails as budget_module
+from layer4_agents.services.llm_budget_guardrails import LLMBudgetGuardrails
+from layer4_agents.workflows.whitespace import ExtractedNeedsResponse
 
 
 class FakeRedisPipeline:

@@ -4,9 +4,11 @@ metadata:
   name: routing-host
   namespace: value-fabric
 data:
-  host: app.value-fabric.example.com
-  apiHost: api.value-fabric.example.com
+  host: www.valuepact.ai
+  apiHost: api.valuepact.ai
   # Ingress controller namespace for NetworkPolicy
   ingressNamespace: ingress-nginx
+  # cert-manager ClusterIssuer for TLS certificates
+  tlsIssuer: letsencrypt-prod
   # cert-manager ClusterIssuer email (must be replaced with valid email)
-  issuerEmail: security@value-fabric.example.com
+  issuerEmail: security@valuepact.ai

@@ -2,9 +2,10 @@
 
 import os
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from value_fabric.shared.security.neo4j import validate_neo4j_aura_config
 
 
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec B104
     api_port: int = Field(default=8003, alias="API_PORT")
     api_workers: int = Field(default=1, alias="API_WORKERS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
@@ -74,7 +75,10 @@ class Settings(BaseSettings):
 
     # Security Configuration
     jwt_secret: str = Field(default="", alias="JWT_SECRET")
-    cors_origins: list[str] = Field(default=[], alias="CORS_ORIGINS")
+    # NoDecode disables pydantic-settings' implicit JSON decoding for this complex
+    # field so the ``mode="before"`` validator receives the raw env value and can
+    # parse the comma-separated CORS contract used across all layers.
+    cors_origins: Annotated[list[str], NoDecode] = Field(default=[], alias="CORS_ORIGINS")
 
     # Pinecone Configuration
     pinecone_api_key: str | None = Field(default=None, alias="PINECONE_API_KEY")
@@ -122,6 +126,31 @@ class Settings(BaseSettings):
                 raise ValueError("JWT secret must be >= 32 characters in production")
         return v
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        """Accept the comma-separated CORS origin contract used by deployment env files.
+
+        Deployment ``.env`` files set ``CORS_ORIGINS`` as a plain or comma-separated
+        string (e.g. ``http://localhost:3001`` or ``https://a.io,https://b.io``),
+        consistent with Layers 1/4/5. Without this, pydantic-settings attempts to
+        JSON-decode the value for the ``list[str]`` field and raises on non-JSON
+        input. A JSON array string is still accepted for backward compatibility.
+        """
+        if isinstance(v, str):
+            text = v.strip()
+            if not text:
+                return []
+            if text.startswith("["):
+                import json
+
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError:
+                    pass
+            return [origin.strip() for origin in text.split(",") if origin.strip()]
+        return v
+
     @field_validator("cors_origins")
     @classmethod
     def validate_cors_origins(cls, v: list[str]) -> list[str]:
@@ -147,6 +176,14 @@ class Settings(BaseSettings):
                 "NEO4J_PASSWORD cannot be 'password'. "
                 "Please set a secure password via NEO4J_PASSWORD environment variable."
             )
+        return v
+
+    @field_validator("embedding_dimension")
+    @classmethod
+    def validate_embedding_dimension(cls, v: int) -> int:
+        """Embedding vectors must use a positive dimension."""
+        if v <= 0:
+            raise ValueError("EMBEDDING_DIMENSION must be a positive integer")
         return v
 
     @model_validator(mode="after")

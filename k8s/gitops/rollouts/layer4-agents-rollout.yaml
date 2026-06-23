@@ -20,7 +20,7 @@ spec:
           additionalIngressAnnotations:
             canary-by-header: X-Canary
             canary-by-header-value: "true"
-      
+
       # Canary analysis steps
       steps:
         # Step 1: Set canary weight to 5%
@@ -40,24 +40,25 @@ spec:
             templates:
               - templateName: success-rate
               - templateName: latency
+              - templateName: error-rate
         # Final step: 100% traffic
         - setWeight: 100
-      
+
       # Auto-rollback settings
       autoRollbackEnabled: true
       maxUnavailable: 0
       maxSurge: "25%"
-      
+
       # Scale down old version after successful deployment
       scaleDownDelaySeconds: 600
       scaleDownDelayRevisionLimit: 2
-      
+
       # Analysis run settings
       analysis:
         # Success rate threshold
         successfulRunHistoryLimit: 3
         unsuccessfulRunHistoryLimit: 3
-  
+
   revisionHistoryLimit: 5
   selector:
     matchLabels:
@@ -151,6 +152,7 @@ spec:
       interval: 1m
       count: 5
       successCondition: result[0] >= 0.95
+      failureCondition: result[0] < 0.90
       failureLimit: 3
       provider:
         prometheus:
@@ -161,9 +163,9 @@ spec:
               status!~"5.."
             }[1m]))
             /
-            sum(rate(http_requests_total{
+            clamp_min(sum(rate(http_requests_total{
               service="layer4-agents"
-            }[1m]))
+            }[1m])), 1)
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
@@ -210,6 +212,6 @@ spec:
               status=~"5.."
             }[1m]))
             /
-            sum(rate(http_requests_total{
+            clamp_min(sum(rate(http_requests_total{
               service="layer4-agents"
-            }[1m]))
+            }[1m])), 1)

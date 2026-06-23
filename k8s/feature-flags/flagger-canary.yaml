@@ -49,7 +49,7 @@ spec:
             namespace="value-fabric-prod",
             service="layer4-agents-canary"
           }[1m])) * 100
-      
+
       - name: request-duration
         interval: 1m
         # Maximum req duration P99
@@ -72,7 +72,7 @@ spec:
         timeout: 30s
         metadata:
           cmd: "curl -sf http://layer4-agents-canary.value-fabric-prod:8000/ready"
-      
+
       # Load test - run during canary
       - name: load-test
         type: rollout
@@ -80,7 +80,7 @@ spec:
         timeout: 5s
         metadata:
           cmd: "hey -z 1m -q 10 -c 2 http://layer4-agents-canary.value-fabric-prod:8000/health"
-      
+
       # Conformance test - run after promotion
       - name: conformance-test
         type: post-rollout
@@ -89,14 +89,14 @@ spec:
         metadata:
           type: bash
           cmd: "curl -sf http://layer4-agents.value-fabric-prod:8000/health"
-      
+
       # Rollback webhook
       - name: rollback-notify
         type: rollback
         url: http://flagger-loadtester.value-fabric-prod/
         metadata:
           cmd: "echo 'Rollback triggered for layer4-agents'"
-  
+
   # A/B testing configuration (alternative to Canary)
   abTesting:
     enabled: false
@@ -107,7 +107,7 @@ spec:
       - cookies:
           canary:
             exact: "always"
-  
+
   # Blue/Green deployment (alternative to Canary)
   blueGreen:
     enabled: false

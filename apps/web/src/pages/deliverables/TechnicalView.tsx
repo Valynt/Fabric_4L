@@ -19,6 +19,8 @@ import { useBusinessCase, useBusinessCaseExport } from "@/hooks/useDocuments";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 export default function TechnicalView() {
   const [searchParams] = useSearchParams();
@@ -28,25 +30,31 @@ export default function TechnicalView() {
   const exportMutation = useBusinessCaseExport();
 
   if (isLoading) return (
-    <div className="p-6 max-w-5xl mx-auto space-y-4">
-      <Skeleton className="h-10 w-64" />
-      <div className="grid grid-cols-3 gap-4">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div>
-      <Skeleton className="h-64" />
-    </div>
+    <PageShell>
+      <PageHeader title="Technical Review" />
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-3 gap-4">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div>
+        <Skeleton className="h-64" />
+      </div>
+    </PageShell>
   );
 
   if (error || !bc) return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex flex-col items-center py-16">
-        <AlertCircle size={24} className="text-red-500 mb-2" />
-        <p className="text-[13px] text-neutral-600">{caseId ? "Failed to load business case." : "No case selected."}</p>
-        {tenantSlug && accountId ? (
-          <Link to={deliverableRoutes.businessCaseList(tenantSlug, accountId)} className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>
-        ) : (
-          <Link to="/deliverables/cases" className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>
-        )}
-      </div>
-    </div>
+    <PageShell>
+      <ErrorState
+        title={caseId ? "Failed to load business case" : "No case selected"}
+        description={caseId
+          ? "The business case could not be loaded. It may have been deleted or you may not have permission to view it."
+          : "Navigate from the case list to view a specific business case."}
+        error={error}
+        fallbackAction={
+          <Link to={tenantSlug && accountId ? deliverableRoutes.businessCaseList(tenantSlug, accountId) : "/deliverables/cases"}>
+            <Btn variant="outline">Back to Cases</Btn>
+          </Link>
+        }
+      />
+    </PageShell>
   );
 
   const metadata = bc.case_metadata || {};
@@ -60,7 +68,7 @@ export default function TechnicalView() {
     : "/deliverables/cases";
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <PageShell className="max-w-5xl">
       <PageHeader
         title={`Technical Review: ${bc.title}`}
         subtitle="Implementation details and evidence provenance"
@@ -85,54 +93,54 @@ export default function TechnicalView() {
 
       {/* Technical Metrics */}
       <div className="grid grid-cols-3 gap-4 mt-6">
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
-            <FileText size={14} className="text-blue-500" />
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">Document</span>
+            <FileText size={14} className="text-primary" />
+            <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Document</span>
           </div>
-          <div className="text-[16px] font-bold text-neutral-800">{bc.page_count} pages</div>
-          <div className="text-[11px] text-neutral-500">{(bc.file_size_bytes / 1024).toFixed(0)} KB</div>
+          <div className="text-base font-bold text-foreground">{bc.page_count} pages</div>
+          <div className="vf-text-caption text-muted-foreground">{(bc.file_size_bytes / 1024).toFixed(0)} KB</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
-            <Database size={14} className="text-emerald-500" />
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">Evidence</span>
+            <Database size={14} className="text-success" />
+            <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Evidence</span>
           </div>
-          <div className="text-[16px] font-bold text-neutral-800">{bc.truth_references?.length ?? 0} refs</div>
-          <div className="text-[11px] text-neutral-500">Ground truth citations</div>
+          <div className="text-base font-bold text-foreground">{bc.truth_references?.length ?? 0} refs</div>
+          <div className="vf-text-caption text-muted-foreground">Ground truth citations</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
-            <GitBranch size={14} className="text-violet-500" />
-            <span className="text-[11px] font-semibold text-neutral-500 uppercase">Confidence</span>
+            <GitBranch size={14} className="text-primary" />
+            <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Confidence</span>
           </div>
-          <div className="text-[16px] font-bold text-neutral-800">{Math.round(bc.confidence_score * 100)}%</div>
-          <div className="text-[11px] text-neutral-500">Model confidence score</div>
+          <div className="text-base font-bold text-foreground">{Math.round(bc.confidence_score * 100)}%</div>
+          <div className="vf-text-caption text-muted-foreground">Model confidence score</div>
         </div>
       </div>
 
       {/* Evidence Provenance */}
       <SectionCard className="mt-4">
-        <h3 className="text-[14px] font-bold text-neutral-800 mb-3">Evidence Provenance Chain</h3>
+        <h3 className="vf-text-body-l font-bold text-foreground mb-3">Evidence Provenance Chain</h3>
         {bc.truth_references && bc.truth_references.length > 0 ? (
           <div className="space-y-2">
             {bc.truth_references.map((ref, i: number) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-100">
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-bold text-blue-600">{i + 1}</span>
+              <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="vf-text-micro font-bold text-primary">{i + 1}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-semibold text-neutral-800">
+                  <div className="vf-text-body-s font-semibold text-foreground">
                     {String(ref.title || ref.source || ref.type || `Reference ${i + 1}`)}
                   </div>
                   {!!ref.url && (
                     <a href={String(ref.url)} target="_blank" rel="noopener noreferrer"
-                      className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 mt-0.5">
+                      className="vf-text-caption text-primary hover:underline flex items-center gap-1 mt-0.5">
                       {String(ref.url).slice(0, 60)}... <ExternalLink size={10} />
                     </a>
                   )}
                   {!!ref.confidence && (
-                    <span className="text-[10px] text-neutral-500 mt-0.5 block">
+                    <span className="vf-text-micro text-muted-foreground mt-0.5 block">
                       Confidence: {typeof ref.confidence === 'number' ? `${Math.round(Number(ref.confidence) * 100)}%` : String(ref.confidence)}
                     </span>
                   )}
@@ -141,19 +149,19 @@ export default function TechnicalView() {
             ))}
           </div>
         ) : (
-          <p className="text-[12px] text-neutral-400 text-center py-6">No evidence references available.</p>
+          <p className="vf-text-body-s text-muted-foreground text-center py-6">No evidence references available.</p>
         )}
       </SectionCard>
 
       {/* Case Metadata */}
       {Object.keys(metadata).length > 0 && (
         <SectionCard className="mt-4">
-          <h3 className="text-[14px] font-bold text-neutral-800 mb-3">Case Metadata</h3>
+          <h3 className="vf-text-body-l font-bold text-foreground mb-3">Case Metadata</h3>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(metadata).map(([key, value]) => (
-              <div key={key} className="flex justify-between p-2 bg-neutral-50 rounded-md">
-                <span className="text-[11px] font-medium text-neutral-500">{key.replace(/_/g, ' ')}</span>
-                <span className="text-[11px] font-semibold text-neutral-700">{String(value)}</span>
+              <div key={key} className="flex justify-between p-2 bg-muted/50 rounded-md">
+                <span className="vf-text-caption font-medium text-muted-foreground">{key.replace(/_/g, ' ')}</span>
+                <span className="vf-text-caption font-semibold text-foreground">{String(value)}</span>
               </div>
             ))}
           </div>
@@ -163,17 +171,17 @@ export default function TechnicalView() {
       {/* Remediation Items */}
       {bc.remediation_items && bc.remediation_items.length > 0 && (
         <SectionCard className="mt-4">
-          <h3 className="text-[14px] font-bold text-neutral-800 mb-3">Technical Remediation Items</h3>
+          <h3 className="vf-text-body-l font-bold text-foreground mb-3">Technical Remediation Items</h3>
           <div className="space-y-2">
             {bc.remediation_items.map((item, i: number) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-amber-50/50 rounded-md border border-amber-100">
-                <Clock size={12} className="text-amber-500 mt-0.5 shrink-0" />
+              <div key={i} className="flex items-start gap-2 p-2 bg-warning/5 rounded-md border border-warning/20">
+                <Clock size={12} className="text-warning mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-[12px] font-semibold text-neutral-700">
+                  <div className="vf-text-body-s font-semibold text-foreground">
                     {String(item.title || `Item ${i + 1}`)}
                   </div>
                   {!!item.description && (
-                    <div className="text-[11px] text-neutral-500 mt-0.5">{String(item.description)}</div>
+                    <div className="vf-text-caption text-muted-foreground mt-0.5">{String(item.description)}</div>
                   )}
                 </div>
               </div>
@@ -181,6 +189,6 @@ export default function TechnicalView() {
           </div>
         </SectionCard>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,0 +1,2154 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Layer 7 Billing Service",
+    "description": "Usage event ingestion, plan entitlement checks, invoice listing, and payment state.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/plans": {
+      "post": {
+        "summary": "Upsert Plan",
+        "operationId": "upsert_plan_v1_billing_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Plan"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Upsert Plan V1 Billing Plans Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/entitlements/{plan_id}/decision": {
+      "get": {
+        "summary": "Entitlement Decision",
+        "operationId": "entitlement_decision_v1_billing_entitlements__plan_id__decision_get",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "feature",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Feature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Entitlement Decision V1 Billing Entitlements  Plan Id  Decision Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage-events": {
+      "post": {
+        "summary": "Ingest Usage",
+        "operationId": "ingest_usage_v1_billing_usage_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageEventIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ingest Usage V1 Billing Usage Events Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage-aggregates": {
+      "get": {
+        "summary": "Usage Aggregates",
+        "operationId": "usage_aggregates_v1_billing_usage_aggregates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Usage Aggregates V1 Billing Usage Aggregates Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/invoices": {
+      "get": {
+        "summary": "List Invoices",
+        "operationId": "list_invoices_v1_billing_invoices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Invoices V1 Billing Invoices Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/payment-state": {
+      "get": {
+        "summary": "Payment State",
+        "operationId": "payment_state_v1_billing_payment_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Payment State V1 Billing Payment State Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/webhook": {
+      "post": {
+        "tags": [
+          "Billing \u2014 Webhooks"
+        ],
+        "summary": "Stripe Webhook",
+        "description": "Receive Stripe billing webhooks after HMAC signature verification.\n\nStripe webhooks are authenticated by ``Stripe-Signature`` rather than a\ntenant header or user JWT. The raw request body is verified before JSON is\nparsed, and event IDs are cached within the timestamp tolerance window to\nreject immediate replay attempts.\n\nThis endpoint is the canonical Layer 7 implementation. Layer 4 now\nforwards webhook calls here via a thin HTTP client stub.",
+        "operationId": "stripe_webhook_v1_billing_webhook_post",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stripe-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Stripe Webhook V1 Billing Webhook Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Subscription",
+        "description": "Get current subscription status for a customer.",
+        "operationId": "get_subscription_v1_billing_subscription_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/checkout": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Create Checkout",
+        "description": "Create a Stripe checkout session for subscription.",
+        "operationId": "create_checkout_v1_billing_checkout_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/portal": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Create Portal",
+        "description": "Create a Stripe customer portal session.",
+        "operationId": "create_portal_v1_billing_portal_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/cancel": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Cancel Subscription",
+        "description": "Cancel a customer's subscription.",
+        "operationId": "cancel_subscription_v1_billing_subscription_cancel_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/update-plan": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Update Subscription Plan",
+        "description": "Update a customer's subscription plan.",
+        "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/reactivate": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Reactivate Subscription",
+        "description": "Reactivate a subscription scheduled to cancel at period end.",
+        "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactivateSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/entitlements": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Entitlements",
+        "description": "Get all feature entitlements for a customer.",
+        "operationId": "get_entitlements_v1_billing_entitlements_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/check-feature": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Check Feature",
+        "description": "Check if a customer has access to a specific feature.",
+        "operationId": "check_feature_v1_billing_check_feature_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "feature_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Feature Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Check Feature V1 Billing Check Feature Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/sync-customer": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Sync Customer",
+        "description": "Sync customer with Stripe (create or update).",
+        "operationId": "sync_customer_v1_billing_sync_customer_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerSyncRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Sync Customer V1 Billing Sync Customer Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/customers/{customer_id}/balance": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Customer Balance",
+        "description": "Get customer balance summary.",
+        "operationId": "get_customer_balance_v1_billing_customers__customer_id__balance_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerBalanceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/limits/{customer_id}": {
+      "get": {
+        "tags": [
+          "Billing \u2014 Overage"
+        ],
+        "summary": "Get Usage Limits",
+        "description": "Get current usage and limits for a customer.",
+        "operationId": "get_usage_limits_v1_billing_limits__customer_id__get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageLimitsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/limits/{customer_id}/check": {
+      "post": {
+        "tags": [
+          "Billing \u2014 Overage"
+        ],
+        "summary": "Check Request Allowed",
+        "description": "Check if a request should be allowed based on usage limits.",
+        "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Metric Name"
+            }
+          },
+          {
+            "name": "quantity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 1.0,
+              "title": "Quantity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/plans/{plan_id}/limits": {
+      "get": {
+        "tags": [
+          "Billing \u2014 Overage"
+        ],
+        "summary": "Get Plan Limits",
+        "description": "Get the configured usage limits for a plan.",
+        "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanLimitsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/events": {
+      "post": {
+        "tags": [
+          "Billing \u2014 Usage"
+        ],
+        "summary": "Ingest Usage Event",
+        "description": "Ingest a single usage event for billing.",
+        "operationId": "ingest_usage_event_v1_billing_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ingest Usage Event V1 Billing Events Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/events/batch": {
+      "post": {
+        "tags": [
+          "Billing \u2014 Usage"
+        ],
+        "summary": "Ingest Usage Batch",
+        "description": "Ingest multiple usage events in a batch.",
+        "operationId": "ingest_usage_batch_v1_billing_events_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ingest Usage Batch V1 Billing Events Batch Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/summary": {
+      "get": {
+        "tags": [
+          "Billing \u2014 Usage"
+        ],
+        "summary": "Get Usage Summary",
+        "description": "Get aggregated usage summary for a customer and metric.",
+        "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "title": "Metric Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/events": {
+      "get": {
+        "tags": [
+          "Billing \u2014 Usage"
+        ],
+        "summary": "List Usage Events",
+        "description": "List individual usage events for a customer.",
+        "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metric Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UsageEventResponse"
+                  },
+                  "title": "Response List Usage Events V1 Billing Usage  Customer Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/sync": {
+      "post": {
+        "tags": [
+          "Billing \u2014 Usage"
+        ],
+        "summary": "Sync Usage To Stripe",
+        "description": "Sync pending usage events to Stripe MeterEvents.",
+        "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metric Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSyncResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CancelSubscriptionRequest": {
+        "properties": {
+          "cancel_immediately": {
+            "type": "boolean",
+            "title": "Cancel Immediately",
+            "description": "Cancel immediately vs at period end",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "CancelSubscriptionRequest"
+      },
+      "CancelSubscriptionResponse": {
+        "properties": {
+          "canceled": {
+            "type": "boolean",
+            "title": "Canceled"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "canceled",
+          "cancel_at_period_end",
+          "current_period_end",
+          "subscription_id"
+        ],
+        "title": "CancelSubscriptionResponse"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "Plan to subscribe to (pro, enterprise)"
+          },
+          "success_url": {
+            "type": "string",
+            "title": "Success Url",
+            "description": "Redirect URL after successful checkout"
+          },
+          "cancel_url": {
+            "type": "string",
+            "title": "Cancel Url",
+            "description": "Redirect URL if checkout canceled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "success_url",
+          "cancel_url"
+        ],
+        "title": "CheckoutRequest",
+        "description": "Request to create a checkout session."
+      },
+      "CheckoutResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "checkout_url": {
+            "type": "string",
+            "title": "Checkout Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "checkout_url"
+        ],
+        "title": "CheckoutResponse"
+      },
+      "CustomerBalanceResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "open_invoices_cents": {
+            "type": "integer",
+            "title": "Open Invoices Cents"
+          },
+          "open_invoices_dollars": {
+            "type": "string",
+            "title": "Open Invoices Dollars"
+          },
+          "lifetime_paid_cents": {
+            "type": "integer",
+            "title": "Lifetime Paid Cents"
+          },
+          "lifetime_paid_dollars": {
+            "type": "string",
+            "title": "Lifetime Paid Dollars"
+          },
+          "balance_cents": {
+            "type": "integer",
+            "title": "Balance Cents"
+          },
+          "balance_dollars": {
+            "type": "string",
+            "title": "Balance Dollars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "open_invoices_cents",
+          "open_invoices_dollars",
+          "lifetime_paid_cents",
+          "lifetime_paid_dollars",
+          "balance_cents",
+          "balance_dollars"
+        ],
+        "title": "CustomerBalanceResponse"
+      },
+      "CustomerSyncRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Customer email address"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Customer name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "CustomerSyncRequest",
+        "description": "Request to sync customer with Stripe."
+      },
+      "EntitlementsResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "plan_name",
+          "features"
+        ],
+        "title": "EntitlementsResponse"
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "LimitsCheckResponse": {
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          },
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "current_usage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Usage"
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allowed",
+          "customer_id",
+          "metric_name",
+          "quantity"
+        ],
+        "title": "LimitsCheckResponse"
+      },
+      "Plan": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "entitlements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entitlements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "name"
+        ],
+        "title": "Plan"
+      },
+      "PlanLimitsResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "limits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Limits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "plan_name",
+          "limits"
+        ],
+        "title": "PlanLimitsResponse"
+      },
+      "PortalRequest": {
+        "properties": {
+          "return_url": {
+            "type": "string",
+            "title": "Return Url",
+            "description": "URL to return to after portal session"
+          }
+        },
+        "type": "object",
+        "required": [
+          "return_url"
+        ],
+        "title": "PortalRequest",
+        "description": "Request to create a customer portal session."
+      },
+      "PortalResponse": {
+        "properties": {
+          "portal_url": {
+            "type": "string",
+            "title": "Portal Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "portal_url"
+        ],
+        "title": "PortalResponse"
+      },
+      "ReactivateSubscriptionResponse": {
+        "properties": {
+          "reactivated": {
+            "type": "boolean",
+            "title": "Reactivated"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reactivated",
+          "subscription_id"
+        ],
+        "title": "ReactivateSubscriptionResponse"
+      },
+      "SubscriptionResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "current_period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period Start"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "plan_id",
+          "status",
+          "current_period_start",
+          "current_period_end",
+          "cancel_at_period_end"
+        ],
+        "title": "SubscriptionResponse",
+        "description": "Subscription status response."
+      },
+      "UpdatePlanRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "Target plan (pro, enterprise)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "UpdatePlanRequest"
+      },
+      "UpdatePlanResponse": {
+        "properties": {
+          "previous_plan_id": {
+            "type": "string",
+            "title": "Previous Plan Id"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          },
+          "updated": {
+            "type": "boolean",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous_plan_id",
+          "subscription_id",
+          "updated"
+        ],
+        "title": "UpdatePlanResponse"
+      },
+      "UsageBatchRequest": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/UsageEventRequest"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Events",
+            "description": "Events to ingest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "UsageBatchRequest",
+        "description": "Request body for batch ingestion of usage events."
+      },
+      "UsageEventIn": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "metric",
+          "quantity",
+          "source",
+          "timestamp",
+          "request_id"
+        ],
+        "title": "UsageEventIn"
+      },
+      "UsageEventRequest": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Event Id",
+            "description": "Idempotency key"
+          },
+          "customer_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Customer Id",
+            "description": "Customer identifier"
+          },
+          "event_name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Event Name",
+            "description": "Logical event name"
+          },
+          "metric_name": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Metric Name",
+            "description": "Metered metric name"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Quantity",
+            "description": "Quantity to record"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit",
+            "description": "Unit of measure"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Event timestamp (UTC)"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Optional metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "customer_id",
+          "event_name",
+          "metric_name",
+          "quantity",
+          "timestamp"
+        ],
+        "title": "UsageEventRequest",
+        "description": "Request body for ingesting a single usage event."
+      },
+      "UsageEventResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_name": {
+            "type": "string",
+            "title": "Event Name"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "event_name",
+          "metric_name",
+          "quantity",
+          "unit",
+          "timestamp",
+          "status"
+        ],
+        "title": "UsageEventResponse"
+      },
+      "UsageLimitsResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "all_limits_ok": {
+            "type": "boolean",
+            "title": "All Limits Ok"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          },
+          "total_overage_cost": {
+            "type": "number",
+            "title": "Total Overage Cost",
+            "default": 0.0
+          },
+          "metrics": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Metrics",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "plan_id",
+          "all_limits_ok"
+        ],
+        "title": "UsageLimitsResponse"
+      },
+      "UsageSummaryResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "total_quantity": {
+            "type": "number",
+            "title": "Total Quantity"
+          },
+          "event_count": {
+            "type": "integer",
+            "title": "Event Count"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "metric_name",
+          "total_quantity",
+          "event_count"
+        ],
+        "title": "UsageSummaryResponse"
+      },
+      "UsageSyncResponse": {
+        "properties": {
+          "synced": {
+            "type": "integer",
+            "title": "Synced"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "synced",
+          "failed"
+        ],
+        "title": "UsageSyncResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "title": "ErrorEnvelope",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "title": "ErrorResponse",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      }
+    }
+  }
+}

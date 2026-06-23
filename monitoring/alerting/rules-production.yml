@@ -41,8 +41,8 @@ groups:
         annotations:
           summary: "High error rate in {{ $labels.layer }}"
           description: "Error rate is {{ $value | humanizePercentage }} over 5m"
-          runbook_url: "https://wiki.internal/runbooks/high-error-rate"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # Service Down - No requests detected
       # RATIONALE: Extended to 3m duration to avoid false positives during normal low-traffic periods.
@@ -89,8 +89,8 @@ groups:
         annotations:
           summary: "CRITICAL: Excessive LLM cost"
           description: "LLM cost is ${{ $value }} in the last hour"
-          runbook_url: "https://wiki.internal/runbooks/llm-provider-outage"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # Database Connection Pool Exhausted
       # RATIONALE: 95% threshold with 2m duration catches imminent exhaustion before queries fail.
@@ -123,8 +123,8 @@ groups:
         annotations:
           summary: "401/403 spike in {{ $labels.layer }}"
           description: "Auth deny rate > 2 rps over 5m; possible abuse or auth drift."
-          runbook_url: "https://wiki.internal/runbooks/enterprise-oidc-sso-incident"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       - alert: RateLimit429Spike
         expr: |
@@ -136,8 +136,8 @@ groups:
         annotations:
           summary: "429 spike in {{ $labels.layer }}"
           description: "Throttling response rate > 1 rps over 5m; review abuse controls."
-          runbook_url: "https://wiki.internal/runbooks/abuse-emergency-controls"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/abuse-emergency-controls.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       - alert: TokenReplaySuspected
         expr: increase(auth_token_replay_suspected_total[10m]) > 5
@@ -148,11 +148,11 @@ groups:
         annotations:
           summary: "Token replay pattern detected"
           description: "Replay-suspected token events > 5 in 10m window."
-          runbook_url: "https://wiki.internal/runbooks/abuse-emergency-controls"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/abuse-emergency-controls.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # High Latency - p95 degradation warning
-      # RATIONALE: Changed from p99 to p95 because p99 is too noisy (catches outliers from 
+      # RATIONALE: Changed from p99 to p95 because p99 is too noisy (catches outliers from
       # occasional slow queries). p95 > 1.5s for 10m indicates sustained degradation affecting
       # real user experience. Warning severity = investigate before it becomes critical.
       - alert: HighLatency
@@ -202,8 +202,8 @@ groups:
         annotations:
           summary: "High LLM cost rate"
           description: "LLM cost is ${{ $value }} in the last hour"
-          runbook_url: "https://wiki.internal/runbooks/llm-provider-outage"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # Celery Queue Backlog
       # RATIONALE: 100 tasks queued for 10m indicates worker capacity issue.
@@ -219,8 +219,8 @@ groups:
         annotations:
           summary: "Celery queue backlog"
           description: "Queue {{ $labels.queue_name }} has {{ $value }} pending tasks"
-          runbook_url: "https://wiki.internal/runbooks/workflow-stalled"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # Worker Concurrency High
       # RATIONALE: 80% prefetch capacity indicates workers are near saturation.
@@ -237,8 +237,8 @@ groups:
         annotations:
           summary: "Celery worker {{ $labels.worker_name }} overloaded"
           description: "Worker has {{ $value | humanizePercentage }} of capacity in use"
-          runbook_url: "https://wiki.internal/runbooks/agent-workflow-stall"
-          escalation_url: "https://wiki.internal/operations/severity-escalation-policy"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+          escalation_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
 
       # Memory Usage High
       # RATIONALE: 85% memory for 10m indicates sustained memory pressure.
@@ -426,7 +426,7 @@ groups:
       # Warning severity = ML team investigate, may impact model quality metrics.
       - alert: GroundTruthEvaluationsFailing
         expr: |
-          rate(evaluation_failures_total[1h]) / 
+          rate(evaluation_failures_total[1h]) /
           (rate(evaluation_failures_total[1h]) + rate(evaluation_successes_total[1h])) > 0.10
         for: 15m
         labels:
@@ -435,3 +435,23 @@ groups:
         annotations:
           summary: "Ground truth evaluations failing"
           description: "{{ $value | humanizePercentage }} of evaluations failing"
+
+      - alert: Layer1RepeatedCrawlFailures
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 repeated crawl failures"
+          description: "Layer 1 retry events exceeded threshold in the last 15m."
+
+      - alert: Layer1StuckJobCandidates
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 25
+        for: 10m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Layer 1 stuck-job candidates detected"
+          description: "Layer 1 retry events remained elevated for browser crawl or compliance check stages, indicating potentially stuck non-terminal jobs."

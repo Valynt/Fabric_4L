@@ -8,6 +8,8 @@ export interface NavSchemaNode {
   badge?: string;
   description?: string;
   breadcrumbLabel?: string;
+  /** Core children lead the section and are surfaced in the left sidebar. */
+  core?: boolean;
   children?: NavSchemaNode[];
 }
 
@@ -21,16 +23,17 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     tier: "standard",
     description: "Discover and validate prospect pain signals",
     children: [
-      { id: "intel-signals", label: "Signals", path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", tier: "standard" },
+      { id: "intel-overview", label: "Overview", path: "/t/:tenantSlug/accounts/:accountId/intelligence/overview", tier: "standard", core: true },
+      { id: "intel-signals", label: "Signals", path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", tier: "standard", core: true },
+      { id: "intel-drivers", label: "Drivers", path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", tier: "standard", core: true },
+      { id: "intel-evidence", label: "Evidence", path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", tier: "standard", core: true },
+      { id: "intel-stakeholders", label: "Stakeholders", path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", tier: "standard", core: true },
       { id: "intel-enrichment", label: "Enrichment", path: "/t/:tenantSlug/accounts/:accountId/intelligence/enrichment", tier: "advanced" },
-      { id: "intel-stakeholders", label: "Stakeholders", path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", tier: "standard" },
       { id: "intel-ontology-match", label: "Value Ontology", path: "/t/:tenantSlug/accounts/:accountId/intelligence/ontology-match", tier: "advanced" },
       { id: "intel-hypotheses", label: "Value Hypotheses", path: "/t/:tenantSlug/accounts/:accountId/intelligence/hypotheses", tier: "standard" },
       { id: "intel-discovery-questions", label: "Discovery Questions", path: "/t/:tenantSlug/accounts/:accountId/intelligence/discovery-questions", tier: "standard" },
       { id: "intel-persona-fit", label: "Persona Fit", path: "/t/:tenantSlug/accounts/:accountId/intelligence/persona-fit", tier: "standard" },
       { id: "intel-assumptions", label: "Assumptions", path: "/t/:tenantSlug/accounts/:accountId/intelligence/assumptions", tier: "standard" },
-      { id: "intel-drivers", label: "Value Drivers", path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", tier: "standard" },
-      { id: "intel-evidence", label: "Evidence", path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", tier: "standard" },
       { id: "intel-alternatives", label: "Alternatives", path: "/t/:tenantSlug/accounts/:accountId/intelligence/alternatives", tier: "advanced" },
       { id: "intel-solution-cost", label: "Solution Cost", path: "/t/:tenantSlug/accounts/:accountId/intelligence/solution-cost", tier: "advanced" },
     ],
@@ -57,6 +60,14 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     path: "/t/:tenantSlug/accounts/:accountId/deliverables",
     tier: "standard",
     description: "Packaged outputs for sharing",
+    children: [
+      { id: "deliv-business-cases", label: "Business Cases", path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases", tier: "standard" },
+      { id: "deliv-proposals", label: "Proposals", path: "/t/:tenantSlug/accounts/:accountId/deliverables/proposals", tier: "standard" },
+      { id: "deliv-exports", label: "Exports", path: "/t/:tenantSlug/accounts/:accountId/deliverables/exports", tier: "standard" },
+      { id: "deliv-view-cfo", label: "CFO View", path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo", tier: "standard" },
+      { id: "deliv-view-executive", label: "Executive View", path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive", tier: "standard" },
+      { id: "deliv-view-technical", label: "Technical View", path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical", tier: "standard" },
+    ],
   },
   {
     id: "context-engine",
@@ -64,6 +75,21 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     path: "/t/:tenantSlug/context",
     tier: "standard",
     description: "Value packs, models, formulas, and agents",
+    children: [
+      { id: "ctx-packs", label: "Packs", path: "/t/:tenantSlug/context/packs", tier: "standard" },
+      { id: "ctx-models", label: "Models", path: "/t/:tenantSlug/context/models", tier: "standard" },
+      { id: "ctx-formulas", label: "Formulas", path: "/t/:tenantSlug/context/formulas", tier: "advanced" },
+      { id: "ctx-value-trees", label: "Value Trees", path: "/t/:tenantSlug/context/value-trees/explorer", tier: "advanced" },
+      { id: "ctx-agents", label: "Agents", path: "/t/:tenantSlug/context/agents", tier: "advanced" },
+      { id: "ctx-ontology", label: "Ontology", path: "/t/:tenantSlug/context/ontology", tier: "advanced" },
+      { id: "ctx-ontology-entities", label: "Entities", path: "/t/:tenantSlug/context/ontology/entities", tier: "advanced" },
+      { id: "ctx-ontology-graph", label: "Graph", path: "/t/:tenantSlug/context/ontology/graph", tier: "advanced" },
+      { id: "ctx-ingestion", label: "Ingestion Jobs", path: "/t/:tenantSlug/context/ingestion/jobs", tier: "standard" },
+      { id: "ctx-extraction", label: "Extraction", path: "/t/:tenantSlug/context/extraction", tier: "advanced" },
+      { id: "ctx-integrations", label: "Integrations", path: "/t/:tenantSlug/context/integrations", tier: "admin" },
+      { id: "ctx-sources", label: "Sources", path: "/t/:tenantSlug/context/sources", tier: "admin" },
+      { id: "ctx-targets", label: "Targets", path: "/t/:tenantSlug/context/targets", tier: "admin" },
+    ],
   },
   {
     id: "governance",
@@ -71,11 +97,38 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     path: "/t/:tenantSlug/governance",
     tier: "standard",
     description: "Audit, provenance, and compliance",
+    children: [
+      { id: "gov-traces", label: "Traces", path: "/t/:tenantSlug/governance/traces", tier: "standard" },
+      { id: "gov-evidence", label: "Evidence", path: "/t/:tenantSlug/governance/evidence", tier: "standard" },
+      { id: "gov-provenance", label: "Provenance", path: "/t/:tenantSlug/governance/provenance", tier: "advanced" },
+      { id: "gov-compliance", label: "Compliance", path: "/t/:tenantSlug/governance/compliance", tier: "advanced" },
+      { id: "gov-formulas", label: "Formulas", path: "/t/:tenantSlug/governance/formulas", tier: "advanced" },
+      { id: "gov-benchmarks", label: "Benchmarks", path: "/t/:tenantSlug/governance/benchmarks", tier: "admin" },
+      { id: "gov-value-packs", label: "Value Packs", path: "/t/:tenantSlug/governance/value-packs", tier: "standard" },
+      { id: "gov-policies", label: "Policies", path: "/t/:tenantSlug/governance/policies", tier: "admin" },
+      { id: "gov-audit-log", label: "Audit Log", path: "/t/:tenantSlug/governance/audit-log", tier: "admin" },
+      { id: "gov-health", label: "Health", path: "/t/:tenantSlug/governance/health", tier: "admin" },
+      { id: "gov-billing", label: "Billing & Subscription", path: "/t/:tenantSlug/governance/billing", tier: "admin" },
+    ],
   },
   {
-    id: "settings",
+    id: "academy",
+    label: "Academy",
+    path: "/t/:tenantSlug/academy",
+    tier: "standard",
+    description: "Master the Value Operating System",
+  },
+  {
+    id: "personal-settings",
     label: "Settings",
     path: "/settings",
+    tier: "standard",
+    description: "Personal user settings",
+  },
+  {
+    id: "tenant-settings",
+    label: "Workspace Settings",
+    path: "/t/:tenantSlug/settings",
     tier: "admin",
     description: "Tenant configuration and administration",
   },

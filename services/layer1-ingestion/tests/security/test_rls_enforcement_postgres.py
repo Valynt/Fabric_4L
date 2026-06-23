@@ -14,14 +14,17 @@ if run against SQLite or any other database.
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 from sqlalchemy import text
 from uuid import uuid4
 
-from value_fabric.layer1.shared.database import get_db_session
-from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, JobStatus
+from layer1_ingestion.shared.database import get_db_session
+from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_TASKS_FILE = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestRLSEnforcement:
@@ -29,7 +32,7 @@ class TestRLSEnforcement:
 
     def test_missing_tenant_context_fails_closed(self, postgres_db):
         """Missing tenant_id should cause TenantContextError."""
-        from value_fabric.layer1.shared.database import TenantContextError
+        from layer1_ingestion.shared.database import TenantContextError
         
         with pytest.raises(TenantContextError):
             with get_db_session(tenant_id=None, require_tenant=True) as session:
@@ -37,13 +40,13 @@ class TestRLSEnforcement:
 
     def test_invalid_tenant_id_fails_closed(self, postgres_db):
         """Invalid tenant_id should cause TenantContextError."""
-        from value_fabric.layer1.shared.database import TenantContextError
+        from layer1_ingestion.shared.database import TenantContextError
         
-        # Use a non-existent UUID
-        fake_tenant_id = uuid4()
+        # Use an invalid tenant_id format (not a UUID)
+        invalid_tenant_id = "not-a-valid-uuid"
         
         with pytest.raises(TenantContextError):
-            with get_db_session(tenant_id=fake_tenant_id, require_tenant=True) as session:
+            with get_db_session(tenant_id=invalid_tenant_id, require_tenant=True) as session:
                 session.query(ScrapingJob).first()
 
     def test_cross_tenant_job_lookup_fails(self, postgres_db, org_id, other_org_id, make_job):
@@ -170,8 +173,8 @@ class TestCeleryTaskTenantIsolation:
 
     def test_process_scraping_job_requires_tenant_id(self, postgres_db, org_id, make_job):
         """process_scraping_job task requires tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
-        from value_fabric.layer1.shared.database import TenantContextError
+        from layer1_ingestion.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.database import TenantContextError
         
         job = make_job(tenant_id=org_id)
         
@@ -189,7 +192,7 @@ class TestCeleryTaskTenantIsolation:
 
     def test_all_pipeline_stages_accept_tenant_id(self):
         """All pipeline stage tasks accept tenant_id parameter."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         import inspect
         
         stage_tasks = [
@@ -210,7 +213,7 @@ class TestCeleryTaskTenantIsolation:
 
     def test_fail_job_accepts_tenant_id(self):
         """_fail_job helper accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         import inspect
         
         sig = inspect.signature(_fail_job)
@@ -219,7 +222,7 @@ class TestCeleryTaskTenantIsolation:
 
     def test_dispatch_outbox_event_accepts_tenant_id(self):
         """dispatch_outbox_event task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
         import inspect
         
         sig = inspect.signature(dispatch_outbox_event)
@@ -232,12 +235,11 @@ class TestRequireTenantFalseAllowlist:
 
     def test_require_tenant_false_not_used_in_tenant_scoped_queries(self):
         """require_tenant=False is not used in tenant-scoped queries."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         import re
         
         # Read the tasks file
-        tasks_file = 'src/shared/tasks.py'
-        with open(tasks_file, 'r', encoding='utf-8') as f:
+        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Find all occurrences of require_tenant=False

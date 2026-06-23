@@ -1,12 +1,38 @@
 /**
- * Test utilities for auth and session service tests.
+ * Test utilities for auth fixtures.
  *
- * The session service no longer uses localStorage — tokens live in the
- * httpOnly cookie (backend-managed) and only non-secret metadata is kept
- * in sessionStorage.  These utilities reflect that model.
+ * Legacy session service test helpers are retained as no-ops for test
+ * compatibility while the codebase transitions to Clerk-only auth.
  */
-import { sessionService, type LocationLike, type SessionMeta, type StorageLike, type OidcFlowState } from '@/services/sessionService';
 import type { UserInfo } from '@/schemas/auth';
+
+// ---------------------------------------------------------------------------
+// No-op session environment (Clerk handles sessions automatically)
+// ---------------------------------------------------------------------------
+
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface LocationLike {
+  href: string;
+  origin: string;
+  pathname: string;
+  replace(url: string): void;
+}
+
+export interface SessionMeta {
+  user: UserInfo;
+  tenantId: string;
+}
+
+export interface OidcFlowState {
+  state: string;
+  tenantSlug: string;
+  postLoginRedirect?: string;
+}
 
 export class MemoryStorage implements StorageLike {
   private store = new Map<string, string>();
@@ -50,14 +76,13 @@ export function createLocationMock(
   };
 }
 
-export function applySessionServiceTestEnvironment(options: {
+export function applySessionServiceTestEnvironment(_options: {
   sessionStorage?: MemoryStorage;
   location?: MutableLocationLike;
 } = {}) {
-  const sessionStorage = options.sessionStorage ?? new MemoryStorage();
-  const location = options.location ?? createLocationMock();
-
-  sessionService.configure({ sessionStorage, location });
+  // No-op: Clerk handles sessions; legacy sessionService is stateless.
+  const sessionStorage = _options.sessionStorage ?? new MemoryStorage();
+  const location = _options.location ?? createLocationMock();
 
   return {
     sessionStorage,
@@ -66,7 +91,6 @@ export function applySessionServiceTestEnvironment(options: {
       sessionStorage.clear();
       location.href = 'http://localhost:3000/';
       location.pathname = '/';
-      sessionService.configure({ sessionStorage, location });
     },
   };
 }
@@ -96,7 +120,6 @@ export const authFixtures = {
     };
   },
 
-  /** Returns a well-formed SessionMeta for tests that seed localStorage. */
   validSession(overrides: Partial<SessionMeta> = {}): SessionMeta {
     return {
       user: overrides.user ?? baseUser,

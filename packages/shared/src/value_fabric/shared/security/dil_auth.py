@@ -15,9 +15,8 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlparse
-from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -73,23 +72,13 @@ def verify_tenant_header_matches(
     request: Request,
     ctx=Depends(require_dil_context),
 ) -> str:
-    """Verify that X-Tenant-ID header (if present) matches the auth context.
+    """Compatibility dependency returning the verified tenant context.
 
-    If the header is present and doesn't match, raise 403.
-    Returns the verified tenant_id from the auth context.
+    Tenant headers are browser-controlled hints, so DIL endpoints ignore them
+    and use only the canonical authenticated context.
     """
-    verified_tid = str(ctx.tenant_id)
-    header_tid = request.headers.get("X-Tenant-ID", "")
-
-    if header_tid and header_tid != verified_tid:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "TENANT_MISMATCH",
-                "message": "X-Tenant-ID header does not match authenticated tenant.",
-            },
-        )
-    return verified_tid
+    _ = request
+    return str(ctx.tenant_id)
 
 
 # ---------------------------------------------------------------------------

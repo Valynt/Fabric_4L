@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """C-06 active security regression tests for Layer 4 production fixes.
 
 These tests intentionally avoid optional import skip gates. If a security-critical
@@ -5,7 +7,6 @@ module cannot be imported, the test module must fail during collection rather
 than silently passing with no coverage.
 """
 
-from __future__ import annotations
 
 import inspect
 import pathlib
@@ -25,14 +26,17 @@ for path in (str(SHARED_SRC), str(LAYER4_PROJECT)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from value_fabric.layer4.api.routes.billing import _get_client_ip, _is_stripe_webhook_ip  # noqa: E402
-from value_fabric.layer4.api.routes.health_badges import dismiss_badge, get_detailed_health, require_authenticated  # noqa: E402
-from value_fabric.layer4.config.settings import Settings  # noqa: E402
-from value_fabric.layer4.metrics.prometheus_metrics import _derive_tenant_tier, _normalize_path  # noqa: E402
+from layer4_agents.api.routes.billing import _get_client_ip, _is_stripe_webhook_ip  # noqa: E402
+from layer4_agents.api.routes.health_badges import dismiss_badge, get_detailed_health, require_authenticated  # noqa: E402
+from layer4_agents.config.settings import Settings  # noqa: E402
+from layer4_agents.metrics.prometheus_metrics import _derive_tenant_tier, _normalize_path  # noqa: E402
 
-CORE_ROUTES_SOURCE = LAYER4_SRC / "api" / "core_routes.py"
-HEALTH_BADGES_SOURCE = LAYER4_SRC / "api" / "routes" / "health_badges.py"
-TOOLS_SOURCE = LAYER4_SRC / "api" / "routes" / "tools.py"
+CORE_ROUTES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "core_routes.py"
+HEALTH_BADGES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "health_badges.py"
+TOOLS_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "tools.py"
+NARRATIVE_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "narrative_builder_service.py"
+VALUE_HYPOTHESIS_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "value_hypothesis_engine.py"
+TENANT_PROVISIONING_SOURCE = LAYER4_SRC / "layer4_agents" / "services" / "tenant_provisioning.py"
 
 
 class PathNormalizationSecurityTests(unittest.TestCase):
@@ -295,12 +299,40 @@ class HealthEndpointAuthTests(unittest.TestCase):
 class FailClosedToolGatewayRegressionTests(unittest.TestCase):
     """Ensure C-03 fail-closed source guards remain present while C-06 runs."""
 
-    def test_tool_gateway_raises_http_exception_when_gateway_unavailable(self) -> None:
+    def test_tool_gateway_raises_service_unavailable_when_gateway_unavailable(self) -> None:
         source = TOOLS_SOURCE.read_text(encoding="utf-8")
         self.assertIn("def require_tool_gateway_available()", source)
-        self.assertIn("raise HTTPException(", source)
-        self.assertIn("503", source)
+        self.assertIn("raise ServiceUnavailableError(", source)
+        self.assertIn("Tool governance gateway unavailable", source)
         self.assertNotIn("lambda: None", source)
+
+
+class InjectionSafeQueryConstructionTests(unittest.TestCase):
+    """Regression guards for SQL/Cypher injection-safe query construction."""
+
+    def test_narrative_builder_avoids_fstring_cypher(self) -> None:
+        source = NARRATIVE_SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn('f"MATCH (n:Narrative)', source)
+        self.assertNotIn("f'MATCH (n:Narrative)", source)
+        # The WHERE clause must be assembled from controlled fragments and
+        # passed as parameters, not interpolated.
+        self.assertIn("$tenant_id", source)
+        self.assertIn("$account_id", source)
+        self.assertIn("$status", source)
+
+    def test_value_hypothesis_engine_avoids_fstring_cypher(self) -> None:
+        source = VALUE_HYPOTHESIS_SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn('f"MATCH (vh:ValueHypothesis)', source)
+        self.assertNotIn("f'MATCH (vh:ValueHypothesis)", source)
+        self.assertIn("$tenant_id", source)
+        self.assertIn("$account_id", source)
+        self.assertIn("$status", source)
+
+    def test_tenant_provisioning_uses_quoted_identifier_and_validation(self) -> None:
+        source = TENANT_PROVISIONING_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("re.match(r\"^[a-z_][a-z0-9_]*$\", schema_name)", source)
+        self.assertIn('CREATE SCHEMA IF NOT EXISTS "' + "' + schema_name + '" + '"', source)
+        self.assertIn('GRANT USAGE ON SCHEMA "' + "' + schema_name + '" + '" TO "' + "' + grant_role + '" + '"', source)
 
 
 if __name__ == "__main__":

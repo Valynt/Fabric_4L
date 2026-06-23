@@ -1,3 +1,9 @@
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -16,7 +22,7 @@ from pydantic import BaseModel, Field, field_validator
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.exceptions import DatabaseError, ValidationError
@@ -223,11 +229,11 @@ async def list_models(
         
         # Validate parameters
         if folder not in VALID_FOLDERS:
-            raise HTTPException(status_code=400, detail=f"Invalid folder: {folder}")
+            raise ValidationError(message = str(f"Invalid folder: {folder}"))
         if sort_by not in ALLOWED_SORT_FIELD_MAP:
-            raise HTTPException(status_code=400, detail=f"Invalid sort_by: {sort_by}")
+            raise ValidationError(message = str(f"Invalid sort_by: {sort_by}"))
         if sort_dir not in VALID_SORT_DIRS:
-            raise HTTPException(status_code=400, detail=f"Invalid sort_dir: {sort_dir}")
+            raise ValidationError(message = str(f"Invalid sort_dir: {sort_dir}"))
         
         # Build query dynamically
         where_clauses = ["m.tenant_id = $tenant_id"]
@@ -317,7 +323,7 @@ async def list_models(
             )
         except Exception as e:
             logger.error(f"Failed to list models: {e}")
-            raise HTTPException(status_code=500, detail="Database error") from e
+            raise ServiceUnavailableError(message="Database error") from e
 
 
 @router.get(
@@ -368,7 +374,7 @@ async def get_folder_counts(
             return FoldersResponse(folders=folders)
         except Exception as e:
             logger.error(f"Failed to get folder counts: {e}")
-            raise HTTPException(status_code=500, detail="Database error") from e
+            raise ServiceUnavailableError(message="Database error") from e
 
 
 @router.get(
@@ -407,7 +413,7 @@ async def get_model_detail(
         try:
             records = await neo4j.execute_query(query, {"model_id": model_id, "tenant_id": current_tenant})
             if not records:
-                raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+                raise NotFoundError(message = str(f"Model {model_id} not found"))
             
             record = records[0]
             summary = _model_node_to_summary(record)
@@ -422,7 +428,7 @@ async def get_model_detail(
             raise
         except Exception as e:
             logger.error(f"Failed to get model detail: {e}")
-            raise HTTPException(status_code=500, detail="Database error") from e
+            raise ServiceUnavailableError(message="Database error") from e
 
 
 @router.post(
@@ -489,10 +495,10 @@ async def create_model(
             if records:
                 return CreateResponse(model_id=model_id)
             else:
-                raise HTTPException(status_code=500, detail="Failed to create model")
+                raise ServiceUnavailableError(message="Failed to create model")
         except Exception as e:
             logger.error(f"Failed to create model: {e}")
-            raise HTTPException(status_code=500, detail="Database error") from e
+            raise ServiceUnavailableError(message="Database error") from e
 
 
 @router.delete(
@@ -527,12 +533,12 @@ async def delete_model(
         try:
             check_records = await neo4j.execute_query(check_query, {"model_id": model_id, "tenant_id": current_tenant})
             if not check_records:
-                raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+                raise NotFoundError(message = str(f"Model {model_id} not found"))
             
             owner = check_records[0].get("owner")
             if owner != current_user:
                 # In production, also check admin/superuser roles
-                raise HTTPException(status_code=403, detail="Not authorized to delete this model")
+                raise AuthorizationError(message = "Not authorized to delete this model")
             
             # Delete with relationships
             delete_query = """
@@ -548,4 +554,4 @@ async def delete_model(
             raise
         except Exception as e:
             logger.error(f"Failed to delete model: {e}")
-            raise HTTPException(status_code=500, detail="Database error") from e
+            raise ServiceUnavailableError(message="Database error") from e

@@ -40,13 +40,15 @@ export function ErrorState({
 
   return (
     <div 
+      role="alert"
+      aria-live="assertive"
       className={cn(
         "flex flex-col items-center justify-center gap-4 text-center",
         fullPage ? "min-h-[60vh]" : "py-16",
         className
       )}
     >
-      <AlertCircle size={32} className="text-destructive/70" />
+      <AlertCircle size={32} className="text-destructive/70" aria-hidden="true" />
       <div className="space-y-1">
         <h3 className="text-sm font-medium text-foreground">{title}</h3>
         {description && (
@@ -67,13 +69,14 @@ export function ErrorState({
         <div className="pt-2">
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            aria-expanded={showDetails}
+            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {showDetails ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
             {showDetails ? "Hide details" : "Show details"}
           </button>
           {showDetails && (
-            <div className="mt-2 p-2 bg-muted/50 rounded text-[10px] text-muted-foreground font-mono max-w-sm text-left overflow-auto">
+            <div className="mt-2 max-w-sm overflow-auto rounded bg-muted/50 p-2 text-left font-mono vf-text-micro text-muted-foreground">
               {String(errorMessage)}
             </div>
           )}

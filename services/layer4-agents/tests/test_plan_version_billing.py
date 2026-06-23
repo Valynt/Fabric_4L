@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import BillingPlanVersion, BillingSubscription, SubscriptionStatus
-
-mock_stripe_module = MagicMock()
-with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
-    from value_fabric.layer4.services.billing_service import BillingService
+from layer4_agents.models.billing import BillingPlanVersion, BillingSubscription, SubscriptionStatus
+from layer4_agents.services.billing_service import BillingService
 
 
 @pytest.fixture
@@ -40,5 +37,6 @@ async def test_entitlement_uses_pinned_plan_version_for_historical_reproducibili
     mock_db.execute.side_effect = [res1, res2]
 
     service = BillingService(mock_db)
+    service.plan_versions.ensure_bootstrap_defaults = AsyncMock()
     has_advanced = await service.check_entitlement('cust_1', 'advanced_models')
     assert has_advanced is False

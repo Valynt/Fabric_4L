@@ -6,25 +6,40 @@
  * Tabs: Trees | Evidence | Alternatives | Solution Cost
  */
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
-import DriverTreeShell from "@/components/workspace/DriverTreeShell";
+import { useLocation } from "react-router-dom";
 import { useAccount } from "@/hooks/useAccounts";
 import { useAccountHypotheses } from "@/hooks/useHypotheses";
 import { useValueTreePaths } from "@/hooks/useValueTrees";
 import { useNavigation } from "@/hooks";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
-import { EvidenceTabContent } from "@/pages/intelligence/EvidenceTab";
+import { EvidenceTabContent } from "@/features/intelligence-workspace/components/EvidenceTabContent";
 import AlternativesTab from "@/pages/evidence/AlternativesTab";
 import SolutionCostTab from "@/pages/evidence/SolutionCostTab";
 import { TreePine, ArrowRight } from "lucide-react";
 import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Btn } from "@/components/ui/fabric";
+import { cn } from "@/lib/utils";
+import type { StudioTabProps } from "@/features/value-studio/types";
 
-export default function DriverTreePage() {
-  const params = useParams<{ accountId: string; tab?: string }>();
-  const { accountId, tab = "trees" } = params;
+const ENABLE_EXPERIMENTAL_DRIVER_TABS =
+  import.meta.env.VITE_ENABLE_DRIVER_TREE_EXPERIMENTAL_TABS === "true";
+
+type DriverSubTab = "trees" | "evidence" | "alternatives" | "solution-cost";
+
+const DRIVER_SUB_TABS: { key: DriverSubTab; label: string }[] = [
+  { key: "trees", label: "Trees" },
+  { key: "evidence", label: "Evidence" },
+  ...(ENABLE_EXPERIMENTAL_DRIVER_TABS
+    ? ([
+        { key: "alternatives", label: "Alternatives" },
+        { key: "solution-cost", label: "Solution Cost" },
+      ] as { key: DriverSubTab; label: string }[])
+    : []),
+];
+
+export default function DriverTreePage({ accountId }: StudioTabProps) {
   const { navigateTo } = useNavigation();
   const location = useLocation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
@@ -35,6 +50,16 @@ export default function DriverTreePage() {
     { status: 'draft' }
   );
   const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<DriverSubTab>("trees");
+
+  const hypotheses = hypothesesData?.hypotheses ?? [];
+  const selectedHypothesis = hypotheses.find((h) => h.id === selectedTreeId);
+  const capabilityId = selectedHypothesis?.capability_id;
+  const { data: treePaths, isLoading: pathsLoading } = useValueTreePaths(capabilityId, {
+    direction: "upward",
+    maxDepth: 4,
+    enabled: !!capabilityId,
+  });
 
   useEffect(() => {
     if (!accountId) return;
@@ -63,19 +88,6 @@ export default function DriverTreePage() {
   if (!account) {
     return <ErrorState title="Account not found." description="Select a valid account to continue in this workspace." fullPage />;
   }
-
-  const accountName = account?.name ?? "Account";
-  const industry = account?.industry ?? "Unknown";
-  const revenue = account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A";
-
-  const hypotheses = hypothesesData?.hypotheses ?? [];
-  const selectedHypothesis = hypotheses.find((h) => h.id === selectedTreeId);
-  const capabilityId = selectedHypothesis?.capability_id;
-
-  const { data: treePaths, isLoading: pathsLoading } = useValueTreePaths(
-    capabilityId,
-    { direction: 'upward', maxDepth: 4, enabled: !!capabilityId }
-  );
 
   const TreesTab = () => (
     <div className="space-y-6">
@@ -157,7 +169,7 @@ export default function DriverTreePage() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
+                      <p className="vf-text-micro text-muted-foreground mt-1">
                         {path.length} hops · {path.nodes.length} nodes
                       </p>
                     </div>
@@ -172,11 +184,28 @@ export default function DriverTreePage() {
   );
 
   return (
-    <DriverTreeShell accountName={accountName} industry={industry} revenue={revenue}>
-      {tab === "trees" && <TreesTab />}
-      {tab === "evidence" && <EvidenceTabContent />}
-      {tab === "alternatives" && <AlternativesTab />}
-      {tab === "solution-cost" && <SolutionCostTab />}
-    </DriverTreeShell>
+    <div className="space-y-6">
+      <div className="flex items-center gap-1 border-b border-border">
+        {DRIVER_SUB_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setSubTab(t.key)}
+            className={cn(
+              "px-3 py-2 vf-text-body-s font-medium border-b-2 -mb-px transition-colors",
+              subTab === t.key
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {subTab === "trees" && <TreesTab />}
+      {subTab === "evidence" && <EvidenceTabContent />}
+      {subTab === "alternatives" && <AlternativesTab />}
+      {subTab === "solution-cost" && <SolutionCostTab />}
+    </div>
   );
 }

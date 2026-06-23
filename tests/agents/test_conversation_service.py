@@ -413,11 +413,12 @@ class TestAuditEmission:
     @pytest.mark.asyncio
     async def test_audit_event_emitted(self, service):
         mock_emit = AsyncMock()
-        # Patch at the module where it was imported
-        svc_mod = sys.modules.get("services.conversation")
-        original = getattr(svc_mod, "emit_audit_event", None) if svc_mod else None
-        if svc_mod:
-            setattr(svc_mod, "emit_audit_event", mock_emit)
+        # ConversationService is re-exported from the canonical module; patch the
+        # canonical emit_audit_event so the handle_message call sees the mock.
+        canonical_mod = sys.modules.get("layer4_agents.services.conversation")
+        original = getattr(canonical_mod, "emit_audit_event", None) if canonical_mod else None
+        if canonical_mod:
+            setattr(canonical_mod, "emit_audit_event", mock_emit)
 
         try:
             await service.handle_message(
@@ -434,16 +435,16 @@ class TestAuditEmission:
             # expected action/resource context.
             assert call_kwargs is not None
         finally:
-            if svc_mod and original is not None:
-                setattr(svc_mod, "emit_audit_event", original)
+            if canonical_mod and original is not None:
+                setattr(canonical_mod, "emit_audit_event", original)
 
     @pytest.mark.asyncio
     async def test_audit_failure_does_not_crash(self, service):
         mock_emit = AsyncMock(side_effect=RuntimeError("Audit unavailable"))
-        svc_mod = sys.modules.get("services.conversation")
-        original = getattr(svc_mod, "emit_audit_event", None) if svc_mod else None
-        if svc_mod:
-            setattr(svc_mod, "emit_audit_event", mock_emit)
+        canonical_mod = sys.modules.get("layer4_agents.services.conversation")
+        original = getattr(canonical_mod, "emit_audit_event", None) if canonical_mod else None
+        if canonical_mod:
+            setattr(canonical_mod, "emit_audit_event", mock_emit)
 
         try:
             # Should not raise
@@ -455,8 +456,8 @@ class TestAuditEmission:
             )
             assert "content" in result
         finally:
-            if svc_mod and original is not None:
-                setattr(svc_mod, "emit_audit_event", original)
+            if canonical_mod and original is not None:
+                setattr(canonical_mod, "emit_audit_event", original)
 
 
 # ---------------------------------------------------------------------------

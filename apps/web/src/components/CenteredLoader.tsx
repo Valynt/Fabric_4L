@@ -1,12 +1,10 @@
 /**
- * CenteredLoader — Consistent centered loading spinner + text across all screens.
+ * CenteredLoader — Thin wrapper around LoadingState for full-container centering.
  *
- * Rules:
- * - Uses lucide-react's Loader2 icon.
- * - Container uses flex h-full w-full items-center justify-center to center in any parent layout.
- * - Text uses text-muted-foreground (the project's secondary text color).
+ * Preserves the original `h-full w-full` flex container so callers that render
+ * inside a parent with defined height continue to center correctly.
  */
-import { Loader2 } from "lucide-react";
+import { LoadingState } from "@/components/states";
 
 interface CenteredLoaderProps {
   message?: string;
@@ -15,10 +13,7 @@ interface CenteredLoaderProps {
 export function CenteredLoader({ message = "Loading..." }: CenteredLoaderProps) {
   return (
     <div className="flex h-full w-full items-center justify-center">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span>{message}</span>
-      </div>
+      <LoadingState message={message} />
     </div>
   );
 }

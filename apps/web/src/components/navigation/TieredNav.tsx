@@ -394,7 +394,7 @@ function TierSwitcher({
           <div className="flex items-center justify-between py-2 px-2 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Wrench size={12} className="text-accent" />
-              <span className="text-[11px] font-medium text-foreground">
+              <span className="vf-text-caption font-medium text-foreground">
                 Advanced Mode
               </span>
             </div>
@@ -407,7 +407,7 @@ function TierSwitcher({
             >
               <span
                 className={cn(
-                  "absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform",
+                  "absolute top-0.5 w-4 h-4 bg-background rounded-full transition-transform",
                   isAdvancedModeEnabled ? "translate-x-5" : "translate-x-0.5"
                 )}
               />

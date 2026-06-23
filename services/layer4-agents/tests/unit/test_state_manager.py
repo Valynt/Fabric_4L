@@ -1,17 +1,19 @@
+from __future__ import annotations
+
 """Unit tests for StateManager (in-memory path).
 
 Tests state persistence, LRU eviction, history recording, progress
 calculation, and the list_active_workflows helper — all without Redis.
 """
 
-from __future__ import annotations
 
 import time
 
 import pytest
+from pydantic import ValidationError
 
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import (
     ROIAgentState,
     WorkflowStatus,
     WorkflowType,
@@ -373,6 +375,177 @@ class TestStateManagerActiveWorkflows:
         """list_active_workflows() returns [] when nothing is stored."""
         manager = StateManager()
         assert await manager.list_active_workflows() == []
+
+
+# ============================================================================
+# StateManager – secret redaction (security invariant)
+# ============================================================================
+
+class TestStateManagerSecretRedaction:
+    """Tests for _redact_secrets — secrets must never be persisted in state."""
+
+    @pytest.mark.unit
+    def test_redacts_password_key(self):
+        manager = StateManager()
+        payload = {"username": "alice", "password": "super-secret"}
+        result = manager._redact_secrets(payload)
+        assert result["password"] == "[redacted]"
+        assert result["username"] == "alice"
+
+    @pytest.mark.unit
+    def test_redacts_api_key_variant(self):
+        manager = StateManager()
+        payload = {"api_key": "sk-live-123", "api-key": "sk-live-456"}
+        result = manager._redact_secrets(payload)
+        assert result["api_key"] == "[redacted]"
+        assert result["api-key"] == "[redacted]"
+
+    @pytest.mark.unit
+    def test_redacts_nested_secrets(self):
+        manager = StateManager()
+        payload = {
+            "config": {
+                "secret_token": "tok",
+                "authorization": "Bearer xyz",
+                "public_value": "ok",
+            },
+            "items": [
+                {"private_key": "pk", "name": "item1"},
+            ],
+        }
+        result = manager._redact_secrets(payload)
+        assert result["config"]["secret_token"] == "[redacted]"
+        assert result["config"]["authorization"] == "[redacted]"
+        assert result["config"]["public_value"] == "ok"
+        assert result["items"][0]["private_key"] == "[redacted]"
+        assert result["items"][0]["name"] == "item1"
+
+    @pytest.mark.unit
+    def test_redacts_case_insensitive(self):
+        manager = StateManager()
+        payload = {"SECRET": "hidden", "Token": "t", "PassWord": "pw"}
+        result = manager._redact_secrets(payload)
+        assert result["SECRET"] == "[redacted]"
+        assert result["Token"] == "[redacted]"
+        assert result["PassWord"] == "[redacted]"
+
+    @pytest.mark.unit
+    def test_leaves_primitives_and_non_dicts_untouched(self):
+        manager = StateManager()
+        assert manager._redact_secrets("plain-string") == "plain-string"
+        assert manager._redact_secrets(42) == 42
+        assert manager._redact_secrets(None) is None
+
+
+# ============================================================================
+# StateManager – deserialization type guard
+# ============================================================================
+
+class TestStateManagerDeserializeState:
+    """Tests for _deserialize_state — strict type dispatch and validation."""
+
+    @pytest.mark.unit
+    def test_deserialize_roi_calculator(self):
+        manager = StateManager()
+        state_dict = {
+            "workflow_type": "roi_calculator",
+            "tenant_id": "t1",
+            "workflow_id": "wf-1",
+            "status": "running",
+        }
+        state = manager._deserialize_state(state_dict)
+        assert isinstance(state, ROIAgentState)
+
+    @pytest.mark.unit
+    def test_rejects_non_string_workflow_type(self):
+        manager = StateManager()
+        with pytest.raises(ValueError, match="Invalid workflow_type"):
+            manager._deserialize_state({"workflow_type": 123})
+
+    @pytest.mark.unit
+    def test_rejects_unknown_workflow_type(self):
+        manager = StateManager()
+        with pytest.raises(ValueError, match="Unknown workflow_type"):
+            manager._deserialize_state({"workflow_type": "malicious_type"})
+
+    @pytest.mark.unit
+    def test_parses_iso_datetime_strings(self):
+        manager = StateManager()
+        from datetime import datetime
+
+        state_dict = {
+            "workflow_type": "roi_calculator",
+            "tenant_id": "t1",
+            "workflow_id": "wf-1",
+            "status": "running",
+            "started_at": "2024-01-15T10:30:00Z",
+            "completed_at": "2024-01-15T11:00:00+00:00",
+        }
+        state = manager._deserialize_state(state_dict)
+        assert isinstance(state.started_at, datetime)
+        assert isinstance(state.completed_at, datetime)
+
+    @pytest.mark.unit
+    def test_malformed_datetime_raises_validation_error(self):
+        """Malformed datetime strings propagate as ValidationError (caught by load_state)."""
+        manager = StateManager()
+        state_dict = {
+            "workflow_type": "roi_calculator",
+            "tenant_id": "t1",
+            "workflow_id": "wf-1",
+            "status": "running",
+            "started_at": "not-a-date",
+        }
+        with pytest.raises(ValidationError):
+            manager._deserialize_state(state_dict)
+
+
+# ============================================================================
+# StateManager – list_workflows (all workflows, not just active)
+# ============================================================================
+
+class TestStateManagerListWorkflows:
+    """Tests for list_workflows — includes completed, filters expired/history."""
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
+    async def test_includes_completed_workflows(self):
+        manager = StateManager()
+        await manager.save_state("wf-done", _roi_state("wf-done", WorkflowStatus.COMPLETED))
+        ids = await manager.list_workflows()
+        assert "wf-done" in ids
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
+    async def test_excludes_expired_workflows(self):
+        manager = StateManager()
+        await manager.save_state("wf-expired", _roi_state("wf-expired"), ttl_seconds=3600)
+        # Force expiry
+        key = manager._get_key("wf-expired")
+        manager._memory_store[key]["expires"] = time.time() - 1.0
+        ids = await manager.list_workflows()
+        assert "wf-expired" not in ids
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
+    async def test_excludes_history_keys(self):
+        manager = StateManager()
+        await manager.record_history("wf-h", "node", {}, {}, 0)
+        ids = await manager.list_workflows()
+        # History entries should not appear as workflow IDs
+        assert all("history" not in i for i in ids)
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
+    async def test_returns_sorted_unique_ids(self):
+        manager = StateManager()
+        await manager.save_state("wf-b", _roi_state("wf-b"))
+        await manager.save_state("wf-a", _roi_state("wf-a"))
+        await manager.save_state("wf-a", _roi_state("wf-a", WorkflowStatus.RUNNING))  # overwrite
+        ids = await manager.list_workflows()
+        assert ids == sorted(set(ids))
+        assert "wf-a" in ids
+        assert "wf-b" in ids
 
 
 # ============================================================================

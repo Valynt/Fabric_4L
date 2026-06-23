@@ -1,0 +1,876 @@
+{
+  "overview": {
+    "title": "Value Fabric Layer 3 API",
+    "description": "\n        The Value Fabric Layer 3 API provides intelligent semantic search, graph-based question answering,\n        and knowledge graph management capabilities. This API serves as the semantic layer of the Value Fabric,\n        enabling advanced knowledge discovery and analysis.\n        \n        ## Key Features\n        \n        - **Semantic Search**: Hybrid search combining vector similarity, keyword matching, and graph traversal\n        - **Graph-based Question Answering**: Natural language queries with graph context\n        - **Knowledge Graph Management**: RDF data ingestion and schema management\n        - **Analytics & Insights**: Graph analytics and similarity analysis\n        - **Real-time Monitoring**: Health checks, metrics, and performance monitoring\n        \n        ## Architecture\n        \n        The Layer 3 API is built on:\n        - **Neo4j**: Graph database for knowledge storage and native vector indexes for semantic search\n        - **FastAPI**: Modern Python web framework\n        - **Redis**: Caching and session management\n        - **Prometheus**: Metrics collection\n        \n        ## Getting Started\n        \n        1. **Authentication**: Obtain an API key from the admin panel\n        2. **Base URL**: `https://api.valuefabric.ai/v1`\n        3. **Authentication**: Include API key in `Authorization: Bearer <key>` header\n        4. **First Request**: Try the health check endpoint to verify connectivity\n        ",
+    "version": "1.0.0",
+    "base_url": "https://api.valuefabric.ai/v1",
+    "contact": {
+      "name": "Value Fabric Team",
+      "email": "api-support@valuefabric.ai",
+      "url": "https://valuefabric.ai/support"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "authentication": {
+    "title": "Authentication & Authorization",
+    "content": "\n        ## API Key Authentication\n        \n        All API requests must include an API key for authentication. API keys are role-based and provide\n        different levels of access to the API.\n        \n        ### Getting an API Key\n        \n        1. Contact your Value Fabric administrator\n        2. Specify your use case and required permissions\n        3. Receive your API key (shown only once)\n        4. Store your API key securely\n        \n        ### Using API Keys\n        \n        Include the API key in one of these ways:\n        \n        **Bearer Token (Recommended):**\n        ```http\n        Authorization: Bearer your_api_key_here\n        ```\n        \n        **Custom Header:**\n        ```http\n        X-API-Key: your_api_key_here\n        ```\n        \n        **Query Parameter (Not Recommended):**\n        ```http\n        ?api_key=your_api_key_here\n        ```\n        \n        ## Roles and Permissions\n        \n        ### Read Only Role\n        - View health status and metrics\n        - Perform search queries\n        - Access GraphRAG functionality\n        - View schema information\n        \n        ### Analyst Role\n        - All Read Only permissions\n        - Run analytics operations\n        - Access ingestion status\n        - Export data\n        \n        ### Developer Role\n        - All Analyst permissions\n        - Ingest RDF data\n        - Modify schema (limited)\n        - Full API access\n        \n        ### Admin Role\n        - All Developer permissions\n        - Manage API keys\n        - User management\n        - System administration\n        \n        ## Rate Limiting\n        \n        API keys have rate limits to ensure fair usage:\n        - **Default**: 100 requests per minute\n        - **Burst**: 200 requests in short bursts\n        - **Custom limits**: Available for enterprise plans\n        \n        Rate limit headers are included in responses:\n        ```http\n        X-RateLimit-Limit: 100\n        X-RateLimit-Remaining: 95\n        X-RateLimit-Reset: 1640995200\n        ```\n        "
+  },
+  "endpoints": {
+    "health": {
+      "path": "/health",
+      "method": "GET",
+      "title": "Health Check",
+      "description": "Check the health status of the API and its dependencies",
+      "summary": "Basic health check for monitoring systems",
+      "tags": [
+        "Health",
+        "Monitoring"
+      ],
+      "parameters": [],
+      "request_body": null,
+      "responses": {
+        "200": {
+          "description": "Service is healthy",
+          "content": {
+            "application/json": {
+              "example": {
+                "status": "healthy",
+                "version": "1.0.0",
+                "timestamp": "2024-01-01T12:00:00.000Z",
+                "uptime_seconds": 3600.0,
+                "dependencies": [
+                  {
+                    "name": "neo4j",
+                    "status": "healthy",
+                    "response_time_ms": 15.5,
+                    "error": null,
+                    "details": {
+                      "uri": "bolt://localhost:7687",
+                      "database": "neo4j"
+                    }
+                  }
+                ],
+                "metrics": {
+                  "uptime_seconds": 3600.0,
+                  "memory_usage_mb": 1024.5,
+                  "cpu_percent": 25.0,
+                  "active_connections": 10,
+                  "total_requests": 1500,
+                  "error_rate_percent": 0.1
+                },
+                "neo4j": {
+                  "status": "healthy",
+                  "database": "neo4j",
+                  "uri": "bolt://localhost:7687"
+                },
+                "schema_status": {
+                  "constraints": {
+                    "expected": 10,
+                    "found": 10,
+                    "missing": []
+                  },
+                  "indexes": {
+                    "expected": 15,
+                    "found": 15,
+                    "missing": []
+                  },
+                  "valid": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "title": "Basic Health Check",
+          "description": "Check if the API is running and healthy",
+          "request": {},
+          "response": {
+            "status": "healthy",
+            "version": "1.0.0",
+            "timestamp": "2024-01-01T12:00:00.000Z",
+            "uptime_seconds": 3600.0,
+            "dependencies": [],
+            "metrics": {
+              "uptime_seconds": 3600.0,
+              "memory_usage_mb": 1024.5,
+              "cpu_percent": 25.0,
+              "active_connections": 10,
+              "total_requests": 1500,
+              "error_rate_percent": 0.1
+            },
+            "neo4j": {
+              "status": "healthy",
+              "database": "neo4j",
+              "uri": "bolt://localhost:7687"
+            },
+            "schema_status": {
+              "constraints": {
+                "expected": 10,
+                "found": 10,
+                "missing": []
+              },
+              "indexes": {
+                "expected": 15,
+                "found": 15,
+                "missing": []
+              },
+              "valid": true
+            }
+          },
+          "headers": null,
+          "curl_command": "curl -X GET \"https://api.valuefabric.ai/v1/health\" -H \"Authorization: Bearer your_api_key\"",
+          "python_code": "\nimport requests\n\nheaders = {\"Authorization\": \"Bearer your_api_key\"}\nresponse = requests.get(\"https://api.valuefabric.ai/v1/health\", headers=headers)\nprint(response.json())\n                    ",
+          "javascript_code": "\nconst response = await fetch('https://api.valuefabric.ai/v1/health', {\n  headers: {\n    'Authorization': 'Bearer your_api_key'\n  }\n});\nconst data = await response.json();\nconsole.log(data);\n                    "
+        }
+      ],
+      "errors": [
+        {
+          "status_code": 503,
+          "error_code": "SERVICE_UNAVAILABLE",
+          "message": "Service temporarily unavailable",
+          "description": "The API or one of its dependencies is currently unavailable",
+          "causes": [
+            "Database connection failed",
+            "High system load",
+            "Maintenance mode"
+          ],
+          "solutions": [
+            "Try again later",
+            "Check status page",
+            "Contact support"
+          ],
+          "example_response": {
+            "error": "SERVICE_UNAVAILABLE",
+            "message": "Neo4j database connection failed",
+            "details": {
+              "service": "neo4j",
+              "error": "Connection timeout"
+            }
+          }
+        }
+      ],
+      "rate_limiting": {
+        "requests_per_minute": 60,
+        "burst_size": 120,
+        "per_api_key": true
+      },
+      "authentication": {
+        "required": false,
+        "roles": [
+          "read_only",
+          "analyst",
+          "developer",
+          "admin",
+          "system"
+        ]
+      },
+      "version_info": null
+    },
+    "search": {
+      "path": "/v1/search",
+      "method": "POST",
+      "title": "Semantic Search",
+      "description": "Perform semantic search across the knowledge graph using hybrid search algorithms",
+      "summary": "Hybrid vector, keyword, and graph search",
+      "tags": [
+        "Search",
+        "Discovery"
+      ],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": "Search query string"
+        },
+        {
+          "name": "search_type",
+          "in": "body",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "hybrid",
+              "vector",
+              "fulltext",
+              "graph"
+            ],
+            "default": "hybrid"
+          },
+          "description": "Search algorithm to use"
+        },
+        {
+          "name": "top_k",
+          "in": "body",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          },
+          "description": "Number of results to return"
+        },
+        {
+          "name": "entity_type",
+          "in": "body",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "Capability",
+              "UseCase",
+              "Persona",
+              "ValueDriver",
+              "DataSource",
+              "ExtractionEvent"
+            ]
+          },
+          "description": "Filter by entity type"
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "search_type": {
+                  "type": "string",
+                  "enum": [
+                    "hybrid",
+                    "vector",
+                    "fulltext",
+                    "graph"
+                  ],
+                  "default": "hybrid"
+                },
+                "top_k": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "default": 10
+                },
+                "entity_type": {
+                  "type": "string",
+                  "enum": [
+                    "Capability",
+                    "UseCase",
+                    "Persona",
+                    "ValueDriver",
+                    "DataSource",
+                    "ExtractionEvent"
+                  ]
+                },
+                "weights": {
+                  "type": "object",
+                  "properties": {
+                    "bm25": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "vector": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "graph": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                },
+                "filters": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Search results",
+          "content": {
+            "application/json": {
+              "example": {
+                "query": "automated invoice processing",
+                "results": [
+                  {
+                    "entity_id": "capability_123",
+                    "entity_type": "Capability",
+                    "name": "Automated Invoice Processing",
+                    "bm25_score": 0.8,
+                    "vector_score": 0.9,
+                    "graph_score": 0.7,
+                    "combined_score": 0.8,
+                    "metadata": {
+                      "description": "Processes invoices automatically",
+                      "domain": "finance"
+                    },
+                    "confidence": 0.85
+                  }
+                ],
+                "total_results": 1,
+                "search_type": "hybrid",
+                "processing_time_ms": 150.5
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "title": "Basic Semantic Search",
+          "description": "Search for capabilities related to invoice processing",
+          "request": {
+            "query": "automated invoice processing",
+            "search_type": "hybrid",
+            "top_k": 5
+          },
+          "response": {
+            "query": "automated invoice processing",
+            "results": [
+              {
+                "entity_id": "capability_123",
+                "entity_type": "Capability",
+                "name": "Automated Invoice Processing",
+                "bm25_score": 0.8,
+                "vector_score": 0.9,
+                "graph_score": 0.7,
+                "combined_score": 0.8,
+                "metadata": {
+                  "description": "Processes invoices automatically",
+                  "domain": "finance"
+                },
+                "confidence": 0.85
+              }
+            ],
+            "total_results": 1,
+            "search_type": "hybrid",
+            "processing_time_ms": 150.5
+          },
+          "headers": null,
+          "curl_command": "curl -X POST \"https://api.valuefabric.ai/v1/search\" \\\n  -H \"Authorization: Bearer your_api_key\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"query\": \"automated invoice processing\",\n    \"search_type\": \"hybrid\",\n    \"top_k\": 5\n  }'\n",
+          "python_code": "\nimport requests\n\nheaders = {\n    \"Authorization\": \"Bearer your_api_key\",\n    \"Content-Type\": \"application/json\"\n}\n\ndata = {\n    \"query\": \"automated invoice processing\",\n    \"search_type\": \"hybrid\",\n    \"top_k\": 5\n}\n\nresponse = requests.post(\n    \"https://api.valuefabric.ai/v1/search\",\n    headers=headers,\n    json=data\n)\nprint(response.json())\n",
+          "javascript_code": "\nconst response = await fetch('https://api.valuefabric.ai/v1/search', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer your_api_key',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    query: 'automated invoice processing',\n    search_type: 'hybrid',\n    top_k: 5\n  })\n});\nconst data = await response.json();\nconsole.log(data);\n                    "
+        },
+        {
+          "title": "Filtered Search by Entity Type",
+          "description": "Search only for UseCase entities",
+          "request": {
+            "query": "customer onboarding",
+            "entity_type": "UseCase",
+            "top_k": 10
+          },
+          "response": {
+            "query": "customer onboarding",
+            "results": [
+              {
+                "entity_id": "usecase_456",
+                "entity_type": "UseCase",
+                "name": "Customer Onboarding Automation",
+                "bm25_score": 0.9,
+                "vector_score": 0.85,
+                "graph_score": 0.8,
+                "combined_score": 0.85,
+                "metadata": {
+                  "description": "Automates customer onboarding process",
+                  "industry": "banking"
+                },
+                "confidence": 0.9
+              }
+            ],
+            "total_results": 1,
+            "search_type": "hybrid",
+            "processing_time_ms": 120.0
+          },
+          "headers": null,
+          "curl_command": null,
+          "python_code": null,
+          "javascript_code": null
+        }
+      ],
+      "errors": [
+        {
+          "status_code": 400,
+          "error_code": "VALIDATION_ERROR",
+          "message": "Invalid search parameters",
+          "description": "The search request contains invalid parameters",
+          "causes": [
+            "Empty query",
+            "Invalid search type",
+            "Invalid top_k value"
+          ],
+          "solutions": [
+            "Provide a non-empty query",
+            "Use valid search type",
+            "Use top_k between 1-50"
+          ],
+          "example_response": {
+            "error": "VALIDATION_ERROR",
+            "message": "Query cannot be empty",
+            "details": {
+              "field": "query",
+              "validation_rule": "minLength=1"
+            }
+          }
+        },
+        {
+          "status_code": 429,
+          "error_code": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "description": "Too many requests, please try again later",
+          "causes": [
+            "High request volume",
+            "Insufficient rate limit"
+          ],
+          "solutions": [
+            "Wait and retry",
+            "Upgrade plan",
+            "Use caching"
+          ],
+          "example_response": {
+            "error": "RATE_LIMIT_ERROR",
+            "message": "Rate limit exceeded",
+            "details": {
+              "limit": 100,
+              "window_seconds": 60,
+              "retry_after": 30
+            }
+          }
+        }
+      ],
+      "rate_limiting": {
+        "requests_per_minute": 100,
+        "burst_size": 200,
+        "per_api_key": true
+      },
+      "authentication": {
+        "required": true,
+        "roles": [
+          "read_only",
+          "analyst",
+          "developer",
+          "admin",
+          "system"
+        ]
+      },
+      "version_info": null
+    }
+  },
+  "tutorials": [
+    {
+      "title": "Getting Started with Semantic Search",
+      "description": "Learn how to perform semantic searches across the knowledge graph",
+      "difficulty": "beginner",
+      "estimated_time": "15 minutes",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Set up authentication",
+          "description": "Configure your API key and make your first authenticated request",
+          "code": "import requests\n\n# Configure API key\nAPI_KEY = \"your_api_key_here\"\nBASE_URL = \"https://api.valuefabric.ai/v1\"\n\nheaders = {\n    \"Authorization\": f\"Bearer {API_KEY}\",\n    \"Content-Type\": \"application/json\"\n}\n\n# Test authentication with health check\nresponse = requests.get(f\"{BASE_URL}/health\", headers=headers)\nprint(\"Health check:\", response.json())"
+        },
+        {
+          "step": 2,
+          "title": "Perform basic search",
+          "description": "Make your first semantic search query",
+          "code": "# Basic semantic search\nsearch_data = {\n    \"query\": \"automated invoice processing\",\n    \"search_type\": \"hybrid\",\n    \"top_k\": 5\n}\n\nresponse = requests.post(\n    f\"{BASE_URL}/search\",\n    headers=headers,\n    json=search_data\n)\n\nresults = response.json()\nprint(f\"Found {results['total_results']} results\")\nfor result in results['results']:\n    print(f\"- {result['name']} (confidence: {result['confidence']:.2f})\")"
+        },
+        {
+          "step": 3,
+          "title": "Explore search options",
+          "description": "Try different search types and filters",
+          "code": "# Try different search types\nsearch_types = [\"hybrid\", \"vector\", \"fulltext\", \"graph\"]\n\nfor search_type in search_types:\n    search_data = {\n        \"query\": \"customer analytics\",\n        \"search_type\": search_type,\n        \"top_k\": 3\n    }\n    \n    response = requests.post(\n        f\"{BASE_URL}/search\",\n        headers=headers,\n        json=search_data\n    )\n    \n    results = response.json()\n    print(f\"{search_type.upper()} search: {results['total_results']} results\")"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Complete Search Workflow",
+          "description": "End-to-end search example",
+          "request": {
+            "query": "financial automation",
+            "search_type": "hybrid",
+            "entity_type": "Capability",
+            "top_k": 10,
+            "weights": {
+              "bm25": 0.3,
+              "vector": 0.5,
+              "graph": 0.2
+            }
+          },
+          "response": {
+            "query": "financial automation",
+            "results": [],
+            "total_results": 0,
+            "search_type": "hybrid",
+            "processing_time_ms": 45.2
+          },
+          "headers": null,
+          "curl_command": null,
+          "python_code": null,
+          "javascript_code": null
+        }
+      ],
+      "prerequisites": [
+        "Basic Python knowledge",
+        "API key",
+        "HTTP client library"
+      ]
+    },
+    {
+      "title": "Graph-based Question Answering",
+      "description": "Learn how to use GraphRAG for natural language queries",
+      "difficulty": "intermediate",
+      "estimated_time": "30 minutes",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Understand GraphRAG",
+          "description": "Learn how GraphRAG combines graph traversal with language models",
+          "code": "# GraphRAG queries use natural language\n# The system finds relevant graph context and generates answers\n\nquery = \"What capabilities enable real-time financial reporting?\"\nprint(\"This query will:\")\nprint(\"1. Find entities related to 'real-time financial reporting'\")\nprint(\"2. Traverse the graph to find connected capabilities\")\nprint(\"3. Generate a natural language answer with context\")"
+        },
+        {
+          "step": 2,
+          "title": "Make GraphRAG queries",
+          "description": "Send natural language questions to the GraphRAG endpoint",
+          "code": "# GraphRAG query\ngraphrag_data = {\n    \"query\": \"What capabilities enable automated invoice processing?\",\n    \"max_hops\": 3,\n    \"max_results\": 10,\n    \"confidence_threshold\": 0.7\n}\n\nresponse = requests.post(\n    f\"{BASE_URL}/v1/graphrag\",\n    headers=headers,\n    json=graphrag_data\n)\n\nresult = response.json()\nprint(\"Answer:\", result.get(\"answer\", \"No answer generated\"))\nprint(\"Confidence:\", result.get(\"confidence_score\", 0))\nprint(\"Entities found:\", len(result.get(\"entities\", [])))"
+        },
+        {
+          "step": 3,
+          "title": "Analyze results",
+          "description": "Understand the GraphRAG response structure",
+          "code": "# Analyze GraphRAG results\nresult = response.json()\n\n# Check entities and relationships\nprint(\"Entities:\")\nfor entity in result.get(\"entities\", []):\n    print(f\"  - {entity.get('name')} ({entity.get('type')})\")\n\nprint(\"\\nRelationships:\")\nfor rel in result.get(\"relationships\", []):\n    print(f\"  - {rel.get('source')} -> {rel.get('target')} ({rel.get('type')})\")\n\n# Check context graph\ncontext = result.get(\"context_graph\", {})\nprint(f\"Context: {context.get('nodes', 0)} nodes, {context.get('edges', 0)} edges\")"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Complex GraphRAG Query",
+          "description": "Ask about complex relationships",
+          "request": {
+            "query": "How do data sources support regulatory compliance capabilities?",
+            "max_hops": 4,
+            "max_results": 15,
+            "confidence_threshold": 0.8,
+            "entity_type": "Capability"
+          },
+          "response": {
+            "query": "How do data sources support regulatory compliance capabilities?",
+            "entities": [
+              {
+                "id": "datasource_1",
+                "type": "DataSource",
+                "name": "Regulatory Data Feed",
+                "properties": {
+                  "type": "real-time",
+                  "compliance": "SOX"
+                }
+              }
+            ],
+            "relationships": [
+              {
+                "source": "datasource_1",
+                "target": "capability_1",
+                "type": "enables"
+              }
+            ],
+            "context_graph": {
+              "nodes": 2,
+              "edges": 1
+            },
+            "confidence_score": 0.85,
+            "sources": [
+              "datasource_1",
+              "capability_1"
+            ],
+            "processing_time_ms": 250.0,
+            "answer": "Regulatory data feeds enable compliance capabilities by providing real-time monitoring and audit trails."
+          },
+          "headers": null,
+          "curl_command": null,
+          "python_code": null,
+          "javascript_code": null
+        }
+      ],
+      "prerequisites": [
+        "Completed semantic search tutorial",
+        "Basic graph concepts",
+        "API key"
+      ]
+    }
+  ],
+  "guides": [
+    {
+      "title": "Best Practices",
+      "content": "\n            # API Best Practices\n            \n            ## Performance Optimization\n            \n            ### 1. Use Appropriate Search Types\n            - **Hybrid**: Best for general semantic search\n            - **Vector**: Best for similarity-based search\n            - **Fulltext**: Best for keyword matching\n            - **Graph**: Best for relationship-based queries\n            \n            ### 2. Optimize Query Parameters\n            - Use realistic `top_k` values (5-20 is usually sufficient)\n            - Filter by `entity_type` when possible\n            - Adjust search weights for your specific use case\n            \n            ### 3. Handle Rate Limits\n            - Implement exponential backoff for retries\n            - Cache frequently requested results\n            - Use batch operations when available\n            \n            ## Error Handling\n            \n            ### 1. HTTP Status Codes\n            - `200`: Success\n            - `400`: Bad request (validation error)\n            - `401`: Authentication failed\n            - `403`: Insufficient permissions\n            - `429`: Rate limit exceeded\n            - `500`: Internal server error\n            - `503`: Service unavailable\n            \n            ### 2. Error Response Format\n            ```json\n            {\n              \"error\": \"ERROR_CODE\",\n              \"message\": \"Human-readable error message\",\n              \"details\": {\n                \"field\": \"query\",\n                \"validation_rule\": \"minLength=1\"\n              }\n            }\n            ```\n            \n            ### 3. Retry Strategy\n            ```python\n            import time\n            import requests\n            \n            def api_call_with_retry(url, headers, data, max_retries=3):\n                for attempt in range(max_retries + 1):\n                    try:\n                        response = requests.post(url, headers=headers, json=data)\n                        if response.status_code == 429:\n                            # Rate limited - wait and retry\n                            retry_after = int(response.headers.get('Retry-After', 5))\n                            time.sleep(retry_after)\n                            continue\n                        response.raise_for_status()\n                        return response.json()\n                    except requests.exceptions.RequestException as e:\n                        if attempt == max_retries:\n                            raise\n                        time.sleep(2 ** attempt)  # Exponential backoff\n            ```\n            \n            ## Security Best Practices\n            \n            ### 1. API Key Management\n            - Store API keys securely (environment variables, secret managers)\n            - Never commit API keys to version control\n            - Use different keys for different environments\n            - Rotate API keys regularly\n            \n            ### 2. Request Validation\n            - Always validate user input before sending to API\n            - Use parameterized queries to prevent injection\n            - Implement client-side validation for better UX\n            \n            ### 3. HTTPS Only\n            - Always use HTTPS in production\n            - Verify SSL certificates\n            - Never send API keys over HTTP\n            \n            ## Monitoring and Debugging\n            \n            ### 1. Use Request Headers\n            - Include `X-Request-ID` for tracing\n            - Check `X-RateLimit-*` headers for rate limiting\n            - Monitor `X-API-Version` for version changes\n            \n            ### 2. Logging\n            - Log API requests and responses (without sensitive data)\n            - Include request IDs for debugging\n            - Monitor error rates and response times\n            \n            ### 3. Health Checks\n            - Monitor `/health` endpoint for service status\n            - Set up alerts for service degradation\n            - Use `/metrics` endpoint for detailed monitoring\n            ",
+      "sections": [
+        {
+          "title": "Performance",
+          "content": "Optimize API performance with proper query design"
+        },
+        {
+          "title": "Error Handling",
+          "content": "Implement robust error handling and retry logic"
+        },
+        {
+          "title": "Security",
+          "content": "Secure API key management and request validation"
+        },
+        {
+          "title": "Monitoring",
+          "content": "Monitor API health and performance metrics"
+        }
+      ],
+      "code_examples": [
+        {
+          "title": "Retry Logic",
+          "language": "python",
+          "code": "def api_call_with_retry(url, headers, data, max_retries=3):\n    for attempt in range(max_retries + 1):\n        try:\n            response = requests.post(url, headers=headers, json=data)\n            if response.status_code == 429:\n                retry_after = int(response.headers.get('Retry-After', 5))\n                time.sleep(retry_after)\n                continue\n            response.raise_for_status()\n            return response.json()\n        except requests.exceptions.RequestException as e:\n            if attempt == max_retries:\n                raise\n            time.sleep(2 ** attempt)"
+        }
+      ],
+      "related_endpoints": [
+        "/health",
+        "/v1/search",
+        "/v1/graphrag"
+      ]
+    },
+    {
+      "title": "Data Ingestion",
+      "content": "\n            # Data Ingestion Guide\n            \n            ## Overview\n            \n            The Layer 3 API supports ingestion of RDF/Turtle data from Layer 2. This guide covers how to format,\n            validate, and ingest knowledge graph data.\n            \n            ## RDF Data Format\n            \n            ### Basic Structure\n            RDF data should be in Turtle format (.ttl):\n            ```turtle\n            @prefix ex: <http://example.com/> .\n            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n            \n            ex:capability1 rdf:type ex:Capability ;\n                ex:name \"Automated Invoice Processing\" ;\n                ex:description \"Processes invoices automatically\" ;\n                rdfs:label \"Invoice Automation\" .\n            ```\n            \n            ### Supported Entity Types\n            - **Capability**: Business capabilities and functions\n            - **UseCase**: Specific use cases and scenarios\n            - **Persona**: User roles and stakeholders\n            - **ValueDriver**: Business value drivers\n            - **DataSource**: Data sources and systems\n            - **ExtractionEvent**: Data extraction events\n            \n            ### Supported Relationships\n            - **enables**: Capability enables use case\n            - **requires**: Use case requires capability\n            - **supports**: Data source supports capability\n            - **involves**: Persona involved in use case\n            - **drives**: Value driver drives use case\n            \n            ## Ingestion Process\n            \n            ### 1. Prepare RDF Data\n            Ensure your RDF data follows the Value Fabric schema:\n            ```turtle\n            @prefix vf: <http://valuefabric.ai/ontology/> .\n            \n            vf:capability1 rdf:type vf:Capability ;\n                vf:name \"Customer Analytics\" ;\n                vf:description \"Analyzes customer behavior patterns\" .\n            \n            vf:usecase1 rdf:type vf:UseCase ;\n                vf:name \"Customer Segmentation\" ;\n                vf:enables vf:capability1 .\n            ```\n            \n            ### 2. Create Ingestion Request\n            ```python\n            import requests\n            \n            headers = {\n                \"Authorization\": \"Bearer your_api_key\",\n                \"Content-Type\": \"application/json\"\n            }\n            \n            data = {\n                \"rdf_data\": rdf_content,\n                \"source_id\": \"document_123\",\n                \"extraction_job_id\": \"job_456\",\n                \"content_hash\": \"abc123def456\"\n            }\n            \n            response = requests.post(\n                \"https://api.valuefabric.ai/v1/ingest\",\n                headers=headers,\n                json=data\n            )\n            ```\n            \n            ### 3. Monitor Ingestion Status\n            ```python\n            # Check ingestion status\n            response = requests.get(\n                f\"https://api.valuefabric.ai/v1/sync/{source_id}\",\n                headers=headers\n            )\n            \n            status = response.json()\n            print(f\"Status: {status['status']}\")\n            print(f\"Synced at: {status['synced_at']}\")\n            ```\n            \n            ## Best Practices\n            \n            ### 1. Data Validation\n            - Validate RDF syntax before ingestion\n            - Check for required predicates\n            - Ensure proper entity types\n            \n            ### 2. Batch Processing\n            - Ingest data in reasonable batches (1000-5000 triples)\n            - Use content hashes for change detection\n            - Handle partial failures gracefully\n            \n            ### 3. Error Handling\n            - Monitor for validation errors\n            - Implement retry logic for transient failures\n            - Log ingestion metrics\n            \n            ## Common Issues\n            \n            ### RDF Syntax Errors\n            ```turtle\n            # Invalid - missing semicolon\n            ex:entity1 rdf:type ex:Type\n            ex:entity2 rdf:type ex:Type .\n            \n            # Valid\n            ex:entity1 rdf:type ex:Type ;\n            ex:entity2 rdf:type ex:Type .\n            ```\n            \n            ### Missing Predicates\n            ```turtle\n            # Invalid - missing required name\n            ex:capability1 rdf:type ex:Capability .\n            \n            # Valid\n            ex:capability1 rdf:type ex:Capability ;\n                ex:name \"Capability Name\" .\n            ```\n            \n            ### Type Mismatches\n            ```turtle\n            # Invalid - wrong entity type\n            ex:entity1 rdf:type ex:InvalidType .\n            \n            # Valid\n            ex:entity1 rdf:type ex:Capability .\n            ```\n            ",
+      "sections": [
+        {
+          "title": "RDF Format",
+          "content": "Understanding RDF/Turtle syntax and structure"
+        },
+        {
+          "title": "Ingestion API",
+          "content": "Using the ingestion endpoints"
+        },
+        {
+          "title": "Best Practices",
+          "content": "Tips for successful data ingestion"
+        },
+        {
+          "title": "Troubleshooting",
+          "content": "Common issues and solutions"
+        }
+      ],
+      "code_examples": [
+        {
+          "title": "RDF Data Example",
+          "language": "turtle",
+          "code": "@prefix vf: <http://valuefabric.ai/ontology/> .\n\nvf:capability1 rdf:type vf:Capability ;\n    vf:name \"Customer Analytics\" ;\n    vf:description \"Analyzes customer behavior patterns\" ;\n    vf:domain \"retail\" .\n\nvf:usecase1 rdf:type vf:UseCase ;\n    vf:name \"Customer Segmentation\" ;\n    vf:description \"Segments customers based on behavior\" ;\n    vf:enables vf:capability1 ."
+        },
+        {
+          "title": "Ingestion Request",
+          "language": "python",
+          "code": "import requests\n\ndef ingest_rdf_data(rdf_content, source_id, job_id):\n    headers = {\n        \"Authorization\": \"Bearer your_api_key\",\n        \"Content-Type\": \"application/json\"\n    }\n    \n    data = {\n        \"rdf_data\": rdf_content,\n        \"source_id\": source_id,\n        \"extraction_job_id\": job_id,\n        \"content_hash\": hashlib.sha256(rdf_content.encode()).hexdigest()\n    }\n    \n    response = requests.post(\n        \"https://api.valuefabric.ai/v1/ingest\",\n        headers=headers,\n        json=data\n    )\n    \n    return response.json()"
+        }
+      ],
+      "related_endpoints": [
+        "/v1/ingest",
+        "/v1/sync/{source_id}",
+        "/v1/schema/status"
+      ]
+    }
+  ],
+  "errors": {
+    "authentication_errors": [
+      {
+        "status_code": 401,
+        "error_code": "AUTHENTICATION_REQUIRED",
+        "message": "API key required for this endpoint",
+        "description": "The endpoint requires authentication but no API key was provided",
+        "causes": [
+          "Missing API key",
+          "Invalid API key format",
+          "Expired API key"
+        ],
+        "solutions": [
+          "Include API key in Authorization header",
+          "Check API key format",
+          "Get new API key"
+        ],
+        "example_response": {
+          "error": "AUTHENTICATION_REQUIRED",
+          "message": "API key required for this endpoint",
+          "schemes": [
+            "Bearer",
+            "X-API-Key"
+          ]
+        }
+      },
+      {
+        "status_code": 401,
+        "error_code": "AUTHENTICATION_FAILED",
+        "message": "Invalid or expired API key",
+        "description": "The provided API key is invalid, expired, or has been revoked",
+        "causes": [
+          "Invalid API key",
+          "Expired API key",
+          "Revoked API key",
+          "Disabled API key"
+        ],
+        "solutions": [
+          "Check API key",
+          "Get new API key",
+          "Contact administrator"
+        ],
+        "example_response": {
+          "error": "AUTHENTICATION_FAILED",
+          "message": "Invalid API key"
+        }
+      }
+    ],
+    "authorization_errors": [
+      {
+        "status_code": 403,
+        "error_code": "INSUFFICIENT_PERMISSIONS",
+        "message": "API key lacks required permissions",
+        "description": "The API key does not have permission to perform this operation",
+        "causes": [
+          "Insufficient role",
+          "Missing permission",
+          "Permission revoked"
+        ],
+        "solutions": [
+          "Upgrade API key role",
+          "Contact administrator",
+          "Check permissions"
+        ],
+        "example_response": {
+          "error": "INSUFFICIENT_PERMISSIONS",
+          "message": "API key lacks required permissions",
+          "required_permission": "write:ingestion",
+          "current_permissions": [
+            "read:search",
+            "read:health"
+          ]
+        }
+      }
+    ],
+    "validation_errors": [
+      {
+        "status_code": 400,
+        "error_code": "VALIDATION_ERROR",
+        "message": "Request validation failed",
+        "description": "The request contains invalid data or parameters",
+        "causes": [
+          "Missing required fields",
+          "Invalid data format",
+          "Constraint violations"
+        ],
+        "solutions": [
+          "Check request format",
+          "Validate data before sending",
+          "Review API documentation"
+        ],
+        "example_response": {
+          "error": "VALIDATION_ERROR",
+          "message": "Query cannot be empty",
+          "details": {
+            "field": "query",
+            "validation_rule": "minLength=1"
+          }
+        }
+      }
+    ],
+    "rate_limit_errors": [
+      {
+        "status_code": 429,
+        "error_code": "RATE_LIMIT_ERROR",
+        "message": "Rate limit exceeded",
+        "description": "Too many requests have been made within the time window",
+        "causes": [
+          "High request volume",
+          "Insufficient rate limit",
+          "Burst traffic"
+        ],
+        "solutions": [
+          "Wait and retry",
+          "Implement exponential backoff",
+          "Upgrade plan"
+        ],
+        "example_response": {
+          "error": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "details": {
+            "limit": 100,
+            "window_seconds": 60,
+            "retry_after": 30
+          }
+        }
+      }
+    ],
+    "server_errors": [
+      {
+        "status_code": 500,
+        "error_code": "INTERNAL_SERVER_ERROR",
+        "message": "Internal server error",
+        "description": "An unexpected error occurred on the server",
+        "causes": [
+          "Database connection failed",
+          "Service unavailable",
+          "Bug in application"
+        ],
+        "solutions": [
+          "Try again later",
+          "Contact support",
+          "Check status page"
+        ],
+        "example_response": {
+          "error": "INTERNAL_SERVER_ERROR",
+          "message": "An unexpected error occurred",
+          "request_id": "req_123456"
+        }
+      },
+      {
+        "status_code": 503,
+        "error_code": "SERVICE_UNAVAILABLE",
+        "message": "Service temporarily unavailable",
+        "description": "The service is temporarily down for maintenance or overload",
+        "causes": [
+          "Maintenance",
+          "High load",
+          "Dependency failure"
+        ],
+        "solutions": [
+          "Try again later",
+          "Check status page",
+          "Contact support"
+        ],
+        "example_response": {
+          "error": "SERVICE_UNAVAILABLE",
+          "message": "Service temporarily unavailable",
+          "details": {
+            "service": "neo4j",
+            "error": "Connection timeout"
+          }
+        }
+      }
+    ]
+  }
+}

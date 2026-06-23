@@ -20,9 +20,22 @@ PLACEHOLDER_RE = re.compile(
     r"replace-me|sk-placeholder|sk-ant-placeholder|dev-secret-key-change-in-production)",
     re.IGNORECASE,
 )
+PRODUCTION_FORBIDDEN_PLACEHOLDER_RE = re.compile(
+    r"(REPLACE_WITH_[A-Z0-9_]+|devpassword|minioadmin)",
+    re.IGNORECASE,
+)
 
 NON_PROD_VALUES = {"dev", "development", "local", "test"}
 PROD_NAMESPACE_RE = re.compile(r"(prod|production|staging|stage)", re.IGNORECASE)
+PROD_TARGET_SOURCE_RE = re.compile(r"(prod|production|staging|stage|helm|kustomize|rendered)", re.IGNORECASE)
+
+# Keep this list intentionally explicit and narrow.
+LOCAL_COMPOSE_ALLOWLIST = {
+    "infra/compose/docker-compose.dev.yml",
+    "infra/compose/docker-compose.full.dev-vault.yml",
+    "infra/compose/docker-compose.e2e.yml",
+    "infra/compose/docker-compose.test.yml",
+}
 
 
 def decode_b64(value: str) -> str:
@@ -85,6 +98,10 @@ def scan_doc(doc: dict[str, Any], source: str, allow_guarded_dev: bool) -> list[
     guarded_dev = allow_guarded_dev and is_guarded_dev_secret(doc)
     findings: list[str] = []
 
+    source_name = Path(source).name
+    is_local_compose_source = source_name in LOCAL_COMPOSE_ALLOWLIST
+    is_production_target_source = bool(PROD_TARGET_SOURCE_RE.search(source))
+
     if doc.get("kind") == "Secret":
         for field in ("stringData", "data"):
             values = (doc.get(field) or {}).items()
@@ -94,10 +111,30 @@ def scan_doc(doc: dict[str, Any], source: str, allow_guarded_dev: bool) -> list[
                     if guarded_dev:
                         continue
                     findings.append(f"{source}: {identity} {field}.{key} contains placeholder value")
+                if (
+                    not is_local_compose_source
+                    and (
+                        is_production_target_source
+                        or (namespace and PROD_NAMESPACE_RE.search(namespace))
+                    )
+                    and PRODUCTION_FORBIDDEN_PLACEHOLDER_RE.search(rendered)
+                ):
+                    findings.append(
+                        f"{source}: {identity} {field}.{key} contains production-forbidden placeholder value"
+                    )
     else:
         for value in scalar_values(doc):
             if PLACEHOLDER_RE.search(value):
                 findings.append(f"{source}: {identity} contains placeholder value")
+            if (
+                not is_local_compose_source
+                and (
+                    is_production_target_source
+                    or (namespace and PROD_NAMESPACE_RE.search(namespace))
+                )
+                and PRODUCTION_FORBIDDEN_PLACEHOLDER_RE.search(value)
+            ):
+                findings.append(f"{source}: {identity} contains production-forbidden placeholder value")
 
     return findings
 

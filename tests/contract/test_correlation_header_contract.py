@@ -29,7 +29,7 @@ def _build_app() -> FastAPI:
     return app
 
 
-def test_correlation_alias_accepted_canonical_header_emitted_and_log_matches(caplog):
+def test_correlation_alias_accepted_canonical_and_alias_headers_emitted_and_log_matches(caplog):
     client = TestClient(_build_app(), raise_server_exceptions=False)
     with caplog.at_level(logging.INFO):
         response = client.get("/ok", headers={"X-Correlation-ID": "corr-12345"})
@@ -37,7 +37,8 @@ def test_correlation_alias_accepted_canonical_header_emitted_and_log_matches(cap
     assert response.status_code == 200
     assert CANONICAL_TRACE_HEADER in response.headers
     assert response.headers[CANONICAL_TRACE_HEADER] == "corr-12345"
-    assert "X-Correlation-ID" not in response.headers
+    assert response.headers["X-Correlation-ID"] == "corr-12345"
+    assert response.headers["X-Trace-ID"] == "corr-12345"
 
     matching_logs = [
         rec
@@ -54,4 +55,4 @@ def test_error_response_includes_canonical_header_and_trace_id():
 
     assert response.status_code == 500
     assert response.headers.get(CANONICAL_TRACE_HEADER) == "trace-999"
-    assert response.json().get("trace_id") == "trace-999"
+    assert response.json()["error"]["request_id"] == "trace-999"

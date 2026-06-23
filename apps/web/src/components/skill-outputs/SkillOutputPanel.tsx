@@ -124,7 +124,7 @@ function AccountIntelligencePacketPanel({ data }: { data: AccountIntelligencePac
           <ul className="px-5 py-3 space-y-1">
             {data.likely_pain_areas.map((p) => (
               <li key={p} className="text-xs text-foreground flex items-start gap-1.5">
-                <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span className="mt-1 w-1.5 h-1.5 rounded-full bg-warning/100 shrink-0" />
                 {p}
               </li>
             ))}

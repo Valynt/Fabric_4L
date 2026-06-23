@@ -251,7 +251,7 @@ class TestL3GraphNodeContracts:
     def test_graph_node_response_sample_includes_alias_fields(self, monkeypatch) -> None:
         """GraphNode model_dump includes both legacy and alias fields for frontend compatibility."""
         # Import and use the actual Pydantic model to test real serialization
-        from value_fabric.layer3.api.models import GraphNode
+        from src.api.models import GraphNode
 
         # Create a GraphNode instance (uses legacy fields internally)
         node = GraphNode(id="cap-1", name="Automated Invoice Processing", entity_type="Capability", confidence_score=0.92)
@@ -274,7 +274,7 @@ class TestL3GraphNodeContracts:
 
     def test_graph_node_rejects_conflicting_alias_and_canonical_values(self) -> None:
         from pydantic import ValidationError
-        from value_fabric.layer3.api.models import GraphNode
+        from src.api.models import GraphNode
 
         with pytest.raises(ValidationError):
             GraphNode(
@@ -305,7 +305,7 @@ class TestL3GraphRelationshipContracts:
         """GraphEdge model_dump includes relationship_type alias for frontend compatibility."""
         # Import and use the actual Pydantic model to test real serialization
         from pathlib import Path
-        from value_fabric.layer3.api.models import GraphEdge
+        from src.api.models import GraphEdge
 
         # Create a GraphEdge instance (uses legacy 'type' field internally)
         edge = GraphEdge(

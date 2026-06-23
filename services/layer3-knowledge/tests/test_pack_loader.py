@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Tests for pack_loader module.
 
 Validates correct behavior for pack loading, version extraction,
 and path traversal protection.
 """
 
-from __future__ import annotations
 
 import json
 import tempfile
@@ -14,8 +15,8 @@ from unittest.mock import patch
 
 import pytest
 
-from value_fabric.layer3.api.routes import pack_loader
-from value_fabric.layer3.api.routes.pack_loader import (
+from src.api.routes import pack_loader
+from src.api.routes.pack_loader import (
     VALID_PACK_ID_PATTERN,
     VERSION_SUFFIX_PATTERN,
     _extract_pack_slug,
@@ -139,7 +140,7 @@ class TestManifestLoading:
     def test_missing_manifest_returns_none(self) -> None:
         """Should return None when manifest doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch("value_fabric.layer3.api.routes.pack_loader.MANIFEST_FILE", Path(tmpdir) / "nonexistent.json"):
+            with patch("src.api.routes.pack_loader.MANIFEST_FILE", Path(tmpdir) / "nonexistent.json"):
                 result = load_pack_manifest()
                 assert result is None
 
@@ -149,7 +150,7 @@ class TestManifestLoading:
             manifest_file = Path(tmpdir) / "pack-manifest.json"
             manifest_file.write_text("not valid json {")
 
-            with patch("value_fabric.layer3.api.routes.pack_loader.MANIFEST_FILE", manifest_file):
+            with patch("src.api.routes.pack_loader.MANIFEST_FILE", manifest_file):
                 # Implementation now logs warning before returning None
                 result = load_pack_manifest()
                 assert result is None  # Returns None but logs warning

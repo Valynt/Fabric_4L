@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -10,35 +11,32 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ImpactLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
+    TRANSFORMATIONAL = "transformational"
+    SIGNIFICANT = "significant"
+    MODERATE = "moderate"
+    MINOR = "minor"
     HIGH = "high"
-    CRITICAL = "critical"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class BenefitType(str, Enum):
-    COST_REDUCTION = "cost_reduction"
-    REVENUE_GROWTH = "revenue_growth"
-    RISK_REDUCTION = "risk_reduction"
-    EFFICIENCY_GAIN = "efficiency_gain"
-    COMPLIANCE = "compliance"
-    OTHER = "other"
+    TIME_SAVINGS = "time_savings"
+    ERROR_REDUCTION = "error_reduction"
+    VISIBILITY = "visibility"
+    EFFICIENCY = "efficiency"
 
 
 class DriverType(str, Enum):
-    FINANCIAL = "financial"
-    OPERATIONAL = "operational"
-    STRATEGIC = "strategic"
-    COMPLIANCE = "compliance"
-    CUSTOMER = "customer"
-    OTHER = "other"
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    TERTIARY = "tertiary"
 
 
 class EnablementType(str, Enum):
-    DIRECT = "direct"
-    INDIRECT = "indirect"
-    PREREQUISITE = "prerequisite"
-    COMPLEMENTARY = "complementary"
+    REQUIRED = "required"
+    ENHANCES = "enhances"
+    OPTIONAL = "optional"
 
 
 class PredicateType(str, Enum):
@@ -55,6 +53,10 @@ class PredicateType(str, Enum):
     IMPLEMENTS = "implements"
     CAPABILITY_SUBTYPE_OF = "capability_subtype_of"
     SEMANTICALLY_EQUIVALENT = "semantically_equivalent"
+    CONTRIBUTES_TO = "contributes_to"
+    CAPABILITY_REQUIRES_CAPABILITY = "capability_requires_capability"
+    DELIVERS = "delivers"
+    INVOLVES = "involves"
 
 
 class Relationship(BaseModel):
@@ -76,6 +78,13 @@ class Relationship(BaseModel):
     evidence_text: str = ""
     source_url: str = ""
     extraction_job_id: str = ""
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
+
+    extracted_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationship property fields
     impact_level: Any | None = None

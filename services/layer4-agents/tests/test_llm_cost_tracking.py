@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """LLM token and cost tracking tests.
 
 Tests verify:
@@ -6,7 +8,6 @@ Tests verify:
 3. Budget limit enforcement returns structured error (not raw exception).
 4. Cost aggregation by model and tenant.
 """
-from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
@@ -14,10 +15,10 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.metrics.llm_cost_metrics import record_cost
-from value_fabric.layer4.models.cost_record import CostRecord
-from value_fabric.layer4.models.tool_schemas import GenerateSectionInput
-from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+from layer4_agents.metrics.llm_cost_metrics import record_cost
+from layer4_agents.models.cost_record import CostRecord
+from layer4_agents.models.tool_schemas import GenerateSectionInput
+from layer4_agents.tools.generation_tools import GenerateSectionTool
 
 
 class TestLLMCostTracking:
@@ -28,19 +29,7 @@ class TestLLMCostTracking:
         """Token counting must match actual usage from LLM response."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Test content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 150
-        mock_response.usage.completion_tokens = 50
-        mock_response.usage.total_tokens = 200
-
-        with patch("src.tools.generation_tools.AsyncOpenAI") as mock_openai:
-            mock_client = AsyncMock()
-            mock_openai.return_value = mock_client
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Test content")):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test Corp"},
@@ -57,19 +46,7 @@ class TestLLMCostTracking:
         """Cost calculation must use correct pricing per model."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Executive summary content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 1000
-        mock_response.usage.completion_tokens = 500
-        mock_response.usage.total_tokens = 1500
-
-        with patch("src.tools.generation_tools.AsyncOpenAI") as mock_openai:
-            mock_client = AsyncMock()
-            mock_openai.return_value = mock_client
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Executive summary content")):
             with patch(
                 "src.metrics.llm_cost_calculator.COST_PER_1K_TOKENS",
                 {("openai", "gpt-4o"): {"prompt": 5.0, "completion": 15.0}},
@@ -91,18 +68,7 @@ class TestLLMCostTracking:
         """Cost is tracked when LLM call succeeds."""
         tool = GenerateSectionTool()
 
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Generated content"
-        mock_response.usage = MagicMock()
-        mock_response.usage.prompt_tokens = 100
-        mock_response.usage.completion_tokens = 50
-
-        with patch("src.tools.generation_tools.AsyncOpenAI") as mock_openai:
-            mock_client = AsyncMock()
-            mock_openai.return_value = mock_client
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-
+        with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Generated content")):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test"},
@@ -120,7 +86,7 @@ class TestLLMCostTracking:
         mock_metrics.record_llm_cost = Mock()
 
         with patch.dict(os.environ, {"ENABLE_LLM_COST_METRICS": "true"}):
-            with patch("value_fabric.layer4.metrics.llm_cost_metrics.get_metrics", return_value=mock_metrics):
+            with patch("layer4_agents.metrics.llm_cost_metrics.get_metrics", return_value=mock_metrics):
                 record = CostRecord(
                     model="gpt-4o",
                     provider="openai",
@@ -147,17 +113,13 @@ class TestLLMCostTracking:
         """Budget limit must prevent excessive LLM costs and return structured error."""
         tool = GenerateSectionTool()
 
-        from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetExceededError
+        from layer4_agents.services.llm_budget_guardrails import LLMBudgetExceededError
 
-        with patch(
-            "src.tools.generation_tools.get_llm_budget_guardrails"
-        ) as mock_guardrails:
-            mock_guard = Mock()
-            mock_guard.precheck_or_raise = AsyncMock(
-                side_effect=LLMBudgetExceededError("Budget cap exceeded")
-            )
-            mock_guardrails.return_value = mock_guard
-
+        with patch.object(
+            tool,
+            "_call_llm",
+            new=AsyncMock(side_effect=LLMBudgetExceededError("Budget cap exceeded")),
+        ):
             input_data = GenerateSectionInput(
                 section_type="executive_summary",
                 context={"company_name": "Test"},

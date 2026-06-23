@@ -13,8 +13,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..observability.trace_context import ALL_TRACE_HEADERS, sanitize_trace_id
 from ..testability import IDGenerator
-from .exceptions import ValueFabricException
+from .exceptions import AuthenticationError, ValueFabricException
 from .models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
+from .sanitizer import sanitize_error_for_log, sanitize_error_message, sanitize_public_error
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +134,8 @@ def is_production() -> bool:
         or os.getenv("APP_ENV")
         or ""
     ).lower().strip()
-    # Empty string (no env var set) falls through to the default True return.
-    return env not in _DEVELOPMENT_TOKENS
+    # Empty string (no env var set) is treated as non-production for safety
+    return bool(env) and env not in _DEVELOPMENT_TOKENS
 
 
 def sanitize_error_details(details: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -229,30 +230,37 @@ async def value_fabric_exception_handler(
     """Handle ValueFabricException with standardized response envelope."""
     request_id = get_request_trace_id(request)
 
-    # Sanitize details in production
+    # Sanitize details in production; redact sensitive identifiers from messages
+    # in all environments to prevent tenant/subscription/customer ID leakage.
     details = exc.details if not is_production() else sanitize_error_details(exc.details)
+    safe_message = sanitize_error_message(exc.message)
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
             code=exc.error_code,
-            message=exc.message,
+            message=safe_message,
             request_id=request_id,
             details=details,
         )
     )
 
+    response_headers = {"X-Request-ID": request_id}
+    if isinstance(exc, AuthenticationError):
+        response_headers["WWW-Authenticate"] = "Bearer"
+
     return JSONResponse(
         status_code=exc.status_code,
         content=error_envelope.model_dump(),
-        headers={"X-Request-ID": request_id},
+        headers=response_headers,
     )
 
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Handle FastAPI HTTPException with standardized response envelope."""
-    request_id = get_request_trace_id(request)
-
-    # Map HTTP status to error code
+def _map_http_status_to_error_code(exc: HTTPException) -> ErrorCode:
+    detail_text = str(getattr(exc, "detail", "") or "").lower()
+    if exc.status_code == 403 and "tenant" in detail_text:
+        return ErrorCode.TENANT_ISOLATION_ERROR
+    if exc.status_code == 429:
+        return ErrorCode.THROTTLED
     code_map = {
         400: ErrorCode.VALIDATION_ERROR,
         401: ErrorCode.AUTHENTICATION_ERROR,
@@ -260,17 +268,31 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         404: ErrorCode.NOT_FOUND,
         409: ErrorCode.CONFLICT,
         422: ErrorCode.VALIDATION_ERROR,
-        429: ErrorCode.RATE_LIMIT_EXCEEDED,
         500: ErrorCode.INTERNAL_ERROR,
         503: ErrorCode.SERVICE_UNAVAILABLE,
     }
+    return code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
 
-    error_code = code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
 
-    # Extract detail message
-    message = str(exc.detail)
-    if isinstance(exc.detail, dict):
-        message = exc.detail.get("message", str(exc.detail))
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle FastAPI HTTPException with standardized response envelope."""
+    request_id = get_request_trace_id(request)
+
+    # Map HTTP status to error code
+    error_code = _map_http_status_to_error_code(exc)
+
+    message = sanitize_public_error(exc, status_code=exc.status_code).message
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, dict):
+        detail_code = detail.get("code")
+        detail_message = detail.get("message")
+        if isinstance(detail_code, str) and detail_code:
+            try:
+                error_code = ErrorCode(detail_code)
+            except ValueError:
+                error_code = detail_code
+        if isinstance(detail_message, str) and detail_message:
+            message = detail_message
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
@@ -331,16 +353,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     """Handle unexpected exceptions with sanitized response envelope."""
     request_id = get_request_trace_id(request)
 
-    # Log the full exception for debugging
-    logger.exception("Unhandled exception", extra={"trace_id": request_id, "correlation_id": request_id, "error": str(exc)})
+    logger.exception("Unhandled exception", extra={"trace_id": request_id, "correlation_id": request_id, "error": sanitize_error_for_log(exc)})
 
-    # Always return sanitized message in production
-    if is_production():
-        message = "An unexpected error occurred. Please try again or contact support."
-        details = None
-    else:
-        message = f"Internal error: {str(exc)}"
-        details = {"exception_type": type(exc).__name__}
+    public_error = sanitize_public_error(exc)
+    message = public_error.message
+    details = None if is_production() else {"exception_type": type(exc).__name__}
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
@@ -378,7 +395,7 @@ async def starlette_http_exception_handler(
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
             code=error_code,
-            message=str(exc.detail),
+            message=sanitize_public_error(exc, status_code=exc.status_code).message,
             request_id=request_id,
             details=None,
         )

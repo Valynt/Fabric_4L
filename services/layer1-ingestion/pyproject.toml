@@ -40,6 +40,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
     "prometheus-client>=0.19.0",
+    "sentry-sdk>=2.0.0",
     "opentelemetry-api>=1.21.0",
     "opentelemetry-sdk>=1.21.0",
     "opentelemetry-instrumentation>=0.42b0",
@@ -81,6 +82,7 @@ Documentation = "https://docs.value-fabric.io/layer1"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["layer1_ingestion*"]
 
 [tool.black]
 line-length = 100
@@ -120,6 +122,7 @@ ignore = [
     "N801",   # Auto-generated TypedDictModel result classes use snake_case names
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
     "UP007",  # Use `X | Y` for union types
+    "TID252", # Prefer absolute imports over relative parent imports – 220 pre-existing occurrences; requires dedicated migration pass
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -128,6 +131,13 @@ ignore = [
 "value_fabric.layer4_agents" = { msg = "Use value_fabric.layer4 instead." }
 "value_fabric.layer1_ingestion" = { msg = "This namespace is deprecated. Use service-local imports." }
 "value_fabric.layer3_knowledge" = { msg = "This namespace is deprecated. Use service-local imports." }
+# Phase 4 remediation: Block all deprecated value_fabric.layer* imports
+"value_fabric.layer1" = { msg = "value_fabric.layer1 is deprecated. Use layer1_ingestion.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer2" = { msg = "value_fabric.layer2 is deprecated. Use layer2_extraction.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer3" = { msg = "value_fabric.layer3 is deprecated. Use services/layer3-knowledge/src/ modules instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer4" = { msg = "value_fabric.layer4 is deprecated. Use layer4_agents.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer5" = { msg = "value_fabric.layer5 is deprecated. Use layer5_ground_truth.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
 
 [tool.mypy]
 python_version = "3.11"
@@ -135,6 +145,7 @@ ignore_missing_imports = true
 check_untyped_defs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 # Note: Additional flags are passed via Makefile for CI consistency
 exclude = [
     "migrations/",
@@ -145,8 +156,6 @@ exclude = [
 # Suppressing arg-type/assignment/misc noise; genuine logic errors are caught elsewhere.
 [[tool.mypy.overrides]]
 module = [
-    "src.api.app_monolith",
-    "src.api.main",
     "src.shared.tasks",
     "src.shared.models",
     "src.crawler.decision_store",
@@ -156,16 +165,49 @@ module = [
     "src.crawler.smart_router",
     "src.crawler.crawler_config",
     "src.crawler.httpx_crawler",
+    "src.crawler.browser_pool",
     "src.post_processor.content_extractor",
     "src.compliance.pii_scanner",
     "src.compliance.robots_checker",
+    "src.compliance.url_safety",
     "src.scheduler.priority_queue",
     "src.adapters.xbrl_parser",
     "src.adapters.sec_edgar",
     "src.shared.config",
+    "src.shared.maintenance",
     "src.metrics.prometheus_metrics",
+    "src.layer1_ingestion.api.main",
+    "src.layer1_ingestion.shared.tasks",
+    "src.layer1_ingestion.crawler.decision_store",
+    "src.layer1_ingestion.crawler.playwright_crawler",
+    "src.layer1_ingestion.crawler.telemetry",
+    "src.layer1_ingestion.crawler.execution_logger",
+    "src.layer1_ingestion.crawler.smart_router",
+    "src.layer1_ingestion.crawler.crawler_config",
+    "src.layer1_ingestion.crawler.httpx_crawler",
+    "src.layer1_ingestion.crawler.browser_pool",
+    "src.layer1_ingestion.post_processor.content_extractor",
+    "src.layer1_ingestion.compliance.pii_scanner",
+    "src.layer1_ingestion.compliance.robots_checker",
+    "src.layer1_ingestion.compliance.url_safety",
+    "src.layer1_ingestion.scheduler.priority_queue",
+    "src.layer1_ingestion.adapters.xbrl_parser",
+    "src.layer1_ingestion.adapters.sec_edgar",
+    "src.layer1_ingestion.shared.config",
+    "src.layer1_ingestion.shared.maintenance",
+    "src.layer1_ingestion.metrics.prometheus_metrics",
 ]
 disable_error_code = ["arg-type", "assignment", "misc", "valid-type", "no-any-return", "union-attr", "attr-defined", "var-annotated", "index", "call-overload", "return-value"]
+
+[[tool.mypy.overrides]]
+module = [
+    "src.layer1_ingestion.domain.stages",
+    "src.layer1_ingestion.orchestrator.connector_resolution",
+    "src.layer1_ingestion.orchestrator.stage_handlers.context",
+    "src.layer1_ingestion.orchestrator.stage_handlers.fetching_source",
+    "src.layer1_ingestion.orchestrator.stage_handlers.applying_policy",
+]
+disable_error_code = ["import-untyped"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -178,10 +220,16 @@ asyncio_mode = "auto"
 pythonpath = ["src", "../..", "../../packages/shared/src"]
 markers = [
     "postgres: Tests requiring PostgreSQL-specific features (JSONB, RLS, SET LOCAL, current_setting)",
+    "requires_postgres: Tests requiring a reachable PostgreSQL service",
+    "benchmark: Layer 1 benchmark and performance tests",
+    "performance: Performance benchmarks and SLO validation",
+    "quarantine: Tests temporarily isolated due to external dependencies (Docker, env, timing)",
     "security: Security and tenant isolation tests",
     "rls: Row-Level Security enforcement tests",
+    "slow: Tests that take >1 second or require optional heavy deps",
     "unit: Unit tests that do not require PostgreSQL",
     "integration: Integration tests requiring PostgreSQL",
+    "contract_static: Static contract tests that do not require live services",
 ]
 
 [tool.coverage.run]

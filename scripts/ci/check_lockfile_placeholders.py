@@ -23,9 +23,9 @@ for path in LOCKFILES:
         failures.append(f"placeholder boilerplate detected in {path}")
 
 if failures:
-    print("❌ Lockfile placeholder validation failed:")
+    print("FAIL Lockfile placeholder validation failed:")
     for failure in failures:
         print(f"  - {failure}")
     sys.exit(1)
 
-print("✅ Lockfile placeholder validation passed.")
+print("PASS Lockfile placeholder validation passed.")

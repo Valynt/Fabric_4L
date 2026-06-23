@@ -1,20 +1,27 @@
+from __future__ import annotations
+
 """Tests for Layer 4 interfaces package exports and basic interface behavior.
 
 Uses src.* imports with pytest pythonpath configuration.
 """
 
-from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer4.interfaces import (
+from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
+from layer4_agents.interfaces import (
     ActivationRequest,
     BenchmarkDataset,
+    BusinessCaseGroundTruthClientFactory,
+    BusinessCaseGroundTruthPort,
+    CompanyKnowledgePipelinePort,
     ComparisonRequest,
+    ContextFinancialExtractionPort,
+    ContextIngestionPort,
     FormulaGovernance,
     FormulaStatus,
+    GroundTruthProxyPort,
     GovernanceTransitionResult,
-    HTTPBenchmarkClient,
     IBenchmarkClient,
     IFormulaApprovalWorkflow,
     IFormulaGovernanceService,
@@ -24,6 +31,9 @@ from value_fabric.layer4.interfaces import (
     PackExecutionRequest,
     PackStatus,
     ResolutionContext,
+    SignalExtractionPort,
+    SignalKnowledgePort,
+    SignalReviewPort,
     ValuePack,
     Variable,
     VariableDataType,
@@ -52,12 +62,20 @@ def sample_formula_id():
 def test_interfaces_module_exports_core_symbols():
     """Verify all core interface symbols are exported from the interfaces module."""
     assert IBenchmarkClient is not None
-    assert HTTPBenchmarkClient is not None
+    assert BusinessCaseGroundTruthClientFactory is not None
+    assert BusinessCaseGroundTruthPort is not None
     assert IValuePackService is not None
     assert IFormulaGovernanceService is not None
     assert IFormulaApprovalWorkflow is not None
     assert IVariableRegistry is not None
     assert IGroundTruthVariableBridge is not None
+    assert CompanyKnowledgePipelinePort is not None
+    assert ContextFinancialExtractionPort is not None
+    assert ContextIngestionPort is not None
+    assert GroundTruthProxyPort is not None
+    assert SignalExtractionPort is not None
+    assert SignalKnowledgePort is not None
+    assert SignalReviewPort is not None
 
 
 def test_http_benchmark_client_normalizes_base_url():

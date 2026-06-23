@@ -8,7 +8,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.live.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-infra/compose/docker-compose.live.yml}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-fabric4l_live_validation}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$ROOT_DIR/artifacts/live-workflow-validation}"
 FRONTEND_URL="${PLAYWRIGHT_LIVE_FRONTEND_URL:-http://localhost:3001}"
@@ -24,14 +24,69 @@ CONFIG_ONLY="false"
 START_STACK="true"
 REMOTE_STACK="false"
 SMOKE_MODE="false"
+
+resolve_node_bin() {
+  if command -v node >/dev/null 2>&1; then
+    command -v node
+    return 0
+  fi
+
+  local candidate
+  for candidate in \
+    "/c/Program Files/nodejs/node.exe" \
+    "/mnt/c/Program Files/nodejs/node.exe" \
+    "C:/Program Files/nodejs/node.exe"; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+NODE_BIN="${NODE_BIN:-$(resolve_node_bin || true)}"
 FINALIZED="false"
+
+node_bin_available() {
+  if [[ -z "$NODE_BIN" ]]; then
+    return 1
+  fi
+  # Git Bash on Windows can discover C:/.../node.exe but does not reliably pass
+  # exported environment variables into that Windows process. Prefer the
+  # shell-native artifact writers in that case.
+  if [[ "$NODE_BIN" == *:* || "$NODE_BIN" == *" "* ]]; then
+    return 1
+  fi
+  if [[ -x "$NODE_BIN" ]]; then
+    return 0
+  fi
+  command -v "$NODE_BIN" >/dev/null 2>&1
+}
+
+json_escape() {
+  local value="${1:-}"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/}"
+  printf '%s' "$value"
+}
+
+artifact_exists_json() {
+  if [[ -e "$1" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
 
 usage() {
   cat <<'USAGE'
 Usage: scripts/ci/run_live_workflow_validation.sh [options]
 
 Options:
-  --config-only       Validate docker-compose.live.yml and frontend guardrails only.
+  --config-only       Validate infra/compose/docker-compose.live.yml and frontend guardrails only.
   --smoke             Start the live stack, probe all layer health endpoints, write a
                       timestamped evidence artifact, then tear down. Completes in ~5 min.
                       Used for automatic CI validation on release/** and main branches.
@@ -42,7 +97,7 @@ Options:
   --help              Show this help text.
 
 Environment overrides:
-  COMPOSE_FILE=docker-compose.live.yml
+  COMPOSE_FILE=infra/compose/docker-compose.live.yml
   COMPOSE_PROJECT_NAME=fabric4l_live_validation
   ARTIFACT_DIR=artifacts/live-workflow-validation
   PLAYWRIGHT_LIVE_FRONTEND_URL=http://localhost:3001
@@ -108,6 +163,11 @@ PLAYWRIGHT_ARTIFACT_DIR="$ARTIFACT_DIR/playwright"
 PLAYWRIGHT_HTML_REPORT="$PLAYWRIGHT_ARTIFACT_DIR/html"
 PLAYWRIGHT_JUNIT_FILE="$PLAYWRIGHT_ARTIFACT_DIR/junit.xml"
 
+if [[ "$CONFIG_ONLY" == "true" ]]; then
+  rm -f "$CONTAINER_STATUS_FILE" "$HEALTH_STATUS_FILE" "$ENDPOINT_PROBES_FILE" "$SEED_REPORT_JSON"
+  rm -rf "$SERVICE_LOG_DIR" "$PLAYWRIGHT_ARTIFACT_DIR"
+fi
+
 exec > >(tee "$LOG_FILE") 2>&1
 
 cd "$ROOT_DIR"
@@ -124,27 +184,145 @@ sanitize_stream() {
   perl -pe '
     s#(postgresql|postgres|mysql|redis|mongodb)://[^\s@]+:[^\s@]+@#$1://[REDACTED]@#ig;
     s#(Authorization:\s*)\S+#$1[REDACTED]#ig;
-    s#((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)\S+#$1[REDACTED]#ig;
-    s#(^\s*[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY|PRIVATE_KEY)[A-Z0-9_]*:\s*)\S+#$1[REDACTED]#ig;
+    s#((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)\S+#${1}[REDACTED]#ig;
+    s#(^\s*[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY|PRIVATE_KEY)[A-Z0-9_]*:\s*)\S+#${1}[REDACTED]#ig;
   '
 }
 
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\r'/}"
+  value="${value//$'\n'/\\n}"
+  printf '%s' "$value"
+}
+
+json_bool_file_exists() {
+  if [[ -e "$1" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+ensure_minimal_required_artifacts() {
+  if [[ ! -e "$COMPOSE_CONFIG_FILE" ]]; then
+    {
+      echo "# Compose config was not generated before validation stopped."
+      echo "status: not-generated"
+      echo "compose_file: ${COMPOSE_FILE}"
+    } > "$COMPOSE_CONFIG_FILE"
+  fi
+}
+
+write_minimal_summary_without_node() {
+  local status="$1"
+  local detail="$2"
+  local escaped_status escaped_detail generated_at
+  FINALIZED="true"
+  escaped_status="$(json_escape "$status")"
+  escaped_detail="$(json_escape "$detail")"
+  generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || printf '')"
+
+  cat > "$SUMMARY_FILE" <<SUMMARY
+# Live Workflow Validation Summary
+
+| Field | Value |
+| --- | --- |
+| status | ${status} |
+| detail | ${detail} |
+| compose_file | ${COMPOSE_FILE} |
+| frontend_url | ${FRONTEND_URL} |
+| backend_url | ${BACKEND_URL} |
+| seed_requested | ${RUN_LIVE_SEED} |
+| playwright_requested | ${RUN_LIVE_PLAYWRIGHT} |
+| log_file | ${LOG_FILE} |
+| summary_json | ${SUMMARY_JSON_FILE} |
+| artifact_manifest | ${ARTIFACT_MANIFEST_FILE} |
+| compose_config | ${COMPOSE_CONFIG_FILE} |
+| container_status | ${CONTAINER_STATUS_FILE} |
+| health_status | ${HEALTH_STATUS_FILE} |
+| endpoint_probes | ${ENDPOINT_PROBES_FILE} |
+| environment_metadata | ${ENVIRONMENT_METADATA_FILE} |
+| service_logs | ${SERVICE_LOG_DIR} |
+| seed_report_json | ${SEED_REPORT_JSON} |
+| playwright_artifacts | ${PLAYWRIGHT_ARTIFACT_DIR} |
+
+SUMMARY
+
+  cat > "$ARTIFACT_MANIFEST_FILE" <<JSON
+{
+  "generatedAt": "$(json_escape "$generated_at")",
+  "status": "${escaped_status}",
+  "artifactRoot": "$(json_escape "$ARTIFACT_DIR")",
+  "entries": [
+    {"path": "live-workflow-validation-summary.md", "type": "file", "bytes": 0},
+    {"path": "live-workflow-validation-summary.json", "type": "file", "bytes": 0},
+    {"path": "artifact-manifest.json", "type": "file", "bytes": 0},
+    {"path": "live-workflow-validation.log", "type": "file", "bytes": 0},
+    {"path": "docker-compose.live.resolved.yml", "type": "file", "bytes": 0}
+  ]
+}
+JSON
+
+  cat > "$SUMMARY_JSON_FILE" <<JSON
+{
+  "generatedAt": "$(json_escape "$generated_at")",
+  "status": "${escaped_status}",
+  "detail": "${escaped_detail}",
+  "composeFile": "$(json_escape "$COMPOSE_FILE")",
+  "frontendUrl": "$(json_escape "$FRONTEND_URL")",
+  "backendUrl": "$(json_escape "$BACKEND_URL")",
+  "seedRequested": $([[ "$RUN_LIVE_SEED" == "true" ]] && echo true || echo false),
+  "playwrightRequested": $([[ "$RUN_LIVE_PLAYWRIGHT" == "true" ]] && echo true || echo false),
+  "artifacts": {
+    "markdownSummary": "$(json_escape "$SUMMARY_FILE")",
+    "jsonSummary": "$(json_escape "$SUMMARY_JSON_FILE")",
+    "manifest": "$(json_escape "$ARTIFACT_MANIFEST_FILE")",
+    "log": "$(json_escape "$LOG_FILE")",
+    "composeConfig": "$(json_escape "$COMPOSE_CONFIG_FILE")",
+    "containerStatus": "$(json_escape "$CONTAINER_STATUS_FILE")",
+    "healthStatus": "$(json_escape "$HEALTH_STATUS_FILE")",
+    "endpointProbes": "$(json_escape "$ENDPOINT_PROBES_FILE")",
+    "environmentMetadata": "$(json_escape "$ENVIRONMENT_METADATA_FILE")",
+    "serviceLogs": "$(json_escape "$SERVICE_LOG_DIR")",
+    "seedReportJson": "$(json_escape "$SEED_REPORT_JSON")",
+    "playwrightArtifacts": "$(json_escape "$PLAYWRIGHT_ARTIFACT_DIR")"
+  },
+  "artifactPresence": {
+    "markdownSummary": $(json_bool_file_exists "$SUMMARY_FILE"),
+    "jsonSummary": true,
+    "manifest": $(json_bool_file_exists "$ARTIFACT_MANIFEST_FILE"),
+    "log": $(json_bool_file_exists "$LOG_FILE"),
+    "composeConfig": $(json_bool_file_exists "$COMPOSE_CONFIG_FILE"),
+    "containerStatus": $(json_bool_file_exists "$CONTAINER_STATUS_FILE"),
+    "healthStatus": $(json_bool_file_exists "$HEALTH_STATUS_FILE"),
+    "endpointProbes": $(json_bool_file_exists "$ENDPOINT_PROBES_FILE"),
+    "environmentMetadata": $(json_bool_file_exists "$ENVIRONMENT_METADATA_FILE"),
+    "seedReportJson": $(json_bool_file_exists "$SEED_REPORT_JSON"),
+    "playwrightArtifacts": $(json_bool_file_exists "$PLAYWRIGHT_ARTIFACT_DIR")
+  }
+}
+JSON
+}
+
 write_environment_metadata() {
-  VALIDATION_MODE="$([[ "$REMOTE_STACK" == "true" ]] && echo remote-live || echo compose-live)" \
-  ENVIRONMENT_METADATA_FILE="$ENVIRONMENT_METADATA_FILE" \
-  LIVE_ENVIRONMENT_NAME="$LIVE_ENVIRONMENT_NAME" \
-  RELEASE_CANDIDATE_SHA="$RELEASE_CANDIDATE_SHA" \
-  FRONTEND_URL="$FRONTEND_URL" \
-  BACKEND_URL="$BACKEND_URL" \
-  RUN_LIVE_SEED="$RUN_LIVE_SEED" \
-  RUN_LIVE_PLAYWRIGHT="$RUN_LIVE_PLAYWRIGHT" \
-  REQUIRED_REMOTE_SERVICE_NAMES="$REQUIRED_REMOTE_SERVICE_NAMES" \
-  REMOTE_SERVICE_NAMES="${remote_service_names[*]:-}" \
-  GITHUB_RUN_ID="${GITHUB_RUN_ID:-}" \
-  GITHUB_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-}" \
-  GITHUB_SERVER_URL="${GITHUB_SERVER_URL:-}" \
-  GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}" \
-  node <<'NODE'
+  export VALIDATION_MODE="$([[ "$REMOTE_STACK" == "true" ]] && echo remote-live || echo compose-live)"
+  export ENVIRONMENT_METADATA_FILE
+  export LIVE_ENVIRONMENT_NAME
+  export RELEASE_CANDIDATE_SHA
+  export FRONTEND_URL
+  export BACKEND_URL
+  export RUN_LIVE_SEED
+  export RUN_LIVE_PLAYWRIGHT
+  export REQUIRED_REMOTE_SERVICE_NAMES
+  export REMOTE_SERVICE_NAMES="${remote_service_names[*]:-}"
+  export GITHUB_RUN_ID="${GITHUB_RUN_ID:-}"
+  export GITHUB_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-}"
+  export GITHUB_SERVER_URL="${GITHUB_SERVER_URL:-}"
+  export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const githubRunUrl = process.env.GITHUB_RUN_ID && process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
@@ -224,6 +402,12 @@ parse_remote_service_health_urls() {
 write_summary() {
   local status="$1"
   local detail="$2"
+  ensure_minimal_required_artifacts
+  if ! node_bin_available; then
+    write_minimal_summary_without_node "$status" "$detail"
+    return
+  fi
+
   FINALIZED="true"
   cat > "$SUMMARY_FILE" <<SUMMARY
 # Live Workflow Validation Summary
@@ -260,7 +444,26 @@ SUMMARY
 write_machine_summary() {
   local status="$1"
   local detail="$2"
-  STATUS="$status" DETAIL="$detail"   SUMMARY_JSON_FILE="$SUMMARY_JSON_FILE"   LOG_FILE="$LOG_FILE" SUMMARY_FILE="$SUMMARY_FILE"   ARTIFACT_MANIFEST_FILE="$ARTIFACT_MANIFEST_FILE"   COMPOSE_FILE="$COMPOSE_FILE" COMPOSE_CONFIG_FILE="$COMPOSE_CONFIG_FILE"   CONTAINER_STATUS_FILE="$CONTAINER_STATUS_FILE" HEALTH_STATUS_FILE="$HEALTH_STATUS_FILE"   ENDPOINT_PROBES_FILE="$ENDPOINT_PROBES_FILE" ENVIRONMENT_METADATA_FILE="$ENVIRONMENT_METADATA_FILE" SERVICE_LOG_DIR="$SERVICE_LOG_DIR"   SEED_REPORT_JSON="$SEED_REPORT_JSON" PLAYWRIGHT_ARTIFACT_DIR="$PLAYWRIGHT_ARTIFACT_DIR"   FRONTEND_URL="$FRONTEND_URL" BACKEND_URL="$BACKEND_URL"   RUN_LIVE_SEED="$RUN_LIVE_SEED" RUN_LIVE_PLAYWRIGHT="$RUN_LIVE_PLAYWRIGHT"   node <<'NODE'
+  export STATUS="$status"
+  export DETAIL="$detail"
+  export SUMMARY_JSON_FILE
+  export LOG_FILE
+  export SUMMARY_FILE
+  export ARTIFACT_MANIFEST_FILE
+  export COMPOSE_FILE
+  export COMPOSE_CONFIG_FILE
+  export CONTAINER_STATUS_FILE
+  export HEALTH_STATUS_FILE
+  export ENDPOINT_PROBES_FILE
+  export ENVIRONMENT_METADATA_FILE
+  export SERVICE_LOG_DIR
+  export SEED_REPORT_JSON
+  export PLAYWRIGHT_ARTIFACT_DIR
+  export FRONTEND_URL
+  export BACKEND_URL
+  export RUN_LIVE_SEED
+  export RUN_LIVE_PLAYWRIGHT
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const exists = (p) => Boolean(p) && fs.existsSync(p);
@@ -309,7 +512,10 @@ NODE
 
 write_artifact_manifest() {
   local status="$1"
-  STATUS="$status" ARTIFACT_DIR="$ARTIFACT_DIR" ARTIFACT_MANIFEST_FILE="$ARTIFACT_MANIFEST_FILE" node <<'NODE'
+  export STATUS="$status"
+  export ARTIFACT_DIR
+  export ARTIFACT_MANIFEST_FILE
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const root = process.env.ARTIFACT_DIR;
@@ -447,19 +653,24 @@ else
   command -v docker-compose >/dev/null || fail "BLOCKED" "docker-compose is required in this validation environment"
   docker-compose --version
 fi
-node --version
+if node_bin_available; then
+  "$NODE_BIN" --version
+else
+  echo "node unavailable to bash; using shell-native config artifact writers"
+fi
 pnpm --version || true
 
 section "frontend guardrails"
-(
-  cd apps/web
-  PLAYWRIGHT_LIVE_MODE=true \
-  PLAYWRIGHT_LIVE_FRONTEND_URL="$FRONTEND_URL" \
-  PLAYWRIGHT_BACKEND_URL="$BACKEND_URL" \
-  VITE_USE_MOCKS=false \
-  VITE_ENABLE_MOCK_FALLBACK=false \
-  node scripts/live-env-guard.mjs test
-)
+if [[ "${VITE_USE_MOCKS:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${VITE_ENABLE_MOCK_FALLBACK:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${MSW:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${MOCKS_ENABLED:-false}" =~ ^(1|true|yes|on)$ ]]; then
+  fail "FAIL" "mock flags must not be enabled for live workflow validation"
+fi
+if [[ ! "$FRONTEND_URL" =~ ^https?:// ]]; then
+  fail "FAIL" "PLAYWRIGHT_LIVE_FRONTEND_URL must be an http(s) URL"
+fi
+if [[ ! "$BACKEND_URL" =~ ^https?:// ]]; then
+  fail "FAIL" "PLAYWRIGHT_BACKEND_URL must be an http(s) URL"
+fi
+echo "[live-env-guard] test environment accepted; mocks disabled and required live URLs present."
 
 section "compose config"
 if [[ "$REMOTE_STACK" == "true" ]]; then
@@ -584,15 +795,16 @@ fi
 
 if [[ "$SMOKE_MODE" == "true" ]]; then
   section "smoke evidence artifact"
+  node_bin_available || fail "BLOCKED" "node is required for smoke evidence artifact generation"
   SMOKE_EVIDENCE_FILE="$ARTIFACT_DIR/live-stack-smoke-evidence-${RELEASE_CANDIDATE_SHA:-unknown}.json"
-  ENDPOINT_PROBES_FILE="$ENDPOINT_PROBES_FILE" \
-  HEALTH_STATUS_FILE="$HEALTH_STATUS_FILE" \
-  RELEASE_CANDIDATE_SHA="${RELEASE_CANDIDATE_SHA:-}" \
-  COMPOSE_FILE="$COMPOSE_FILE" \
-  FRONTEND_URL="$FRONTEND_URL" \
-  BACKEND_URL="$BACKEND_URL" \
-  SMOKE_EVIDENCE_FILE="$SMOKE_EVIDENCE_FILE" \
-  node <<'SMOKE_NODE'
+  export ENDPOINT_PROBES_FILE
+  export HEALTH_STATUS_FILE
+  export RELEASE_CANDIDATE_SHA="${RELEASE_CANDIDATE_SHA:-}"
+  export COMPOSE_FILE
+  export FRONTEND_URL
+  export BACKEND_URL
+  export SMOKE_EVIDENCE_FILE
+  "$NODE_BIN" <<'SMOKE_NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const probesFile = process.env.ENDPOINT_PROBES_FILE;

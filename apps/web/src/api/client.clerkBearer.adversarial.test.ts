@@ -88,7 +88,7 @@ describe("ApiClient — Clerk Bearer attachment (adversarial)", () => {
     });
   });
 
-  it("does NOT attach Authorization when AUTH_PROVIDER is unset (defaults to legacy)", async () => {
+  it("attaches Authorization when AUTH_PROVIDER is unset (defaults to clerk)", async () => {
     await withAuthProvider(undefined, async () => {
       setClerkTokenGetter(async () => "tok_unset_provider");
       const headersPromise = captureNextIngestHealthHeaders();
@@ -96,22 +96,22 @@ describe("ApiClient — Clerk Bearer attachment (adversarial)", () => {
       await apiClient.get("l1", "/health");
       const headers = await headersPromise;
 
-      expect(headers.has("authorization")).toBe(false);
+      expect(headers.get("authorization")).toBe("Bearer tok_unset_provider");
     });
   });
 
-  it("does NOT attach Authorization for unknown provider values", async () => {
-    // Only the exact (case-insensitive) string "clerk" enables Clerk mode.
-    // Anything else (including truthy-looking strings) must fall back to legacy.
+  it("attaches Authorization for unknown provider values (defaults to clerk)", async () => {
+    // Clerk is the canonical default; only the exact string "legacy" disables it.
+    // Unknown values therefore attach the Bearer token.
     for (const value of ["true", "1", "yes", "CLERK_MODE", "clerk-mode"]) {
       await withAuthProvider(value, async () => {
-        setClerkTokenGetter(async () => "tok_should_be_ignored");
+        setClerkTokenGetter(async () => `tok_${value}`);
         const headersPromise = captureNextIngestHealthHeaders();
 
         await apiClient.get("l1", "/health");
         const headers = await headersPromise;
 
-        expect(headers.has("authorization")).toBe(false);
+        expect(headers.get("authorization")).toBe(`Bearer tok_${value}`);
       });
     }
   });

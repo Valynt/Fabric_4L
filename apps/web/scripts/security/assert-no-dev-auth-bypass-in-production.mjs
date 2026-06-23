@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const projectRoot = new URL('../..', import.meta.url).pathname;
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 const distRoots = [join(projectRoot, 'dist/public'), join(projectRoot, 'dist')].filter(existsSync);
 
 if (distRoots.length === 0) {
@@ -15,6 +16,11 @@ const blockedMarkers = [
   'Development Bypass',
   'sarah-chen-001',
   'axiom-robotics',
+];
+
+const truthyMockFallbackPatterns = [
+  /\bVITE_ENABLE_MOCK_FALLBACK\b\s*[:=]\s*['"]?(?:true|1|yes|on)\b/i,
+  /\bENABLE_MOCK_FALLBACK\b\s*[:=]\s*['"]?(?:true|1|yes|on)\b/i,
 ];
 
 const textExtensions = new Set([
@@ -46,6 +52,11 @@ for (const root of distRoots) {
     for (const marker of blockedMarkers) {
       if (body.includes(marker)) {
         violations.push(`${relative(projectRoot, file)} contains ${marker}`);
+      }
+    }
+    for (const pattern of truthyMockFallbackPatterns) {
+      if (pattern.test(body)) {
+        violations.push(`${relative(projectRoot, file)} contains enabled mock fallback config`);
       }
     }
   }

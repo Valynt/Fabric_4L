@@ -5,7 +5,7 @@
 import { useEffect } from 'react';
 import { useForm, Controller, type UseFormProps } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,15 +109,15 @@ function formToRequest(v: FormValues): CreateTargetRequest {
 function FieldRow({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[13px]">{label}</Label>
+      <Label className="vf-text-body-m">{label}</Label>
       {children}
-      {error && <p className="text-[12px] text-destructive">{error}</p>}
+      {error && <p className="vf-text-body-s text-destructive">{error}</p>}
     </div>
   );
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mt-5 mb-3">{children}</p>;
+  return <p className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider mt-5 mb-3">{children}</p>;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -147,8 +147,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
   const updateTarget = useUpdateTarget();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    // @ts-expect-error Zod v4 + @hookform/resolvers v5 type mismatch — runtime works fine
-    resolver: zodResolver(schema),
+    resolver: standardSchemaResolver(schema),
     defaultValues: existing ? targetToForm(existing) : BASE_DEFAULTS,
   } as UseFormProps<FormValues>);
 
@@ -184,19 +183,19 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       {/* Identity */}
       <SectionTitle>Identity</SectionTitle>
       <FieldRow label="Name *" error={errors.name?.message}>
-        <Input {...register('name')} placeholder="e.g. Acme Corp Careers" className="h-8 text-[13px]" />
+        <Input {...register('name')} placeholder="e.g. Acme Corp Careers" className="h-8 vf-text-body-m" />
       </FieldRow>
       <FieldRow label="URL *" error={errors.url?.message}>
-        <Input {...register('url')} placeholder="https://example.com" className="h-8 text-[13px]" />
+        <Input {...register('url')} placeholder="https://example.com" className="h-8 vf-text-body-m" />
       </FieldRow>
       <FieldRow label="URL Pattern" error={errors.urlPattern?.message}>
-        <Input {...register('urlPattern')} placeholder="Regex (optional)" className="h-8 text-[13px] font-mono" />
+        <Input {...register('urlPattern')} placeholder="Regex (optional)" className="h-8 vf-text-body-m font-mono" />
       </FieldRow>
       <div className="grid grid-cols-2 gap-3">
         <FieldRow label="Target Type *" error={errors.targetType?.message}>
           <Controller name="targetType" control={control} render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="h-8 text-[13px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 vf-text-body-m"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SINGLE_PAGE">Single Page</SelectItem>
                 <SelectItem value="PAGINATED">Paginated</SelectItem>
@@ -209,7 +208,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
         <FieldRow label="Crawl Path" error={errors.crawlPath?.message}>
           <Controller name="crawlPath" control={control} render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="h-8 text-[13px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 vf-text-body-m"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="fast">Fast (HTTPX)</SelectItem>
                 <SelectItem value="browser">Browser (Playwright)</SelectItem>
@@ -222,7 +221,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       <FieldRow label="Source Category">
         <Controller name="sourceCategory" control={control} render={({ field }) => (
           <Select value={field.value ?? ''} onValueChange={field.onChange}>
-            <SelectTrigger className="h-8 text-[13px]"><SelectValue placeholder="Select category" /></SelectTrigger>
+            <SelectTrigger className="h-8 vf-text-body-m"><SelectValue placeholder="Select category" /></SelectTrigger>
             <SelectContent>
               {['API','CRM','ERP','HRIS','MARKETING','FINANCE','PRODUCT','SUPPORT','GENERAL'].map(c => (
                 <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -232,10 +231,10 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
         )} />
       </FieldRow>
       <FieldRow label="Description">
-        <Textarea {...register('description')} placeholder="Optional description" className="text-[13px] min-h-[60px] resize-none" />
+        <Textarea {...register('description')} placeholder="Optional description" className="vf-text-body-m min-h-[60px] resize-none" />
       </FieldRow>
       <FieldRow label="Tags (comma-separated)">
-        <Input {...register('tags')} placeholder="prospect, competitor, licensing" className="h-8 text-[13px]" />
+        <Input {...register('tags')} placeholder="prospect, competitor, licensing" className="h-8 vf-text-body-m" />
       </FieldRow>
 
       <Separator />
@@ -243,7 +242,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       {/* Schedule */}
       <SectionTitle>Schedule</SectionTitle>
       <div className="flex items-center justify-between">
-        <Label className="text-[13px]">Enable schedule</Label>
+        <Label className="vf-text-body-m">Enable schedule</Label>
         <Controller name="scheduleEnabled" control={control} render={({ field }) => (
           <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Enable schedule" />
         )} />
@@ -251,10 +250,10 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       {scheduleEnabled && (
         <>
           <FieldRow label="Cron expression" error={errors.cronExpression?.message}>
-            <Input {...register('cronExpression')} placeholder="0 0 * * *" className="h-8 text-[13px] font-mono" />
+            <Input {...register('cronExpression')} placeholder="0 0 * * *" className="h-8 vf-text-body-m font-mono" />
           </FieldRow>
           <FieldRow label="Timezone">
-            <Input {...register('timezone')} placeholder="UTC" className="h-8 text-[13px]" />
+            <Input {...register('timezone')} placeholder="UTC" className="h-8 vf-text-body-m" />
           </FieldRow>
         </>
       )}
@@ -265,13 +264,13 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       <SectionTitle>Rate Limits</SectionTitle>
       <div className="grid grid-cols-3 gap-3">
         <FieldRow label="Req/sec">
-          <Input {...register('requestsPerSecond')} type="number" min={0} className="h-8 text-[13px]" />
+          <Input {...register('requestsPerSecond')} type="number" min={0} className="h-8 vf-text-body-m" />
         </FieldRow>
         <FieldRow label="Req/min">
-          <Input {...register('requestsPerMinute')} type="number" min={0} className="h-8 text-[13px]" />
+          <Input {...register('requestsPerMinute')} type="number" min={0} className="h-8 vf-text-body-m" />
         </FieldRow>
         <FieldRow label="Retries">
-          <Input {...register('retryAttempts')} type="number" min={0} max={10} className="h-8 text-[13px]" />
+          <Input {...register('retryAttempts')} type="number" min={0} max={10} className="h-8 vf-text-body-m" />
         </FieldRow>
       </div>
 
@@ -280,19 +279,19 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       {/* Compliance */}
       <SectionTitle>Compliance</SectionTitle>
       <div className="flex items-center justify-between">
-        <Label className="text-[13px]">Respect robots.txt</Label>
+        <Label className="vf-text-body-m">Respect robots.txt</Label>
         <Controller name="respectRobotsTxt" control={control} render={({ field }) => (
           <Switch checked={field.value} onCheckedChange={field.onChange} />
         )} />
       </div>
       <div className="flex items-center justify-between">
-        <Label className="text-[13px]">PII redaction</Label>
+        <Label className="vf-text-body-m">PII redaction</Label>
         <Controller name="piiRedaction" control={control} render={({ field }) => (
           <Switch checked={field.value} onCheckedChange={field.onChange} />
         )} />
       </div>
       <FieldRow label="Crawl delay (seconds)">
-        <Input {...register('crawlDelaySeconds')} type="number" min={0} className="h-8 text-[13px]" />
+        <Input {...register('crawlDelaySeconds')} type="number" min={0} className="h-8 vf-text-body-m" />
       </FieldRow>
 
       <Separator />
@@ -302,7 +301,7 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       <FieldRow label="Auth type">
         <Controller name="authType" control={control} render={({ field }) => (
           <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger className="h-8 text-[13px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 vf-text-body-m"><SelectValue /></SelectTrigger>
             <SelectContent>
               {['NONE','BEARER','API_KEY','BASIC','OAUTH2'].map(t => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -313,14 +312,14 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
       </FieldRow>
       {authType !== 'NONE' && (
         <FieldRow label="Credentials reference">
-          <Input {...register('credentialsRef')} placeholder="secret_manager_key" className="h-8 text-[13px] font-mono" />
+          <Input {...register('credentialsRef')} placeholder="secret_manager_key" className="h-8 vf-text-body-m font-mono" />
         </FieldRow>
       )}
 
       {/* Footer actions */}
       <div className="flex items-center gap-3 pt-4 border-t border-border">
-        <Button type="button" variant="outline" onClick={onCancel} className="flex-1 h-8 text-[13px]">Cancel</Button>
-        <Button type="submit" disabled={isSubmitting || isMutating} className="flex-1 h-8 text-[13px]">
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1 h-8 vf-text-body-m">Cancel</Button>
+        <Button type="submit" disabled={isSubmitting || isMutating} className="flex-1 h-8 vf-text-body-m">
           {(isSubmitting || isMutating) && <Loader2 size={13} className="mr-1.5 animate-spin" />}
           {targetId ? 'Save changes' : 'Create target'}
         </Button>

@@ -1,16 +1,8 @@
-"""Thin entrypoint for Layer 4 API."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.api.main``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
-
-from .app_factory import create_app
-
-reject_insecure_bypass_in_production(service_name="layer4-agents")
-app = create_app()
-
-# Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
-# No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
-
-register_fabric_auth_from_env(app, service_name="layer4-agents")
+from layer4_agents.api.main import *  # noqa: F401,F403
+from layer4_agents.api.main import app as app

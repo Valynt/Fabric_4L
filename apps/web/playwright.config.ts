@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Playwright configuration for Value Fabric frontend E2E tests
@@ -6,7 +8,8 @@ import { defineConfig, devices } from '@playwright/test';
  * Test layers:
  *   1. contracts/  — Isolated page-level contract tests (fast, mocked)
  *   2. journeys/   — Chained user journey tests (live or contract mode)
- *   3. accessibility/ — Accessibility audits
+ *   3. behaviors/  — Behavior-first allowed/denied path tests (mocked, cross-layer)
+ *   4. accessibility/ — Accessibility audits
  *
  * Standards:
  * - Journey tests run against real backend when PLAYWRIGHT_BACKEND_URL is set
@@ -23,14 +26,19 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001';
+const BASE_PORT = new URL(BASE_URL).port || '3001';
 const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL || '';
 const CI = process.env.CI === 'true';
 const LIVE_MODE = process.env.PLAYWRIGHT_LIVE_MODE === 'true';
 const HTML_REPORT_DIR = process.env.PLAYWRIGHT_HTML_REPORT || 'playwright-report';
 const JUNIT_OUTPUT_FILE = process.env.PLAYWRIGHT_JUNIT_FILE || 'e2e-results/junit.xml';
 const TEST_OUTPUT_DIR = process.env.PLAYWRIGHT_OUTPUT_DIR || 'e2e-results/';
-const WEBSERVER_COMMAND = process.env.PLAYWRIGHT_WEBSERVER_COMMAND || 'pnpm dev';
+const WEBSERVER_COMMAND =
+  process.env.PLAYWRIGHT_WEBSERVER_COMMAND ||
+  `corepack pnpm --dir apps/web exec vite --host 127.0.0.1 --port ${BASE_PORT}`;
 const SKIP_WEBSERVER = process.env.PLAYWRIGHT_SKIP_WEBSERVER === 'true';
+const WEB_ROOT = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(WEB_ROOT, '../..');
 
 export default defineConfig({
   testDir: "./e2e",
@@ -87,14 +95,22 @@ export default defineConfig({
       grep: /^(?!.*@backend)/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // ── Layer 2: Journey Tests (chained workflows, chromium-only in dev) ──
+    // ── Layer 2: Behavior Tests (strict allowed/denied path contracts) ─────
+    {
+      name: 'behaviors',
+      testDir: "./e2e/behaviors",
+      // Behavior tests are mocked by default; @backend variants run in backend-integrated
+      grep: /^(?!.*@backend)/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // ── Layer 3: Journey Tests (chained workflows, chromium-only in dev) ──
     {
       name: 'journeys',
       testDir: "./e2e",
       grep: /^(?!.*@backend)/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // ── Layer 3: Backend-integrated Tests (require PLAYWRIGHT_BACKEND_URL) ─
+    // ── Layer 4: Backend-integrated Tests (require PLAYWRIGHT_BACKEND_URL) ─
     // Only runs tests tagged @backend. Critical backend journeys fail closed
     // when PLAYWRIGHT_BACKEND_URL is absent; they are never silently skipped.
     {
@@ -143,7 +159,12 @@ export default defineConfig({
   /* Run local dev server before starting tests */
   webServer: SKIP_WEBSERVER ? undefined : {
     command: WEBSERVER_COMMAND,
+    cwd: REPO_ROOT,
     url: BASE_URL,
+    env: {
+      ...process.env,
+      ...(LIVE_MODE ? {} : { VITE_AUTH_PROVIDER: 'legacy', VITE_ENABLE_MOCK_AUTH: 'true' }),
+    },
     reuseExistingServer: LIVE_MODE || !CI,
     timeout: 120000,
   },
@@ -155,4 +176,3 @@ export default defineConfig({
   // globalSetup: require.resolve('./e2e/global-setup'),
   // globalTeardown: require.resolve('./e2e/global-teardown'),
 });
-

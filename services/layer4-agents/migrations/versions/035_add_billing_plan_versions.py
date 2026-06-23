@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "035_add_billing_plan_versions"
-down_revision = "034_add_harness_claim_validation_results"
+down_revision = "034"
 branch_labels = None
 depends_on = None
 

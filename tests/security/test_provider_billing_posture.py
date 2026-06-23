@@ -2,7 +2,7 @@
 
 Verifies:
   S5-R6  Billing routes fail closed with billing_not_configured when Stripe absent
-  S5-R7  Anthropic raises ProviderNotImplementedError
+  S5-R7  Anthropic is wired through a provider adapter
          Enrichment fails closed without ENRICHMENT_MOCK_MODE=true
          Enrichment returns mock-tagged data with ENRICHMENT_MOCK_MODE=true
 
@@ -20,20 +20,20 @@ import pytest
 
 pytestmark = [pytest.mark.security, pytest.mark.unit]
 
+L4_SRC = pathlib.Path("services/layer4-agents/src/layer4_agents")
+
 
 # ---------------------------------------------------------------------------
-# S5-R7.1/7.2 — Anthropic raises ProviderNotImplementedError (source checks)
+# S5-R7.1/7.2 — Anthropic provider adapter wiring (source checks)
 # ---------------------------------------------------------------------------
 
 
 class TestAnthropicProviderPosture:
-    """Anthropic adapter raises typed ProviderNotImplementedError."""
+    """Anthropic adapter is wired through the provider registry."""
 
     def test_provider_not_implemented_error_defined(self) -> None:
         """ProviderNotImplementedError is defined in llm_adapter_interfaces.py."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/llm_adapter_interfaces.py"
-        ).read_text()
+        source = (L4_SRC / "services/llm_adapter_interfaces.py").read_text()
         assert "class ProviderNotImplementedError" in source, (
             "ProviderNotImplementedError must be defined in llm_adapter_interfaces.py"
         )
@@ -43,18 +43,14 @@ class TestAnthropicProviderPosture:
 
     def test_provider_not_implemented_error_has_provider_name(self) -> None:
         """ProviderNotImplementedError stores provider_name attribute."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/llm_adapter_interfaces.py"
-        ).read_text()
+        source = (L4_SRC / "services/llm_adapter_interfaces.py").read_text()
         assert "self.provider_name" in source, (
             "ProviderNotImplementedError must store provider_name"
         )
 
-    def test_anthropic_branch_raises_provider_not_implemented_error(self) -> None:
-        """llm_provider.py raises ProviderNotImplementedError for anthropic."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/llm_provider.py"
-        ).read_text()
+    def test_anthropic_branch_uses_provider_adapter(self) -> None:
+        """llm_provider.py routes anthropic through the Anthropic provider adapter."""
+        source = (L4_SRC / "services/llm_provider.py").read_text()
         tree = ast.parse(source)
 
         # Find the anthropic branch
@@ -64,8 +60,8 @@ class TestAnthropicProviderPosture:
                 node_src = ast.get_source_segment(source, node) or ""
                 if '"anthropic"' in node_src or "'anthropic'" in node_src:
                     found_anthropic = True
-                    assert "ProviderNotImplementedError" in node_src, (
-                        "Anthropic branch must raise ProviderNotImplementedError"
+                    assert "get_anthropic_provider" in node_src, (
+                        "Anthropic branch must use the Anthropic provider adapter"
                     )
                     assert "NotImplementedError(" not in node_src or \
                            "ProviderNotImplementedError(" in node_src, (
@@ -74,20 +70,25 @@ class TestAnthropicProviderPosture:
 
         assert found_anthropic, "Anthropic branch not found in llm_provider.py"
 
+    def test_anthropic_provider_adapter_exists(self) -> None:
+        """anthropic_provider.py defines the adapter and optional-SDK fail-closed path."""
+        source = (L4_SRC / "services/anthropic_provider.py").read_text()
+        assert "class AnthropicProvider" in source
+        assert "CompletionAdapter" in source
+        assert "ToolCallingAdapter" in source
+        assert "StructuredOutputAdapter" in source
+        assert "ProviderNotImplementedError" in source
+
     def test_llm_provider_imports_provider_not_implemented_error(self) -> None:
         """llm_provider.py imports ProviderNotImplementedError from llm_adapter_interfaces."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/llm_provider.py"
-        ).read_text()
+        source = (L4_SRC / "services/llm_provider.py").read_text()
         assert "ProviderNotImplementedError" in source, (
             "llm_provider.py must import and use ProviderNotImplementedError"
         )
 
     def test_provider_not_implemented_error_inherits_runtime_error(self) -> None:
         """ProviderNotImplementedError(RuntimeError) — verified via AST class hierarchy."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/llm_adapter_interfaces.py"
-        ).read_text()
+        source = (L4_SRC / "services/llm_adapter_interfaces.py").read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -119,9 +120,7 @@ class TestEnrichmentMockModeGuard:
 
     def test_domain_enrichment_checks_mock_mode_env(self) -> None:
         """_enrich_from_domain checks ENRICHMENT_MOCK_MODE before returning data."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/enrichment_orchestrator.py"
-        ).read_text()
+        source = (L4_SRC / "services/enrichment_orchestrator.py").read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -145,9 +144,7 @@ class TestEnrichmentMockModeGuard:
 
     def test_news_enrichment_checks_mock_mode_env(self) -> None:
         """_enrich_from_news checks ENRICHMENT_MOCK_MODE before returning data."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/enrichment_orchestrator.py"
-        ).read_text()
+        source = (L4_SRC / "services/enrichment_orchestrator.py").read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
@@ -171,18 +168,14 @@ class TestEnrichmentMockModeGuard:
 
     def test_enrichment_fail_closed_error_shape(self) -> None:
         """Enrichment not-configured response has error key with not_configured value."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/enrichment_orchestrator.py"
-        ).read_text()
+        source = (L4_SRC / "services/enrichment_orchestrator.py").read_text()
         assert "not_configured" in source, (
             "enrichment_orchestrator.py must use 'not_configured' in error responses"
         )
 
     def test_enrichment_mock_response_tagged_with_source_mock(self) -> None:
         """Mock responses set source='mock' and mock=True."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/enrichment_orchestrator.py"
-        ).read_text()
+        source = (L4_SRC / "services/enrichment_orchestrator.py").read_text()
         assert '"source": "mock"' in source or "'source': 'mock'" in source, (
             "Mock enrichment responses must set source='mock'"
         )
@@ -201,30 +194,22 @@ class TestBillingFailClosed:
 
     def test_stripe_not_configured_error_defined(self) -> None:
         """StripeNotConfiguredError is defined in stripe_client.py."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/stripe_client.py"
-        ).read_text()
+        source = (L4_SRC / "services/stripe_client.py").read_text()
         assert "class StripeNotConfiguredError" in source, (
             "StripeNotConfiguredError must be defined in stripe_client.py"
         )
 
     def test_billing_route_imports_stripe_not_configured_error(self) -> None:
         """routers.py imports StripeNotConfiguredError for route-level handling."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routers.py"
-        ).read_text()
+        source = (L4_SRC / "api/routers.py").read_text()
         assert "StripeNotConfiguredError" in source, (
             "routers.py must import StripeNotConfiguredError"
         )
 
     def test_billing_not_configured_response_shape(self) -> None:
         """billing.py raises 402; routers.py handles billing_not_configured."""
-        billing_source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/billing.py"
-        ).read_text()
-        routers_source = pathlib.Path(
-            "services/layer4-agents/src/api/routers.py"
-        ).read_text()
+        billing_source = (L4_SRC / "api/routes/billing.py").read_text()
+        routers_source = (L4_SRC / "api/routers.py").read_text()
         assert "billing_not_configured" in routers_source, (
             "routers.py must define the billing_not_configured error response"
         )
@@ -238,9 +223,7 @@ class TestBillingFailClosed:
 
     def test_routers_registers_billing_always(self) -> None:
         """routers.py always registers billing routes (fail-closed, not absent)."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/api/routers.py"
-        ).read_text()
+        source = (L4_SRC / "api/routers.py").read_text()
         assert "billing_router" in source, (
             "routers.py must include billing_router"
         )
@@ -253,9 +236,7 @@ class TestBillingFailClosed:
 
     def test_stripe_client_uses_env_get_for_key(self) -> None:
         """stripe_client.py uses os.environ.get for STRIPE_SECRET_KEY (no crash on missing)."""
-        source = pathlib.Path(
-            "services/layer4-agents/src/services/stripe_client.py"
-        ).read_text()
+        source = (L4_SRC / "services/stripe_client.py").read_text()
         assert (
             'os.environ.get("STRIPE_SECRET_KEY"' in source
             or "os.environ.get('STRIPE_SECRET_KEY'" in source

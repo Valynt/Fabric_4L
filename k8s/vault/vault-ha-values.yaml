@@ -1,6 +1,6 @@
 # Vault HA Helm Values for Production
 # Based on hashicorp/vault Helm chart
-# 
+#
 # Prerequisites:
 # - AWS KMS key created for auto-unseal
 # - TLS certificates provisioned (or use cert-manager)

@@ -22,9 +22,23 @@ spec:
         app: postgres
         component: infrastructure
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: postgres
           image: postgres:15-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 5432
               name: postgres
@@ -39,7 +53,7 @@ spec:
             - name: POSTGRES_DB
               value: "ingestion"
             - name: POSTGRES_MULTIPLE_DATABASES
-              value: "ingestion,ground_truth"
+              value: "ingestion,extraction,signal_refinery,layer4_agents,ground_truth,benchmarks,layer7_billing"
           resources:
             requests:
               memory: "256Mi"

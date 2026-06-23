@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "send_notification",
+  "traces": [
+    {
+      "id": "sn-001",
+      "description": "Notify account team that a value case is ready",
+      "input": {
+        "channel": "email",
+        "recipients": ["account-team@example.com"],
+        "subject": "Value case ready for review",
+        "message": "The draft value case for Acme is ready for stakeholder review."
+      },
+      "assertions": {
+        "delivery_required": true
+      }
+    }
+  ]
+}

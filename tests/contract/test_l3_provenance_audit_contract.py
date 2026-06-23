@@ -4,16 +4,13 @@ from types import SimpleNamespace
 import pytest
 
 try:
-    from value_fabric.layer3.api.models import AuditLogResponse, ProvenanceTrailResponse
-    from value_fabric.layer3.api.routes import provenance_audit
+    from src.api.models import AuditLogResponse, ProvenanceTrailResponse
+    from src.api.routes import provenance_audit
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",
         allow_module_level=True,
     )
-
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
 
 class _Neo4jStub:
     async def execute_query(self, query: str, params: dict):
@@ -36,7 +33,7 @@ class _Neo4jStub:
                 "agent": "ExtractionEngine-v2.1",
                 "step_entity_id": params["entity_id"],
             }]
-        if "OPTIONAL MATCH (a:AuditEvent)" in query:
+        if "AuditEvent" in query:
             return [{
                 "id": "evt-1",
                 "timestamp": datetime(2026, 1, 2, tzinfo=UTC),
@@ -68,7 +65,18 @@ async def test_provenance_route_contract_shape():
 @pytest.mark.asyncio
 async def test_audit_logs_route_contract_shape():
     app_state = SimpleNamespace(neo4j_driver=_Neo4jStub())
-    payload = await provenance_audit.list_audit_logs(app_state=app_state)
+    payload = await provenance_audit.list_audit_logs(
+        _tenant_request(),
+        source="all",
+        from_date=None,
+        to_date=None,
+        entity_type=None,
+        event_type=None,
+        agent=None,
+        page=1,
+        per_page=50,
+        app_state=app_state,
+    )
 
     assert isinstance(payload, AuditLogResponse)
     assert payload.total == 1

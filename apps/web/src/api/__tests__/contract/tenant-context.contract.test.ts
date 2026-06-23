@@ -7,6 +7,7 @@ import {
   authFixtures,
   type MemoryStorage,
 } from '@/test/authSessionTestUtils';
+import { ApiErrorSchema, assertSchema } from './_helpers';
 
 describe('Contract: Tenant context propagation', () => {
   let testSessionStorage: MemoryStorage;
@@ -130,5 +131,16 @@ describe('Contract: Tenant context propagation', () => {
     expect(capturedHeaders['x-tenant-id']).toBeUndefined();
     expect(capturedHeaders['x-organization-id']).toBeUndefined();
     expect(capturedHeaders.authorization).toBeUndefined();
+  });
+});
+
+
+describe('Contract: tenant context auth failures', () => {
+  it('validates canonical tenant auth error envelope', () => {
+    assertSchema(
+      ApiErrorSchema,
+      { error: { code: 'AUTHENTICATION_ERROR', message: 'Authentication required', request_id: 'trace-tenant-401' } },
+      'Tenant auth error envelope'
+    );
   });
 });

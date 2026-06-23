@@ -3,50 +3,28 @@
 
 set -e
 
-echo "🔧 Setting up Value Fabric development environment..."
+echo "Setting up Value Fabric development environment..."
 
-# Navigate to workspace
 cd /workspace
 
+# Enable corepack and activate pinned pnpm version
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+
 # Install frontend dependencies
-echo "📦 Installing frontend dependencies..."
-cd frontend
-if [ -f "pnpm-lock.yaml" ]; then
-    pnpm install --frozen-lockfile
-else
-    pnpm install
+echo "Installing frontend dependencies..."
+pnpm --dir apps/web install --frozen-lockfile
+
+# Install Python dependencies for all layers via make setup
+echo "Installing Python service dependencies..."
+if command -v pipx &>/dev/null; then
+    pipx install pytest 2>/dev/null || true
 fi
-cd ..
-
-# Install Python dependencies for all layers
-echo "🐍 Installing Python dependencies for all layers..."
-for layer_dir in services/layer*/; do
-    if [ -f "$layer_dir/pyproject.toml" ]; then
-        layer_name=$(basename "$layer_dir")
-        echo "  → Installing $layer_name..."
-        cd "$layer_dir"
-
-        # Create virtual environment if it doesn't exist
-        if [ ! -d ".venv" ]; then
-            python3 -m venv .venv
-        fi
-
-        # Activate and install
-        source .venv/bin/activate
-        if [ -f "requirements-dev.lock" ]; then
-            pip install -r requirements-dev.lock
-        else
-            pip install -e ".[dev]"
-        fi
-        deactivate
-
-        cd /workspace
-    fi
-done
+make setup
 
 # Set up pre-commit hooks if pre-commit is available
-if command -v pre-commit &> /dev/null; then
-    echo "🪝 Setting up pre-commit hooks..."
+if command -v pre-commit &>/dev/null; then
+    echo "Setting up pre-commit hooks..."
     pre-commit install
 fi
 
@@ -54,11 +32,12 @@ fi
 chmod +x scripts/*.sh 2>/dev/null || true
 
 echo ""
-echo "✅ Development environment setup complete!"
+echo "Development environment setup complete!"
 echo ""
 echo "Quick start commands:"
-echo "  make dev-up        # Start all services with docker-compose"
-echo "  make test          # Run all tests"
-echo "  make lint          # Run linting"
-echo "  cd frontend && pnpm dev  # Start frontend dev server"
+echo "  pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up  # Start full stack"
+echo "  pnpm dev:web                  # Start frontend only (mock API, port 3001)"
+echo "  make test                     # Run all backend tests"
+echo "  make lint                     # Run linting"
+echo "  make verify                   # Full verification gate"
 echo ""

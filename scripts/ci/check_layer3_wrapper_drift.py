@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when service layer3 source diverges from canonical non-wrapper policy."""
+"""Fail when the Layer 3 compatibility namespace grows runtime logic."""
 
 from __future__ import annotations
 
@@ -8,36 +8,29 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICE_SRC = ROOT / "services/layer3-knowledge/src"
-CANONICAL_SRC = ROOT / "value_fabric/layer3"
-
-
-def _is_wrapper(text: str, module_path: str) -> bool:
-    expected = f'"""Compatibility wrapper for {module_path}."""\n\nfrom {module_path} import *  # noqa: F401,F403\n'
-    return text.replace("\r\n", "\n") == expected
+COMPAT_NAMESPACE = ROOT / "value_fabric/layer3"
+ALLOWED_COMPAT_FILES = {Path("__init__.py")}
 
 
 def main() -> int:
-    violations: list[str] = []
-    for service_file in sorted(SERVICE_SRC.rglob("*.py")):
-        rel = service_file.relative_to(SERVICE_SRC)
-        canonical_file = CANONICAL_SRC / rel
-        if not canonical_file.exists():
-            continue
-        module_path = "value_fabric.layer3." + ".".join(rel.with_suffix("").parts)
-        if any(part and part[0].isdigit() for part in rel.with_suffix("").parts):
-            continue
-        content = service_file.read_text(encoding="utf-8")
-        if not _is_wrapper(content, module_path):
-            violations.append(str(rel))
-
-    if violations:
-        print("Layer3 wrapper drift detected in services/layer3-knowledge/src:")
-        for rel in violations:
-            print(f" - {rel}")
-        print("\nEach mirrored file must stay a thin wrapper to value_fabric.layer3.*")
+    if not SERVICE_SRC.exists():
+        print(f"Missing canonical Layer 3 source tree: {SERVICE_SRC.relative_to(ROOT)}")
         return 1
 
-    print("Layer3 wrapper drift check passed.")
+    violations = [
+        path.relative_to(COMPAT_NAMESPACE)
+        for path in sorted(COMPAT_NAMESPACE.rglob("*.py"))
+        if path.relative_to(COMPAT_NAMESPACE) not in ALLOWED_COMPAT_FILES
+    ]
+
+    if violations:
+        print("Layer 3 compatibility namespace contains runtime Python files:")
+        for rel in violations:
+            print(f" - value_fabric/layer3/{rel.as_posix()}")
+        print("\nCanonical Layer 3 runtime logic belongs in services/layer3-knowledge/src/.")
+        return 1
+
+    print("Layer 3 compatibility namespace check passed.")
     return 0
 
 

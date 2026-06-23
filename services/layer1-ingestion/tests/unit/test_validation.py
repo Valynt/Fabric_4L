@@ -25,7 +25,8 @@ class TestValidateCronExpression:
     """Unit tests for the _validate_cron_expression helper."""
 
     def _fn(self, expr: str) -> str:
-        from value_fabric.layer1.api.main import _validate_cron_expression
+        pytest.importorskip("croniter")
+        from layer1_ingestion.api.main import _validate_cron_expression
         return _validate_cron_expression(expr)
 
     # --- Valid expressions ---
@@ -145,7 +146,7 @@ class TestScheduleInputModel:
     """Integration tests for ScheduleInput field validators."""
 
     def _model(self, **kwargs):
-        from value_fabric.layer1.api.main import ScheduleInput
+        from layer1_ingestion.api.main import ScheduleInput
         return ScheduleInput(**kwargs)
 
     # --- cron_expression ---
@@ -240,7 +241,7 @@ class TestValidatePayloadAgainstSchema:
     """Unit tests for the JSON Schema validation helper in tasks.py."""
 
     def _fn(self, data: dict, schema: dict):
-        from value_fabric.layer1.shared.tasks import _validate_payload_against_schema
+        from layer1_ingestion.shared.tasks import _validate_payload_against_schema
         return _validate_payload_against_schema(data, schema)
 
     # --- Valid payloads ---
@@ -430,16 +431,22 @@ class TestValidationStageTask:
 
         return session
 
+    def _run_validation_stage(self, validation_stage, job, job_id=None):
+        return validation_stage.run(
+            {"job_id": str(job_id or uuid4())},
+            tenant_id=str(job.tenant_id),
+        )
+
     def test_no_schema_completes_without_modifying_extracted(self) -> None:
         """When no extraction_schema is configured, stage completes successfully."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         job = self._make_job(schema=None)
         extracted = self._make_extracted({"title": "hello"})
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         # ExtractedData must not have been touched
@@ -447,7 +454,7 @@ class TestValidationStageTask:
 
     def test_valid_payload_sets_schema_valid_true(self) -> None:
         """A payload matching the schema sets validation_schema_valid=True."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         schema = {
             "type": "object",
@@ -458,8 +465,8 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"title": "Good Title"})
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is True
@@ -468,7 +475,7 @@ class TestValidationStageTask:
 
     def test_invalid_payload_sets_schema_valid_false(self) -> None:
         """A payload missing required fields sets validation_schema_valid=False."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         schema = {
             "type": "object",
@@ -482,8 +489,8 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"title": "Widget"})  # missing price
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is False
@@ -492,20 +499,20 @@ class TestValidationStageTask:
 
     def test_no_extracted_data_record_completes_gracefully(self) -> None:
         """When no ExtractedData exists for the job, stage completes without error."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         schema = {"type": "object", "required": ["x"]}
         job = self._make_job(schema=schema)
         session = self._make_session(job, extracted=None)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
 
     def test_tenant_id_used_in_extracted_data_query(self) -> None:
         """The query for ExtractedData must filter by tenant_id (tenant isolation)."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         tenant_id = uuid4()
         schema = {"type": "object"}
@@ -513,56 +520,56 @@ class TestValidationStageTask:
         extracted = self._make_extracted({})
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            self._run_validation_stage(validation_stage, job)
 
         # Verify .filter() was called (tenant_id scoping)
         assert session.query.return_value.filter.called
 
     def test_job_not_found_raises_value_error(self) -> None:
         """Missing job must raise ValueError (not silently succeed)."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         session = MagicMock()
         session.__enter__ = Mock(return_value=session)
         session.__exit__ = Mock(return_value=False)
         session.query.return_value.get.return_value = None  # job not found
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
             with pytest.raises(Exception):
                 validation_stage.run({"job_id": str(uuid4())})
 
     def test_malformed_prev_result_missing_job_id_raises(self) -> None:
         """prev_result without job_id must raise immediately."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         with pytest.raises((KeyError, Exception)):
             validation_stage.run({})
 
     def test_malformed_prev_result_invalid_uuid_raises(self) -> None:
         """prev_result with a non-UUID job_id must raise ValueError."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         with pytest.raises((ValueError, Exception)):
             validation_stage.run({"job_id": "not-a-uuid"})
 
     def test_schema_not_a_dict_skips_validation(self) -> None:
         """A non-dict extraction_schema (e.g. a string) must be ignored safely."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         job = self._make_job(schema="not-a-dict")
         extracted = self._make_extracted({"x": 1})
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is None
 
     def test_type_errors_in_payload_recorded(self) -> None:
         """Type mismatches in the payload are recorded in validation_errors."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
 
         schema = {
             "type": "object",
@@ -572,8 +579,8 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"count": "five"})  # wrong type
         session = self._make_session(job, extracted)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=session):
-            validation_stage.run({"job_id": str(uuid4())})
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+            self._run_validation_stage(validation_stage, job)
 
         assert extracted.validation_schema_valid is False
         assert len(extracted.validation_errors) >= 1

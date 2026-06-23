@@ -9,10 +9,12 @@ metadata:
   name: frontend
   namespace: value-fabric
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: __TLS_ISSUER__
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "16m"
+    # Explicit CORS policy declaration
+    nginx.ingress.kubernetes.io/enable-cors: "false"
     # oauth2-proxy authentication
     nginx.ingress.kubernetes.io/auth-url: "https://oauth2-proxy.value-fabric.svc.cluster.local:4443/oauth2/auth"
     nginx.ingress.kubernetes.io/auth-tls-secret: "value-fabric/oauth2-proxy-service-tls"
@@ -60,12 +62,14 @@ metadata:
   name: layer-apis
   namespace: value-fabric
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: __TLS_ISSUER__
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "32m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    # Explicit CORS policy declaration
+    nginx.ingress.kubernetes.io/enable-cors: "false"
     # oauth2-proxy authentication
     nginx.ingress.kubernetes.io/auth-url: "https://oauth2-proxy.value-fabric.svc.cluster.local:4443/oauth2/auth"
     nginx.ingress.kubernetes.io/auth-tls-secret: "value-fabric/oauth2-proxy-service-tls"

@@ -10,6 +10,8 @@ which are supported on both Community and Enterprise editions.
 
 from dataclasses import dataclass
 
+from ..config import get_settings
+
 
 @dataclass
 class Constraint:
@@ -91,13 +93,14 @@ class Index:
                 f"ON EACH [{props}]"
             )
         elif self.index_type == "vector":
+            embedding_dimension = get_settings().embedding_dimension
             # Vector index only supports single property
             return (
                 f"CREATE VECTOR INDEX {self.name} "
                 f"IF NOT EXISTS "
                 f"FOR (n:{self.entity_type}) "
                 f"ON (n.{self.properties[0]}) "
-                f"OPTIONS {{indexConfig: {{`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}}}}"
+                f"OPTIONS {{indexConfig: {{`vector.dimensions`: {embedding_dimension}, `vector.similarity_function`: 'cosine'}}}}"
             )
         elif self.index_type == "lookup":
             return f"CREATE LOOKUP INDEX {self.name} IF NOT EXISTS FOR (n) ON EACH labels(n)"
@@ -373,6 +376,7 @@ INDEXES: list[Index] = [
     Index("benchmarkdataset_tenant_idx", "BenchmarkDataset", ["tenant_id"], "btree"),
     # Phase 2 (L3 Tenant Standardization): Missing indexes for unscoped route modules
     Index("formula_tenant_id_idx", "Formula", ["tenant_id"], "btree"),
+    Index("formula_tenant_lookup_idx", "Formula", ["tenant_id", "id"], "btree"),
     Index("benchmark_tenant_id_idx", "Benchmark", ["tenant_id"], "btree"),
     Index("valuemodel_tenant_id_idx", "ValueModel", ["tenant_id"], "btree"),
     Index("valuemodel_tenant_modelid_idx", "ValueModel", ["tenant_id", "model_id"], "btree"),

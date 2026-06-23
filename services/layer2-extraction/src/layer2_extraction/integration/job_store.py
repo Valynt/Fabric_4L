@@ -54,8 +54,11 @@ class InMemoryJobStore:
             raise KeyError(job_id)
         return job
 
-    async def get(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob:
-        return await self.get_job(job_id, tenant_id=tenant_id)
+    async def get(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob | None:
+        try:
+            return await self.get_job(job_id, tenant_id=tenant_id)
+        except KeyError:
+            return None
 
     async def set_job(self, job: PipelineJob) -> None:
         self._jobs[job.job_id] = job
@@ -63,16 +66,14 @@ class InMemoryJobStore:
     async def set(self, job: PipelineJob) -> None:
         await self.set_job(job)
 
+    async def exists(self, job_id: str) -> bool:
+        return job_id in self._jobs
+
     async def delete(self, job_id: str) -> None:
         self._jobs.pop(job_id, None)
         self._artifacts.pop(job_id, None)
 
     async def get_artifacts(self, job_id: str, *, tenant_id: str | None = None) -> ExtractionArtifacts | None:
-        job = self._jobs.get(job_id)
-        if job is None:
-            return None
-        if tenant_id is not None and job.tenant_id != tenant_id:
-            raise KeyError(job_id)
         return self._artifacts.get(job_id)
 
     async def set_artifacts(self, job_id: str, artifacts: ExtractionArtifacts) -> None:
@@ -149,8 +150,13 @@ class RedisJobStore:
     async def set(self, job: PipelineJob) -> None:
         await self.set_job(job)
 
+    async def exists(self, job_id: str) -> bool:
+        count = await self._redis.exists(self._job_key(job_id))
+        return bool(count)
+
     async def delete(self, job_id: str) -> None:
-        await self._redis.delete(self._job_key(job_id), self._artifact_key(job_id))
+        await self._redis.delete(self._job_key(job_id))
+        await self._redis.delete(self._artifact_key(job_id))
 
     async def get_artifacts(self, job_id: str, *, tenant_id: str | None = None) -> ExtractionArtifacts | None:
         try:

@@ -1,6 +1,6 @@
 """Unit tests for exception classes."""
 
-from value_fabric.layer3.api.exceptions import (
+from src.api.exceptions import (
     AnalyticsError,
     AuthenticationError,
     AuthorizationError,

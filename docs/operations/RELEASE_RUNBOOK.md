@@ -105,11 +105,11 @@ Verify the following workflows passed on the commit you are deploying:
 | Workflow | Purpose | Required |
 |---|---|---|
 | `build-deploy.yml` | Build + push container images | ✅ |
-| `test-mandatory.yml` | Required test suite | ✅ |
-| `security-gate.yml` | CVE scanning | ✅ |
+| `pr-checks.yml` | Required test suite | ✅ |
+| `security-gates.yml` | CVE scanning | ✅ |
 | `contract-compliance.yml` | Contract validation | ✅ |
-| `preflight.yml` | Pre-deployment checks | ✅ |
-| `launch-readiness.yml` | Go/no-go gate | ✅ |
+| `critical-gates.yml` | Pre-deployment checks | ✅ |
+| `prod-readiness.yml` | Go/no-go gate | ✅ |
 
 Check at: https://github.com/bmsull560/Fabric_4L/actions
 

@@ -15,14 +15,16 @@
  *       permanently-null state.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { StrictMode } from "react";
-import { render, cleanup, act } from "@testing-library/react";
+import React, { StrictMode } from "react";
+import { render, cleanup, act, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import {
   _resetClerkSessionForTests,
   getActiveClerkOrgId,
   getClerkSessionToken,
 } from "@/auth/clerkSession";
+import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Mock Clerk. The mock state object is mutable; tests flip values and
@@ -78,6 +80,23 @@ function stableGetToken() {
 // Import after vi.mock.
 import { ClerkAuthBridge } from "./ClerkAuthBridge";
 
+const testQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      staleTime: 0,
+    },
+  },
+});
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={testQueryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+
 function resetMockClerk() {
   mockClerkState.authLoaded = true;
   mockClerkState.isSignedIn = false;
@@ -92,11 +111,14 @@ describe("<ClerkAuthBridge />", () => {
   beforeEach(() => {
     resetMockClerk();
     _resetClerkSessionForTests();
+    setAuthProvider("clerk");
   });
 
   afterEach(() => {
     cleanup();
+    testQueryClient.clear();
     _resetClerkSessionForTests();
+    setAuthProvider(undefined);
   });
 
   // ──────────────────────────────────────────────────────────────────
@@ -106,7 +128,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.tokenSerial = 1;
 
-    render(<ClerkAuthBridge />);
+    render(<ClerkAuthBridge />, { wrapper: Wrapper });
 
     await expect(getClerkSessionToken()).resolves.toBe("tok_1");
   });
@@ -114,7 +136,7 @@ describe("<ClerkAuthBridge />", () => {
   it("does NOT register a token getter when not signed in", async () => {
     mockClerkState.isSignedIn = false;
 
-    render(<ClerkAuthBridge />);
+    render(<ClerkAuthBridge />, { wrapper: Wrapper });
 
     await expect(getClerkSessionToken()).resolves.toBeNull();
   });
@@ -123,7 +145,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.authLoaded = false;
     mockClerkState.isSignedIn = true;
 
-    render(<ClerkAuthBridge />);
+    render(<ClerkAuthBridge />, { wrapper: Wrapper });
 
     await expect(getClerkSessionToken()).resolves.toBeNull();
   });
@@ -136,7 +158,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.tokenSerial = 1;
     mockClerkState.churnGetToken = true;
 
-    const { rerender } = render(<ClerkAuthBridge />);
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
 
     // First render — getter resolves to tok_1.
     await expect(getClerkSessionToken()).resolves.toBe("tok_1");
@@ -164,7 +186,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.tokenSerial = 1;
 
-    const { rerender } = render(<ClerkAuthBridge />);
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     await expect(getClerkSessionToken()).resolves.toBe("tok_1");
 
     await act(async () => {
@@ -179,7 +201,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_initial" };
 
-    const { rerender } = render(<ClerkAuthBridge />);
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     expect(getActiveClerkOrgId()).toBe("org_initial");
 
     await act(async () => {
@@ -197,7 +219,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_a" };
 
-    const { rerender } = render(<ClerkAuthBridge />);
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     expect(getActiveClerkOrgId()).toBe("org_a");
 
     await act(async () => {
@@ -208,6 +230,21 @@ describe("<ClerkAuthBridge />", () => {
     expect(getActiveClerkOrgId()).toBe("org_b");
   });
 
+  it("invalidates React Query cache when the active organization switches", async () => {
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_a" };
+    testQueryClient.setQueryData(["tenant-scoped", "data"], { tenant: "org_a" });
+
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
+    await act(async () => {
+      mockClerkState.organization = { id: "org_b" };
+      rerender(<ClerkAuthBridge />);
+    });
+
+    const staleQuery = testQueryClient.getQueryCache().find({ queryKey: ["tenant-scoped", "data"] });
+    expect(staleQuery?.state.isInvalidated).toBe(true);
+  });
+
   // ──────────────────────────────────────────────────────────────────
   // L6 — unmount clears everything
   // ──────────────────────────────────────────────────────────────────
@@ -215,7 +252,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.tokenSerial = 1;
 
-    const { unmount } = render(<ClerkAuthBridge />);
+    const { unmount } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     await expect(getClerkSessionToken()).resolves.toBe("tok_1");
 
     unmount();
@@ -226,7 +263,7 @@ describe("<ClerkAuthBridge />", () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_to_clear" };
 
-    const { unmount } = render(<ClerkAuthBridge />);
+    const { unmount } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     expect(getActiveClerkOrgId()).toBe("org_to_clear");
 
     unmount();
@@ -244,6 +281,7 @@ describe("<ClerkAuthBridge />", () => {
       <StrictMode>
         <ClerkAuthBridge />
       </StrictMode>,
+      { wrapper: Wrapper },
     );
 
     // Under StrictMode the effect's cleanup fires during the simulated
@@ -260,8 +298,39 @@ describe("<ClerkAuthBridge />", () => {
       <StrictMode>
         <ClerkAuthBridge />
       </StrictMode>,
+      { wrapper: Wrapper },
     );
 
     expect(getActiveClerkOrgId()).toBe("org_strict");
+  });
+
+  it("renders children while Clerk loads and registers the token getter once signed-in auth is ready", async () => {
+    mockClerkState.authLoaded = false;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.tokenSerial = 7;
+
+    const { rerender } = render(
+      <ClerkAuthBridge>
+        <div>protected app</div>
+      </ClerkAuthBridge>,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText("protected app")).toBeInTheDocument();
+    await expect(getClerkSessionToken()).resolves.toBeNull();
+
+    await act(async () => {
+      mockClerkState.authLoaded = true;
+      rerender(
+        <ClerkAuthBridge>
+          <div>protected app</div>
+        </ClerkAuthBridge>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("protected app")).toBeInTheDocument();
+    });
+    await expect(getClerkSessionToken()).resolves.toBe("tok_7");
   });
 });

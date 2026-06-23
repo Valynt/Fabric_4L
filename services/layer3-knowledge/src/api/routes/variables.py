@@ -1,3 +1,8 @@
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -13,19 +18,16 @@ import os
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 
 logger = get_logger(__name__)
-
-# Production-like environment detection
-_PRODUCTION_ENVS = {"production", "prod", "staging", "stage"}
 
 # Error messages for fail-closed scenarios
 _ERROR_BENCHMARK_NOT_CONFIGURED = (
@@ -39,9 +41,15 @@ _ERROR_FORMULA_NOT_CONFIGURED = (
 
 
 def _is_production_like() -> bool:
-    """Whether the current runtime must fail closed on mock data."""
+    """Return True only for the exact 'production' environment.
+
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    For safety-critical checks that must run in both production and staging,
+    use is_strict_environment() from value_fabric.shared.security.config instead.
+    """
     env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "development").strip().lower()
-    return env in _PRODUCTION_ENVS
+    return env == "production"
 
 router = APIRouter()
 
@@ -286,7 +294,7 @@ async def get_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Variable not found")
+            raise NotFoundError(message = "Variable not found")
 
         v = record["v"]
 
@@ -412,7 +420,7 @@ async def create_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to create variable")
+            raise ServiceUnavailableError(message="Failed to create variable")
 
         v = record["v"]
 
@@ -445,7 +453,7 @@ async def update_variable(
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         result = await neo4j.run(check_query, variable_id=variable_id, tenant_id=tenant_id)
         if not await result.single():
-            raise HTTPException(status_code=404, detail="Variable not found")
+            raise NotFoundError(message = "Variable not found")
 
     # Build update query
     set_clauses = ["v.updatedAt = $updated_at"]
@@ -511,7 +519,7 @@ async def update_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to update variable")
+            raise ServiceUnavailableError(message="Failed to update variable")
 
     # Return updated variable
     return await get_variable(variable_id, tenant=tenant)
@@ -537,7 +545,7 @@ async def resolve_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Variable not found")
+            raise NotFoundError(message = "Variable not found")
 
         v = record["v"]
         data_type = v["dataType"]
@@ -551,25 +559,13 @@ async def resolve_variable(
         # User input must be provided by the caller; do not fabricate.
         value = v.get("fallbackValue")
     elif source_type == "crm_field":
-        raise HTTPException(
-            status_code=503,
-            detail="CRM integration not configured. Set CRM_API_URL and CRM_API_KEY.",
-        )
+        raise ServiceUnavailableError(message = "CRM integration not configured. Set CRM_API_URL and CRM_API_KEY.")
     elif source_type == "benchmark_lookup":
-        raise HTTPException(
-            status_code=503,
-            detail=_ERROR_BENCHMARK_NOT_CONFIGURED,
-        )
+        raise ServiceUnavailableError(message = str(_ERROR_BENCHMARK_NOT_CONFIGURED))
     elif source_type == "formula_calculation":
-        raise HTTPException(
-            status_code=503,
-            detail=_ERROR_FORMULA_NOT_CONFIGURED,
-        )
+        raise ServiceUnavailableError(message = str(_ERROR_FORMULA_NOT_CONFIGURED))
     elif source_type == "ground_truth":
-        raise HTTPException(
-            status_code=503,
-            detail="Ground-truth integration not configured. Set LAYER5_BASE_URL.",
-        )
+        raise ServiceUnavailableError(message = "Ground-truth integration not configured. Set LAYER5_BASE_URL.")
     else:
         value = v.get("fallbackValue")
 
@@ -614,7 +610,7 @@ async def validate_value(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Variable not found")
+            raise NotFoundError(message = "Variable not found")
 
         data_type = record["data_type"]
         validation_rules = record["validation_rules"] or []

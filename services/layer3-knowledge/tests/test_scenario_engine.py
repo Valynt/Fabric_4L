@@ -2,7 +2,7 @@
 Tests for the Scenario Engine what-if analysis functionality.
 """
 
-from value_fabric.layer3.agents.scenario_engine import (
+from src.agents.scenario_engine import (
     VariableAdjustment,
     scenario_engine,
 )
@@ -119,7 +119,7 @@ class TestScenarioEngine:
             "payback_months": 12.0,
         }
 
-        from value_fabric.layer3.agents.scenario_engine import SavedScenario
+        from src.agents.scenario_engine import SavedScenario
 
         scenarios = [
             SavedScenario(

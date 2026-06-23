@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Comprehensive unit tests for ROICalculatorWorkflow.
 
 Covers:
@@ -9,16 +11,16 @@ Covers:
 - ToolResult unwrapping (production registry format) and raw-dict fallback
 """
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from pydantic import ValidationError
 
-from value_fabric.layer4.models.agent_state import ROIAgentState, WorkflowStatus
-from value_fabric.layer4.tools.registry import ToolResult
-from value_fabric.layer4.workflows.roi_calculator import (
+from layer4_agents.models.agent_state import ROIAgentState, WorkflowStatus
+from layer4_agents.tools.registry import ToolResult
+from layer4_agents.workflows.roi_calculator import (
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
@@ -86,9 +88,10 @@ class TestCreateInitialState:
         assert state.roi_input.value_driver_ids == ["vd-1", "vd-2"]
         assert state.tenant_id == "test-tenant"
 
-    def test_empty_value_driver_ids_raises(self, workflow):
+    def test_empty_value_driver_ids_are_rejected(self, workflow):
         wf, _ = workflow
-        with pytest.raises(ValueError):
+
+        with pytest.raises(ValidationError, match="At least one value_driver_id is required"):
             wf.create_initial_state(
                 {"prospect_id": "p-001", "value_driver_ids": []},
                 tenant_id="test-tenant",
@@ -176,7 +179,7 @@ class TestExecuteGetProspectData:
         state.roi_input = Mock()
         state.roi_input.prospect_id = "p-001"
         state.roi_input.industry_vertical = None
-        state.metadata["tenant_id"] = "tenant-99"
+        state.tenant_id = "tenant-99"
 
         registry.execute.return_value = _make_tool_result({"profile": {}})
         await wf._execute_get_prospect_data(state)
@@ -242,7 +245,7 @@ class TestExecuteFetchBenchmarks:
         state.roi_input = Mock()
         state.roi_input.industry_vertical = "saas"
         state.roi_input.company_size = "large"
-        state.metadata["tenant_id"] = "tenant-77"
+        state.tenant_id = "tenant-77"
 
         registry.execute.return_value = _make_tool_result({})
         await wf._execute_fetch_benchmarks(state)
@@ -427,7 +430,7 @@ class TestExecuteEvaluateFormula:
 
         res = result["results"][0]
         assert res["confidence"] == CONFIDENCE_NONE
-        assert "evaluator crashed" in res["missing_variables"][0]
+        assert res["missing_variables"][0] == "RuntimeError: formula_evaluation_failed"
 
     @pytest.mark.asyncio
     async def test_missing_value_driver_formula(self, workflow):
@@ -478,7 +481,7 @@ class TestExecuteEvaluateFormula:
         )
         state.roi_input = Mock()
         state.roi_input.value_driver_ids = ["vd-1"]
-        state.metadata["tenant_id"] = "tenant-abc"
+        state.tenant_id = "tenant-abc"
 
         registry.execute.return_value = _make_tool_result(
             {

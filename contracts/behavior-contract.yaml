@@ -1,0 +1,772 @@
+# Behavior Contract Registry
+#
+# Source of truth that maps every production-critical capability to BOTH its
+# intended ALLOWED-path test and its intended DENIED-path test, plus the
+# expected failure mode and the marker/gate that proves it.
+#
+# Operating principle:  No critical behavior exists unless it is tested.
+# Enforcement rule:      Intended behavior passes. Unintended behavior fails.
+#                        Untested behavior is not production-ready.
+#
+# This file is validated by scripts/ci/check_behavior_contract.py:
+#   - every capability must declare an `allowed` AND a `denied` test
+#   - every referenced test file must exist and contain the referenced test
+#   - backend markers must be registered in pytest.ini
+#   - the capability count must not regress below the ratchet baseline
+#     (config/ci/behavior_contract_baseline.json)
+#
+# Governance: docs/governance/behavior-first-testing.md
+# Authoring template: tests/contract/BEHAVIOR_CONTRACT_TEMPLATE.md
+#
+# `kind` defaults to `backend` (pytest). Use `kind: frontend` for Vitest/Playwright
+# specs; for frontend entries `test` matches the `it(...)`/`test(...)`/`journeyTest(...)`
+# title substring.
+
+version: 1
+
+# Canonical behavior domains. Every capability must map to exactly one.
+domains:
+  - auth
+  - tenant_isolation
+  - api_access
+  - configuration_validity
+  - environment_safety
+  - data_boundaries
+  - failure_behavior
+  - frontend_user_flows
+  - service_to_service
+  - production_readiness
+  - governance
+  - compliance
+
+capabilities:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Auth
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: auth.bearer-token-required
+    domain: auth
+    description: >-
+      Protected routes require a valid bearer token. A valid token reaches the
+      handler; a missing or malformed token fails closed before the handler.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "401 with structured auth error; no handler side effects"
+    allowed:
+      file: tests/security/test_auth_boundaries.py
+      test: test_valid_token_succeeds
+    denied:
+      file: tests/security/test_auth_boundaries.py
+      test: test_no_auth_header_rejected
+
+  - id: auth.default-deny-routes
+    domain: auth
+    description: >-
+      Non-public routes default to centralized auth + tenant-context enforcement;
+      only explicitly allowlisted routes may be reached without it.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "Route audit fails closed when governance middleware is missing"
+    allowed:
+      file: tests/security/test_auth_default_deny.py
+      test: test_non_public_routes_with_tenant_context_reach_handler
+    denied:
+      file: tests/security/test_auth_default_deny.py
+      test: test_non_public_routes_default_to_auth_enforcement
+
+  - id: auth.clerk-config-normalization
+    domain: auth
+    description: >-
+      Clerk auth provider normalization is strict: explicit 'legacy' opts into
+      legacy mode; exact 'clerk' (case-folded, trimmed), missing values, and
+      unknown values use Clerk mode. Missing publishable key fails fast.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Throws on missing/invalid Clerk publishable key; garbage provider values do not activate legacy"
+    allowed:
+      file: apps/web/src/auth/clerkConfig.test.ts
+      test: "activates clerk on exact lowercase"
+    denied:
+      file: apps/web/src/auth/clerkConfig.test.ts
+      test: "does NOT activate legacy for garbage-looking value"
+
+  - id: auth.frontend-fail-closed
+    domain: auth
+    description: >-
+      In Clerk mode the mock-auth flag must not authenticate signed-out users
+      (fail closed); mock auth is allowed only in non-Clerk dev mode.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Signed-out users remain unauthenticated in Clerk mode"
+    allowed:
+      file: apps/web/src/contexts/AuthContext.behavior.test.tsx
+      test: "allows mock auth in non-Clerk mode"
+    denied:
+      file: apps/web/src/contexts/AuthContext.behavior.test.tsx
+      test: "fails closed in Clerk mode"
+
+  - id: auth.frontend-csrf-and-redirect
+    domain: auth
+    description: >-
+      Frontend auth primitives fail closed: CSRF headers require a valid cookie;
+      unauthenticated users on protected routes are redirected to login with the
+      original destination preserved; auth redirects are idempotent.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Empty CSRF headers on missing cookie; redirect to login with return URL"
+    allowed:
+      file: apps/web/src/hooks/useAuth.behavior.test.ts
+      test: "authenticated user with CSRF cookie can obtain CSRF headers"
+    denied:
+      file: apps/web/src/hooks/useAuth.behavior.test.ts
+      test: "user without CSRF cookie is denied CSRF headers"
+
+  - id: auth.clerk-route-guard
+    domain: auth
+    description: >-
+      Clerk route guard renders nothing while auth/org resolves to prevent UI
+      flash; signed-out users redirect to sign-in; signed-in users without org
+      redirect to org picker; legacy mode is a true no-op.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Renders null while loading; redirects to /sign-in or /workspaces with replace"
+    allowed:
+      file: apps/web/src/components/routing/RequireClerkAuth.test.tsx
+      test: "clerk mode signed-in with org: renders children"
+    denied:
+      file: apps/web/src/components/routing/RequireClerkAuth.test.tsx
+      test: "clerk mode signed out: redirects to sign-in with the intended destination"
+
+  - id: auth.select-organization-safety
+    domain: auth
+    description: >-
+      Organization picker prevents redirect loops by falling back to /home when
+      afterSignInUrl equals or is a path variant of the picker route.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Safe fallback to /home prevents self-referential redirect loop"
+    allowed:
+      file: apps/web/src/pages/SelectOrganization.test.tsx
+      test: "uses afterSignInUrl when it differs from selectOrgUrl"
+    denied:
+      file: apps/web/src/pages/SelectOrganization.test.tsx
+      test: "uses a safe fallback redirect when afterSignInUrl equals selectOrgUrl"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Tenant Isolation
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: tenant_isolation.cross-tenant-read
+    domain: tenant_isolation
+    description: >-
+      A user may read their own tenant's data but never another tenant's data,
+      even when spoofing tenant headers.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "403/401 on cross-tenant read; spoofed X-Tenant-ID ignored"
+    allowed:
+      file: tests/security/test_tenant_isolation.py
+      test: test_jwt_tenant_claim_takes_precedence
+    denied:
+      file: tests/security/test_tenant_isolation.py
+      test: test_user_cannot_access_other_tenant_data
+
+  - id: tenant_isolation.boundary-fails-closed
+    domain: tenant_isolation
+    description: >-
+      require_tenant_context() raises TenantBoundaryError when no context is set;
+      optional getters return None. Tools using require_tenant_context() fail
+      securely. Websocket connections enforce JWT validation.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "TenantBoundaryError with governance middleware guidance"
+    allowed:
+      file: tests/security/test_tenant_boundary_fails_closed.py
+      test: test_require_tenant_context_returns_context_when_set
+    denied:
+      file: tests/security/test_tenant_boundary_fails_closed.py
+      test: test_require_tenant_context_raises_when_no_context
+
+  - id: tenant_isolation.billing-boundary
+    domain: tenant_isolation
+    description: >-
+      The adjacent billing service enforces auth, rejects spoofed headers without
+      JWT, enforces tenant isolation on read/write, and enforces RBAC role
+      boundaries.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "401 on missing auth; 403 on cross-tenant access; 403 on RBAC violation"
+    allowed:
+      file: tests/security/test_billing_tenant_boundary.py
+      test: test_write_role_can_mutate
+    denied:
+      file: tests/security/test_billing_tenant_boundary.py
+      test: test_missing_auth_returns_401
+
+  - id: tenant_isolation.hostile-endpoint-family
+    domain: tenant_isolation
+    description: >-
+      Every core endpoint family (L1-L6), adjacent service endpoint family
+      (Signal Refinery and Billing), and API gateway path enforces tenant auth
+      guards, requires auth on writes, uses non-optional tenant context on
+      mutations, and returns safe error envelopes.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "Static analysis flags missing tenant guard; safe error envelope on violation"
+    allowed:
+      file: tests/security/test_hostile_tenant_endpoint_family_contracts.py
+      test: test_endpoint_family_has_tenant_auth_guard
+    denied:
+      file: tests/security/test_hostile_tenant_endpoint_family_contracts.py
+      test: test_endpoint_family_write_methods_require_auth
+
+  - id: tenant_isolation.l2-hostile-behavioral
+    domain: tenant_isolation
+    description: >-
+      Layer 2 extraction runtime tenant isolation: cross-tenant read/write blocked,
+      missing tenant context fails closed with 403 before any persistence.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "403 with tenant_context_required code; job_store.set never called"
+    allowed:
+      file: services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py
+      test: test_tenant_a_cannot_read_tenant_b_jobs
+    denied:
+      file: services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py
+      test: test_extract_rejects_missing_tenant_before_job_write
+
+  - id: tenant_isolation.l3-hostile-behavioral
+    domain: tenant_isolation
+    description: >-
+      Layer 3 Neo4j tenant session wrapper: unscoped queries rejected, scoped
+      queries execute with tenant parameters, broad MATCH traversals denied.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "ValueError on unscoped/broad queries; tenant_id parameter enforced"
+    allowed:
+      file: services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py
+      test: test_tenant_session_executes_scoped_query
+    denied:
+      file: services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py
+      test: test_tenant_session_rejects_unscoped_query
+
+  - id: tenant_isolation.frontend-membership
+    domain: tenant_isolation
+    description: >-
+      Frontend tenant membership hook confirms membership for matching legacy
+      tenant slug or Clerk organization; denies for mismatch or missing tenant.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "isMemberOfTenant=false; isLoading=false"
+    allowed:
+      file: apps/web/src/hooks/useTenantMembership.behavior.test.ts
+      test: "user with matching legacy tenant slug is confirmed as member"
+    denied:
+      file: apps/web/src/hooks/useTenantMembership.behavior.test.ts
+      test: "user with mismatched legacy tenant slug is denied membership"
+
+  - id: tenant_isolation.frontend-context-contract
+    domain: tenant_isolation
+    description: >-
+      Frontend API client does not synthesize tenant headers; tenant is
+      cookie/session-bound. Session metadata with tenant mismatch is rejected.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Validation error on tenant mismatch; no x-tenant-id header sent"
+    allowed:
+      file: apps/web/src/api/__tests__/contract/tenant-context.contract.test.ts
+      test: "does NOT send x-tenant-id header"
+    denied:
+      file: apps/web/src/api/__tests__/contract/tenant-context.contract.test.ts
+      test: "rejects session metadata with tenant mismatch as a validation error"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # API Access
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: api_access.endpoints-require-auth
+    domain: api_access
+    description: >-
+      Account/business-case endpoints use tenant-scoped DB access and reject
+      unauthenticated requests.
+    owner: "@value-fabric/backend-leads"
+    marker: security
+    expected_failure_mode: "401 on unauthenticated access; queries always tenant-scoped"
+    allowed:
+      file: tests/security/test_cross_tenant_api.py
+      test: test_account_endpoint_uses_tenant_scoped_db
+    denied:
+      file: tests/security/test_cross_tenant_api.py
+      test: test_account_endpoint_requires_authentication
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Data Boundaries
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: data_boundaries.write-tenant-scope
+    domain: data_boundaries
+    description: >-
+      Writes are scoped to the authenticated tenant. A tenant_id in the request
+      body is ignored; a missing tenant_id derives from the JWT.
+    owner: "@value-fabric/security-leads"
+    marker: cross_tenant_write
+    expected_failure_mode: "Cross-tenant write blocked; body tenant_id never trusted"
+    allowed:
+      file: tests/security/test_cross_tenant_write.py
+      test: test_create_entity_with_missing_tenant_uses_jwt_tenant
+    denied:
+      file: tests/security/test_cross_tenant_write.py
+      test: test_create_entity_with_wrong_tenant_in_body_blocked
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Failure Behavior
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: failure_behavior.error-envelope
+    domain: failure_behavior
+    description: >-
+      Every layer emits the canonical structured error envelope; legacy flat
+      error payloads are rejected by the canonical regression.
+    owner: "@value-fabric/architects"
+    marker: contract_static
+    expected_failure_mode: "Non-canonical/flat error payloads rejected by contract"
+    allowed:
+      file: tests/contract/test_error_envelope_consistency.py
+      test: test_error_envelope_canonical_exists_in_all_layers
+    denied:
+      file: tests/contract/test_error_envelope_consistency.py
+      test: test_legacy_flat_error_payloads_are_rejected_by_canonical_envelope_regression
+
+  - id: failure_behavior.sse-streaming
+    domain: failure_behavior
+    description: >-
+      Layer 2 SSE streaming emits events in correct order (start → progress →
+      complete), handles client disconnect gracefully, applies backpressure for
+      slow clients, supports reconnection replay, and propagates errors as SSE
+      events with retry hints.
+    owner: "@value-fabric/backend-leads"
+    marker: contract_static
+    expected_failure_mode: "Events include error type and retry hint; disconnect triggers cleanup"
+    allowed:
+      file: services/layer2-extraction/tests/test_sse_streaming_behavior.py
+      test: test_event_sequence_ordering
+    denied:
+      file: services/layer2-extraction/tests/test_sse_streaming_behavior.py
+      test: test_client_disconnection_handling
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Frontend User Flows
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: frontend_user_flows.entitlements
+    domain: frontend_user_flows
+    description: >-
+      Entitlement hook grants access only when all required features are allowed;
+      denies when any feature is missing or explicitly denied; network errors
+      fail closed (denied + isError); empty entitlement list defaults to allowed
+      without API call.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "entitlementsMet=false; isError=true on network failure"
+    allowed:
+      file: apps/web/src/hooks/useEntitlements.behavior.test.tsx
+      test: "user with all required entitlements is allowed access"
+    denied:
+      file: apps/web/src/hooks/useEntitlements.behavior.test.tsx
+      test: "user with missing required entitlement is denied access"
+
+  - id: frontend_user_flows.billing
+    domain: frontend_user_flows
+    description: >-
+      Billing hook surfaces active subscription, enables portal redirect and plan
+      upgrade checkout; fails closed on missing subscription (undefined state) and
+      surfaces loading state while resolving.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "subscription=undefined; error truthy; loading=true while resolving"
+    allowed:
+      file: apps/web/src/hooks/useBilling.behavior.test.tsx
+      test: "user with active subscription can view billing details"
+    denied:
+      file: apps/web/src/hooks/useBilling.behavior.test.tsx
+      test: "user without subscription sees undefined subscription state"
+
+  - id: frontend_user_flows.workflow-context
+    domain: frontend_user_flows
+    description: >-
+      Workflow context hook parses URL parameters safely: valid params extracted
+      correctly; missing params return safe defaults (stepIndex=0, stepKey=unknown);
+      invalid numeric step surfaces as NaN for downstream validation.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Missing params return safe defaults; invalid stepIndex=NaN"
+    allowed:
+      file: apps/web/src/hooks/useWorkflowContext.behavior.test.ts
+      test: "valid workflow parameters are parsed from URL"
+    denied:
+      file: apps/web/src/hooks/useWorkflowContext.behavior.test.ts
+      test: "missing workflow parameters return safe defaults"
+
+  - id: frontend_user_flows.prospect-setup
+    domain: frontend_user_flows
+    description: >-
+      Prospect setup component keeps launch action disabled without minimum prompt
+      context; renders external loading state; surfaces submission error on creation
+      failure.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Button disabled without input; alert with error message on failure"
+    allowed:
+      file: apps/web/src/components/ProspectSetup.behavior.test.tsx
+      test: "keeps launch action disabled without minimum prompt context"
+    denied:
+      file: apps/web/src/components/ProspectSetup.behavior.test.tsx
+      test: "renders submission error when creation fails"
+
+  - id: frontend_user_flows.ingestion-pipeline
+    domain: frontend_user_flows
+    description: >-
+      J1 behavior contract: authenticated user can submit domain, track job, and
+      explore value tree with all four entity types; empty/invalid domain blocked;
+      unauthenticated redirected; cross-tenant data not rendered; backend errors
+      surface safe UI state.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Disabled button on empty input; 422 → validation-error testId; redirect to /sign-in"
+    allowed:
+      file: apps/web/e2e/behaviors/j1-ingestion.behavior.spec.ts
+      test: "J1-BEH-001: authenticated user can submit a valid domain"
+    denied:
+      file: apps/web/e2e/behaviors/j1-ingestion.behavior.spec.ts
+      test: "J1-BEH-005: empty domain submission is blocked"
+
+  - id: frontend_user_flows.intelligence-workspace
+    domain: frontend_user_flows
+    description: >-
+      J2 behavior contract: user can view signals/drivers/evidence tabs, trigger
+      agent stream, and receive synthesized responses; unsupported claims refused;
+      low-confidence signals flagged; cross-tenant signals invisible.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "agent-refusal testId on unsupported claim; low-confidence testId flagged"
+    allowed:
+      file: apps/web/e2e/behaviors/j2-intelligence.behavior.spec.ts
+      test: "J2-BEH-001: user can view signals tab"
+    denied:
+      file: apps/web/e2e/behaviors/j2-intelligence.behavior.spec.ts
+      test: "J2-BEH-007: agent refuses unsupported claim"
+
+  - id: frontend_user_flows.value-studio
+    domain: frontend_user_flows
+    description: >-
+      J3 behavior contract: user can navigate action plan / value model / narrative
+      tabs; approved business case enables export; export blocked for unapproved
+      case; invalid formula rejected.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "export-blocked testId for unapproved case; validation-error on invalid formula"
+    allowed:
+      file: apps/web/e2e/behaviors/j3-value-studio.behavior.spec.ts
+      test: "J3-BEH-005: approved business case exposes enabled export action"
+    denied:
+      file: apps/web/e2e/behaviors/j3-value-studio.behavior.spec.ts
+      test: "J3-BEH-006: export is blocked for draft business case"
+
+  - id: frontend_user_flows.governance-trust
+    domain: frontend_user_flows
+    description: >-
+      J4 behavior contract: user can view decision traces, audit log, and health
+      monitor; provenance chain links to original source; cross-tenant audit
+      invisible; missing provenance flagged; degraded health surfaced safely.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "forbidden-state on cross-tenant audit; incomplete-provenance flagged; degraded-state visible"
+    allowed:
+      file: apps/web/e2e/behaviors/j4-governance.behavior.spec.ts
+      test: "J4-BEH-001: user can view decision traces"
+    denied:
+      file: apps/web/e2e/behaviors/j4-governance.behavior.spec.ts
+      test: "J4-BEH-009: cross-tenant trace data is not visible"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Service-to-Service
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: service_to_service.tenant-context-propagation
+    domain: service_to_service
+    description: >-
+      Cross-layer (L1-L6) calls carry and validate tenant context; queries are
+      tenant-filtered and fail closed when context is absent.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_matrix
+    expected_failure_mode: "Internal call fails closed when tenant context is missing"
+    allowed:
+      file: tests/security/test_cross_layer_tenant_isolation_matrix.py
+      test: test_l4_query_filters_present
+    denied:
+      file: tests/security/test_cross_layer_tenant_isolation_matrix.py
+      test: test_l4_fail_closed_without_context
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Configuration Validity
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: configuration_validity.env-schema
+    domain: configuration_validity
+    description: >-
+      Declared environment schemas compile and are validated against active env
+      examples; an invalid/missing env contract fails closed.
+    owner: "@value-fabric/sre-leads"
+    marker: config
+    expected_failure_mode: "Env contract validator fails closed on drift/missing schema"
+    allowed:
+      file: tests/ci/test_env_contract_validator_i01.py
+      test: test_config_package_env_schemas_compile
+    denied:
+      file: tests/ci/test_env_contract_validator_i01.py
+      test: test_env_contract_validator_targets_active_env_examples_and_fails_closed
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Environment Safety
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: environment_safety.dev-bypass
+    domain: environment_safety
+    description: >-
+      Dev auth-bypass flags are permitted only in development and are rejected in
+      production-like environments at startup.
+    owner: "@value-fabric/security-leads"
+    marker: production_safety
+    expected_failure_mode: "Startup raises in production when bypass flags are set"
+    allowed:
+      file: tests/security/test_dev_bypass.py
+      test: test_bypass_flag_does_not_raise_in_development
+    denied:
+      file: tests/security/test_dev_bypass.py
+      test: test_bypass_flag_rejected_in_production
+
+  - id: environment_safety.startup-guard-contract
+    domain: environment_safety
+    description: >-
+      Services that read bypass flags apply the shared startup guard so the
+      production rejection cannot be bypassed per-service.
+    owner: "@value-fabric/security-leads"
+    marker: contract_static
+    expected_failure_mode: "Shared startup guard rejects bypass flags in prod-like envs"
+    allowed:
+      file: tests/contract/test_startup_bypass_guard_contract.py
+      test: test_services_with_bypass_flags_apply_shared_startup_guard
+    denied:
+      file: tests/contract/test_startup_bypass_guard_contract.py
+      test: test_shared_startup_guard_rejects_bypass_flags_in_production_like
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Production Readiness
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: production_readiness.prod-config-invariants
+    domain: production_readiness
+    description: >-
+      Production manifests include required observability/mTLS invariants and
+      never commit auth material.
+    owner: "@value-fabric/sre-leads"
+    marker: production_readiness
+    expected_failure_mode: "Gate fails if prod invariants missing or secrets committed"
+    allowed:
+      file: tests/k8s/test_production_blockers.py
+      test: test_prod_includes_thanos_and_loki_fluent_bit
+    denied:
+      file: tests/k8s/test_production_blockers.py
+      test: test_pgbouncer_auth_material_is_not_committed_or_configmapped
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Security Gaps — RBAC, JWT, Rate Limiting, API Key Safety, Audit Emission
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: auth.rbac-wildcard-rejection
+    domain: auth
+    description: >-
+      Wildcard permissions like "*" or "all" in JWT claims are explicitly
+      discarded during token normalization. Permission checks fail closed on
+      empty or invalid scopes.
+    owner: "@value-fabric/security-leads"
+    marker: rbac
+    expected_failure_mode: "Wildcard scopes are discarded; empty permission set results in 403"
+    allowed:
+      file: tests/security/test_rbac.py
+      test: test_all_permissions_scope_not_grantable_via_jwt_claim
+    denied:
+      file: tests/security/test_rbac.py
+      test: test_require_any_permission_or_logic_does_not_grant_on_empty_set
+
+  - id: auth.jwt-tampering-resistance
+    domain: auth
+    description: >-
+      JWT tokens with modified claims, expired timestamps, invalid signatures,
+      none algorithm, or algorithm confusion attacks are rejected before handler
+      execution. Valid tokens proceed normally.
+    owner: "@value-fabric/security-leads"
+    marker: jwt_config
+    expected_failure_mode: "401 with structured auth error; no handler side effects"
+    allowed:
+      file: tests/security/test_rbac.py
+      test: test_admin_permission_includes_all_operations
+    denied:
+      file: tests/security/test_rbac.py
+      test: test_invalid_signature_rejected
+
+  - id: auth.rate-limiting-enforcement
+    domain: auth
+    description: >-
+      OIDC pre-authentication and authenticated endpoints enforce rate limits
+      with tenant-and-user-scoped keys. Excessive requests fail closed with 429.
+    owner: "@value-fabric/security-leads"
+    marker: rate_limit
+    expected_failure_mode: "429 Too Many Requests after threshold exceeded"
+    allowed:
+      file: tests/security/test_auth_rate_limiting.py
+      test: test_authenticated_auth_scope_rate_limit_key_uses_tenant_and_user_dimension
+    denied:
+      file: tests/security/test_auth_rate_limiting.py
+      test: test_oidc_preauth_rate_limit_fails_closed_after_repeated_login_attempts
+
+  - id: auth.api-key-rejection-safety
+    domain: auth
+    description: >-
+      Unsupported or malformed API keys are rejected without leaking the full
+      key material. Short keys are masked; JWT-like inputs are never treated as
+      valid API keys.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "None returned; warning logged with truncated/masked key"
+    allowed:
+      file: tests/security/test_p0_5_api_key_rejection.py
+      test: test_reject_api_key_does_not_leak_full_key
+    denied:
+      file: tests/security/test_p0_5_api_key_rejection.py
+      test: test_reject_api_key_unsupported_returns_none
+
+  - id: data_boundaries.audit-event-emission
+    domain: data_boundaries
+    description: >-
+      Tenant context changes emit structured audit events when audit logging is
+      available. Audit emission failures are non-blocking and do not break the
+      calling workflow.
+    owner: "@value-fabric/security-leads"
+    marker: audit
+    expected_failure_mode: "Audit event lost silently; main workflow continues"
+    allowed:
+      file: tests/security/test_audit_event_emission.py
+      test: test_emit_tenant_context_set_audit_emits_event_when_audit_available
+    denied:
+      file: tests/security/test_audit_event_emission.py
+      test: test_emit_tenant_context_set_audit_is_non_blocking_on_emit_error
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Governance
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: governance.privileged-access-audit
+    domain: governance
+    description: >-
+      Super-admin privileged access requires explicit justification
+      (X-Privileged-Reason header), emits CROSS_TENANT_ACCESS audit events with
+      accessed tenant IDs, approval tickets, and session duration, and fails
+      closed for non-super-admin users.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "403 for non-super-admin; 400 without reason header"
+    allowed:
+      file: tests/security/test_privileged_audit.py
+      test: test_accepts_valid_privileged_access
+    denied:
+      file: tests/security/test_privileged_audit.py
+      test: test_blocks_non_super_admin
+
+  - id: governance.audit-resilience
+    domain: governance
+    description: >-
+      Audit event emission is fire-and-forget: logger failures, DB write
+      failures, and serialization errors are swallowed without propagating to
+      the caller or blocking the HTTP response. Each event receives a unique ID.
+    owner: "@value-fabric/security-leads"
+    marker: audit_logging
+    expected_failure_mode: "Exception swallowed; event returned with unique ID"
+    allowed:
+      file: tests/security/test_audit_resilience.py
+      test: test_emit_audit_event_returns_event_on_success
+    denied:
+      file: tests/security/test_audit_resilience.py
+      test: test_emit_audit_event_does_not_raise_when_logger_fails
+
+  - id: governance.governance-middleware
+    domain: governance
+    description: >-
+      Governance middleware enforces authentication on protected paths, bypasses
+      auth for public paths (health, metrics, docs), validates JWT signatures
+      and claims, and fails closed with stable error codes on malformed or
+      missing credentials.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "401 with stable error code; public paths bypass auth"
+    allowed:
+      file: tests/security/test_governance_middleware_resolution_order.py
+      test: test_public_path_bypasses_auth
+    denied:
+      file: tests/security/test_governance_middleware_resolution_order.py
+      test: test_missing_credentials_returns_401
+
+  - id: governance.layer5-audit-protection
+    domain: governance
+    description: >-
+      Layer 5 audit logs are append-only: non-privileged mutations are blocked,
+      repository queries enforce tenant and global scope filters, and validation
+      events require privileged insert guards.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "Mutation blocked; append-only invariant enforced"
+    allowed:
+      file: tests/security/test_layer5_governance_security_controls.py
+      test: test_audit_logs_are_append_only_and_non_privileged_mutation_is_blocked
+    denied:
+      file: tests/security/test_layer5_audit_mutation_protection.py
+      test: test_layer5_validation_events_enforces_privileged_insert_and_append_only
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Compliance
+  # ───────────────────────────────────────────────────────────────────────────
+  - id: compliance.retention-deletion-contract
+    domain: compliance
+    description: >-
+      Data retention policies are declared in source code (30 days customer
+      data, 7 years audit logs). Hard-delete preserves audit logs as
+      append-only; deletion audit events contain all required fields.
+    owner: "@value-fabric/security-leads"
+    marker: contract_static
+    expected_failure_mode: "Source-level retention guarantee missing from config"
+    allowed:
+      file: tests/contract/test_retention_deletion_contract.py
+      test: test_retention_defaults_declared_in_settings
+    denied:
+      file: tests/data_lifecycle/test_audit_log_retention.py
+      test: test_audit_logs_are_retained_after_hard_delete
+
+  - id: compliance.approval-workflow
+    domain: compliance
+    description: >-
+      Business case export and CRM push are blocked before approval, allowed
+      after approval. Reviewers can request changes; users can resubmit.
+      Approval history is persisted and unsupported claims block approval.
+    owner: "@value-fabric/backend-leads"
+    marker: backend_integrated
+    expected_failure_mode: "Export blocked with 403; unsupported claim rejected"
+    allowed:
+      file: tests/backend_integrated/test_approval_export_crm_governance.py
+      test: test_business_case_export_allowed_after_approval
+    denied:
+      file: tests/backend_integrated/test_approval_export_crm_governance.py
+      test: test_business_case_export_blocked_before_approval
+
+  - id: compliance.audit-retry-queue
+    domain: compliance
+    description: >-
+      Audit events are durably queued via Redis with exponential backoff retry.
+      After max retries events move to a dead-letter queue. The system falls
+      back to direct DB writes when Redis is unavailable.
+    owner: "@value-fabric/security-leads"
+    marker: audit
+    expected_failure_mode: "Event dead-lettered after 3 retries; DB fallback on Redis failure"
+    allowed:
+      file: tests/security/test_audit_retry_queue.py
+      test: test_push_serialises_event
+    denied:
+      file: tests/security/test_audit_retry_queue.py
+      test: test_worker_dead_letters_after_max_retries

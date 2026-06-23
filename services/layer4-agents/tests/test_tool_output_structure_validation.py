@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tool Output Structure Validation Tests - P0 Critical Gap Remediation
 
 Validates that all tool outputs conform to the canonical ToolResult contract
@@ -11,12 +13,11 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-23
 """
 
-from __future__ import annotations
 
 import pytest
 from uuid import uuid4
 
-from value_fabric.layer4.tools.registry import ToolResult
+from layer4_agents.tools.registry import ToolResult
 
 
 pytestmark = [

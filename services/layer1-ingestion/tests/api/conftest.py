@@ -24,27 +24,35 @@ from starlette.types import ASGIApp
 
 
 # ---------------------------------------------------------------------------
-# Lazy import helpers — avoid importing app_monolith at module level so that
+# Lazy import helpers — avoid importing the main app at module level so that
 # the root conftest stubs are applied first.
 # ---------------------------------------------------------------------------
 
 def _get_app():
-    from value_fabric.layer1.api.app_monolith import app
+    # Patch rate limiting before app import so tests don't get 429 from Redis
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    async def _mock_check_rate_limit(self, request, ctx):
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return _MockResult()
+    GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
+    from layer1_ingestion.api.main import app
+    from value_fabric.shared.error_handling.handlers import register_exception_handlers
+    register_exception_handlers(app)
     return app
 
 
 def _get_base():
-    from value_fabric.layer1.shared.models import Base
+    from layer1_ingestion.shared.models import Base
     return Base
 
 
 def _get_db_override():
-    from value_fabric.layer1.shared.database import get_db_from_context_sync
+    from layer1_ingestion.shared.database import get_db_from_context_sync
     return get_db_from_context_sync
 
 
 def _make_target_factory():
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     return create_scraping_target
 
 
@@ -52,25 +60,35 @@ def _make_target_factory():
 # Fake governance context
 # ---------------------------------------------------------------------------
 
-class _FakeCtx:
-    """Minimal duck-type of GovernanceContext for tests."""
-
-    def __init__(self, tenant_id: UUID, user_id: UUID):
-        self.tenant_id = tenant_id
-        self.user_id = str(user_id)
-        self.roles: list[str] = ["admin"]
+def _make_request_context(tenant_id: UUID, user_id: UUID, roles: list[str] | None = None):
+    """Build a real RequestContext for tests."""
+    from value_fabric.shared.identity.context import RequestContext
+    return RequestContext(
+        tenant_id=tenant_id,
+        user_id=str(user_id),
+        roles=roles or ["admin"],
+        auth_source="jwt_claim",
+    )
 
 
 class _InjectGovernanceMiddleware(BaseHTTPMiddleware):
-    """Injects a fake governance_context onto request.state for every request."""
+    """Injects a real RequestContext onto request.state for every request."""
 
-    def __init__(self, app: ASGIApp, tenant_id: UUID, user_id: UUID):
+    def __init__(self, app: ASGIApp, tenant_id: UUID, user_id: UUID, roles: list[str] | None = None):
         super().__init__(app)
         self._tenant_id = tenant_id
         self._user_id = user_id
+        self._roles = roles or ["admin"]
 
     async def dispatch(self, request: Request, call_next):
-        request.state.governance_context = _FakeCtx(self._tenant_id, self._user_id)
+        request.state.governance_context = _make_request_context(
+            self._tenant_id, self._user_id, self._roles
+        )
+        # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
+        # skips its Redis rate-limit check (avoids 429 in tests).
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        request.state.rate_limit_result = _MockResult()
+        request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
         return await call_next(request)
 
 
@@ -143,16 +161,19 @@ def client(db: Session, org_id: UUID, user_id: UUID):
 
 
 @pytest.fixture()
-def make_target(db: Session):
+def make_target(db: Session, user_id: UUID):
     """Factory: create a ScrapingTarget row in the test DB."""
     factory = _make_target_factory()
+    from layer1_ingestion.shared.models import TargetType, SourceCategory
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", **kwargs) -> object:
         t = factory(
             tenant_id=tenant_id,
             name=kwargs.get("name", "Test Target"),
             url=kwargs.get("url", "https://example.com"),
-            source_category=kwargs.get("source_category", "general"),
+            target_type=kwargs.get("target_type", TargetType.SINGLE_PAGE),
+            created_by=kwargs.get("created_by", user_id),
+            source_category=kwargs.get("source_category", SourceCategory.GENERAL),
             extraction_config=kwargs.get("extraction_config", {"method": "llm"}),
         )
         t.status = status
@@ -162,3 +183,23 @@ def make_target(db: Session):
         return t
 
     return _make
+
+
+@pytest.fixture(autouse=True)
+def _mock_process_scraping_job(monkeypatch, request):
+    """Mock Celery task delay/apply_async so API tests don't need a broker.
+
+    Static contract tests (``@pytest.mark.contract_static``) that parse
+    source code without importing the app skip this fixture to avoid paying
+    the heavy import cost of the full L1 app and SQLAlchemy stack.
+    """
+    if request.node.get_closest_marker("contract_static"):
+        return
+    import layer1_ingestion.api._batch_and_stats as _batch_mod
+    import layer1_ingestion.api.main as _main_mod
+    _MockTask = type("_MockTask", (), {
+        "delay": lambda *a, **k: None,
+        "apply_async": lambda *a, **k: None,
+    })
+    monkeypatch.setattr(_batch_mod, "process_scraping_job", _MockTask())
+    monkeypatch.setattr(_main_mod, "process_scraping_job", _MockTask())

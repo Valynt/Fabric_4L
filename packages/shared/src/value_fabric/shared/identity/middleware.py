@@ -14,18 +14,19 @@ Resolution order (first match wins):
   4. ``X-Tenant-ID`` header (UUID) — accepted *only* for internal
      service-to-service calls; grants the ``system`` role.
 
-On success, a ``RequestContext`` is stored in the ``ContextVar`` so all
-downstream code can call ``get_request_context()`` or ``require_context()``.
+On success, a ``RequestContext`` with an authenticated tenant is stored in the
+``ContextVar`` so all downstream code can call ``get_request_context()`` or
+``require_context()``.
 
-On failure / missing credentials, the middleware passes the request through
-**without** a context — individual endpoints use FastAPI Depends to enforce
-authentication where required (some endpoints, e.g. ``/health``, are public).
+On failure / missing credentials for any non-public path, the middleware fails
+closed before route handlers run. Probes, documentation, and external-IdP
+bootstrap endpoints that perform their own authentication are listed in
+``EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST``.
 """
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import hmac
 import inspect
 import logging
@@ -37,7 +38,7 @@ import types
 from typing import Any, Callable, Optional
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.routing import APIRoute
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -49,9 +50,6 @@ except ImportError:
 from .context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
-    clear_current_context,
-    get_current_context,
-    set_current_context,
     set_request_context,
     _current_context,
 )
@@ -59,6 +57,13 @@ from .jwt import decode_jwt as _decode_jwt
 from .permissions import ROLE_PERMISSIONS, Permission, Role, normalize_role_claims
 from .rate_limiter import RedisRateLimiter, RateLimitResult
 from .rate_limiting import RateLimitConfig, RateLimitScope, ROLE_DEFAULT_RATE_LIMITS
+from value_fabric.shared.rate_limiting.http_middleware import (
+    SharedRateLimitMiddlewareConfig,
+    build_rate_limit_key,
+    should_skip_rate_limit,
+)
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
+from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
 
 logger = logging.getLogger(__name__)
 _LEGACY_TEST_TENANT_ID_RE = re.compile(r"^tenant-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -141,58 +146,97 @@ TENANT_ID_HEADER = "X-Tenant-ID"
 SERVICE_AUTH_HEADER = "X-Service-Auth"
 MIN_SERVICE_SECRET_LENGTH = 32  # Minimum entropy for shared secrets
 
-# Paths that bypass all authentication checks
-PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
+# Paths that bypass the gateway identity middleware because they perform their
+# own authentication (e.g., health probes, external IdP bootstrap routes).
+EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST: frozenset[str] = frozenset(
     {
         "/health",
         "/health/detailed",
+        "/health/live",
+        "/live",
+        "/ready",
+        "/readiness",
         "/metrics",
         "/docs",
         "/openapi.json",
         "/redoc",
+        "/v1/billing/webhook",
+        "/internal/webhooks/clerk",
+        "/v1/auth/login",
+        "/v1/auth/signup",
+        "/v1/auth/accept-invite",
+        "/v1/auth/clerk/tenant",
         "/",
     }
 )
 
 
-def _is_public_path(path: str) -> bool:
-    """Return True if the path should bypass authentication."""
-    return path in PUBLIC_PATH_ALLOWLIST or path.startswith("/docs") or path.startswith("/redoc")
-
-
-def _is_authenticated_dependency(dep: Any) -> bool:
-    call = getattr(dep, "call", None)
-    return callable(call) and getattr(call, "__name__", "") == "require_authenticated"
+def _is_external_auth_bootstrap_path(path: str) -> bool:
+    """Return True if the path bypasses the gateway middleware but has its own auth."""
+    return (
+        path in EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST
+        or path.startswith("/docs")
+        or path.startswith("/redoc")
+    )
 
 
 def audit_protected_routes(app: FastAPI) -> None:
-    """Fail closed if any non-public route is missing auth dependency wiring."""
-    missing_auth: list[str] = []
+    """Fail closed if central auth middleware is missing for protected routes.
+
+    Authentication and tenant-context enforcement are intentionally centralized
+    in :class:`GovernanceMiddleware`; route handlers no longer need to repeat
+    ``Depends(require_authenticated)`` solely to become private. This startup
+    audit therefore verifies that any app exposing non-public routes has the
+    central middleware installed. Explicit route dependencies remain valid for
+    RBAC or endpoint-specific checks, but they are not the platform auth gate.
+    """
+    protected_routes: list[str] = []
     for route in app.routes:
         if not isinstance(route, APIRoute):
             continue
-        path = route.path
-        if _is_public_path(path):
-            continue
-        if any(_is_authenticated_dependency(dep) for dep in route.dependant.dependencies):
+        if _is_external_auth_bootstrap_path(route.path):
             continue
         methods = ",".join(sorted(route.methods or []))
-        missing_auth.append(f"{methods} {path}")
+        protected_routes.append(f"{methods} {route.path}")
 
-    if missing_auth:
-        missing = "\n - ".join(sorted(missing_auth))
-        raise RuntimeError(
-            "Auth route audit failed. Non-public routes must include Depends(require_authenticated)."
-            f"\n - {missing}"
-        )
+    if not protected_routes:
+        return
+
+    middleware_types = [middleware.cls for middleware in app.user_middleware]
+    if GovernanceMiddleware in middleware_types:
+        return
+
+    missing = "\n - ".join(sorted(protected_routes))
+    raise RuntimeError(
+        "Auth route audit failed. Apps with non-public routes must install "
+        "GovernanceMiddleware for central auth and tenant-context enforcement."
+        f"\n - {missing}"
+    )
 
 
 def _allow_legacy_test_tenant_ids() -> bool:
     environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV") or "development"
-    return (
+    explicit_test_flag = (
         os.getenv("ALLOW_LEGACY_TEST_TENANT_IDS", "").strip().lower() == "true"
         or os.getenv("TESTING", "").strip().lower() == "true"
-    ) and environment.strip().lower() not in {"prod", "production", "staging", "stage"}
+    )
+    if not explicit_test_flag:
+        return False
+    if environment.strip().lower() in {"prod", "production", "staging", "stage"}:
+        return False
+    # Reject legacy tenant IDs when production-like deployment markers are present,
+    # matching the fail-closed behaviour in jwt.py.
+    production_like_markers = (
+        "KUBERNETES_SERVICE_HOST",
+        "K_SERVICE",
+        "ECS_CONTAINER_METADATA_URI",
+        "ECS_CONTAINER_METADATA_URI_V4",
+        "AWS_EXECUTION_ENV",
+        "DYNO",
+    )
+    if any(os.getenv(key, "").strip() for key in production_like_markers):
+        return False
+    return True
 
 
 _KNOWN_PERMISSION_VALUES: frozenset[str] = frozenset(p.value for p in Permission)
@@ -317,7 +361,12 @@ async def extract_context_from_api_key(api_key: str) -> RequestContext:
     )
 
 
-def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional[str]) -> None:
+def validate_context_consistency(
+    ctx: RequestContext,
+    header_tenant_id: Optional[str],
+    *,
+    route: str = "request_context",
+) -> None:
     """Reject conflicting tenant identifiers across trusted and untrusted inputs.
 
     JWT/API-key tenant claims are authoritative.  A caller-provided
@@ -330,6 +379,7 @@ def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional
         return
     raw_header = str(header_tenant_id).strip()
     if not raw_header:
+        record_inconsistent_tenant_context_access(route=route, source="header_invalid")
         raise ValueError("Invalid tenant_id header")
     try:
         header_value: UUID | str = UUID(raw_header)
@@ -337,8 +387,10 @@ def validate_context_consistency(ctx: RequestContext, header_tenant_id: Optional
         if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(raw_header):
             header_value = raw_header
         else:
+            record_inconsistent_tenant_context_access(route=route, source="header_invalid")
             raise ValueError("Invalid tenant_id header") from exc
     if str(ctx.tenant_id) != str(header_value):
+        record_inconsistent_tenant_context_access(route=route, source="header")
         raise ValueError("Conflicting tenant_id between authenticated context and header")
 
 
@@ -411,17 +463,22 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         api_key_resolver: Optional[Callable] = None,
         rate_limiter: Optional[RedisRateLimiter] = None,
         tenant_settings_resolver: Optional[Callable] = None,
+        tenant_status_resolver: Optional[Callable] = None,
         on_rate_limit_hit: Optional[Callable[[str, str], None]] = None,
         enforce_authentication: bool = True,
+        require_tenant_context: bool = True,
     ) -> None:
         super().__init__(app)
         self._api_key_resolver = api_key_resolver
         self._rate_limiter = rate_limiter
         self._redis_client = rate_limiter
         self._tenant_settings_resolver = tenant_settings_resolver
+        self._tenant_status_resolver = tenant_status_resolver
         self._on_rate_limit_hit = on_rate_limit_hit
         self._enforce_authentication = enforce_authentication
+        self._require_tenant_context = require_tenant_context
         self._validate_multi_worker_rate_limit_configuration(rate_limiter)
+        self._shared_rate_limit_config = SharedRateLimitMiddlewareConfig.from_env()
         # P0 FIX: Query param tenant authentication removed entirely
         self._allow_query_param = False
 
@@ -438,7 +495,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         ctx: Optional[RequestContext] = None
 
         try:
-            if self._enforce_authentication and not _is_public_path(request.url.path):
+            if self._enforce_authentication and not _is_external_auth_bootstrap_path(request.url.path):
                 try:
                     ctx = await self._resolve_identity(request)
                 except HTTPException as exc:
@@ -456,46 +513,37 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                             "error": "authentication_required",
                         },
                     )
+                if not ctx.is_auth_source_valid():
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        headers={"WWW-Authenticate": "Bearer"},
+                        content={
+                            "detail": "Authentication context is invalid.",
+                            "error": "authentication_context_invalid",
+                        },
+                    )
+                if self._require_tenant_context and not ctx.tenant_id:
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={
+                            "detail": "Tenant context is required for this route.",
+                            "error": "tenant_context_required",
+                        },
+                    )
 
             if ctx is not None:
                 _current_context.reset(token)
                 token = set_request_context(ctx)
                 request.state.governance_context = ctx
 
-                # Tenant lifecycle enforcement — must run before business logic.
-                # tenant_status is carried in the JWT raw claims or context raw dict.
-                tenant_status = None
-                if ctx.raw:
-                    tenant_status = ctx.raw.get("tenant_status")
-                if tenant_status == "suspended":
-                    return JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={
-                            "detail": "Tenant account is suspended. Please contact support.",
-                            "error": "tenant_suspended",
-                        },
-                    )
-                if tenant_status == "pending":
-                    return JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={
-                            "detail": "Tenant account is pending activation.",
-                            "error": "tenant_pending",
-                        },
-                    )
-                if tenant_status == "deleted":
-                    return JSONResponse(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        content={
-                            "detail": "Tenant not found.",
-                            "error": "tenant_not_found",
-                        },
-                    )
+                tenant_status_response = await self._enforce_tenant_status(ctx)
+                if tenant_status_response is not None:
+                    return tenant_status_response
             else:
                 request.state.governance_context = None
 
             # Rate limiting check (after identity, before request handling)
-            if ctx is not None and self._rate_limiter is not None:
+            if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
                 rate_limit_result = await self._check_rate_limit(request, ctx)
                 request.state.rate_limit_result = rate_limit_result
                 config = getattr(request.state, "rate_limit_config", None)
@@ -548,7 +596,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             response.headers["X-Tenant-ID-Resolved"] = str(ctx.tenant_id)
 
         # Add rate limit headers if we performed a rate limit check
-        if ctx is not None and self._rate_limiter is not None:
+        if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
             config = getattr(request.state, "rate_limit_config", None)
             if config is not None:
                 result = getattr(request.state, "rate_limit_result", None)
@@ -566,6 +614,70 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
     # Resolution helpers
     # ------------------------------------------------------------------
+
+    async def _enforce_tenant_status(self, ctx: RequestContext) -> Optional[Response]:
+        """Return a blocking response for inactive tenant lifecycle states.
+
+        This must be called after identity resolution and before request business
+        logic. The resolver remains authoritative when available; kill-switch and
+        JWT claims preserve the existing fail-closed fallback behavior.
+        """
+        tenant_status = None
+        if self._tenant_status_resolver is not None:
+            try:
+                resolved = await self._tenant_status_resolver(str(ctx.tenant_id))
+                if resolved is not None:
+                    tenant_status = resolved
+            except Exception as exc:
+                logger.warning(
+                    "tenant_status_resolver_failed",
+                    extra={
+                        "event": "tenant_status_resolver_failed",
+                        "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                        "error": str(exc),
+                        "tenant_id": str(ctx.tenant_id),
+                    },
+                )
+
+        if tenant_status is None:
+            try:
+                kill_switch = TenantKillSwitch(self._redis_client)
+                if await kill_switch.is_suspended(str(ctx.tenant_id)):
+                    tenant_status = "suspended"
+            except Exception:
+                pass
+
+        if tenant_status is None and ctx.raw:
+            tenant_status = ctx.raw.get("tenant_status")
+
+        if tenant_status == "suspended":
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "detail": "Tenant account is suspended. Please contact support.",
+                    "error": "tenant_suspended",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        if tenant_status == "pending":
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "detail": "Tenant account is pending activation.",
+                    "error": "tenant_pending",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        if tenant_status == "deleted":
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={
+                    "detail": "Tenant not found.",
+                    "error": "tenant_not_found",
+                    "tenant_id": str(ctx.tenant_id),
+                },
+            )
+        return None
 
     async def _resolve_identity(self, request: Request) -> Optional[RequestContext]:
         """Try each resolution strategy in priority order."""
@@ -616,7 +728,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                             source="jwt",
                             raw=getattr(claims, "extra_claims", {}) or {},
                         )
-                    validate_context_consistency(ctx, request.headers.get(TENANT_ID_HEADER))
+                    validate_context_consistency(
+                        ctx,
+                        request.headers.get(TENANT_ID_HEADER),
+                        route=request.url.path,
+                    )
                     return ctx
                 except ValueError as exc:
                     logger.warning(
@@ -627,6 +743,39 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={"error_code": ERR_AUTH_CONTEXT_INVALID, "message": "Tenant context mismatch."},
                     ) from exc
+
+            # P1-001: Try service-to-service JWT before rejecting
+            try:
+                from .jwt import decode_service_jwt as _decode_service_jwt
+                # Validate audience if S2S_AUDIENCE is configured
+                expected_audience = os.getenv("S2S_AUDIENCE", "").strip() or None
+                s2s_claims = await asyncio.to_thread(_decode_service_jwt, token_str, expected_audience=expected_audience)
+            except Exception as exc:
+                if jwt is not None and isinstance(exc, jwt.ExpiredSignatureError):
+                    logger.debug("s2s_jwt_expired", extra={**_request_log_context(request)})
+                else:
+                    logger.debug("s2s_jwt_decode_failed", extra={"error": str(exc), **_request_log_context(request)})
+                s2s_claims = None
+            if s2s_claims is not None:
+                try:
+                    tenant_id = UUID(str(s2s_claims.tenant_id))
+                except ValueError:
+                    logger.warning("s2s_jwt_invalid_tenant_id", extra={"tenant_id": s2s_claims.tenant_id, **_request_log_context(request)})
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid S2S token.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                return _build_context_from_role(
+                    tenant_id,
+                    user_id=s2s_claims.sub,
+                    roles=[Role.SYSTEM.value],
+                    source=AUTH_SOURCE_SERVICE_ACCOUNT,
+                    raw={"aud": s2s_claims.aud, "sub": s2s_claims.sub},
+                    service_account_id=s2s_claims.sub,
+                    service_account_scopes=["tenant:seed", "system:internal", "s2s:invoke"],
+                )
+
             # claims is None but no exception → token was invalid, reject
             logger.warning("JWT decode returned None")
             raise HTTPException(
@@ -677,7 +826,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                             source="jwt",
                             raw=getattr(claims, "extra_claims", {}) or {},
                         )
-                    validate_context_consistency(ctx, request.headers.get(TENANT_ID_HEADER))
+                    validate_context_consistency(
+                        ctx,
+                        request.headers.get(TENANT_ID_HEADER),
+                        route=request.url.path,
+                    )
                     return ctx
                 except ValueError as exc:
                     logger.warning("Session cookie tenant context rejected: %s", exc)
@@ -863,11 +1016,12 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     ) -> str:
         """Build a Redis key for the rate limit window."""
         endpoint_class = self._classify_endpoint(request)
-        if config.scope == RateLimitScope.API_KEY and ctx.api_key_id:
-            return f"ratelimit:api_key:{ctx.api_key_id}:{endpoint_class}"
-        if config.scope == RateLimitScope.USER and ctx.user_id:
-            return f"ratelimit:user:{ctx.tenant_id}:{ctx.user_id}:{endpoint_class}"
-        return f"ratelimit:tenant:{ctx.tenant_id}:{endpoint_class}"
+        return build_rate_limit_key(
+            ctx=ctx,
+            config=config,
+            endpoint_class=endpoint_class,
+            key_strategy=self._shared_rate_limit_config.key_strategy,
+        )
 
     def _classify_endpoint(self, request: Request) -> str:
         path = request.url.path
@@ -950,3 +1104,21 @@ def _evict_stale_rate_limit_entries(now: float | None = None) -> int:
             _tenant_rate_limit_buckets.pop(key, None)
             removed += 1
     return removed
+
+
+# ---------------------------------------------------------------------------
+# Namespace-shim singleton guard
+# ---------------------------------------------------------------------------
+# This module owns process-wide tenant-identity state (rate-limit buckets,
+# middleware class attributes, etc.). The monorepo namespace shim can load it
+# under multiple import paths (e.g. ``value_fabric.shared.identity.middleware``
+# and ``packages.shared.src.value_fabric.shared.identity.middleware``), which
+# would create independent copies of that state and silently break tenant
+# isolation. Force every logical import path to resolve to the same module
+# object.
+# ---------------------------------------------------------------------------
+
+_CANONICAL_MIDDLEWARE_MODULE = "packages.shared.src.value_fabric.shared.identity.middleware"
+if __name__ != _CANONICAL_MIDDLEWARE_MODULE:
+    sys.modules.setdefault(_CANONICAL_MIDDLEWARE_MODULE, sys.modules[__name__])
+    sys.modules[__name__] = sys.modules[_CANONICAL_MIDDLEWARE_MODULE]

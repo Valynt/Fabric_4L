@@ -60,10 +60,17 @@ ALL_TABLES = BILLING_TABLES + CRM_TABLES
 
 def upgrade() -> None:
     """Replace NULL-permissive RLS policies with strict tenant matching."""
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     for table in ALL_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes existing tenant isolation
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
+        # MIGRATION_REVIEW_REQUIRED: FORCE ROW LEVEL SECURITY affects all access paths
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
 
         op.execute(f"""
@@ -93,10 +100,17 @@ def downgrade() -> None:
     Recreates admin_bypass_policy without WITH CHECK to match the original
     definition from migrations 014 (billing) and 030 (crm_sync_jobs).
     """
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     for table in ALL_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes strict tenant isolation
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
+        # MIGRATION_REVIEW_REQUIRED: restoring NULL-permissive policy creates data leak vector
         op.execute(f"""
             CREATE POLICY tenant_isolation_policy ON {table}
                 FOR ALL

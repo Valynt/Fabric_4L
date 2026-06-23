@@ -1,72 +1,47 @@
 #!/usr/bin/env python3
-"""Fail CI when Layer 3 service-local files violate governance contracts.
+"""Fail CI when Layer 3 source-of-truth path contracts drift.
 
 Architecture note (ADR-027, accepted 2026-05-13):
-  value_fabric/layer3/__init__.py is a path-redirect shim that appends
-  services/layer3-knowledge/src/ to __path__.  This makes
-  services/layer3-knowledge/src/ the canonical source tree — it is NOT a
-  compatibility mirror of value_fabric/layer3/.  Mirror-parity checks between
-  the two trees are therefore architecturally invalid and have been removed.
+  services/layer3-knowledge/src/ is the canonical source tree. The historical
+  value_fabric/layer3 namespace is retained only as a compatibility placeholder.
 
 This script enforces two remaining contracts:
-  1. Files in EXCEPTION_DIRS must carry a governance docstring (owner + target).
+  1. value_fabric/layer3 contains no runtime Python files beyond __init__.py.
   2. No file in the service tree may contain unresolved merge-conflict markers.
 """
 
 from __future__ import annotations
 
-import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-COMPAT_ROOT = ROOT / "services" / "layer3-knowledge" / "src"
-
-# Directories whose files require an explicit governance docstring because they
-# contain service-local logic that is not part of the shared canonical runtime.
-EXCEPTION_DIRS = ("api", "agents", "cache", "docs", "metrics", "migrations")
-EXCEPTION_FILES = ("config.py",)
-EXCEPTION_OWNER = "Owner: layer3-knowledge"
-EXCEPTION_TARGET = "Removal/migration target: 2026-09-30"
+CANONICAL_ROOT = ROOT / "services" / "layer3-knowledge" / "src"
+COMPAT_NAMESPACE = ROOT / "value_fabric" / "layer3"
+ALLOWED_COMPAT_FILES = {Path("__init__.py")}
 
 
 def _py_files(root: Path) -> list[Path]:
     return sorted(path for path in root.rglob("*.py") if "__pycache__" not in path.parts)
 
 
-def _is_exception_path(rel: Path) -> bool:
-    return rel.as_posix() in EXCEPTION_FILES or (rel.parts and rel.parts[0] in EXCEPTION_DIRS)
-
-
-def _has_exception_docstring(path: Path) -> bool:
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except SyntaxError:
-        return False
-    doc = ast.get_docstring(tree)
-    if not doc:
-        return False
-    return "Allowed service-local exception" in doc and EXCEPTION_OWNER in doc and EXCEPTION_TARGET in doc
-
-
 def _violations() -> list[str]:
     violations: list[str] = []
-    compat_files = {path.relative_to(COMPAT_ROOT) for path in _py_files(COMPAT_ROOT)}
+    canonical_files = {path.relative_to(CANONICAL_ROOT) for path in _py_files(CANONICAL_ROOT)}
 
-    # Contract 1: governance docstrings on exception-path files
-    for rel in sorted(compat_files):
-        if not _is_exception_path(rel):
-            continue
-        if not _has_exception_docstring(COMPAT_ROOT / rel):
+    # Contract 1: the historical namespace must stay placeholder-only.
+    for path in _py_files(COMPAT_NAMESPACE):
+        rel = path.relative_to(COMPAT_NAMESPACE)
+        if rel not in ALLOWED_COMPAT_FILES:
             violations.append(
-                "service-local exception missing required governance docstring: "
-                f"services/layer3-knowledge/src/{rel.as_posix()}"
+                "runtime file found in compatibility namespace: "
+                f"value_fabric/layer3/{rel.as_posix()}"
             )
 
     # Contract 2: no unresolved merge-conflict markers anywhere in the service tree.
     # Match the full three-marker pattern to avoid false positives from section
     # dividers that use repeated '=' characters in comments.
-    for rel in sorted(compat_files):
-        path = COMPAT_ROOT / rel
+    for rel in sorted(canonical_files):
+        path = CANONICAL_ROOT / rel
         try:
             text = path.read_text(encoding="utf-8")
         except OSError:
@@ -89,8 +64,8 @@ def main() -> int:
         return 0
 
     print("ERROR: Layer 3 source-of-truth contract failed.")
-    print("Canonical source-of-truth: value_fabric/layer3")
-    print("Compatibility shims: services/layer3-knowledge/src (mirrored paths only)")
+    print("Canonical source-of-truth: services/layer3-knowledge/src")
+    print("Compatibility namespace: value_fabric/layer3 (placeholder/shims only)")
     for violation in violations:
         print(f" - {violation}")
     return 1

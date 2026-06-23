@@ -104,6 +104,7 @@ _BACKEND_AGENT_STATE = (
     / "services"
     / "layer4-agents"
     / "src"
+    / "layer4_agents"
     / "models"
     / "agent_state.py"
 )

@@ -13,7 +13,7 @@ import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '@/api/typedClient'
 import type { l1 } from '@/api/generated';
 import { createLogger } from '@/lib/telemetry';
 import { QK } from './queryKeys';
-import { withApiError, SourceApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 
 const log = createLogger('useTargets');
 
@@ -113,14 +113,7 @@ export interface TargetListResponse {
   };
 }
 
-export interface TargetStats {
-  total: number;
-  connected: number;
-  disconnected: number;
-  error: number;
-  totalRecords: number;
-  averageHealthScore: number;
-}
+type ApiTargetStatsResponse = l1.components['schemas']['TargetStatsResponse'];
 
 export interface CreateTargetRequest {
   name: string;
@@ -275,7 +268,7 @@ export function useTargets(filters: TargetFilters = {}) {
     sortOrder = 'desc',
   } = filters;
 
-  return useQuery<TargetListResponse, SourceApiError>({
+  return useQuery<TargetListResponse, BaseApiError>({
     queryKey: QK.targets.list(filters),
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -290,7 +283,7 @@ export function useTargets(filters: TargetFilters = {}) {
 
       const response = await withApiError(
         apiGet<ApiTargetListResponse>('l1', `/targets?${params.toString()}`),
-        SourceApiError,
+        BaseApiError,
       );
 
       const data = response.data;
@@ -311,13 +304,13 @@ export function useTargets(filters: TargetFilters = {}) {
 
 /** Fetch full detail for a single target. */
 export function useTarget(id: string | null) {
-  return useQuery<Target, SourceApiError>({
+  return useQuery<Target, BaseApiError>({
     queryKey: id ? QK.targets.detail(id) : ['targets', 'detail', 'null'],
     queryFn: async () => {
-      if (!id) throw new SourceApiError('Target ID is required');
+      if (!id) throw new BaseApiError('Target ID is required');
       const response = await withApiError(
         apiGet<ApiTargetDetail>('l1', `/targets/${id}`),
-        SourceApiError,
+        BaseApiError,
       );
       return normalizeTargetDetail(response.data);
     },
@@ -329,22 +322,14 @@ export function useTarget(id: string | null) {
 
 /** Aggregated stats for all targets in the tenant. */
 export function useTargetStats() {
-  return useQuery<TargetStats, SourceApiError>({
+  return useQuery<ApiTargetStatsResponse, BaseApiError>({
     queryKey: QK.targets.stats,
     queryFn: async () => {
       const response = await withApiError(
-        apiGet<l1.components['schemas']['TargetStatsResponse']>('l1', '/targets/stats'),
-        SourceApiError,
+        apiGet<ApiTargetStatsResponse>('l1', '/targets/stats'),
+        BaseApiError,
       );
-      const d = response.data;
-      return {
-        total: d.total,
-        connected: d.connected,
-        disconnected: d.disconnected,
-        error: d.error,
-        totalRecords: d.total_records,
-        averageHealthScore: d.average_health_score,
-      };
+      return response.data;
     },
     staleTime: STALE_TIME.stats,
     retry: RETRY_CONFIG.maxRetries,
@@ -368,7 +353,7 @@ export function useTargetJobs(targetId: string | null) {
           'l1',
           `/jobs?${params.toString()}`,
         ),
-        SourceApiError,
+        BaseApiError,
       );
       const d = response.data;
       return {
@@ -393,11 +378,11 @@ export function useTargetJobs(targetId: string | null) {
 export function useCreateTarget() {
   const queryClient = useQueryClient();
 
-  return useMutation<Target, SourceApiError, CreateTargetRequest>({
+  return useMutation<Target, BaseApiError, CreateTargetRequest>({
     mutationFn: async (request) => {
       const response = await withApiError(
         apiPost<ApiTargetDetail>('l1', '/targets', buildCreatePayload(request)),
-        SourceApiError,
+        BaseApiError,
       );
       return normalizeTargetDetail(response.data);
     },
@@ -414,12 +399,12 @@ export function useCreateTarget() {
 export function useUpdateTarget() {
   const queryClient = useQueryClient();
 
-  return useMutation<Target, SourceApiError, UpdateTargetRequest>({
+  return useMutation<Target, BaseApiError, UpdateTargetRequest>({
     mutationFn: async ({ id, ...rest }) => {
       const payload = buildCreatePayload(rest as CreateTargetRequest);
       const response = await withApiError(
         apiPut<ApiTargetDetail>('l1', `/targets/${id}`, payload),
-        SourceApiError,
+        BaseApiError,
       );
       return normalizeTargetDetail(response.data);
     },
@@ -437,11 +422,11 @@ export function useUpdateTarget() {
 export function useUpdateTargetStatus() {
   const queryClient = useQueryClient();
 
-  return useMutation<Target, SourceApiError, { id: string; status: TargetStatus }>({
+  return useMutation<Target, BaseApiError, { id: string; status: TargetStatus }>({
     mutationFn: async ({ id, status }) => {
       const response = await withApiError(
         apiPatch<ApiTargetDetail>('l1', `/targets/${id}/status`, { status }),
-        SourceApiError,
+        BaseApiError,
       );
       return normalizeTargetDetail(response.data);
     },
@@ -459,11 +444,11 @@ export function useUpdateTargetStatus() {
 export function useDeleteTarget() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, SourceApiError, string>({
+  return useMutation<void, BaseApiError, string>({
     mutationFn: async (id) => {
       await withApiError(
         apiDelete<void>('l1', `/targets/${id}`),
-        SourceApiError,
+        BaseApiError,
       );
     },
     onSuccess: () => {
@@ -486,7 +471,7 @@ export interface ExecuteTargetResult {
 export function useExecuteTarget() {
   const queryClient = useQueryClient();
 
-  return useMutation<ExecuteTargetResult, SourceApiError, { id: string; priority?: number }>({
+  return useMutation<ExecuteTargetResult, BaseApiError, { id: string; priority?: number }>({
     mutationFn: async ({ id, priority = 5 }) => {
       const response = await withApiError(
         apiPost<{
@@ -495,7 +480,7 @@ export function useExecuteTarget() {
           estimated_start_time?: string | null;
           queue_position?: number | null;
         }>('l1', `/targets/${id}/execute`, { priority }),
-        SourceApiError,
+        BaseApiError,
       );
       const d = response.data;
       return {
@@ -528,7 +513,7 @@ export interface ValidateTargetResult {
 export function useValidateTarget() {
   return useMutation<
     ValidateTargetResult,
-    SourceApiError,
+    BaseApiError,
     { id: string; testUrl?: string; testBrowserConnection?: boolean }
   >({
     mutationFn: async ({ id, testUrl, testBrowserConnection = false }) => {
@@ -550,7 +535,7 @@ export function useValidateTarget() {
             test_browser_connection: testBrowserConnection,
           },
         ),
-        SourceApiError,
+        BaseApiError,
       );
       const d = response.data;
       return {
@@ -574,7 +559,7 @@ export function useBatchTargetOperation() {
 
   return useMutation<
     BatchOperationResponse,
-    SourceApiError,
+    BaseApiError,
     { operation: BatchOperation; targetIds: string[] }
   >({
     mutationFn: async ({ operation, targetIds }) => {
@@ -586,7 +571,7 @@ export function useBatchTargetOperation() {
           failed: number;
           results: Array<{ id: string; status: string; job_id?: string | null; error?: string | null }>;
         }>('l1', '/targets/batch', { operation, target_ids: targetIds }),
-        SourceApiError,
+        BaseApiError,
       );
       const d = response.data;
       return {

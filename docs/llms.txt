@@ -1,0 +1,63 @@
+# Value Fabric
+
+> Value Fabric is a production-grade, multi-tenant enterprise agentic SaaS platform. It transforms unstructured enterprise data into structured, actionable knowledge through a six-layer, ontology-guided semantic pipeline. Autonomous AI agents reason over a knowledge graph to produce ROI analyses, business cases, and executive insights at scale with full auditability.
+
+## Important notes
+
+- This is a **contract-first, tenant-safe, layered, provider-agnostic** monorepo. Preserve API contracts, tenant isolation, and layer boundaries when making changes.
+- The repository is **pnpm-only** (pinned `pnpm@10.18.1`). Never use `npm install` or `yarn install`.
+- Backend services require **Python 3.11+**. The `Makefile` is the canonical build, test, migration, and release-gate interface.
+- Frontend changes (`apps/web/`) are governed by `DESIGN.md` — required reading before editing.
+- Tenant isolation, auth, RBAC, and governance middleware are first-class invariants and must never be weakened.
+
+## Architecture (six-layer pipeline)
+
+- Frontend: React / Vite / TanStack Query / Zustand / Tailwind / shadcn/ui
+- Layer 1 — Intelligent Data Ingestion (port 8001): Playwright crawling, Celery/Redis queues, PostgreSQL state, compliance-aware ingestion
+- Layer 2 — Ontology-Guided Extraction (port 8002): Pydantic v2 extraction, LLM extraction, RDF/OWL generation, provenance
+- Layer 3 — Knowledge Graph & Semantic Layer (port 8003): Neo4j, GraphRAG, hybrid retrieval, pgvector, subgraph APIs
+- Layer 4 — Agentic Workflow Engine (port 8004): LangGraph workflows, ROI calculator, business case generation, checkpoints
+- Layer 5 — Ground Truth (port 8005): TruthObject validation, maturity ladder, evidence-backed claims
+- Layer 6 — Benchmark Service (port 8006): peer comparison, statistical validation, datasets
+
+## Documentation
+
+- [README](../README.md): Project overview, architecture diagram, and quickstart
+- [Agent & contributor reference (AGENTS.md)](../AGENTS.md): Commands, directory map, architecture rules, and governance invariants
+- [System architecture](../ARCHITECTURE.md): High-level system architecture
+- [Frontend governance contract (DESIGN.md)](../DESIGN.md): Required reading before modifying `apps/web/`
+- [Platform contract](contract.md): Canonical platform contract (tenant context, middleware, agent output shape)
+- [Architecture overview](core-concepts/architecture.md): Layered architecture explanation
+- [Data model](data-model.md): Core data structures and entities
+- [API reference](API_REFERENCE.md): Public API surface
+- [Agent architecture](agent-architecture.md): Layer 4 agent design and orchestration
+- [Tenant isolation](tenant-isolation.md): Multi-tenant isolation rules and patterns
+- [Governance entry points](governance.md): Engineering governance overview
+
+## Development
+
+- [Build system](development/BUILD_SYSTEM.md): When to use `make`, `pnpm`, or direct Python CI runners
+- [Commands](development/COMMANDS.md): Complete map of root scripts and Makefile targets
+- [Discovery map](development/DISCOVERY_MAP.md): Routes issue types to source-of-truth files, drift checks, validation, and evidence
+- [Development guide](DEVELOPMENT.md): Local development workflow
+- [Environment variables](ENVIRONMENT.md): Required environment configuration
+- [Testing](reference/testing-strategy.md): Test strategy, markers, and behavior-first requirements
+- [Secrets management](secrets-management.md): Infisical-based secret handling
+
+## Contracts & governance
+
+- [API contract](api-contract.md): API contract definitions
+- [API versioning policy](api-versioning-policy.md): API version management
+- [API contract stability](api-contract-stability.md): Backward-compatibility rules
+- [Production readiness](../production-readiness/README.md): Production-readiness scorecard, launch checklist, and risk register
+- [Security](../SECURITY.md): Security policy, dev auth bypass flags, and OWASP coverage
+
+## Optional
+
+- [Roadmap](../ROADMAP.md): Planned features and direction
+- [Product brief](product-brief.md): Product positioning and goals
+- [Value packs](value-packs.md): Domain extension packs (ontologies, formulas, benchmarks)
+- [Pack authoring guide](pack_authoring_guide.md): How to build domain packs
+- [Providers](Providers.md): LLM provider adapter configuration
+- [Deployment](deployment/): Deployment manifests and runbooks
+- [Runbooks](runbooks/): Operational runbooks

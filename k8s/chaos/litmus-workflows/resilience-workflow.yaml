@@ -32,7 +32,7 @@ spec:
               parameters:
                 - name: experiment-name
                   value: pod-delete-all-layers
-            
+
           # Phase 2: Network Resilience
           - name: network-partition-test
             templateRef:
@@ -43,7 +43,7 @@ spec:
                 - name: experiment-name
                   value: network-partition-l3-l4
             dependencies: [pod-delete-test]
-            
+
           # Phase 3: Resource Stress
           - name: cpu-stress-test
             templateRef:
@@ -54,7 +54,7 @@ spec:
                 - name: experiment-name
                   value: cpu-stress-layer4-agents
             dependencies: [network-partition-test]
-            
+
           - name: memory-stress-test
             templateRef:
               name: chaos-experiment-runner
@@ -64,7 +64,7 @@ spec:
                 - name: experiment-name
                   value: memory-stress-layer2-extraction
             dependencies: [network-partition-test]
-            
+
           # Phase 4: Scaling Tests
           - name: autoscaler-test
             templateRef:
@@ -75,15 +75,15 @@ spec:
                 - name: experiment-name
                   value: pod-autoscaler-l1-ingestion
             dependencies: [cpu-stress-test, memory-stress-test]
-            
+
           # Phase 5: Generate Report
           - name: generate-report
             template: report-generation
             dependencies: [autoscaler-test]
-    
+
     - name: report-generation
       container:
-        image: bitnami/kubectl:latest
+        image: bitnami/kubectl:1.30.0
         command: ["/bin/bash", "-c"]
         args:
           - |
@@ -99,19 +99,19 @@ spec:
             echo "  - memory-stress-layer2-extraction"
             echo "  - pod-autoscaler-l1-ingestion"
             echo ""
-            
+
             # Get all chaos results
             kubectl get chaosresults -n value-fabric-prod -o yaml > /tmp/chaos-results.yaml
-            
+
             # Extract verdicts
             echo "Results Summary:"
             kubectl get chaosresults -n value-fabric-prod \
               -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.experimentStatus.verdict}{"\n"}{end}'
-            
+
             # Check for failures
             FAILURES=$(kubectl get chaosresults -n value-fabric-prod \
               -o jsonpath='{range .items[*]}{.status.experimentStatus.verdict}{"\n"}{end}' | grep -c "Fail" || true)
-            
+
             if [ "$FAILURES" -gt 0 ]; then
               echo ""
               echo "WARNING: $FAILURES experiments failed!"
@@ -124,7 +124,7 @@ spec:
         volumeMounts:
           - name: chaos-results
             mountPath: /tmp
-  
+
   # Pod disruption budget for workflow pods
   podDisruptionBudget:
     minAvailable: 1

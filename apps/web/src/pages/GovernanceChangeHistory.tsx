@@ -6,7 +6,26 @@ import {
   type TruthStatus,
 } from "@/hooks/useGroundTruthGovernance";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, LegacyDataTable } from "@/components/ui/fabric";
+import { PageHeader, DataTable } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { LoadingState, ErrorState } from "@/components/states";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const STATUS_OPTIONS: Array<{ value: TruthStatus | "all"; label: string }> = [
+  { value: "all", label: "All statuses" },
+  { value: "proposed", label: "Proposed" },
+  { value: "validated", label: "Validated" },
+  { value: "disputed", label: "Disputed" },
+  { value: "rejected", label: "Rejected" },
+  { value: "superseded", label: "Superseded" },
+  { value: "expired", label: "Expired" },
+];
 
 export default function GovernanceChangeHistory() {
   const [statusFilter, setStatusFilter] = useState<TruthStatus | "all">("all");
@@ -26,7 +45,7 @@ export default function GovernanceChangeHistory() {
   );
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <PageHeader
         breadcrumbs={[
           { label: "Governance Audit" },
@@ -37,50 +56,43 @@ export default function GovernanceChangeHistory() {
       />
 
       <SectionCard title="Selection" className="mb-5">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-[12px] text-neutral-700">
-            Truth status filter
-            <select
-              className="mt-1 block w-full rounded-md border border-neutral-300 bg-white px-2 py-1 text-[12px]"
-              value={statusFilter}
-              onChange={e =>
-                setStatusFilter(e.target.value as TruthStatus | "all")
-              }
-            >
-              <option value="all">All statuses</option>
-              <option value="proposed">proposed</option>
-              <option value="validated">validated</option>
-              <option value="disputed">disputed</option>
-              <option value="rejected">rejected</option>
-              <option value="superseded">superseded</option>
-              <option value="expired">expired</option>
-            </select>
-          </label>
-          <label className="text-[12px] text-neutral-700">
-            Truth object
-            <select
-              className="mt-1 block w-full rounded-md border border-neutral-300 bg-white px-2 py-1 text-[12px]"
-              value={selectedTruthId}
-              onChange={e => setSelectedTruthId(e.target.value)}
-            >
-              <option value="">Select a truth object…</option>
-              {(truthData?.items ?? []).map(truth => (
-                <option key={truth.id} value={truth.id}>
-                  {truth.id.slice(0, 10)} — {truth.claim.slice(0, 60)}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="grid gap-3 md:grid-cols-2 vf-text-body-s">
+          <div className="space-y-1.5">
+            <label className="font-medium text-foreground">Truth status filter</label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TruthStatus | "all")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="font-medium text-foreground">Truth object</label>
+            <Select value={selectedTruthId} onValueChange={setSelectedTruthId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a truth object…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(truthData?.items ?? []).map(truth => (
+                  <SelectItem key={truth.id} value={truth.id}>
+                    {truth.id.slice(0, 10)} — {truth.claim.slice(0, 60)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </SectionCard>
 
       <SectionCard title="State Transition Timeline" noPad>
         {isLoadingTruths || (selectedTruthId && isLoadingTrail) ? (
-          <div className="flex items-center gap-2 p-4 text-[12px] text-neutral-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading change history…
-          </div>
+          <LoadingState message="Loading change history…" className="py-4" />
         ) : (
-          <LegacyDataTable
+          <DataTable
             columns={[
               "From Status",
               "To Status",
@@ -96,10 +108,10 @@ export default function GovernanceChangeHistory() {
               </span>,
               <span key="from-maturity">{event.from_maturity ?? "—"}</span>,
               <span key="to-maturity">{event.to_maturity}</span>,
-              <span key="notes" className="text-[11px] text-neutral-600">
+              <span key="notes" className="vf-text-caption text-muted-foreground">
                 {event.notes ?? "—"}
               </span>,
-              <span key="created" className="text-[11px] text-neutral-500">
+              <span key="created" className="vf-text-caption text-muted-foreground">
                 {new Date(event.created_at).toLocaleString()}
               </span>,
             ])}
@@ -111,6 +123,6 @@ export default function GovernanceChangeHistory() {
           />
         )}
       </SectionCard>
-    </div>
+    </PageShell>
   );
 }

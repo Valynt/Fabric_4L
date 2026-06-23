@@ -1,22 +1,24 @@
-"""Allowed service-local exception for Layer 3 service wrapper.
-
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Calculator API routes for Layer 3 Knowledge Graph.
-
-Provides endpoints for value lever configuration and value case persistence.
-"""
-
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
-
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 
+"""Calculator API routes for Layer 3 Knowledge Graph.
+
+Provides endpoints for value lever configuration and value case persistence.
+Owner: layer3-knowledge
+Removal/migration target: 2026-09-30
+"""
+
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/calculators", tags=["calculators"])
 
 
@@ -69,14 +71,13 @@ class ValueCaseResponse(BaseModel):
 async def get_value_levers(
     request: LeverConfigRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Get value lever configuration for value calculations.
-    
+
     Returns tenant-scoped lever configurations filtered by industry/company size.
     """
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         # Query for value levers in Neo4j
@@ -124,18 +125,17 @@ async def get_value_levers(
             )
         except Exception as e:
             logger.error("Database error in levers query: %s", e)
-            raise HTTPException(status_code=500, detail="Database error")
+            raise ServiceUnavailableError(message="Database error")
 
 
 @router.post("/value-cases", response_model=ValueCaseResponse, status_code=201)
 async def create_value_case(
     case_data: ValueCaseRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Create a new value case with scenarios and calculations."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = context.tenant_id
     
     case_id = f"case_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
     
@@ -179,18 +179,17 @@ async def create_value_case(
             )
         except Exception as e:
             logger.error("Database error creating value case: %s", e)
-            raise HTTPException(status_code=500, detail="Database error")
+            raise ServiceUnavailableError(message="Database error")
 
 
 @router.get("/value-cases/{case_id}", response_model=ValueCaseResponse)
 async def get_value_case(
     case_id: str,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Get a value case by ID."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         query = """
@@ -203,7 +202,7 @@ async def get_value_case(
         try:
             result = await neo4j.execute_query(query, params)
             if not result or not result[0]:
-                raise HTTPException(status_code=404, detail=f"Value case {case_id} not found")
+                raise NotFoundError(message = str(f"Value case {case_id} not found"))
             
             node = result[0].get("vc")
             
@@ -220,7 +219,7 @@ async def get_value_case(
             raise
         except Exception as e:
             logger.error("Database error retrieving value case %s: %s", case_id, e)
-            raise HTTPException(status_code=500, detail="Database error")
+            raise ServiceUnavailableError(message="Database error")
 
 
 @router.put("/value-cases/{case_id}", response_model=ValueCaseResponse)
@@ -228,11 +227,10 @@ async def update_value_case(
     case_id: str,
     case_data: ValueCaseRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Update an existing value case."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         query = """
@@ -255,7 +253,7 @@ async def update_value_case(
         try:
             result = await neo4j.execute_query(query, params)
             if not result or not result[0]:
-                raise HTTPException(status_code=404, detail=f"Value case {case_id} not found")
+                raise NotFoundError(message = str(f"Value case {case_id} not found"))
             
             node = result[0].get("vc")
             
@@ -272,4 +270,4 @@ async def update_value_case(
             raise
         except Exception as e:
             logger.error("Database error updating value case %s: %s", case_id, e)
-            raise HTTPException(status_code=500, detail="Database error")
+            raise ServiceUnavailableError(message="Database error")

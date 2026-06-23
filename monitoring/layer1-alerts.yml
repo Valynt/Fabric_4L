@@ -1,0 +1,118 @@
+# Layer 1 Ingestion Service — Prometheus Alerting Rules
+#
+# Runbook: docs/runbooks/layer1-alerts.md
+
+groups:
+  - name: layer1_security_hardening
+    interval: 30s
+    rules:
+      - alert: Layer1PrivilegedBypassHigh
+        expr: rate(layer1_privileged_db_session_activations_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 privileged database session activations elevated"
+          description: "Rate of require_tenant=False activations exceeds 0.1 per minute. Review allowlist and security posture."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/abuse-emergency-controls.md"
+
+      - alert: Layer1MaintenanceEnumerationHigh
+        expr: rate(layer1_maintenance_tenant_enumerations_total[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 maintenance tenant enumeration rate elevated"
+          description: "System maintenance tenant enumeration rate exceeds 0.5 per minute. May indicate abuse or misconfiguration."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/abuse-emergency-controls.md"
+
+  - name: layer1_strict_robots_compliance
+    interval: 30s
+    rules:
+      - alert: Layer1StrictRobotsBlocksHigh
+        expr: rate(layer1_strict_robots_blocks_total[5m]) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 strict robots mode blocks elevated"
+          description: "Strict robots mode block rate exceeds 1.0 per minute. Review domains and compliance policy."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+
+      - alert: Layer1StrictRobotsFetchErrorsHigh
+        expr: rate(layer1_strict_robots_blocks_total{reason="fetch_error"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 strict robots fetch errors elevated"
+          description: "Strict robots mode fetch error rate exceeds 0.5 per minute. May indicate network issues or hostile domains."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+
+  - name: layer1_pipeline_health
+    interval: 30s
+    rules:
+      - alert: Layer1StuckJobs
+        expr: layer1_stuck_jobs > 0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 has stuck jobs"
+          description: "Jobs have been in non-terminal states (VALIDATING, BROWSER_ACQUIRING, NAVIGATING, EXTRACTING) for longer than threshold."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+
+      - alert: Layer1RetryEventsHigh
+        expr: rate(layer1_retry_events_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 retry events elevated"
+          description: "Celery retry event rate exceeds 0.5 per minute. May indicate transient failures or resource exhaustion."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+
+      - alert: Layer1URLsBlockedHigh
+        expr: rate(layer1_urls_blocked_total[5m]) > 1.0
+        for: 5m
+        labels:
+          severity: info
+          team: platform
+        annotations:
+          summary: "Layer 1 URL blocks elevated"
+          description: "URL block rate exceeds 1.0 per minute. Review compliance policy and domain allowlist."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/abuse-emergency-controls.md"
+
+  - name: layer1_component_health
+    interval: 30s
+    rules:
+      - alert: Layer1ComponentUnhealthy
+        expr: layer1_health_status == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Layer 1 component unhealthy"
+          description: "Layer 1 component (api, database, or redis) health status is unhealthy."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
+
+  - name: layer1_idempotency
+    interval: 30s
+    rules:
+      - alert: Layer1IdempotencyMissRateHigh
+        expr: rate(layer1_idempotency_key_misses_total[5m]) / (rate(layer1_idempotency_key_hits_total[5m]) + rate(layer1_idempotency_key_misses_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 idempotency key miss rate elevated"
+          description: "Idempotency key cache miss rate exceeds 50%. May indicate TTL too short or client misuse."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"

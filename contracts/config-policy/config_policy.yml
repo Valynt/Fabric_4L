@@ -1,3 +1,6 @@
+schema_version: "1.0.0"
+policy_version: "2026-06-04"
+
 scan_paths:
   - "docker-compose*.yml"
   - "k8s/**/*.yml"
@@ -13,11 +16,12 @@ required_scope_markers:
   - "env.environment === 'development'"
 
 rules:
-  - flag: "ALLOW_INSECURE_DEV_AUTH_BYPASS"
-    dev_only_allowlist:
-      - "docker-compose.dev.yml"
-      - "docker-compose.e2e.yml"
-      - "docker-compose.release-smoke.yml"
+  - flag: "DEV_AUTH_BYPASS"
+    dev_only_allowlist: []
+  - flag: "ALLOW_DEV_AUTH_BYPASS"
+    dev_only_allowlist: []
+  - flag: "AUTH_BYPASS_ENABLED"
+    dev_only_allowlist: []
   - flag: "JWT_FALLBACK_TO_QUERY_PARAM"
     dev_only_allowlist:
       - "docker-compose.dev.yml"
@@ -25,7 +29,17 @@ rules:
       - "docker-compose.release-smoke.yml"
 
 scoped_allowances:
-  - flag: "ALLOW_INSECURE_DEV_AUTH_BYPASS"
+  - flag: "DEV_AUTH_BYPASS"
+    paths:
+      - "services/**/src/**/*config.py"
+      - "services/**/src/**/*settings.py"
+      - "packages/config/src/env/*.ts"
+  - flag: "ALLOW_DEV_AUTH_BYPASS"
+    paths:
+      - "services/**/src/**/*config.py"
+      - "services/**/src/**/*settings.py"
+      - "packages/config/src/env/*.ts"
+  - flag: "AUTH_BYPASS_ENABLED"
     paths:
       - "services/**/src/**/*config.py"
       - "services/**/src/**/*settings.py"

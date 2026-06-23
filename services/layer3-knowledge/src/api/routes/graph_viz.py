@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Graph visualisation domain router — full graph, entity subgraph, query subgraph.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -5,7 +13,6 @@ All Cypher queries are tenant-scoped; tenant_id is required and extracted
 from the authenticated request context (fail-closed on missing context).
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging
@@ -34,6 +41,7 @@ from ...db.query_execution import (
     QUERY_TIMEOUT_SECONDS,
     CypherDepthLimitExceeded,
 )
+from ...graph.query_guards import sanitize_query_depth, sanitize_query_timeout_seconds
 
 try:
     from ...metrics.prometheus_metrics import get_metrics
@@ -90,7 +98,7 @@ async def get_full_graph(
     """Return the complete knowledge graph for visualisation (tenant-scoped)."""
     neo4j = app_state.neo4j_driver
     if not neo4j:
-        raise HTTPException(status_code=503, detail="Neo4j not available")
+        raise ServiceUnavailableError(message = "Neo4j not available")
 
     nodes: list[GraphNode | GraphNodeWithLayout] = []
 
@@ -106,7 +114,7 @@ async def get_full_graph(
                 """,
                 {"tenant_id": tenant_id, "limit": limit},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         node_ids: set[str] = set()
         node_types: dict[str, int] = {}
@@ -139,7 +147,7 @@ async def get_full_graph(
                 """,
                 {"tenant_id": tenant_id, "node_ids": list(node_ids)},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         edges = []
@@ -163,14 +171,14 @@ async def get_full_graph(
                 "MATCH (n {tenant_id: $tenant_id}) RETURN count(n) as total",
                 {"tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         total_edges_result = await asyncio.wait_for(
             neo4j.execute_query(
                 "MATCH (:Entity {tenant_id: $tenant_id})-[r]->(:Entity {tenant_id: $tenant_id}) RETURN count(r) as total",
                 {"tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0  # type: ignore[index]
@@ -196,18 +204,13 @@ async def get_full_graph(
             ),
         )
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except TimeoutError:
-        raise HTTPException(
-            status_code=400,
-            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
-        )
+        raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve graph: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve graph"
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve graph")
     finally:
         metrics = get_metrics() if get_metrics else None
         if metrics:
@@ -226,7 +229,9 @@ async def get_entity_subgraph(
     """Return a subgraph centred on the specified entity (tenant-scoped)."""
     neo4j = app_state.neo4j_driver
     if not neo4j:
-        raise HTTPException(status_code=503, detail="Neo4j not available")
+        raise ServiceUnavailableError(message = "Neo4j not available")
+
+    depth = sanitize_query_depth(depth, default_depth=2)
 
     try:
         root_result = await asyncio.wait_for(
@@ -237,10 +242,10 @@ async def get_entity_subgraph(
                 """,
                 {"entity_id": entity_id, "tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         if not root_result:
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
 
         root_record: dict[str, Any] = root_result[0]  # type: ignore[index]
 
@@ -253,7 +258,7 @@ async def get_entity_subgraph(
                 """,
                 {"entity_id": entity_id, "depth": depth, "tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         nodes_map: dict[str, GraphNode | GraphNodeWithLayout] = {}
@@ -332,24 +337,16 @@ async def get_entity_subgraph(
 
         return response
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded for %s: %s", entity_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
-        ) from exc
+        raise ValidationError(message = "Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)") from exc
     except TimeoutError:
-        raise HTTPException(
-            status_code=400,
-            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
-        )
+        raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve subgraph"
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve subgraph")
 
 
 _VALID_REL_TYPE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
@@ -376,14 +373,11 @@ async def get_query_subgraph(
     **Centre mode**: provide ``center_entity_id`` to expand N hops from that node.
     """
     if not query and not center_entity_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Either 'query' or 'center_entity_id' parameter is required",
-        )
+        raise ValidationError(message = "Either 'query' or 'center_entity_id' parameter is required")
 
     neo4j = app_state.neo4j_driver
     if not neo4j:
-        raise HTTPException(status_code=503, detail="Neo4j not available")
+        raise ServiceUnavailableError(message = "Neo4j not available")
 
     nodes: list[GraphNode | GraphNodeWithLayout] = []
     edges: list[GraphEdge] = []
@@ -396,12 +390,10 @@ async def get_query_subgraph(
                     "MATCH (root {id: $entity_id, tenant_id: $tenant_id}) RETURN root",
                     {"entity_id": center_entity_id, "tenant_id": tenant_id},
                 ),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
             if not root_result:
-                raise HTTPException(
-                    status_code=404, detail=f"Entity {center_entity_id} not found"
-                )
+                raise NotFoundError(message = str(f"Entity {center_entity_id} not found"))
 
             # Build query params; depth and rel_types are always parameterised
             # to prevent Cypher injection regardless of upstream validation.
@@ -416,10 +408,7 @@ async def get_query_subgraph(
             if relationship_types:
                 validated = [r for r in relationship_types if _VALID_REL_TYPE.match(r)]
                 if not validated:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="No valid relationship types provided",
-                    )
+                    raise ValidationError(message = "No valid relationship types provided")
                 rel_filter = (
                     "AND ALL(r IN relationships(path) WHERE type(r) IN $rel_types)"
                 )
@@ -436,7 +425,7 @@ async def get_query_subgraph(
             """
             result = await asyncio.wait_for(
                 neo4j.execute_query(subgraph_query, query_params),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
 
             if result:
@@ -525,7 +514,7 @@ async def get_query_subgraph(
                     """,
                     {"seed_ids": seed_ids[:20], "tenant_id": tenant_id},
                 ),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
 
             node_ids: set[str] = set()
@@ -598,21 +587,13 @@ async def get_query_subgraph(
 
         return response
 
-    except HTTPException:
+    except (HTTPException, NotFoundError, ValidationError, ServiceUnavailableError):
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
-        ) from exc
+        raise ValidationError(message = "Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)") from exc
     except TimeoutError:
-        raise HTTPException(
-            status_code=400,
-            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
-        )
+        raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve subgraph: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve subgraph"
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve subgraph")

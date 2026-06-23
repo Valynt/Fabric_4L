@@ -18,19 +18,19 @@ const statusConfig: Record<
   succeeded: {
     label: 'Succeeded',
     variant: 'default',
-    className: 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200',
+    className: 'bg-success/10 text-success hover:bg-success/10 border-success/20',
     icon: CheckCircle,
   },
   pending: {
     label: 'Pending',
     variant: 'default',
-    className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200',
+    className: 'bg-warning/10 text-warning hover:bg-warning/10 border-warning/20',
     icon: Clock,
   },
   failed: {
     label: 'Failed',
     variant: 'destructive',
-    className: 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200',
+    className: 'bg-destructive/10 text-destructive hover:bg-destructive/10 border-destructive/20',
     icon: XCircle,
   },
 };

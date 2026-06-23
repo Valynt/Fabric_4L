@@ -1,3 +1,5 @@
+from value_fabric.shared.error_handling.exceptions import ValidationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -5,18 +7,17 @@ Removal/migration target: 2026-09-30
 Reason: API versioning and backward compatibility utilities.
 """
 
-import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from enum import Enum
 from typing import Any, Union
 
-from fastapi import HTTPException, Request, Response
-from fastapi.routing import APIRoute
+from fastapi import Request
 from pydantic import BaseModel, Field
+from value_fabric.shared.probes import normalize_probe_response
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -333,7 +334,7 @@ class VersionCompatibility:
         key = f"{version}:{endpoint}"
         self.response_transformers[key] = transformer
 
-    def migrate_request_data(
+    async def migrate_request_data(
         self, data: dict[str, Any], from_version: str, to_version: str
     ) -> dict[str, Any]:
         """Migrate request data from one version to another.
@@ -366,15 +367,8 @@ class VersionCompatibility:
             try:
                 handler_result = handler(result)
                 if inspect.isawaitable(handler_result):
-                    try:
-                        asyncio.get_running_loop()
-                    except RuntimeError:
-                        result = asyncio.run(handler_result)
-                    else:
-                        raise RuntimeError(
-                            "Async migration handlers are registered; call "
-                            "'await migrate_request_data_async(...)' in async contexts."
-                        )
+                    # Always await in async context (FastAPI handler)
+                    result = await handler_result
                 else:
                     result = handler_result
             except Exception as e:
@@ -464,60 +458,6 @@ class VersionCompatibility:
         )
 
 
-class VersionedAPIRoute(APIRoute):
-    """Custom API route that handles versioning."""
-
-    def __init__(
-        self,
-        *args,
-        version: str = "v1",
-        deprecated: DeprecationInfo | None = None,
-        **kwargs,
-    ):
-        """Initialize versioned API route.
-
-        Args:
-            *args: Route arguments
-            version: API version
-            deprecated: Deprecation information
-            **kwargs: Additional route arguments
-        """
-        self.version = version
-        self.deprecated = deprecated
-        super().__init__(*args, **kwargs)
-
-    def get_route_handler(self, call_next: Callable):
-        """Get route handler with versioning support."""
-        original_handler = super().get_route_handler(call_next)
-
-        async def versioned_handler(request: Request) -> Response:
-            # Add version information to request state
-            request.state.api_version = self.version
-            request.state.deprecated = self.deprecated
-
-            # Call original handler
-            response = await original_handler(request)
-
-            # Add version headers
-            response.headers["X-API-Version"] = self.version
-            response.headers["X-Supported-Versions"] = ",".join(
-                request.app.state.version_compatibility.supported_versions
-            )
-
-            # Add deprecation headers if applicable
-            if self.deprecated:
-                response.headers["X-Deprecated"] = "true"
-                response.headers["X-Deprecation-Message"] = self.deprecated.message
-                if self.deprecated.removal_version:
-                    response.headers["X-Removal-Version"] = (
-                        self.deprecated.removal_version
-                    )
-
-            return response
-
-        return versioned_handler
-
-
 def versioned_route(
     version: str = "v1",
     deprecated_since: str | None = None,
@@ -574,15 +514,12 @@ class VersionMiddleware:
 
         # Validate version
         if not self.compatibility.is_version_supported(api_version):
-            raise HTTPException(
-                status_code=400,
-                detail={
+            raise ValidationError(message = "Request failed", details = {
                     "error": "UNSUPPORTED_VERSION",
                     "message": f"API version '{api_version}' is not supported",
                     "supported_versions": self.compatibility.supported_versions,
                     "latest_version": self.compatibility.get_latest_version(),
-                },
-            )
+                })
 
         # Add version to request state
         request.state.api_version = api_version
@@ -693,12 +630,6 @@ def transform_v1_search_response(data: dict[str, Any]) -> dict[str, Any]:
 
 def transform_v1_health_response(data: dict[str, Any]) -> dict[str, Any]:
     """Transform health response for v1 compatibility."""
-    transformed = data.copy()
-
-    # Example: ensure old status field format
-    if "status" in transformed:
-        # v1 expected "healthy" as boolean, v2 has string
-        if isinstance(transformed["status"], str):
-            transformed["healthy"] = transformed["status"] == "healthy"
-
+    transformed = normalize_probe_response(data, default_service="layer3-knowledge")
+    transformed["healthy"] = transformed["readiness"]["is_ready"]
     return transformed

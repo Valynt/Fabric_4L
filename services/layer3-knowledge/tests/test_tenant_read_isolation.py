@@ -7,7 +7,7 @@ and prevent cross-tenant data leakage.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from value_fabric.layer3.db.tenant_queries import (
+from src.db.tenant_queries import (
     get_entity_by_id,
     get_relationships_for_entity,
     search_entities,

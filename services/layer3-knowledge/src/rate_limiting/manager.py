@@ -13,7 +13,7 @@ import redis.asyncio as redis
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ..rate_limiting.types import (
+from .types import (
     BucketState,
     LeakyBucketState,
     MetricsMap,

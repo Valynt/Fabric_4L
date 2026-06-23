@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 """Unit tests for workflow API routes.
 
 Validates request/response models and route behavior to prevent
 frontend-backend contract drift.
 """
 
-from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer4.api.routes.workflows import (
+from layer4_agents.api.routes.workflows import (
     ESTIMATED_DURATION_SECONDS,
     TERMINAL_STATUSES,
     PAUSABLE_STATUSES,
@@ -77,7 +78,7 @@ class TestWorkflowStatusResponse:
         assert resp.progress == 45.0
 
     def test_status_response_with_progress(self):
-        from value_fabric.layer4.api.schemas.workflow_progress import WorkflowProgressSchema
+        from layer4_agents.api.schemas.workflow_progress import WorkflowProgressSchema
 
         progress_meta = WorkflowProgressSchema(
             step_id="node-1",

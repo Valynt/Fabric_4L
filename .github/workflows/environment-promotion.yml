@@ -2,17 +2,14 @@
 # Automated Dev -> Staging -> Prod promotion with approval gates
 # Triggers on successful builds to main branch
 #
-# OPERATIONAL GAP — ArgoCD not installed:
-# ArgoCD Application resources are defined in k8s/gitops/argocd-applications.yaml and
-# Argo Rollouts canary manifests exist in k8s/gitops/rollouts/ for L1 and L4, but there
-# is no ArgoCD installation manifest in this repository and no argocd namespace setup.
-# Until ArgoCD is operationally installed, the deploy-dev job commits kustomization changes
-# to Git and relies on manual kubectl apply or an external GitOps operator.
-# The "Trigger ArgoCD sync" steps are no-ops until ArgoCD is wired in.
-# Tracking issue: create an issue to install ArgoCD and wire the sync steps.
+# OPERATIONAL STATUS — ArgoCD manifests present, cluster sync unverified:
+# ArgoCD bootstrap and Application resources are defined in k8s/gitops/.
+# This workflow commits kustomization changes for GitOps reconciliation; the
+# sync/wait steps remain evidence markers unless a real ArgoCD cluster/app
+# status check is available in the target environment.
 name: Environment Promotion
 
-on:
+"on":
   workflow_run:
     workflows: ["Build & Deploy"]
     types:
@@ -22,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment for manual promotion'
+        description: "Target environment for manual promotion"
         required: true
         type: choice
         options:
@@ -30,14 +27,14 @@ on:
           - staging
           - production
       image_ref:
-        description: 'Image digest or immutable tag to promote (e.g., sha-abc123)'
+        description: "Image digest or immutable tag to promote (e.g., sha-abc123)"
         required: true
         type: string
 
 permissions:
   contents: write
   pull-requests: write
-  id-token: write  # For OIDC with ArgoCD
+  id-token: write # For OIDC with ArgoCD
   actions: read
   packages: read
 
@@ -60,7 +57,7 @@ jobs:
     steps:
       - name: Download build metadata artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: build-metadata-*
           path: artifacts/build-metadata
@@ -77,7 +74,10 @@ jobs:
             echo "Promoting manually to ${{ github.event.inputs.environment }}"
           else
             test -d artifacts/build-metadata
-            python3 scripts/ci/validate_promotion_artifact_contract.py               --build-workflow .github/workflows/build-deploy.yml               --promotion-workflow .github/workflows/environment-promotion.yml               --metadata-dir artifacts/build-metadata
+            python3 scripts/ci/validate_promotion_artifact_contract.py \
+              --build-workflow .github/workflows/build-deploy.yml \
+              --promotion-workflow .github/workflows/environment-promotion.yml \
+              --metadata-dir artifacts/build-metadata
             first_file=$(find artifacts/build-metadata -name '*.json' | sort | head -n1)
             ref=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("published_ref",""))' "$first_file")
             if [ -z "$ref" ]; then
@@ -120,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
-          required_checks=("PR Checks" "Security Gates" "Smoke Gate")
+          required_checks=("Unified Readiness Gate" "Security Gates" "Smoke Gate")
           can_promote=true
 
           for check in "${required_checks[@]}"; do
@@ -160,10 +160,10 @@ jobs:
       url: https://dev.fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup kustomize
-        uses: imranismail/setup-kustomize@v2
+        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
         with:
           kustomize-version: "5.4.3"
 
@@ -215,10 +215,10 @@ jobs:
           timeout=300
           interval=10
           elapsed=0
-          
+
           while [ $elapsed -lt $timeout ]; do
             all_healthy=true
-            
+
             for port in 8001 8002 8003 8004 8005 8006; do
               # Check health endpoint for each layer
               if ! curl -sf --max-time 5 https://dev.fabric.internal:$port/health > /dev/null 2>&1; then
@@ -228,17 +228,17 @@ jobs:
                 echo "✅ Layer on port $port healthy"
               fi
             done
-            
+
             if [ "$all_healthy" = true ]; then
               echo "✅ All Dev services healthy"
               exit 0
             fi
-            
+
             sleep $interval
             elapsed=$((elapsed + interval))
             echo "Waiting for Dev services... (${elapsed}s/${timeout}s)"
           done
-          
+
           echo "⚠️ Health check timeout - manual verification required"
           exit 0  # Non-blocking for Dev
 
@@ -251,7 +251,7 @@ jobs:
     needs: [validate-build, deploy-dev]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
 
@@ -259,7 +259,7 @@ jobs:
         run: |
           branch_name="promote/staging-${{ needs.validate-build.outputs.image_ref }}"
           git checkout -b "$branch_name"
-          
+
           # Update Staging overlay with new image digests
           # The staging env uses kustomization.yaml with SHA digest images
           kustomization_file="k8s/envs/staging/kustomization.yaml"
@@ -289,7 +289,7 @@ jobs:
           echo "branch_name=promote/staging-${{ needs.validate-build.outputs.image_ref }}" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const body = [
@@ -323,7 +323,7 @@ jobs:
               base: 'main',
               body,
             });
-            
+
             // Request reviews from QA team
             await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
@@ -331,7 +331,7 @@ jobs:
               pull_number: pr.number,
               team_reviewers: ['qa-team']
             });
-            
+
             console.log(`Created PR #${pr.number}: ${pr.html_url}`);
 
   # ============================================================================
@@ -355,27 +355,27 @@ jobs:
           timeout=600  # 10 minutes for staging
           interval=15
           elapsed=0
-          
+
           while [ $elapsed -lt $timeout ]; do
             all_healthy=true
-            
+
             for port in 8001 8002 8003 8004 8005 8006; do
               # In real implementation:
               # response=$(curl -sf https://staging.fabric.internal:$port/health)
               # if [ $? -ne 0 ]; then all_healthy=false; fi
               echo "Checking layer on port $port..."
             done
-            
+
             if [ "$all_healthy" = true ]; then
               echo "✅ All Staging services healthy"
               exit 0
             fi
-            
+
             sleep $interval
             elapsed=$((elapsed + interval))
             echo "Waiting for Staging services... (${elapsed}s/${timeout}s)"
           done
-          
+
           echo "❌ Staging health check timeout - deployment may be unhealthy"
           exit 1  # Blocking for Staging
 
@@ -386,12 +386,12 @@ jobs:
           # This validates the full stack before production promotion
 
       - name: Create Production Promotion PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             // Only create prod PR if staging tests pass
             const branch_name = `promote/prod-${process.env.IMAGE_REF}`;
-            
+
             // Create branch with prod overlay updates
             // Similar to staging PR creation
             console.log("Creating Production promotion PR...");
@@ -408,7 +408,7 @@ jobs:
       url: https://fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Block placeholder image digests (prod)
         run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
@@ -422,24 +422,22 @@ jobs:
           echo ""
           echo "Proceeding with production deployment..."
 
-      - name: Wait for ArgoCD sync with canary analysis
+      - name: Install Argo Rollouts kubectl plugin
         run: |
-          echo "Waiting for ArgoCD Rollouts canary analysis..."
-          # Argo Rollouts will handle canary progression:
-          # 10% -> analysis -> 50% -> analysis -> 100%
-          
-          # Poll Rollout status
-          timeout=1800  # 30 minutes for canary
-          elapsed=0
-          
-          while [ $elapsed -lt $timeout ]; do
-            # Check Argo Rollouts status
-            # kubectl argo rollouts get rollout <rollout-name> -n prod
-            
-            echo "Canary analysis in progress... (${elapsed}s/${timeout}s)"
-            sleep 30
-            elapsed=$((elapsed + 30))
-          done
+          curl -sSL https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 -o /tmp/kubectl-argo-rollouts
+          chmod +x /tmp/kubectl-argo-rollouts
+          sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
+          kubectl-argo-rollouts version
+
+      - name: Run canary analysis
+        env:
+          PROMETHEUS_URL: ${{ env.PROMETHEUS_URL }}
+        run: |
+          python scripts/ci/canary_analysis.py \
+            --namespace prod \
+            --rollouts layer1-ingestion,layer2-extraction,layer3-knowledge,layer4-agents,layer5-ground-truth,layer6-benchmarks,frontend \
+            --timeout-seconds 1800 \
+            --poll-interval-seconds 30
 
       - name: Verify production health
         run: |
@@ -449,29 +447,20 @@ jobs:
           echo "  - https://grafana.fabric.internal/d/production"
           echo "  - https://prometheus.fabric.internal"
 
-      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
         id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
           method: oidc
           env-slug: prod
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /monitoring
-        continue-on-error: true
-
-      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
-      - name: Fallback to GitHub Secrets
-        if: steps.infisical.outcome == 'failure'
-        run: |
-          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
-          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> "$GITHUB_ENV"
 
       - name: Notify on deployment success
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3 # v1
         if: success()
         with:
           payload: |
@@ -522,7 +511,7 @@ jobs:
           # 4. Alert on-call engineer
 
       - name: Create rollback PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             // Create emergency rollback PR

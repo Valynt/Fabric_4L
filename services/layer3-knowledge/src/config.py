@@ -1,9 +1,6 @@
-"""Allowed service-local exception for Layer 3 service wrapper.
+"""Re-export shim for the config package.
 
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Service-wrapper-only logic permitted by runtime path governance.
+Note: Python's import system prefers the config/ package over this module.
+This file is present for historical compatibility but is never imported.
+All code using ``from config import Settings`` resolves to config/__init__.py.
 """
-
-
-from value_fabric.layer3.config import *  # noqa: F401,F403

@@ -41,16 +41,16 @@ export function CapabilityGate({
   if (decision.allowed) return <>{children}</>;
 
   return (
-    <section className={cn("rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950", className)}>
+    <section className={cn("rounded-lg border border-warning/20 bg-warning/10 p-5 dark:border-warning/30 dark:bg-warning/20", className)}>
       <div className="flex items-start gap-3">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning dark:text-warning" />
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">{fallbackTitle}</h3>
-          <p className="text-xs text-amber-800 dark:text-amber-200">{fallbackDescription}</p>
-          <ul className="mt-1 list-disc pl-4 text-xs text-amber-800 dark:text-amber-200">
+          <h3 className="text-sm font-semibold text-warning dark:text-warning">{fallbackTitle}</h3>
+          <p className="text-xs text-warning dark:text-warning">{fallbackDescription}</p>
+          <ul className="mt-1 list-disc pl-4 text-xs text-warning dark:text-warning">
             {decision.reasons.map((reason) => <li key={reason}>{describeDenialReason(reason)}</li>)}
           </ul>
-          <p className="text-[11px] uppercase tracking-wide text-amber-700/80 dark:text-amber-300/80">
+          <p className="vf-text-caption uppercase tracking-wide text-warning/80 dark:text-warning/80">
             Current role: {role.replace("_", " ")}
           </p>
         </div>

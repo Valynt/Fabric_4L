@@ -24,8 +24,8 @@ import pytest
 # Lazy import fixtures to avoid import errors at collection time
 def _get_knowledge_tools():
     """Import knowledge tools via canonical package imports."""
-    from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool, SemanticSearchTool
-    from value_fabric.layer4.models.tool_schemas import QueryGraphInput, SemanticSearchInput
+    from layer4_agents.tools.knowledge_tools import QueryGraphTool, SemanticSearchTool
+    from layer4_agents.models.tool_schemas import QueryGraphInput, SemanticSearchInput
     
     return QueryGraphTool, SemanticSearchTool, QueryGraphInput, SemanticSearchInput
 
@@ -48,7 +48,7 @@ def mock_tenant_context(monkeypatch):
     mock_ctx.assert_valid = MagicMock()
     
     # Patch get_current_tenant_context to return our mock
-    with patch("value_fabric.layer4.shared.domain.context.get_current_tenant_context") as mock_get_ctx:
+    with patch("layer4_agents.shared.domain.context.get_current_tenant_context") as mock_get_ctx:
         mock_get_ctx.return_value = mock_ctx
         yield mock_ctx
 
@@ -173,13 +173,54 @@ class TestQueryGraphToolTenantEnforcement:
         
         # Verify the actual tenant_id in the executed query
         call_args = mock_neo4j_session.run.call_args
-        actual_params = call_args[1].get("parameters", {}) if len(call_args) > 1 else {}
-        
+        actual_params = call_args.kwargs.get("parameters") or call_args.args[1]
+
         # The tool should override spoofed tenant_id with context tenant_id
-        assert actual_params.get("tenant_id") != str(TENANT_B_ID), (
+        assert actual_params.get("tenant_id") == str(TENANT_A_ID), (
             "Tool must reject tenant_id spoofing in query parameters. "
             "Input attempted Tenant B but Tenant A context should override."
         )
+
+    @pytest.mark.asyncio
+    async def test_query_graph_rejects_input_tenant_without_context(self, mock_neo4j_session):
+        """NEGATIVE: Raw input tenant_id is not an approved execution context."""
+        QueryGraphTool, _, QueryGraphInput, _ = _get_knowledge_tools()
+
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+        mock_driver = MagicMock()
+        mock_driver.session = MagicMock(return_value=mock_neo4j_session)
+        tool._driver = mock_driver
+
+        result = await tool.execute(
+            QueryGraphInput(
+                cypher_query="MATCH (n:Account) RETURN n LIMIT 10",
+                parameters={},
+                tenant_id=str(TENANT_A_ID),
+            )
+        )
+
+        assert result.error is not None
+        assert "tenant context required" in result.error.lower()
+        mock_neo4j_session.run.assert_not_called()
+
+    def test_tenant_filter_detects_path_alias_node_alias(self):
+        QueryGraphTool, _, _, _ = _get_knowledge_tools()
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+
+        scoped_query, alias = tool._inject_tenant_filter(
+            "MATCH path = (start:Account)-[:OWNS]->(child:UseCase) RETURN path",
+            TENANT_A_ID,
+        )
+
+        assert alias == "start"
+        assert "WHERE start.tenant_id = $tenant_id" in scoped_query
+
+    def test_tenant_filter_rejects_query_without_node_alias(self):
+        QueryGraphTool, _, _, _ = _get_knowledge_tools()
+        tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+
+        with pytest.raises(ValueError, match="unable to parse node alias"):
+            tool._inject_tenant_filter("RETURN 1 AS ok", TENANT_A_ID)
 
 
 class TestSemanticSearchToolTenantIsolation:
@@ -199,8 +240,8 @@ class TestSemanticSearchToolTenantIsolation:
     @pytest.mark.asyncio
     async def test_semantic_search_applies_tenant_filter(self, mock_pinecone_index, monkeypatch):
         """POSITIVE: Semantic search includes tenant_id in metadata filter."""
-        from value_fabric.layer4.tools.knowledge_tools import SemanticSearchTool
-        from value_fabric.layer4.models.tool_schemas import SemanticSearchInput
+        from layer4_agents.tools.knowledge_tools import SemanticSearchTool
+        from layer4_agents.models.tool_schemas import SemanticSearchInput
         from value_fabric.shared.identity.context import RequestContext, set_request_context
         from value_fabric.shared.identity.permissions import Permission
         
@@ -255,8 +296,8 @@ class TestKnowledgeToolsRateLimiting:
     @pytest.mark.skip(reason="Rate limiting is not implemented at the tool layer, but at the API layer.")
     async def test_query_graph_respects_rate_limit(self, monkeypatch):
         """NEGATIVE: Tool fails gracefully when rate limit exceeded."""
-        from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool
-        from value_fabric.layer4.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         # Mock rate limiter that always blocks
         mock_limiter = MagicMock()
@@ -292,8 +333,8 @@ class TestKnowledgeToolsInputValidation:
     @pytest.mark.asyncio
     async def test_query_graph_blocks_write_operations(self):
         """NEGATIVE: Cypher write operations are blocked (read-only enforcement)."""
-        from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool
-        from value_fabric.layer4.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
         
@@ -320,8 +361,8 @@ class TestKnowledgeToolsInputValidation:
     @pytest.mark.asyncio
     async def test_query_graph_allows_read_operations(self):
         """POSITIVE: Read-only Cypher queries are permitted."""
-        from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool
-        from value_fabric.layer4.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
         
@@ -359,8 +400,8 @@ class TestKnowledgeToolsAuditLogging:
     @pytest.mark.asyncio
     async def test_query_graph_logs_executed_queries(self, caplog, mock_tenant_context):
         """POSITIVE: Executed queries are logged for audit trail."""
-        from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool
-        from value_fabric.layer4.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         import logging
         

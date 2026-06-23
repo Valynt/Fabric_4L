@@ -1,3 +1,8 @@
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+)
+
 """
 Authentication and tenant-context dependency for Layer 5 Ground Truth API.
 
@@ -48,7 +53,6 @@ def _auth_http_exception(status_code: int, *, error_code: str, message: str) -> 
             "error_code": error_code,
             "message": message,
         },
-        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -77,10 +81,7 @@ class TokenClaims:
 
     def require_role(self, role: str) -> None:
         if not self.has_role(role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{role}' is required for this operation.",
-            )
+            raise AuthorizationError(message=f"Role '{role}' is required for this operation.")
 
 
 # ---------------------------------------------------------------------------
@@ -190,11 +191,7 @@ def _token_claims_from_context(ctx) -> TokenClaims:
     try:
         tenant_uuid = tenant_raw if isinstance(tenant_raw, UUID) else UUID(str(tenant_raw))
     except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant context is invalid.",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        raise AuthenticationError(message = "Tenant context is invalid.") from exc
     user_id = str(ctx.user_id) if ctx.user_id is not None else None
     roles = [str(role) for role in (ctx.roles or [])]
     return TokenClaims(
@@ -217,19 +214,26 @@ def get_current_user(
     Resolve caller identity exclusively from canonical authenticated context.
 
     The only accepted source of tenant/user identity is
-    ``request.state.governance_context`` (or legacy ``request.state.context``
-    shim populated by shared middleware).
+    ``request.state.governance_context`` populated by shared middleware.
 
     Any request lacking canonical context fails closed. Header/query tenant hints
     are explicitly rejected and never used for identity resolution.
     """
     _ = settings
 
-    ctx = getattr(request.state, "governance_context", None) or getattr(request.state, "context", None)
+    ctx = getattr(request.state, "governance_context", None)
     if ctx is not None and getattr(ctx, "tenant_id", None):
         return _token_claims_from_context(ctx)
 
-    hinted_tenant = request.headers.get("X-Tenant-ID") or request.query_params.get("tenant_id")
+    hinted_tenant = request.query_params.get("tenant_id", None)
+    if hinted_tenant:
+        raise _auth_http_exception(
+            status.HTTP_403_FORBIDDEN,
+            error_code="AUTH_TENANT_HINT_REJECTED",
+            message="Tenant hints are not accepted without canonical authenticated context.",
+        )
+
+    hinted_tenant = request.headers.get("X-Tenant-ID")
     if hinted_tenant:
         raise _auth_http_exception(
             status.HTTP_403_FORBIDDEN,

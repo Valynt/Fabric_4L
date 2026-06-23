@@ -1,5 +1,5 @@
 # Kubernetes Auth Roles for Vault
-# 
+#
 # These roles bind Kubernetes ServiceAccounts to Vault policies.
 # Apply via: kubectl apply -f k8s/vault/k8s-auth-roles.yaml
 # Then configure in Vault using the vault CLI or Vault Operator.
@@ -33,7 +33,7 @@ data:
         - external-secrets
       ttl: 1h
       max_ttl: 4h
-    
+
     layer1-app:
       bound_service_account_names:
         - layer1-ingestion
@@ -43,7 +43,7 @@ data:
         - value-fabric-layers
       ttl: 1h
       max_ttl: 4h
-    
+
     layer2-app:
       bound_service_account_names:
         - layer2-extraction
@@ -53,7 +53,7 @@ data:
         - value-fabric-layers
       ttl: 1h
       max_ttl: 4h
-    
+
     layer3-app:
       bound_service_account_names:
         - layer3-knowledge
@@ -63,7 +63,7 @@ data:
         - value-fabric-layers
       ttl: 1h
       max_ttl: 4h
-    
+
     layer4-app:
       bound_service_account_names:
         - layer4-agents

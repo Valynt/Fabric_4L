@@ -5,21 +5,25 @@ These tests do not require Neo4j and run quickly.
 """
 
 import pytest
-from datetime import datetime, UTC
-from pydantic import ValidationError
+from datetime import UTC, datetime
 
-from value_fabric.layer3.api.models import (
-    EntitySummary,
-    EntityDetail,
-    EntityFilterRequest,
-    EntityListResponse,
-    EntityRelationships,
-    RelationshipPreview,
-    ProvenanceEvent,
-)
+try:
+    from pydantic import ValidationError
+    from src.api.models import (
+        EntitySummary,
+        EntityDetail,
+        EntityFilterRequest,
+        EntityListResponse,
+        EntityRelationships,
+        RelationshipPreview,
+        ProvenanceEvent,
+    )
+except (ImportError, Exception):
+    pytest.skip(
+        "src service stack not available (check PYTHONPATH / installed packages)",
+        allow_module_level=True,
+    )
 
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
 
 class TestEntitySummaryContract:
     """Validate EntitySummary canonical contract."""
@@ -377,7 +381,7 @@ class TestFieldConsistency:
 
     def test_status_values_consistent(self):
         """Test that status enum is consistent everywhere."""
-        from value_fabric.layer3.api.models import EntityStatus
+        from src.api.models import EntityStatus
         
         expected_values = {"validated", "pending", "draft", "deprecated"}
         actual_values = set(EntityStatus.__args__)
@@ -387,7 +391,7 @@ class TestFieldConsistency:
 
     def test_confidence_label_values_consistent(self):
         """Test confidence_label enum consistency."""
-        from value_fabric.layer3.api.models import ConfidenceLabel
+        from src.api.models import ConfidenceLabel
         
         expected_values = {"high", "medium", "low"}
         actual_values = set(ConfidenceLabel.__args__)

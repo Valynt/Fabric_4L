@@ -26,6 +26,7 @@ __all__ = [
     "IngestionStatus",
     "InMemoryJobStore",
     "InMemoryPendingIngestionStore",
+    "JobStore",
     "Layer3KnowledgeClient",
     "PendingIngestionRecord",
     "PendingIngestionStore",

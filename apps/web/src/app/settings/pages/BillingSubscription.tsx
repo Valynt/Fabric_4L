@@ -20,7 +20,7 @@ export function BillingSubscription() {
             </div>
             <button
               type="button"
-              onClick={() => safeAsync(openCustomerPortal(window.location.href), "billing.openPortal")}
+              onClick={() => safeAsync(openCustomerPortal(window.location.href), "billing.openPortal")} // navigation-guardrail: ignore current URL passed as hosted portal return target
               disabled={isOpeningPortal || !customerId}
               className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent disabled:opacity-50"
             >
@@ -42,7 +42,7 @@ export function BillingSubscription() {
                   {subscription.current_period_end ? ` • Renews ${new Date(subscription.current_period_end).toLocaleDateString()}` : ""}
                 </p>
               </div>
-              <span className="rounded-full border px-2 py-1 text-[11px] font-medium uppercase tracking-wide">
+              <span className="rounded-full border px-2 py-1 vf-text-caption font-medium uppercase tracking-wide">
                 {subscription.status}
               </span>
             </div>

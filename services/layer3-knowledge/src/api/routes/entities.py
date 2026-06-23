@@ -1,3 +1,5 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -16,11 +18,11 @@ architectural decomposition effort (Weakness #3).
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from value_fabric.shared.identity import RequestContext, require_authenticated
 from value_fabric.shared.identity.isolation import TenantScopedCypher
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.dependencies import (
     AppState,
@@ -34,8 +36,14 @@ from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
 from ...api.exception_mapping import map_exception_to_http_error
-from ...api.exceptions import DatabaseError, ValidationError
+from ...api.exceptions import (
+    ContractViolationError,
+    DatabaseError,
+    TenantAccessError,
+    ValidationError,
+)
 from ...api.models import (
+    EntityContextResponse,
     EntityDetail,
     EntityFilterRequest,
     EntityListResponse,
@@ -66,6 +74,17 @@ def entity_list_sort_clause(sort_by: str, sort_order: str) -> str:
     return ENTITY_LIST_SORT_CLAUSES.get((sort_by, sort_order.lower()), "e.confidence_score DESC")
 
 
+# Cypher variable-length path ranges cannot be parameterised, so the hop
+# count is resolved from this closed allowlist after FastAPI validates it.
+_MAX_CONTEXT_HOPS = 3
+_HOP_RANGE_CLAUSES: dict[int, str] = {
+    1: "[*1..1]",
+    2: "[*1..2]",
+    3: "[*1..3]",
+}
+_RELATIONSHIP_TYPE_FILTER = "AND ALL(r IN relationships(path) WHERE type(r) IN $relationship_types)"
+
+
 def _map_results_to_summaries(results: list[dict[str, Any]]) -> list[EntitySummary]:
     """Map raw Cypher result rows to canonical EntitySummary objects."""
     return [
@@ -79,6 +98,30 @@ def _map_results_to_summaries(results: list[dict[str, Any]]) -> list[EntitySumma
         )
         for row in results
     ]
+
+
+def _serialize_context_node(node: Any) -> dict[str, Any]:
+    """Serialize a Neo4j node into the canonical entity context shape."""
+    data = dict(node)
+    return {
+        "id": data.get("id"),
+        "name": data.get("name"),
+        "entity_type": data.get("entity_type"),
+        "confidence_score": data.get("confidence_score", data.get("confidence", 0.0)),
+        "description": data.get("description"),
+        "properties": data.get("properties", {}),
+    }
+
+
+def _error_context(
+    _ctx: RequestContext, endpoint: str, operation: str
+) -> dict[str, Any]:
+    """Build a consistent logging context for entity route errors."""
+    return {
+        "tenant": getattr(_ctx, "tenant_id", "unknown"),
+        "endpoint": endpoint,
+        "operation": operation,
+    }
 
 
 @router.get("/", response_model=EntityListResponse)
@@ -159,11 +202,11 @@ async def list_entities(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities", "operation": "list_entities"}
+        context = _error_context(_ctx, "/entities", "list_entities")
         logger.warning("Entity listing mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities", "operation": "list_entities"}
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = _error_context(_ctx, "/entities", "list_entities")
         logger.error("Entity listing failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
@@ -191,7 +234,7 @@ async def get_entity_detail(
         entity_result = await neo4j.execute_query(entity_query, {"entity_id": entity_id})
 
         if not entity_result:
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise NotFoundError(message=f"Entity {entity_id} not found")
 
         entity_node = entity_result[0]["e"]
 
@@ -253,14 +296,12 @@ async def get_entity_detail(
             updated_at=entity_node.get("updated_at"),
         )
 
-    except HTTPException:
-        raise
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}
+        context = _error_context(_ctx, f"/entities/{entity_id}", "get_entity_detail")
         logger.warning("Entity detail mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = _error_context(_ctx, f"/entities/{entity_id}", "get_entity_detail")
         logger.error("Entity detail retrieval failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
@@ -337,11 +378,11 @@ async def query_entities(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/query", "operation": "query_entities"}
+        context = _error_context(_ctx, "/entities/query", "query_entities")
         logger.warning("Entity query mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/query", "operation": "query_entities"}
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = _error_context(_ctx, "/entities/query", "query_entities")
         logger.error("Entity query failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
@@ -372,10 +413,110 @@ async def traverse_value_tree(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/traverse", "operation": "traverse_value_tree"}
+        context = _error_context(_ctx, "/entities/traverse", "traverse_value_tree")
         logger.warning("Value tree traversal mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
-        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/traverse", "operation": "traverse_value_tree"}
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = _error_context(_ctx, "/entities/traverse", "traverse_value_tree")
         logger.error("Value tree traversal failed for %s", request.root_entity_id, extra={"context": context}, exc_info=True)
+        raise map_exception_to_http_error(exc, context=context)
+
+
+@router.get("/{entity_id}/context", response_model=EntityContextResponse)
+async def get_entity_context_route(
+    entity_id: str,
+    hops: int = Query(2, ge=1, le=_MAX_CONTEXT_HOPS, description="Number of relationship hops to include"),
+    min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence for included entities"),
+    relationship_types: list[str] | None = Query(None, description="Optional relationship types to traverse"),
+    _ctx: RequestContext = Depends(require_authenticated),
+    neo4j: Neo4jTenantSession = Depends(get_neo4j_with_tenant),
+) -> EntityContextResponse:
+    """Get the N-hop context graph around an entity.
+
+    Returns the center entity, its neighbors, and the relationships connecting
+    them, scoped to the authenticated tenant.
+    """
+    endpoint = f"/entities/{entity_id}/context"
+    operation = "get_entity_context"
+    try:
+        # FastAPI validates hops, but the Cypher range cannot be parameterised.
+        # Resolve it from a closed allowlist so the query is never built from
+        # raw user input.
+        hop_clause = _HOP_RANGE_CLAUSES[hops]
+
+        params: dict[str, Any] = {
+            "entity_id": entity_id,
+            "min_confidence": min_confidence,
+        }
+        rel_filter = ""
+        if relationship_types:
+            rel_filter = _RELATIONSHIP_TYPE_FILTER
+            params["relationship_types"] = relationship_types
+
+        query = f"""
+            MATCH path = (center:Entity)-{hop_clause}-(connected:Entity)
+            WHERE center.id = $entity_id
+              AND ALL(node IN nodes(path) WHERE node.tenant_id = $_tenant_id AND node.confidence_score >= $min_confidence)
+            {rel_filter}
+            WITH center,
+                 collect(DISTINCT connected) AS neighbors,
+                 collect(DISTINCT relationships(path)) AS all_rels
+            RETURN center, neighbors, all_rels
+        """
+
+        builder = TenantScopedCypher(neo4j.tenant_id or "")
+        scoped_query = builder.custom_tenant_query(
+            query,
+            params=params,
+            operation="entity_context",
+            labels=("Entity",),
+        )
+        params = dict(scoped_query.params)
+        result = await neo4j.execute_query(scoped_query, params)
+        if not result:
+            raise NotFoundError(message=f"Entity {entity_id} not found")
+
+        record = result[0]
+        center_node = record.get("center")
+        if not center_node:
+            raise NotFoundError(message=f"Entity {entity_id} not found")
+
+        neighbor_nodes = record.get("neighbors", [])
+        serialized_neighbors = [_serialize_context_node(n) for n in neighbor_nodes]
+        center = _serialize_context_node(center_node)
+
+        relationships: list[dict[str, Any]] = []
+        for rel_group in record.get("all_rels", []):
+            group = rel_group if isinstance(rel_group, list) else [rel_group]
+            for rel in group:
+                rel_data = dict(rel)
+                start = rel.get("start_node", {})
+                end = rel.get("end_node", {})
+                relationships.append({
+                    "source": rel_data.get("source") or start.get("id"),
+                    "target": rel_data.get("target") or end.get("id"),
+                    "type": rel_data.get("type") or rel_data.get("relationship_type"),
+                    "confidence": rel_data.get("confidence", rel_data.get("confidence_score", 0.0)),
+                })
+
+        return EntityContextResponse(
+            entity_id=entity_id,
+            center=center,
+            neighbors=serialized_neighbors,
+            relationships=relationships,
+            entity_count=1 + len(serialized_neighbors),
+            relationship_count=len(relationships),
+            pagination={
+                "has_more": False,
+                "returned_count": len(serialized_neighbors),
+            },
+        )
+
+    except (ValidationError, DatabaseError) as exc:
+        context = _error_context(_ctx, endpoint, operation)
+        logger.warning("Entity context mapped exception", extra={"context": context}, exc_info=True)
+        raise map_exception_to_http_error(exc, context=context)
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
+        context = _error_context(_ctx, endpoint, operation)
+        logger.error("Entity context retrieval failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)

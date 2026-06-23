@@ -1,6 +1,10 @@
 /**
  * ROITab — ROI Calculator & Financial Projections
  *
+ * TODO(dead-code): FABRIC-REM-001 — evaluate for removal; no runtime importer
+ * currently references this file. The active ROI calculator tab uses
+ * `apps/web/src/pages/calculator/ROITab.tsx`.
+ *
  * DIL-backed tab wired to the ROI Calculator Service (L3).
  * Uses: useCalculateROI, useROITemplates, useIndustryBenchmarks from useROICalculator hook.
  *
@@ -37,6 +41,7 @@ import {
 } from "@/hooks/useROICalculator";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import { Input } from "@/components/ui/input";
 
 function formatCurrency(val: number): string {
   if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
@@ -47,11 +52,11 @@ function formatCurrency(val: number): string {
 function scenarioColor(scenario: string): string {
   switch (scenario) {
     case "conservative":
-      return "text-amber-600";
+      return "text-warning";
     case "moderate":
       return "text-primary";
     case "aggressive":
-      return "text-green-600";
+      return "text-success";
     default:
       return "text-muted-foreground";
   }
@@ -115,17 +120,17 @@ function InputField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-[10px] font-semibold text-muted-foreground">{label}</label>
+      <label className="vf-text-micro font-semibold text-muted-foreground">{label}</label>
       <div className="flex items-center gap-1">
         {prefix && <span className="text-xs text-muted-foreground">{prefix}</span>}
-        <input
+        <Input
           type="number"
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
           min={min}
           max={max}
           step={step ?? 1}
-          className="w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full text-xs font-mono"
         />
         {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
       </div>
@@ -155,7 +160,7 @@ function ScenarioCard({
         <span className={cn("text-xs font-bold", scenarioColor(label.toLowerCase()))}>{label}</span>
         <span className="text-lg font-bold">{Math.round(result.total_roi_pct)}%</span>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-[10px]">
+      <div className="grid grid-cols-2 gap-2 vf-text-micro">
         <div>
           <span className="text-muted-foreground">NPV</span>
           <div className="font-semibold">{formatCurrency(result.npv)}</div>
@@ -182,7 +187,7 @@ function ProjectionTable({ projections }: { projections: AnnualProjection[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[10px]">
+      <table className="w-full vf-text-micro">
         <thead>
           <tr className="border-b border-border">
             <th className="py-1.5 text-left font-semibold text-muted-foreground">Year</th>
@@ -198,15 +203,15 @@ function ProjectionTable({ projections }: { projections: AnnualProjection[] }) {
             return (
               <tr key={projection.year} className="border-b border-border/50">
                 <td className="py-1.5 font-semibold">Year {projection.year}</td>
-                <td className="text-right text-green-600">{formatCurrency(projection.benefit)}</td>
-                <td className="text-right text-red-500">{formatCurrency(projection.cost)}</td>
-                <td className={cn("text-right font-semibold", net >= 0 ? "text-green-600" : "text-red-500")}>
+                <td className="text-right text-success">{formatCurrency(projection.benefit)}</td>
+                <td className="text-right text-destructive">{formatCurrency(projection.cost)}</td>
+                <td className={cn("text-right font-semibold", net >= 0 ? "text-success" : "text-destructive")}>
                   {formatCurrency(net)}
                 </td>
                 <td
                   className={cn(
                     "text-right font-semibold",
-                    projection.cumulative_net >= 0 ? "text-green-600" : "text-red-500",
+                    projection.cumulative_net >= 0 ? "text-success" : "text-destructive",
                   )}
                 >
                   {formatCurrency(projection.cumulative_net)}
@@ -279,10 +284,10 @@ export default function ROITab() {
             benchmarks ? (
               <div className="space-y-3">
                 <h3 className="text-sm font-bold">Industry Benchmarks</h3>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="vf-text-micro text-muted-foreground">
                   {account.industry ?? "General"} industry averages
                 </p>
-                <div className="space-y-2 text-[10px]">
+                <div className="space-y-2 vf-text-micro">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Avg ROI</span>
                     <span className="font-semibold">
@@ -340,7 +345,7 @@ export default function ROITab() {
                     <p className="text-xs font-medium">{item.statement ?? item.text ?? "Untitled assumption"}</p>
                     <span
                       className={cn(
-                        "rounded border px-1.5 py-0.5 text-[10px] font-semibold capitalize",
+                        "rounded border px-1.5 py-0.5 vf-text-micro font-semibold capitalize",
                         STATUS_STYLE[support],
                       )}
                     >
@@ -350,7 +355,7 @@ export default function ROITab() {
                   <div className="mt-1 space-y-1">
                     {linkedEvidence.length ? (
                       linkedEvidence.map((evidence) => (
-                        <div key={evidence.id} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <div key={evidence.id} className="flex items-center gap-1 vf-text-micro text-muted-foreground">
                           <Link size={10} />
                           <span>{evidence.title}</span>
                           <span>·</span>
@@ -358,7 +363,7 @@ export default function ROITab() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-[10px] text-warning">No supporting evidence linked.</div>
+                      <div className="vf-text-micro text-warning">No supporting evidence linked.</div>
                     )}
                   </div>
                 </div>
@@ -398,7 +403,7 @@ export default function ROITab() {
 
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="mb-3 flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+          className="mb-3 flex items-center gap-1 vf-text-micro font-semibold text-muted-foreground hover:text-foreground"
         >
           {showAdvanced ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           Advanced Settings
@@ -511,7 +516,7 @@ export default function ROITab() {
                 <Calculator size={12} className="text-muted-foreground" />
                 <div className="flex-1">
                   <div className="text-xs font-medium">{template.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{template.description}</div>
+                  <div className="vf-text-micro text-muted-foreground">{template.description}</div>
                 </div>
               </button>
             ))}

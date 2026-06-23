@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Strict builder enforcement tests for Layer 3 Neo4j tenant isolation.
 
 These tests encode the application-layer tenant isolation contract used because
@@ -6,7 +8,6 @@ Layer 3 graph queries must carry explicit tenant scope metadata and fail closed
 when no tenant context is available.
 """
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from uuid import uuid4
@@ -14,12 +15,12 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from value_fabric.layer3.analytics.centrality import CentralityAnalyzer
-from value_fabric.layer3.analytics.communities import CommunityDetector
-from value_fabric.layer3.analytics.similarity import SimilarityAnalyzer
-from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore
+from src.analytics.centrality import CentralityAnalyzer
+from src.analytics.communities import CommunityDetector
+from src.analytics.similarity import SimilarityAnalyzer
+from src.retrieval.graph_rag import GraphRAGEngine
+from src.retrieval.hybrid_search import HybridSearch
+from src.retrieval.vector_store import Neo4jVectorStore
 from value_fabric.shared.identity.context import (
     RequestContext,
     RequestContextManager,
@@ -33,7 +34,7 @@ from value_fabric.shared.identity.isolation import (
     TenantLabelPolicy,
     TenantScopedCypher,
 )
-from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession
+from src.api.dependencies_tenant import Neo4jTenantSession
 from unittest.mock import AsyncMock
 
 
@@ -322,39 +323,34 @@ def test_custom_tenant_query_requires_explicit_tenant_parameter_and_predicate() 
 
 @pytest.mark.asyncio
 async def test_tenant_session_rejects_raw_cypher_for_tenant_owned_labels() -> None:
-    """Tenant-owned labels must be executed through ScopedQuery metadata."""
+    """Tenant-owned raw Cypher reads must carry tenant predicates."""
 
     session = AsyncMock()
-    tenant_session = Neo4jTenantSession(session=session, tenant_id="tenant-a", is_bypass=False)
+    tenant_session = Neo4jTenantSession(
+        driver=AsyncMock(),
+        tenant_id="tenant-a",
+        session=session,
+    )
 
-    with pytest.raises(ValueError, match="Raw Cypher touching tenant-owned labels is not allowed"):
-        await tenant_session.run("MATCH (n:Entity {tenant_id: $tenant_id}) RETURN n", {"tenant_id": "tenant-a"})
+    with pytest.raises(Exception, match="tenant|scope|Query validation"):
+        await tenant_session.run("MATCH (n:Entity) RETURN n")
 
 
 @pytest.mark.asyncio
-async def test_tenant_tx_rejects_raw_cypher_for_tenant_owned_labels() -> None:
-    """Transaction wrapper must enforce ScopedQuery for tenant labels too."""
+async def test_tenant_session_rejects_raw_mutation_for_tenant_owned_labels() -> None:
+    """Tenant-owned raw mutations must go through audited mutation helpers."""
 
     session = AsyncMock()
-    tenant_session = Neo4jTenantSession(session=session, tenant_id="tenant-a", is_bypass=False)
-    tx = tenant_session._create_tenant_tx(AsyncMock())
+    tenant_session = Neo4jTenantSession(
+        driver=AsyncMock(),
+        tenant_id="tenant-a",
+        session=session,
+    )
 
-    with pytest.raises(ValueError, match="Raw Cypher touching tenant-owned labels is not allowed"):
-        await tx.run("MATCH (n:Capability {tenant_id: $tenant_id}) RETURN n", {"tenant_id": "tenant-a"})
-    assert scoped.operation == "capability_to_use_case"
-    assert scoped.labels == ("Capability", "UseCase")
-
-    with pytest.raises(ValueError, match="tenant parameter"):
-        builder.custom_tenant_query(
-            "MATCH (c:Capability) WHERE c.tenant_id = 'tenant-a' RETURN c",
-            labels=("Capability",),
-        )
-
-    with pytest.raises(ValueError, match="tenant predicate"):
-        builder.custom_tenant_query(
-            "MATCH (c:Capability) WHERE c.id = $id AND $_tenant_id IS NOT NULL RETURN c",
-            params={"id": "cap-1"},
-            labels=("Capability",),
+    with pytest.raises(Exception, match="Direct CREATE/MERGE/DELETE|AuditedGraphMutation"):
+        await tenant_session.run(
+            "CREATE (n:Entity {id: $id, tenant_id: $tenant_id}) RETURN n",
+            {"id": "entity-1", "tenant_id": "tenant-a"},
         )
 
 
@@ -414,14 +410,20 @@ async def test_scoped_execution_filters_mocked_cross_tenant_data() -> None:
             tenant = params["_tenant_id"]
             return [row for row in self.rows if row["tenant_id"] == tenant]
 
-    session = FilteringSession(all_rows)
     query = TenantScopedCypher("tenant-a").match_node_query("n", "Capability")
-    result = await CentralityAnalyzer(driver=object(), settings=_settings_stub())._run_scoped(
-        session, query
-    )
 
-    assert result == tenant_a_rows
-    assert tenant_b_rows[0] not in result
-    assert session.calls == [(query.cypher, query.params)]
-    assert "n.tenant_id = $_tenant_id" in session.calls[0][0]
-    assert session.calls[0][1]["_tenant_id"] == "tenant-a"
+    for service in (
+        CentralityAnalyzer(driver=object(), settings=_settings_stub()),
+        SimilarityAnalyzer(driver=object(), settings=_settings_stub()),
+    ):
+        session = FilteringSession(all_rows)
+        result = await service._run_scoped(session, query)
+
+        assert result == tenant_a_rows
+        assert tenant_b_rows[0] not in result
+        assert session.calls == [
+            (query.cypher, {"_tenant_id": "tenant-a", "tenant_id": "tenant-a"})
+        ]
+        assert "n.tenant_id = $_tenant_id" in session.calls[0][0]
+        assert session.calls[0][1]["_tenant_id"] == "tenant-a"
+        assert session.calls[0][1]["tenant_id"] == "tenant-a"

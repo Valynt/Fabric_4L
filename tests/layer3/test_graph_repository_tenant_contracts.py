@@ -5,13 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from value_fabric.layer3.db.query_execution import (
+from src.db.query_execution import (
     TenantExecutionContext,
     TenantQueryExecutor,
     TenantQueryValidationError,
 )
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.schema.constraints import CONSTRAINTS, INDEXES
+from src.retrieval.hybrid_search import HybridSearch
+from src.schema.constraints import CONSTRAINTS, INDEXES
 
 
 def test_missing_tenant_context_fails_closed_for_graph_reads() -> None:
@@ -58,12 +58,51 @@ async def test_hybrid_search_forwards_authenticated_tenant_to_vector_store() -> 
     ]
 
 
+@pytest.mark.asyncio
+async def test_hybrid_search_uses_resolved_tenant_for_vector_leg(monkeypatch) -> None:
+    class _VectorStore:
+        def __init__(self) -> None:
+            self.calls: list[dict[str, object]] = []
+
+        async def search(self, **kwargs):
+            self.calls.append(kwargs)
+            return []
+
+    vector_store = _VectorStore()
+    search = HybridSearch(
+        driver=None,
+        vector_store=vector_store,
+        graph_engine=None,
+        settings=SimpleNamespace(
+            hybrid_bm25_weight=0.4,
+            hybrid_vector_weight=0.4,
+            hybrid_graph_weight=0.2,
+        ),
+    )
+    async def _empty_search(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(search, "_bm25_search", _empty_search)
+    monkeypatch.setattr(search, "_graph_search", _empty_search)
+
+    await search.search(query="revenue leakage", entity_types=["Capability"], top_k=5, tenant_id="tenant-a")
+
+    assert vector_store.calls == [
+        {
+            "query_text": "revenue leakage",
+            "entity_type": "Capability",
+            "top_k": 10,
+            "tenant_id": "tenant-a",
+        }
+    ]
+
+
 def test_graph_service_entrypoints_require_explicit_tenant_id() -> None:
-    from value_fabric.layer3.services.competitive_intel_service import CompetitiveIntelService
-    from value_fabric.layer3.services.evidence_search import EvidenceSearchService
-    from value_fabric.layer3.services.product_service import ProductService
-    from value_fabric.layer3.services.signal_persistence import SignalPersistenceService
-    from value_fabric.layer3.services.signal_quantification import SignalQuantificationService
+    from src.services.competitive_intel_service import CompetitiveIntelService
+    from src.services.evidence_search import EvidenceSearchService
+    from src.services.product_service import ProductService
+    from src.services.signal_persistence import SignalPersistenceService
+    from src.services.signal_quantification import SignalQuantificationService
 
     service_methods = [
         ProductService.create_product,

@@ -5,8 +5,6 @@ Removal/migration target: 2026-09-30
 Reason: Operational routes extracted from the Layer 3 monolith.
 """
 
-# mypy: disable-error-code=import-untyped
-
 from __future__ import annotations
 
 import logging
@@ -33,12 +31,16 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
             return SimpleNamespace(used=0)
 
     psutil = _PsutilFallback()
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from value_fabric.layer3.config import get_settings
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
+from value_fabric.shared.probes import normalize_probe_payload
+
+from src.api.metrics_state import get_system_metrics, set_app_metrics
+from src.config import get_settings
 
 from ...api.dependencies import get_schema_initializer
 from ...api.models import (
@@ -47,13 +49,13 @@ from ...api.models import (
     HealthResponse,
 )
 
+# mypy: disable-error-code=import-untyped
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 SYSTEM_HEALTH_RESPONSES = {200: {"description": "Service health payload"}, 503: {"description": "Service unavailable"}}
-
-# Import shared metrics helpers from a non-route module to avoid circular imports.
-from ...api.metrics_state import get_system_metrics
+__all__ = ["router", "get_system_metrics", "set_app_metrics"]
 
 
 async def check_dependencies(schema_initializer: Any | None = None) -> list[DependencyStatus]:
@@ -69,6 +71,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status="degraded",
                     response_time_ms=None,
                     error="Neo4j not initialized",
+                    failure_reason="neo4j_not_initialized",
                     details={
                         "uri": settings.neo4j_uri,
                         "database": settings.neo4j_database,
@@ -76,7 +79,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 )
             )
         else:
-            from value_fabric.layer3.schema.initializer import SchemaInitializer
+            from src.schema.initializer import SchemaInitializer
 
             neo4j_checker = (
                 schema_initializer if schema_initializer is not None else SchemaInitializer()
@@ -93,19 +96,25 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status=neo4j_health["status"],
                     response_time_ms=response_time,
                     error=neo4j_health.get("error"),
+                    failure_reason=(
+                        "neo4j_unhealthy"
+                        if neo4j_health["status"] != "healthy"
+                        else None
+                    ),
                     details={
                         "uri": settings.neo4j_uri,
                         "database": settings.neo4j_database,
                     },
                 )
             )
-    except (ConnectionError, OSError, RuntimeError, TimeoutError) as exc:
+    except (ConnectionError, OSError, RuntimeError, TimeoutError):
         dependencies.append(
             DependencyStatus(
                 name="neo4j",
                 status="unhealthy",
                 response_time_ms=None,
-                error=str(exc),
+                error="dependency_unhealthy",
+                failure_reason="neo4j_connection_error",
                 details={"uri": settings.neo4j_uri},
             )
         )
@@ -120,16 +129,18 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     status="healthy",
                     response_time_ms=response_time,
                     error=None,
+                    failure_reason=None,
                     details={"index": settings.pinecone_index},
                 )
             )
-        except (ConnectionError, OSError, RuntimeError, TimeoutError) as exc:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError):
             dependencies.append(
                 DependencyStatus(
                     name="pinecone",
                     status="unhealthy",
                     response_time_ms=None,
-                    error=str(exc),
+                    error="dependency_unhealthy",
+                    failure_reason="pinecone_connection_error",
                 )
             )
 
@@ -187,7 +198,7 @@ def _derive_readiness(
 async def get_metrics(request: Request) -> Response:
     """Get Prometheus metrics from the app state registry."""
     if not verify_metrics_access(request):
-        raise HTTPException(status_code=403, detail="Metrics endpoint requires internal access")
+        raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
     metrics = getattr(request.app.state, "metrics", None)
 
@@ -216,6 +227,14 @@ async def get_metrics(request: Request) -> Response:
     tags=["Health"],
     summary="Basic Health Check",
     responses=SYSTEM_HEALTH_RESPONSES,
+)
+@router.get(
+    "/health/live",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Basic Health Check (Liveness)",
+    responses=SYSTEM_HEALTH_RESPONSES,
+    include_in_schema=False,
 )
 async def health_check(
     request: Request,
@@ -282,33 +301,25 @@ async def health_check(
         },
     )
 
-    dependency_payload = [
-        {
-            **(dep.model_dump() if hasattr(dep, "model_dump") else dict(dep)),
-            "failure_reason": getattr(dep, "error", None)
-            if hasattr(dep, "error")
-            else (dep.get("error") if isinstance(dep, dict) else None),
-        }
-        for dep in dependencies
-    ]
-
-    return {
-        "status": overall_status,
-        "service": "layer3-knowledge",
-        "readiness": _derive_readiness(
+    return normalize_probe_payload(
+        status=overall_status,
+        service="layer3-knowledge",
+        readiness=_derive_readiness(
             dependencies=dependencies,
             schema_initializer=schema_initializer,
             schema_status=schema_status,
         ),
-        "version": "1.0.0",
-        "timestamp": datetime.now(UTC),
-        "uptime_seconds": metrics.uptime_seconds,
-        "response_time_ms": response_time_ms,
-        "dependencies": dependency_payload,
-        "metrics": metrics,
-        "neo4j": neo4j_health,
-        "schema_status": schema_status,
-    }
+        dependencies=dependencies,
+        extra={
+            "version": "1.0.0",
+            "timestamp": datetime.now(UTC),
+            "uptime_seconds": metrics.uptime_seconds,
+            "response_time_ms": response_time_ms,
+            "metrics": metrics,
+            "neo4j": neo4j_health,
+            "schema_status": schema_status,
+        },
+    )
 
 
 @router.get(

@@ -1,18 +1,54 @@
 from datetime import UTC, datetime, timedelta
 import hashlib
+import logging
 import secrets
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 
 from app.core.database import db
-from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Account, PaginatedResponse
+from app.core.tenant_enforcement import enforce_authenticated_tenant
+from app.models.schemas import (
+    Account,
+    AccountUpdateRequest,
+    AccountShareLinkResponse,
+    AccountShareRevokeResponse,
+    AccountSummaryResponse,
+    PaginatedResponse,
+)
+from app.repositories.session_store import ShareLinkRepository
+from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
+from value_fabric.shared.idempotency import (
+    IdempotencyConflictError,
+    IdempotencyRecord,
+    IdempotencyRequest,
+    IdempotencyService,
+    InMemoryIdempotencyStore,
+    RedisIdempotencyStore,
+    build_request_fingerprint,
+)
 
-_SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
+from app.core.redis_client import get_redis_client
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+logger = logging.getLogger(__name__)
+
+_redis = get_redis_client()
+if _redis is not None:
+    _idempotency_store: InMemoryIdempotencyStore | RedisIdempotencyStore = RedisIdempotencyStore(_redis)
+else:
+    _idempotency_store = InMemoryIdempotencyStore()
+
+_idempotency_service = IdempotencyService(store=_idempotency_store)
+
+
+def _idempotency_header_value(request: Request) -> str | None:
+    return request.headers.get("Idempotency-Key")
+
+
+def get_share_link_repo() -> ShareLinkRepository:
+    return ShareLinkRepository(get_distributed_store())
 
 
 @router.get("", response_model=PaginatedResponse[Account])
@@ -22,12 +58,12 @@ async def list_accounts(
     offset: int = Query(0, ge=0),
 ):
     items = db.accounts.list(tenant_id=tenant_id, limit=limit, offset=offset)
-    total = len(db.accounts.list(tenant_id=tenant_id))
+    total = db.accounts.count(tenant_id=tenant_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=Account, status_code=201)
-async def create_account(account: Account, tenant_id: str = Depends(tenant_required)):
+async def create_account(account: Account, request: Request, tenant_id: str = Depends(tenant_required)):
     enforce_authenticated_tenant(
         body_tenant_id=account.tenant_id,
         authenticated_tenant_id=tenant_id,
@@ -36,6 +72,19 @@ async def create_account(account: Account, tenant_id: str = Depends(tenant_requi
     )
     account.tenant_id = tenant_id
     db.accounts.insert(account.id, account)
+
+    idem_service = getattr(request.state, "idempotency_service", None)
+    idem_request = getattr(request.state, "idempotency_request", None)
+    if idem_service is not None and idem_request is not None:
+        idem_service.store_response(
+            idem_request,
+            IdempotencyRecord(
+                status_code=201,
+                body=account.model_dump(),
+                headers={"Idempotent-Replay": "false"},
+            ),
+        )
+
     return account
 
 
@@ -43,62 +92,127 @@ async def create_account(account: Account, tenant_id: str = Depends(tenant_requi
 async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
     return acc
 
 
 @router.patch("/{account_id}", response_model=Account)
 async def update_account(
-    account_id: str, fields: dict[str, Any], tenant_id: str = Depends(tenant_required)
+    account_id: str,
+    fields: AccountUpdateRequest,
+    request: Request,
+    tenant_id: str = Depends(tenant_required),
 ):
-    acc = db.accounts.update(account_id, tenant_id=tenant_id, **fields)
+    key = _idempotency_header_value(request)
+    replay_request: IdempotencyRequest | None = None
+    if key:
+        replay_request = IdempotencyRequest(
+            tenant_id=tenant_id,
+            endpoint_key="PATCH:/v1/accounts/{account_id}",
+            idempotency_key=key,
+            request_fingerprint=build_request_fingerprint(
+                "PATCH", f"/v1/accounts/{account_id}", fields.model_dump(exclude_unset=True)
+            ),
+        )
+        try:
+            replay = _idempotency_service.check_replay(replay_request)
+        except IdempotencyConflictError as exc:
+            logger.warning("idempotency_conflict", exc_info=True, extra={"endpoint": "PATCH:/v1/accounts/{account_id}", "tenant_id": tenant_id})
+            raise ConflictError(message="Idempotency conflict detected")
+        if replay:
+            headers = dict(replay.headers)
+            headers["X-Idempotent-Replay"] = "true"
+            return JSONResponse(status_code=replay.status_code, content=replay.body, headers=headers)
+
+    update_data = fields.model_dump(exclude_unset=True)
+    if not update_data:
+        raise ValidationError(message="No fields provided for update")
+
+    acc = db.accounts.update(account_id, tenant_id=tenant_id, **update_data)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
+    if replay_request:
+        _idempotency_service.store_response(
+            replay_request,
+            IdempotencyRecord(status_code=200, body=acc.model_dump(), headers={"X-Idempotent-Replay": "false"}),
+        )
     return acc
 
 
-@router.get("/{account_id}/summary")
+@router.get("/{account_id}/summary", response_model=AccountSummaryResponse)
 async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
-    signals = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+        raise NotFoundError(message="Account not found")
+
+    signals = db.signals.list(
+        tenant_id=tenant_id,
+        filter_fn=lambda s: s.account_id == account_id,
+    )
     hypotheses = db.hypotheses.list(
-        tenant_id=tenant_id, filter_fn=lambda h: h.account_id == account_id
+        tenant_id=tenant_id,
+        filter_fn=lambda h: h.account_id == account_id,
     )
     roi_calcs = db.roi_calculations.list(
-        tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id
+        tenant_id=tenant_id,
+        filter_fn=lambda r: r.account_id == account_id,
     )
-    return {
-        "account": acc,
-        "signal_count": len(signals),
-        "hypothesis_count": len(hypotheses),
-        "roi_calculation_count": len(roi_calcs),
-    }
+
+    return AccountSummaryResponse(
+        account=acc,
+        signal_count=len(signals),
+        hypothesis_count=len(hypotheses),
+        roi_calculation_count=len(roi_calcs),
+    )
 
 
-@router.post("/{account_id}/share")
-async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+@router.post("/{account_id}/share", response_model=AccountShareLinkResponse)
+async def create_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
-    # Use a cryptographically secure random token (256 bits of entropy).
-    # Python's built-in hash() is non-cryptographic, seed-randomized per process,
-    # and produces only ~20 bits of effective entropy after modulo — do not use it.
+        raise NotFoundError(message="Account not found")
+
     raw_token = secrets.token_urlsafe(32)
     token_fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     expires_at = datetime.now(UTC) + timedelta(days=7)
-    _SHARE_LINKS[(tenant_id, account_id)] = {
-        "fingerprint_hash": token_fingerprint_hash,
-        "expires_at_ts": int(expires_at.timestamp()),
-    }
-    return {"share_token": raw_token, "account_id": account_id, "role": "read_only"}
+
+    try:
+        repo.create(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            fingerprint_hash=token_fingerprint_hash,
+            expires_at_ts=int(expires_at.timestamp()),
+        )
+    except (StoreUnavailableError, StorePayloadError):
+        raise ServiceUnavailableError(message="Share-link store unavailable; try again later")
+
+    return AccountShareLinkResponse(
+        share_token=raw_token,
+        account_id=account_id,
+        role="read_only",
+    )
 
 
-@router.delete("/{account_id}/share")
-async def revoke_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+@router.delete("/{account_id}/share", response_model=AccountShareRevokeResponse)
+async def revoke_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
-    _SHARE_LINKS.pop((tenant_id, account_id), None)
-    return {"revoked": True, "account_id": account_id}
+        raise NotFoundError(message="Account not found")
+
+    try:
+        repo.revoke(tenant_id=tenant_id, account_id=account_id)
+    except (StoreUnavailableError, StorePayloadError):
+        raise ServiceUnavailableError(message="Share-link store unavailable; try again later")
+
+    return AccountShareRevokeResponse(
+        revoked=True,
+        account_id=account_id,
+    )

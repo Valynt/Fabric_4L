@@ -17,7 +17,7 @@ export function PersonalSessions() {
                 <p className="text-sm font-medium">
                   {s.device}
                   {s.current && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 vf-text-micro font-medium text-primary">
                       Current
                     </span>
                   )}

@@ -819,7 +819,7 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 
 **Nightly/Scheduled:**
 - Integration Tests (`integration-tests.yml`)
-- Smoke Tests (`smoke-gate.yml`)
+- Smoke Tests (`pr-checks.yml` / `integration-checks`, via `make test-backend-integrated-release-smoke`)
 - Performance Tests (`performance-load-tests.yml`)
 - Contract Drift (`contract-drift-check.yml`)
 - AI Evals (`ai-evals-pipeline.yml`)
@@ -948,9 +948,9 @@ make evals    # golden-trace agent evaluations
 
 # Frontend verification
 cd apps/web
-pnpm test -- --coverage
+pnpm run test -- --coverage
 pnpm run lint
-pnpm tsc --noEmit
+pnpm run typecheck
 ```
 
 ## 13. Deployment and Infrastructure Notes
@@ -1150,7 +1150,7 @@ open http://localhost:5173
 ## Core concepts
 
 - **Contracts** — All tool schemas and API shapes live in `contracts/`. They are the source of truth.
-- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/engine/`.
+- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/layer4_agents/engine/`.
 - **Agents** — Behavior defined as versioned artifacts in `services/layer4-agents/agents/` and `services/layer4-agents/skills/`.
 - **Providers** — Vendor-specific adapters (OpenAI, Anthropic, Neo4j, pgvector) isolated from core logic.
 - **Packs** — Domain vertical extensions that add ontology, formulas, and variables without touching core.

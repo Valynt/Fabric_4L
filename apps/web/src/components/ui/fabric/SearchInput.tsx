@@ -21,7 +21,7 @@ export function SearchInput({ placeholder, value, onChange }: SearchInputProps) 
         value={value || ""}
         onChange={onChange}
         placeholder={placeholder ?? "Search…"}
-        className="pl-9 h-8 text-[12px]"
+        className="pl-9 h-8 vf-text-body-s"
       />
     </div>
   );

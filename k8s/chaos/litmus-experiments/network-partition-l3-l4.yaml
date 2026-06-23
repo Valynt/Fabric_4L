@@ -61,7 +61,7 @@ spec:
                   get:
                     criteria: "=="
                     responseCode: "200"
-            
+
             # Verify knowledge layer recovers after network restore
             - name: "knowledge-recovery"
               type: "cmdProbe"
@@ -113,7 +113,7 @@ spec:
           - "patch"
           - "update"
           - "delete"
-    image: "litmuschaos/go-runner:latest"
+    image: "litmuschaos/go-runner:3.13.0"
     imagePullPolicy: Always
     args:
       - -c

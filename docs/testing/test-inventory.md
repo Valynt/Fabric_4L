@@ -6,6 +6,26 @@
 
 ---
 
+## Current Executable Suite Entrypoints
+
+Use this table as the maintained path from a test-related issue to the canonical suite and public validation command. The generated inventory below is historical coverage context; these entrypoints are the current interfaces guarded by `pnpm docs:check`.
+
+| Domain | Source paths | Public validation command |
+| --- | --- | --- |
+| Layer 1 ingestion | `services/layer1-ingestion/tests` | `make test-layer1` |
+| Layer 2 extraction | `services/layer2-extraction/tests` | `make test-layer2` |
+| Layer 3 knowledge | `services/layer3-knowledge/tests` | `make test-layer3` |
+| Layer 4 agents | `services/layer4-agents/tests`, `tests/agents` | `make test-layer4` |
+| Layer 5 ground truth | `services/layer5-ground-truth/tests` | `make test-layer5` |
+| Layer 6 benchmarks | `services/layer6-benchmarks/tests` | `make test-layer6` |
+| Cross-layer contracts | `tests/contract` | `make contract-tests` |
+| Security and tenant isolation | `tests/security`, `tests/tenancy` | `make gate-security` |
+| Production readiness | `tests/security`, `tests/reliability`, `tests/observability`, `tests/recovery`, `tests/release`, `tests/tenancy`, `tests/billing`, `tests/abuse`, `tests/config`, `tests/audit` | `pnpm test:production-readiness` |
+| Frontend verification | `apps/web/src`, `apps/web/e2e` | `pnpm run verify:frontend` |
+| Documentation and discovery | `tests/docs`, `docs/development`, `docs/testing` | `pnpm docs:check` |
+
+---
+
 ## Summary by Layer
 
 | Layer | Test Files | Est. Tests | Status |
@@ -310,7 +330,7 @@
 | Gate | Workflow | Trigger |
 |------|----------|---------|
 | Integration Tests | `integration-tests.yml` | Schedule/Manual |
-| Smoke Tests | `smoke-gate.yml` | PR (optional) |
+| Smoke Tests | `pr-checks.yml` / `integration-checks` (`make test-backend-integrated-release-smoke`) | PR validation |
 | Performance Tests | `performance-load-tests.yml` | Schedule/Manual |
 | Contract Drift | `contract-drift-check.yml` | Schedule |
 | AI Evals | `ai-evals-pipeline.yml` | PR/Schedule |
@@ -326,9 +346,9 @@ pytest -m contract --timeout=60
 pytest -m security --timeout=60
 
 # Frontend tests
-pnpm test -- --coverage
-pnpm run lint
-pnpm tsc --noEmit
+pnpm --dir apps/web run test -- --coverage
+pnpm --dir apps/web run lint
+pnpm --dir apps/web run typecheck
 
 # E2E tests
 pnpm exec playwright test

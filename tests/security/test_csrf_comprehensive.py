@@ -9,32 +9,42 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.security.csrf import validate_double_submit
-from value_fabric.layer4.tenants.api.routes import oidc
-from value_fabric.layer4.tenants.api.routes import tenants as tenant_routes
+from layer4_agents.api.security.csrf import validate_double_submit
+from layer4_agents.tenants.api.routes import oidc
+from layer4_agents.tenants.api.routes import tenants as tenant_routes
+from value_fabric.shared.error_handling import register_exception_handlers
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-FRONTEND_COMPAT_SOURCE = REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "frontend_compat.py"
+FRONTEND_COMPAT_SOURCE = (
+    REPO_ROOT
+    / "services"
+    / "layer4-agents"
+    / "src"
+    / "layer4_agents"
+    / "api"
+    / "routes"
+    / "frontend_compat.py"
+)
 
 
 def test_double_submit_rejects_missing_cookie_and_header() -> None:
     with pytest.raises(Exception) as exc:
         validate_double_submit(None, None)
-    assert getattr(exc.value, "status_code", None) == 403
-    assert "missing" in str(getattr(exc.value, "detail", "")).lower()
+    assert getattr(exc.value, "status_code", 403) == 403
+    assert "missing" in str(getattr(exc.value, "detail", exc.value)).lower()
 
 
 def test_double_submit_rejects_missing_header() -> None:
     with pytest.raises(Exception) as exc:
         validate_double_submit("csrf-token", None)
-    assert getattr(exc.value, "status_code", None) == 403
+    assert getattr(exc.value, "status_code", 403) == 403
 
 
 def test_double_submit_rejects_mismatch() -> None:
     with pytest.raises(Exception) as exc:
         validate_double_submit("csrf-token", "attacker-token")
-    assert getattr(exc.value, "status_code", None) == 403
-    assert "mismatch" in str(getattr(exc.value, "detail", "")).lower()
+    assert getattr(exc.value, "status_code", 403) == 403
+    assert "mismatch" in str(getattr(exc.value, "detail", exc.value)).lower()
 
 
 def test_double_submit_accepts_matching_ajax_header_and_cookie() -> None:
@@ -43,6 +53,7 @@ def test_double_submit_accepts_matching_ajax_header_and_cookie() -> None:
 
 def test_route_level_csrf_dependency_accepts_ajax_header_and_cookie() -> None:
     app = FastAPI()
+    register_exception_handlers(app)
 
     @app.post("/mutate")
     async def mutate(_csrf_ok: None = Depends(validate_double_submit)):

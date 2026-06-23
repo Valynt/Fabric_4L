@@ -6,12 +6,12 @@ import { useFormulaVersions, useFormulaGovernance, type FormulaVersion } from "@
 import { formatRelativeTime } from "@/lib/formatters";
 
 const VERSION_STATUS_COLOR: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700",
-  approved: "bg-blue-50 text-blue-700",
+  active: "bg-success/10 text-success",
+  approved: "bg-primary/10 text-primary",
   draft: "bg-muted/30 text-muted-foreground",
-  under_review: "bg-amber-50 text-amber-700",
-  deprecated: "bg-red-50 text-red-600",
-  retired: "bg-neutral-100 text-neutral-500",
+  under_review: "bg-warning/10 text-warning",
+  deprecated: "bg-destructive/10 text-destructive",
+  retired: "bg-muted text-muted-foreground",
 };
 
 interface VersionHistoryPanelProps {
@@ -33,7 +33,7 @@ export function VersionHistoryPanel({ formulaId }: VersionHistoryPanelProps) {
   return (
     <div className="space-y-4">
       {governance && (
-        <div className="p-3 bg-secondary/30 rounded-lg text-[12px] space-y-1">
+        <div className="p-3 bg-secondary/30 rounded-lg vf-text-body-s space-y-1">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Owner</span>
             <span className="font-medium">{governance.owner || "Unassigned"}</span>
@@ -59,20 +59,20 @@ export function VersionHistoryPanel({ formulaId }: VersionHistoryPanelProps) {
             <div className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[12px] font-mono font-semibold">v{v.version}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${VERSION_STATUS_COLOR[v.status] || "bg-muted/30 text-muted-foreground"}`}>
+                <span className="vf-text-body-s font-mono font-semibold">v{v.version}</span>
+                <span className={`vf-text-micro px-1.5 py-0.5 rounded-full ${VERSION_STATUS_COLOR[v.status] || "bg-muted/30 text-muted-foreground"}`}>
                   {v.status}
                 </span>
               </div>
-              <div className="text-[11px] text-muted-foreground truncate">{v.change_summary}</div>
-              <div className="text-[10px] text-muted-foreground/60">
+              <div className="vf-text-caption text-muted-foreground truncate">{v.change_summary}</div>
+              <div className="vf-text-micro text-muted-foreground/60">
                 {v.created_by} &middot; {formatRelativeTime(v.created_at)}
               </div>
             </div>
           </div>
         ))}
         {(!versions || versions.length === 0) && (
-          <div className="text-[12px] text-muted-foreground text-center py-4">No version history</div>
+          <div className="vf-text-body-s text-muted-foreground text-center py-4">No version history</div>
         )}
       </div>
     </div>

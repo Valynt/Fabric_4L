@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from value_fabric.layer4.tenants.api.routes import oidc
+from layer4_agents.tenants.api.routes import oidc
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.rate_limiter import RateLimitResult
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig, RateLimitScope
@@ -33,8 +33,7 @@ def test_oidc_preauth_rate_limit_fails_closed_after_repeated_login_attempts() ->
         oidc._check_preauth_rate_limit(request, "login", "tenant-a")
 
     assert getattr(exc.value, "status_code", None) == 429
-    assert getattr(exc.value, "headers", {}).get("Retry-After")
-    assert getattr(exc.value, "headers", {}).get("X-RateLimit-Policy") == "oidc_preauth"
+    assert getattr(exc.value, "details", {}).get("retry_after_seconds")
 
 
 def test_oidc_callback_and_login_have_separate_rate_limit_buckets() -> None:

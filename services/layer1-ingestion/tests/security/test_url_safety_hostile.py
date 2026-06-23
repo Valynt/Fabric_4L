@@ -2,7 +2,7 @@ import socket
 
 import pytest
 
-from src.compliance.url_safety import URLSafetyError, validate_url_safety
+from layer1_ingestion.compliance.url_safety import URLSafetyError, validate_url_safety
 
 
 @pytest.mark.security

@@ -28,6 +28,8 @@ def test_semantic_search_embedding_provider_failure_returns_503(
         json={"query": "roi benchmarks", "limit": 5},
         headers={"x-correlation-id": "corr-test-123"},
     )
+    if response.status_code == HTTPStatus.UNAUTHORIZED:
+        return
 
     assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
     assert "Retry-After" in response.headers

@@ -233,9 +233,30 @@ jobs:
           for dir in services/*/; do
             if [ -f "$dir/pyproject.toml" ]; then
               service_name=$(basename "$dir")
+              requirements_file="/tmp/${service_name}-requirements.txt"
+              audit_output="${GITHUB_WORKSPACE}/${service_name}-audit.json"
               echo "Auditing $service_name"
-              # Generate requirements from pyproject.toml using pip freeze approach
-              (cd "$dir" && pip freeze > /tmp/requirements.txt 2>/dev/null && pip-audit -r /tmp/requirements.txt --format=json --output="../${service_name}-audit.json") || true
+              # Generate requirements from the active CI tools environment, then keep
+              # vulnerability findings advisory while failing scanner/runtime errors.
+              set +e
+              (
+                cd "$dir" && \
+                  pip freeze > "$requirements_file" && \
+                  pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+              )
+              audit_status=$?
+              set -e
+
+              python -c 'import json, sys; from pathlib import Path; path = Path(sys.argv[1]); service_name = sys.argv[2]; payload = json.loads(path.read_text(encoding="utf-8")); assert isinstance(payload, dict) and "dependencies" in payload, f"pip-audit JSON for {service_name} is missing the expected dependencies report"' "$audit_output" "$service_name"
+
+              if [ "$audit_status" -gt 1 ]; then
+                echo "::error::pip-audit exited with status $audit_status for $service_name"
+                exit "$audit_status"
+              fi
+
+              if [ "$audit_status" -eq 1 ]; then
+                echo "::warning::pip-audit reported vulnerabilities for $service_name; audit JSON was validated and uploaded for review"
+              fi
             fi
           done
 
@@ -258,13 +279,16 @@ jobs:
 
       - name: Audit Node.js dependencies (pnpm)
         run: |
-          cd apps/web
-          pnpm audit --json > ../frontend-audit.json || true
-          cd ..
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json || true
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json || true
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json || true
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json || true
+          set +e
+          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json
+          audit_status=$?
+          set -e
+
+          python -c 'import json, sys; from pathlib import Path; payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")); assert isinstance(payload, dict), "pnpm audit JSON is missing expected audit report fields"; error = payload.get("error"); assert not error, "pnpm audit failed to execute successfully: " + str(error); assert any(key in payload for key in ("advisories", "auditReportVersion", "metadata", "vulnerabilities")), "pnpm audit JSON is missing expected audit report fields"' frontend-audit.json
+
+          if [ "$audit_status" -ne 0 ]; then
+            echo "::warning::pnpm audit reported high-severity dependency advisories; audit JSON was validated and uploaded for review"
+          fi
 
       - name: Upload audit results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
@@ -288,20 +312,49 @@ jobs:
 
       - name: Check Python licenses
         run: |
+          set -euo pipefail
+          mkdir -p license-reports
           echo "Using pip-licenses from pinned CI tools image"
           for dir in services/*/; do
             if [ -f "$dir/requirements.txt" ]; then
               echo "Checking licenses in $dir"
-              (cd "$dir" && pip-licenses --format=json --output-file=licenses.json) || true
+              service_name="$(basename "$dir")"
+              (cd "$dir" && pip-licenses --format=json --output-file="$GITHUB_WORKSPACE/license-reports/${service_name}-licenses.json")
             fi
           done
 
       - name: Check for forbidden licenses
         run: |
-          # Fail on GPL/AGPL in production dependencies
-          FORBIDDEN="GPL-3.0 AGPL-3.0"
-          echo "Checking for forbidden licenses: $FORBIDDEN"
-          # This is a placeholder - integrate with FOSSA for production
+          set -euo pipefail
+          python - << 'PY'
+          import json
+          from pathlib import Path
+
+          forbidden = {"GPL-3.0", "AGPL-3.0", "LGPL-3.0", "SSPL-1.0"}
+          violations = []
+          for report in Path("license-reports").glob("*-licenses.json"):
+              for package in json.loads(report.read_text(encoding="utf-8") or "[]"):
+                  license_name = str(package.get("License") or package.get("license") or "")
+                  if any(blocked in license_name for blocked in forbidden):
+                      violations.append(
+                          f"{report.name}: {package.get('Name') or package.get('name')} => {license_name}"
+                      )
+
+          if violations:
+              print("Forbidden production dependency licenses detected:")
+              print("\n".join(violations))
+              raise SystemExit(1)
+
+          print("No forbidden production dependency licenses detected.")
+          PY
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: license-report-${{ github.sha }}
+          path: license-reports/
+          retention-days: 30
 
   # ============================================
   # Summary Report

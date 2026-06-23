@@ -1,12 +1,16 @@
-from value_fabric.layer3.services.compat_metrics import (
-    get_compat_metrics_snapshot,
-    record_deprecated_legacy_field_usage,
-    record_deprecated_route_hit,
-)
 import pytest
 
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
+try:
+    from src.services.compat_metrics import (
+        get_compat_metrics_snapshot,
+        record_deprecated_legacy_field_usage,
+        record_deprecated_route_hit,
+    )
+except (ImportError, Exception):
+    pytest.skip(
+        "src service stack not available (pre-existing blocker #1/#9)",
+        allow_module_level=True,
+    )
 
 def test_compat_metrics_are_segmented_by_tenant_and_app_client() -> None:
     record_deprecated_route_hit("/v1/query", tenant_id="tenant-a", app_client="web")

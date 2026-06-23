@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Regression tests for authentication and governance fail-closed safeguards.
 
 These tests intentionally inspect the route source text instead of importing the
@@ -7,15 +9,14 @@ C-03: optional security/governance imports that silently degraded into
 permissive runtime behavior.
 """
 
-from __future__ import annotations
 
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-HEALTH_BADGES_ROUTE = REPO_ROOT / "services/layer4-agents/src/api/routes/health_badges.py"
-TOOLS_ROUTE = REPO_ROOT / "services/layer4-agents/src/api/routes/tools.py"
+HEALTH_BADGES_ROUTE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/health_badges.py"
+TOOLS_ROUTE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/tools.py"
 
 
 def _read(path: Path) -> str:
@@ -43,14 +44,14 @@ class FailClosedAuthzGuardTests(unittest.TestCase):
         self.assertIn("require_tool_gateway_available()", source)
         self.assertIn("Tool governance gateway unavailable; refusing ungoverned tool execution", source)
 
-    def test_tool_route_preserves_deliberate_http_fail_closed_errors(self) -> None:
-        """HTTPException raised by fail-closed checks must not be swallowed as 200 responses."""
+    def test_tool_route_preserves_deliberate_platform_fail_closed_errors(self) -> None:
+        """Platform exceptions raised by fail-closed checks must not be swallowed as 200 responses."""
         source = _read(TOOLS_ROUTE)
 
-        self.assertIn("except HTTPException:\n        raise", source)
+        self.assertIn("except ValueFabricException:\n        raise", source)
         self.assertLess(
             source.index("require_tool_gateway_available()"),
-            source.index("except HTTPException:\n        raise"),
+            source.index("except ValueFabricException:\n        raise"),
         )
 
 

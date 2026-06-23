@@ -15,8 +15,11 @@
 export { StatCard } from "./StatCard";
 export type { StatCardProps } from "./StatCard";
 
-export { StatusBadgeBlock } from "./StatusBadge";
-export type { StatusBadgeBlockProps, Status } from "./StatusBadge";
+export { StatusBadgeBlock } from "@/components/ui/fabric/StatusBadge";
+export type {
+  StatusBadgeBlockProps,
+  BlockStatus as Status,
+} from "@/components/ui/fabric/StatusBadge";
 
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";

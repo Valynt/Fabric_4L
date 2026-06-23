@@ -435,9 +435,9 @@
 - Security tests: `pytest -m security --timeout=60`
 
 **Job:** `frontend-tests`
-- Unit tests: `pnpm test -- --coverage`
-- Lint: `pnpm run lint`
-- Type check: `pnpm tsc --noEmit`
+- Unit tests: `pnpm --dir apps/web run test -- --coverage`
+- Lint: `pnpm --dir apps/web run lint`
+- Type check: `pnpm --dir apps/web run typecheck`
 
 **Job:** `e2e-tests`
 - E2E tests: `pnpm exec playwright test`

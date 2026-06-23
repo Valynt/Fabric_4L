@@ -166,7 +166,7 @@ class InfisicalClient:
                     MAX_RETRIES,
                     method,
                     url,
-                    str(e),
+                    repr(e),  # ban-str-e-allow: structured-log
                 )
 
             # Exponential backoff before retry
@@ -417,7 +417,7 @@ class TenantSecretManager:
                 results[env] = {"success": True, "data": result}
                 logger.info("Created Infisical path for tenant %s in %s", tenant_id, env)
             except InfisicalAPIError as e:
-                results[env] = {"success": False, "error": str(e)}
+                results[env] = {"success": False, "error": type(e).__name__}
                 logger.error("Failed to create path for tenant %s in %s: %s", tenant_id, env, e)
 
         return results
@@ -476,7 +476,7 @@ class TenantSecretManager:
             return TenantSecretManager_seed_default_tenant_secretsResult.model_validate({"success": True, "data": result})
         except InfisicalAPIError as e:
             logger.error("Failed to seed secrets for tenant %s: %s", tenant_id, e)
-            return TenantSecretManager_seed_default_tenant_secretsResult.model_validate({"success": False, "error": str(e)})
+            return TenantSecretManager_seed_default_tenant_secretsResult.model_validate({"success": False, "error": type(e).__name__})
 
     async def delete_tenant_secrets_path(
         self,
@@ -504,7 +504,7 @@ class TenantSecretManager:
                 results[env] = {"success": True, "data": result}
                 logger.info("Deleted Infisical path for tenant %s in %s", tenant_id, env)
             except InfisicalAPIError as e:
-                results[env] = {"success": False, "error": str(e)}
+                results[env] = {"success": False, "error": type(e).__name__}
                 logger.error("Failed to delete path for tenant %s in %s: %s", tenant_id, env, e)
 
         return results

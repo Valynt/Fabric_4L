@@ -1,5 +1,7 @@
 """Middleware for request correlation ID handling."""
 
+import logging
+import time
 from typing import Callable
 
 from value_fabric.shared.observability.correlation import (
@@ -13,10 +15,17 @@ from value_fabric.shared.observability.trace_context import (
     resolve_trace_context,
     sanitize_trace_id,
 )
+from value_fabric.shared.observability.request_context import (
+    LoggingContext,
+    clear_logging_context,
+    set_logging_context,
+)
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+
+_access_logger = logging.getLogger("fabric.access")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -50,21 +59,61 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process request and add correlation ID."""
         # Get and validate request ID from header, or generate new one
-        trace_context = resolve_trace_context(request.headers)
-        request_id = sanitize_trace_id(trace_context.trace_id, generator=self.generator)
+        trace_context = resolve_trace_context(request.headers, generator=self.generator)
+        request_id = sanitize_trace_id(trace_context.trace_id)
 
         # Store in request state for access in route handlers
         setattr(request.state, REQUEST_STATE_TRACE_ID_KEY, request_id)
         setattr(request.state, REQUEST_STATE_CORRELATION_ID_KEY, request_id)
 
-        # Process request
-        response = await call_next(request)
+        # Legacy alias used by some services/tests.
+        setattr(request.state, "request_id", request_id)
 
-        # Add request ID to response headers
-        for header, value in canonical_trace_headers(request_id).items():
-            response.headers[header] = value
+        tenant_id = getattr(request.state, "tenant_id", None)
+        set_logging_context(
+            LoggingContext(
+                request_id=request_id,
+                correlation_id=request_id,
+                tenant_id=tenant_id,
+                route=request.url.path,
+                method=request.method,
+            )
+        )
+        start = time.perf_counter()
+        try:
+            response = await call_next(request)
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
+            set_logging_context(
+                LoggingContext(
+                    request_id=request_id,
+                    correlation_id=request_id,
+                    tenant_id=tenant_id,
+                    route=request.url.path,
+                    method=request.method,
+                    status=response.status_code,
+                    latency_ms=elapsed_ms,
+                )
+            )
 
-        return response
+            # Emit structured access log
+            _access_logger.info(
+                "request",
+                extra={
+                    "request_id": request_id,
+                    "tenant_id": tenant_id,
+                    "route": request.url.path,
+                    "method": request.method,
+                    "status_code": response.status_code,
+                    "latency_ms": elapsed_ms,
+                },
+            )
+
+            # Add request ID to response headers
+            for header, value in canonical_trace_headers(request_id).items():
+                response.headers[header] = value
+            return response
+        finally:
+            clear_logging_context()
 
 
 def get_request_id(request: Request) -> str:

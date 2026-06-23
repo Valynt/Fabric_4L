@@ -1,6 +1,6 @@
 # Production Readiness Gate: L3 Knowledge Graph Tenant Isolation
 # =============================================================================
-# Status: CLOSED — tenant isolation controls verified for Layer 3 scoped modules.
+# Status: OPEN — blocks production until all L3 runtime Cypher paths use approved execution boundaries.
 #
 # This gate tracks the completion of tenant isolation for Layer 3 (Knowledge Graph)
 # Neo4j routes. L3 uses application-level tenant scoping (Cypher query filtering)
@@ -10,6 +10,8 @@
 #   - docs/audit/l3-neo4j-label-tenant-classification.md
 #   - docs/audit/l3-l4-cypher-scope-report.md
 #   - docs/audit/l3-l4-cypher-scope-report.json
+#   - docs/audit/l3-cypher-tenant-inventory.json (generated CI inventory)
+#   - config/production-readiness/l3-cypher-tenant-inventory-allowlist.json (expiring exceptions)
 #   - .kimi/plans/sunspot-longshot-crimson-avenger.md (Migration plan)
 #   - services/layer3-knowledge/src/api/dependencies_tenant.py (Tenant session wrapper)
 
@@ -23,14 +25,47 @@ metadata:
   owner: "platform-security"
 
 status:
-  overall: "CLOSED"
+  overall: "OPEN"
   # P0 = blocks production; P1 = high risk; P2 = tracked
   priority: "P0"
-  closure_date: "2026-05-05"
+  closure_date: null
   reason: |
-    All five L3 route modules migrated to Neo4jTenantSession with tenant_id
-    filtering. Static scanner reports 0 errors across benchmarks, variables,
-    models, formulas, and formula_governance modules.
+    Blocking gate reopened: L3 runtime modules must not call Neo4j
+    session.run(...) directly for tenant-owned reads, writes, or deletes.
+    Production remains blocked until api, ingestion, analytics, and agents paths
+    use run_validated_query, Neo4jTenantSessionSecured.run, AuditedGraphMutation,
+    or another approved audited execution wrapper.
+
+execution_boundary_gate:
+  status: BLOCKING
+  owner: "platform-security"
+  effective_date: "2026-05-30"
+  scanned_paths:
+    - services/layer3-knowledge/src/api
+    - services/layer3-knowledge/src/ingestion
+    - services/layer3-knowledge/src/analytics
+    - services/layer3-knowledge/src/agents
+  approved_runtime_boundaries:
+    tenant_owned_reads:
+      - run_validated_query
+      - Neo4jTenantSessionSecured.run
+    tenant_owned_writes_deletes:
+      - AuditedGraphMutation
+      - approved audited mutation wrapper
+  direct_session_run_policy: DENY
+  allowlist_policy: |
+    Only explicit system, schema, migration, backup, bootstrap, or health paths
+    may be allowlisted. Every allowlist entry must include owner, expiry,
+    scope, and justification, and must fail closed after expiry.
+  allowlist_entries: []
+
+cypher_tenant_inventory:
+  scanner: scripts/ci/check_l3_cypher_tenant_inventory.py
+  report: docs/audit/l3-cypher-tenant-inventory.json
+  allowlist: config/production-readiness/l3-cypher-tenant-inventory-allowlist.json
+  enforcement: >
+    CI fails when any tenant-owned Cypher path is classified Unsafe or Unknown
+    and is not covered by an unexpired allowlist entry.
 
 modules:
   # ── COMPLETE ── Migrated to Neo4jTenantSession with tenant_id filtering ──────
@@ -123,10 +158,10 @@ schema_migration_plan:
         - constraints.py: Added 6 Enterprise existence constraints for same labels
         - constraints.py: Added 8 tenant_id btree indexes (single + composite)
         - Migration script: services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py
-          * Renames tenantId → tenant_id on :Formula and :Variable
-          * Backfills tenant_id='default' on all 7 target labels
-          * Pre/post inventory + verification with pass/fail reporting
-          * Supports --dry-run, --skip-rename, --skip-backfill
+        - Renames tenantId → tenant_id on :Formula and :Variable
+        - Backfills tenant_id='default' on all 7 target labels
+        - Pre/post inventory + verification with pass/fail reporting
+        - Supports --dry-run, --skip-rename, --skip-backfill
     - phase: 3
       name: "Service Layer Update"
       status: COMPLETE
@@ -141,11 +176,11 @@ schema_migration_plan:
       name: "Dependency Injection Migration"
       status: COMPLETE
       deliverables:
-        - benchmarks.py: `AsyncDriver` → `create_neo4j_tenant_session`
-        - variables.py: `AsyncDriver` → `create_neo4j_tenant_session`
-        - models.py: `AsyncDriver` → `create_neo4j_tenant_session`
-        - formulas.py: `AsyncDriver` → `create_neo4j_tenant_session`
-        - formula_governance.py: `AsyncDriver` → `create_neo4j_tenant_session`
+        - "benchmarks.py: `AsyncDriver` → `create_neo4j_tenant_session`"
+        - "variables.py: `AsyncDriver` → `create_neo4j_tenant_session`"
+        - "models.py: `AsyncDriver` → `create_neo4j_tenant_session`"
+        - "formulas.py: `AsyncDriver` → `create_neo4j_tenant_session`"
+        - "formula_governance.py: `AsyncDriver` → `create_neo4j_tenant_session`"
         - tenant_id auto-injection via Neo4jTenantSession.run() for all handlers
     - phase: 5
       name: "Cross-Tenant Security Tests"

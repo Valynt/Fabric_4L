@@ -23,6 +23,8 @@ import pytest
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
+pytestmark = pytest.mark.service_required
+
 # Service endpoints (configurable via env vars for CI flexibility)
 L1_URL = os.environ.get("L1_URL", "http://localhost:8001")
 L2_URL = os.environ.get("L2_URL", "http://localhost:8002")

@@ -108,17 +108,9 @@ def _install_layer4_import_stubs() -> None:
             {},
         ),
         (
-            "layer4 namespace",
-            "value_fabric.layer4",
-            "layer4_agents",
-            None,
-            [],
-            {},
-        ),
-        (
             "layer5 truth object",
             "layer5_ground_truth.models.truth_object",
-            "value_fabric.layer5.models.truth_object",
+            "layer5_ground_truth.models.truth_object",
             None,
             ["TruthObject", "TruthStatus", "ValidationEvent"],
             {},
@@ -136,10 +128,6 @@ def test_shim_surfaces_match_canonical_public_api(
 ) -> None:
     for key, value in env_overrides.items():
         monkeypatch.setenv(key, value)
-    if surface == "layer4 namespace":
-        _install_layer4_import_stubs()
-        for name in ("value_fabric.layer4", "layer4_agents"):
-            sys.modules.pop(name, None)
 
     try:
         canonical = _import_module(canonical_name)
@@ -150,11 +138,5 @@ def test_shim_surfaces_match_canonical_public_api(
         shimmed = _import_module(shim_name) if shim_name else _load_by_path(shim_path, f"shim_test_{shim_path.stem}")
     except (ImportError, ModuleNotFoundError) as exc:
         pytest.skip(f"Cannot import shim module for {surface!r}: {exc}")
-
-    if surface == "layer4 namespace":
-        canonical_root = (REPO_ROOT / "services" / "layer4-agents" / "src").resolve()
-        assert any(Path(str(item)).resolve() == canonical_root for item in canonical.__path__)
-        assert Path(shimmed.__file__).resolve() == (REPO_ROOT / "layer4_agents" / "__init__.py").resolve()
-        return
 
     _assert_symbol_parity(canonical, shimmed, expected_names)

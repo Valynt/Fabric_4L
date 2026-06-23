@@ -1,3 +1,12 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -10,10 +19,10 @@ Provides secure Neo4j session injection with:
 3. Defense-in-depth for multi-tenant data isolation
 """
 
-from __future__ import annotations
 
 import inspect
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -63,6 +72,7 @@ QUERY_VALIDATION_ENTRYPOINTS: tuple[tuple[str, str], ...] = (
 APPROVED_QUERY_TEMPLATES: tuple[str, ...] = (
     "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) DETACH DELETE e",
 )
+_BROAD_MATCH_PATTERN = re.compile(r"\bMATCH\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)", re.IGNORECASE)
 
 
 def _require_request_context_provider() -> RequestContextProvider:
@@ -97,18 +107,10 @@ class Neo4jTenantSessionSecured:
     3. Blocks unscoped Entity MATCH clauses that could leak data
     
     Example:
-        >>> async with Neo4jTenantSessionSecured(driver, tenant_id) as session:
-        ...     # Valid query - passes validation
-        ...     result = await session.run(
-        ...         "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) RETURN e",
-        ...         id="abc"
-        ...     )
-        ...     
-        ...     # Invalid query - raises UnscopedQueryError
-        ...     result = await session.run(
-        ...         "MATCH (e:Entity {id: $id}) RETURN e",  # Missing tenant_id!
-        ...         id="abc"
-        ...     )
+        Use this wrapper as the approved execution boundary for route-scoped
+        Cypher. Queries that include tenant predicates pass validation; queries
+        missing tenant predicates raise ``UnscopedQueryError`` before reaching
+        the underlying Neo4j session.
     """
     
     def __init__(
@@ -197,10 +199,15 @@ class Neo4jTenantSessionSecured:
             )
 
         query_text = str(query)
+        allow_system_query = bool(params.pop("allow_system_query", False))
 
         # Validate query for tenant scoping
         if self._strict:
             try:
+                if _BROAD_MATCH_PATTERN.search(query_text) and not allow_system_query:
+                    raise UnscopedQueryError(
+                        "Denied broad MATCH traversal without explicit tenant-owned label and tenant predicate"
+                    )
                 risk = QueryValidator.classify_risk(query_text)
                 normalized = " ".join(query_text.split())
                 if risk in {"write", "admin"}:
@@ -225,7 +232,6 @@ class Neo4jTenantSessionSecured:
         params["tenant_id"] = self._tenant_id
         params["_tenant_id"] = self._tenant_id
 
-        allow_system_query = bool(params.pop("allow_system_query", False))
         return await TenantQueryExecutor.run(
             self._session.run,
             query_text,
@@ -277,10 +283,7 @@ async def get_neo4j_secured(
         _require_request_context_provider()
     
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required"
-        )
+        raise ValidationError(message = "Tenant context required")
     
     driver = getattr(request.app.state, "neo4j_driver", None)
     if not driver:
@@ -290,10 +293,7 @@ async def get_neo4j_secured(
             driver = get_neo4j_driver()
         except Exception as exc:
             logger.error("Failed to create Neo4j session: %s", exc)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Neo4j service unavailable",
-            ) from exc
+            raise ServiceUnavailableError(message = "Neo4j service unavailable") from exc
     
     return Neo4jTenantSessionSecured(
         driver=driver,
@@ -355,14 +355,8 @@ async def get_neo4j_with_optional_tenant(
     if context and context.tenant_id:
         return await get_neo4j_secured(request, context)
     if context and context.is_super_admin():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super-admin Neo4j bypass must use an explicitly reviewed admin dependency.",
-        )
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Tenant context required or explicitly reviewed super-admin dependency.",
-    )
+        raise AuthorizationError(message = "Super-admin Neo4j bypass must use an explicitly reviewed admin dependency.")
+    raise ValidationError(message = "Tenant context required or explicitly reviewed super-admin dependency.")
 
 
 def require_tenant_header_for_internal():
@@ -380,20 +374,17 @@ def require_tenant_header_for_internal():
             ctx = await ctx
         if ctx and ctx.tenant_id:
             return str(ctx.tenant_id)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant context required. Ensure request passed through GovernanceMiddleware.",
-        )
+        raise AuthenticationError(message = "Tenant context required. Ensure request passed through GovernanceMiddleware.")
 
     return _check_tenant_header
 
 
 def require_request_tenant_id(request: Request) -> str:
-    """Extract tenant from request.state.context and fail closed when absent."""
-    ctx = getattr(request.state, "context", None)
+    """Extract tenant from request.state.governance_context and fail closed when absent."""
+    ctx = getattr(request.state, "governance_context", None)
     tenant_id = getattr(ctx, "tenant_id", None) if ctx else None
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_id is required")
+        raise ValidationError(message = "tenant_id is required")
     return str(tenant_id)
 
 

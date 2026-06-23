@@ -1,0 +1,967 @@
+# =============================================================================
+# Fabric_4L Full Production-like Stack
+# =============================================================================
+# Usage (with Infisical — recommended):
+#   pnpm env:dev                    # generates .env.generated
+#   docker compose -f infra/compose/docker-compose.full.yml --env-file .env.generated up --build
+#
+# Usage (legacy manual .env):
+#   docker compose -f infra/compose/docker-compose.full.yml up --build
+# =============================================================================
+# Migrated from value-fabric/docker-compose.yml during legacy path cleanup.
+version: "3.8"
+
+x-app-hardening: &app-hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  read_only: true
+  tmpfs:
+    - /tmp
+
+x-process-hardening: &process-hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+x-build-args: &build-args
+  BASE_IMAGE: ${BASE_IMAGE:-python:3.11.11-slim-bookworm}
+
+services:
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: ./services/api/Dockerfile
+    container_name: value-fabric-api-gateway
+    <<: *app-hardening
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - TESTING=false
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - ALGORITHM=${JWT_ALGORITHM}
+      - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS is required}
+      - LAYER4_API_BASE_URL=http://layer4-agents:8000
+      - AUTH_PROVIDER=${AUTH_PROVIDER}
+      - CLERK_ISSUER=${CLERK_ISSUER:?CLERK_ISSUER is required}
+      - CLERK_JWT_AUDIENCE=${CLERK_JWT_AUDIENCE}
+      - CLERK_AUTHORIZED_PARTIES=${CLERK_AUTHORIZED_PARTIES:?CLERK_AUTHORIZED_PARTIES is required}
+      - CLERK_JWKS_URL=${CLERK_JWKS_URL:?CLERK_JWKS_URL is required}
+      - CLERK_PINNED_JWT_PEM=${CLERK_PINNED_JWT_PEM}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:?CLERK_SECRET_KEY is required}
+      - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
+      - CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE=${CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE}
+      - FABRIC_AUTH_SIGNING_KEY=${FABRIC_AUTH_SIGNING_KEY:?FABRIC_AUTH_SIGNING_KEY is required}
+      - FABRIC_AUTH_SIGNING_KID=${FABRIC_AUTH_SIGNING_KID}
+      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS:?FABRIC_AUTH_PUBLIC_KEYS is required}
+      - FABRIC_AUTH_ISSUER=${FABRIC_AUTH_ISSUER}
+      - FABRIC_AUTH_AUDIENCE=${FABRIC_AUTH_AUDIENCE}
+      - FABRIC_AUTH_ENVELOPE_TTL_SECONDS=${FABRIC_AUTH_ENVELOPE_TTL_SECONDS}
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Layer 1: Data Ingestion Service
+  layer1-ingestion:
+    build:
+      context: ../..
+      dockerfile: ./services/layer1-ingestion/Dockerfile.live
+      args: *build-args
+    container_name: value-fabric-layer1
+    <<: *app-hardening
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - LAYER1_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BROWSERBASE_API_KEY=${BROWSERBASE_API_KEY:-}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+      - CRAWL_RATE_LIMIT_PER_DOMAIN=1
+      - LOG_LEVEL=info
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    volumes:
+      - ../../raw-content:/app/raw-content
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Layer 2: Extraction Pipeline
+  layer2-extraction:
+    build:
+      context: ../..
+      dockerfile: ./services/layer2-extraction/Dockerfile.full
+      args: *build-args
+    container_name: value-fabric-layer2
+    <<: *app-hardening
+    expose:
+      - "8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - LAYER2_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/extraction
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - RDF_OUTPUT_DIR=/app/rdf-output
+      - LOG_LEVEL=info
+      - LAYER3_API_URL=http://layer3-knowledge:8001
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    volumes:
+      - rdf-output:/app/rdf-output
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Layer 2.5: Signal Refinery Service
+  layer2-5-signal-refinery:
+    build:
+      context: ../..
+      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile
+      args: *build-args
+    container_name: value-fabric-layer2-5
+    <<: *app-hardening
+    expose:
+      - "8007"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/signal_refinery
+      - LAYER3_BASE_URL=http://layer3-knowledge:8001
+      - LAYER4_BASE_URL=http://layer4-agents:8000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Layer 3: Neo4j Knowledge Graph
+  neo4j:
+    extends:
+      file: ./docker-compose.base.yml
+      service: neo4j-base
+    container_name: value-fabric-neo4j
+    expose:
+      - "7474"  # HTTP
+      - "7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_memory_heap_max__size=2G
+      - NEO4J_dbms_memory_pagecache_size=1G
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Layer 3 Knowledge Graph API
+  layer3-knowledge:
+    build:
+      context: ../..
+      dockerfile: ./services/layer3-knowledge/Dockerfile.full
+      args:
+        <<: *build-args
+        BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-python:3.11.11-slim-bookworm}
+    container_name: value-fabric-layer3
+    <<: *app-hardening
+    expose:
+      - "8001"
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+      - LOG_LEVEL=info
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Layer 4: Agentic Workflow Engine
+  layer4-agents:
+    build:
+      context: ../..
+      dockerfile: ./services/layer4-agents/Dockerfile.full
+      args: *build-args
+    container_name: value-fabric-layer4
+    <<: *app-hardening
+    ports:
+      - "8004:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - DATABASE_URL=${LAYER4_DATABASE_URL:?LAYER4_DATABASE_URL is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - LAYER2_API_URL=http://layer2-extraction:8000
+      - LAYER1_API_URL=http://layer1-ingestion:8000
+      - LAYER3_API_URL=http://layer3-knowledge:8001
+      - LAYER5_GROUND_TRUTH_URL=http://layer5-ground-truth:8005
+      - LAYER6_BENCHMARKS_URL=http://layer6-benchmarks:8006
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+      - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      - LOG_LEVEL=info
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      layer2-extraction:
+        condition: service_healthy
+      layer3-knowledge:
+        condition: service_healthy
+      layer5-ground-truth:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Layer 5: Ground Truth Service
+  layer5-ground-truth:
+    build:
+      context: ../..
+      dockerfile: ./services/layer5-ground-truth/Dockerfile.full
+      args: *build-args
+    container_name: value-fabric-layer5
+    <<: *app-hardening
+    expose:
+      - "8005"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      - LAYER3_BASE_URL=http://layer3-knowledge:8001
+      - LAYER3_SYNC_ENABLED=true
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_ALGORITHM=HS256
+      - MIN_CONFIDENCE_FOR_SUPPORTED=0.5
+      - MIN_SOURCES_FOR_CORROBORATED=2
+      - AUTO_ADVANCE_TO_SUPPORTED=true
+      - LOG_LEVEL=info
+      - API_PORT=8005
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      layer5-migrate:
+        condition: service_completed_successfully
+      layer3-knowledge:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8005/').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Layer 5 Alembic migration runner (one-shot: runs migrations then exits)
+  # Uses pg_advisory_lock to prevent concurrent migrations across deployments
+  # Lock ID is derived from database name to avoid conflicts between services
+  layer5-migrate:
+    build:
+      context: ../..
+      dockerfile: ./services/layer5-ground-truth/Dockerfile.full
+      args: *build-args
+    container_name: value-fabric-layer5-migrate
+    command: >
+      sh -c "
+      # Derive lock ID from database name for service-specific locking
+      DB_NAME='ground_truth'
+      LOCK_ID=$$(echo -n \"$$DB_NAME-migration\" | md5sum | cut -d' ' -f1 | head -c 10)
+      LOCK_NUMERIC=$$(printf '%d' \"0x$$LOCK_ID\")
+      trap 'PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d $$DB_NAME -c \"SELECT pg_advisory_unlock($$LOCK_NUMERIC);\" EXIT INT TERM
+      echo \"Acquiring migration lock for $$DB_NAME (ID: $$LOCK_NUMERIC)\"
+      PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d $$DB_NAME -c \"SELECT pg_advisory_lock($$LOCK_NUMERIC);\" || { echo 'Failed to acquire lock'; exit 1; }
+      echo 'Lock acquired, running migrations'
+      /app/.venv/bin/alembic upgrade head
+      MIGRATION_EXIT_CODE=$$?
+      echo 'Migrations completed with exit code:' $$MIGRATION_EXIT_CODE
+      exit $$MIGRATION_EXIT_CODE
+      "
+    environment:
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: "no"
+
+  # Layer 6: Benchmark Service
+  layer6-benchmarks:
+    build:
+      context: ../..
+      dockerfile: ./services/layer6-benchmarks/Dockerfile.full
+      args: *build-args
+    container_name: value-fabric-layer6
+    <<: *app-hardening
+    expose:
+      - "8006"
+    environment:
+      - PORT=8006
+      - LOG_LEVEL=info
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    depends_on:
+      layer4-agents:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Layer 7: Billing Service
+  layer7-billing:
+    build:
+      context: ../..
+      dockerfile: ./services/layer7-billing/Dockerfile
+      args: *build-args
+    container_name: value-fabric-layer7
+    <<: *app-hardening
+    expose:
+      - "8008"
+    environment:
+      - PORT=8008
+      - LOG_LEVEL=info
+      - LAYER7_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer7_billing
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      # Infisical — leave blank to use plain env vars
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-Development}
+      - INFISICAL_HOST=${INFISICAL_HOST:-}
+      - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
+      - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Monitoring: Prometheus
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: value-fabric-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    <<: *process-hardening
+    expose:
+      - "9090"
+    volumes:
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker for Layer 1
+  layer1-celery-worker:
+    build:
+      context: ../..
+      dockerfile: ./services/layer1-ingestion/Dockerfile.live
+      args: *build-args
+    container_name: value-fabric-layer1-celery-worker
+    <<: *app-hardening
+    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=4 -Q default,celery,ingestion,processing
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - LAYER1_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/app/.venv/bin/celery -A layer1_ingestion.shared.tasks inspect ping -d celery@$$(hostname) --timeout=5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Beat for Scheduled Tasks
+  layer1-celery-beat:
+    build:
+      context: ../..
+      dockerfile: ./services/layer1-ingestion/Dockerfile.live
+      args: *build-args
+    container_name: value-fabric-layer1-celery-beat
+    <<: *app-hardening
+    command: celery -A layer1_ingestion.shared.tasks beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - LAYER1_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      layer1-celery-worker:
+        condition: service_started
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; os.kill(1, 0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Flower - Celery Monitoring UI
+  flower:
+    build:
+      context: ../..
+      dockerfile: ./services/layer1-ingestion/Dockerfile.live
+      args: *build-args
+    container_name: value-fabric-flower
+    command: celery -A layer1_ingestion.shared.tasks flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:?FLOWER_PASSWORD is required}
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - LAYER1_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - FLOWER_USER=${FLOWER_USER:-admin}
+      - FLOWER_PASSWORD=${FLOWER_PASSWORD:?FLOWER_PASSWORD is required}
+      - PYTHONPATH=/app
+    <<: *app-hardening
+    expose:
+      - "5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+      layer1-celery-worker:
+        condition: service_started
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5555/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring: Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: value-fabric-alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    expose:
+      - "9093"
+    volumes:
+      - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring: Grafana
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: value-fabric-grafana
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ../../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Task 62: Distributed Tracing - Jaeger with Badger persistent storage
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: value-fabric-jaeger
+    expose:
+      - "16686"  # Jaeger UI
+      - "4317"    # OTLP gRPC
+      - "4318"    # OTLP HTTP
+      - "14268"  # Jaeger thrift
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+      - BADGER_SPAN_STORE_TTL=336h  # 14 days retention (>7 days required)
+      - MEMORY_MAX_TRACES=50000
+    volumes:
+      - jaeger-data:/badger
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 2G
+        reservations:
+          cpus: "0.50"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:14269/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # PgBouncer connection pool (for production database connection pooling)
+  # NOTE: userlist.txt must be generated from environment variables before starting
+  # For production, use ExternalSecrets Operator to sync from Vault (see k8s/external-secrets/pgbouncer-secrets.yaml)
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: value-fabric-pgbouncer
+    <<: *process-hardening
+    expose:
+      - "6432"
+    environment:
+      - DATABASES_HOST=postgres
+      - DATABASES_PORT=5432
+      - DATABASES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - DATABASES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=25
+      - PGBOUNCER_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - PGBOUNCER_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    command: >
+      sh -c "
+      # Validate and sanitize credentials before writing userlist.txt
+      if [ -z \"$$PGBOUNCER_USER\" ] || [ -z \"$$PGBOUNCER_PASSWORD\" ]; then
+        echo 'ERROR: PGBOUNCER_USER and PGBOUNCER_PASSWORD must be set'
+        exit 1
+      fi
+      # Check for invalid characters that could break userlist format
+      if echo \"$$PGBOUNCER_USER\" | grep -q '[\"\\'\"]'; then
+        echo 'ERROR: PGBOUNCER_USER contains invalid characters'
+        exit 1
+      fi
+      if echo \"$$PGBOUNCER_PASSWORD\" | grep -q '[\"\\'\"]'; then
+        echo 'ERROR: PGBOUNCER_PASSWORD contains invalid characters'
+        exit 1
+      fi
+      # Write userlist.txt in PgBouncer format: \"username\" \"md5hash\"
+      # Using plain text for Docker Compose; production should use md5
+      printf '%s %s\n' \"$$PGBOUNCER_USER\" \"$$PGBOUNCER_PASSWORD\" > /etc/pgbouncer/userlist.txt &&
+      chmod 600 /etc/pgbouncer/userlist.txt &&
+      pgbouncer /etc/pgbouncer/pgbouncer.ini
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis (shared across all layers)
+  redis:
+    extends:
+      file: ./docker-compose.base.yml
+      service: redis-base
+    container_name: value-fabric-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Vault (dev mode) — optional local secrets backend.
+  # SECURITY: Vault `server -dev` is NEVER production-safe. It bypasses normal unseal
+  # and auth hardening. Do not use this compose service for staging or production.
+  vault:
+    image: hashicorp/vault:latest
+    container_name: value-fabric-vault
+    profiles:
+      - dev  # Only start with --profile dev, never in production
+    cap_add:
+      - IPC_LOCK
+    environment:
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    expose:
+      - "8200"
+    volumes:
+      - ../../scripts/vault-dev-init.sh:/vault-dev-init.sh:ro
+    networks:
+      - value-fabric-network
+    restart: "no"
+    # Intentionally omit -dev-root-token-id here. Use docker-compose.full.dev-vault.yml
+    # to opt into a predictable local token during explicit local-dev workflows only.
+    command: server -dev -dev-listen-address=0.0.0.0:8200
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL (for Layer 1 crawl state + Layer 5 Ground Truth)
+  postgres:
+    extends:
+      file: ./docker-compose.base.yml
+      service: postgres-base
+    container_name: value-fabric-postgres
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=ingestion
+      # POSTGRES_MULTIPLE_DATABASES is consumed by init-multiple-dbs.sh
+      - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - postgres-backups:/backups
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL backup job
+  # NOTE: This is a one-shot backup container. For scheduled backups, use:
+  # - Kubernetes CronJob in production (see k8s/base/postgres-backup-cronjob.yaml)
+  # - External scheduler (cron, systemd timer) for Docker Compose
+  # Run with: docker compose -f infra/compose/docker-compose.full.yml --profile backup run postgres-backup
+  postgres-backup:
+    image: postgres:15-alpine
+    container_name: value-fabric-postgres-backup
+    profiles:
+      - backup  # Only start with --profile backup
+    command: >
+      sh -c "
+      set -e
+      BACKUP_DIR=/backups/postgres
+      mkdir -p $$BACKUP_DIR
+      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      echo 'Starting PostgreSQL backup at $$TIMESTAMP'
+
+      # Backup application databases only (exclude system databases)
+      # Track success of each backup
+      BACKUP_SUCCESS=true
+
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup ingestion database'
+        exit 1
+      fi
+
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup extraction database'
+        exit 1
+      fi
+
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup ground_truth database'
+        exit 1
+      fi
+
+      # Verify backup files exist and are non-empty
+      for db in ingestion extraction ground_truth; do
+        BACKUP_FILE=\"$$BACKUP_DIR/backup_$$db_$$TIMESTAMP.sql\"
+        if [ ! -s \"$$BACKUP_FILE\" ]; then
+          echo \"ERROR: Backup file $$BACKUP_FILE is empty or does not exist\"
+          exit 1
+        fi
+        echo \"Verified: $$BACKUP_FILE ($$(wc -c < \"$$BACKUP_FILE\") bytes)\"
+      done
+
+      # Keep last 7 days of backups (only after successful backup)
+      find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
+      echo 'Backup completed successfully at $$TIMESTAMP'
+      "
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: "no"
+
+  # Neo4j backup job
+  # NOTE: This is a one-shot backup container. For scheduled backups, use:
+  # - Kubernetes CronJob in production (see k8s/base/neo4j-backup-cronjob.yaml)
+  # - External scheduler (cron, systemd timer) for Docker Compose
+  # Run with: docker compose -f infra/compose/docker-compose.full.yml --profile backup run neo4j-backup
+  neo4j-backup:
+    image: neo4j:5-community
+    container_name: value-fabric-neo4j-backup
+    profiles:
+      - backup  # Only start with --profile backup
+    command: >
+      sh -c "
+      set -e
+      BACKUP_DIR=/backups/neo4j
+      mkdir -p $$BACKUP_DIR
+      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      echo 'Starting Neo4j backup at $$TIMESTAMP'
+
+      # Wait for Neo4j to be ready with timeout
+      MAX_WAIT=300
+      WAIT_TIME=0
+      until cypher-shell -a neo4j:7687 -u neo4j -p $${NEO4J_PASSWORD} 'RETURN 1' 2>/dev/null; do
+        if [ $$WAIT_TIME -ge $$MAX_WAIT ]; then
+          echo 'ERROR: Timeout waiting for Neo4j to be ready'
+          exit 1
+        fi
+        echo 'Waiting for Neo4j... ($$WAIT_TIME/$$MAX_WAIT seconds)'
+        sleep 5
+        WAIT_TIME=$$((WAIT_TIME + 5))
+      done
+      echo 'Neo4j is ready, starting backup'
+
+      # Perform backup using neo4j-admin with --from flag for consistency
+      # Use --fallback-to-full if incremental backup fails
+      if ! neo4j-admin database dump neo4j --from=/data --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true --fallback-to-full=true; then
+        echo 'ERROR: Neo4j backup failed'
+        exit 1
+      fi
+
+      # Verify backup directory exists and is non-empty
+      BACKUP_PATH=\"$$BACKUP_DIR/backup_$$TIMESTAMP\"
+      if [ ! -d \"$$BACKUP_PATH\" ] || [ -z \"\$(ls -A $$BACKUP_PATH)\" ]; then
+        echo \"ERROR: Backup directory $$BACKUP_PATH is empty or does not exist\"
+        exit 1
+      fi
+      echo \"Verified: $$BACKUP_PATH\"
+
+      # Keep last 7 days of backups (only after successful backup)
+      find $$BACKUP_DIR -name 'backup_*' -mtime +7 -delete
+      echo 'Neo4j backup completed successfully at $$TIMESTAMP'
+      "
+    environment:
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+    volumes:
+      - neo4j-data:/data
+      - neo4j-backups:/backups
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: "no"
+
+volumes:
+  postgres-data:
+  postgres-backups:
+  redis-data:
+  neo4j-data:
+  neo4j-logs:
+  neo4j-backups:
+  rdf-output:
+  ground-truth-data:
+  grafana-data:
+  alertmanager-data:
+  jaeger-data:
+
+networks:
+  value-fabric-network:
+    driver: bridge

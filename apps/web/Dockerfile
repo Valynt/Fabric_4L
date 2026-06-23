@@ -1,18 +1,22 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS builder
+FROM node:22.12.0-alpine3.20 AS builder
 WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
-# Remove workspace-only devDependency not resolvable in standalone Docker build
-RUN node -e "const p=require('./package.json'); delete (p.devDependencies||{})['eslint-plugin-fabric-contracts']; delete (p.scripts||{})['preinstall']; require('fs').writeFileSync('package.json', JSON.stringify(p,null,2))"
-RUN pnpm install --no-frozen-lockfile
+# Copy workspace manifests for pnpm --filter support
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
+COPY packages/config/package.json ./packages/config/
 
-COPY . .
-RUN pnpm build
+# Install from workspace root
+RUN pnpm install --frozen-lockfile
 
-FROM node:22-alpine AS runtime
+# Build only the web app using workspace filter
+RUN pnpm --filter ./apps/web build
+
+FROM node:22.12.0-alpine3.20 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -21,10 +25,14 @@ ENV PORT=3000
 # corepack enable requires root to create symlinks in /usr/local/bin
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
-# Remove workspace-only devDependency not resolvable in standalone Docker build
-RUN node -e "const p=require('./package.json'); delete (p.devDependencies||{})['eslint-plugin-fabric-contracts']; delete (p.scripts||{})['preinstall']; require('fs').writeFileSync('package.json', JSON.stringify(p,null,2))"
-RUN pnpm install --no-frozen-lockfile --prod
+# Copy workspace manifests for pnpm --filter support
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
+COPY packages/config/package.json ./packages/config/
+
+# Install from workspace root (production only)
+RUN pnpm install --frozen-lockfile --prod
 
 # Security: Run as non-root user (node is built-in to node:alpine images)
 # Set USER after all root-requiring operations (corepack, pnpm install)

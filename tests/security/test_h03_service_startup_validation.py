@@ -6,15 +6,7 @@ Covers:
 - validate_production_safety raises RuntimeError for short secrets, missing CORS, etc.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SHARED_SRC = REPO_ROOT / "packages" / "shared" / "src"
-if str(SHARED_SRC) not in sys.path:
-    sys.path.insert(0, str(SHARED_SRC))
 
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.security.config import validate_production_safety
@@ -86,6 +78,7 @@ class TestValidateProductionSafety:
         monkeypatch.setenv("DEFAULT_TENANT_ID", "12345678-1234-1234-1234-123456789abc")
         monkeypatch.setenv("SERVICE_AUTH_SECRET", "x" * 48)
         monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.delenv("MOCK_PERSISTENCE", raising=False)
 
     def test_passes_with_valid_config(self, monkeypatch):
         self._set_valid_production_env(monkeypatch)
@@ -107,9 +100,9 @@ class TestValidateProductionSafety:
 
     def test_fails_with_dev_auth_bypass_in_production(self, monkeypatch):
         self._set_valid_production_env(monkeypatch)
-        monkeypatch.setenv("ALLOW_DEV_AUTH_BYPASS", "i_understand_risk")
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
 
-        with pytest.raises(RuntimeError, match="ALLOW_DEV_AUTH_BYPASS"):
+        with pytest.raises(RuntimeError, match="ALLOW_INSECURE_DEV_AUTH_BYPASS"):
             validate_production_safety()
 
     def test_fails_with_default_tenant_fallback_in_production(self, monkeypatch):

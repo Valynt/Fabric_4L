@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +87,10 @@ class ValueSignalProvenance(BaseModel):
     run_id: Optional[str] = Field(None, description="Extraction run or workflow ID")
     source_system: Optional[str] = Field(None, description="Originating system")
     extracted_at: datetime
+    # v3.0: required provenance lineage
+    normalizer_version: Optional[str] = None
+    extractor_version: Optional[str] = None
+    provenance_class: Optional[str] = Field(None, description="Provenance class: primary, secondary, derived, synthetic")
 
 
 # ---------------------------------------------------------------------------
@@ -125,12 +129,21 @@ class ValueSignal(BaseModel):
 
     # Evidence and provenance
     evidence: list[ValueSignalEvidence] = Field(default_factory=list)
+    evidence_chunk_ids: list[UUID] = Field(default_factory=list)
     provenance: ValueSignalProvenance
     source_refs: list[str] = Field(default_factory=list)
 
     # Timestamps
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("evidence_chunk_ids")
+    @classmethod
+    def _evidence_chunk_ids_non_empty(cls, value: list[UUID]) -> list[UUID]:
+        """v3.0 invariant: a signal must link to at least one evidence chunk."""
+        if not value:
+            raise ValueError("evidence_chunk_ids must contain at least one evidence chunk")
+        return value
 
     # Optional enrichments
     opportunity_id: Optional[UUID] = None
@@ -169,8 +182,17 @@ class ValueSignalCreate(BaseModel):
     trust_score: float = Field(0.0, ge=0.0, le=1.0)
     lifecycle_state: ValueSignalLifecycleState = ValueSignalLifecycleState.DRAFT
     evidence: list[ValueSignalEvidence] = Field(default_factory=list)
+    evidence_chunk_ids: list[UUID] = Field(default_factory=list)
     provenance: ValueSignalProvenance
     source_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("evidence_chunk_ids")
+    @classmethod
+    def _evidence_chunk_ids_non_empty(cls, value: list[UUID]) -> list[UUID]:
+        """v3.0 invariant: a signal must link to at least one evidence chunk."""
+        if not value:
+            raise ValueError("evidence_chunk_ids must contain at least one evidence chunk")
+        return value
 
     # Optional enrichments
     opportunity_id: Optional[UUID] = None

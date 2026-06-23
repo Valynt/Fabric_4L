@@ -1,0 +1,122 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "commit_sha": "116815f3e70e521bf637521cd733703c9a660910",
+  "branch": "main",
+  "git_describe": "v1.1.0-1451-g116815f3-dirty",
+  "frozen_at_utc": "2026-06-14T06:53:25Z",
+  "images": {
+    "frontend": {
+      "build_context": ".",
+      "dockerfile": "./apps/web/Dockerfile.dev",
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer1-ingestion": {
+      "build_context": ".",
+      "dockerfile": "./services/layer1-ingestion/Dockerfile.live",
+      "args": {
+        "INSTALL_PLAYWRIGHT_BROWSERS": "false",
+        "BASE_IMAGE": "${BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer2-extraction": {
+      "build_context": ".",
+      "dockerfile": "./services/layer2-extraction/Dockerfile.full",
+      "args": {
+        "BASE_IMAGE": "${BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer3-knowledge": {
+      "build_context": ".",
+      "dockerfile": "./services/layer3-knowledge/Dockerfile.full",
+      "args": {
+        "BASE_IMAGE": "${BASE_IMAGE:-}",
+        "BUILDER_BASE_IMAGE": "${BUILDER_BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer4-agents": {
+      "build_context": ".",
+      "dockerfile": "./services/layer4-agents/Dockerfile.full",
+      "args": {
+        "BASE_IMAGE": "${BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer5-ground-truth": {
+      "build_context": ".",
+      "dockerfile": "./services/layer5-ground-truth/Dockerfile.full",
+      "args": {
+        "BASE_IMAGE": "${BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    },
+    "layer6-benchmarks": {
+      "build_context": ".",
+      "dockerfile": "./services/layer6-benchmarks/Dockerfile.full",
+      "args": {
+        "BASE_IMAGE": "${BASE_IMAGE:-}"
+      },
+      "commit_digest": "116815f3e70e521bf637521cd733703c9a660910"
+    }
+  },
+  "migrations": {
+    "layer1-ingestion": {
+      "latest": "018",
+      "path": "services/layer1-ingestion/migrations/versions/018_fix_pipeline_schema_drift.py"
+    },
+    "layer2-extraction": {
+      "latest": "20260503_0002",
+      "path": "services/layer2-extraction/migrations/versions/20260503_0002_add_rls_policies.py"
+    },
+    "layer3-knowledge": {
+      "latest": "030",
+      "path": "services/layer3-knowledge/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py"
+    },
+    "layer4-agents": {
+      "latest": "041_add_business_case_records_tenant_indexes",
+      "path": "services/layer4-agents/migrations/versions/041_add_business_case_records_tenant_indexes.py"
+    },
+    "layer5-ground-truth": {
+      "latest": "017",
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/017_add_maturity_history_tenant_recorded_index.py"
+    },
+    "layer6-benchmarks": {
+      "latest": null,
+      "path": null
+    }
+  },
+  "config_version": "docker-compose.live.yml@116815f3e70e521bf637521cd733703c9a660910",
+  "readiness_gates": {
+    "production-readiness-gate": {
+      "status": "passed",
+      "artifact": "artifacts/production-readiness/"
+    },
+    "gate-policy": {
+      "status": "passed"
+    },
+    "gate-lint": {
+      "status": "passed"
+    },
+    "gate-arch": {
+      "status": "passed"
+    },
+    "gate-security": {
+      "status": "passed",
+      "artifact": ".fabric/audit/security_regression_gate/"
+    }
+  },
+  "accepted_risks": [
+    {
+      "id": "R-2026-06-13-01",
+      "description": "Pre-existing tests/contract static failures",
+      "classification": "pre-existing"
+    },
+    {
+      "id": "R-2026-06-13-02",
+      "description": "Pre-existing make test Layer 1 hang / Layer 3 failures",
+      "classification": "pre-existing"
+    }
+  ]
+}

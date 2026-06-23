@@ -7,8 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
-from value_fabric.layer3.api.routes.formula_governance import list_pending_approvals
+from src.api.routes.formula_governance import list_pending_approvals
 
 
 class _Result:
@@ -47,7 +48,7 @@ async def test_list_pending_approvals_accepts_valid_tenant_metadata(monkeypatch)
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.formula_governance.create_neo4j_tenant_session",
+        "src.api.routes.formula_governance.create_neo4j_tenant_session",
         _session_factory,
     )
 
@@ -108,13 +109,16 @@ async def test_rejects_api_key_without_valid_tenant_metadata(api_key, monkeypatc
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.formula_governance.create_neo4j_tenant_session",
+        "src.api.routes.formula_governance.create_neo4j_tenant_session",
         _session_factory,
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((AuthenticationError, HTTPException)) as exc_info:
         await list_pending_approvals(api_key=api_key)
 
-    assert exc_info.value.status_code == 401
-    assert exc_info.value.detail == "Invalid tenant context"
+    if isinstance(exc_info.value, HTTPException):
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Invalid tenant context"
+    else:
+        assert exc_info.value.message == "Invalid tenant context"
     assert not session.called, "Neo4j session must not be called when tenant extraction fails"

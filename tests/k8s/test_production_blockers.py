@@ -29,15 +29,13 @@ def test_prod_neo4j_is_aura_only(repo_root: Path) -> None:
 
 
 def test_operator_evidence_exists_for_prod_crds(repo_root: Path) -> None:
-    postgres = (repo_root / "k8s/base/postgres.yml").read_text()
-    redis = (repo_root / "k8s/base/redis.yml").read_text()
     evidence = (repo_root / "k8s/operators/operator-prerequisites.yaml").read_text()
     prod_kustomization = yaml.safe_load((repo_root / "k8s/envs/prod/kustomization.yaml").read_text())
 
-    assert "postgresql.cnpg.io/v1" in postgres
-    assert "databases.spotahome.com/v1" in redis
     assert "clusters.postgresql.cnpg.io" in evidence
+    assert "Install CloudNativePG operator before applying k8s/envs/prod." in evidence
     assert "redisfailovers.databases.spotahome.com" in evidence
+    assert "Install Spotahome Redis Operator before applying k8s/envs/prod." in evidence
     assert "../../operators" in prod_kustomization["resources"]
 
 

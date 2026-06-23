@@ -8,7 +8,7 @@ export default function WorkspaceHeader() {
   const { accountName, industry, revenue } = useWorkspaceContext();
 
   return (
-    <div className="h-11 bg-muted/50 border-b border-border flex items-center px-6 gap-3 text-[12px] shrink-0">
+    <div className="h-11 bg-muted/50 border-b border-border flex items-center px-6 gap-3 vf-text-body-s shrink-0">
       <Building2 size={14} className="text-muted-foreground shrink-0" />
       <span className="font-semibold text-foreground">{accountName || "Select Account"}</span>
       {industry && (

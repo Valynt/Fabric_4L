@@ -22,3 +22,9 @@ def test_allows_shared_resolver_and_fixtures() -> None:
     allowlisted_fixture = Path("tests/fixtures/security/boundary_check/allowlisted_fixture.py")
     assert boundary_check.is_allowlisted(allowlisted_fixture)
     assert boundary_check.find_violations_in_file(allowlisted_fixture) == []
+
+
+def test_strict_flag_is_supported() -> None:
+    parser = boundary_check.build_parser()
+    args = parser.parse_args(["--strict"])
+    assert args.strict is True

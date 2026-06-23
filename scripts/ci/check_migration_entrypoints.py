@@ -37,10 +37,21 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
         history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
     ),
     ServiceMigrationContract(
+        name="layer2-5-signal-refinery",
+        service_dir=Path("services/layer2-5-signal-refinery"),
+        required_paths=(
+            Path("alembic.ini"),
+            Path("src/layer2_5_signal_refinery/migrations/env.py"),
+            Path("src/layer2_5_signal_refinery/migrations/versions"),
+        ),
+        entrypoint_command=("alembic", "-c", "alembic.ini", "current", "--help"),
+        history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
+    ),
+    ServiceMigrationContract(
         name="layer3-knowledge",
         service_dir=Path("services/layer3-knowledge"),
         required_paths=(Path("src/migrations"),),
-        entrypoint_command=("python", "-m", "pip", "--version"),
+        entrypoint_command=("python", "-c", "import sys; print(sys.version.split()[0])"),
         history_commands=(("python", "-c", "from pathlib import Path; p=Path('src/migrations'); files=sorted(x.name for x in p.iterdir() if x.is_file()); print(len(files))"),),
     ),
     ServiceMigrationContract(
@@ -62,10 +73,17 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
         history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
     ),
     ServiceMigrationContract(
+        name="api",
+        service_dir=Path("services/api/migrations"),
+        required_paths=(Path("alembic.ini"), Path("env.py"), Path("versions")),
+        entrypoint_command=("alembic", "-c", "alembic.ini", "current", "--help"),
+        history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
+    ),
+    ServiceMigrationContract(
         name="layer6-benchmarks",
         service_dir=Path("services/layer6-benchmarks"),
         required_paths=(Path("migrations/versions"),),
-        entrypoint_command=("python", "-m", "pip", "--version"),
+        entrypoint_command=("python", "-c", "import sys; print(sys.version.split()[0])"),
         history_commands=(("python", "-c", "from pathlib import Path; p=Path('migrations/versions'); files=sorted(x.name for x in p.iterdir() if x.is_file()); print(len(files))"),),
     ),
 )
@@ -80,13 +98,16 @@ def _check_commands_available() -> list[str]:
 
 
 def _run_command(cmd: tuple[str, ...], cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=False)
+    normalized_cmd = (sys.executable, *cmd[1:]) if cmd and cmd[0] == "python" else cmd
+    return subprocess.run(normalized_cmd, cwd=cwd, text=True, capture_output=True, check=False)
 
 
 def _find_versions_dir(service_dir: Path) -> Path | None:
     candidates = [
         service_dir / "migrations" / "versions",
+        service_dir / "src" / "layer2_5_signal_refinery" / "migrations" / "versions",
         service_dir / "src" / "layer5_ground_truth" / "migrations" / "versions",
+        service_dir / "versions",
     ]
     for c in candidates:
         if c.exists():
@@ -118,8 +139,17 @@ def _check_alembic_graph(service_dir: Path) -> list[str]:
                     pass
             if line.startswith("down_revision") and ("=" in line or ":" in line):
                 try:
-                    val = line.split("=")[-1].split(":")[-1].strip().strip('"').strip("'")
-                    down_rev = val if val and val != "None" else None
+                    val = line.split("=", 1)[-1].strip()
+                    if val.startswith("(") and val.endswith(")"):
+                        # Tuple of down revisions (merge migration)
+                        down_rev = tuple(
+                            v.strip().strip('"').strip("'")
+                            for v in val[1:-1].split(",")
+                            if v.strip()
+                        )
+                    else:
+                        down_rev = val.strip('"').strip("'")
+                        down_rev = down_rev if down_rev and down_rev != "None" else None
                 except Exception:
                     pass
         if rev:
@@ -139,7 +169,11 @@ def _check_alembic_graph(service_dir: Path) -> list[str]:
     for rev, info in revisions.items():
         down = info["down_revision"]
         if down:
-            children.setdefault(down, []).append(rev)
+            if isinstance(down, tuple):
+                for d in down:
+                    children.setdefault(d, []).append(rev)
+            else:
+                children.setdefault(down, []).append(rev)
 
     heads = [rev for rev in revisions if rev not in children]
     if len(heads) > 1:

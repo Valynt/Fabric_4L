@@ -39,8 +39,8 @@ export function SidePanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className={cn("w-full sm:max-w-[400px] flex flex-col p-0", widthMap[width], className)}>
         <SheetHeader className="px-6 py-4 border-b border-border">
-          <SheetTitle className="text-[16px] font-semibold">{title}</SheetTitle>
-          {description && <SheetDescription className="text-[13px]">{description}</SheetDescription>}
+          <SheetTitle className="text-base font-semibold">{title}</SheetTitle>
+          {description && <SheetDescription className="vf-text-body-m">{description}</SheetDescription>}
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
         {footer && (

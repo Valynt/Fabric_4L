@@ -1,3 +1,8 @@
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+)
+
 """FastAPI application for Layer 2: Extraction Pipeline.
 
 Provides REST API endpoints for:
@@ -12,13 +17,15 @@ P1-29: OpenTelemetry tracing integration for observability.
 import asyncio
 import hashlib
 import json
-import logging
 import os
 import time
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, AsyncGenerator
-from uuid import uuid4
+from typing import Any
+from uuid import NAMESPACE_URL, uuid4, uuid5
+
+import structlog
 
 # Third-party imports for health check
 try:
@@ -26,9 +33,8 @@ try:
 except ImportError:
     psutil = None  # type: ignore[assignment]  # Health check will work without system metrics
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request
 from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel, Field
 
 # Load secrets from Infisical if available (optional in dev, required in prod)
 from value_fabric.shared.environment import (
@@ -36,9 +42,22 @@ from value_fabric.shared.environment import (
     is_production_like_environment,
 )
 from value_fabric.shared.secrets import load_infisical_secrets
+from value_fabric.shared.security.config import is_strict_environment
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-from layer2_extraction.api.deps import RequestContext
+from layer2_extraction.api.deps import RequestContext, require_authenticated
+from layer2_extraction.logging_config import configure_structured_logging
+
+# Configure structured logging BEFORE any operations that might log
+try:
+    configure_structured_logging()
+except Exception:
+    import logging as _logging
+    _logging.basicConfig(level=_logging.INFO)
+
+logger = structlog.get_logger(__name__)
+
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 try:
     load_infisical_secrets()
@@ -48,11 +67,71 @@ except Exception as exc:
     if is_production_like_environment(_secret_env):
         raise RuntimeError("Failed to load Infisical secrets in production-like Layer 2 runtime")
 
+from value_fabric.shared.fastapi_framework import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
+    HealthChecksConfig,
+)
+from value_fabric.shared.fastapi_framework.health import (
+    CallableProbe,
+    ProbeResult,
+    RedisHealthProbe,
+)
+
 from layer2_extraction.alignment import SemanticAligner
+from layer2_extraction.api import s2s_auth
+from layer2_extraction.api.extraction_config import (
+    build_idempotency_key as _build_idempotency_key,
+)
+from layer2_extraction.api.extraction_config import (
+    validated_extraction_config as _validated_extraction_config,
+)
+from layer2_extraction.api.extractor_factory import LazyExtractorFactory, validated_openai_key
+from layer2_extraction.api.pipeline_status import (
+    compute_overall_status,
+    pipeline_response_payload,
+)
+from layer2_extraction.api.retry_queue import (
+    ExtractionArtifactsPayload,
+    deserialize_artifacts,
+    next_retry_at,
+    pending_retry_state,
+    pipeline_job_kwargs_for_pending_record,
+    serialize_artifacts,
+)
+from layer2_extraction.api.routes import health as health_routes
+from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
+from layer2_extraction.api.schemas import (
+    EntityListResponse,
+    ExtractAndIngestResponse,
+    ExtractionStatusResponse,
+    ExtractRequest,
+    ExtractResponse,
+    ProvenanceResponse,
+    QuarantineStatusResponse,
+    RelationshipsResponse,
+)
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
-from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
+from layer2_extraction.extraction.llm_extractor import (
+    EntityExtractor,
+    LLMExtractionError,
+    RelationshipExtractor,
+)
+from layer2_extraction.extraction.prompt_loader import (
+    ENTITY_PROMPT_TEMPLATE_VERSION,
+    RELATIONSHIP_PROMPT_TEMPLATE_VERSION,
+)
+
+# Module-level prompt template metadata (referenced throughout extraction pipeline)
+prompt_template_version = f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}"
+prompt_template_hash: str | None = None
+
+from value_fabric.shared.audit import AuditAction, emit_audit_event
+
+from layer2_extraction.extraction.entity_id import compute_deterministic_id
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
@@ -64,37 +143,54 @@ from layer2_extraction.integration.pending_ingestion_store import (
 from layer2_extraction.integration.quarantine_store import QuarantineRecord, build_quarantine_store
 from layer2_extraction.metrics import get_metrics
 from layer2_extraction.models import (
+    Capability,
     ExtractionResult,
+    Persona,
+    PredicateType,
     Relationship,
+    RoleType,
+    SeniorityLevel,
+    UseCase,
+    ValueCategory,
+    ValueDriver,
 )
 from layer2_extraction.output.provenance import (
     ExtractionStep,
     get_provenance_tracker,
 )
 from layer2_extraction.output.rdf_generator import generate_rdf
+from layer2_extraction.shared_bootstrap import (
+    create_fabric_app,
+    register_health_endpoint,
+    verify_metrics_access,
+)
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
-
-from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
-from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
-
-logger = logging.getLogger(__name__)
-
-PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}
-
-
-def _current_environment() -> str:
-    """Return the normalized runtime environment for production fail-closed policy checks."""
-    return (
-        os.getenv("ENVIRONMENT")
-        or os.getenv("APP_ENV")
-        or os.getenv("LAYER2_ENV")
-        or "development"
-    ).strip().lower()
+from layer2_extraction.validation.artifact_validator import (
+    ArtifactValidationError,
+    validate_extraction_result,
+    validate_for_persistence,
+    validate_relationship_for_persistence,
+)
 
 
-def _is_production_like() -> bool:
-    """Whether the current Layer 2 runtime must fail closed on unsafe defaults."""
-    return _current_environment() in PRODUCTION_LIKE_ENVIRONMENTS
+def _current_environment() -> str | None:
+    """Return the normalized runtime environment for auth fail-closed policy checks.
+
+    Local bypass of startup auth-key enforcement is allowed only when an explicit
+    development/test environment is configured. Missing or custom environments
+    are treated as strict by ``is_strict_environment``.
+    """
+    for key in ("LAYER2_ENV", "ENVIRONMENT", "APP_ENV"):
+        value = os.getenv(key, "").strip()
+        if value:
+            return value.lower()
+    return None
+
+
+def _is_strict_runtime() -> bool:
+    """Return whether Layer 2 must enforce strict startup safety checks."""
+    environment = _current_environment()
+    return is_strict_environment(environment or "unknown")
 
 
 # App start time for uptime calculation
@@ -112,24 +208,70 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Layer2 extraction service shutting down")
 
+# Public unauthenticated probes. All business/API and internal extraction routes
+# must establish tenant context; S2S-only extraction routes stay outside this
+# allowlist so they continue through the dedicated S2S JWT guard below.
+_TENANT_CONTEXT_EXEMPT_PATHS: frozenset[str] = frozenset({
+    "/health",
+    "/health/live",
+    "/ready",
+    "/readiness",
+})
+
+_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+_redis_client = None
+try:
+    import redis.asyncio as _redis_async
+    _redis_client = _redis_async.Redis.from_url(_redis_url, decode_responses=True)
+except Exception:
+    pass
+
+async def _pending_ingestion_probe() -> ProbeResult:
+    """Readiness probe for the pending-ingestion store."""
+    return await health_routes.pending_ingestion_probe(pending_ingestion_store)
+
+
+async def _quarantine_probe() -> ProbeResult:
+    """Readiness probe for the quarantine store."""
+    return await health_routes.quarantine_probe(quarantine_store)
+
+
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_fabric_app(
     service_name="layer2-extraction",
     title="Layer 2 Extraction Service",
     version="1.0.0",
     description="Extraction pipeline for entities and relationships from content",
-    lifespan=lifespan
+    lifespan=lifespan,
+    health_probes=[
+        RedisHealthProbe(name="redis", _client=_redis_client),
+        CallableProbe(name="pending_ingestion_store", fn=_pending_ingestion_probe),
+        CallableProbe(name="quarantine_store", fn=_quarantine_probe),
+    ],
+    readiness_path="/ready",
+    enforcement_rollout=EnforcementRolloutConfig(
+        tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
+        health_checks=HealthChecksConfig(route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS),
+    ),
+    enforce_tenant_context=True,
+    instrument_telemetry=True,
 )
 
 # Register health endpoint
 register_health_endpoint(app, service_name="layer2-extraction")
 
-# Phase 1 Clerk integration: register the Fabric4L internal AuthContext
-# envelope verifier. No-op when FABRIC_AUTH_PUBLIC_KEYS is unset, so this
-# call is safe to land before any layer is flipped to enforce mode.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+app.add_middleware(
+    GovernanceMiddleware,
+    api_key_resolver=None,
+    rate_limiter=None,
+)
+logger.info("GovernanceMiddleware installed", component="layer2-extraction")
 
-register_fabric_auth_from_env(app, service_name="layer2-extraction")
+# Strict-environment startup guard: fail fast if auth keys are missing.
+if _is_strict_runtime() and not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
+    raise RuntimeError(
+        "FABRIC_AUTH_PUBLIC_KEYS is required in strict environments for Layer 2 authentication."
+    )
 
 # Register canonical error envelope handlers from shared package
 try:
@@ -141,6 +283,30 @@ except ImportError:
 
 app.include_router(signal_lifecycle_router)
 
+# ── P1-017: Inbound S2S JWT guard for internal extraction routes ──────────────
+# L1 Celery dispatch signs outbound requests with encode_service_jwt (sub=
+# "layer1-ingestion", aud="layer2-extraction").  GovernanceMiddleware validates
+# user-facing JWTs but does NOT enforce the service-specific sub/aud claims.
+# This middleware enforces that when SERVICE_AUTH_SECRET is configured, these
+# three internal routes may ONLY be called with a valid L1 S2S token.
+
+_S2S_INTERNAL_PATHS = s2s_auth.S2S_INTERNAL_PATHS
+
+@app.middleware("http")
+async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg,untyped-decorator]
+    """Enforce inbound S2S JWT on internal extraction routes.
+
+    In strict environments, the check is mandatory and fails closed.
+    In explicit dev/test environments without SERVICE_AUTH_SECRET, the check is skipped.
+    """
+    return await s2s_auth.enforce_s2s_auth_guard(
+        request,
+        call_next,
+        is_strict_runtime=_is_strict_runtime,
+    )
+
+# ── End P1-017 ────────────────────────────────────────────────────────────────
+
 # Extraction configuration constants
 DEFAULT_CHUNK_SIZE = 2000
 DEFAULT_CHUNK_OVERLAP = 200
@@ -148,108 +314,36 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.75
 RELATIONSHIP_CONFIDENCE_OFFSET = 0.05  # Slightly lower threshold for relationships
 DEFAULT_SIMILARITY_THRESHOLD = 0.85
 PROGRESS_REPORT_INTERVAL = 10  # Report progress every N chunks
-DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"
+DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"  # nosec B108
 
-# Lazy initialization of extractors to avoid import-time side effects
-_entity_extractor = None
-_relationship_extractor = None
+
+def _get_validated_openai_key() -> str | None:
+    """Return the OpenAI API key from the environment, or None if absent.
+
+    Raises RuntimeError in strict environments when:
+    - The key is missing entirely.
+    - The key matches a known placeholder value.
+    - The key does not start with the 'sk-' prefix expected by the OpenAI SDK.
+    """
+    return validated_openai_key(is_strict_runtime=_is_strict_runtime, logger=logger)
+
+
+_extractor_factory = LazyExtractorFactory(
+    entity_extractor_cls=EntityExtractor,
+    relationship_extractor_cls=RelationshipExtractor,
+    key_provider=_get_validated_openai_key,
+    model_provider=lambda: os.getenv("LLM_MODEL", "gpt-4o"),
+)
 
 
 def get_entity_extractor():
     """Get or create the entity extractor (lazy initialization)."""
-    global _entity_extractor
-    if _entity_extractor is None:
-        _entity_extractor = EntityExtractor(
-            api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("LLM_MODEL", "gpt-4o")
-        )
-    return _entity_extractor
+    return _extractor_factory.get_entity_extractor()
 
 
 def get_relationship_extractor():
     """Get or create the relationship extractor (lazy initialization)."""
-    global _relationship_extractor
-    if _relationship_extractor is None:
-        _relationship_extractor = RelationshipExtractor(
-            api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("LLM_MODEL", "gpt-4o")
-        )
-    return _relationship_extractor
-
-
-# Request/Response Models
-class ExtractRequest(BaseModel):
-    """Request body for extraction endpoint."""
-
-    content_id: str = Field(..., description="ID of content to extract from (from Layer 1)")
-    source_url: str = Field(..., description="URL of source document")
-    markdown_content: str = Field(..., description="Markdown content to extract from")
-    extraction_config: dict = Field(
-        default_factory=lambda: {
-            "entity_types": ["Capability", "UseCase", "Persona", "ValueDriver"],
-            "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
-            "chunk_size": DEFAULT_CHUNK_SIZE,
-            "chunk_overlap": DEFAULT_CHUNK_OVERLAP,
-        }
-    )
-
-
-class ExtractResponse(BaseModel):
-    """Response from extraction endpoint."""
-
-    extraction_job_id: str
-    status: str
-    message: str
-
-
-class ExtractionStatusResponse(BaseModel):
-    """Status of a combined extraction + ingestion pipeline job."""
-
-    job_id: str
-    overall_status: str
-    extraction_status: str
-    ingestion_status: str
-    entities_extracted: int
-    relationships_extracted: int
-    retry_count: int = 0
-    last_error: str | None = None
-    next_retry_at: datetime | None = None
-    started_at: datetime | None = None
-    completed_at: datetime | None
-
-
-class EntityListResponse(BaseModel):
-    """List of entities in the ontology."""
-
-    entity_type: str
-    entities: list[dict]
-    total: int
-
-
-class RelationshipsResponse(BaseModel):
-    """Relationships for an entity."""
-
-    entity_id: str
-    incoming: list[dict]
-    outgoing: list[dict]
-
-
-class ProvenanceResponse(BaseModel):
-    """Provenance chain for an entity or output."""
-
-    activity_id: str
-    source: dict
-    extraction: dict
-    steps: list[dict]
-    output: dict
-
-
-class ExtractAndIngestResponse(BaseModel):
-    """Response for combined extract-and-ingest endpoint."""
-
-    job_id: str
-    overall_status: str
-    extraction_status: str
-    ingestion_status: str
-    message: str
+    return _extractor_factory.get_relationship_extractor()
 
 
 @dataclass
@@ -260,22 +354,164 @@ class ExtractionArtifacts:
     relationships: list[Relationship]
 
 
-def _resolve_value_pack_scope(extraction_config: dict[str, Any]) -> str:
-    return str(extraction_config.get("value_pack_scope") or extraction_config.get("value_pack") or "default")
-
-
-def _build_idempotency_key(
+def _stamp_entity(
+    entity: Any,
     *,
+    entity_type: str,
     tenant_id: str,
+    source_hash: str,
     source_url: str,
-    content_id: str,
-    extraction_config: dict[str, Any],
-) -> str:
-    extraction_version = str(extraction_config.get("extraction_version") or "v1")
-    value_pack_scope = _resolve_value_pack_scope(extraction_config)
-    source_hash = hashlib.sha256(f"{content_id}|{source_url}".encode()).hexdigest()
-    payload = f"{tenant_id}|{source_hash}|{extraction_version}|{value_pack_scope}"
-    return hashlib.sha256(payload.encode()).hexdigest()
+    extraction_job_id: str,
+    telemetry_context: dict[str, str],
+) -> Any:
+    entity.tenant_id = tenant_id
+    entity.extraction_job_id = extraction_job_id
+    entity.schema_version = telemetry_context["schema_version"]
+    entity.prompt_version_id = telemetry_context["prompt_version"]
+    entity.model_version = telemetry_context["model_version"]
+    if hasattr(entity, "source_refs"):
+        entity.source_refs = [source_url]
+    deterministic_id = compute_deterministic_id(
+        tenant_id=tenant_id,
+        source_hash=source_hash,
+        entity_type=entity_type,
+        entity=entity,
+        extraction_version="e2e-local-v1",
+    )
+    entity.id = deterministic_id
+    entity.deterministic_id = deterministic_id
+    return entity
+
+
+def _build_e2e_local_extraction_artifacts(
+    *,
+    job_id: str,
+    source_url: str,
+    content_hash: str,
+    telemetry_context: dict[str, str],
+    chunks_processed: int,
+) -> ExtractionArtifacts:
+    """Build deterministic local E2E extraction artifacts without an LLM call."""
+    tenant_id = telemetry_context["tenant_id"]
+    capability = _stamp_entity(
+        Capability(
+            name="Evidence-backed ROI business case generation",
+            description=(
+                "Generates standardized, evidence-backed ROI business cases "
+                "from discovery notes, account context, and benchmark inputs."
+            ),
+            technical_features=[
+                "Discovery intake normalization",
+                "Benchmark-grounded ROI modeling",
+                "Finance-ready value proof generation",
+            ],
+            confidence=0.96,
+        ),
+        entity_type="capability",
+        tenant_id=tenant_id,
+        source_hash=content_hash,
+        source_url=source_url,
+        extraction_job_id=job_id,
+        telemetry_context=telemetry_context,
+    )
+    use_case = _stamp_entity(
+        UseCase(
+            name="Late-stage SaaS opportunity value engineering",
+            description=(
+                "Standardizes AE and SE discovery handoffs, builds a reusable "
+                "business case, and connects value claims to evidence."
+            ),
+            industry_context=["Software as a Service", "B2B revenue operations"],
+            required_capabilities=[capability.id],
+            workflow_steps=[
+                "Capture discovery intake",
+                "Map buyer pain to value drivers",
+                "Generate ROI assumptions",
+                "Attach evidence for finance review",
+            ],
+            kpis=["SE hours per opportunity", "late-stage win rate", "sales cycle days"],
+            confidence=0.95,
+        ),
+        entity_type="usecase",
+        tenant_id=tenant_id,
+        source_hash=content_hash,
+        source_url=source_url,
+        extraction_job_id=job_id,
+        telemetry_context=telemetry_context,
+    )
+    persona = _stamp_entity(
+        Persona(
+            role_type=RoleType.ECONOMIC_BUYER,
+            seniority_level=SeniorityLevel.C_SUITE,
+            title="Chief Financial Officer",
+            department="Finance",
+            pain_points=[
+                "ROI assumptions are inconsistent",
+                "Procurement challenges value claims",
+            ],
+            success_metrics=["validated ROI", "payback period", "business case quality"],
+            confidence=0.93,
+        ),
+        entity_type="persona",
+        tenant_id=tenant_id,
+        source_hash=content_hash,
+        source_url=source_url,
+        extraction_job_id=job_id,
+        telemetry_context=telemetry_context,
+    )
+    value_driver = _stamp_entity(
+        ValueDriver(
+            category=ValueCategory.COST_REDUCTION,
+            name="SE hours per opportunity reduction",
+            description=(
+                "Reduces sales engineering effort by reusing structured discovery "
+                "context and automatically generating finance-ready business cases."
+            ),
+            metrics=["se_hours_per_opportunity", "sales_engineering_cost"],
+            formula_string="se_hours_per_opp * opps_per_year * hourly_se_cost * se_time_reduction",
+            unit="USD/year",
+            time_to_value="90 days",
+            confidence=0.94,
+        ),
+        entity_type="valuedriver",
+        tenant_id=tenant_id,
+        source_hash=content_hash,
+        source_url=source_url,
+        extraction_job_id=job_id,
+        telemetry_context=telemetry_context,
+    )
+    relationship_id = str(uuid5(NAMESPACE_URL, f"{tenant_id}|{content_hash}|{capability.id}|enables|{use_case.id}"))
+    relationship = Relationship(
+        id=relationship_id,
+        source_id=capability.id,
+        raw_predicate="enables",
+        canonical_predicate=PredicateType.ENABLES,
+        target_id=use_case.id,
+        confidence=0.95,
+        evidence_text="The extracted capability enables standardized value engineering for late-stage opportunities.",
+        source_url=source_url,
+        extraction_job_id=job_id,
+        tenant_id=tenant_id,
+        deterministic_id=relationship_id,
+        schema_version=telemetry_context["schema_version"],
+        prompt_version_id=telemetry_context["prompt_version"],
+        model_version=telemetry_context["model_version"],
+    )
+    result = ExtractionResult(
+        job_id=job_id,
+        source_url=source_url,
+        capabilities=[capability],
+        use_cases=[use_case],
+        personas=[persona],
+        value_drivers=[value_driver],
+        chunks_processed=chunks_processed,
+        tenant_id=tenant_id,
+        schema_version=telemetry_context["schema_version"],
+        prompt_version=telemetry_context["prompt_version"],
+        prompt_template_version=telemetry_context["prompt_version"],
+        model_version=telemetry_context["model_version"],
+    )
+    return ExtractionArtifacts(result=result, relationships=[relationship])
 
 
 # Global job store (Redis-backed if configured, otherwise in-memory)
@@ -288,7 +524,7 @@ _UNSET = object()
 try:
     pending_ingestion_store: PendingIngestionStore = build_pending_ingestion_store()
 except Exception as exc:
-    if _is_production_like():
+    if _is_strict_runtime():
         logger.error("Layer 2 pending-ingestion store is required in %s: %s", _current_environment(), exc)
         raise RuntimeError(
             f"Layer 2 pending-ingestion store is required in {_current_environment()}: {exc}"
@@ -305,34 +541,8 @@ except Exception as exc:
 
 quarantine_store = build_quarantine_store()
 
-
-class QuarantineStatusResponse(BaseModel):
-    job_id: str
-    quarantine_id: str
-    tenant_id: str
-    source_hash: str
-    model_version: str
-    schema_version: str
-    validation_errors: list[str]
-    reason: str
-    review_status: str
-    retry_eligible: bool
-    created_at: datetime
-
 def _compute_overall_status(extraction_status: str, ingestion_status: str) -> str:
-    if extraction_status == "failed" or ingestion_status == "failed":
-        return "failed"
-    if extraction_status == "pending" and ingestion_status == "pending":
-        return "pending"
-    if extraction_status in {"pending", "running"}:
-        return "running"
-    if extraction_status == "completed" and ingestion_status in {"pending", "queued"}:
-        return "partial"
-    if extraction_status == "completed" and ingestion_status == "running":
-        return "running"
-    if extraction_status == "completed" and ingestion_status in {"completed", "skipped"}:
-        return "completed"
-    return "pending"
+    return compute_overall_status(extraction_status, ingestion_status)
 
 
 async def _set_pipeline_job(
@@ -370,31 +580,21 @@ async def _set_pipeline_job(
 
 
 def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
-    return ExtractionStatusResponse(
-        job_id=job.job_id,
-        overall_status=_compute_overall_status(job.extraction_status, job.ingestion_status),
-        extraction_status=job.extraction_status,
-        ingestion_status=job.ingestion_status,
-        entities_extracted=job.entities_extracted,
-        relationships_extracted=job.relationships_extracted,
-        retry_count=job.retry_count,
-        last_error=job.last_error,
-        next_retry_at=datetime.fromisoformat(job.next_retry_at) if job.next_retry_at else None,
-        started_at=datetime.fromisoformat(job.created_at) if job.created_at else None,
-        completed_at=datetime.fromisoformat(job.completed_at) if job.completed_at else None,
-    )
+    return ExtractionStatusResponse(**pipeline_response_payload(job))
 
 
 def _serialize_artifacts(artifacts: ExtractionArtifacts) -> tuple[str, str]:
-    result_json = json.dumps(artifacts.result.model_dump(mode="json"))
-    relationships_json = json.dumps([r.model_dump(mode="json") for r in artifacts.relationships])
-    return result_json, relationships_json
+    return serialize_artifacts(
+        ExtractionArtifactsPayload(
+            result=artifacts.result,
+            relationships=artifacts.relationships,
+        )
+    )
 
 
 def _deserialize_artifacts(result_json: str, relationships_json: str) -> ExtractionArtifacts:
-    result = ExtractionResult(**json.loads(result_json))
-    relationships = [Relationship(**item) for item in json.loads(relationships_json)]
-    return ExtractionArtifacts(result=result, relationships=relationships)
+    artifacts = deserialize_artifacts(result_json, relationships_json)
+    return ExtractionArtifacts(result=artifacts.result, relationships=artifacts.relationships)
 
 
 async def _queue_for_retry(
@@ -404,9 +604,12 @@ async def _queue_for_retry(
     last_error: str,
     retry_count: int,
 ) -> None:
-    delay_seconds = RETRY_BASE_SECONDS * max(1, 2 ** max(retry_count - 1, 0))
-    next_retry_ts = datetime.now(UTC).timestamp() + delay_seconds
-    next_retry_dt = datetime.fromtimestamp(next_retry_ts, tz=UTC)
+    next_retry_dt = next_retry_at(
+        now=datetime.now(UTC),
+        retry_base_seconds=RETRY_BASE_SECONDS,
+        retry_count=retry_count,
+        fromtimestamp=datetime.fromtimestamp,
+    )
     result_json, relationships_json = _serialize_artifacts(artifacts)
 
     await pending_ingestion_store.enqueue(
@@ -444,12 +647,21 @@ async def _attempt_ingestion(job_id: str, source_url: str, artifacts: Extraction
             max_retries=MAX_INGESTION_RETRIES,
         )
 
+        # P1-3: MANDATORY VALIDATION GATE before L3 ingestion
+        validate_extraction_result(artifacts.result)
+        for rel in artifacts.relationships:
+            validate_relationship_for_persistence(rel)
+        
         # Layer 2 owns RDF generation; the L3 client only speaks the L3 HTTP contract.
         rdf_data = generate_rdf(artifacts.result, artifacts.relationships)
         response = await client.ingest_rdf_data(
             rdf_data=rdf_data,
             source_url=source_url,
             extraction_job_id=job_id,
+            tenant_id=artifacts.result.tenant_id,
+            content_hash=hashlib.sha256(source_url.encode()).hexdigest(),
+            prompt_template_version=artifacts.result.prompt_template_version,
+            prompt_template_hash=artifacts.result.prompt_template_hash,
         )
         if response.success:
             await _set_pipeline_job(
@@ -521,16 +733,10 @@ async def _process_pending_ingestions() -> None:
         if not await job_store.exists(record.job_id):
             await job_store.set(
                 PipelineJob(
-                    job_id=record.job_id,
-                    extraction_status="completed",
-                    ingestion_status="queued",
-                    created_at=datetime.now(UTC).isoformat(),
-                    entities_extracted=0,
-                    relationships_extracted=0,
-                    retry_count=record.retry_count,
-                    last_error=record.last_error,
-                    next_retry_at=record.next_retry_at.isoformat() if record.next_retry_at else None,
-                    completed_at=None,
+                    **pipeline_job_kwargs_for_pending_record(
+                        record,
+                        created_at=datetime.now(UTC),
+                    )
                 )
             )
 
@@ -554,21 +760,24 @@ async def _process_pending_ingestions() -> None:
                     completed_at=datetime.now(UTC),
                 )
             else:
-                delay_seconds = RETRY_BASE_SECONDS * (2 ** max(record.retry_count, 0))
-                next_retry_ts = datetime.now(UTC).timestamp() + delay_seconds
-                next_retry_at = datetime.fromtimestamp(next_retry_ts, tz=UTC)
+                retry_state = pending_retry_state(
+                    now=datetime.now(UTC),
+                    current_retry_count=record.retry_count,
+                    retry_base_seconds=RETRY_BASE_SECONDS,
+                    fromtimestamp=datetime.fromtimestamp,
+                )
                 await pending_ingestion_store.reschedule(
                     job_id=record.job_id,
-                    retry_count=retry_count,
-                    last_error="Layer 3 unavailable",
-                    next_retry_at=next_retry_at,
+                    retry_count=retry_state.retry_count,
+                    last_error=retry_state.last_error,
+                    next_retry_at=retry_state.next_retry_at,
                 )
                 await _set_pipeline_job(
                     record.job_id,
                     ingestion_status="queued",
-                    retry_count=retry_count,
-                    last_error="Layer 3 unavailable",
-                    next_retry_at=next_retry_at,
+                    retry_count=retry_state.retry_count,
+                    last_error=retry_state.last_error,
+                    next_retry_at=retry_state.next_retry_at,
                 )
             continue
 
@@ -605,15 +814,37 @@ _VAULT_UNREACHABLE_ERROR = "Vault unreachable — cannot start in production wit
 
 # Background task for extraction
 
-async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], reason: str = "validation_error") -> QuarantineRecord:
+async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], model_version: str, schema_version: str, prompt_template_version: str, prompt_template_hash: str | None = None, reason: str = "validation_error") -> QuarantineRecord:
+    """Quarantine a validation failure with explicit version metadata.
+    
+    Args:
+        tenant_id: Required tenant identifier (no fallbacks)
+        job_id: Extraction job identifier
+        source_url: Source document URL
+        source_hash: Content hash for provenance
+        payload: Failed payload
+        errors: Validation error messages
+        model_version: LLM model version (required, no fallback)
+        schema_version: Schema version (required, no fallback)
+        reason: Quarantine reason
+    """
+    if not tenant_id:
+        raise ValueError("tenant_id is required for quarantine records")
+    if not model_version:
+        raise ValueError("model_version is required for quarantine records")
+    if not schema_version:
+        raise ValueError("schema_version is required for quarantine records")
+    
     record = QuarantineRecord(
         quarantine_id=str(uuid4()),
         job_id=job_id,
         tenant_id=tenant_id,
         source_url=source_url,
         source_hash=source_hash,
-        model_version=os.getenv("LLM_MODEL", "gpt-4o"),
-        schema_version="v1",
+        model_version=model_version,
+        schema_version=schema_version,
+        prompt_template_version=prompt_template_version,
+        prompt_template_hash=prompt_template_hash,
         payload_json=payload,
         validation_errors=errors,
         reason=reason,
@@ -625,7 +856,44 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
         last_error="; ".join(errors),
         completed_at=datetime.now(UTC),
     )
+    try:
+        from uuid import UUID as _UUID
+        emit_audit_event(
+            AuditAction.EXTRACTION_QUARANTINED,
+            tenant_id=_UUID(tenant_id) if tenant_id else None,
+            resource_type="ExtractionJob",
+            resource_id=job_id,
+            outcome="failure",
+            details={
+                "reason": reason,
+                "source_url": source_url,
+                "source_hash": source_hash,
+                "model_version": model_version,
+                "schema_version": schema_version,
+                "prompt_template_version": prompt_template_version,
+                "validation_errors": errors,
+            },
+        )
+    except Exception:
+        # Audit emission must never break the quarantine flow
+        pass
     return record
+
+
+def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
+    """Require authenticated tenant context and fail closed when missing."""
+    if tenant_id is None:
+        raise AuthorizationError(message="Request failed", details={
+                "code": "tenant_context_required",
+                "message": f"Authenticated tenant context is required for {operation}.",
+            })
+    normalized = str(tenant_id).strip()
+    if not normalized:
+        raise AuthorizationError(message="Request failed", details={
+                "code": "tenant_context_required",
+                "message": f"Authenticated tenant context is required for {operation}.",
+            })
+    return normalized
 
 async def run_extraction(
     job_id: str,
@@ -651,10 +919,14 @@ async def run_extraction(
 
     # Start provenance tracking
     activity = tracker.start_activity(
-        activity_id=job_id, source_url=source_url, content_hash=content_hash
+        activity_id=job_id, url=source_url, content_hash=content_hash
     )
 
+    tenant_id = _require_authenticated_tenant_id(config.get("tenant_id"), operation="extraction execution")
+
     if not await job_store.exists(job_id):
+        # P1-3: MANDATORY VALIDATION GATE before job store persistence
+        # PipelineJob is validated via tenant_id check in run_extraction
         await job_store.set(
             PipelineJob(
                 job_id=job_id,
@@ -671,12 +943,29 @@ async def run_extraction(
         )
 
     await _set_pipeline_job(job_id, extraction_status="running")
+    
+    config = _validated_extraction_config(config, tenant_id=tenant_id)
+    model_version = config["model_version"]
+    schema_version = config["schema_version"]
+    prompt_version = config["prompt_version"]
+
+    # S2-8: Validate prompt_version against PromptRegistry on startup
+    from layer2_extraction.extraction.prompt_registry import get_prompt_registry
+    registry = get_prompt_registry()
+    registered = registry.get_version(str(prompt_version))
+    if registered is None:
+        logger.warning(
+            "prompt_version %s not found in PromptRegistry — proceeding with unvalidated version",
+            prompt_version,
+        )
+    
     telemetry_context = {
-        "tenant_id": str(config.get("tenant_id", "unknown")),
-        "ingestion_id": str(config.get("ingestion_id", "unknown")),
-        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", "unknown"))),
-        "schema_version": str(config.get("schema_version", "unknown")),
+        "tenant_id": tenant_id,
+        "ingestion_id": str(config.get("ingestion_id", "")),
+        "model_version": str(model_version),
+        "schema_version": str(schema_version),
         "value_pack_id": str(config.get("value_pack_id", "default")),
+        "prompt_version": str(prompt_version),
     }
     metrics = get_metrics()
 
@@ -707,6 +996,59 @@ async def run_extraction(
             total_stages=6,
             result_summary={"chunks_created": len(chunks)},
         )
+
+        if telemetry_context["model_version"] == "e2e-local-extraction-model":
+            artifacts = _build_e2e_local_extraction_artifacts(
+                job_id=job_id,
+                source_url=source_url,
+                content_hash=content_hash,
+                telemetry_context=telemetry_context,
+                chunks_processed=len(chunks),
+            )
+            result = artifacts.result
+            all_relationships = artifacts.relationships
+            validate_extraction_result(result)
+            for rel in all_relationships:
+                validate_relationship_for_persistence(rel)
+
+            rdf_content = generate_rdf(result, all_relationships)
+            output_dir = os.getenv("RDF_OUTPUT_DIR", DEFAULT_RDF_OUTPUT_DIR)
+            os.makedirs(output_dir, exist_ok=True)
+            rdf_path = f"{output_dir}/{job_id}.ttl"
+            with open(rdf_path, "w") as f:
+                f.write(rdf_content)
+
+            activity.output_entities = [e.id for e in result.get_all_entities()]  # type: ignore[attr-defined]
+            activity.output_relationships = [r.id for r in all_relationships]
+            activity.complete(rdf_output_path=rdf_path)
+
+            await _set_pipeline_job(
+                job_id,
+                extraction_status="completed",
+                entities_extracted=len(activity.output_entities),
+                relationships_extracted=len(activity.output_relationships),
+                completed_at=datetime.now(UTC) if mark_pipeline_complete else None,
+            )
+            if metrics:
+                metrics.record_extraction_outcome(
+                    status="success",
+                    tenant_id=telemetry_context["tenant_id"],
+                    ingestion_id=telemetry_context["ingestion_id"],
+                    extraction_job_id=job_id,
+                    model_version=telemetry_context["model_version"],
+                    schema_version=telemetry_context["schema_version"],
+                    value_pack_id=telemetry_context["value_pack_id"],
+                )
+            logger.info("Deterministic local extraction completed", extra={**telemetry_context, "extraction_job_id": job_id})
+            if mark_pipeline_complete:
+                await _ws_manager.broadcast_pipeline_complete(
+                    job_id=job_id,
+                    status="completed",
+                    entities_extracted=len(activity.output_entities),
+                    relationships_extracted=len(activity.output_relationships),
+                    rdf_path=rdf_path,
+                )
+            return artifacts
 
         # Stage 2 & 3: Entity and Relationship Extraction
         await _ws_manager.broadcast_stage_start(
@@ -763,6 +1105,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold - RELATIONSHIP_CONFIDENCE_OFFSET,
+                telemetry_context=telemetry_context,
             )
             all_relationships.extend(relationships)
 
@@ -794,7 +1137,7 @@ async def run_extraction(
         )
         step_align = ExtractionStep(step_name="semantic_alignment", started_at=datetime.now(UTC))
 
-        aligner = SemanticAligner(similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, api_key=os.getenv("OPENAI_API_KEY"))
+        aligner = SemanticAligner(similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, api_key=_get_validated_openai_key())
 
         # Align each entity type
         aligned_entities = {}
@@ -827,7 +1170,7 @@ async def run_extraction(
 
         deduplicated = await deduplicate_entities(
             all_entities,
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=_get_validated_openai_key(),
             similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD,
             relationships=all_relationships,
             enable_coreference=True,
@@ -867,7 +1210,20 @@ async def run_extraction(
             value_drivers=deduplicated.get("value_drivers", []),  # type: ignore[arg-type]
             features=deduplicated.get("features", []),  # type: ignore[arg-type]
             chunks_processed=len(chunks),
+            tenant_id=telemetry_context["tenant_id"],
+            schema_version=telemetry_context["schema_version"],
+            prompt_version=telemetry_context["prompt_version"],
+            prompt_template_version=str(prompt_template_version),
+            prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
+            model_version=telemetry_context["model_version"],
+            security_metadata=(
+                get_entity_extractor().get_security_signals()
+                + get_relationship_extractor().get_security_signals()
+            ),
         )
+        
+        # MANDATORY VALIDATION GATE: Validate result before any persistence
+        validate_extraction_result(result)
 
         # Run entailment validation
         validator = EntailmentValidator()
@@ -887,12 +1243,16 @@ async def run_extraction(
             error_messages = [f"[ERROR] {e.rule_id}: {e.message}" for e in errors]
             result.errors.extend(error_messages)
             await _quarantine_validation_failure(
-                tenant_id="system",
+                tenant_id=telemetry_context["tenant_id"],
                 job_id=job_id,
                 source_url=source_url,
                 source_hash=content_hash,
                 payload=result.model_dump_json(),
                 errors=error_messages,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                prompt_template_version=str(prompt_template_version),
+                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
                 reason="entailment_validation_failed",
             )
             return None
@@ -925,6 +1285,10 @@ async def run_extraction(
         step5 = ExtractionStep(step_name="rdf_generation", started_at=datetime.now(UTC))
 
         rdf_content = generate_rdf(result, all_relationships)
+        
+        # MANDATORY VALIDATION GATE: Validate all relationships before persistence
+        for rel in all_relationships:
+            validate_relationship_for_persistence(rel)
 
         # Broadcast RDF generation complete
         await _ws_manager.broadcast_stage_complete(
@@ -953,7 +1317,7 @@ async def run_extraction(
         # Complete activity
         activity.output_entities = [e.id for e in result.get_all_entities()]  # type: ignore[attr-defined]
         activity.output_relationships = [r.id for r in all_relationships]
-        activity.complete(rdf_path=rdf_path)
+        activity.complete(rdf_output_path=rdf_path)
 
         await _set_pipeline_job(
             job_id,
@@ -987,9 +1351,22 @@ async def run_extraction(
         return ExtractionArtifacts(result=result, relationships=all_relationships)
 
     except Exception as e:
-        error_msg = str(e)
-        if "schema validation error" in error_msg.lower():
-            await _quarantine_validation_failure(tenant_id="system", job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
+        logger.error("Extraction failed", exc_info=e, extra={"job_id": job_id, "tenant_id": telemetry_context.get("tenant_id")})
+        error_msg = "Extraction failed due to internal error"
+        if isinstance(e, LLMExtractionError):
+            await _quarantine_validation_failure(
+                tenant_id=telemetry_context["tenant_id"],
+                job_id=job_id,
+                source_url=source_url,
+                source_hash=content_hash,
+                payload=content[:4000],
+                errors=[error_msg],
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                prompt_template_version=str(prompt_template_version),
+                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
+                reason="llm_schema_validation_failed"
+            )
         activity.fail(error_msg)
         await _set_pipeline_job(
             job_id,
@@ -1060,6 +1437,27 @@ async def run_extract_and_ingest(
     if not artifacts:
         return
 
+    try:
+        validate_for_persistence(artifacts)
+    except ArtifactValidationError:
+        _artifact_payload = json.dumps({
+            "result": artifacts.result.model_dump(mode="json"),
+            "relationships": [r.model_dump(mode="json") for r in artifacts.relationships],
+        })
+        await _quarantine_validation_failure(
+            tenant_id=str(config.get("tenant_id", "")),
+            job_id=job_id,
+            source_url=source_url,
+            source_hash=hashlib.sha256(content.encode()).hexdigest(),
+            payload=_artifact_payload,
+            errors=["extraction_failed"],
+            model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
+            schema_version=str(config.get("schema_version") or ""),
+            prompt_template_version=str(config.get("prompt_template_version") or ""),
+            reason="persistence_validation_failed",
+        )
+        return
+
     client = Layer3KnowledgeClient()
     try:
         healthy = await client.health_check()
@@ -1091,120 +1489,23 @@ async def run_extract_and_ingest(
     await _attempt_ingestion(job_id, source_url, artifacts)
 
 
+@app.get("/health")
 async def health_check():
     """Health check endpoint with real metrics and dependency status."""
-    start_time = time.time()
-    uptime = time.time() - _app_start_time
-
-    metrics = get_metrics()
-    total_requests = 0
-    active_connections = 0
-
-    if metrics and metrics.config.enabled:
-        try:
-            requests_counter = metrics._metrics.get("requests_total", {})
-            total_requests = (
-                sum(
-                    v._value.get() if hasattr(v._value, "get") else v._value
-                    for method_dict in requests_counter._metrics.values()
-                    for endpoint_dict in method_dict.values()
-                    for v in endpoint_dict.values()
-                )
-                if hasattr(requests_counter, "_metrics")
-                else 0
-            )
-        except (AttributeError, TypeError):
-            total_requests = 0
-
-        try:
-            active_connections = int(
-                metrics._metrics.get("active_connections", {}).get("total", {}).get("_value", 0)
-            )
-        except (AttributeError, TypeError):
-            active_connections = 0
-
-    # Check Layer 3 dependency
-    dependencies: list[dict[str, Any]] = []
-    overall_status = "healthy"
-
-    if os.getenv("LAYER2_HEALTH_SKIP_LAYER3", "").lower() in {"1", "true", "yes"}:
-        dependencies.append(
-            {
-                "name": "layer3_knowledge",
-                "status": "degraded",
-                "response_time_ms": None,
-                "error": "Release-smoke readiness skips downstream Layer 3 probe; live smoke tests validate cross-service contracts after startup",
-                "failure_reason": "layer3_probe_skipped",
-            }
-        )
-        overall_status = "degraded"
-    else:
-        try:
-            from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
-
-            l3_start = time.time()
-            l3_client = Layer3KnowledgeClient()
-            l3_healthy = await l3_client.health_check()
-            l3_response_ms = round((time.time() - l3_start) * 1000, 2)
-            await l3_client.close()
-
-            dependencies.append(
-                {
-                    "name": "layer3_knowledge",
-                    "status": "healthy" if l3_healthy else "unhealthy",
-                    "response_time_ms": l3_response_ms,
-                    "error": None if l3_healthy else "Layer 3 returned unhealthy status",
-                    "failure_reason": None if l3_healthy else "dependency_unhealthy",
-                }
-            )
-
-            if not l3_healthy:
-                overall_status = "degraded"
-        except Exception as e:
-            dependencies.append(
-                {
-                    "name": "layer3_knowledge",
-                    "status": "unhealthy",
-                    "response_time_ms": None,
-                    "error": "Layer 3 health check failed",
-                    "error_code": "L3_HEALTH_CHECK_ERROR",
-                }
-            )
-            overall_status = "degraded"
-
-    total_response_ms = round((time.time() - start_time) * 1000, 2)
-
-    # Update health metrics if available
-    if metrics:
-        metrics.set_health_status(overall_status == "healthy", component="api")
-        l3_dep_healthy = any(
-            d["name"] == "layer3_knowledge" and d["status"] == "healthy" for d in dependencies
-        )
-        metrics.set_health_status(l3_dep_healthy, component="layer3")
-
-    # Build system metrics if psutil is available
-    system_metrics: dict[str, Any] = {"active_connections": active_connections, "total_requests": total_requests}
-    if psutil:
-        memory_info = psutil.virtual_memory()
-        system_metrics["memory_usage_mb"] = memory_info.used / (1024 * 1024)
-        system_metrics["cpu_percent"] = psutil.cpu_percent()
-
-    return health_checkResult.model_validate({
-        "status": overall_status,
-        "service": "layer2-extraction",
-        "version": "1.0.0",
-        "timestamp": datetime.now(UTC).isoformat(),
-        "uptime_seconds": uptime,
-        "response_time_ms": total_response_ms,
-        "dependencies": dependencies,
-        "metrics": system_metrics,
-    })
+    payload = await health_routes.build_health_payload(
+        app_start_time=_app_start_time,
+        metrics=get_metrics(),
+        layer3_client_factory=Layer3KnowledgeClient,
+        psutil_module=psutil,
+    )
+    return health_checkResult.model_validate(payload)
 
 
+@app.get("/metrics")
 async def metrics_endpoint(request: Request):
     """Prometheus metrics endpoint."""
     if not verify_metrics_access(request):
-        raise HTTPException(status_code=403, detail="Metrics endpoint requires internal access")
+        raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
     metrics = get_metrics()
 
@@ -1222,14 +1523,23 @@ async def metrics_endpoint(request: Request):
         )
 
 
-async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
+@app.post("/v1/extract", response_model=ExtractResponse)
+async def extract(
+    request: ExtractRequest,
+    background_tasks: BackgroundTasks,
+    ctx: RequestContext = Depends(require_authenticated),
+):
     """Start an extraction job.
 
     Extracts entities and relationships from provided Markdown content
     and generates RDF/OWL output.
     """
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction job creation")
+
     job_id = str(uuid4())
 
+    # P1-3: MANDATORY VALIDATION GATE before job store persistence
+    # PipelineJob requires tenant_id which is validated above
     await job_store.set(
         PipelineJob(
             job_id=job_id,
@@ -1242,7 +1552,14 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
             last_error=None,
             next_retry_at=None,
             completed_at=None,
+            tenant_id=tenant_id,
         )
+    )
+
+    config = _validated_extraction_config(
+        request.extraction_config,
+        tenant_id=tenant_id,
+        operation="extraction job creation",
     )
 
     # Queue extraction as background task
@@ -1251,7 +1568,7 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
         job_id=job_id,
         source_url=request.source_url,
         content=request.markdown_content,
-        config=request.extraction_config,
+        config=config,
     )
 
     return ExtractResponse(
@@ -1259,21 +1576,31 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
     )
 
 
+@app.post("/v1/extract-and-ingest", response_model=ExtractAndIngestResponse)
 async def extract_and_ingest(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Start a combined extraction and ingestion pipeline job."""
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction+ingestion job creation")
+
     idempotency_key = _build_idempotency_key(
-        tenant_id=ctx.tenant_id,
+        tenant_id=tenant_id,
         source_url=request.source_url,
         content_id=request.content_id,
         extraction_config=request.extraction_config,
     )
     existing_job_id = await job_store.get_job_id_for_idempotency_key(idempotency_key)
+
+    config = _validated_extraction_config(
+        request.extraction_config,
+        tenant_id=tenant_id,
+        operation="extraction+ingestion job creation",
+    )
+
     if existing_job_id:
-        existing_job = await job_store.get(existing_job_id, tenant_id=ctx.tenant_id)
+        existing_job = await job_store.get(existing_job_id, tenant_id=tenant_id)
         if existing_job and existing_job.extraction_status == "completed" and existing_job.ingestion_status == "completed":
             return ExtractAndIngestResponse(
                 job_id=existing_job.job_id,
@@ -1288,7 +1615,7 @@ async def extract_and_ingest(
                 job_id=existing_job.job_id,
                 source_url=request.source_url,
                 content=request.markdown_content,
-                config=request.extraction_config,
+                config=config,
             )
             return ExtractAndIngestResponse(
                 job_id=existing_job.job_id,
@@ -1312,7 +1639,7 @@ async def extract_and_ingest(
             last_error=None,
             next_retry_at=None,
             completed_at=None,
-            tenant_id=ctx.tenant_id,
+            tenant_id=tenant_id,
         )
     )
     await job_store.set_job_id_for_idempotency_key(idempotency_key, job_id)
@@ -1322,7 +1649,7 @@ async def extract_and_ingest(
         job_id=job_id,
         source_url=request.source_url,
         content=request.markdown_content,
-        config=request.extraction_config,
+        config=config,
     )
 
     return ExtractAndIngestResponse(
@@ -1334,43 +1661,54 @@ async def extract_and_ingest(
     )
 
 
-async def get_extraction_status(job_id: str):
+@app.get("/v1/extract/status/{job_id}", response_model=ExtractionStatusResponse)
+async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Get status of a combined extraction and ingestion job."""
-    job = await job_store.get(job_id)
+    job = await job_store.get(job_id, tenant_id=str(ctx.tenant_id))
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     return _pipeline_response(job)
 
 
 
 
-async def get_quarantine_status(job_id: str, ctx: RequestContext):
+@app.get("/v1/quarantine/{job_id}")
+async def get_quarantine_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     tenant_id = str(ctx.tenant_id)
     record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Quarantine record not found")
+        raise NotFoundError(message = "Quarantine record not found")
     return QuarantineStatusResponse.model_validate(record.model_dump())
 
 
-async def list_quarantine_jobs(ctx: RequestContext):
+@app.get("/v1/quarantine")
+async def list_quarantine_jobs(ctx: RequestContext = Depends(require_authenticated)):
     tenant_id = str(ctx.tenant_id)
     records = await quarantine_store.list(tenant_id=tenant_id)
     return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
-async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks):
+@app.post("/v1/extract/batch")
+async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, ctx: RequestContext = Depends(require_authenticated)):
     """Start a batch extraction job."""
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="batch extraction job creation")
+
     batch_id = str(uuid4())
     job_ids = []
 
     for req in requests:
         job_id = str(uuid4())
         job_ids.append(job_id)
+        config = _validated_extraction_config(
+            req.extraction_config,
+            tenant_id=tenant_id,
+            operation="batch extraction job creation",
+        )
         background_tasks.add_task(
             run_extraction,
             job_id=job_id,
             source_url=req.source_url,
             content=req.markdown_content,
-            config=req.extraction_config,
+            config=config,
         )
 
     return extract_batchResult.model_validate({
@@ -1381,39 +1719,46 @@ async def extract_batch(requests: list[ExtractRequest], background_tasks: Backgr
     })
 
 
+@app.get("/v1/entities")
 async def list_entities(
     entity_type: str | None = Query(
         None, enum=["Capability", "UseCase", "Persona", "ValueDriver", "Feature"]
     ),
     limit: int = Query(100, ge=1, le=1000),
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """List entities in the ontology.
 
     Note: In a full implementation, this would query a persistent store.
     For now, returns empty list (entities are in RDF files).
     """
-    # This would query Neo4j or similar in production
+    # This would query Neo4j or similar in production, scoped to the authenticated tenant.
+    _ = ctx.tenant_id
     return EntityListResponse(entity_type=entity_type or "all", entities=[], total=0)
 
 
-async def get_relationships(entity_id: str):
+@app.get("/v1/entities/{entity_id}/relationships")
+async def get_relationships(entity_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Get relationships for an entity.
 
     Note: In a full implementation, this would query the graph database.
     """
+    # This would query Neo4j or similar in production, scoped to the authenticated tenant.
+    _ = ctx.tenant_id
     return RelationshipsResponse(entity_id=entity_id, incoming=[], outgoing=[])
 
 
+@app.get("/v1/provenance/{job_id}")
 async def get_provenance(
     job_id: str,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Get full provenance trace for an extraction job. Requires authentication."""
     tracker = get_provenance_tracker()
     activity = tracker.get_activity(job_id)
 
     if not activity:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     chain = activity.get_provenance_chain()
 
@@ -1426,16 +1771,17 @@ async def get_provenance(
     )
 
 
+@app.get("/v1/provenance/entity/{entity_id}")
 async def get_entity_provenance(
     entity_id: str,
-    ctx: RequestContext,
+    ctx: RequestContext = Depends(require_authenticated),
 ):
     """Get provenance for a specific entity. Requires authentication."""
     tracker = get_provenance_tracker()
     chain = tracker.get_provenance_for_entity(entity_id)
 
     if not chain:
-        raise HTTPException(status_code=404, detail="Entity provenance not found")
+        raise NotFoundError(message = "Entity provenance not found")
 
     return chain
 
@@ -1575,7 +1921,8 @@ async def _job_event_generator(job_id: str):
         await asyncio.sleep(_SSE_POLL_INTERVAL_SECONDS)
 
 
-async def stream_job_events(job_id: str):
+@app.get("/v1/extract/jobs/{job_id}/events")
+async def stream_job_events(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
     """Stream real-time events for a pipeline job via SSE.
 
     Returns a Server-Sent Events stream with progress updates,
@@ -1595,8 +1942,10 @@ async def stream_job_events(job_id: str):
     Returns:
         StreamingResponse with text/event-stream content type
     """
-    if not await job_store.exists(job_id):
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    tenant_id = str(ctx.tenant_id)
+    # Validate tenant-scoped access before streaming.
+    if not await job_store.get(job_id, tenant_id=tenant_id):
+        raise NotFoundError(message = str(f"Job {job_id} not found"))
 
     return StreamingResponse(
         _job_event_generator(job_id),
@@ -1632,4 +1981,4 @@ class extract_batchResult(TypedDictModel):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosec B104

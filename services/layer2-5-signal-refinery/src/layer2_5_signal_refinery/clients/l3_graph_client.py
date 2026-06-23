@@ -1,9 +1,3 @@
-"""L3 Knowledge Graph client for L2.5 Signal Refinery.
-
-Pushes ValueSignal objects to L3 as graph nodes after refinement.
-All operations are best-effort — L2.5 remains operational if L3 is unavailable.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -11,9 +5,27 @@ from typing import Any
 
 import httpx
 
+from value_fabric.shared.resilience import CircuitBreaker, CircuitBreakerOpen
+
 from ..config import get_settings
 
+"""L3 Knowledge Graph client for L2.5 Signal Refinery.
+
+Pushes ValueSignal objects to L3 as graph nodes after refinement.
+All operations are best-effort — L2.5 remains operational if L3 is unavailable.
+
+P1-014 pilot: circuit breaker protects the L3 push path.
+"""
+
 logger = logging.getLogger(__name__)
+
+# P1-014 pilot: single breaker for the L3 downstream dependency
+_l3_circuit_breaker = CircuitBreaker(
+    service_name="layer3-knowledge",
+    failure_threshold=3,
+    recovery_timeout=30.0,
+    half_open_max_calls=1,
+)
 
 
 class L3GraphClient:
@@ -40,17 +52,24 @@ class L3GraphClient:
         signal: dict[str, Any],
         tenant_id: str,
         request_id: str | None = None,
+        correlation_id: str | None = None,
     ) -> bool:
         """Push a ValueSignal to L3 as a graph node.
 
         Returns True on success, False on any failure (non-blocking).
+        Protected by a circuit breaker (P1-014 pilot).
         """
         headers = {"X-Tenant-ID": tenant_id}
         if request_id:
             headers["X-Request-ID"] = request_id
+        if correlation_id:
+            headers["X-Correlation-ID"] = correlation_id
+        elif request_id:
+            headers["X-Correlation-ID"] = request_id
 
         try:
-            response = await self._client.post(
+            response = await _l3_circuit_breaker.call(
+                self._client.post,
                 f"{self._base_url}/api/v1/graph/signals",
                 json=signal,
                 headers=headers,
@@ -60,6 +79,12 @@ class L3GraphClient:
             logger.warning(
                 "L3 signal push returned %s for signal %s",
                 response.status_code,
+                signal.get("id"),
+            )
+            return False
+        except CircuitBreakerOpen:
+            logger.warning(
+                "L3 signal push skipped for signal %s — circuit breaker is open",
                 signal.get("id"),
             )
             return False

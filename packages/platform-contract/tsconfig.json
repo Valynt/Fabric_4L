@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "baseUrl": ".",
     "paths": {
       "@fabric/platform-contract": ["./src/typescript/index.ts"],
       "@fabric/platform-contract/agent-result": ["./src/typescript/agent-result.ts"],
@@ -13,8 +12,9 @@
     },
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/typescript/**/*.ts"],
+  "include": ["src/typescript/**/*.ts", "src/clerk_defaults.json"],
   "exclude": ["src/typescript/negative/**"]
 }

@@ -20,6 +20,8 @@ Validates each rendered deployment overlay under k8s/deployments/ for:
      Service rendered from the env overlay.
 
   5. Routing stacks under k8s/routing/* must not import `../../base`.
+  6. Deployment pod/container security contexts include baseline hardening.
+  7. NGINX ingress resources include mandatory CORS, auth, and rate-limit annotations.
 
 Usage:
   python scripts/ci/k8s_routing_check.py \
@@ -70,6 +72,21 @@ ROUTING_KIND_MATRIX: dict[str, set[tuple[str, str]]] = {
 ALL_ROUTING_KINDS: set[tuple[str, str]] = set().union(*ROUTING_KIND_MATRIX.values())
 
 SENTINELS = ("__HOST__", "__API_HOST__")
+
+REQUIRED_NGINX_ANNOTATIONS: dict[str, tuple[str, ...]] = {
+    "cors": ("nginx.ingress.kubernetes.io/enable-cors",),
+    "auth": (
+        "nginx.ingress.kubernetes.io/auth-url",
+        "nginx.ingress.kubernetes.io/auth-signin",
+        "nginx.ingress.kubernetes.io/auth-response-headers",
+    ),
+    "rate_limiting": (
+        "nginx.ingress.kubernetes.io/limit-rps",
+        "nginx.ingress.kubernetes.io/limit-rpm",
+        "nginx.ingress.kubernetes.io/limit-connections",
+        "nginx.ingress.kubernetes.io/limit-burst-multiplier",
+    ),
+}
 
 
 def _api_group(api_version: str) -> str:
@@ -319,6 +336,57 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
                     f"{name}: routing resource {gk[1]}/"
                     f"{d.get('metadata', {}).get('name', '?')} "
                     f"references Service '{svc}' which is not in the rendered output"
+                )
+
+    # 7. Mandatory nginx ingress controls (rendered manifests).
+    if axis == "nginx":
+        for d in docs:
+            gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
+            if gk != ("networking.k8s.io", "Ingress"):
+                continue
+            md_name = d.get("metadata", {}).get("name", "?")
+            annotations = (d.get("metadata", {}) or {}).get("annotations") or {}
+            for control, keys in REQUIRED_NGINX_ANNOTATIONS.items():
+                for key in keys:
+                    if not str(annotations.get(key, "")).strip():
+                        errors.append(
+                            f"{name}: Ingress/{md_name} missing required {control} annotation '{key}'"
+                        )
+
+    # 6. Deployment securityContext baseline for rendered deployment bundles.
+    for d in docs:
+        if d.get("kind") != "Deployment":
+            continue
+        md_name = d.get("metadata", {}).get("name", "?")
+        pod_spec = (((d.get("spec") or {}).get("template") or {}).get("spec") or {})
+        pod_sc = pod_spec.get("securityContext") or {}
+        if pod_sc.get("runAsNonRoot") is not True:
+            errors.append(f"{name}: Deployment/{md_name} pod securityContext.runAsNonRoot must be true")
+        seccomp_type = ((pod_sc.get("seccompProfile") or {}).get("type"))
+        if seccomp_type != "RuntimeDefault":
+            errors.append(
+                f"{name}: Deployment/{md_name} pod securityContext.seccompProfile.type "
+                "must be RuntimeDefault"
+            )
+
+        for container in pod_spec.get("containers", []) or []:
+            c_name = container.get("name", "?")
+            c_sc = container.get("securityContext") or {}
+            if c_sc.get("allowPrivilegeEscalation") is not False:
+                errors.append(
+                    f"{name}: Deployment/{md_name} container/{c_name} "
+                    "securityContext.allowPrivilegeEscalation must be false"
+                )
+            if c_sc.get("readOnlyRootFilesystem") is not True:
+                errors.append(
+                    f"{name}: Deployment/{md_name} container/{c_name} "
+                    "securityContext.readOnlyRootFilesystem must be true"
+                )
+            dropped = ((c_sc.get("capabilities") or {}).get("drop") or [])
+            if "ALL" not in dropped:
+                errors.append(
+                    f"{name}: Deployment/{md_name} container/{c_name} "
+                    "securityContext.capabilities.drop must include ALL"
                 )
 
     return errors

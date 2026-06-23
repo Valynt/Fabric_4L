@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 """Layer 4 FastAPI application compatibility export.
 
-The canonical Layer 4 application lives in :mod:`value_fabric.layer4.api.main`.
-This module exists so repository-level contract tests and legacy deployment
-entrypoints can import ``value_fabric.layer4.main`` without duplicating route,
+The canonical Layer 4 application lives in :mod:`layer4_agents.api.main`.
+This module exists so repository-level contract tests and deployment entrypoints
+can import a stable service-local ``main`` module without duplicating route,
 authentication, tenant-isolation, or orchestration logic.
 """
 
-from __future__ import annotations
 
 from value_fabric.shared.security.config import validate_all_controls
 

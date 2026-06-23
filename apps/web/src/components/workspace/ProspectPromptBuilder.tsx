@@ -60,6 +60,7 @@ import {
   type SectionKey,
   type Stakeholders,
 } from "./promptParser"
+import { DEFAULT_COMPANIES, DEFAULT_ACTIVITIES } from "@/lib/demoData"
 
 const log = createFeatureLogger("ProspectPromptBuilder")
 
@@ -135,31 +136,6 @@ export type ProspectPromptBuilderProps = {
 // Constants
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const DEFAULT_COMPANIES: CompanyOption[] = [
-  { id: "1", name: "Medtronic", domain: "medtronic.com", industry: "Medical Devices" },
-  { id: "2", name: "Stryker", domain: "stryker.com", industry: "Medical Devices" },
-  { id: "3", name: "Baxter", domain: "baxter.com", industry: "Healthcare" },
-  { id: "4", name: "Johnson & Johnson MedTech", domain: "jnjmedtech.com", industry: "Medical Devices" },
-  { id: "5", name: "Finastra", domain: "finastra.com", industry: "Financial Services Technology" },
-]
-
-const DEFAULT_ACTIVITIES: ActivityItem[] = [
-  {
-    id: "a1",
-    title: "Medtronic launch readiness setup",
-    updatedAt: "2h ago",
-    prompt:
-      "Company: Medtronic\nWebsite: medtronic.com\nIndustry: Medical Devices\n\nBuying context: New product launch readiness across distributed field teams\nWhy this account now: Need stronger rep ramp, compliant messaging, and executive discovery prep\nKnown initiative or trigger: Field launch enablement refresh\n\nStakeholders:\n- Economic buyer: VP Sales\n- Business champion: Sales Enablement Leader\n- Technical evaluator: RevOps / IT\n- Compliance / legal: Regulatory and legal operations\n\nKnown or suspected business pains:\n- Rep onboarding is slow for complex offerings\n- Messaging consistency is difficult across field teams\n- Launch content is fragmented across systems\n\nCurrent friction:\n- Multiple systems create version confusion\n- Coaching quality varies by manager\n\nDesired business outcome:\n- Faster rep ramp time\n- More consistent compliant messaging\n- Better launch readiness\n\nDesired output:\n- Account brief\n- Discovery prep\n- Value hypotheses\n\nCompliance sensitivity:\n- Regulated industry: yes\n- Known requirements: FDA-related controls; auditability\n- Security / legal review expected: yes",
-  },
-  {
-    id: "a2",
-    title: "Financial services coaching setup",
-    updatedAt: "Yesterday",
-    prompt:
-      "Company: Goldman Sachs\nWebsite: goldmansachs.com\nIndustry: Financial Services\n\nBuying context: Advisor enablement and coaching scale\nWhy this account now: Need consistent messaging and compliance-safe coaching motions\n\nDesired output:\n- Executive summary\n- Value hypotheses",
-  },
-]
-
 const MODE_OPTIONS: PromptMode[] = ["Fast", "Balanced", "Deep"]
 const MESSAGE_CLEAR_TIMEOUT_MS = 5000
 
@@ -180,7 +156,7 @@ const UI_BUTTON_STYLES = {
   pill: "h-10 rounded-2xl border border-border/60 bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-foreground",
   icon: "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-muted-foreground shadow-none transition-all hover:border-border/60 hover:bg-muted hover:text-foreground hover:shadow-sm",
   accentIcon:
-    "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-violet-600 shadow-none transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 hover:shadow-sm dark:text-violet-400 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300",
+    "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-primary shadow-none transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary hover:shadow-sm dark:text-primary dark:hover:border-primary/40 dark:hover:bg-primary/10 dark:hover:text-primary",
   option:
     "h-10 rounded-2xl border border-border/60 bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-foreground",
   primary:
@@ -1034,9 +1010,9 @@ const StatusBanner = React.memo(function StatusBanner({
       className={cn(
         "mx-5 mb-3 rounded-2xl border px-3 py-2 text-sm transition-all",
         tone === "error" &&
-          "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
+          "border-destructive/30 bg-destructive/10 text-destructive dark:text-destructive",
         tone === "success" &&
-          "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+          "border-success/30 bg-success/10 text-success dark:text-success",
         tone === "info" && "border-border/60 bg-muted/40 text-foreground"
       )}
     >
@@ -1054,13 +1030,13 @@ const ValidationChecklist = React.memo(function ValidationChecklist({
   if (unresolved.length === 0) return null
 
   return (
-    <div className="mx-5 mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-      <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1.5">
+    <div className="mx-5 mb-3 rounded-2xl border border-warning/20 bg-warning/5 px-3 py-2">
+      <p className="text-xs font-medium text-warning dark:text-warning mb-1.5">
         Finish these to launch:
       </p>
       <ul className="space-y-1">
         {unresolved.map((issue) => (
-          <li key={issue.id} className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+          <li key={issue.id} className="flex items-start gap-2 text-xs text-warning dark:text-warning">
             <Circle className="h-3 w-3 mt-0.5 shrink-0 opacity-60" />
             <span>{issue.message}</span>
           </li>
@@ -1389,7 +1365,7 @@ const PromptFooter = React.memo(function PromptFooter({
               onClick={handleVoice}
               className={cn(
                 UI_BUTTON_STYLES.icon,
-                state.isRecording && "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                state.isRecording && "text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive"
               )}
               aria-pressed={state.isRecording}
               aria-label={state.isRecording ? "Stop voice input" : "Start voice input"}
@@ -1678,7 +1654,7 @@ export function ProspectPromptBuilder({
                 {state.complianceSensitive ? (
                   <Badge
                     variant="outline"
-                    className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+                    className="rounded-2xl border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning dark:text-warning"
                   >
                     <Shield className="mr-1.5 h-3.5 w-3.5" />
                     Compliance-sensitive
@@ -1727,7 +1703,7 @@ export function ProspectPromptBuilder({
               onKeyDown={handleKeyDown}
               aria-describedby={`${helperId} ${statusId}`}
               placeholder="Start a new value case by entering the company, context, stakeholders, pain points, and desired output..."
-              className="min-h-[132px] resize-none border-0 bg-transparent px-5 pb-3 pt-0 text-[15px] leading-6 text-foreground shadow-none placeholder:text-muted-foreground/80 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="min-h-[132px] resize-none border-0 bg-transparent px-5 pb-3 pt-0 vf-text-body-l leading-6 text-foreground shadow-none placeholder:text-muted-foreground/80 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
 
             <StatusBanner

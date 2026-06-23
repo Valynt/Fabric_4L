@@ -1,0 +1,87 @@
+{{/* Generate a Deployment for each enabled service layer */}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{include "fabric.fullname" $}}-{{$name}}
+  labels:
+    {{- include "fabric.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{$name}}
+spec:
+  replicas: {{$svc.replicaCount}}
+  selector:
+    matchLabels:
+      {{- include "fabric.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{$name}}
+  template:
+    metadata:
+      labels:
+        {{- include "fabric.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{$name}}
+      annotations:
+        prometheus.io/scrape: "{{$.Values.monitoring.enabled}}"
+        prometheus.io/port: "{{$svc.port}}"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{include "fabric.serviceAccountName" $}}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: {{$name}}
+          image: {{include "fabric.image" $ | quote}}
+          imagePullPolicy: {{$.Values.image.pullPolicy}}
+          ports:
+            - name: http
+              containerPort: {{$svc.port}}
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              value: {{include "fabric.environment" $ | quote}}
+            - name: SERVICE_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{include "fabric.fullname" $}}-secrets
+                  key: service-auth-secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{include "fabric.fullname" $}}-secrets
+                  key: jwt-secret
+            {{- range $key, $val := $svc.env }}
+            - name: {{$key | upper}}
+              value: {{$val | quote}}
+            {{- end }}
+          {{- if $svc.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{$svc.probes.liveness.path}}
+              port: http
+            initialDelaySeconds: {{$svc.probes.liveness.initialDelaySeconds}}
+            periodSeconds: {{$svc.probes.liveness.periodSeconds}}
+          {{- end }}
+          {{- if $svc.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{$svc.probes.readiness.path}}
+              port: http
+            initialDelaySeconds: {{$svc.probes.readiness.initialDelaySeconds}}
+            periodSeconds: {{$svc.probes.readiness.periodSeconds}}
+          {{- end }}
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

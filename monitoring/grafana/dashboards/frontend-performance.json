@@ -1,0 +1,151 @@
+{
+  "dashboard": {
+    "title": "Frontend Performance (RUM)",
+    "tags": ["frontend", "rum", "performance"],
+    "timezone": "UTC",
+    "schemaVersion": 36,
+    "refresh": "30s",
+    "panels": [
+      {
+        "title": "Page Load Time (p75, p95, p99)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.75, sum(rate(otel_web_document_load_duration_bucket[5m])) by (le))",
+            "legendFormat": "p75"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_web_document_load_duration_bucket[5m])) by (le))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(otel_web_document_load_duration_bucket[5m])) by (le))",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {"drawStyle": "line", "lineWidth": 2}
+          }
+        }
+      },
+      {
+        "title": "Core Web Vitals: LCP",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.75, sum(rate(otel_web_largest_contentful_paint_bucket[5m])) by (le))",
+            "legendFormat": "LCP p75"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 2.5},
+                {"color": "red", "value": 4.0}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Core Web Vitals: FID",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_web_first_input_delay_bucket[5m])) by (le))",
+            "legendFormat": "FID p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 300}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "API Response Time (Frontend Perspective)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_web_fetch_duration_bucket[5m])) by (le))",
+            "legendFormat": "Fetch p95"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_web_xhr_duration_bucket[5m])) by (le))",
+            "legendFormat": "XHR p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s"}
+        }
+      },
+      {
+        "title": "JavaScript Errors",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(otel_web_js_error_count[5m]))",
+            "legendFormat": "JS Errors/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "short"}
+        }
+      },
+      {
+        "title": "Route Change Timing",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(otel_web_route_change_duration_bucket[5m])) by (le))",
+            "legendFormat": "Route Change p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s"}
+        }
+      },
+      {
+        "title": "Metric Pipeline Dependency",
+        "type": "text",
+        "gridPos": {"h": 2, "w": 24, "x": 0, "y": 24},
+        "options": {
+          "mode": "markdown",
+          "content": "> **Metric pipeline dependency**: The `otel_web_*` histogram panels above require an OTLP metrics exporter in the frontend. The current instrumentation exports **traces only** via OTLP. To populate these panels, add `@opentelemetry/sdk-metrics` and an `OTLPMetricExporter` to `lib/opentelemetry.ts`."
+        }
+      },
+      {
+        "title": "Frontend Traces (Jaeger)",
+        "type": "traces",
+        "datasource": "Jaeger",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26},
+        "targets": [
+          {
+            "query": "service.name=\"fabric-4l-frontend\"",
+            "refId": "A",
+            "queryType": "search",
+            "limit": 20
+          }
+        ]
+      }
+    ]
+  }
+}

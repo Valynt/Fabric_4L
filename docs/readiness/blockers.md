@@ -1,14 +1,18 @@
 # Launch Blocker Board
 
-_Last updated: 2026-05-18_
+_Last updated: 2026-06-01 (PROD-P0-001 SSRF fix applied)_
 _Canonical readiness source: [`docs/readiness/current.md`](current.md) — 97%_
+
+**Launch Readiness:** **CONDITIONALLY UNBLOCKED — service-backed skipped-test evidence pending**
+
+All documented P0 blockers have passing local evidence or have been verified resolved in the current working tree. Final launch sign-off still requires running the skipped service-backed tenant isolation tests in CI/staging with PostgreSQL and Redis available.
 
 **Definitions:**
 - **P0** — Release-blocking. Pilot cannot launch until resolved.
 - **P1** — Must fix before external demo or tenant onboarding expansion.
 - **P2** — Post-launch hardening. Required before broad GA.
 
-Primary evidence source: `reports/RELEASE_READINESS_AUDIT_2026-05-12.md`
+Primary evidence source: `reports/current-readiness-p0-remediation-2026-06-01.md`
 
 ---
 
@@ -17,10 +21,23 @@ Primary evidence source: `reports/RELEASE_READINESS_AUDIT_2026-05-12.md`
 | ID | Area | Blocker | Owner | Status | Evidence / Link |
 |---|---|---|---|---|---|
 | P0-0 | Repo hygiene | ~~Unresolved Git merge conflict markers in 9 Python files~~ | — | ✅ **RESOLVED** | `make check-conflict-markers` passes as of 2026-05-18 |
-| P0-1 | Security / RLS | RLS enforcement test regression — `test_remediation_migrations_do_not_reintroduce_null_visibility` fails; NULL tenant_id visibility may have been reintroduced by a newer migration | — | 🔴 Open | `tests/security/test_rls_enforcement.py::TestRLSPolicyStructure::test_remediation_migrations_do_not_reintroduce_null_visibility` |
-| P0-2 | Architecture | Architecture conformance suite has 5 failures — blocks `gate-arch` (blocking gate per `.fabric/prod-gates.policy.yaml`) | — | 🔴 Open | `tests/arch/` — D-01 (L3 compat path), D-02 (L5 TruthObject missing tenant_id), D-03 (syntax error in app_monolith), D-11 (L3 shim drift), D-12 (L3 tenant dep validation) |
-| P0-3 | Security / Cache | Redis cache tenant isolation gate is false-green — all 14 tests in `test_redis_tenant_isolation.py` fail with `TypeError: '>=' not supported between instances of 'AsyncMock' and 'int'`; invariant is untested in practice | — | 🔴 Open | `tests/cache/test_redis_tenant_isolation.py` — fix: mock `incr` to return `int` |
-| P0-4 | Infra / K8s | Staging `kustomization.yaml` still contains placeholder image digests (`sha256:1111...7777`) — digest guard now blocks staging promotion CI | — | 🔴 Open | `k8s/envs/staging/kustomization.yaml`; run `scripts/ci/prepare_kustomize_deploy.sh staging` |
+| P0-1 | Security / RLS | ~~RLS enforcement test regression — `test_remediation_migrations_do_not_reintroduce_null_visibility` fails; NULL tenant_id visibility may have been reintroduced by a newer migration~~ | — | ✅ **RESOLVED** | `pytest tests/security/test_rls_enforcement.py -q --no-mandatory-dep-check` passes 26/26 as of 2026-06-01. No migration reintroduces NULL visibility. |
+| P0-2 | Architecture | ~~Architecture conformance suite has 5 failures — blocks `gate-arch` (blocking gate per `.fabric/prod-gates.policy.yaml`)~~ | — | ✅ **RESOLVED** | `pytest tests/arch/ -q --no-mandatory-dep-check` passes 35/35 as of 2026-06-01. Root causes: merge conflict markers in 2 files, stale Layer 6 sentinel paths, stale L4 shim paths in tenant architecture test config, stale sync-engine baseline path, dead `database.py` duplicate. |
+| P0-3 | Security / Cache | ~~Redis cache tenant isolation gate is false-green — all 14 tests in `test_redis_tenant_isolation.py` fail with `TypeError: '>=' not supported between instances of 'AsyncMock' and 'int'`; invariant is untested in practice~~ | — | ✅ **RESOLVED** | `pytest tests/cache/test_redis_tenant_isolation.py -q --no-mandatory-dep-check` passes 16/16 as of 2026-06-01. Root cause was stale patch path `value_fabric.layer3.api.cache` → fixed to `src.api.cache`. |
+| P0-4 | Infra / K8s | ~~Staging `kustomization.yaml` still contains placeholder image digests (`sha256:1111...7777`) — digest guard now blocks staging promotion CI~~ | — | ✅ **RESOLVED** | `scripts/ci/test_placeholder_digest_detection.sh` passes 9/9 and `scripts/ci/check-k8s-image-digests.sh` passes as of 2026-06-01. Both staging overlays contain real immutable SHA256 digests. |
+| PROD-P0-001 | Security / SSRF | ~~Layer 1 browser/fallback crawler path (`_execute_browser_path`) bypassed URL safety validation — unsafe URLs could reach internal endpoints via Playwright~~ | — | ✅ **RESOLVED** | `pytest services/layer1-ingestion/tests/security/test_layer1_browser_ssrf_guard.py -v` passes 9/9 as of 2026-06-01. Validation added at three trust boundaries: `crawl_url_with_routing`, `_execute_browser_path`, and `PlaywrightCrawler.crawl_url`. |
+
+### P0 Follow-up: Service-Backed Validation Required
+
+The following tests were **skipped** during local verification because PostgreSQL and Redis services are not available in the bare development environment. They must be run in a service-backed CI or staging environment before final production readiness sign-off:
+
+| Test File | Skipped Tests | Reason | Required Environment |
+|---|---|---|---|
+| `tests/security/test_tenant_isolation.py` | Cache isolation tests (3) | Redis unavailable locally | `docker compose up redis` |
+| `tests/security/test_tenant_isolation.py` | RLS enforcement tests (3) | PostgreSQL unavailable locally | `docker compose up postgres` |
+| `tests/security/test_tenant_isolation.py` | Endpoint-dependent tests (3) | Full app routes not mounted | Complete app with routes |
+
+**Required outcome:** All skipped tests must either pass or be explicitly justified with environment evidence before final sign-off.
 
 ---
 

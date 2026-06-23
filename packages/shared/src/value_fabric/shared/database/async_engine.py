@@ -49,15 +49,13 @@ _RLS_SUPPORTED_SCHEMES = frozenset({"postgresql", "postgres", "postgresql+asyncp
 _RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
 
 
-def _is_production_like_runtime() -> bool:
-    env = os.getenv("ENVIRONMENT", "").strip().lower()
-    app_env = os.getenv("APP_ENV", "").strip().lower()
-    value = env or app_env
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+def _is_strict_runtime() -> bool:
+    from value_fabric.shared.security.config import is_strict_environment
+    return is_strict_environment()
 
 
 def _assert_rls_safe_database_url(database_url: str) -> None:
-    if not _is_production_like_runtime():
+    if not _is_strict_runtime():
         return
 
     parsed = urlparse(database_url)

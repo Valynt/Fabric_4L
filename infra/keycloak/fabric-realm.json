@@ -84,7 +84,6 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "fabric-frontend-secret-do-not-use-in-production",
       "redirectUris": [
         "http://localhost:3001/*",
         "http://localhost:3000/*"
@@ -98,7 +97,7 @@
       "consentRequired": false,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "publicClient": true,
       "frontchannelLogout": true,
@@ -175,7 +174,6 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "fabric-api-secret-do-not-use-in-production",
       "redirectUris": [],
       "webOrigins": [],
       "notBefore": 0,
@@ -251,8 +249,8 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin",
-          "temporary": false
+          "value": "local-admin-temp-change-me-2026",
+          "temporary": true
         }
       ],
       "realmRoles": ["tenant_admin"],
@@ -273,8 +271,8 @@
       "credentials": [
         {
           "type": "password",
-          "value": "analyst",
-          "temporary": false
+          "value": "local-analyst-temp-change-me-2026",
+          "temporary": true
         }
       ],
       "realmRoles": ["analyst"],

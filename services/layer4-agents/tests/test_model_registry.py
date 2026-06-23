@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Unit tests for the Model Registry service and evaluation gate."""
 
-from __future__ import annotations
 
 import os
 import sys
@@ -12,9 +13,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from value_fabric.layer4.registry.eval_gate import _DEFAULT_PROMOTION_THRESHOLD, check_eval_gate
-from value_fabric.layer4.registry.models import ModelPromotionLog, ModelVersion
-from value_fabric.layer4.registry.service import ModelRegistryService, PromotionError, resolve_llm_model
+from layer4_agents.registry.eval_gate import _DEFAULT_PROMOTION_THRESHOLD, check_eval_gate
+from layer4_agents.registry.models import ModelPromotionLog, ModelVersion
+from layer4_agents.registry.service import ModelRegistryService, PromotionError, resolve_llm_model
 
 
 class FakeResult:
@@ -45,11 +46,20 @@ def db() -> AsyncMock:
     return AsyncMock()
 
 
+@pytest.fixture
+def mock_emit_audit_event(monkeypatch):
+    """Mock emit_audit_event to accept any arguments."""
+    from unittest.mock import MagicMock
+    mock = MagicMock()
+    monkeypatch.setattr("layer4_agents.registry.service.emit_audit_event", mock)
+    return mock
+
+
 class TestModelRegistryCRUD:
     """Tests for model registration and listing."""
 
     @pytest.mark.asyncio
-    async def test_register_model(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_register_model(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         model = await ModelRegistryService.register_model(
             db=db,
             tenant_id=tenant_id,
@@ -106,7 +116,7 @@ class TestModelPromotion:
     """Tests for promotion gates and audit trail."""
 
     @pytest.mark.asyncio
-    async def test_dev_to_staging_allowed(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_dev_to_staging_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -122,7 +132,7 @@ class TestModelPromotion:
         assert result.stage == "staging"
 
     @pytest.mark.asyncio
-    async def test_staging_to_production_requires_eval(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_staging_to_production_requires_eval(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -133,7 +143,7 @@ class TestModelPromotion:
             eval_score=0.80,
         )
         # Mock tenant for threshold lookup
-        from value_fabric.layer4.tenants.models.tenant import Tenant
+        from layer4_agents.tenants.models.tenant import Tenant
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
 
         # promote_model does 1 execute, then check_eval_gate does 2 executes
@@ -144,7 +154,7 @@ class TestModelPromotion:
 
     @pytest.mark.asyncio
     async def test_staging_to_production_passes_with_high_score(
-        self, db: AsyncMock, tenant_id: UUID
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
     ) -> None:
         mv = ModelVersion(
             id=uuid4(),
@@ -155,7 +165,7 @@ class TestModelPromotion:
             stage="staging",
             eval_score=0.95,
         )
-        from value_fabric.layer4.tenants.models.tenant import Tenant
+        from layer4_agents.tenants.models.tenant import Tenant
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
 
         # promote_model: 1 execute + check_eval_gate (2 executes) first call
@@ -168,7 +178,7 @@ class TestModelPromotion:
         assert result.stage == "production"
 
     @pytest.mark.asyncio
-    async def test_production_to_deprecated_allowed(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_production_to_deprecated_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -184,7 +194,7 @@ class TestModelPromotion:
         assert result.stage == "deprecated"
 
     @pytest.mark.asyncio
-    async def test_promotion_history_recorded(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_promotion_history_recorded(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -237,7 +247,7 @@ class TestEvalGate:
             model_version="v1",
             eval_score=0.84,
         )
-        from value_fabric.layer4.tenants.models.tenant import Tenant
+        from layer4_agents.tenants.models.tenant import Tenant
         tenant = Tenant(
             id=tenant_id,
             name="Test",
@@ -259,7 +269,7 @@ class TestEvalGate:
             model_version="v1",
             eval_score=_DEFAULT_PROMOTION_THRESHOLD,
         )
-        from value_fabric.layer4.tenants.models.tenant import Tenant
+        from layer4_agents.tenants.models.tenant import Tenant
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
         db.execute.side_effect = [FakeResult(mv), FakeResult(tenant)]
         passed = await check_eval_gate(db, mv.id)

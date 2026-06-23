@@ -1,13 +1,16 @@
-"""Static tenant-isolation gates for Layer 3 Neo4j Cypher usage."""
-
 from __future__ import annotations
 
-import importlib.util
+"""Static tenant-isolation gates for Layer 3 Neo4j Cypher usage."""
+
+
+from importlib import import_module
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+
+from src.security.query_validator import UnscopedQueryError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -72,12 +75,7 @@ def test_tenant_label_registry_has_schema_constraint_and_index_coverage() -> Non
 
     from value_fabric.shared.identity.isolation import DEFAULT_TENANT_LABEL_POLICY
 
-    constraints_path = SERVICE_SRC / "schema" / "constraints.py"
-    spec = importlib.util.spec_from_file_location("layer3_schema_constraints", constraints_path)
-    assert spec is not None and spec.loader is not None
-    constraints_module = importlib.util.module_from_spec(spec)
-    sys.modules["layer3_schema_constraints"] = constraints_module
-    spec.loader.exec_module(constraints_module)
+    constraints_module = import_module("src.schema.constraints")
     CONSTRAINTS = constraints_module.CONSTRAINTS
     INDEXES = constraints_module.INDEXES
     TENANT_CONSTRAINTS = constraints_module.TENANT_CONSTRAINTS
@@ -144,15 +142,19 @@ def test_tenant_label_registry_has_schema_constraint_and_index_coverage() -> Non
 async def test_neo4j_tenant_session_rejects_unscoped_raw_tenant_cypher() -> None:
     """The legacy session wrapper must fail closed for raw tenant-owned Cypher."""
 
-    from api.dependencies_tenant import Neo4jTenantSession
+    from src.api.dependencies_tenant import Neo4jTenantSession
 
     class FakeSession:
         async def run(self, query, params):  # pragma: no cover - should not be reached
             raise AssertionError(f"unsafe query unexpectedly executed: {query} {params}")
 
-    tenant_session = Neo4jTenantSession(FakeSession(), tenant_id="tenant-a")
+    tenant_session = Neo4jTenantSession(
+        object(), tenant_id="tenant-a", session=FakeSession()
+    )
 
-    with pytest.raises(ValueError, match="explicit tenant predicates"):
+    with pytest.raises(
+        (ValueError, UnscopedQueryError), match="tenant isolation validation|explicit tenant predicates"
+    ):
         await tenant_session.run("MATCH (a:Account) RETURN a")
 
 
@@ -160,7 +162,7 @@ async def test_neo4j_tenant_session_rejects_unscoped_raw_tenant_cypher() -> None
 async def test_neo4j_tenant_session_executes_scoped_query_with_tenant_params() -> None:
     """Builder-created scoped queries remain the preferred execution boundary."""
 
-    from api.dependencies_tenant import Neo4jTenantSession
+    from src.api.dependencies_tenant import Neo4jTenantSession
     from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
     class FakeSession:
@@ -172,7 +174,9 @@ async def test_neo4j_tenant_session_executes_scoped_query_with_tenant_params() -
             return []
 
     fake_session = FakeSession()
-    tenant_session = Neo4jTenantSession(fake_session, tenant_id="tenant-a")
+    tenant_session = Neo4jTenantSession(
+        object(), tenant_id="tenant-a", session=fake_session
+    )
     scoped_query = ScopedQuery(
         cypher="MATCH (a:Account {tenant_id: $tenant_id}) WHERE a.id = $id RETURN a",
         params={"id": "shared-id"},
@@ -194,13 +198,15 @@ async def test_neo4j_tenant_session_executes_scoped_query_with_tenant_params() -
 
 @pytest.mark.asyncio
 async def test_neo4j_tenant_session_denies_broad_match_without_tenant_constraint() -> None:
-    from api.dependencies_tenant import Neo4jTenantSession
+    from src.api.dependencies_tenant import Neo4jTenantSession
 
     class FakeSession:
         async def run(self, query, params):  # pragma: no cover
             raise AssertionError("query should have been blocked")
 
-    tenant_session = Neo4jTenantSession(FakeSession(), tenant_id="tenant-a")
+    tenant_session = Neo4jTenantSession(
+        object(), tenant_id="tenant-a", session=FakeSession()
+    )
 
-    with pytest.raises(ValueError, match="Denied broad MATCH traversal"):
+    with pytest.raises((ValueError, UnscopedQueryError), match="Denied broad MATCH traversal"):
         await tenant_session.run("MATCH (n) RETURN n LIMIT 1")

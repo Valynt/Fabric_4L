@@ -174,7 +174,7 @@ class TestModelVersionCRUD:
         )
 
         assert response.status_code == status.HTTP_409_CONFLICT
-        assert "already exists" in response.json()["detail"].lower()
+        assert "already exists" in response.json()["error"]["message"].lower()
 
     async def test_list_model_versions(
         self,
@@ -336,8 +336,8 @@ class TestModelDeployment:
             headers=auth_headers,
         )
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "inactive" in response.json()["detail"].lower()
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "inactive" in response.json()["error"]["message"].lower()
 
     async def test_list_deployments(
         self,
@@ -433,7 +433,7 @@ class TestModelEvaluation:
             "benchmark_name": "human-eval",
             "benchmark_version": "v2",
             "score": 0.92,
-            "score_details": {"pass@1": 0.89, "pass@100": 0.95},
+            "score_details": {"pass_at_1": 0.89, "pass_at_100": 0.95},
             "sample_size": 164,
             "cost_usd": 12.50,
             "duration_seconds": 1800,
@@ -542,20 +542,14 @@ class TestMultiTenancy:
 
     async def test_cannot_access_other_org_model(
         self,
-        async_client: AsyncClient,
-        auth_headers: dict,
+        tenant_aware_client: AsyncClient,
         sample_model_version: ModelVersion,
         db: AsyncSession,
     ) -> None:
         """Test that models from other orgs are not accessible."""
-        # The auth_headers are for a specific org
-        # If we try to access with different org headers, it should 404
-        different_org_headers = dict(auth_headers)
-        different_org_headers["X-Organization-ID"] = str(uuid.uuid4())
-
-        response = await async_client.get(
+        response = await tenant_aware_client.get(
             f"/api/v1/models/{sample_model_version.id}",
-            headers=different_org_headers,
+            headers={"X-Test-Tenant": str(uuid.uuid4())},
         )
 
         # Should return 404 (not 403) to avoid leaking existence

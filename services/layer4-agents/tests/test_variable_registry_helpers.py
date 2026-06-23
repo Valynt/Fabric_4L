@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for Neo4jVariableRegistry pure helper methods.
 
@@ -6,7 +8,6 @@ Covers (no Neo4j required):
 - _apply_rule: range, regex, enum, unknown rule type
 """
 
-from __future__ import annotations
 
 import json
 from datetime import datetime
@@ -14,11 +15,11 @@ from decimal import Decimal
 
 import pytest
 
-from value_fabric.layer4.interfaces.variable_registry import (
+from layer4_agents.interfaces.variable_registry import (
     VariableDataType,
     VariableValidationRule,
 )
-from value_fabric.layer4.services.variable_registry_service import Neo4jVariableRegistry
+from layer4_agents.services.variable_registry_service import Neo4jVariableRegistry
 
 
 # ---------------------------------------------------------------------------

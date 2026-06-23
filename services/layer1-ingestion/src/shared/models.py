@@ -20,6 +20,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -404,6 +405,7 @@ class ScrapingJob(Base):
     created_by = Column(UUID(as_uuid=True), nullable=False)
     triggered_by = Column(String(50), default=TriggeredBy.MANUAL.value)
     correlation_id = Column(String(100), nullable=True)  # Distributed tracing
+    idempotency_key = Column(String(255), nullable=True)  # API-level idempotency
 
     # Relationships
     target = relationship("ScrapingTarget", back_populates="jobs")
@@ -923,6 +925,7 @@ def create_scraping_job(
     priority: int = 5,
     triggered_by: TriggeredBy = TriggeredBy.MANUAL,
     correlation_id: str | None = None,
+    idempotency_key: str | None = None,
 ) -> ScrapingJob:
     """Factory function to create a new scraping job."""
     return ScrapingJob(
@@ -933,6 +936,7 @@ def create_scraping_job(
         priority=priority,
         triggered_by=triggered_by.value,
         correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
     )
 
 
@@ -1191,3 +1195,55 @@ class EventOutbox(Base):
         Index("idx_event_outbox_event_type", "event_type"),
         Index("idx_event_outbox_aggregate", "aggregate_type", "aggregate_id"),
     )
+
+
+# =============================================================================
+# TENANT REGISTRY (system table — no RLS)
+# =============================================================================
+
+
+class TenantRegistry(Base):
+    """System registry of active tenants for maintenance operations.
+
+    Explicitly NOT covered by RLS.  Populated when scraping jobs are
+    created so that system maintenance tasks can enumerate tenants
+    without bypassing tenant-owned tables.
+    """
+
+    __tablename__ = "tenant_registry"
+
+    tenant_id = Column(UUID(as_uuid=True), primary_key=True)
+    registered_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    last_activity_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    is_active = Column(Boolean, nullable=False, default=True)
+
+
+
+# =============================================================================
+# SQLALCHEMY EVENT LISTENERS
+# =============================================================================
+
+
+@event.listens_for(ScrapingJob, "after_insert")
+def _upsert_tenant_registry(mapper, connection, target):
+    """Keep tenant_registry in sync with active tenants.
+
+    Runs in the same transaction as the job insert so the registry
+    is always consistent without requiring a separate commit.
+    """
+    if target.tenant_id is not None:
+        from sqlalchemy import text
+        connection.execute(
+            text("""
+                INSERT INTO tenant_registry (tenant_id, registered_at, last_activity_at, is_active)
+                VALUES (:tenant_id, NOW(), NOW(), true)
+                ON CONFLICT (tenant_id) DO UPDATE SET
+                    last_activity_at = EXCLUDED.last_activity_at,
+                    is_active = true;
+            """),
+            {"tenant_id": str(target.tenant_id)},
+        )

@@ -8,6 +8,8 @@ consistent tenant isolation security policies.
 import logging
 from uuid import UUID
 
+from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
+
 logger = logging.getLogger(__name__)
 
 # Canonical name for the privileged system tenant.  All code that needs to

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -12,6 +14,30 @@ from app.models.schemas import AgentRun, WorkflowResponse
 from app.services.agent_orchestrator import orchestrator
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, set):
+        try:
+            return [_json_safe(item) for item in sorted(value, key=str)]
+        except Exception:
+            return [_json_safe(item) for item in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if hasattr(value, "isoformat") and callable(value.isoformat):
+        return value.isoformat()
+    return str(value)
+
+
+def _sse_frame(payload: dict[str, Any]) -> str:
+    serialized_payload = json.dumps(_json_safe(payload), ensure_ascii=False, separators=(",", ":"))
+    return f"data: {serialized_payload}\n\n"
 
 
 # Canonical naming: backend domain model is "run" (AgentRun).
@@ -53,7 +79,7 @@ async def create_agent_run(payload: dict[str, Any], tenant_id: str = Depends(ten
 async def get_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(run_id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Agent run not found")
+        raise NotFoundError(message="Agent run not found")
     return run
 
 
@@ -61,16 +87,16 @@ async def get_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
 async def resume_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(run_id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Agent run not found")
-    return orchestrator.resume_run(run_id)
+        raise NotFoundError(message="Agent run not found")
+    return orchestrator.resume_run(run_id, tenant_id=tenant_id)
 
 
 @router.post("/runs/{run_id}/cancel", response_model=AgentRun)
 async def cancel_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(run_id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Agent run not found")
-    return orchestrator.cancel_run(run_id)
+        raise NotFoundError(message="Agent run not found")
+    return orchestrator.cancel_run(run_id, tenant_id=tenant_id)
 
 
 @router.post("/workflows", response_model=WorkflowResponse, status_code=201)
@@ -96,7 +122,7 @@ async def list_active_workflows(tenant_id: str = Depends(tenant_required)):
 async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise NotFoundError(message="Workflow not found")
     return _run_to_workflow_payload(run)
 
 
@@ -104,8 +130,8 @@ async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
 async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    cancelled = orchestrator.cancel_run(id)
+        raise NotFoundError(message="Workflow not found")
+    cancelled = orchestrator.cancel_run(id, tenant_id=tenant_id)
     return _run_to_workflow_payload(cancelled)
 
 
@@ -113,7 +139,7 @@ async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
 async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise NotFoundError(message="Workflow not found")
     if run.status == "running":
         db.agent_runs.update(id, tenant_id=tenant_id, status="paused")
         run = db.agent_runs.get(id, tenant_id=tenant_id)
@@ -124,8 +150,8 @@ async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
 async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-    resumed = orchestrator.resume_run(id)
+        raise NotFoundError(message="Workflow not found")
+    resumed = orchestrator.resume_run(id, tenant_id=tenant_id)
     return _run_to_workflow_payload(resumed)
 
 
@@ -133,17 +159,18 @@ async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
 async def workflow_events(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        raise NotFoundError(message="Workflow not found")
 
     async def stream() -> Any:
-        payload = _run_to_workflow_payload(run)
-        yield f"data: {{\"payload\": {payload!r}}}\n\n".replace("'", '"')
-        yield (
-            "data: {\"payload\": {"
-            f"\"workflow_id\": \"{run.id}\","
-            f"\"status\": \"{run.status}\","
-            f"\"updated_at\": \"{datetime.now(UTC).isoformat()}\""
-            "}}\n\n"
+        yield _sse_frame({"payload": _run_to_workflow_payload(run)})
+        yield _sse_frame(
+            {
+                "payload": {
+                    "workflow_id": run.id,
+                    "status": run.status,
+                    "updated_at": datetime.now(UTC),
+                }
+            }
         )
 
     return StreamingResponse(stream(), media_type="text/event-stream")

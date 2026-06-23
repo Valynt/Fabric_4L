@@ -1,0 +1,266 @@
+# P0-002: PostgreSQL High Availability via Patroni
+# 3-node Patroni cluster with etcd DCS, streaming replication, automatic failover
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-patroni
+  namespace: value-fabric
+  labels:
+    app: postgres-patroni
+    tier: database
+spec:
+  serviceName: postgres-patroni
+  replicas: 3
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app: postgres-patroni
+  template:
+    metadata:
+      labels:
+        app: postgres-patroni
+        tier: database
+    spec:
+      serviceAccountName: postgres-patroni
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: ghcr.io/zalando/spilo-16:3.2-p1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              name: postgres
+            - containerPort: 8008
+              name: patroni
+          env:
+            - name: SCOPE
+              value: "fabric4l-postgres"
+            - name: PGROOT
+              value: "/home/postgres/pgdata"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: PATRONI_KUBERNETES_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PATRONI_KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PATRONI_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: PATRONI_SCOPE
+              value: "fabric4l-postgres"
+            - name: PATRONI_KUBERNETES_USE_ENDPOINTS
+              value: "true"
+            - name: PATRONI_RESTAPI_LISTEN
+              value: "0.0.0.0:8008"
+            - name: PATRONI_RESTAPI_CONNECT_ADDRESS
+              value: "$(POD_IP):8008"
+            - name: PATRONI_POSTGRESQL_LISTEN
+              value: "0.0.0.0:5432"
+            - name: PATRONI_POSTGRESQL_CONNECT_ADDRESS
+              value: "$(POD_IP):5432"
+            - name: PATRONI_POSTGRESQL_DATA_DIR
+              value: "/home/postgres/pgdata/pgroot"
+            - name: PATRONI_POSTGRESQL_PGPASS
+              value: "/tmp/pgpass"
+            - name: PATRONI_KUBERNETES_LABELS
+              value: '{"app": "postgres-patroni"}'
+            - name: PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-patroni-credentials
+                  key: superuser-username
+            - name: PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-patroni-credentials
+                  key: superuser-password
+            - name: PATRONI_POSTGRESQL_AUTHENTICATION_REPLICATION_USERNAME
+              value: "replicator"
+            - name: PATRONI_POSTGRESQL_AUTHENTICATION_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-patroni-credentials
+                  key: replication-password
+            - name: WALG_S3_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: aws-backup-credentials
+                  key: WALG_S3_PREFIX
+            - name: WALG_COMPRESSION_METHOD
+              valueFrom:
+                configMapKeyRef:
+                  name: wal-g-config
+                  key: WALG_COMPRESSION_METHOD
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-backup-credentials
+                  key: AWS_REGION
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 8008
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 8008
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: pgdata
+              mountPath: /home/postgres/pgdata
+            - name: wal-g-config
+              mountPath: /etc/wal-g
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: wal-g-config
+          configMap:
+            name: wal-g-config
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-patroni
+  namespace: value-fabric
+  labels:
+    app: postgres-patroni
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+    - port: 8008
+      targetPort: 8008
+      name: patroni
+  selector:
+    app: postgres-patroni
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-patroni
+  namespace: value-fabric
+  annotations:
+    # IRSA: annotate with your EKS OIDC provider IAM role ARN.
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/ROLE_NAME
+    eks.amazonaws.com/role-arn: "REPLACE_WITH_IRSA_ROLE_ARN"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: postgres-patroni
+  namespace: value-fabric
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - endpoints
+      - configmaps
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: postgres-patroni
+  namespace: value-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: postgres-patroni
+subjects:
+  - kind: ServiceAccount
+    name: postgres-patroni
+    namespace: value-fabric
+---
+# S5-5: Patroni credentials secret — managed by External Secrets Operator.
+# Do NOT commit real credentials. The base overlay references a secret that is
+# populated from Vault/Infisical via an ExternalSecret resource in the
+# environment-specific overlay (e.g. k8s/overlays/<env>/externalsecrets.yaml).
+#
+# ExternalSecret template (add to environment overlay):
+#   apiVersion: external-secrets.io/v1beta1
+#   kind: ExternalSecret
+#   metadata:
+#     name: postgres-patroni-credentials
+#     namespace: value-fabric
+#   spec:
+#     refreshInterval: 1h
+#     secretStoreRef:
+#       kind: ClusterSecretStore
+#       name: vault-backend
+#     target:
+#       name: postgres-patroni-credentials
+#       creationPolicy: Owner
+#     data:
+#       - secretKey: superuser-username
+#         remoteRef:
+#           key: postgres/superuser
+#           property: username
+#       - secretKey: superuser-password
+#         remoteRef:
+#           key: postgres/superuser
+#           property: password
+#       - secretKey: replication-password
+#         remoteRef:
+#           key: postgres/replication
+#           property: password

@@ -1,16 +1,7 @@
-"""Engine package for workflow execution."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.engine``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .executor import WorkflowExecutionError, WorkflowExecutor
-from .ports import LegacyTaskExecutionAdapter, TaskExecutionPort, as_task_execution_port
-from .state_manager import StateManager
-
-__all__ = [
-    "StateManager",
-    "WorkflowExecutor",
-    "WorkflowExecutionError",
-    "TaskExecutionPort",
-    "LegacyTaskExecutionAdapter",
-    "as_task_execution_port",
-]
+from layer4_agents.engine import *  # noqa: F401,F403

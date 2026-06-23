@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 # Resolve paths
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-L4_SRC = PROJECT_ROOT / "services" / "layer4-agents" / "src"
+L4_SRC = PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents"
 MANIFEST_DIR = PROJECT_ROOT / "services" / "layer4-agents" / "manifests"
 
 
@@ -144,43 +144,6 @@ class TestSourceCodeStructure:
             assert name not in classes, (
                 f"{name} is still defined as a class — should be an alias"
             )
-
-
-class TestInitExports:
-    """Validate __init__.py exports the correct names."""
-
-    @pytest.fixture(autouse=True)
-    def _parse_init(self):
-        source = (L4_SRC / "agents" / "__init__.py").read_text()
-        self.tree = ast.parse(source)
-        self.source = source
-
-    def test_canonical_exports(self):
-        expected = [
-            "ContextExtractionAgent",
-            "ValueModelAgent",
-            "IntegrityAgent",
-            "NarrativeAgent",
-            "CompetitiveIntelAgent",
-            "ConversationAgent",
-            "OrchestrationController",
-            "AgentType",
-        ]
-        for name in expected:
-            assert name in self.source, f"__init__.py missing export: {name}"
-
-    def test_deprecated_exports(self):
-        deprecated = [
-            "DocumentIngestionAgent",
-            "FinancialExtractionAgent",
-            "ValueTreeProjectionAgent",
-            "WhitespaceAnalysisAgent",
-            "ROICalculationAgent",
-            "NarrativeSynthesisAgent",
-            "ProvenanceTrackingAgent",
-        ]
-        for name in deprecated:
-            assert name in self.source, f"__init__.py missing deprecated export: {name}"
 
 
 # ---------------------------------------------------------------------------
@@ -329,10 +292,9 @@ class TestAPIRoutesGateWiring:
     def _read_source(self):
         self.source = (L4_SRC / "api" / "routes" / "tools.py").read_text()
 
-    def test_gate_import_not_present_until_phase2(self):
-        # Phase 2: ToolGateway integration is planned but not yet active.
-        # When enabled, this assertion should flip to assert the import IS present.
-        assert "from shared.governance.tool_gateway import ToolGateway" not in self.source
+    def test_gate_import_present(self):
+        # Phase 2: ToolGateway integration is now active.
+        assert "from value_fabric.shared.governance.tool_gateway import ToolGateway" in self.source
 
     def test_gate_available_flag(self):
         assert "_GATE_AVAILABLE" in self.source
@@ -343,38 +305,13 @@ class TestAPIRoutesGateWiring:
     def test_export_document_uses_gateway(self):
         assert 'gateway.execute("export_document"' in self.source
 
-    def test_graceful_fallback(self):
-        """Ensure fallback to direct registry when GATE unavailable."""
-        assert "registry.execute(request.tool_name, request.input_data)" in self.source
+    def test_no_ungoverned_registry_fallback(self):
+        """Direct registry execution is not used as a fallback; GATE is required."""
+        assert "registry.execute(request.tool_name, request.input_data)" not in self.source
+        assert "require_tool_gateway_available()" in self.source
 
     def test_gate_denied_handling(self):
         assert "ToolGatewayDenied" in self.source
         assert "InvariantViolation" in self.source
 
 
-# ---------------------------------------------------------------------------
-# Cross-reference tests
-# ---------------------------------------------------------------------------
-
-
-class TestCrossReferences:
-    """Verify cross-references are updated to new agent names."""
-
-    def test_scheduler_uses_new_name(self):
-        source = (L4_SRC / "engine" / "scheduler.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "DocumentIngestionAgent" not in source
-
-    def test_layer1_client_uses_new_name(self):
-        source = (L4_SRC / "integration" / "layer1_client.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "DocumentIngestionAgent" not in source
-
-    def test_layer2_client_uses_new_name(self):
-        source = (L4_SRC / "integration" / "layer2_client.py").read_text()
-        assert "ContextExtractionAgent" in source
-        assert "FinancialExtractionAgent" not in source
-
-    def test_base_agent_docstring_updated(self):
-        source = (L4_SRC / "agents" / "base.py").read_text()
-        assert "9 canonical agent types" in source

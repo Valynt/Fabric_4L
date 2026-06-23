@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer3.api.routes import models
+from src.api.routes import models
 
 pytestmark = pytest.mark.skip(
     reason="[LAYER3_CODE_DRIFT] Tests timeout because monkeypatch target `models.create_neo4j_tenant_session` "

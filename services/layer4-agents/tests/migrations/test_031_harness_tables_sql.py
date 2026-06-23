@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Structural validation of migration 031 SQL artifact.
 
 Reads migrations/sql/031_harness_tables.sql from disk and asserts that the
@@ -9,7 +11,6 @@ If the file is missing, the test fails with a clear message directing the
 developer to regenerate it.
 """
 
-from __future__ import annotations
 
 from pathlib import Path
 

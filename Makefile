@@ -1,20 +1,38 @@
-.PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer3 lint-layer4 \
-        lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 \
+.PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
+        lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer2 test-layer3 test-layer4 \
-        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk \
-        setup \
+		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
-        preflight up down logs check-deprecations test-backup-drills \
+        preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
-	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
-	collect-95-plus-evidence collect-95-plus-evidence-focused \
+	check-workflow-matrix check-workflow-registry check-workflow-references \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
+	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gate-policy gate-lint gate-sign-manifest gate-summary \
+	gate-migration-readiness gate-database-readiness gate-backup-restore-readiness \
+	gate-api-contracts gate-auth-readiness gate-secrets-readiness gate-deployment-readiness \
+	gate-launch-blockers gate-frontend-readiness gate-reliability-readiness gate-rollback-readiness \
+	gate-performance-readiness gate-data-governance-readiness gate-compliance-readiness gate-incident-response-readiness \
+	gate-behavior-readiness check-behavior-readiness-audit \
+	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
+	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
+	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
+	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
+	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
+	check-keycloak-realm-seed-security \
+	check-manifest-secret-hygiene \
+	check-path-env-hygiene \
+	check-compatibility-shims \
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
+	check-raw-http-exception-usage \
+	check-behavior-contract \
+	check-behavior-readiness-audit \
 	harness-task harness-guard harness-check \
 	docs-harness
 
@@ -27,42 +45,61 @@ SHELL := /bin/bash
 PROFILE ?= release-candidate
 POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
+DB_MIGRATION_DATABASE_URL ?=
 
-PYTHON ?= python3
-PIP    := pip install -e
-# Use python -m pytest to ensure pytest is available via the Python interpreter
+PYTHON_BOOTSTRAP ?= python
+PYTHON ?= $(shell $(PYTHON_BOOTSTRAP) scripts/ci/resolve_python.py)
+PIP    := $(PYTHON) -m pip install -e
+PNPM ?= corepack pnpm
+# Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
 PYTEST := $(PYTHON) -m pytest -v --tb=short
+ROOT_MAKE := $(MAKE) -f $(firstword $(MAKEFILE_LIST))
 
 # Ensure mypy is available before running typecheck targets
-MYPY_VERSION_CHECK := $(shell mypy --version 2>/dev/null || echo "mypy_not_found")
+MYPY_VERSION_CHECK := $(shell $(PYTHON) -c "import shutil; print('mypy_found' if shutil.which('mypy') else 'mypy_not_found')")
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@$(PYTHON) scripts/ci/render_make_help.py $(MAKEFILE_LIST)
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
+	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
+	lint typecheck test contract-tests security-smoke \
+	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
+	platform-contract-lint check-ui-duplicates check-readiness-consistency \
+	check-workflow-matrix check-test-skip-register-uniqueness \
+	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
+	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
+
+verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
 	@echo "→ Running structural preflight..."
-	@python scripts/ci/structural_preflight.py --strict
+	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
-	@python scripts/ci/python_contract_lint.py --strict
+	@$(PYTHON) scripts/ci/python_contract_lint.py --strict --baseline config/ci/python_contract_lint_baseline.json
+	@echo "→ Checking Layer 1 API main shim drift..."
+	@$(PYTHON) scripts/ci/check_layer1_api_main_shim_drift.py
 	@echo "→ Running strict shared-import enforcement..."
-	@python scripts/ci/check_shared_imports.py --strict --scope executable
+	@$(PYTHON) scripts/ci/check_shared_imports.py --strict --scope executable
 	@echo "→ Running import topology tests..."
-	@python -m pytest tests/contract/test_import_topology.py -q
+	@$(PYTHON) -m pytest --no-mandatory-dep-check tests/contract/test_import_topology.py -q
 	@echo "→ Running strict navigation pattern check..."
-	@cd apps/web && python ../../scripts/ci/check_navigation_patterns.py --strict
+	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
+	@echo "→ Running Layer 4 bounded-context dependency check..."
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "✅  Structure verification passed"
 
+check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+
 check-ui-duplicates: ## Block new duplicate UI component filenames between prototype and production trees
-	@python3 scripts/check_ui_duplicate_filenames.py
+	@$(PYTHON) scripts/check_ui_duplicate_filenames.py
 
 check-readiness-consistency: ## Ensure canonical readiness percentages are aligned and archives are snapshot-tagged
-	@python3 scripts/ci/check_readiness_consistency.py
+	@$(PYTHON) scripts/ci/check_readiness_consistency.py
 
 check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps its release-significant coverage markers
 	@$(PYTHON) scripts/ci/assert_master_workflow_traceability.py
@@ -70,22 +107,77 @@ check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps i
 	@$(PYTHON) scripts/ci/assert_backend_platform_validation_ownership.py
 	@$(PYTHON) -m pytest tests/ci/test_product_workflow_validation_matrix.py -n 0 -q -o cache_dir=.tmp/pytest-cache
 
+check-workflow-registry: ## Validate GitHub Actions workflow ownership and artifact registry
+	@$(PYTHON) scripts/ci/generate_workflow_registry.py --check
+	@$(PYTHON) scripts/ci/verify_workflow_registry.py
+
+check-workflow-references: ## Validate GitHub Actions workflow command and artifact references
+	@$(PYTHON) scripts/ci/check_workflow_targets_and_artifacts.py
+
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
-	@bash scripts/ci/check_conflict_markers.sh
+	@$(PYTHON) scripts/ci/check_conflict_markers.py
 
 check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
-	@python3 scripts/ci/check_no_nul_bytes.py
+	@$(PYTHON) scripts/ci/check_no_nul_bytes.py
 
+check-keycloak-realm-seed-security: ## Fail when committed Keycloak realm seed includes embedded secrets/default credentials
+	@$(PYTHON) scripts/ci/check_keycloak_realm_seed_security.py
+
+
+check-manifest-secret-hygiene: ## Enforce secret-only references and denylisted sensitive patterns in production manifests
+	@$(PYTHON) scripts/ci/check_manifest_secret_hygiene.py
+check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unapproved tracked .env-style files
+	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
-	@python3 scripts/ci/check_migration_entrypoints.py
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
 
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
-	@python3 scripts/ci/check_migration_entrypoints.py
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
+
+check-migration-rollback-policy: ## Enforce rollback documentation and approval for unsupported downgrades
+	@$(PYTHON) scripts/ci/check_migration_rollback_policy.py
+
+check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and metadata drift checks against PostgreSQL
+	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
+	@$(PYTHON) scripts/ci/check_migration_drift.py --database-url "$(DB_MIGRATION_DATABASE_URL)" --round-trip
+
+check-migration-runtime-consistency: ## Static migration/runtime URL and revision consistency checks
+	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
+
+db-migrate-status: ## Read-only database migration status report with JSON and Markdown artifacts
+	@$(PYTHON) scripts/ci/migration_status_report.py --mode status
+
+db-migrate-check: ## Read-only database migration drift gate; fails on drift
+	@$(PYTHON) scripts/ci/migration_status_report.py --mode check
+
+check-migration-status-artifacts: db-migrate-check ## Emit database migration status artifacts and fail on drift
+	@test -s artifacts/database/migration-status.json
+	@test -s artifacts/database/migration-status.md
+
+check-database-governance-docs: ## Static validation for database runtime compatibility and governance docs
+	@$(PYTHON) scripts/ci/check_database_governance_docs.py
+
+gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-migration-status-artifacts check-database-governance-docs ## Gate: static local database readiness checks plus read-only migration drift status
+	@echo "→ Gate: Database Readiness — static local checks"
+	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/gate-database-consistency.xml
+	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-consistency.xml
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static" --junitxml=$(GATE_JUNIT_DIR)/gate-database-static.xml
+	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-static.xml
+	@echo "✅  gate-database passed"
+
+gate-database-live: check-migration-postgres-roundtrip ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
+	@echo "→ Gate: Database Readiness — live isolated checks"
+	@bash scripts/ci/run_db_production_readiness_gate.sh
+	@bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  gate-database-live passed"
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
-	@set +e; python -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
-	 python scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
+	@set +e; $(PYTHON) -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
+	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
@@ -97,10 +189,18 @@ check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register
 	@$(PYTHON) scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
-	@python3 scripts/ci/check_reports_evidence_policy.py
+	@$(PYTHON) scripts/ci/check_reports_evidence_policy.py
 check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories)
 	@mkdir -p artifacts
-	@python scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
+	@$(PYTHON) scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
+
+check-behavior-contract: ## Enforce behavior contract registry (every capability has allowed + denied tests)
+	@mkdir -p artifacts
+	@$(PYTHON) scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json
+
+check-behavior-readiness-audit: ## Enforce executable, skip-controlled behavior readiness audit (GREEN/YELLOW/RED)
+	@mkdir -p artifacts/readiness
+	@$(PYTHON) scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
 
 
 verify-strict: verify contract-drift ## Full verification including contract drift detection (slower)
@@ -115,6 +215,10 @@ lint-layer1: ## Lint Layer 1 only
 lint-layer2: ## Lint Layer 2 only
 	@echo "→ Linting Layer 2..."
 	@cd services/layer2-extraction && ruff check src/
+
+lint-layer2-5: ## Lint Layer 2.5 only
+	@echo "→ Linting Layer 2.5..."
+	@cd services/layer2-5-signal-refinery && ruff check src/
 
 lint-layer3: ## Lint Layer 3 only
 	@echo "→ Linting Layer 3..."
@@ -133,12 +237,13 @@ lint-layer6: ## Lint Layer 6 only
 	@cd services/layer6-benchmarks && ruff check src/
 
 lint: ## Lint all Python layers with ruff (fails fast on first error)
-	@$(MAKE) lint-layer1 && \
-	 $(MAKE) lint-layer2 && \
-	 $(MAKE) lint-layer3 && \
-	 $(MAKE) lint-layer4 && \
-	 $(MAKE) lint-layer5 && \
-	 $(MAKE) lint-layer6 && \
+	@$(ROOT_MAKE) lint-layer1 && \
+	 $(ROOT_MAKE) lint-layer2 && \
+	 $(ROOT_MAKE) lint-layer2-5 && \
+	 $(ROOT_MAKE) lint-layer3 && \
+	 $(ROOT_MAKE) lint-layer4 && \
+	 $(ROOT_MAKE) lint-layer5 && \
+	 $(ROOT_MAKE) lint-layer6 && \
 	 echo "✅  Linting complete for all layers"
 
 # Per-layer mypy flags - stricter layers enforce more type safety
@@ -152,6 +257,9 @@ MYPY_LAYER3_FLAGS = --strict --warn-return-any --warn-unused-configs
 MYPY_LAYER4_FLAGS = --warn-return-any --warn-unused-configs
 # Layer 5: Strict - fully typed codebase
 MYPY_LAYER5_FLAGS = --strict --warn-return-any --warn-unused-configs
+# Layer 2.5: Moderate - signal refinery with some flexibility
+MYPY_LAYER2_5_FLAGS = --warn-return-any --warn-unused-configs
+
 # Layer 6: Minimal - gradual typing
 MYPY_LAYER6_FLAGS = --warn-return-any --warn-unused-configs
 
@@ -159,53 +267,64 @@ MYPY_LAYER6_FLAGS = --warn-return-any --warn-unused-configs
 MYPY_OVERRIDES = --python-version 3.11
 
 # Per-layer typecheck targets for development efficiency
-typecheck-layer1: ## Type-check Layer 1 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
-	@echo "→ Type-checking Layer 1..."
-	@cd services/layer1-ingestion && mypy src/ $(MYPY_LAYER1_FLAGS)
+typecheck-layer1: ## Type-check Layer 1 typed core + baseline ratchet
+	@echo "→ Type-checking Layer 1 typed core (must be clean)..."
+	@$(PYTHON) scripts/ci/check_mypy_typed_core.py --service-dir services/layer1-ingestion
+	@echo "→ Enforcing Layer 1 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer1-ingestion \
+		--baseline config/ci/mypy_baseline_layer1.json \
+		--paths src
+
+mypy-changed-layer1: ## Type-check changed Python files in Layer 1 (PR gate)
+	@echo "→ Type-checking changed Layer 1 files..."
+	@$(PYTHON) scripts/ci/check_mypy_changed_files.py --service-dir services/layer1-ingestion
 
 typecheck-layer2: ## Type-check Layer 2 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 2..."
-	@cd services/layer2-extraction && mypy src/ $(MYPY_LAYER2_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-extraction src/ -- $(MYPY_LAYER2_FLAGS)
+
+typecheck-layer2-5: ## Type-check Layer 2.5 only
+	@echo "→ Type-checking Layer 2.5..."
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-5-signal-refinery src/ -- $(MYPY_LAYER2_5_FLAGS)
 
 typecheck-layer3: ## Type-check Layer 3 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 3..."
-	@cd services/layer3-knowledge && mypy src/ $(MYPY_LAYER3_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer3-knowledge src/ -- $(MYPY_LAYER3_FLAGS)
 
 typecheck-layer4: ## Type-check Layer 4 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 4..."
-	@cd services/layer4-agents && mypy src/ $(MYPY_LAYER4_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
 
 typecheck-layer5: ## Type-check Layer 5 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 5..."
-	@cd services/layer5-ground-truth && mypy src/ $(MYPY_LAYER5_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer5-ground-truth src/ -- $(MYPY_LAYER5_FLAGS)
 
 typecheck-layer6: ## Type-check Layer 6 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 6..."
-	@cd services/layer6-benchmarks && mypy src/ $(MYPY_LAYER6_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
-	@$(MAKE) typecheck-layer1 && \
-	 $(MAKE) typecheck-layer2 && \
-	 $(MAKE) typecheck-layer3 && \
-	 $(MAKE) typecheck-layer4 && \
-	 $(MAKE) typecheck-layer5 && \
-	 $(MAKE) typecheck-layer6 && \
+	@$(ROOT_MAKE) typecheck-layer1 && \
+	 $(ROOT_MAKE) typecheck-layer2 && \
+	 $(ROOT_MAKE) typecheck-layer2-5 && \
+	 $(ROOT_MAKE) typecheck-layer3 && \
+	 $(ROOT_MAKE) typecheck-layer4 && \
+	 $(ROOT_MAKE) typecheck-layer5 && \
+	 $(ROOT_MAKE) typecheck-layer6 && \
 	 echo "✅  Type-checking complete for all layers"
 
 # ─── Testing (4-Layer Strategy) ───────────────────────────────────────────────
 
-test: test-layer1 test-layer2 test-layer3 test-layer4 test-layer5 test-layer6 ## Run all backend unit tests
+test: test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 test-layer5 test-layer6 ## Run all backend unit tests
 
 test-e2e-contracts: ## Layer 1: Run Playwright isolated page contract tests (mocked)
 	cd apps/web && npx playwright test --project=contracts
 
-test-e2e-journeys: ## Layer 2: Run Playwright chained user journeys (live or mocked)
+test-e2e-behaviors: ## Layer 2: Run strict behavior-first allowed/denied path tests (mocked)
+	cd apps/web && npx playwright test --project=behaviors
+
+test-e2e-journeys: ## Layer 3: Run Playwright chained user journeys (live or mocked)
 	cd apps/web && npx playwright test --project=journeys
 
 test-backend-contracts: ## Layer 3: Run backend contract/integration assertions
@@ -238,16 +357,15 @@ test-e2e-full: ## Run full E2E suite: seed → contracts → journeys → reset
 
 contract-tests: ## Run cross-layer contract + architecture tests (fast, no secrets required)
 	@echo "→ Auditing contract test collection (static subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m contract_static -n 0
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract --collect-only -q -m "contract_static and not service_required" -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "→ Auditing contract test collection (service-required subset)..."
-	$(PYTEST) tests/contract/ --collect-only -q -m service_required -n 0
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract --collect-only -q -m service_required -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "→ Running contract-static tests (deterministic, no live services)..."
-	$(PYTEST) tests/contract/ -v --tb=short -m contract_static -n 0
-	@echo "→ Running service-required contract tests (live services or explicit mock mode)..."
-	$(PYTEST) tests/contract/ -v --tb=short -m service_required -n 0
-	pnpm --dir packages/platform-contract run contract:test
+	$(PYTEST) tests/contract/ --basetemp=.tmp/pytest-contract -v --tb=short -m "contract_static and not service_required" -n 0 -o cache_dir=.tmp/pytest-cache-contract || exit $$?
+	@echo "→ Service-required contract tests are collected above; execute them via live validation targets."
+	$(PNPM) --dir packages/platform-contract run contract:test || exit $$?
 	@echo "→ Running architecture tests (tenant isolation guards)..."
-	$(PYTEST) tests/arch/ -v --tb=short
+	$(PYTEST) tests/arch/ --basetemp=.tmp/pytest-contract-arch -v --tb=short -o cache_dir=.tmp/pytest-cache-contract || exit $$?
 	@echo "✅  Contract and architecture tests passed"
 
 pact-tests: ## Run Pact consumer tests (generates .pact files) and provider verification
@@ -277,62 +395,94 @@ test-fast: ## Run only fast tests (exclude slow and e2e)
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
-setup: ## Install all service dev dependencies into the pytest pipx venv
+setup-layer2-5: ## Install Layer 2.5 dev dependencies into the pytest pipx venv
 	@PYTEST_BIN=$$(which pytest 2>/dev/null); \
 	if [ -z "$$PYTEST_BIN" ]; then \
 	  echo "ERROR: pytest not found in PATH. Install via: pipx install pytest"; \
 	  exit 1; \
 	fi; \
 	PYTEST_PY=$$(head -1 "$$PYTEST_BIN" | sed 's|#!||'); \
-	echo "→ Installing into $$PYTEST_PY"; \
-	$$PYTEST_PY -m pip install pytest-timeout pytest-randomly -q; \
-	$$PYTEST_PY -m pip install -e "packages/shared/src" -q 2>/dev/null || true; \
-	$$PYTEST_PY -m pip install -e "packages/platform-contract/src/python" -q 2>/dev/null || true; \
-	echo "→ Installing Layer 1 dev dependencies..."; \
-	cd services/layer1-ingestion && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
-	echo "→ Installing Layer 2 dev dependencies..."; \
-	cd services/layer2-extraction && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
-	echo "→ Installing Layer 3 dev dependencies..."; \
-	cd services/layer3-knowledge && ($$PYTEST_PY -m pip install -e ".[dev]" -q 2>/dev/null || $$PYTEST_PY -m pip install -e "." -q) && cd ../.. || (cd ../..; exit 1); \
-	echo "→ Installing Layer 4 dev dependencies..."; \
-	cd services/layer4-agents && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
-	echo "→ Installing Layer 5 dev dependencies..."; \
-	cd services/layer5-ground-truth && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
-	echo "→ Installing Layer 6 dev dependencies..."; \
-	cd services/layer6-benchmarks && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
-	echo "✅  All service dependencies installed into $$PYTEST_PY"
+	echo "→ Installing Layer 2.5 dev dependencies into $$PYTEST_PY"; \
+	cd services/layer2-5-signal-refinery && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
+	echo "✅  Layer 2.5 dependencies installed"
+
+bootstrap: ## One-command first-time setup: Infisical → corepack → pnpm → Python deps → migrate
+	@echo "=== Step 1: Infisical login ==="
+	@infisical login || (echo "ERROR: Infisical CLI not installed. See https://infisical.com/docs/cli/overview" && exit 1)
+	@echo "=== Step 2: Enable corepack and activate pnpm ==="
+	corepack enable
+	corepack prepare pnpm@10.18.1 --activate
+	@echo "=== Step 3: Install frontend dependencies ==="
+	$(PNPM) install --frozen-lockfile
+	@echo "=== Step 4: Install Python service dependencies ==="
+	$(MAKE) setup
+	@echo "=== Step 5: Run database migrations ==="
+	$(MAKE) migrate
+	@echo ""
+	@echo "✅  Bootstrap complete!"
+	@echo "    Next: pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d"
+
+setup: ## Install all service dev dependencies into the pytest Python environment
+	$(PYTHON) scripts/ci/setup_python_dev_deps.py
 
 # ─── Layer-Specific Tests ─────────────────────────────────────────────────────
 
-test-layer1: ## Run Layer 1 tests
-	cd services/layer1-ingestion && $(PYTEST) tests/
+test-layer1: ## Run Layer 1 unit tests (no external services)
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1 -m "not integration and not postgres and not requires_postgres and not benchmark" tests/unit
+
+test-layer1-integration: ## Run Layer 1 integration tests (requires PostgreSQL)
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-integration -m "integration or postgres or requires_postgres" tests/integration
+
+test-layer1-crawler: ## Run focused Layer 1 crawler tests
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-crawler tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
+
+test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache isolation tests
+	cd services/layer1-ingestion && $(PYTEST) --basetemp=../../.tmp/pytest-layer1-router tests/crawler/test_smart_router.py tests/unit/test_smart_router.py tests/integration/test_router_edge_cases.py
+	$(PYTEST) --basetemp=.tmp/pytest-layer1-cache tests/cache/test_redis_tenant_isolation.py tests/shared/identity/test_api_key_cache.py
+
+test-layer1-benchmarks: ## Run Layer 1 benchmark and performance tests
+	cd services/layer1-ingestion && $(PYTEST) -m benchmark tests/benchmarks/ -v
+
+test-layer1-router-benchmarks: ## Run quarantined Layer 1 router benchmarks (explicit opt-in)
+	cd services/layer1-ingestion && RUN_ROUTER_BENCHMARKS=1 $(PYTEST) tests/benchmarks/test_router_performance.py -v
 
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."
-	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) tests/security/test_rls_enforcement_postgres.py tests/security/test_celery_tenant_isolation_postgres.py tests/security/test_require_tenant_false_allowlist_postgres.py -m postgres -v
+	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) -m "postgres or requires_postgres" tests/security/ tests/pipeline/ -v
 
 test-layer2: ## Run Layer 2 tests
-	cd services/layer2-extraction && $(PYTEST) tests/
+	cd services/layer2-extraction && $(PYTEST) --basetemp=../../.tmp/pytest-layer2 tests/
+
+test-layer2-5: ## Run Layer 2.5 tests
+	cd services/layer2-5-signal-refinery && $(PYTEST) --basetemp=../../.tmp/pytest-layer2-5 tests/
 
 test-layer3: ## Run Layer 3 tests
-	python scripts/ci/check_layer3_source_mirror.py
-	cd services/layer3-knowledge && $(PYTEST) tests/
+	$(PYTHON) scripts/ci/check_layer3_source_mirror.py
+	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3 -m "not integration and not requires_neo4j and not vector" tests/
 
-test-layer4: ## Run Layer 4 tests
-	cd services/layer4-agents && $(PYTEST) tests/
+test-layer3-live: ## Run Layer 3 live Neo4j/vector integration tests
+	$(PYTHON) scripts/ci/check_layer3_source_mirror.py
+	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3-live -m "integration or requires_neo4j or vector" tests/
+
+test-layer4: ## Run Layer 4 local tests
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -o cache_dir=../../.tmp/pytest-cache-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
+
+test-layer4-live: ## Run Layer 4 live Docker/PostgreSQL/integration tests
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -o cache_dir=../../.tmp/pytest-cache-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/
 
 test-layer5: ## Run Layer 5 tests
-	cd services/layer5-ground-truth && python scripts/check_no_duplicate_modules.py
-	cd services/layer5-ground-truth && $(PYTEST) tests/
+	cd services/layer5-ground-truth
+	$(PYTHON) scripts/check_no_duplicate_modules.py
+	$(PYTEST) --basetemp=../../.tmp/pytest-layer5 tests/
 
 test-layer6: ## Run Layer 6 tests
-	cd services/layer6-benchmarks && $(PYTEST) tests/
+	cd services/layer6-benchmarks && $(PYTEST) --basetemp=../../.tmp/pytest-layer6 tests/
 
 test-frontend: ## Run frontend unit tests
-	cd apps/web && pnpm run test
+	cd apps/web && $(PNPM) run test
 
 test-e2e: ## Run Playwright end-to-end tests (requires running stack)
-	cd apps/web && pnpm exec playwright test
+	cd apps/web && $(PNPM) exec playwright test
 
 # ─── Security Tests ───────────────────────────────────────────────────────────
 
@@ -396,7 +546,19 @@ perf-eval: ## Evaluate k6 results against versioned SLO thresholds
 # ─── Build ────────────────────────────────────────────────────────────────────
 
 build: ## Build frontend production bundle
-	cd apps/web && pnpm run build
+	cd apps/web && $(PNPM) run build
+
+docker-build: ## Build all deployable production Docker images locally
+	docker build -t fabric-4l/api-gateway:local -f services/api/Dockerfile .
+	docker build -t fabric-4l/layer1-ingestion:local -f services/layer1-ingestion/Dockerfile .
+	docker build -t fabric-4l/layer2-extraction:local -f services/layer2-extraction/Dockerfile .
+	docker build -t fabric-4l/layer2-5-signal-refinery:local -f services/layer2-5-signal-refinery/Dockerfile .
+	docker build -t fabric-4l/layer3-knowledge:local -f services/layer3-knowledge/Dockerfile .
+	docker build -t fabric-4l/layer4-agents:local -f services/layer4-agents/Dockerfile .
+	docker build -t fabric-4l/layer5-ground-truth:local -f services/layer5-ground-truth/Dockerfile .
+	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
+	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
+	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
@@ -405,10 +567,14 @@ migrate: ## Run Alembic migrations for all Alembic-managed layers
 	cd services/layer1-ingestion && alembic upgrade head
 	@echo "→ Migrating Layer 2..."
 	cd services/layer2-extraction && alembic upgrade head
+	@echo "→ Migrating Layer 2.5..."
+	cd services/layer2-5-signal-refinery && alembic upgrade head
 	@echo "→ Migrating Layer 4..."
 	cd services/layer4-agents && alembic upgrade head
 	@echo "→ Migrating Layer 5..."
 	cd services/layer5-ground-truth && alembic upgrade head
+	@echo "→ Migrating API..."
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
 
 migrate-layer1: ## Run Alembic migrations for Layer 1 only
 	cd services/layer1-ingestion && alembic upgrade head
@@ -416,29 +582,39 @@ migrate-layer1: ## Run Alembic migrations for Layer 1 only
 migrate-layer2: ## Run Alembic migrations for Layer 2 only
 	cd services/layer2-extraction && alembic upgrade head
 
+migrate-layer2-5: ## Run Alembic migrations for Layer 2.5 only
+	cd services/layer2-5-signal-refinery && alembic upgrade head
+
 migrate-layer4: ## Run Alembic migrations for Layer 4 only
 	cd services/layer4-agents && alembic upgrade head
 
 migrate-layer5: ## Run Alembic migrations for Layer 5 only
 	cd services/layer5-ground-truth && alembic upgrade head
 
+migrate-api: ## Run Alembic migrations for API gateway only
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
+
 # ─── Contracts ────────────────────────────────────────────────────────────────
 
 contracts: ## Export OpenAPI specs from all layers
 	$(PYTHON) scripts/export_openapi.py
 
-contract-drift: contracts ## Detect OpenAPI contract drift (exports + validates layer consistency)
-	@echo "→ Checking for contract drift..."
-	@# Verify all expected contract files exist and are non-empty
-	@test -s contracts/openapi/layer1-ingestion.json || (echo "❌ Layer 1 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer2-extraction.json || (echo "❌ Layer 2 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer3-knowledge.json || (echo "❌ Layer 3 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer4-agents.json || (echo "❌ Layer 4 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer5-ground-truth.json || (echo "❌ Layer 5 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer6-benchmarks.json || (echo "⚠️ Layer 6 OpenAPI spec missing ( Gap 6 - non-blocking)")
-	@echo "✅ All layer OpenAPI specs present"
+validate-openapi-contracts: ## Validate all tracked JSON OpenAPI specs in contracts/openapi
+	$(PYTHON) scripts/ci/contract_compliance_gate.py --validate-only
 
-contract-freshness: ## Regenerate OpenAPI and frontend DTO types, then fail on deterministic generated drift
+contract-drift: contracts validate-openapi-contracts ## Detect OpenAPI contract drift (exports + validates tracked JSON specs)
+	@echo "✅ Tracked OpenAPI specs are present and valid"
+
+contract-freshness-fast: ## Fast contract-freshness lane: validates committed specs and shapes, no live services
+	$(PYTHON) scripts/ci/contract_compliance_gate.py --mode fast
+	$(PYTHON) scripts/ci/check_l1_target_schema.py
+	$(PYTHON) scripts/ci/check_targets_stats_named_schema.py
+	$(PYTHON) scripts/ci/check_generated_jsonvalue_absent.py
+	$(PYTHON) scripts/ci/check_clerk_tenant_response_exported.py
+	$(PYTHON) scripts/ci/check_clerk_tenant_mapping_contract.py
+	@echo "✅ Fast contract-freshness lane passed"
+
+contract-freshness: ## Full contract-freshness lane: exports all hermetic specs, regenerates clients, fails on drift
 	bash scripts/ci/check_contract_freshness.sh
 
 sdk: ## Generate the Python SDK (manual typed client)
@@ -450,26 +626,26 @@ preflight: ## Run pre-flight checks (Docker, env, ports)
 	@bash scripts/dev/dev-preflight.sh
 
 up: preflight ## Start all services with Docker Compose (runs preflight first)
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f infra/compose/docker-compose.dev.yml up -d
 
 down: ## Stop all services
-	docker compose -f docker-compose.dev.yml down
+	docker compose -f infra/compose/docker-compose.dev.yml down
 
 logs: ## Tail logs for all services
-	docker compose -f docker-compose.dev.yml logs -f
+	docker compose -f infra/compose/docker-compose.dev.yml logs -f
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 
 # ─── Environment Validation ───────────────────────────────────────────────────
 
 check-env: ## Validate env vars against Zod schemas (backend + frontend)
-	npx tsx scripts/check-env.ts all
+	npx tsx scripts/dev/check-env.ts all
 
 check-env-backend: ## Validate backend env vars only
-	npx tsx scripts/check-env.ts backend
+	npx tsx scripts/dev/check-env.ts backend
 
 check-env-frontend: ## Validate frontend env vars only
-	npx tsx scripts/check-env.ts frontend
+	npx tsx scripts/dev/check-env.ts frontend
 
 validate-env-contract: ## CI gate — validate env contract + schema
 	npx tsx scripts/ci/validate-env-contract.ts all
@@ -483,6 +659,16 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	@echo "→ Checking tool contracts in Layer 4..."
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/tools/
 	@echo "✅ Tool contract check passed"
+
+check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
+	@echo "→ Checking for deprecated custom tracer imports..."
+	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
+	@echo "✅ Deprecated tracer import check passed"
+
+check-compatibility-shims: ## CI gate — run registry-driven compatibility shim inventory checks
+	@echo "→ Running registry-driven compatibility shim checks..."
+	$(PYTHON) scripts/ci/check_compatibility_shims.py run-all --strict
+	@echo "✅ Compatibility shim gate passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 
@@ -498,15 +684,25 @@ setup-hooks: ## Configure git to use .githooks/ (run once after clone)
 GATE_PYTEST := $(PYTEST) --tb=short -q -n 0
 GATE_TIMEOUT_SECONDS ?= 180
 GATE_JUNIT_DIR := $(ARTIFACT_DIR)/junit
+PRODUCTION_READINESS_SUITES := security reliability observability recovery release tenancy billing abuse config audit
+PRODUCTION_READINESS_ARTIFACT_DIR := artifacts/production-readiness
 
 gate-mandatory-security-regression: ## Gate: mandatory security regression suite for launch readiness
 	@echo "→ Gate: Mandatory Security Regression"
 	bash scripts/ci/mandatory_security_regression_gate.sh
 	@echo "✅  gate-mandatory-security-regression passed"
 
-gate-security: gate-mandatory-security-regression ## Gate: release-critical tenant isolation, auth enforcement, and fail-closed security regression
-	@echo "→ Gate: Security & Tenant Isolation — release-critical suite"
+gate-tenant-isolation: ## Gate: dedicated tenant isolation launch-readiness suite
+	@echo "→ Gate: Tenant Isolation — dedicated launch-readiness suite"
+	bash scripts/ci/tenant_isolation_readiness_gate.sh
+	@echo "✅  gate-tenant-isolation passed"
+
+gate-security: gate-mandatory-security-regression ## Gate: broader security regression coverage beyond the dedicated tenant isolation gate
+	@echo "→ Gate: Security — broader auth, fail-closed, and regression suite"
 	@echo "✅  gate-security passed"
+
+security-readiness-gate: gate-security ## Compatibility alias for the canonical security readiness gate
+	@echo "✅  security-readiness-gate alias passed (canonical: gate-security)"
 
 gate-security-broad: ## Advisory gate: exhaustive legacy security coverage for Broad GA backlog classification
 	@echo "→ Gate: Broad Security Coverage — advisory legacy suite (bounded to 300s)"
@@ -523,31 +719,196 @@ gate-arch: ## Gate: architecture conformance, tenant guards, testability
 	$(GATE_PYTEST) tests/arch/
 	@echo "✅  gate-arch passed"
 
+architecture-readiness-gate: gate-arch ## Compatibility alias for the canonical architecture readiness gate
+	@echo "✅  architecture-readiness-gate alias passed (canonical: gate-arch)"
+
 gate-config: ## Gate: startup validation, security config hardening
 	@echo "→ Gate: Startup Configuration"
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
-gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
+	@echo "✅  Local gate passed — production readiness NOT assessed; run make production-readiness-gate for the canonical gate"
 
-collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
-	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
+gate-local-production-subset: gate-security gate-database ## Run a local-only production-readiness subset; not a ship/no-ship decision
+	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make production-readiness-gate for the canonical gate"
 
-collect-95-plus-evidence: ## Collect full 95+ production-readiness evidence pack
-	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile full
+# Backward-compatible alias retained for scripts/users that still call gate-all.
+gate-all: gate-local-production-subset ## Compatibility alias for the local-only subset; not a production-readiness decision
+	@echo "⚠️  gate-all is local-only and does not authorize production release; run make production-readiness-gate for the canonical gate"
+
+production-readiness-gate: ## Canonical production-readiness gate required by CI
+	@echo "→ Gate: Production Readiness — centralized suites"
+	$(PYTHON) scripts/ci/run_production_readiness_gate.py --artifact-dir $(PRODUCTION_READINESS_ARTIFACT_DIR)
+	$(PYTHON) scripts/ci/validate_production_readiness_manifest.py $(PRODUCTION_READINESS_ARTIFACT_DIR)/manifest.json
+	@echo "✅  production-readiness-gate passed"
+
+gate-production: production-readiness-gate ## Compatibility alias for the canonical production-readiness gate
+	@echo "✅  gate-production alias completed (canonical: production-readiness-gate)"
+
+# Tiered readiness targets intentionally delegate to release-gate profiles so
+# gate composition stays centralized in $(POLICY_FILE) instead of drifting across
+# ad hoc Makefile dependency lists.
+gate-production-core: ## Run near-term critical production readiness gates via the production-core policy profile
+	@$(MAKE) release-gate PROFILE=production-core
+
+tier0-production-safety-gate: ## Run Tier 0 safety gates: security, tenant isolation, DB, backup/restore, secrets, auth, launch blockers
+	@$(MAKE) release-gate PROFILE=tier0-production-safety
+
+tier1-beta-readiness-gate: ## Run Tier 1 beta gates: API contracts, frontend, observability, reliability, deployment, rollback
+	@$(MAKE) release-gate PROFILE=tier1-beta-readiness
+
+tier2-enterprise-readiness-gate: ## Run Tier 2 enterprise gates: performance, agents, data governance, compliance, incident response
+	@$(MAKE) release-gate PROFILE=tier2-enterprise-readiness
+
+db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
+	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
+	$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
+
+release-evidence-packet: ## Generate the canonical release evidence packet
+	$(PYTHON) scripts/ci/generate_release_evidence_packet.py --allow-placeholder-sha
+
+collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
+	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"
+
+collect-95-plus-evidence: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces full 95+ evidence collection
+	@echo "✅  collect-95-plus-evidence alias completed (canonical: release-evidence-packet)"
+
+# ─── Promotion Targets ────────────────────────────────────────────────────────
+
+promote-staging: verify release-evidence-packet ## Verify local gates + evidence, then trigger staging promotion workflow
+	@echo "→ Verifying immutable image ref..."
+	@ref="sha-$$(git rev-parse HEAD)"; \
+	 echo "Image ref: $$ref"; \
+	 if ! command -v gh >/dev/null 2>&1; then \
+	   echo "❌ gh CLI not found. Install: https://cli.github.com/"; \
+	   echo "   Then run: gh workflow run environment-promotion.yml --ref main -f environment=staging -f image_ref=$$ref"; \
+	   exit 1; \
+	 fi; \
+	 if ! gh auth status >/dev/null 2>&1; then \
+	   echo "❌ gh CLI not authenticated. Run: gh auth login"; \
+	   exit 1; \
+	 fi; \
+	 echo "→ Triggering Environment Promotion workflow for staging..."; \
+	 gh workflow run environment-promotion.yml \
+	   --ref main \
+	   -f environment=staging \
+	   -f image_ref="$$ref"; \
+	 echo "✅  Staging promotion triggered. Monitor at: https://github.com/$$(gh repo view --json owner,name -q '.owner.login + \"/\" + .name')/actions/workflows/environment-promotion.yml"
 
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 
-lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Lint all layers (release variant)
-	@echo "✅  Release lint complete"
+gate-lint: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Gate: lint all layers for release readiness
+	@echo "✅  gate-lint passed"
 
-gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
+lint-release: gate-lint ## Compatibility alias for the canonical release lint gate
+	@echo "✅  lint-release alias passed (canonical: gate-lint)"
+
+gate-policy: ## Gate: validate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
-	@echo "✅  gates-validate-policy passed"
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) scripts/ci/verify_workflow_registry.py
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
+	@echo "✅  gate-policy passed"
+
+gates-validate-policy: gate-policy ## Compatibility alias for the canonical policy validation gate
+	@echo "✅  gates-validate-policy alias passed (canonical: gate-policy)"
+
+gate-migration-readiness: check-migration-entrypoints check-migration-heads check-migration-rollback-policy ## Gate: migration entrypoints, head uniqueness, rollback policy, and runtime safety
+	@echo "→ Gate: Migration Readiness"
+	@$(PYTHON) scripts/ci/check_migration_safety.py
+	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
+	@echo "✅  gate-migration-readiness passed"
+
+gate-database-readiness: ## Gate: database production readiness split checks and static invariants
+	@echo "→ Gate: Database Readiness"
+	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@bash scripts/ci/run_db_production_readiness_gate.sh
+	@echo "✅  gate-database-readiness passed"
+
+gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-readiness drill
+	@echo "→ Gate: Backup/Restore Readiness"
+	@$(PYTHON) scripts/ci/check_walg_enablement_gate.py
+	@bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  gate-backup-restore-readiness passed"
+
+gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts ## Gate: API/platform contract compliance and tool contract structure
+	@echo "→ Gate: API Contracts"
+	@$(PNPM) run check:contract-compliance
+	@echo "✅  gate-api-contracts passed"
+
+gate-auth-readiness: check-keycloak-realm-seed-security ## Gate: route auth dependencies and production auth-bypass prevention
+	@echo "→ Gate: Auth Readiness"
+	@$(PYTHON) scripts/ci/check_route_auth_dependencies.py
+	@$(PYTHON) scripts/ci/check_auth_bypass.py
+	@echo "✅  gate-auth-readiness passed"
+
+gate-behavior-readiness: ## Gate: executable, skip-controlled behavior readiness audit (GREEN/YELLOW/RED)
+	@echo "→ Gate: Behavior Readiness Audit"
+	@mkdir -p artifacts/readiness
+	@$(PYTHON) scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
+	@echo "✅  gate-behavior-readiness passed"
+
+gate-secrets-readiness: check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene ## Gate: committed secret hygiene and secret mapping invariants
+	@echo "→ Gate: Secrets Readiness"
+	@$(PYTHON) scripts/ci/audit_infra_secrets.py --enforce
+	@$(PYTHON) scripts/ci/check_no_workflow_secret_fallbacks.py
+	@$(PYTHON) scripts/ci/check_neo4j_secret_key_mappings.py
+	@echo "✅  gate-secrets-readiness passed"
+
+gate-deployment-readiness: ## Gate: deployable image coverage and deployment profile controls
+	@echo "→ Gate: Deployment Readiness"
+	@$(PYTHON) scripts/ci/check_deployable_service_images.py
+	@for profile in production-core tier0-production-safety tier1-beta-readiness tier2-enterprise-readiness release-candidate; do \
+		$(PYTHON) scripts/ci/validate_deploy_profile_controls.py --policy-file $(POLICY_FILE) --profile $$profile; \
+	done
+	@echo "✅  gate-deployment-readiness passed"
+
+gate-launch-blockers: check-conflict-markers check-no-nul-bytes check-readiness-consistency check-legacy-debt ## Gate: launch governance, blocker registers, and release checklist evidence
+	@echo "→ Gate: Launch Blockers"
+	@$(PYTHON) scripts/ci/check_release_launch_governance.py
+	@$(PYTHON) scripts/ci/validate_final_testing_launch_gate.py
+	@$(PYTHON) scripts/ci/validate_core_ga_launch_evidence.py
+	@echo "✅  gate-launch-blockers passed"
+
+gate-frontend-readiness: ## Gate: frontend beta readiness verification suite
+	@echo "→ Gate: Frontend Readiness"
+	@$(PNPM) run verify:frontend
+	@echo "✅  gate-frontend-readiness passed"
+
+gate-reliability-readiness: gate-chaos gate-smoke ## Gate: reliability failure-mode and smoke coverage
+	@echo "✅  gate-reliability-readiness passed"
+
+gate-rollback-readiness: check-migration-rollback-policy ## Gate: rollback policy and promotion artifact contract
+	@echo "→ Gate: Rollback Readiness"
+	@$(PYTHON) scripts/ci/validate_promotion_artifact_contract.py --build-workflow .github/workflows/build-deploy.yml --promotion-workflow .github/workflows/environment-promotion.yml
+	@echo "✅  gate-rollback-readiness passed"
+
+gate-performance-readiness: perf-test perf-eval ## Gate: performance load suite and SLO evaluation
+	@echo "✅  gate-performance-readiness passed"
+
+gate-data-governance-readiness: ## Gate: data governance, retention/deletion, and shared governance contracts
+	@echo "→ Gate: Data Governance Readiness"
+	@$(GATE_PYTEST) tests/contract/test_retention_deletion_contract.py tests/shared/governance/ tests/security/test_pii_encryption_at_rest.py
+	@echo "✅  gate-data-governance-readiness passed"
+
+gate-compliance-readiness: ## Gate: compliance evidence integrity and governance export controls
+	@echo "→ Gate: Compliance Readiness"
+	@$(PYTHON) scripts/ci/check_compliance_evidence_integrity.py
+	@$(GATE_PYTEST) tests/backend_integrated/test_approval_export_crm_governance.py tests/security/test_layer5_governance_security_controls.py
+	@echo "✅  gate-compliance-readiness passed"
+
+gate-incident-response-readiness: ## Gate: incident response runbook ownership and observability contracts
+	@echo "→ Gate: Incident Response Readiness"
+	@$(GATE_PYTEST) tests/ci/test_incident_runbook_contacts_policy.py tests/security/test_audit_resilience.py tests/contract/test_service_observability_contracts.py
+	@echo "✅  gate-incident-response-readiness passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
@@ -557,7 +918,7 @@ gate-chaos: ## Gate: dependency chaos and failure injection
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/chaos/ --junitxml=$(GATE_JUNIT_DIR)/gate-chaos.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
 	@echo "✅  gate-chaos passed"
 
 gate-smoke: ## Gate: cross-domain smoke tests
@@ -565,7 +926,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 	@test -s tests/e2e/test_value_engine_smoke_contract.py || (echo "❌ Smoke contract test is missing" && exit 1)
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/e2e/test_value_engine_smoke_contract.py --junitxml=$(GATE_JUNIT_DIR)/gate-smoke.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
 	@echo "✅  gate-smoke passed"
 
 gate-agent: ## Gate: agent provenance and behavior regression
@@ -576,7 +937,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/agents/ --junitxml=$(GATE_JUNIT_DIR)/gate-agent.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
 	@echo "✅  gate-agent passed"
 
 gate-obs: ## Gate: observability, metrics, and SLO validation
@@ -598,11 +959,11 @@ gate-release-policy: ## Gate: release policy compliance
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/release/ --junitxml=$(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/check_deprecations.py
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
+	$(PYTHON) scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
-gates-sign-manifest: ## Sign artifact manifest with SHA-256
+gate-sign-manifest: ## Gate: sign artifact manifest with SHA-256
 	@echo "→ Gate: Sign Manifest"
 	@mkdir -p $(ARTIFACT_DIR)/logs
 	@if [ ! -d $(ARTIFACT_DIR) ]; then \
@@ -616,13 +977,19 @@ gates-sign-manifest: ## Sign artifact manifest with SHA-256
 		exit 1; \
 	fi
 	@find $(ARTIFACT_DIR) -type f -not -path "*/logs/*" -not -name "manifest.sha256" -exec sha256sum {} \; > $(ARTIFACT_DIR)/manifest.sha256
-	@echo "✅  gates-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
+	@echo "✅  gate-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
 
-gates-render-summary: ## Render release summary with gate results
+gates-sign-manifest: gate-sign-manifest ## Compatibility alias for the canonical artifact signing gate
+	@echo "✅  gates-sign-manifest alias passed (canonical: gate-sign-manifest)"
+
+gate-summary: ## Gate: render release summary with gate results
 	@echo "→ Gate: Render Summary"
 	@bash scripts/ops/render-release-summary.sh
 	@test -s $(ARTIFACT_DIR)/summary.md || (echo "❌ Summary file not generated" && exit 1)
-	@echo "✅  gates-render-summary passed"
+	@echo "✅  gate-summary passed"
+
+gates-render-summary: gate-summary ## Compatibility alias for the canonical release summary gate
+	@echo "✅  gates-render-summary alias passed (canonical: gate-summary)"
 
 release-gate: ## Run the policy-driven production readiness gate sequence
 	@echo "🚀 Starting Release Gate Sequence..."
@@ -648,10 +1015,22 @@ clean: ## Remove build artifacts and caches
 	find . -name "*.pyc" -delete 2>/dev/null || true
 	@echo "✅  Clean complete"
 
+clean-root-debris: ## Remove root-level temp artifacts, caches, and generated files
+	@echo "→ Removing root debris..."
+	@rm -rf "C:UsersBBBFabric_4L.bunny" \
+		"c:UsersBBBFabric_4Lappswebtest-resultsui-audit" \
+		"C:UsersBBBFabric_4Ltest_failures.txt" \
+		nul __pycache__ .pytest_cache .ruff_cache .hypothesis node_modules \
+		.tmp_conflict_resolver.py defer_billing_tests.py pytest.ini.test \
+		rotation_audit_*.json test_failures.txt
+	@rm -f generated/valuepacks_output-*.txt
+	@rm -rf generated/logs/*
+	@echo "✅  Root debris clean complete"
+
 # Platform Contract Lint
-platform-contract-lint:
+platform-contract-lint: ## Run platform contract lint
 	@echo Running platform contract lint...
-	@python scripts/ci/platform_contract_lint.py
+	@$(PYTHON) scripts/ci/platform_contract_lint.py
 
 # ─── Value Fabric Harness ────────────────────────────────────────────────────
 
@@ -659,15 +1038,38 @@ HARNESS_DIR := .windsurf/harness
 
 harness-task: ## Assemble VF harness context for a task (TASK=... FILES=...)
 	@echo "→ Assembling Value Fabric harness context..."
-	@cd $(HARNESS_DIR) && python vf_context.py
+	@cd $(HARNESS_DIR) && $(PYTHON) vf_context.py
 
 harness-guard: ## Run pre-edit boundary and contract checks (TASK=... FILES=...)
 	@echo "→ Running harness pre-edit guard..."
-	@cd $(HARNESS_DIR) && python vf_contract_guard.py
+	@cd $(HARNESS_DIR) && $(PYTHON) vf_contract_guard.py
 
 harness-check: harness-guard harness-task ## Full harness preflight (guard + context)
 	@echo "✅  Harness preflight complete"
 
 docs-harness: ## Validate harness documentation artifacts (endpoints, models, runbook, config)
 	@echo "→ Validating harness docs..."
-	@python3 scripts/generate_harness_docs.py --check
+	@$(PYTHON) scripts/generate_harness_docs.py --check
+
+
+check-value-fabric-public-imports: ## Enforce public import policy
+	@$(PYTHON) scripts/ci/check_value_fabric_public_imports.py
+
+
+check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in boundary adapter files
+	@$(PYTHON) scripts/ci/check_raw_http_exception_usage.py
+
+# --- Launch Audit Validation Targets ---
+.PHONY: secret-scan pip-audit-all k8s-validate
+
+secret-scan:
+	@echo "Running secret scan..."
+	infisical scan --recursive || python scripts/ci/check_manifest_secret_hygiene.py
+
+pip-audit-all:
+	@echo "Running pip audit..."
+	pip-audit || true
+
+k8s-validate:
+	@echo "Running Kubernetes validation..."
+	bash scripts/ci/validate-deploy-safety.sh

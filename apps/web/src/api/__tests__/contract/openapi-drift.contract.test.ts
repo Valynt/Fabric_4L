@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -20,8 +20,7 @@ import {
   assertOpenApiSchemaRejects,
 } from './openapi-validator';
 import {
-  ExtractResponseSchema,
-  ExtractionStatusSchema,
+  OperationalSignalLifecycleRecordSchema,
   GraphNodeSchema,
   SubgraphResponseSchema,
   FormulaEvaluateResponseSchema,
@@ -63,11 +62,12 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
   it('checked-in OpenAPI fixtures keep expected base-path version prefixes', () => {
     const expectedPrefixes: Record<string, Array<`/${string}`>> = {
       'layer1-ingestion.json': ['/api/v1', '/api', '/v1', '/health', '/ready', '/metrics'],
-      'layer2-extraction.json': ['/v1', '/health', '/ready', '/metrics'],
+      'layer2-extraction.json': ['/v1', '/signals', '/health', '/health/live', '/ready', '/metrics'],
       'layer3-knowledge.json': ['/v1', '/health', '/ready', '/metrics', '/graph', '/entities'],
       'layer4-agents.json': ['/v1', '/', '/health', '/ready', '/metrics', '/auth'],
       'layer5-ground-truth.json': ['/api/v1', '/health', '/ready', '/metrics'],
-      'layer6-benchmarks.json': ['/v1', '/health', '/ready', '/metrics'],
+      // Layer 6 keeps a temporary deprecated readiness alias for backward compatibility.
+      'layer6-benchmarks.json': ['/v1', '/health', '/ready', '/readiness', '/metrics'],
     };
 
     for (const [specFile, allowedPrefixes] of Object.entries(expectedPrefixes)) {
@@ -89,39 +89,56 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Generated type safety: JsonValue must not regress to opaque unknown
+// ---------------------------------------------------------------------------
+
+describe('Generated TypeScript: JsonValue safety', () => {
+  it('layer5 generated file uses a stable recursive JsonValue type', () => {
+    const l5 = readFileSync(resolve(GENERATED_DIR, 'l5/index.ts'), 'utf8');
+    expect(l5).not.toContain('JsonValue: unknown;');
+    expect(l5).toContain(
+      'type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };'
+    );
+  });
+
+  it('no generated layer contains a broken JsonValue: unknown definition', () => {
+    const layers = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'signals'];
+    for (const layer of layers) {
+      const path = resolve(GENERATED_DIR, `${layer}/index.ts`);
+      if (!existsSync(path)) continue;
+      const content = readFileSync(path, 'utf8');
+      expect(content, `${layer} generated file must not contain opaque JsonValue`).not.toContain('JsonValue: unknown;');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // L2 Extraction fixtures against OpenAPI
 // ---------------------------------------------------------------------------
 
 describe('OpenAPI drift: L2 Extraction', () => {
-  it('ExtractResponse fixture passes canonical OpenAPI schema', () => {
+  it('OperationalSignalLifecycleRecord fixture passes canonical OpenAPI schema', () => {
     assertOpenApiSchema(
       'layer2-extraction.json',
-      '#/components/schemas/ExtractResponse',
-      fixtures.extractResponse(),
-      'ExtractResponse'
+      '#/components/schemas/OperationalSignalLifecycleRecord',
+      fixtures.operationalSignalLifecycleRecord(),
+      'OperationalSignalLifecycleRecord'
     );
   });
 
-  it('ExtractionStatus (completed) fixture passes canonical OpenAPI schema', () => {
+  it('OperationalSignalLifecycleRecord merged fixture passes canonical OpenAPI schema', () => {
     assertOpenApiSchema(
       'layer2-extraction.json',
-      '#/components/schemas/ExtractionStatusResponse',
-      fixtures.extractionStatus(),
-      'ExtractionStatus (completed)'
-    );
-  });
-
-  it('ExtractionStatus (failed) fixture passes canonical OpenAPI schema', () => {
-    assertOpenApiSchema(
-      'layer2-extraction.json',
-      '#/components/schemas/ExtractionStatusResponse',
-      fixtures.extractionStatus({
-        overall_status: 'failed',
-        extraction_status: 'failed',
-        ingestion_status: 'skipped',
-        last_error: 'timeout',
+      '#/components/schemas/OperationalSignalLifecycleRecord',
+      fixtures.operationalSignalLifecycleRecord({
+        status: 'merged',
+        lineage: {
+          supersedes: ['signal-old'],
+          superseded_by: [],
+          merged_into: 'signal-target',
+        },
       }),
-      'ExtractionStatus (failed)'
+      'OperationalSignalLifecycleRecord (merged)'
     );
   });
 });
@@ -299,11 +316,11 @@ describe('OpenAPI drift: negative-path consistency', () => {
 
 describe('Contract: drift-detection auth failures', () => {
   it('401 matches ApiError shape', () => {
-    assertSchema(ApiErrorSchema, { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-drift-401' }, 'ApiError (401)');
+    assertSchema(ApiErrorSchema, { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-drift-401' } }, 'ApiError (401)');
   });
 
   it('403 forbidden matches ApiError shape', () => {
-    assertSchema(ApiErrorSchema, { message: 'Access denied', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-drift-403' }, 'ApiError (403)');
+    assertSchema(ApiErrorSchema, { error: { message: 'Access denied', code: 'AUTHORIZATION_ERROR', request_id: 'trace-drift-403' } }, 'ApiError (403)');
   });
 });
 
@@ -311,9 +328,8 @@ describe('Contract: drift-detection auth failures', () => {
 
 describe('OpenAPI drift: common error shapes', () => {
   it('ApiError fixture is compatible with canonical ErrorResponse', () => {
-    const frontendError = { message: 'Bad request', code: 'VALIDATION_ERROR', trace_id: 'abc' };
-    // layer2-extraction.json defines the flat ErrorResponse that matches frontend ApiErrorSchema.
-    // layer4-agents.json uses wrapped ErrorEnvelope — cross-layer alignment is tracked separately.
+    const frontendError = { error: { message: 'Bad request', code: 'VALIDATION_ERROR', request_id: 'abc' } };
+    // layer2-extraction.json defines the canonical ErrorEnvelope that matches frontend ApiErrorSchema.
     assertCanonicalSchema(ApiErrorSchema, 'layer2-extraction.json', '#/components/schemas/ErrorResponse', frontendError, 'frontend ApiError');
   });
 });
@@ -324,6 +340,10 @@ const CONTRACTS_OPENAPI_DIR = resolve(
 const LAYER4_ROUTE_CONTRACT_MATRIX_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../../../../../contracts/layer4-route-contract-matrix.json'
+);
+const GENERATED_DIR = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../generated'
 );
 
 describe('OpenAPI drift: layer4 route contract matrix coverage', () => {

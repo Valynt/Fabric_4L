@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,7 +11,6 @@ RedisCache logical behavior at the CachePort boundary while avoiding direct
 application imports of aiocache.
 """
 
-from __future__ import annotations
 
 import fnmatch
 import json

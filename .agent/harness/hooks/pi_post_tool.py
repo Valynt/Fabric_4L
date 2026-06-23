@@ -101,9 +101,13 @@ def _extract_text(content) -> str:
 def _normalize_response(event: dict) -> dict:
     """Map Pi tool_result shape to the Claude hook's response schema."""
     resp: dict = {"is_error": bool(event.get("isError", False))}
-    details = event.get("details")
-    content = event.get("content")
+    _copy_details_fields(resp, event.get("details"))
+    _copy_content_text(resp, event.get("content"))
+    _copy_default_output(resp, event.get("details"))
+    return resp
 
+
+def _copy_details_fields(resp: dict, details) -> None:
     if isinstance(details, dict):
         if isinstance(details.get("output"), str):
             resp["output"] = details["output"][:500]
@@ -123,18 +127,20 @@ def _normalize_response(event: dict) -> dict:
             resp["truncated"] = bool(details.get("truncated"))
         resp["details"] = details
 
+
+def _copy_content_text(resp: dict, content) -> None:
     text = _extract_text(content)
     if text:
         resp.setdefault("output", text)
         resp["content"] = [{"type": "text", "text": text}]
 
+
+def _copy_default_output(resp: dict, details) -> None:
     if not any(k in resp for k in ("output", "stdout", "text", "content")):
         if isinstance(details, str):
             resp["output"] = details[:500]
         elif details is not None:
             resp["output"] = json.dumps(details, default=str)[:500]
-
-    return resp
 
 
 def _emit_malformed(reason: str, raw_excerpt: str) -> None:
@@ -157,36 +163,32 @@ def _emit_malformed(reason: str, raw_excerpt: str) -> None:
     )
 
 
-def main() -> None:
-    raw = ""
+def _read_stdin() -> tuple[str, str | None]:
     try:
-        raw = sys.stdin.read()
+        return sys.stdin.read(), None
     except OSError as e:
-        _emit_malformed(f"stdin read failed: {e}", "")
-        return
+        return "", f"stdin read failed: {e}"
 
+
+def _parse_event(raw: str) -> tuple[dict | None, str | None]:
     if not raw or not raw.strip():
-        _emit_malformed("empty payload", "")
-        return
+        return None, "empty payload"
 
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError as e:
-        _emit_malformed(f"json decode error: {e.msg}", raw)
-        return
+        return None, f"json decode error: {e.msg}"
 
     if not isinstance(payload, dict):
-        _emit_malformed(f"payload is {type(payload).__name__}, expected object", raw)
-        return
+        return None, f"payload is {type(payload).__name__}, expected object"
 
     if "tool_name" not in payload:
-        _emit_malformed("missing tool_name", raw)
-        return
+        return None, "missing tool_name"
 
-    tool_name = _tool_name(payload.get("tool_name") or "Unknown")
-    tool_input = _normalize_input(payload.get("tool_input"))
-    tool_response = _normalize_response(payload)
+    return payload, None
 
+
+def _emit_result(tool_name: str, tool_input: dict, tool_response: dict) -> None:
     success = cc._is_success(tool_name, tool_input, tool_response)
     importance = cc._importance(tool_name, json.dumps(tool_input))
     action = cc._action_label(tool_name, tool_input)
@@ -215,6 +217,23 @@ def main() -> None:
             importance=importance,
             pain_score=pscore,
         )
+
+
+def main() -> None:
+    raw, read_error = _read_stdin()
+    if read_error:
+        _emit_malformed(read_error, "")
+        return
+
+    payload, parse_error = _parse_event(raw)
+    if parse_error:
+        _emit_malformed(parse_error, raw)
+        return
+
+    tool_name = _tool_name(payload.get("tool_name") or "Unknown")
+    tool_input = _normalize_input(payload.get("tool_input"))
+    tool_response = _normalize_response(payload)
+    _emit_result(tool_name, tool_input, tool_response)
 
 
 if __name__ == "__main__":

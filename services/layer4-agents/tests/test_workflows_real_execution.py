@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Real LangGraph workflow execution tests with InMemory checkpointing.
 
 Tier A: Fast tests using InMemorySaver (no Redis required).
@@ -11,7 +13,6 @@ Key scenarios:
 - Thread-based checkpoint isolation
 """
 
-from __future__ import annotations
 
 from typing import Annotated, Any, TypedDict
 
@@ -19,7 +20,7 @@ import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, StateGraph
 
-from value_fabric.layer4.workflows.base import DEFAULT_RECURSION_LIMIT
+from layer4_agents.workflows.base import DEFAULT_RECURSION_LIMIT
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 

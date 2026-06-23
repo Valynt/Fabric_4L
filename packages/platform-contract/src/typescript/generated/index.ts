@@ -1,4 +1,5 @@
 // @generated
+export * as fabric_4l_api from './fabric_4l_api.js';
 export * as layer1_ingestion from './layer1_ingestion.js';
 export * as layer2_extraction from './layer2_extraction.js';
 export * as layer3_knowledge from './layer3_knowledge.js';

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Focused tests for agent mutation gates and audit-producing safety paths."""
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
@@ -10,16 +11,19 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-import value_fabric.layer4.services.conversation as conversation_module
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.services.conversation import ConversationService
+import layer4_agents.services.conversation as conversation_module
+from layer4_agents.api.routes import analysis
+from layer4_agents.api.common.db import get_route_db
+from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
 
 @pytest.fixture
 def analysis_app() -> FastAPI:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(analysis.router, prefix="/v1")
     return app
 
@@ -81,7 +85,12 @@ async def test_business_case_smoke_draft_creates_audit_event(
     events: list[dict[str, Any]] = []
 
     async def mock_require_authenticated() -> RequestContext:
-        return RequestContext(tenant_id=tenant_id, user_id="smoke-user")
+        return RequestContext(
+            tenant_id=tenant_id,
+            user_id="smoke-user",
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
+        )
 
     class RaisingExecutor:
         async def run(self, **kwargs: Any) -> Any:
@@ -110,8 +119,8 @@ async def test_business_case_smoke_draft_creates_audit_event(
 
     tenant_id_context = tenant_id
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: RaisingExecutor()
-    analysis_app.dependency_overrides[analysis.get_db_from_context] = lambda: object()
+    analysis_app.dependency_overrides[get_route_db] = lambda: object()
+    monkeypatch.setattr(analysis, "get_executor", lambda: RaisingExecutor())
     monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
     monkeypatch.setattr(analysis, "BusinessCaseService", FakeBusinessCaseService)
     monkeypatch.setattr(analysis, "emit_audit_event", capture_audit)
@@ -142,7 +151,12 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
     case_id = "smoke-case-draft"
 
     async def mock_require_authenticated() -> RequestContext:
-        return RequestContext(tenant_id=tenant_id, user_id="smoke-user")
+        return RequestContext(
+            tenant_id=tenant_id,
+            user_id="smoke-user",
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
+        )
 
     class FakeExecutor:
         async def get_result(self, requested_case_id: str) -> Any:
@@ -165,8 +179,9 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
 
     tenant_id_context = tenant_id
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
+    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDB()
     analysis_app.dependency_overrides[analysis.get_executor] = lambda: FakeExecutor()
-    analysis_app.dependency_overrides[analysis.get_db_from_context] = lambda: FakeDB()
+    monkeypatch.setattr(analysis, "get_executor", lambda: FakeExecutor())
     monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:

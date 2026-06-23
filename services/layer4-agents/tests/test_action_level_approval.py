@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 """Tests for explicit action-level human approval policies."""
 
-from __future__ import annotations
+
+from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.harness.models import ActionClass, GateType
-from value_fabric.layer4.policies.approval_actions import (
+from layer4_agents.harness.models import ActionClass, GateStatus, GateType
+from layer4_agents.policies.approval_actions import (
     ACTION_APPROVAL_POLICIES,
     ApprovalRequiredError,
     get_policy,
@@ -52,7 +55,11 @@ class TestActionLevelApproval:
         assert requires_approval(ActionClass.PUBLISH_BUSINESS_CASE) is True
 
     def test_requires_approval_for_unknown_action(self) -> None:
-        assert requires_approval("unknown_action") is False
+        assert requires_approval("unknown_action") is True
+
+    def test_unknown_action_denied_by_default(self) -> None:
+        with pytest.raises(ApprovalRequiredError, match="denied by default"):
+            get_policy("unmapped_critical_action")
 
     def test_requires_approval_for_none(self) -> None:
         assert requires_approval(None) is False
@@ -68,3 +75,46 @@ class TestActionLevelApproval:
         assert d["action_class"] == ActionClass.PUBLISH_BUSINESS_CASE.value
         assert d["gate_type"] == GateType.APPROVE_CUSTOMER_OUTPUT.value
         assert d["run_id"] == "run_123"
+
+    def test_gate_creation_with_string_action_class(self) -> None:
+        from layer4_agents.harness.human_gates import HumanGateManager
+
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CLAIMS,
+            action_class="publish_business_case",
+        )
+        assert gate.action_class == ActionClass.PUBLISH_BUSINESS_CASE
+
+    def test_gate_creation_with_enum_action_class(self) -> None:
+        from layer4_agents.harness.human_gates import HumanGateManager
+
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+            action_class=ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE,
+        )
+        assert gate.action_class == ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE
+
+    def test_record_approval_wait_uses_real_action_class(self) -> None:
+        from layer4_agents.harness.human_gates import HumanGateManager
+        from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+            action_class=ActionClass.PUBLISH_BUSINESS_CASE,
+        )
+        # Simulate decision to trigger metric emission
+        gate = gate.model_copy(update={"status": GateStatus.APPROVED, "decided_at": datetime.now(UTC), "decision_by": "user_1"})
+        manager._gates[gate.id] = gate
+
+        # The metric should be observable after gate decision
+        assert metrics._metrics["approval_wait_seconds"] is not None

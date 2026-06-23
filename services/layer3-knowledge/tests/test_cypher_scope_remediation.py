@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 """Regression tests for Layer 3 Cypher tenant-scope hardening."""
 
-from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer3.db.tenant_queries import get_entity_context
-from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
+from src.db.tenant_queries import get_entity_context
+from src.retrieval.graph_rag import GraphRAGEngine
 
 
 class _NoopSession:
@@ -47,21 +48,21 @@ async def test_tenant_queries_parameterize_relationship_filter() -> None:
 
 def test_graphrag_rejects_malicious_relationship_type() -> None:
     with pytest.raises(ValueError, match="Invalid relationship type"):
-        from value_fabric.layer3.retrieval.graph_rag import _validate_relationship_types
+        from src.retrieval.graph_rag import _validate_relationship_types
 
         _validate_relationship_types(["enables']) MATCH (x) RETURN x //"])
 
 
 def test_graphrag_rejects_invalid_entity_type() -> None:
     with pytest.raises(ValueError, match="Invalid entity_type"):
-        from value_fabric.layer3.retrieval.graph_rag import _validate_entity_type
+        from src.retrieval.graph_rag import _validate_entity_type
 
         _validate_entity_type("Entity`) MATCH (x) RETURN x //")
 
 
 def test_graphrag_rejects_unbounded_hops() -> None:
     with pytest.raises(ValueError, match="hops must"):
-        from value_fabric.layer3.retrieval.graph_rag import _validate_hops
+        from src.retrieval.graph_rag import _validate_hops
 
         _validate_hops(99)
 
@@ -119,5 +120,5 @@ async def test_graphrag_expand_context_anchors_path_to_tenant_nodes() -> None:
         tenant_id="tenant-a",
     )
 
-    assert "MATCH path = (seed {tenant_id: $_tenant_id})" in session.query
-    assert "-(connected {tenant_id: $_tenant_id})" in session.query
+    assert "ALL(node IN nodes(path) WHERE node.confidence >= $min_confidence AND node.tenant_id = $_tenant_id)" in session.query
+    assert "ALL(rel IN relationships(path) WHERE rel.tenant_id = $_tenant_id)" in session.query

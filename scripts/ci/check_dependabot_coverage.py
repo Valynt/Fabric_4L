@@ -33,6 +33,7 @@ except ImportError:
 EXCLUDE_DIRS = frozenset(
     [
         ".git",
+        ".tmp",
         ".venv",
         "venv",
         "node_modules",

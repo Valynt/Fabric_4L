@@ -1,3 +1,26 @@
+from __future__ import annotations
+
+import logging
+import uuid
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
+from sqlalchemy.types import CHAR, TypeDecorator
+from value_fabric.shared.database import (
+    DatabaseAdapterConfig,
+    RuntimeDatabaseAdapter,
+    is_production_mode_from_env,
+)
+from value_fabric.shared.error_handling.exceptions import ValidationError
+
+from .config import get_settings
+
 """Async SQLAlchemy engine and session management for L2.5 Signal Refinery.
 
 Follows the same pattern as Layer 5's database.py:
@@ -6,33 +29,11 @@ Follows the same pattern as Layer 5's database.py:
 - get_db_from_context() as the canonical FastAPI dependency
 """
 
-from __future__ import annotations
-
-import logging
-import uuid
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
-
-from fastapi import Depends, HTTPException, status
-from sqlalchemy import event, text
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.types import CHAR, TypeDecorator
-
-from .config import get_settings
-
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
+_runtime_adapter: RuntimeDatabaseAdapter | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -74,14 +75,18 @@ class SQLiteUUID(TypeDecorator):
 
 
 def get_engine() -> AsyncEngine:
-    global _engine
+    global _engine, _runtime_adapter
     if _engine is None:
         settings = get_settings()
-        _engine = create_async_engine(
-            settings.database_url,
-            echo=False,
-            pool_pre_ping=True,
+        _runtime_adapter = RuntimeDatabaseAdapter(
+            DatabaseAdapterConfig(
+                database_url=settings.database_url,
+                service_name="layer2_5_signal_refinery",
+                production_mode=is_production_mode_from_env(),
+                allow_test_sqlite=True,
+            )
         )
+        _engine = _runtime_adapter.engine
     return _engine
 
 
@@ -121,23 +126,20 @@ def _get_request_context():
     """Import lazily to avoid circular imports."""
     try:
         from value_fabric.shared.identity.context import get_request_context
+
         return get_request_context()
     except ImportError:
         return None
 
 
-async def get_db_from_context(
-) -> AsyncGenerator[AsyncSession, None]:
+async def get_db_from_context() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency: async DB session with tenant RLS from RequestContext.
 
     Fail-safe: rejects requests without tenant context.
     """
     ctx = _get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required.",
-        )
+        raise ValidationError(message="Tenant context required.")
 
     tenant_id = str(ctx.tenant_id)
     factory = get_session_factory()
@@ -160,17 +162,48 @@ async def get_db_from_context(
 
 
 @asynccontextmanager
-async def db_session(tenant_id: str | None = None) -> AsyncGenerator[AsyncSession, None]:
+async def _tenant_db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """Internal implementation: yield a database session with tenant RLS applied."""
+    if not tenant_id:
+        raise ValueError(
+            "tenant_id is required for db_session; None or empty values are not allowed."
+        )
+
     factory = get_session_factory()
     async with factory() as session:
-        if tenant_id:
-            await session.execute(
-                text("SET LOCAL app.tenant_id = :tenant_id"),
-                {"tenant_id": tenant_id},
-            )
+        await session.execute(
+            text("SET LOCAL app.tenant_id = :tenant_id"),
+            {"tenant_id": tenant_id},
+        )
         try:
             yield session
             await session.commit()
         except Exception:
             await session.rollback()
             raise
+
+
+@asynccontextmanager
+async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """Yield a database session with tenant RLS applied.
+
+    tenant_id is required. Passing an empty or None tenant is a programming
+    error and fails closed to prevent cross-tenant data leakage.
+    """
+    async with _tenant_db_session(tenant_id=tenant_id) as session:
+        yield session
+
+
+@asynccontextmanager
+async def db_session_for_context() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a tenant-scoped session using the ambient RequestContext.
+
+    This is the canonical context-manager entry point for tests and services
+    that already have a request context installed.
+    """
+    ctx = _get_request_context()
+    if ctx is None or not getattr(ctx, "tenant_id", None):
+        raise ValidationError(message="Tenant context required.")
+
+    async with _tenant_db_session(tenant_id=str(ctx.tenant_id)) as session:
+        yield session

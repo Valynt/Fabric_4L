@@ -1,9 +1,3 @@
-"""Signal repository — tenant-scoped PostgreSQL persistence for ValueSignals.
-
-All methods require an explicit tenant_id derived from authenticated context.
-No method accepts tenant_id from request body.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -15,6 +9,12 @@ from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.db_models import ValueSignalRow
+
+"""Signal repository — tenant-scoped PostgreSQL persistence for ValueSignals.
+
+All methods require an explicit tenant_id derived from authenticated context.
+No method accepts tenant_id from request body.
+"""
 
 logger = logging.getLogger(__name__)
 

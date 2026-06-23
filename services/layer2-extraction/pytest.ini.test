@@ -1,0 +1,10 @@
+[pytest]
+env =
+    ENVIRONMENT=development
+    ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK
+    TESTING=true
+    LOG_LEVEL=DEBUG
+    MOCK_PERSISTENCE=true
+    JWT_SECRET=test-jwt-secret-must-be-at-least-32-characters-long
+    API_KEY_HMAC_SECRET=test-api-key-hmac-secret-32-chars
+    CORS_ORIGINS=["http://localhost:3000"]

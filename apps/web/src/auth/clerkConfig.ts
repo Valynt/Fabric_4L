@@ -15,10 +15,15 @@
  *   VITE_CLERK_AFTER_SIGN_IN_URL   default: "/home"
  *   VITE_CLERK_AFTER_SIGN_UP_URL   default: "/home"
  *
+ * Canonical Clerk defaults live in @fabric/platform-contract clerk-defaults.
+ * The frontend and backend load the same file so defaults cannot diverge.
+ *
  * SECURITY: the publishable key is safe to ship in the browser bundle.
  *           Never read CLERK_SECRET_KEY here — that is gateway-only and is
  *           enforced by the backend architecture sentinel.
  */
+
+import clerkDefaults from "@fabric/platform-contract/clerk-defaults";
 
 export const AUTH_PROVIDER_LEGACY = "legacy" as const;
 export const AUTH_PROVIDER_CLERK = "clerk" as const;
@@ -28,13 +33,16 @@ export type AuthProvider =
   | typeof AUTH_PROVIDER_CLERK;
 
 /**
- * The configured auth provider for this build. Defaults to legacy so adding
- * Clerk code to the bundle does not change behavior until the env flag is set.
+ * The configured auth provider for this build.
+ *
+ * Clerk is the canonical identity and organization boundary for Fabric_4L.
+ * It is the default; legacy OIDC/cookie mode is opt-in only via
+ * VITE_AUTH_PROVIDER=legacy and is intended for transitional use.
  */
 export function getAuthProvider(): AuthProvider {
   const raw = (import.meta.env.VITE_AUTH_PROVIDER ?? "").toString().trim().toLowerCase();
-  if (raw === AUTH_PROVIDER_CLERK) return AUTH_PROVIDER_CLERK;
-  return AUTH_PROVIDER_LEGACY;
+  if (raw === AUTH_PROVIDER_LEGACY) return AUTH_PROVIDER_LEGACY;
+  return AUTH_PROVIDER_CLERK;
 }
 
 export function isClerkAuthEnabled(): boolean {
@@ -68,10 +76,10 @@ export function getClerkPublishableKey(): string {
 
 export function getClerkUrls() {
   return {
-    signInUrl: (import.meta.env.VITE_CLERK_SIGN_IN_URL ?? "/sign-in").toString(),
-    signUpUrl: (import.meta.env.VITE_CLERK_SIGN_UP_URL ?? "/sign-up").toString(),
-    afterSignInUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_IN_URL ?? "/workspaces").toString(),
-    afterSignUpUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL ?? "/onboarding").toString(),
+    signInUrl: (import.meta.env.VITE_CLERK_SIGN_IN_URL ?? clerkDefaults.clerk.signInUrl).toString(),
+    signUpUrl: (import.meta.env.VITE_CLERK_SIGN_UP_URL ?? clerkDefaults.clerk.signUpUrl).toString(),
+    afterSignInUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_IN_URL ?? clerkDefaults.clerk.afterSignInUrl).toString(),
+    afterSignUpUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL ?? clerkDefaults.clerk.afterSignUpUrl).toString(),
     selectOrgUrl: (import.meta.env.VITE_CLERK_SELECT_ORG_URL ?? "/workspaces").toString(),
   } as const;
 }

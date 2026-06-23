@@ -60,7 +60,7 @@ def commit_sha():
                 cwd=AGENT_ROOT,
             )
             _CACHED_COMMIT = out.stdout.strip() if out.returncode == 0 else ""
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             _CACHED_COMMIT = ""
     return _CACHED_COMMIT
 

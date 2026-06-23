@@ -193,7 +193,7 @@ class ROICalculationAgent(BaseAgent):
                 status="failed",
                 output={},
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                errors=[str(e)],
+                errors=["agent_execution_failed"],
             )
 
     async def _execute_formula(
@@ -378,9 +378,11 @@ class ROICalculationAgent(BaseAgent):
             """
             // strict-scoped-query-execution
             // strict-scoped-query-execution
-            MATCH (uc:UseCase {id: $use_case_id, tenant_id: $_tenant_id})-[:delivers]->(vd:ValueDriver {tenant_id: $_tenant_id})
+            MATCH (uc:UseCase {id: $use_case_id})-[:delivers]->(vd:ValueDriver)
+            WHERE uc.tenant_id = $_tenant_id AND vd.tenant_id = $_tenant_id
             // strict-scoped-query-execution
-            OPTIONAL MATCH (vd)-[:measuredBy|calculatedBy]->(f:Formula {tenant_id: $_tenant_id})
+            OPTIONAL MATCH (vd)-[:measuredBy|calculatedBy]->(f:Formula)
+            WHERE f.tenant_id = $_tenant_id
             RETURN f.id as formula_id, f.name as name, f.description as description,
                    f.formula_expression as expression, f.variables as variables,
                    f.constants as constants, f.output_metric as output_metric,
@@ -394,7 +396,13 @@ class ROICalculationAgent(BaseAgent):
         formulas = []
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session, *self._query_tuple(query))
+            result = await run_validated_query(
+                session,
+                *self._query_tuple(query),
+                tenant_id=resolved_tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculation.retrieve_formulas",
+            )
             async for record in result:
                 if record["formula_id"]:
                     formulas.append(
@@ -414,6 +422,7 @@ class ROICalculationAgent(BaseAgent):
             "use_case_id": use_case_id,
             "formulas_found": len(formulas),
             "formulas": formulas,
+            "error": "",
         })
 
 
@@ -435,7 +444,8 @@ class ROICalculationAgent(BaseAgent):
         query = builder.custom_tenant_query(
             """
             // strict-scoped-query-execution
-            MATCH (f:Formula {id: $formula_id, tenant_id: $_tenant_id})
+            MATCH (f:Formula {id: $formula_id})
+            WHERE f.tenant_id = $_tenant_id
             RETURN f.id as id, f.name as name, f.description as description,
                    f.formula_expression as expression, f.variables as variables,
                    f.constants as constants, f.output_metric as output_metric,
@@ -448,7 +458,13 @@ class ROICalculationAgent(BaseAgent):
         )
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session, *self._query_tuple(query))
+            result = await run_validated_query(
+                session,
+                *self._query_tuple(query),
+                tenant_id=resolved_tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="roi_calculation.get_formula",
+            )
             record = await result.single()
 
             if record:

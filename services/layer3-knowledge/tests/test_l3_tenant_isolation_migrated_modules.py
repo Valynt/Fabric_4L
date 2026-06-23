@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Cross-tenant isolation regression tests for migrated L3 route modules.
 
 Validates that the five modules migrated during Phases 3-6:
@@ -10,7 +12,6 @@ Validates that the five modules migrated during Phases 3-6:
 have no raw AsyncDriver usage and pass the static Cypher scope scanner.
 """
 
-from __future__ import annotations
 
 import subprocess
 import sys

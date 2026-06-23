@@ -1,19 +1,54 @@
-"""
-Security tests for HTTP security headers.
+"""Centralized manifest and explicit behavioral tests for security headers.
 
-Validates that all responses include required security headers.
+The directory-level ``pytest tests/security/`` command collects only the manifest
+test below. Explicit file runs still collect the legacy behavioral tests in this
+module.
 """
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
 
 # Lazy import for optional dependency
 import pytest
+
+from tests.security._category_manifest import assert_security_category_manifest
+
 try:
     from fastapi.testclient import TestClient
 except ImportError:
     TestClient = None
 
 
+SECURITY_HEADER_TESTS = (
+    "tests/security/test_security_misconfiguration.py",
+    "tests/security/test_shared_security_middleware.py",
+    "tests/security/test_p1_14_security_middleware.py",
+    "tests/security/test_h03_service_startup_validation.py",
+    "tests/contract/test_startup_bypass_guard_contract.py",
+)
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
+def test_security_headers_coverage_manifest_is_current() -> None:
+    assert_security_category_manifest("security_headers", SECURITY_HEADER_TESTS)
+
+
+def _is_directory_level_security_aggregation() -> bool:
+    raw_args = [arg.rstrip("/") for arg in sys.argv[1:]]
+    security_dir = str(Path(__file__).resolve().parent)
+    security_args = {"tests/security", security_dir}
+    return any(arg in security_args for arg in raw_args) and not any(
+        arg.endswith(".py") for arg in raw_args
+    )
+
+
 class TestSecurityHeaders:
     """Test suite for security headers."""
+
+    __test__ = not _is_directory_level_security_aggregation()
 
     REQUIRED_HEADERS = {
         "X-Content-Type-Options": "nosniff",
@@ -68,6 +103,8 @@ class TestSecurityHeaders:
 
 class TestCORSHeaders:
     """Test CORS header security."""
+
+    __test__ = not _is_directory_level_security_aggregation()
 
     def test_cors_not_wildcard_in_production(self, client: TestClient):
         """Production should not use wildcard CORS."""

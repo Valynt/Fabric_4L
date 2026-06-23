@@ -1,32 +1,29 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { useWorkflowStore } from "@/workflow/store/workflowStore";
-import { WORKFLOW_CONTEXT_QUERY_KEYS, type WorkflowContext } from "@/workflow/context";
+import { WORKFLOW_CONTEXT_QUERY_KEYS, type WorkflowContext } from "@/stores/navigationContext";
 
 export function useWorkflowContext(): Partial<WorkflowContext> {
   const location = useLocation();
-  const workflowContext = useWorkflowStore((s) => s.workflowContext);
 
   return useMemo(() => {
     const query = new URLSearchParams(location.search);
-    const accountId = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.accountId) ?? workflowContext.accountId;
-    const sessionId = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.sessionId) ?? workflowContext.sessionId;
-    const activeTab = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.activeTab) ?? workflowContext.step?.activeTab;
+    const accountId = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.accountId) ?? undefined;
+    const sessionId = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.sessionId) ?? undefined;
+    const activeTab = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.activeTab) ?? undefined;
     const stepIndex = query.get(WORKFLOW_CONTEXT_QUERY_KEYS.activeStep);
 
     return {
-      ...workflowContext,
-      accountId: accountId ?? undefined,
-      sessionId: sessionId ?? undefined,
+      accountId,
+      sessionId,
       step: {
-        stepIndex: stepIndex !== null ? Number(stepIndex) : workflowContext.step?.stepIndex ?? 0,
-        stepKey: workflowContext.step?.stepKey ?? "unknown",
-        activeTab: activeTab ?? undefined,
+        stepIndex: stepIndex !== null ? Number(stepIndex) : 0,
+        stepKey: "unknown",
+        activeTab,
       },
-      workspaceCaseId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.workspaceCaseId) ?? workflowContext.workspaceCaseId,
-      driverTreeId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.driverTreeId) ?? workflowContext.driverTreeId,
-      scenarioId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.scenarioId) ?? workflowContext.scenarioId,
-      businessCaseId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.businessCaseId) ?? workflowContext.businessCaseId,
+      workspaceCaseId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.workspaceCaseId) ?? undefined,
+      driverTreeId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.driverTreeId) ?? undefined,
+      scenarioId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.scenarioId) ?? undefined,
+      businessCaseId: query.get(WORKFLOW_CONTEXT_QUERY_KEYS.businessCaseId) ?? undefined,
     };
-  }, [location.search, workflowContext]);
+  }, [location.search]);
 }

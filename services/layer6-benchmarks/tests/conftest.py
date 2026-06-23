@@ -16,9 +16,7 @@ _TEST_ENV_DEFAULTS = {
     "NEO4J_PASSWORD": "test_password",
     "NEO4J_DATABASE": "neo4j",
     "NEO4J_MAX_POOL_SIZE": "10",
-    "ALLOW_INSECURE_DEV_AUTH_BYPASS": "true",
-    "DEV_AUTH_BYPASS": "true",
-    "ALLOW_DEV_AUTH_BYPASS": "I_UNDERSTAND_RISK",
+    # P0-008: Dev auth bypass flags removed — no longer needed
     # Match root conftest.py secret defaults so L6 service venv can boot the FastAPI
     # app without a live Infisical / vault. Mirrors the canonical test-secret values
     # required by value_fabric.shared.secrets.infisical._validate_required_secrets.
@@ -41,7 +39,7 @@ _TEST_ENV_DEFAULTS = {
 for _key, _value in _TEST_ENV_DEFAULTS.items():
     os.environ.setdefault(_key, _value)
 
-import value_fabric.layer6.database as database
+import layer6_benchmarks.database as database
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 
@@ -50,11 +48,12 @@ def mock_governance_middleware(monkeypatch):
     """Bypass the actual JWT validation in GovernanceMiddleware for tests.
     We rely on app.dependency_overrides[get_request_context] in the test client
     to control the actual tenant_id seen by the endpoints."""
+
     async def mock_dispatch(self, request, call_next):
         from uuid import uuid4
 
         from value_fabric.shared.identity.context import RequestContext
-        
+
         # Give it a fallback context just in case, though get_request_context should override it
         ctx = RequestContext(
             tenant_id="system",
@@ -65,23 +64,26 @@ def mock_governance_middleware(monkeypatch):
             auth_source="mock",
             tenant_role="admin",
             isolation_tier="shared",
-            request_id="test"
+            request_id="test",
         )
         request.state.governance_context = ctx
         from value_fabric.shared.identity.context import set_request_context
+
         set_request_context(ctx)
         return await call_next(request)
-        
+
     monkeypatch.setattr(GovernanceMiddleware, "dispatch", mock_dispatch)
+
 
 @pytest.fixture(autouse=True)
 def mock_neo4j_health(monkeypatch):
     """Mock Neo4j health check to avoid real DB connections."""
+
     async def mock_health(*args, **kwargs):
         return {"status": "healthy"}
-    
+
     monkeypatch.setattr(database, "health_check", mock_health)
     # Also patch the actual neo4j_health_check imported in main
-    import value_fabric.layer6.api.main as main_module
-    monkeypatch.setattr(main_module, "neo4j_health_check", mock_health)
+    import layer6_benchmarks.api.main as main_module
 
+    monkeypatch.setattr(main_module, "neo4j_health_check", mock_health)

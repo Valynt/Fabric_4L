@@ -8,8 +8,8 @@ Model registry tables (model_versions, model_deployments, model_evaluations)
 were added in migration 003 with tenant_id columns but without RLS policies.
 This migration closes that gap (Phase 1, Task 1.6).
 
-Note: The column rename from organization_id to tenant_id was handled in
-migration 004.  The RLS policies here reference tenant_id.
+Note: The tenant column normalization was handled in migration 004. The RLS
+policies here reference tenant_id.
 """
 
 from alembic import op
@@ -51,11 +51,9 @@ def upgrade() -> None:
                 FOR ALL
                 TO PUBLIC
                 USING (
-                    tenant_id IS NULL OR
                     tenant_id::text = current_setting('app.tenant_id', true)
                 )
                 WITH CHECK (
-                    tenant_id IS NULL OR
                     tenant_id::text = current_setting('app.tenant_id', true)
                 )
         """)

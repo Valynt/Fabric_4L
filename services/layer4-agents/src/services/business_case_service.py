@@ -1,55 +1,7 @@
-"""Business case persistence service."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.services.business_case_service``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from uuid import UUID
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..models.business_case_record import BusinessCaseRecord
-
-
-class BusinessCaseService:
-    """Service for durable business case records."""
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def upsert_case_record(
-        self,
-        *,
-        case_id: str,
-        workflow_id: str,
-        account_id: UUID,
-        opportunity_id: str | None,
-        status: str,
-        document_url: str | None,
-        tenant_id: str | None = None,
-    ) -> BusinessCaseRecord:
-        """Create or update a case record keyed by case_id."""
-        existing = await self.db.get(BusinessCaseRecord, case_id)
-        if existing:
-            existing.workflow_id = workflow_id
-            existing.account_id = account_id
-            existing.opportunity_id = opportunity_id
-            existing.status = status
-            existing.document_url = document_url
-            if tenant_id is not None:
-                existing.tenant_id = tenant_id
-            record = existing
-        else:
-            record = BusinessCaseRecord(
-                case_id=case_id,
-                workflow_id=workflow_id,
-                account_id=account_id,
-                opportunity_id=opportunity_id,
-                status=status,
-                document_url=document_url,
-                tenant_id=tenant_id or "default",
-            )
-            self.db.add(record)
-
-        await self.db.commit()
-        await self.db.refresh(record)
-        return record
-
+from layer4_agents.services.business_case_service import *  # noqa: F401,F403

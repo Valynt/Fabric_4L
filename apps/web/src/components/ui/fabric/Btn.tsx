@@ -22,6 +22,7 @@ export interface BtnProps {
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   className?: string;
   disabled?: boolean;
+  "aria-label"?: string;
 }
 
 const VARIANT_MAP = {
@@ -38,6 +39,7 @@ export function Btn({
   onClick,
   className,
   disabled,
+  "aria-label": ariaLabel,
 }: BtnProps) {
   return (
     <Button
@@ -45,7 +47,8 @@ export function Btn({
       disabled={disabled}
       variant={VARIANT_MAP[variant]}
       size={size}
-      className={cn("text-[12px] font-semibold", className)}
+      className={cn("vf-text-body-s font-semibold", className)}
+      aria-label={ariaLabel}
     >
       {children}
     </Button>

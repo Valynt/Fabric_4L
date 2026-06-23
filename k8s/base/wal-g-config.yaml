@@ -1,0 +1,76 @@
+# P1-015: WAL-G configuration for PostgreSQL continuous backup to S3
+# Enables point-in-time recovery (PITR)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wal-g-config
+  namespace: value-fabric
+data:
+  WALG_COMPRESSION_METHOD: "lz4"
+  WALG_DELTA_MAX_STEPS: "7"
+  WALG_UPLOAD_CONCURRENCY: "4"
+  WALG_UPLOAD_DISK_CONCURRENCY: "2"
+  WALG_DOWNLOAD_CONCURRENCY: "4"
+  PGDATA: "/home/postgres/pgdata/pgroot"
+  # Retention: 30 days
+  WALG_RETAIN_COUNT: "30"
+  # Full backup schedule: daily at 2 AM UTC (matches existing CronJob)
+  WALG_SCHEDULE: "0 2 * * *"
+---
+# WAL-G sidecar container for Patroni pods
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-patroni-walg-sidecar
+  namespace: value-fabric
+data:
+  sidecar.yaml: |
+    - name: wal-g
+      image: ghcr.io/zalando/spilo-16:3.2-p1
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -e
+          # Continuous WAL archiving
+          exec wal-g wal-push $PGDATA/pg_wal/
+      envFrom:
+        - configMapRef:
+            name: wal-g-config
+        - secretRef:
+            name: aws-backup-credentials
+      env:
+        - name: AWS_ROLE_ARN
+          valueFrom:
+            secretKeyRef:
+              name: aws-backup-credentials
+              key: role-arn
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+      volumeMounts:
+        - name: pgdata
+          mountPath: /home/postgres/pgdata
+          readOnly: true
+        - name: aws-token
+          mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+          readOnly: true
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "50m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+---
+# Service account for WAL-G. Environment overlays may add cloud-workload
+# identity annotations after restore-drill evidence exists.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wal-g-backup
+  namespace: value-fabric

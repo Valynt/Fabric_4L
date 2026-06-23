@@ -135,7 +135,11 @@ class TestRegoPolicies:
             }
         }
         
-        if shutil.which("conftest") is not None:
+        conftest_path = shutil.which("conftest")
+        # On Windows PATHEXT may match pytest conftest.py files in the repo root.
+        # Only delegate to the real conftest CLI when the resolved path is not a
+        # Python file.
+        if conftest_path is not None and not str(conftest_path).lower().endswith(".py"):
             result = subprocess.run(
                 ["conftest", "test", "-", "-p", str(k8s_policy_dir), "--policy", "main"],
                 input=yaml.dump(test_deployment),

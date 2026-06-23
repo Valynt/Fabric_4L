@@ -7,20 +7,22 @@ on:
   pull_request:
     paths:
       - 'apps/web/src/App.tsx'
-      - 'apps/web/src/App/Router.test.tsx'
-      - 'apps/web/audit-output/route-map.md'
-      - 'apps/web/audit-output/track-a-route-extraction.json'
-      - 'scripts/extract-routes-audit.py'
-      - 'scripts/check-route-audit-freshness.py'
+      - 'apps/web/src/shell/router.tsx'
+      - 'contracts/openapi/**'
+      - 'contracts/deprecations/**'
+      - 'contracts/route-contracts.json'
+      - 'scripts/ci/router_contract_gate.py'
+      - 'package.json'
   push:
     branches: [main]
     paths:
       - 'apps/web/src/App.tsx'
-      - 'apps/web/src/App/Router.test.tsx'
-      - 'apps/web/audit-output/route-map.md'
-      - 'apps/web/audit-output/track-a-route-extraction.json'
-      - 'scripts/extract-routes-audit.py'
-      - 'scripts/check-route-audit-freshness.py'
+      - 'apps/web/src/shell/router.tsx'
+      - 'contracts/openapi/**'
+      - 'contracts/deprecations/**'
+      - 'contracts/route-contracts.json'
+      - 'scripts/ci/router_contract_gate.py'
+      - 'package.json'
 
 jobs:
   route-audit:
@@ -30,6 +32,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Verify frontend route audit freshness
-        run: python3 scripts/check-route-audit-freshness.py
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+      - name: Run router contract gate
+        run: pnpm test:router
+      - name: Upload route audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: router-contract-audit
+          path: artifacts/router-contract/

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosRequestConfig } from 'axios';
 import { z } from 'zod';
 import { apiGet, apiPost } from '@/api/typedClient';
 import type { l4 } from '@/api/generated';
@@ -130,7 +131,15 @@ export interface FilterOptions {
   owners: { id: string; name: string }[];
 }
 
-async function fetchAccounts(filters: AccountFilters): Promise<AccountListResponse> {
+export interface UseAccountsOptions {
+  enabled?: boolean;
+  suppressAuthRedirect?: boolean;
+}
+
+async function fetchAccounts(
+  filters: AccountFilters,
+  config?: AxiosRequestConfig
+): Promise<AccountListResponse> {
   const params = new URLSearchParams();
   if (filters.provider && filters.provider !== 'all') params.set('provider', filters.provider);
   if (filters.stage) params.set('stage', filters.stage);
@@ -145,7 +154,7 @@ async function fetchAccounts(filters: AccountFilters): Promise<AccountListRespon
   if (filters.sort_by) params.set('sort_by', filters.sort_by);
   if (filters.sort_order) params.set('sort_order', filters.sort_order);
 
-  const response = await apiGet<AccountListResponse>('l4', `/accounts?${params.toString()}`);
+  const response = await apiGet<AccountListResponse>('l4', `/accounts?${params.toString()}`, config);
   const data = response.data;
   return {
     items: data.items ?? [],
@@ -201,12 +210,27 @@ export async function resolveBackendAccountId(accountId: string): Promise<string
   throw new AccountApiError(`Account not found for route identifier ${accountId}`, 404);
 }
 
-export function useAccounts(filters: AccountFilters = {}) {
+export function useAccounts(filters: AccountFilters = {}, options: UseAccountsOptions = {}) {
+  const requestConfig = options.suppressAuthRedirect
+    ? { headers: { 'X-Fabric-Skip-Auth-Redirect': '1' } }
+    : undefined;
+
   return useQuery<AccountListResponse, AccountApiError>({
     queryKey: QK.accounts.list(filters),
-    queryFn: () => withApiError(fetchAccounts(filters), AccountApiError),
+    queryFn: () => withApiError(fetchAccounts(filters, requestConfig), AccountApiError),
+    enabled: options.enabled ?? true,
     staleTime: STALE_TIME.list,
-    retry: RETRY_CONFIG.maxRetries,
+    retry: (failureCount, error) => {
+      if (error?.statusCode === 401 || error?.statusCode === 403) {
+        return false;
+      }
+
+      if (typeof RETRY_CONFIG.maxRetries === 'number') {
+        return failureCount < RETRY_CONFIG.maxRetries;
+      }
+
+      return RETRY_CONFIG.maxRetries;
+    },
     retryDelay: RETRY_CONFIG.retryDelay,
   });
 }
@@ -238,7 +262,7 @@ async function fetchAccountActivity(accountId: string, sinceDays: number = 90): 
     account_id: data.account_id,
     total_count: data.total_count,
     summary: data.summary ?? '',
-    interactions: data.interactions.map((i: {id: string; type: string; date: string; subject?: string; duration_minutes?: number; notes?: string; outcome?: string}) => ({
+    interactions: data.interactions.map((i: {id: string; type: string; date: string; subject?: string | null; duration_minutes?: number | null; notes?: string | null; outcome?: string | null}) => ({
       id: i.id,
       type: i.type,
       date: i.date,

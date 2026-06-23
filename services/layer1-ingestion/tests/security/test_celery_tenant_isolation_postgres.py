@@ -13,14 +13,19 @@ These tests MUST run against PostgreSQL.
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 from uuid import uuid4
 from unittest.mock import MagicMock, patch
 
-from value_fabric.layer1.shared.database import get_db_session, TenantContextError
-from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, JobStatus
+from sqlalchemy import text
 
+from layer1_ingestion.shared.database import get_db_session, TenantContextError
+from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
-pytestmark = pytest.mark.postgres
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_L1_SRC = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion"
+
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestCeleryTaskTenantContext:
@@ -28,7 +33,7 @@ class TestCeleryTaskTenantContext:
 
     def test_process_scraping_job_signature_accepts_tenant_id(self):
         """process_scraping_job task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         import inspect
         
         sig = inspect.signature(process_scraping_job)
@@ -38,7 +43,7 @@ class TestCeleryTaskTenantContext:
 
     def test_compliance_check_stage_accepts_tenant_id(self):
         """compliance_check_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
         import inspect
         
         sig = inspect.signature(compliance_check_stage)
@@ -47,7 +52,7 @@ class TestCeleryTaskTenantContext:
 
     def test_browser_crawl_stage_accepts_tenant_id(self):
         """browser_crawl_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import browser_crawl_stage
+        from layer1_ingestion.shared.tasks import browser_crawl_stage
         import inspect
         
         sig = inspect.signature(browser_crawl_stage)
@@ -56,7 +61,7 @@ class TestCeleryTaskTenantContext:
 
     def test_ai_extraction_stage_accepts_tenant_id(self):
         """ai_extraction_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import ai_extraction_stage
+        from layer1_ingestion.shared.tasks import ai_extraction_stage
         import inspect
         
         sig = inspect.signature(ai_extraction_stage)
@@ -65,7 +70,7 @@ class TestCeleryTaskTenantContext:
 
     def test_post_processing_stage_accepts_tenant_id(self):
         """post_processing_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import post_processing_stage
+        from layer1_ingestion.shared.tasks import post_processing_stage
         import inspect
         
         sig = inspect.signature(post_processing_stage)
@@ -74,7 +79,7 @@ class TestCeleryTaskTenantContext:
 
     def test_validation_stage_accepts_tenant_id(self):
         """validation_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
         import inspect
         
         sig = inspect.signature(validation_stage)
@@ -83,7 +88,7 @@ class TestCeleryTaskTenantContext:
 
     def test_storage_stage_accepts_tenant_id(self):
         """storage_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import storage_stage
+        from layer1_ingestion.shared.tasks import storage_stage
         import inspect
         
         sig = inspect.signature(storage_stage)
@@ -92,7 +97,7 @@ class TestCeleryTaskTenantContext:
 
     def test_notification_stage_accepts_tenant_id(self):
         """notification_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import notification_stage
+        from layer1_ingestion.shared.tasks import notification_stage
         import inspect
         
         sig = inspect.signature(notification_stage)
@@ -129,8 +134,8 @@ class TestCeleryTaskRLSEnforcement:
 
     def test_task_with_invalid_tenant_id_fails_closed(self, postgres_db):
         """Task with invalid tenant_id fails with TenantContextError."""
-        fake_tenant_id = uuid4()
-        
+        fake_tenant_id = "not-a-valid-uuid"
+
         with pytest.raises(TenantContextError):
             with get_db_session(tenant_id=fake_tenant_id, require_tenant=True) as session:
                 session.query(ScrapingJob).first()
@@ -141,7 +146,7 @@ class TestPipelineChainTenantPropagation:
 
     def test_pipeline_chain_includes_tenant_id(self):
         """Pipeline chain construction includes tenant_id in all stages."""
-        from value_fabric.layer1.shared.tasks import (
+        from layer1_ingestion.shared.tasks import (
             compliance_check_stage,
             browser_crawl_stage,
             ai_extraction_stage,
@@ -174,7 +179,7 @@ class TestPipelineChainTenantPropagation:
         # This is a static check - we verify the code pattern
         import re
         
-        main_file = 'src/api/main.py'
+        main_file = _L1_SRC / 'api' / 'main.py'
         with open(main_file, 'r', encoding='utf-8') as f:
             content = f.read()
         
@@ -189,43 +194,27 @@ class TestPipelineChainTenantPropagation:
             assert 'tenant_id' in match or 'str(job.tenant_id)' in match or 'str(new_job.tenant_id)' in match, \
                 f"Dispatch call missing tenant_id: {match[:100]}"
 
-    def test_app_monolith_dispatch_calls_include_tenant_id(self):
-        """Verify app_monolith dispatch calls include tenant_id."""
-        import re
-        
-        app_monolith_file = 'src/api/app_monolith.py'
-        with open(app_monolith_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # Find process_scraping_job.delay calls (multi-line aware)
-        # Match balanced parentheses
-        pattern = r'process_scraping_job\.delay\((?:[^()]|\([^()]*\))*\)'
-        matches = re.findall(pattern, content)
-        
-        # Verify each call includes tenant_id
-        for match in matches:
-            # Should contain tenant_id parameter
-            assert 'tenant_id' in match or 'str(job.tenant_id)' in match or 'str(new_job.tenant_id)' in match, \
-                f"Dispatch call missing tenant_id: {match[:100]}"
-
-
 class TestErrorHandlingTenantContext:
     """Test that error handling paths respect tenant context."""
 
     def test_error_handler_uses_tenant_context(self, postgres_db, org_id, make_job):
         """Error handling in tasks uses tenant context."""
         job = make_job(tenant_id=org_id)
-        
+        job_id = job.id
+
         # Simulate error handling with tenant context
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            # Re-attach the job to the tenant-scoped session before mutating.
+            job = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert job is not None
             # This simulates the error handling pattern in tasks
             # where we update stage status with tenant context
             job.status = JobStatus.FAILED.value
-            session.commit()
-            
-            # Verify the update succeeded
-            session.refresh(job)
-            assert job.status == JobStatus.FAILED.value
+
+            # Verify the update succeeded by re-querying in the same transaction.
+            updated = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert updated is not None
+            assert updated.status == JobStatus.FAILED.value
 
     def test_error_handler_without_tenant_fails(self, postgres_db):
         """Error handling without tenant context fails."""
@@ -239,7 +228,7 @@ class TestCleanupTaskTenantIsolation:
 
     def test_cleanup_old_content_accepts_tenant_id(self):
         """cleanup_old_content task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
         
         sig = inspect.signature(cleanup_old_content)
@@ -278,7 +267,7 @@ class TestDispatchOutboxEventTenantIsolation:
 
     def test_dispatch_outbox_event_accepts_tenant_id(self):
         """dispatch_outbox_event task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
         import inspect
         
         sig = inspect.signature(dispatch_outbox_event)
@@ -301,7 +290,7 @@ class TestFailJobTenantContext:
 
     def test_fail_job_accepts_tenant_id(self):
         """_fail_job helper accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         import inspect
         
         sig = inspect.signature(_fail_job)
@@ -311,14 +300,19 @@ class TestFailJobTenantContext:
     def test_fail_job_uses_tenant_context(self, postgres_db, org_id, make_job):
         """_fail_job uses tenant context for updates."""
         job = make_job(tenant_id=org_id)
-        
+        job_id = job.id
+
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            # Re-attach the job to the tenant-scoped session before mutating.
+            job = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert job is not None
             # Simulate _fail_job updating job status
             job.status = JobStatus.FAILED.value
-            session.commit()
-            
-            session.refresh(job)
-            assert job.status == JobStatus.FAILED.value
+
+            # Verify the update succeeded by re-querying in the same transaction.
+            updated = session.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+            assert updated is not None
+            assert updated.status == JobStatus.FAILED.value
 
 
 class TestCrawlUrlWithRoutingTenantContext:
@@ -326,7 +320,7 @@ class TestCrawlUrlWithRoutingTenantContext:
 
     def test_crawl_url_with_routing_accepts_tenant_id(self):
         """crawl_url_with_routing task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
         import inspect
         
         sig = inspect.signature(crawl_url_with_routing)
@@ -342,3 +336,43 @@ class TestCrawlUrlWithRoutingTenantContext:
             queried_job = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
             assert queried_job is not None
             assert queried_job.tenant_id == org_id
+
+
+class TestDecisionStoreTenantContext:
+    """Test that crawl decision persistence fails closed without tenant context."""
+
+    def test_decision_store_save_without_tenant_id_fails(self):
+        """Decision store write path must reject missing tenant_id."""
+        from datetime import UTC, datetime
+
+        from layer1_ingestion.crawler.decision_store import (
+            CrawlDecisionRecord,
+            CrawlDecisionRepository,
+        )
+
+        repo = CrawlDecisionRepository()
+        record = CrawlDecisionRecord(
+            decision_id=str(uuid4()),
+            job_id=str(uuid4()),
+            tenant_id=None,
+            url="https://example.com",
+            domain="example.com",
+            requested_path="fast",
+            router_decision="fast",
+            router_rule="default",
+            quality_passed=True,
+            quality_checks={"ok": True},
+            fallback_reason=None,
+            final_path="fast",
+            status_code=200,
+            fast_duration_ms=10,
+            browser_duration_ms=None,
+            fetch_time_ms=10,
+            bytes_transferred=100,
+            spa_detected=False,
+            text_length=10,
+            created_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(TenantContextError):
+            repo._save_sync(record)

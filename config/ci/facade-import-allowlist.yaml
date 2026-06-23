@@ -1,0 +1,107 @@
+# Allowlist for value_fabric.layer* facade imports
+# Format: {file_path: {reason: "...", owner: "...", removal_target: "YYYY-MM-DD" or "indefinite"}}
+
+# L1 - CI infrastructure only
+scripts/ci/check_layer1_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "indefinite"
+scripts/migrate_l1_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+
+# L4 - Compatibility shims and test patch targets
+tests/contract/test_state_inspector_auth_contract.py:
+  reason: "Contract test with facade reference in docstring only"
+  owner: "Contract Team"
+  removal_target: "indefinite"
+archive/legacy-shims/layer4_agents/main.py:
+  reason: "Legacy shim archive"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/verify_layer4_imports.py:
+  reason: "Verification script testing facade"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/verify_layer4_shim.py:
+  reason: "Verification script testing facade"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/migrate_l4_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+services/layer4-agents/tests/**:
+  reason: "L4 service tests with facade imports"
+  owner: "Layer 4 Maintainers"
+  removal_target: "indefinite"
+
+# L5 - CI infrastructure
+tests/arch/test_canonical_module_sentinels.py:
+  reason: "Architecture sentinel test docstring"
+  owner: "Architecture Team"
+  removal_target: "indefinite"
+
+# L6 - CI infrastructure
+scripts/ci/check_layer6_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "indefinite"
+scripts/migrate_l6_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+value_fabric/layer6/__init__.py:
+  reason: "Neutralized shim placeholder"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+
+# CI tests with facade references
+tests/ci/**:
+  reason: "CI sentinel tests with facade references"
+  owner: "CI Team"
+  removal_target: "indefinite"
+
+# L3 - Intentionally retained per L3-FACADE-WRAPPER-MIGRATION.md
+# All L3 facade imports are allowlisted until 2026-09-30
+value_fabric/layer3/__init__.py:
+  reason: "Facade shim docstring"
+  owner: "Platform Team"
+  removal_target: "2026-09-30"
+services/layer3-knowledge/**:
+  reason: "L3 service wrappers documented with removal target 2026-09-30"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/layer3-knowledge/**:
+  reason: "L3 tests documented with removal target 2026-09-30"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/security/**:
+  reason: "Security tests with L3 patch targets"
+  owner: "Security Team"
+  removal_target: "2026-09-30"
+tests/cache/**:
+  reason: "Cache tests with L3 patch targets"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/contract/**:
+  reason: "Contract tests with L3 references"
+  owner: "Contract Team"
+  removal_target: "2026-09-30"
+packages/shared/src/value_fabric/shared/rate_limiting/admin_api.py:
+  reason: "Shared package with L3 driver dependency"
+  owner: "Shared Package Maintainers"
+  removal_target: "2026-09-30"
+scripts/ci/check_layer3_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "2026-09-30"
+scripts/ci/check_layer3_settings_shim_drift.py:
+  reason: "CI shim validation script"
+  owner: "CI Team"
+  removal_target: "2026-09-30"
+services/layer3-knowledge/scripts/check_backup_shim_drift.py:
+  reason: "L3 backup shim validation"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"

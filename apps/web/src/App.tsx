@@ -1,11 +1,11 @@
 import { RouterProvider } from "react-router-dom";
 import { ErrorBoundary } from "@/components";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkAuthBridge } from "@/auth/ClerkAuthBridge";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { router } from "./shell/router";
 
 export default function App() {
@@ -14,9 +14,11 @@ export default function App() {
       <ThemeProvider defaultTheme="light" switchable>
         <AuthProvider>
           <TooltipProvider>
-            {isClerkAuthEnabled() && <ClerkAuthBridge />}
-            <Toaster />
-            <RouterProvider router={router} />
+            <OfflineBanner />
+            <ClerkAuthBridge>
+              <Toaster />
+              <RouterProvider router={router} />
+            </ClerkAuthBridge>
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>

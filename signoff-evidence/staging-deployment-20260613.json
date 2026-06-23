@@ -1,0 +1,88 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging",
+  "deployed_at_utc": "2026-06-14T07:05:00Z",
+  "revalidated_at_utc": "2026-06-13T00:39:02Z",
+  "services": [
+    {
+      "name": "layer1",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8001/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 404 — endpoint not exposed"
+    },
+    {
+      "name": "layer2",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8002/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 503 'Metrics collection is disabled' — no metrics exposed"
+    },
+    {
+      "name": "layer3",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8003/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": true,
+      "metrics_note": "GET /metrics returns 503 'Metrics collection is disabled' — no metrics exposed"
+    },
+    {
+      "name": "layer4",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8004/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    },
+    {
+      "name": "layer5",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8005/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    },
+    {
+      "name": "layer6",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:8006/health",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "pass (HTTP 200)",
+      "metrics_protected": false,
+      "metrics_note": "GET /metrics returns 200 with Prometheus metrics from host (Docker gateway IP treated as internal)"
+    },
+    {
+      "name": "frontend",
+      "status": "running (healthy)",
+      "health_url": "http://localhost:3001",
+      "health_status": "pass (HTTP 200)",
+      "readiness_status": "n/a",
+      "metrics_protected": true,
+      "metrics_note": "No /metrics endpoint exposed by Vite dev server"
+    }
+  ],
+  "migrations_clean": true,
+  "migrations_note": "Layer 5 (Alembic-managed) reports alembic_version = 017 (head). Layers 1, 2, 4, and 6 do not use Alembic; readiness probes confirm datastore connectivity.",
+  "secrets_resolved": true,
+  "critical_path_smoke": {
+    "status": "pass",
+    "passed": 12,
+    "failed": 0,
+    "artifact": "signoff-evidence/e2e/e2e-critical-path-20260614.json"
+  },
+  "notes": [
+    "All compose-bound host ports (8001-8006, 3001) are reachable from the host and every service reports HTTP 200 on /health and /ready.",
+    "Layer 5 migration-graph conflicts were resolved: duplicate CREATE INDEX removed from 014_add_value_realization_ledger and duplicate 'benchmark_datasets' table removed from 010_add_assumption_governance_models. ground_truth DB was recreated and migrated cleanly to head revision 017.",
+    "Layer 4 readiness probe now checks both saver.conn and saver._conn so /ready returns 200 once the AsyncPostgresSaver connection is established.",
+    "Metrics endpoints on L4/L5/L6 accept unauthenticated GETs from the Docker host because verify_metrics_access treats the Docker gateway IP as an RFC1918/internal origin and returns 200 with metrics. L1 does not expose /metrics; L2/L3 return 503 with no metric body. This is acceptable for local staging; production must enforce METRICS_INTERNAL_SCRAPE_TOKEN and non-RFC1918 scrape networks.",
+    "No SecretNotFound, missing-environment-variable, or unhandled startup errors were observed in service logs after the rebuild.",
+    "Gate timeout scheduler logs an error every 10s: 'async_generator' object does not support the asynchronous context manager protocol. This is a non-fatal background task bug (session factory is a dependency generator, not an async context manager). It does not affect readiness, health, or critical-path smoke."
+  ]
+}

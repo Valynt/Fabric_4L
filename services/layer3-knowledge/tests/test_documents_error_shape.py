@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 
 from src.api.models import DocumentExportRequest
 from src.api.routes.documents import export_document
@@ -20,16 +20,19 @@ async def test_export_document_returns_stable_error_shape(monkeypatch: pytest.Mo
 
     monkeypatch.setattr("src.api.routes.documents.httpx.AsyncClient", lambda *a, **k: _BrokenClient())
 
-    with pytest.raises(HTTPException) as raised:
+    with pytest.raises(ServiceUnavailableError) as raised:
         await export_document(
             DocumentExportRequest(business_case_id="bc-1", format="pdf", document_type="business_case"),
             app_state=SimpleNamespace(),
-            http_request=SimpleNamespace(state=SimpleNamespace(request_id="req-l3-1")),
+            http_request=SimpleNamespace(
+                state=SimpleNamespace(
+                    request_id="req-l3-1",
+                    governance_context=SimpleNamespace(tenant_id="tenant-a"),
+                )
+            ),
         )
 
-    detail = raised.value.detail
-    assert raised.value.status_code == 500
-    assert detail["message"] == "Document export failed"
-    assert detail["error_code"] == "L3_DOCUMENT_EXPORT_FAILED"
-    assert detail["request_id"] == "req-l3-1"
-    assert detail["correlation_id"] == "req-l3-1"
+    assert raised.value.status_code == 503
+    assert raised.value.message == "Document export failed"
+    assert raised.value.details["error_code"] == "L3_DOCUMENT_EXPORT_FAILED"
+    assert raised.value.details["request_id"] == "req-l3-1"

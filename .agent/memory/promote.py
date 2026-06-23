@@ -8,7 +8,7 @@ Every staged candidate carries lifecycle metadata (status, decisions,
 rejection_count) from birth so repeated churn is visible rather than looking
 fresh each time the pattern recurs.
 """
-import os, json, datetime, hashlib
+import os, json, datetime, hashlib, warnings
 from cluster import content_cluster, extract_pattern
 from review_state import _lessons_sha
 from validate import extract_lesson_lines, check_exact_duplicate
@@ -36,22 +36,144 @@ def _find_prior(slug, candidates_dir):
     one place at a time; the caller is responsible for cleaning up the
     old location when moving the candidate back to staged.
     """
-    staged_path = os.path.join(candidates_dir, f"{slug}.json")
-    if os.path.isfile(staged_path):
-        try:
-            with open(staged_path) as f:
-                return json.load(f), "staged"
-        except (OSError, json.JSONDecodeError):
-            pass
-    for sub in ("rejected", "graduated"):
-        path = os.path.join(candidates_dir, sub, f"{slug}.json")
-        if os.path.isfile(path):
-            try:
-                with open(path) as f:
-                    return json.load(f), sub
-            except (OSError, json.JSONDecodeError):
-                pass
+    for location in _candidate_locations():
+        record = _read_prior_candidate(_candidate_path(candidates_dir, location, slug), location)
+        if record:
+            return record, location
     return {}, None
+
+
+def _candidate_locations():
+    return ("staged", "rejected", "graduated")
+
+
+def _candidate_path(candidates_dir, location, slug):
+    if location == "staged":
+        return os.path.join(candidates_dir, f"{slug}.json")
+    return os.path.join(candidates_dir, location, f"{slug}.json")
+
+
+def _read_prior_candidate(path, location):
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        warnings.warn(
+            f"Skipping unreadable {location} candidate {path}: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
+
+
+def _lessons_text_for_candidates(candidates_dir):
+    lessons_path = os.path.join(
+        os.path.dirname(candidates_dir), "semantic", "LESSONS.md")
+    if not os.path.exists(lessons_path):
+        return ""
+    try:
+        return open(lessons_path).read()
+    except OSError as exc:
+        warnings.warn(
+            f"Unable to read lessons file {lessons_path}: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return ""
+
+
+def _claim(pattern):
+    return (pattern.get("claim") or "").strip()
+
+
+def _already_terminal_claim(claim, lessons_text):
+    return bool(lessons_text and check_exact_duplicate(claim, lessons_text))
+
+
+def _terminal_graduated(prev, prev_loc):
+    return prev_loc == "graduated" and prev.get("status") != "provisional"
+
+
+def _last_decision(prev):
+    decisions = prev.get("decisions") or []
+    return decisions[-1] if decisions else {}
+
+
+def _evidence_changed(last, pattern):
+    prev_evidence = set(last.get("evidence_snapshot", []))
+    new_evidence = set(pattern.get("evidence_ids", []))
+    return bool(new_evidence - prev_evidence)
+
+
+def _blocker_still_present(last, current_terminal_lessons):
+    stamped_dups = last.get("duplicate_claims") or []
+    if not stamped_dups:
+        return True
+    return any(dup in current_terminal_lessons for dup in stamped_dups)
+
+
+def _can_restage(prev, prev_loc, pattern, current_terminal_lessons):
+    if prev_loc not in ("rejected", "graduated"):
+        return True
+    last = _last_decision(prev)
+    if _evidence_changed(last, pattern):
+        return True
+    return not _blocker_still_present(last, current_terminal_lessons)
+
+
+def _should_stage(claim, lessons_text, prev, prev_loc, pattern, current_terminal_lessons):
+    if not claim or _already_terminal_claim(claim, lessons_text):
+        return False
+    if _terminal_graduated(prev, prev_loc):
+        return False
+    return _can_restage(prev, prev_loc, pattern, current_terminal_lessons)
+
+
+def _candidate(slug, key, pattern, claim, prev, now):
+    decisions = prev.get("decisions", [])
+    decisions.append({"ts": now, "action": "staged", "reviewer": "auto_dream"})
+    return {
+        "id": slug,
+        "key": key,
+        "name": pattern.get("name", key),
+        "claim": claim,
+        "conditions": pattern.get("conditions", []),
+        "evidence_ids": pattern.get("evidence_ids", []),
+        "cluster_size": pattern.get("cluster_size", 1),
+        "canonical_salience": pattern.get("canonical_salience", 0.0),
+        "staged_at": prev.get("staged_at") or now,
+        "status": "staged",
+        "decisions": decisions,
+        "rejection_count": prev.get("rejection_count", 0),
+    }
+
+
+def _write_candidate(candidates_dir, slug, candidate):
+    staged_path = os.path.join(candidates_dir, f"{slug}.json")
+    with open(staged_path, "w") as f:
+        json.dump(candidate, f, indent=2)
+
+
+def _cleanup_prior_location(candidates_dir, slug, prev_loc):
+    if prev_loc not in ("rejected", "graduated"):
+        return
+    stale_path = os.path.join(candidates_dir, prev_loc, f"{slug}.json")
+    try:
+        os.remove(stale_path)
+    except FileNotFoundError as exc:
+        warnings.warn(
+            f"Stale {prev_loc} candidate already absent {exc.filename}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    except OSError as exc:
+        warnings.warn(
+            f"Unable to remove stale {prev_loc} candidate for {slug}: {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 
 def write_candidates(patterns, candidates_dir):
@@ -71,108 +193,17 @@ def write_candidates(patterns, candidates_dir):
         return 0
     os.makedirs(candidates_dir, exist_ok=True)
     written = 0
-    # Read LESSONS.md once — used to check whether specific duplicates that
-    # blocked a prior heuristic rejection are still present.
-    lessons_path = os.path.join(
-        os.path.dirname(candidates_dir), "semantic", "LESSONS.md")
-    lessons_text = ""
-    if os.path.exists(lessons_path):
-        try:
-            lessons_text = open(lessons_path).read()
-        except OSError:
-            pass
+    lessons_text = _lessons_text_for_candidates(candidates_dir)
     current_terminal_lessons = set(extract_lesson_lines(lessons_text))
 
     for key, p in patterns.items():
-        claim = (p.get("claim") or "").strip()
-        if not claim:
-            continue
-
-        # Claim-level terminal check: if this exact claim is already an
-        # accepted lesson, skip regardless of slug. Cluster membership
-        # changes can shift the id (conditions = intersection, shrinks
-        # when outlier members join), so the slug-based graduated check
-        # below would miss an accepted pattern under a new id. This
-        # catches it by claim text, which IS stable. Provisional and
-        # legacy lessons don't appear in extract_lesson_lines, so they
-        # correctly do NOT block re-review.
-        if lessons_text and check_exact_duplicate(claim, lessons_text):
-            continue
-
-        # Prefer the claim+conditions id from extract_pattern — stable slug
-        # means lifecycle state carries across cluster membership changes.
+        claim = _claim(p)
         slug = _slug(p)
         prev, prev_loc = _find_prior(slug, candidates_dir)
-
-        # Fully-accepted lesson — terminal, never resurrect.
-        if prev_loc == "graduated" and prev.get("status") != "provisional":
+        if not _should_stage(claim, lessons_text, prev, prev_loc, p, current_terminal_lessons):
             continue
-
-        # For rejected + provisional-graduated, re-stage ONLY when something
-        # material has changed since the last decision. Comparing reviewer
-        # identity ("heuristic" vs "human") was a blunt proxy; what actually
-        # matters is whether evidence or the specific blocker shifted.
-        if prev_loc in ("rejected", "graduated"):
-            last = (prev.get("decisions") or [])[-1] if prev.get("decisions") else {}
-            prev_evidence = set(last.get("evidence_snapshot", []))
-            new_evidence = set(p.get("evidence_ids", []))
-            # Only NEW supporting episodes count as a change worth re-review.
-            # Equality comparison would trigger on routine decay (old evidence
-            # archived out of the cluster), even though nothing new arrived
-            # and the original blocker is unchanged.
-            evidence_changed = bool(new_evidence - prev_evidence)
-
-            # Did the specific lesson(s) that triggered this rejection go
-            # away? Uses stamped duplicate_claims rather than a whole-file
-            # LESSONS.md hash — unrelated graduations no longer cause
-            # heuristic-rejected candidates to churn.
-            stamped_dups = last.get("duplicate_claims") or []
-            if stamped_dups:
-                blocker_still_present = any(
-                    d in current_terminal_lessons for d in stamped_dups)
-            else:
-                # No specific stamp (older rejection or human reject).
-                # Provisional and human-rejected cases gate on evidence alone.
-                blocker_still_present = True
-
-            if not evidence_changed and blocker_still_present:
-                continue
-
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        decisions = prev.get("decisions", [])
-        decisions.append({"ts": now, "action": "staged", "reviewer": "auto_dream"})
-
-        # Preserve original staged_at so priority + backlog age signals stay
-        # meaningful across re-detections.
-        staged_at = prev.get("staged_at") or now
-
-        candidate = {
-            "id": slug,
-            "key": key,
-            "name": p.get("name", key),
-            "claim": claim,
-            "conditions": p.get("conditions", []),
-            "evidence_ids": p.get("evidence_ids", []),
-            "cluster_size": p.get("cluster_size", 1),
-            "canonical_salience": p.get("canonical_salience", 0.0),
-            "staged_at": staged_at,
-            "status": "staged",
-            "decisions": decisions,
-            "rejection_count": prev.get("rejection_count", 0),
-        }
-
-        staged_path = os.path.join(candidates_dir, f"{slug}.json")
-        with open(staged_path, "w") as f:
-            json.dump(candidate, f, indent=2)
-
-        # The slug must live in exactly one lifecycle location. Remove any
-        # prior copy in rejected/ or graduated/ (the latter only for
-        # provisional re-review — accepted never gets here because it's
-        # skipped above).
-        if prev_loc in ("rejected", "graduated"):
-            try:
-                os.remove(os.path.join(candidates_dir, prev_loc, f"{slug}.json"))
-            except OSError:
-                pass
+        _write_candidate(candidates_dir, slug, _candidate(slug, key, p, claim, prev, now))
+        _cleanup_prior_location(candidates_dir, slug, prev_loc)
         written += 1
     return written

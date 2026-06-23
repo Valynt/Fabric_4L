@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from value_fabric.layer1.crawler.telemetry import (
+from layer1_ingestion.crawler.telemetry import (
     CrawlMetrics,
     get_tracer,
     init_telemetry,
@@ -21,9 +21,9 @@ from value_fabric.layer1.crawler.telemetry import (
 class TestInitTelemetry:
     """Test telemetry initialization."""
     
-    @patch('src.crawler.telemetry.trace')
-    @patch('src.crawler.telemetry.TracerProvider')
-    @patch('src.crawler.telemetry.BatchSpanProcessor')
+    @patch('layer1_ingestion.crawler.telemetry.trace')
+    @patch('layer1_ingestion.crawler.telemetry.TracerProvider')
+    @patch('layer1_ingestion.crawler.telemetry.BatchSpanProcessor')
     def test_init_creates_provider(self, mock_processor, mock_provider, mock_trace):
         """Test that init_telemetry creates and sets tracer provider."""
         mock_provider_instance = MagicMock()
@@ -40,14 +40,14 @@ class TestInitTelemetry:
         mock_trace.set_tracer_provider.assert_called_once_with(mock_provider_instance)
         assert result == mock_provider_instance
         
-    @patch('src.crawler.telemetry.trace')
+    @patch('layer1_ingestion.crawler.telemetry.trace')
     def test_get_tracer_returns_instance(self, mock_trace):
         """Test that get_tracer returns a tracer."""
         mock_tracer = MagicMock()
         mock_trace.get_tracer.return_value = mock_tracer
         
         # Reset global _tracer to force re-initialization
-        import value_fabric.layer1.crawler.telemetry as telemetry
+        import layer1_ingestion.crawler.telemetry as telemetry
         telemetry._tracer = None
         
         result = get_tracer()
@@ -138,7 +138,7 @@ class TestCrawlMetrics:
 class TestStartCrawlSpan:
     """Test crawl span context managers."""
     
-    @patch('src.crawler.telemetry.get_tracer')
+    @patch('layer1_ingestion.crawler.telemetry.get_tracer')
     def test_start_crawl_span_yields_span(self, mock_get_tracer):
         """Test that start_crawl_span yields the span."""
         mock_span = MagicMock()
@@ -150,7 +150,7 @@ class TestStartCrawlSpan:
         with start_crawl_span("https://example.com", "crawl_url") as span:
             assert span == mock_span
             
-    @patch('src.crawler.telemetry.get_tracer')
+    @patch('layer1_ingestion.crawler.telemetry.get_tracer')
     def test_span_records_exception_on_error(self, mock_get_tracer):
         """Test that span records exception when error occurs."""
         mock_span = MagicMock()
@@ -170,7 +170,7 @@ class TestStartCrawlSpan:
 class TestStartBatchSpan:
     """Test batch crawl span context managers."""
     
-    @patch('src.crawler.telemetry.get_tracer')
+    @patch('layer1_ingestion.crawler.telemetry.get_tracer')
     def test_start_batch_span_sets_attributes(self, mock_get_tracer):
         """Test that batch span sets batch_size attribute."""
         mock_span = MagicMock()
@@ -191,7 +191,7 @@ class TestStartBatchSpan:
 class TestTraceMethodDecorator:
     """Test the trace_method decorator."""
     
-    @patch('crawler.telemetry.get_tracer')
+    @patch('layer1_ingestion.crawler.telemetry.get_tracer')
     def test_decorator_adds_span(self, mock_get_tracer):
         """Test that decorator adds tracing to methods."""
         mock_span = MagicMock()

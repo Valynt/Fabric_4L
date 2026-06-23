@@ -45,7 +45,7 @@ class TestWebSocketAuthentication:
         # Use Sec-WebSocket-Protocol header for token (per P1-13 fix)
         with websocket_client.websocket_connect(
             "/v1/ws/workflows/test-wf-123",
-            headers={"Sec-WebSocket-Protocol": f"token,{tenant_a_token}"}
+            headers={"Sec-WebSocket-Protocol": f"base64url.bearer.authorization,{tenant_a_token}"}
         ) as websocket:
             # Connection should be accepted
             assert hasattr(websocket, 'receive_json')
@@ -141,7 +141,7 @@ class TestWebSocketTenantIsolation:
         
         response = websocket_client.get(
             f"/v1/ws/workflows/{tenant_b_workflow_id}",
-            headers={"Sec-WebSocket-Protocol": f"token,{tenant_a_token}"}
+            headers={"Sec-WebSocket-Protocol": f"base64url.bearer.authorization,{tenant_a_token}"}
         )
         
         # Should be rejected - either 403 (forbidden) or connection closed
@@ -162,7 +162,7 @@ class TestWebSocketTenantIsolation:
         
         with websocket_client.websocket_connect(
             f"/v1/ws/workflows/{workflow_id}",
-            headers={"Sec-WebSocket-Protocol": f"token,{tenant_a_token}"}
+            headers={"Sec-WebSocket-Protocol": f"base64url.bearer.authorization,{tenant_a_token}"}
         ) as websocket:
             # Connection should be accepted for same-tenant workflow
             try:
@@ -201,18 +201,24 @@ class TestWebSocketProtocolSecurity:
         # This should work (positive test)
         with websocket_client.websocket_connect(
             "/v1/ws/workflows/wf-123",
-            headers={"Sec-WebSocket-Protocol": f"token,{tenant_a_token}"}
+            headers={"Sec-WebSocket-Protocol": f"base64url.bearer.authorization,{tenant_a_token}"}
         ) as websocket:
             assert hasattr(websocket, 'receive_json')
 
     def test_websocket_protocol_without_token_prefix(
         self, websocket_client: TestClient, tenant_a_token: str):
-        """POSITIVE: Protocol header with just token (no 'token,' prefix) works."""
-        with websocket_client.websocket_connect(
+        """NEGATIVE: Protocol header with just token (no bearer prefix) is rejected.
+        
+        Per SEC-L3-012, the Sec-WebSocket-Protocol header must use the canonical
+        bearer format: base64url.bearer.authorization,<jwt>
+        """
+        response = websocket_client.get(
             "/v1/ws/workflows/wf-123",
             headers={"Sec-WebSocket-Protocol": tenant_a_token}
-        ) as websocket:
-            assert hasattr(websocket, 'receive_json')
+        )
+        assert response.status_code in [401, 403], (
+            f"Token without bearer prefix should be rejected, got {response.status_code}"
+        )
 
 
 class TestWebSocketConnectionLifecycle:

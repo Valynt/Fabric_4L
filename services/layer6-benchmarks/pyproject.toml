@@ -15,7 +15,8 @@ dependencies = [
     "pyjwt>=2.8.0",
     "pydantic>=2.9.0",
     "httpx>=0.27.0",
-    "prometheus-client>=0.21.0",
+    "prometheus-client>=0.19.0",
+    "sentry-sdk>=2.0.0",
     "infisicalsdk>=1.0.0",
     "psutil>=6.0.0",
     "neo4j>=5.26.0",
@@ -25,6 +26,7 @@ dependencies = [
     "opentelemetry-instrumentation>=0.42b0",
     "opentelemetry-exporter-otlp>=1.21.0",
     "opentelemetry-instrumentation-fastapi>=0.42b0",
+    "structlog>=24.0",
 ]
 
 [project.optional-dependencies]
@@ -43,8 +45,11 @@ dev = [
     "faker>=33.0.0",
 ]
 
+[project.scripts]
+layer6-load-benchmark-packs = "layer6_benchmarks.seed.load_benchmark_packs:main"
+
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src/layer6_benchmarks"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -82,6 +87,16 @@ ignore = [
     "F841",   # Local variable assigned but never used
 ]
 
+[tool.ruff.lint.flake8-tidy-imports]
+# Phase 4 remediation: Block all deprecated value_fabric.layer* imports
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"value_fabric.layer1" = { msg = "value_fabric.layer1 is deprecated. Use layer1_ingestion.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer2" = { msg = "value_fabric.layer2 is deprecated. Use layer2_extraction.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer3" = { msg = "value_fabric.layer3 is deprecated. Use services/layer3-knowledge/src/ modules instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer4" = { msg = "value_fabric.layer4 is deprecated. Use layer4_agents.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer5" = { msg = "value_fabric.layer5 is deprecated. Use layer5_ground_truth.* instead. This namespace will be removed before 2026-09-30." }
+"value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
+
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
@@ -90,15 +105,15 @@ ignore_missing_imports = true
 # Annotation-gap noise in strict mode — suppress per-module.
 [[tool.mypy.overrides]]
 module = [
-    "src.api.deps",
-    "src.api.main",
-    "src.api.routes.benchmarks",
-    "src.api.routes.system",
-    "src.api.schemas",
-    "src.metrics.prometheus_metrics",
-    "src.models.benchmark_dataset",
-    "src.repositories.benchmark_repository",
-    "src.settings",
+    "layer6_benchmarks.api.deps",
+    "layer6_benchmarks.api.main",
+    "layer6_benchmarks.api.routes.benchmarks",
+    "layer6_benchmarks.api.routes.system",
+    "layer6_benchmarks.api.schemas",
+    "layer6_benchmarks.metrics.prometheus_metrics",
+    "layer6_benchmarks.models.benchmark_dataset",
+    "layer6_benchmarks.repositories.benchmark_repository",
+    "layer6_benchmarks.settings",
 ]
 disable_error_code = [
     "no-untyped-def",

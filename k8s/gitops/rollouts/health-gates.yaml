@@ -23,7 +23,7 @@ spec:
               spec:
                 containers:
                   - name: check
-                    image: curlimages/curl:latest
+                    image: curlimages/curl:8.9.1
                     command:
                       - /bin/sh
                       - -c
@@ -52,7 +52,7 @@ spec:
           address: http://prometheus.monitoring.svc.cluster.local:9090
           query: |
             (
-              sum(kube_node_status_allocatable{resource="cpu"}) 
+              sum(kube_node_status_allocatable{resource="cpu"})
               - sum(kube_pod_container_resource_requests{resource="cpu"})
             ) / sum(kube_node_status_allocatable{resource="cpu"})
 
@@ -100,7 +100,7 @@ spec:
                       - name: DB_USER
                         valueFrom:
                           secretKeyRef:
-                            name: postgres-credentials
+                            name: postgres-secret
                             key: username
                     restartPolicy: Never
                 backoffLimit: 1
@@ -130,7 +130,7 @@ spec:
               spec:
                 containers:
                   - name: evaluate
-                    image: bitnami/kubectl:latest
+                    image: bitnami/kubectl:1.30.0
                     command:
                       - /bin/bash
                       - -c
@@ -139,11 +139,11 @@ spec:
                         ERROR_RATE=$(kubectl exec -n monitoring deploy/prometheus -- \
                           sh -c 'wget -qO- "http://localhost:9090/api/v1/query?query=sum(rate(http_requests_total{namespace=\"value-fabric-prod\",status=~\"5..\"}[5m]))/sum(rate(http_requests_total{namespace=\"value-fabric-prod\"}[5m]))"' | \
                           jq -r '.data.result[0].value[1] // "0"')
-                        
+
                         LATENCY=$(kubectl exec -n monitoring deploy/prometheus -- \
                           sh -c 'wget -qO- "http://localhost:9090/api/v1/query?query=histogram_quantile(0.95,sum(rate(http_request_duration_seconds_bucket{namespace=\"value-fabric-prod\"}[5m]))by(le))*1000"' | \
                           jq -r '.data.result[0].value[1] // "0"')
-                        
+
                         if (( $(echo "$ERROR_RATE > 0.1" | bc -l) )) || (( $(echo "$LATENCY > 1000" | bc -l) )); then
                           echo "true"  # Trigger rollback
                           exit 1

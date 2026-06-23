@@ -10,8 +10,8 @@ This subpackage owns the canonical cross-service identity contract:
 
 Phase 1 invariants:
 - L1–L6 must NEVER verify a raw Clerk JWT. The envelope is the only trust boundary.
-- The envelope tenant_id wins over any header/URL slug. ``X-Tenant-ID`` is
-  observability-only and may only match (never override) the envelope tenant.
+- The envelope tenant_id wins over any header/URL slug; downstream services do
+  not derive tenant scope from browser-controlled tenant headers.
 """
 from .context import AuthContext
 from .errors import (
@@ -29,7 +29,7 @@ from .signer import (
     verify_envelope,
 )
 from .fastapi_setup import register_fabric_auth_from_env
-from .middleware import FabricAuthMiddleware, get_auth_context, require_auth_context
+from .middleware import FabricAuthMiddleware, get_auth_context, require_auth_context, request_context_from_auth
 from .rls import apply_tenant_rls
 
 __all__ = [
@@ -47,6 +47,7 @@ __all__ = [
     "FabricAuthMiddleware",
     "get_auth_context",
     "require_auth_context",
+    "request_context_from_auth",
     "apply_tenant_rls",
     "register_fabric_auth_from_env",
 ]

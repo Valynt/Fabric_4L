@@ -1,3 +1,5 @@
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
 """
 Layer 5 Ground Truth — FastAPI application entry point.
 
@@ -19,6 +21,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
+from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer5_ground_truth import __version__
@@ -50,7 +53,6 @@ from ..integration.layer3_client import (
     Layer3TenantMismatchError,
 )
 from .router import router
-from .schemas import HealthResponse
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -60,7 +62,15 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-logger = logging.getLogger(__name__)
+from ..observability.structured_logging import (
+    clear_request_log_context,
+    configure_structured_logging,
+    get_logger,
+    set_request_log_context,
+)
+
+configure_structured_logging()
+logger = get_logger(__name__)
 SECURITY_ERROR_CODES = frozenset(
     {
         "AUTH_REQUIRED",
@@ -264,17 +274,20 @@ def _layer3_error_response(request: Request, exc: Layer3ClientError) -> JSONResp
     )
     context = getattr(request.state, "governance_context", None)
     tenant_id = getattr(context, "tenant_id", None) or getattr(exc, "tenant_id", None)
+    safe_request_id = str(request_id) if request_id else "req_layer3_dependency"
     return JSONResponse(
         status_code=exc.status_code,
-        headers={"X-Request-ID": str(request_id)} if request_id else None,
+        headers={"X-Request-ID": safe_request_id},
         content={
-            "code": exc.error_code,
-            "message": str(exc),
-            "trace_id": str(request_id) if request_id else None,
-            "details": {
-                "service": "layer3-knowledge",
-                "tenant_id": str(tenant_id) if tenant_id is not None else None,
-            },
+            "error": {
+                "code": exc.error_code,
+                "message": "layer3_dependency_error",
+                "request_id": safe_request_id,
+                "details": {
+                    "service": "layer3-knowledge",
+                    "tenant_id": str(tenant_id) if tenant_id is not None else None,
+                },
+            }
         },
     )
 
@@ -287,28 +300,26 @@ async def layer3_security_exception_handler(
         "layer3_security_policy_error",
         extra=_request_correlation_context(request, error_code=exc.error_code),
     )
-    # Use canonical error envelope format
-    try:
-        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
-        from value_fabric.shared.error_handling.handlers import get_request_trace_id
-
-        request_id = get_request_trace_id(request)
-        error_envelope = ErrorEnvelope(
-            error=ErrorDetail(
-                code=exc.error_code,
-                message=exc.message,
-                request_id=request_id,
-                details=exc.details if hasattr(exc, 'details') else None,
-            )
-        )
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=error_envelope.model_dump(),
-            headers={"X-Request-ID": request_id},
-        )
-    except ImportError:
-        # Fallback to old format if shared package not available
-        return _layer3_error_response(request, exc)
+    request_id = getattr(request.state, "trace_id", None) or request.headers.get(
+        "X-Request-ID"
+    )
+    context = getattr(request.state, "governance_context", None)
+    tenant_id = getattr(context, "tenant_id", None) or getattr(exc, "tenant_id", None)
+    safe_request_id = str(request_id) if request_id else "req_layer3_security"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": exc.error_code,
+            "message": exc.message,
+            "trace_id": safe_request_id,
+            "details": {
+                "service": "layer3-knowledge",
+                "tenant_id": str(tenant_id) if tenant_id is not None else None,
+                **(exc.details or {}),
+            },
+        },
+        headers={"X-Request-ID": safe_request_id},
+    )
 
 
 async def layer3_operational_exception_handler(
@@ -321,8 +332,8 @@ async def layer3_operational_exception_handler(
     )
     # Use canonical error envelope format
     try:
-        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
         from value_fabric.shared.error_handling.handlers import get_request_trace_id
+        from value_fabric.shared.error_handling.models import ErrorDetail, ErrorEnvelope
 
         request_id = get_request_trace_id(request)
         error_envelope = ErrorEnvelope(
@@ -330,7 +341,7 @@ async def layer3_operational_exception_handler(
                 code=exc.error_code,
                 message=exc.message,
                 request_id=request_id,
-                details=exc.details if hasattr(exc, 'details') else None,
+                details=exc.details if hasattr(exc, "details") else None,
             )
         )
         return JSONResponse(
@@ -357,7 +368,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("L5: OpenTelemetry tracing initialized")
 
     settings = get_settings()
-    reject_insecure_bypass_in_production(service_name="layer5-ground-truth", settings=settings)
+    reject_insecure_bypass_in_production(
+        service_name="layer5-ground-truth", settings=settings
+    )
     logger.info("Starting Layer 5 Ground Truth service on port %d", settings.api_port)
 
     # Security: fail fast if weak JWT secret is used in production
@@ -365,8 +378,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         _validate_jwt_secret(settings.jwt_secret)
 
     # Initialize DB tables (no-op if already exist; Alembic handles migrations)
-    if settings.debug:
-        logger.info("DEBUG mode: running init_db() to create tables if missing")
+    if not settings.is_production_like:
+        logger.info("Development mode: running init_db() to create tables if missing")
         await init_db()
 
     # Production Vault smoke gate
@@ -469,6 +482,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         telemetry_service_name="layer5-ground-truth",
         instrument_telemetry=True,
+        enforce_tenant_context=True,
         contact={
             "name": "Value Fabric Engineering",
             "url": "https://github.com/bmsull560/Fabric_4L",
@@ -521,16 +535,35 @@ def create_app() -> FastAPI:
     )
     add_security_middleware(app, config=_security_config_l5)
 
+    @app.middleware("http")
+    async def _structured_log_context(request: Request, call_next):
+        set_request_log_context(request)
+        try:
+            return await call_next(request)
+        finally:
+            clear_request_log_context()
+
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         # Use canonical error envelope format
         try:
-            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
             from value_fabric.shared.error_handling.handlers import get_request_trace_id
+            from value_fabric.shared.error_handling.models import (
+                ErrorDetail,
+                ErrorEnvelope,
+            )
 
             request_id = get_request_trace_id(request)
-            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
-            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            detail = (
+                exc.detail
+                if isinstance(exc.detail, dict)
+                else {"message": str(exc.detail)}
+            )
+            error_code = str(
+                detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION"
+            )
             message = detail.get("message") or detail.get("detail") or str(exc.detail)
 
             error_envelope = ErrorEnvelope(
@@ -548,14 +581,30 @@ def create_app() -> FastAPI:
             )
         except ImportError:
             # Fallback to old format if shared package not available
-            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
-            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            detail = (
+                exc.detail
+                if isinstance(exc.detail, dict)
+                else {"message": str(exc.detail)}
+            )
+            error_code = str(
+                detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION"
+            )
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", ""))
+                if ctx and getattr(ctx, "tenant_id", None)
+                else None
+            )
             request_id = request.headers.get("X-Request-ID")
-            is_security_error = exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
+            is_security_error = (
+                exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
+            )
             logger.warning(
-                "security error response" if is_security_error else "operational http error response",
+                (
+                    "security error response"
+                    if is_security_error
+                    else "operational http error response"
+                ),
                 extra={
                     "error_code": error_code,
                     "request_id": request_id,
@@ -564,21 +613,33 @@ def create_app() -> FastAPI:
                     "status_code": exc.status_code,
                 },
             )
+            safe_request_id = str(request_id) if request_id else "req_http_exception"
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
-                    "error": "security_error" if is_security_error else "operational_error",
-                    "error_code": error_code,
-                    "message": detail.get("message") or detail.get("detail") or str(exc.detail),
+                    "error": {
+                        "code": error_code,
+                        "message": detail.get("message")
+                        or detail.get("detail")
+                        or str(exc.detail),
+                        "request_id": safe_request_id,
+                        "details": None,
+                    }
                 },
+                headers={"X-Request-ID": safe_request_id},
             )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         # Use canonical error envelope format
         try:
-            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
             from value_fabric.shared.error_handling.handlers import get_request_trace_id
+            from value_fabric.shared.error_handling.models import (
+                ErrorDetail,
+                ErrorEnvelope,
+            )
 
             request_id = get_request_trace_id(request)
             error_envelope = ErrorEnvelope(
@@ -598,7 +659,11 @@ def create_app() -> FastAPI:
             # Fallback to old format if shared package not available
             request_id = request.headers.get("X-Request-ID")
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", ""))
+                if ctx and getattr(ctx, "tenant_id", None)
+                else None
+            )
             logger.exception(
                 "unhandled operational error",
                 extra={
@@ -608,13 +673,20 @@ def create_app() -> FastAPI:
                     "path": request.url.path,
                 },
             )
+            safe_request_id = (
+                str(request_id) if request_id else "req_unhandled_exception"
+            )
             return JSONResponse(
                 status_code=500,
                 content={
-                    "error": "operational_error",
-                    "error_code": "L5_UNHANDLED_ERROR",
-                    "message": "Internal server error",
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Internal server error",
+                        "request_id": safe_request_id,
+                        "details": None,
+                    }
                 },
+                headers={"X-Request-ID": safe_request_id},
             )
 
     class _AppStateRateLimiterProxy:
@@ -627,10 +699,19 @@ def create_app() -> FastAPI:
                 return None
             return await limiter.check(rate_key, config)
 
+        async def sismember(self, key, member):
+            redis_client = getattr(self._application.state, "redis_client", None)
+            if redis_client is None:
+                return False
+            sismember = getattr(redis_client, "sismember", None)
+            if sismember is None:
+                return False
+            return await sismember(key, member)
+
     # GovernanceMiddleware — provides auth and tenant context with rate limiting.
     # Fail closed in production and staging; dev bypass requires explicit opt-in.
     #
-    # ALLOW_INSECURE_DEV_AUTH_BYPASS=true disables auth enforcement in development
+    # ALLOW_INSECURE_DEV_AUTH_BYPASS set to true disables auth enforcement in development
     # only. This flag must never be set in production or staging environments.
     # REDIS_RATE_LIMITING_REQUIRED=true forces Redis availability at startup.
     # In production-like environments Redis is always required; the lifespan
@@ -670,6 +751,41 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Model Registry router not available")
 
+    try:
+        from .assumption_governance_routes import (
+            router as assumption_governance_router,
+        )
+
+        app.include_router(assumption_governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning(
+            "Assumption Governance router not available"
+        )
+
+    # Mount the Governance router (new unified governance APIs)
+    try:
+        from .governance_router import governance_router
+
+        app.include_router(governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Governance router not available")
+
+    # Mount the Academy router
+    try:
+        from .academy_router import router as academy_router
+
+        app.include_router(academy_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Academy router not available")
+
+    # Mount the Value Evidence Graph / ValueClaim router
+    try:
+        from .value_claim_routes import router as value_claim_router
+
+        app.include_router(value_claim_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("ValueClaim router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):
@@ -677,8 +793,8 @@ def create_app() -> FastAPI:
         # Verify internal access for metrics (blocks public ingress access).
         # Delegated to shared.observability so all layers stay aligned.
         if not verify_metrics_access(request):
-            raise HTTPException(
-                status_code=403, detail="Metrics endpoint requires internal access"
+            raise AuthorizationError(
+                message="Metrics endpoint requires internal access"
             )
 
         metrics = get_metrics()
@@ -702,16 +818,23 @@ def create_app() -> FastAPI:
     # Public health check (matches middleware PUBLIC_PATH_ALLOWLIST)
     @app.get(
         "/health",
-        response_model=HealthResponse,
         tags=["system"],
         include_in_schema=False,
     )
-    async def public_health() -> HealthResponse:
-        return HealthResponse(
+    @app.get(
+        "/health/live",
+        tags=["system"],
+        include_in_schema=False,
+    )
+    async def public_health() -> dict[str, object]:
+        return normalize_probe_payload(
             status="ok",
-            version=__version__,
-            timestamp=datetime.now(UTC),
-            database="ok",
+            service="layer5-ground-truth",
+            extra={
+                "version": __version__,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "database": "ok",
+            },
         )
 
     # Readiness check — verifies database connectivity and migration alignment
@@ -721,9 +844,10 @@ def create_app() -> FastAPI:
             await _check_database_connectivity()
             schema_state = await _check_schema_migration_alignment()
             if not schema_state["ready"]:
-                return JSONResponse(
-                    content={
-                        "status": "not_ready",
+                payload = normalize_probe_payload(
+                    status="not_ready",
+                    service="layer5-ground-truth",
+                    extra={
                         "database": "ok",
                         "schema": schema_state["schema"],
                         "not_ready": {
@@ -733,18 +857,45 @@ def create_app() -> FastAPI:
                             "expected_heads": schema_state["expected_heads"],
                         },
                     },
+                )
+                return JSONResponse(
+                    content=payload,
                     status_code=503,
                 )
-            return JSONResponse(
-                content={"status": "ready", "database": "ok"},
-                status_code=200,
+            payload = normalize_probe_payload(
+                status="ready",
+                service="layer5-ground-truth",
+                extra={"database": "ok"},
             )
+            return JSONResponse(content=payload, status_code=200)
         except Exception as exc:
             logger.warning("Readiness check failed: %s", exc)
+            payload = normalize_probe_payload(
+                status="not_ready",
+                service="layer5-ground-truth",
+                extra={"database": "unavailable"},
+            )
             return JSONResponse(
-                content={"status": "not_ready", "database": "unavailable"},
+                content=payload,
                 status_code=503,
             )
+
+    @app.get("/health/audit-writes", tags=["system"], include_in_schema=False)
+    async def audit_write_health() -> JSONResponse:
+        from layer5_ground_truth.services.audit_write_monitor import (
+            get_audit_write_stats,
+        )
+
+        stats = get_audit_write_stats()
+        failures = int(stats.get("failures_total", 0))
+        status_code = 200 if failures == 0 else 503
+        return JSONResponse(
+            content={
+                "status": "ok" if failures == 0 else "degraded",
+                "audit_write_failures_total": failures,
+            },
+            status_code=status_code,
+        )
 
     # Root redirect to docs
     @app.get("/", include_in_schema=False)
@@ -839,6 +990,12 @@ def _validate_jwt_secret(secret: str) -> None:
             "Generate a secure secret: openssl rand -base64 32"
         )
 
+    if any(secret_lower.startswith(prefix) for prefix in _JWT_WEAK_PREFIXES):
+        raise RuntimeError(
+            "JWT_SECRET starts with a known weak/placeholder value. "
+            "Generate a secure secret: openssl rand -base64 32"
+        )
+
     if _JWT_WEAK_PATTERN.match(secret_lower):
         raise RuntimeError(
             "JWT_SECRET matches a weak secret pattern. "
@@ -868,6 +1025,8 @@ app = create_app()
 
 # Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
 # No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+from value_fabric.shared.identity.fabric_auth import (
+    register_fabric_auth_from_env,
+)  # noqa: E402
 
 register_fabric_auth_from_env(app, service_name="layer5-ground-truth")

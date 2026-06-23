@@ -1,6 +1,6 @@
 name: Backend-Integrated Reproducibility Evidence
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       release_candidate_sha:
@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
   actions: read
-  id-token: write  # Required for Infisical OIDC authentication
+  id-token: write # Required for Infisical OIDC authentication
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -41,34 +41,37 @@ jobs:
         with:
           ref: ${{ inputs.release_candidate_sha }}
 
-      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
-      - name: Fetch secrets from Infisical
-        id: infisical
-        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+      - name: Fetch shared secrets from Infisical
+        id: infisical-shared
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
           method: oidc
           env-slug: staging
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /shared
-          secret-path: /infra
-          secret-path: /ci
-        continue-on-error: true
 
-      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
-      - name: Fallback to GitHub Secrets
-        if: steps.infisical.outcome == 'failure'
-        run: |
-          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
-          echo "JWT_SECRET=${{ secrets.CI_JWT_SECRET }}" >> "$GITHUB_ENV"
-          echo "SERVICE_AUTH_SECRET=${{ secrets.CI_SERVICE_AUTH_SECRET }}" >> "$GITHUB_ENV"
-          echo "API_KEY_HMAC_SECRET=${{ secrets.CI_API_KEY_HMAC_SECRET }}" >> "$GITHUB_ENV"
-          echo "CREDENTIALS_MASTER_KEY=${{ secrets.CI_CREDENTIALS_MASTER_KEY }}" >> "$GITHUB_ENV"
-          echo "NEO4J_PASSWORD=${{ secrets.CI_NEO4J_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "MINIO_ROOT_USER=${{ secrets.CI_MINIO_ROOT_USER }}" >> "$GITHUB_ENV"
-          echo "MINIO_ROOT_PASSWORD=${{ secrets.CI_MINIO_ROOT_PASSWORD }}" >> "$GITHUB_ENV"
+      - name: Fetch infra secrets from Infisical
+        id: infisical-infra
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /infra
+
+      - name: Fetch CI secrets from Infisical
+        id: infisical-ci
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /ci
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -88,7 +91,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "22.13.0"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
@@ -156,7 +159,7 @@ jobs:
             python scripts/ci/run_backend_integrated_reproducibility.py
             --environment ci
             --release-candidate-sha "$RELEASE_CANDIDATE_SHA"
-            --compose-file docker-compose.live.yml
+            --compose-file infra/compose/docker-compose.live.yml
             --compose-file .tmp/docker-compose.backend-integrated-ci.override.yml
           )
           if [ -n "${RETRY_CLASSIFICATION:-}" ]; then
@@ -171,11 +174,11 @@ jobs:
           set +e
           mkdir -p artifacts/live-workflow-validation/logs
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             ps > artifacts/live-workflow-validation/logs/docker-compose-ps.txt 2>&1
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             logs --no-color > artifacts/live-workflow-validation/logs/docker-compose.log 2>&1
 
@@ -192,6 +195,6 @@ jobs:
         if: always()
         run: |
           docker compose \
-            -f docker-compose.live.yml \
+            -f infra/compose/docker-compose.live.yml \
             -f .tmp/docker-compose.backend-integrated-ci.override.yml \
             down -v

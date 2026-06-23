@@ -6,23 +6,24 @@ import {
   assertSchema,
   assertSchemaRejects,
   assertCanonicalSchema,
-  ExtractionStatusSchema,
+  OperationalSignalLifecycleRecordSchema,
+  fixtures,
 } from './_helpers';
 
-describe('Contract Domain Coverage: auth', () => {
+describe('Contract Domain Coverage: auth failures', () => {
   it('accepts canonical auth failure payload', () => {
     assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'UNAUTHORIZED', trace_id: 'trace-auth-1' },
+      { error: { message: 'Authentication required', code: 'UNAUTHORIZED', request_id: 'trace-auth-1' } },
       'Auth error payload'
     );
   });
 
-  it('rejects auth failure payload missing trace_id', () => {
+  it('rejects auth failure payload missing request_id', () => {
     assertSchemaRejects(
       ApiErrorSchema,
       { message: 'Authentication required', code: 'UNAUTHORIZED' },
-      'Auth error without trace_id'
+      'Auth error without request_id'
     );
   });
 });
@@ -55,32 +56,20 @@ describe('Contract Domain Coverage: admin', () => {
   it('accepts cross-tenant authorization error shape', () => {
     assertSchema(
       CrossTenantErrorSchema,
-      { message: 'Forbidden', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-admin-1' },
+      { error: { message: 'Forbidden', code: 'AUTHORIZATION_ERROR', request_id: 'trace-admin-1' } },
       'Admin cross-tenant authorization error'
     );
   });
 });
 
 describe('Contract Domain Coverage: data', () => {
-  it('matches OpenAPI ExtractionStatus schema', () => {
+  it('matches OpenAPI operational signal lifecycle schema', () => {
     assertCanonicalSchema(
-      ExtractionStatusSchema,
+      OperationalSignalLifecycleRecordSchema,
       'layer2-extraction.json',
-      '#/components/schemas/ExtractionStatusResponse',
-      {
-        job_id: 'job-001',
-        overall_status: 'failed',
-        extraction_status: 'failed',
-        ingestion_status: 'completed',
-        entities_extracted: 0,
-        relationships_extracted: 0,
-        retry_count: 1,
-        last_error: 'Bad source payload',
-        next_retry_at: null,
-        started_at: '2024-01-15T10:00:00Z',
-        completed_at: null,
-      },
-      'Data domain extraction status'
+      '#/components/schemas/OperationalSignalLifecycleRecord',
+      fixtures.operationalSignalLifecycleRecord(),
+      'Data domain operational signal lifecycle'
     );
   });
 });

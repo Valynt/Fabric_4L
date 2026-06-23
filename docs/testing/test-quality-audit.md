@@ -584,9 +584,9 @@ cd services/layer3-knowledge
 pytest tests/test_e2e_pipeline.py -v
 
 # Frontend tests
-cd frontend
-pnpm test
-pnpm test:e2e
+cd apps/web
+pnpm run test
+pnpm run test:e2e
 ```
 
 ---

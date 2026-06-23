@@ -3,7 +3,7 @@
 Covers the Phase 1 security invariants:
 - Missing envelope -> 401 (enforce mode).
 - Tampered envelope -> 401.
-- X-Tenant-ID hint mismatch -> 403.
+- Browser-controlled X-Tenant-ID hints are ignored for tenant scoping.
 - Raw Clerk-style JWT in X-Fabric-Auth (signed with a different key) -> 401.
 - Public paths bypass auth.
 - Observe mode never blocks but does not populate request.state.auth on failure.
@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import FastAPI, Request
@@ -26,6 +25,7 @@ from value_fabric.shared.identity.fabric_auth import (
     VerificationKey,
     sign_envelope,
 )
+from value_fabric.shared.identity.context import get_request_context
 
 
 def _generate_keypair(kid: str) -> tuple[SigningKey, VerificationKey]:
@@ -63,9 +63,15 @@ def _make_app(*, vk: VerificationKey, mode: str = "enforce") -> FastAPI:
     @app.get("/api/echo")
     def echo(request: Request):
         auth: AuthContext | None = getattr(request.state, "auth", None)
+        governance_context = getattr(request.state, "governance_context", None)
+        shared_context = get_request_context()
         return {
             "tenant_id": auth.tenant_id if auth else None,
             "user_id": auth.user_id if auth else None,
+            "context_tenant_id": str(governance_context.tenant_id) if governance_context else None,
+            "context_user_id": str(governance_context.user_id) if governance_context else None,
+            "shared_context_tenant_id": str(shared_context.tenant_id) if shared_context else None,
+            "shared_context_user_id": str(shared_context.user_id) if shared_context else None,
         }
 
     return app
@@ -113,6 +119,10 @@ def test_valid_envelope_populates_request_state():
     body = response.json()
     assert body["tenant_id"] == "t1"
     assert body["user_id"] == "u1"
+    assert body["context_tenant_id"] == "t1"
+    assert body["context_user_id"] == "u1"
+    assert body["shared_context_tenant_id"] == "t1"
+    assert body["shared_context_user_id"] == "u1"
 
 
 def test_tampered_envelope_rejected():
@@ -126,7 +136,7 @@ def test_tampered_envelope_rejected():
     assert response.json()["code"] == "auth.envelope_invalid"
 
 
-def test_tenant_id_header_mismatch_rejected():
+def test_tenant_id_header_hint_does_not_override_envelope_context():
     sk, vk = _generate_keypair("k1")
     token = sign_envelope(_make_auth(kid="k1", tenant_id="t1"), signing_key=sk)
     client = TestClient(_make_app(vk=vk))
@@ -134,8 +144,11 @@ def test_tenant_id_header_mismatch_rejected():
         "/api/echo",
         headers={"X-Fabric-Auth": token, "X-Tenant-ID": "t-evil"},
     )
-    assert response.status_code == 403
-    assert response.json()["code"] == "auth.tenant_mismatch"
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tenant_id"] == "t1"
+    assert body["context_tenant_id"] == "t1"
+    assert body["shared_context_tenant_id"] == "t1"
 
 
 def test_raw_clerk_jwt_in_envelope_header_is_rejected():

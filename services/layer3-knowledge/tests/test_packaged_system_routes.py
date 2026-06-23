@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 """Packaged-app proof tests for extracted Layer 3 operational routes."""
 
-from __future__ import annotations
 
 from typing import Any
 
 from fastapi.testclient import TestClient
 
 from conftest import TestUtils
-from value_fabric.layer3.api.routes import system as system_routes
-from value_fabric.layer3.api.models import ServiceMetrics
+from src.api.routes import system as system_routes
+from src.api.models import ServiceMetrics
 
 
 class TestPackagedSystemRoutes:
@@ -54,5 +55,6 @@ class TestPackagedSystemRoutes:
 
         assert response.status_code == 403
         data = response.json()
-        assert data["code"] == "AUTHORIZATION_ERROR"
-        assert data["message"] == "Metrics endpoint requires internal access"
+        error = data.get("error", data)
+        assert error["code"] == "AUTHORIZATION_ERROR"
+        assert error["message"] == "Metrics endpoint requires internal access"

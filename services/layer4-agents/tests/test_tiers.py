@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Tests for tier configuration module (Phase 3)."""
 
-from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer4.tenants.tiers import (
+from layer4_agents.tenants.tiers import (
     TIERS,
     TierConfig,
     TierFeatures,

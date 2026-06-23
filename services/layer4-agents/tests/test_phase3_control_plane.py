@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Phase 3 tests: Tier enforcement, usage tracking, and admin dashboard.
 
 Tests are organized into three groups:
@@ -10,7 +12,6 @@ Tests are designed to FAIL initially until the application code is
 correctly wired — per Agent Workflow Testing Best Practices.
 """
 
-from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
@@ -83,7 +84,7 @@ class TestTierConfiguration:
     """Test tier configuration and lookup."""
 
     def test_get_tier_config_free(self) -> None:
-        from src.tenants.tiers import get_tier_config
+        from layer4_agents.tenants.tiers import get_tier_config
 
         config = get_tier_config("free")
         assert config.id == "free"
@@ -92,7 +93,7 @@ class TestTierConfiguration:
         assert config.features.custom_branding is False
 
     def test_get_tier_config_pro(self) -> None:
-        from src.tenants.tiers import get_tier_config
+        from layer4_agents.tenants.tiers import get_tier_config
 
         config = get_tier_config("pro")
         assert config.id == "pro"
@@ -100,20 +101,20 @@ class TestTierConfiguration:
         assert config.features.sso_integration is True
 
     def test_get_tier_config_enterprise_unlimited(self) -> None:
-        from src.tenants.tiers import get_tier_config
+        from layer4_agents.tenants.tiers import get_tier_config
 
         config = get_tier_config("enterprise")
         assert config.limits.max_users is None  # Unlimited
         assert config.limits.max_agents is None
 
     def test_get_tier_config_unknown_raises(self) -> None:
-        from src.tenants.tiers import get_tier_config
+        from layer4_agents.tenants.tiers import get_tier_config
 
         with pytest.raises(ValueError, match="Unknown tier"):
             get_tier_config("nonexistent")
 
     def test_get_public_tiers_excludes_enterprise(self) -> None:
-        from src.tenants.tiers import get_public_tiers
+        from layer4_agents.tenants.tiers import get_public_tiers
 
         public = get_public_tiers()
         ids = [t.id for t in public]
@@ -123,22 +124,22 @@ class TestTierConfiguration:
         assert "enterprise" not in ids
 
     def test_check_limit_within(self) -> None:
-        from src.tenants.tiers import check_limit
+        from layer4_agents.tenants.tiers import check_limit
 
         assert check_limit("free", "max_users", 2) is True
 
     def test_check_limit_at_boundary(self) -> None:
-        from src.tenants.tiers import check_limit
+        from layer4_agents.tenants.tiers import check_limit
 
         assert check_limit("free", "max_users", 3) is True  # <= 3
 
     def test_check_limit_exceeded(self) -> None:
-        from src.tenants.tiers import check_limit
+        from layer4_agents.tenants.tiers import check_limit
 
         assert check_limit("free", "max_users", 4) is False
 
     def test_check_limit_unlimited(self) -> None:
-        from src.tenants.tiers import check_limit
+        from layer4_agents.tenants.tiers import check_limit
 
         assert check_limit("enterprise", "max_users", 999999) is True
 
@@ -150,7 +151,7 @@ class TestTierEnforcement:
     async def test_check_user_limit_within(
         self, mock_db: AsyncMock, tenant_id: UUID, free_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         # Mock: 2 users exist (limit is 3)
         mock_result = MagicMock()
@@ -165,7 +166,7 @@ class TestTierEnforcement:
     async def test_check_user_limit_exceeded(
         self, mock_db: AsyncMock, tenant_id: UUID, free_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement, TierLimitExceeded
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement, TierLimitExceeded
 
         # Mock: 3 users exist (limit is 3, at boundary)
         mock_result = MagicMock()
@@ -183,7 +184,7 @@ class TestTierEnforcement:
     async def test_check_user_limit_enterprise_unlimited(
         self, mock_db: AsyncMock, tenant_id: UUID, enterprise_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(mock_db)
         # Should not raise — enterprise has no user limit
@@ -195,7 +196,7 @@ class TestTierEnforcement:
     async def test_check_monthly_api_calls_exceeded(
         self, mock_db: AsyncMock, tenant_id: UUID, free_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement, TierLimitExceeded
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement, TierLimitExceeded
 
         enforcer = TierEnforcement(mock_db)
         with pytest.raises(TierLimitExceeded) as exc_info:
@@ -209,7 +210,7 @@ class TestTierEnforcement:
     async def test_check_monthly_api_calls_within(
         self, mock_db: AsyncMock, tenant_id: UUID, free_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(mock_db)
         # Should not raise — 500 < 1000 limit
@@ -218,30 +219,30 @@ class TestTierEnforcement:
         )
 
     def test_check_feature_enabled(self) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
         assert enforcer.check_feature("pro", "custom_branding") is True
 
     def test_check_feature_disabled(self) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
         assert enforcer.check_feature("free", "custom_branding") is False
 
     def test_require_feature_raises_when_disabled(self) -> None:
-        from fastapi import HTTPException
-        from src.tenants.tier_enforcement import TierEnforcement
+        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("free", "sso_integration")
 
-        assert exc_info.value.status_code == 403
-        assert "feature_not_available" in str(exc_info.value.detail)
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "sso_integration"
 
     def test_require_feature_passes_when_enabled(self) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
         # Should not raise
@@ -252,7 +253,7 @@ class TestTierLimitExceeded:
     """Test the TierLimitExceeded exception structure."""
 
     def test_error_response_shape(self) -> None:
-        from src.tenants.tier_enforcement import TierLimitExceeded
+        from layer4_agents.tenants.tier_enforcement import TierLimitExceeded
 
         exc = TierLimitExceeded(
             limit_name="max_users",
@@ -281,7 +282,7 @@ class TestUsageTrackingService:
     async def test_get_usage_summary_returns_dataclass(
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.usage_tracking import UsageSummary, UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import UsageSummary, UsageTrackingService
 
         # Mock all queries to return 0
         mock_scalar = MagicMock()
@@ -301,7 +302,7 @@ class TestUsageTrackingService:
     async def test_get_current_month_api_calls(
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.usage_tracking import UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import UsageTrackingService
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = 42
@@ -315,7 +316,7 @@ class TestUsageTrackingService:
     async def test_get_daily_usage_returns_list(
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.usage_tracking import DailyUsage, UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import DailyUsage, UsageTrackingService
 
         mock_result = MagicMock()
         mock_result.fetchall.return_value = [
@@ -336,7 +337,7 @@ class TestUsageTrackingService:
     async def test_get_top_endpoints(
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.usage_tracking import UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import UsageTrackingService
 
         mock_result = MagicMock()
         mock_result.fetchall.return_value = [
@@ -357,7 +358,7 @@ class TestUsageTrackingService:
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
         """Usage tracking should return zeros if audit_events table doesn't exist."""
-        from src.tenants.usage_tracking import UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import UsageTrackingService
 
         mock_db.execute.side_effect = Exception("relation 'audit_events' does not exist")
 
@@ -373,7 +374,7 @@ class TestUsageTrackingService:
         self, mock_db: AsyncMock, tenant_id: UUID,
     ) -> None:
         """Verify LLM cost estimate calculation."""
-        from src.tenants.usage_tracking import UsageTrackingService
+        from layer4_agents.tenants.usage_tracking import UsageTrackingService
 
         # Mock: count events returns 0, LLM usage returns tokens
         call_count = 0
@@ -413,7 +414,7 @@ class TestAdminDashboardAuthorization:
     def test_authorize_own_tenant(
         self, mock_context_admin: MagicMock, tenant_id: UUID,
     ) -> None:
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         # Should not raise — accessing own tenant
         _authorize_tenant_access(mock_context_admin, tenant_id)
@@ -421,20 +422,19 @@ class TestAdminDashboardAuthorization:
     def test_authorize_other_tenant_denied(
         self, mock_context_admin: MagicMock,
     ) -> None:
-        from fastapi import HTTPException
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         other_tenant = uuid4()
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthorizationError) as exc_info:
             _authorize_tenant_access(mock_context_admin, other_tenant)
 
-        assert exc_info.value.status_code == 403
-        assert "access_denied" in str(exc_info.value.detail)
+        assert exc_info.value.details["error"] == "access_denied"
 
     def test_authorize_super_admin_any_tenant(
         self, mock_context_super_admin: MagicMock,
     ) -> None:
-        from src.tenants.api.routes.admin_dashboard import _authorize_tenant_access
+        from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         any_tenant = uuid4()
         # Should not raise — super admin can access any tenant
@@ -445,32 +445,35 @@ class TestSettingsFeatureGate:
     """Test that branding updates require the custom_branding feature."""
 
     def test_branding_blocked_on_free_tier(self) -> None:
-        from fastapi import HTTPException
-        from src.tenants.tier_enforcement import TierEnforcement
+        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("free", "custom_branding")
 
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "custom_branding"
 
     def test_branding_allowed_on_pro_tier(self) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
         # Should not raise
         enforcer.require_feature("pro", "custom_branding")
 
     def test_sso_blocked_on_basic_tier(self) -> None:
-        from fastapi import HTTPException
-        from src.tenants.tier_enforcement import TierEnforcement
+        from value_fabric.shared.error_handling.exceptions import AuthorizationError
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
-        with pytest.raises(HTTPException):
+        with pytest.raises(AuthorizationError) as exc_info:
             enforcer.require_feature("basic", "sso_integration")
+        assert exc_info.value.details["error"] == "feature_not_available"
+        assert exc_info.value.details["feature"] == "sso_integration"
 
     def test_audit_export_allowed_on_basic_tier(self) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
         # audit_export is True for basic
@@ -489,7 +492,7 @@ class TestTierUsageSummary:
     async def test_usage_summary_structure(
         self, mock_db: AsyncMock, tenant_id: UUID, free_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         # Mock count queries to return 1
         mock_result = MagicMock()
@@ -510,7 +513,7 @@ class TestTierUsageSummary:
     async def test_usage_summary_enterprise_unlimited(
         self, mock_db: AsyncMock, tenant_id: UUID, enterprise_tier_id: str,
     ) -> None:
-        from src.tenants.tier_enforcement import TierEnforcement
+        from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         mock_result = MagicMock()
         mock_result.scalar_one.return_value = 50

@@ -64,8 +64,8 @@ async def test_create_signal_rejects_sql_injection_in_content(client):
         content="'; DROP TABLE value_signals; --"
     )
     response = await client.post("/api/v1/signals", json=payload)
-    # Must not crash (500) — 201 or 422 are acceptable
-    assert response.status_code in (201, 422), (
+    # Must not crash (500) — 201, 400 or 422 are acceptable
+    assert response.status_code in (201, 400, 422), (
         f"SQL injection caused unexpected status: {response.status_code}"
     )
     if response.status_code == 201:

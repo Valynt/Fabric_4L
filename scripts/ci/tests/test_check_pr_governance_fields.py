@@ -33,7 +33,7 @@ class CheckPrGovernanceFieldsTests(unittest.TestCase):
 
     def test_is_relevant_change_matches_backend_frontend_and_contract_paths(self) -> None:
         self.assertTrue(is_relevant_change("apps/web/src/App.tsx"))
-        self.assertTrue(is_relevant_change("services/layer4-agents/src/api/routes/foo.py"))
+        self.assertTrue(is_relevant_change("services/layer4-agents/src/layer4_agents/api/routes/foo.py"))
         self.assertTrue(is_relevant_change("contracts/openapi/layer4-agents.json"))
         self.assertFalse(is_relevant_change("docs/governance.md"))
 

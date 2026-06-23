@@ -1,0 +1,179 @@
+# Safety Rules
+# Security, data protection, and operational safety constraints.
+# Blockers are enforced pre-execution; warnings are surfaced but may proceed with human approval.
+
+rules:
+  - id: SR-001
+    name: no-pii-in-prompts
+    severity: block
+    description: >
+      No PII in LLM prompts — pre-process with detector before sending to external models.
+    rationale: >
+      Prevents data leakage to third-party LLM providers. GDPR/CCPA requirement.
+    trigger:
+      type: content_scan
+      files:
+        - "services/layer*/**/*.py"
+        - "frontend/**/*.ts"
+        - "frontend/**/*.tsx"
+      patterns:
+        - "(?i)(email|ssn|social.security|credit.card|phone)"
+    action:
+      type: block
+      message: "PII detected in LLM prompt. Scrub before sending to external model."
+      required_verification:
+        - "pii_scan_pass"
+
+  - id: SR-002
+    name: parameterized-queries-only
+    severity: block
+    description: >
+      All SQL must use parameterized queries. No string concatenation or f-strings in SQL.
+    rationale: >
+      Prevents SQL injection. AGENTS.md P0-level security control.
+    trigger:
+      type: content_scan
+      files:
+        - "**/*.py"
+      patterns:
+        - 'execute\s*\(\s*["''].*\+.*\)'
+        - 'execute\s*\(\s*f["'']'
+        - 'text\s*\(\s*f["'']'
+    action:
+      type: block
+      message: "Raw SQL string concatenation detected. Use SQLAlchemy parameters or prepared statements."
+      required_verification:
+        - "sql_injection_scan"
+
+  - id: SR-003
+    name: auth-middleware-on-all-routes
+    severity: block
+    description: >
+      All API routes must use require_authenticated dependency unless explicitly exempted and documented.
+    rationale: >
+      Prevents unauthorized access. Every route is authenticated by default via FastAPI Depends.
+    trigger:
+      type: missing_dependency
+      files:
+        - "services/layer*/src/api/**/*.py"
+      required_dependency: "require_authenticated"
+      required_import: "shared.identity.dependencies"
+      exemptions:
+        - "health_check"
+        - "public_docs"
+        - "openapi.json"
+    action:
+      type: block
+      message: "API route missing authentication. Add Depends(require_authenticated) or document exemption."
+      required_verification:
+        - "auth_middleware_check"
+
+  - id: SR-004
+    name: sql-change-requires-migration-and-rollback
+    severity: warn
+    description: >
+      Any SQL schema change requires a migration file AND a rollback script.
+    rationale: >
+      Ensures safe deployment and quick recovery from schema-related incidents.
+    trigger:
+      type: file_change
+      files:
+        - "**/*.sql"
+        - "**/migrations/**/*.py"
+    action:
+      type: warn
+      message: "Schema change detected. Ensure migration file AND rollback script exist."
+      required_verification:
+        - "migration_exists"
+        - "rollback_exists"
+
+  - id: SR-005
+    name: secrets-in-vault-only
+    severity: block
+    description: >
+      All secrets must be stored in Vault/Infisical. No hardcoded secrets, even in tests.
+    rationale: >
+      Prevents secret leakage via source control. Use test fixtures with mock secrets.
+    trigger:
+      type: content_scan
+      files:
+        - "**/*.py"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.yaml"
+        - "**/*.yml"
+        - "**/*.json"
+      patterns:
+        - '(?i)(api[_-]?key|password|secret|token)\s*[:=]\s*[''"][^''"]{8,}[''"]'
+    action:
+      type: block
+      message: "Secret detected. Store in Vault/Infisical and inject via environment."
+      required_verification:
+        - "secret_scan_pass"
+
+  - id: SR-007
+    name: no-soql-string-interpolation
+    severity: block
+    description: >
+      Never interpolate user input into SOQL or SQL query strings. Use parameterized queries or bind variables.
+    rationale: >
+      String interpolation in SOQL/SQL enables injection attacks. Even URL-encoded values can bypass filters.
+    trigger:
+      type: content_scan
+      files:
+        - "**/*.py"
+      patterns:
+        - 'f["'']SELECT.*\{.*\}.*FROM'
+        - 'f["'']INSERT INTO.*\{.*\}'
+        - 'f["'']UPDATE.*SET.*\{.*\}'
+        - 'f["'']DELETE FROM.*\{.*\}'
+        - 'f["'']MATCH \(.*\{.*\}'
+    action:
+      type: block
+      message: "SOQL/SQL string interpolation detected. Use parameterized queries or query builders."
+      required_verification:
+        - "sql_injection_scan"
+
+  - id: SR-008
+    name: no-dev-auth-bypass-in-production
+    severity: block
+    description: >
+      DevAuthBypassMiddleware must never be enabled in production. It must be gated by DEV_AUTH_BYPASS env var only.
+    rationale: >
+      Dev auth bypass disables all authentication. A production deployment with this enabled is a critical security incident.
+    trigger:
+      type: content_scan
+      files:
+        - "services/layer*/src/**/*.py"
+        - "shared/**/*.py"
+        - "k8s/**/*.yaml"
+        - "k8s/**/*.yml"
+      patterns:
+        - 'DEV_AUTH_BYPASS\s*=\s*true'
+        - 'DEV_AUTH_BYPASS:\s*true'
+        - 'DevAuthBypassMiddleware\(.*production.*\)'
+    action:
+      type: block
+      message: "Dev auth bypass detected in production-facing code or config. Remove immediately."
+      required_verification:
+        - "security_gate_pass"
+
+  - id: SR-006
+    name: rate-limiting-on-public-endpoints
+    severity: warn
+    description: >
+      All public-facing endpoints must have rate limiting configured via RedisRateLimiter or TenantRateLimitMiddleware.
+    rationale: >
+      Prevents abuse and ensures service availability under load.
+    trigger:
+      type: missing_middleware
+      files:
+        - "services/layer*/src/api/**/*.py"
+      required_middleware:
+        - "TenantRateLimitMiddleware"
+        - "RedisRateLimiter"
+    action:
+      type: warn
+      message: "Public endpoint missing rate limiting. Ensure TenantRateLimitMiddleware or RedisRateLimiter is configured."
+      required_verification:
+        - "rate_limit_check"

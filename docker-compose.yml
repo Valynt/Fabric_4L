@@ -1,541 +1,92 @@
 # =============================================================================
-# Fabric_4L Live Stack
+# Fabric_4L Compatibility Entrypoint
 # =============================================================================
-# Usage (with Infisical — recommended):
-#   pnpm env:dev                    # generates .env.generated
-#   docker compose --env-file .env.generated up
-#
-# Usage (legacy manual .env):
-#   docker compose up
+# This file intentionally stays thin and delegates all runtime service definitions
+# to infra/compose/docker-compose.live.yml. Keep using `docker compose up` from repo root.
 # =============================================================================
-x-build-args: &id001
-  BASE_IMAGE: ${BASE_IMAGE:-}
+
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: vf-live-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ingestion
-      POSTGRES_MULTIPLE_DATABASES: ingestion,layer2_extraction,ground_truth,layer4_agents,layer6_benchmarks
-      POSTGRES_INITDB_ARGS: -E UTF8 --locale=C
-    volumes:
-    - live-postgres-data:/var/lib/postgresql/data
-    - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
-    networks:
-    - live-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '1GiB'
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - pg_isready -U postgres
-      interval: 5s
-      timeout: 3s
-      retries: 5
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: postgres
+
   redis:
-    image: redis:7-alpine
-    container_name: vf-live-redis
-    command: redis-server
-    volumes:
-    - live-redis-data:/data
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - redis-cli
-      - ping
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: redis
 
   neo4j:
-    image: neo4j:5-community
-    container_name: vf-live-neo4j
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
-      NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_dbms_memory_heap_max__size: 1G
-      NEO4J_dbms_memory_pagecache_size: 512m
-    volumes:
-    - live-neo4j-data:/data
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    deploy:
-      resources:
-        limits:
-          cpus: '0.75'
-          memory: '2GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: neo4j
 
   minio:
-    image: minio/minio:latest
-    container_name: vf-live-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-    - live-minio-data:/data
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:9000/minio/health/live
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: minio
 
   minio-init:
-    image: minio/mc:latest
-    container_name: vf-live-minio-init
-    entrypoint: "/bin/sh -c \" until /usr/bin/mc config host add myminio http://minio:9000\
-      \ ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do\n  echo 'waiting for minio';\n\
-      \  sleep 2;\ndone; /usr/bin/mc mb myminio/layer1-raw-html || true; /usr/bin/mc\
-      \ anonymous set none myminio/layer1-raw-html || true; exit 0; \"\n"
-    networks:
-    - live-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256MiB
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: minio-init
+
   layer1:
-    build:
-      context: .
-      dockerfile: ./services/layer1-ingestion/Dockerfile.live
-      args:
-        INSTALL_PLAYWRIGHT_BROWSERS: 'false'
-        BASE_IMAGE: ${BASE_IMAGE:-}
-    container_name: vf-live-layer1
-    environment:
-      LAYER1_ENVIRONMENT: development
-      LAYER1_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://redis:6379/0
-      LAYER1_S3_ENDPOINT: http://minio:9000
-      LAYER1_S3_ACCESS_KEY: ${MINIO_ROOT_USER}
-      LAYER1_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      LAYER1_S3_BUCKET: layer1-raw-html
-      LAYER1_DEBUG: 'true'
-      LAYER1_API_PORT: 8000
-      LAYER1_RELEASE_SMOKE_LIGHT_HEALTH: 'true'
-      JWT_SECRET: ${JWT_SECRET}
-      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:8000/health
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '1GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer1
 
   layer1-worker:
-    build:
-      context: .
-      dockerfile: ./services/layer1-ingestion/Dockerfile.live
-      args:
-        INSTALL_PLAYWRIGHT_BROWSERS: 'false'
-        BASE_IMAGE: ${BASE_IMAGE:-}
-    container_name: vf-live-layer1-worker
-    command: celery -A src.shared.tasks worker --loglevel=info --concurrency=2
-    environment:
-      LAYER1_ENVIRONMENT: development
-      LAYER1_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://redis:6379/0
-      LAYER1_S3_ENDPOINT: http://minio:9000
-      LAYER1_S3_ACCESS_KEY: ${MINIO_ROOT_USER}
-      LAYER1_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      PYTHONPATH: /app
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - /app/.venv/bin/celery -A src.shared.tasks inspect ping -d celery@$$(hostname)
-        --timeout=5
-      interval: 15s
-      timeout: 10s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer1-worker
 
-  # ---------------------------------------------------------------------------
-  # Layer 2: Extraction Service (internal container port 8000)
-  # ---------------------------------------------------------------------------
   layer2:
-    build:
-      context: .
-      dockerfile: ./services/layer2-extraction/Dockerfile.full
-      args: *id001
-    container_name: vf-live-layer2
-    environment:
-      ENVIRONMENT: development
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: layer2_extraction
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      LAYER2_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer2_extraction
-      REDIS_URL: redis://redis:6379/0
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      LAYER3_API_URL: http://layer3:8001
-      LAYER2_HEALTH_SKIP_LAYER3: 'true'
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LLM_MODEL: gpt-4o
-      LOG_LEVEL: info
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:8000/health
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: '2GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer2
 
-  # ---------------------------------------------------------------------------
-  # Layer 3: Knowledge Graph Service (internal container port 8001)
-  # ---------------------------------------------------------------------------
   layer3:
-    build:
-      context: .
-      dockerfile: ./services/layer3-knowledge/Dockerfile.full
-      args:
-        BASE_IMAGE: ${BASE_IMAGE:-}
-        BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-}
-    container_name: vf-live-layer3
-    environment:
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      REDIS_URL: redis://redis:6379/0
-      LOG_LEVEL: info
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:8001/health
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '2GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer3
 
   layer3-neo4j-migrate:
-    build:
-      context: .
-      dockerfile: ./services/layer3-knowledge/Dockerfile.full
-      args:
-        BASE_IMAGE: ${BASE_IMAGE:-}
-        BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-}
-    container_name: vf-live-layer3-neo4j-migrate
-    command:
-    - sh
-    - -lc
-    - "attempts=0\nuntil /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py;\
-      \ do\n  attempts=$$((attempts + 1))\n  if [ \"$$attempts\" -ge 24 ]; then\n\
-      \    echo \"layer3 neo4j migration 030 failed after $${attempts} attempts\"\n\
-      \    exit 1\n  fi\n  echo \"waiting for neo4j ($${attempts}/24)\"\n  sleep 5\n\
-      done\n"
-    environment:
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-    networks:
-    - live-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer3-neo4j-migrate
 
-  # ---------------------------------------------------------------------------
-  # Layer 4: Agents Service (public host port 8004)
-  # ---------------------------------------------------------------------------
   layer4:
-    build:
-      context: .
-      dockerfile: ./services/layer4-agents/Dockerfile.full
-      args: *id001
-    container_name: vf-live-layer4
-    ports:
-    - 8004:8000
-    environment:
-      JWT_SECRET: ${JWT_SECRET}
-      API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
-      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: 'true'
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer4_agents
-      CHECKPOINT_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
-      REDIS_URL: redis://redis:6379/0
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      LAYER1_URL: http://layer1:8000
-      LAYER1_API_URL: http://layer1:8000
-      LAYER2_URL: http://layer2:8000
-      LAYER2_API_URL: http://layer2:8000
-      LAYER3_URL: http://layer3:8001
-      LAYER3_API_URL: http://layer3:8001
-      LAYER5_GROUND_TRUTH_URL: http://layer5:8005
-      LAYER6_BENCHMARKS_URL: http://layer6:8006
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      LLM_MODEL: gpt-4o
-      LOG_LEVEL: debug
-      PYTHONPATH: /app
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - python
-      - -c
-      - import urllib.request; urllib.request.urlopen('http://localhost:8000/health')
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1.5'
-          memory: '2GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer4
 
-  # ---------------------------------------------------------------------------
-  # Layer 5: Ground Truth Service (internal container port 8005)
-  # ---------------------------------------------------------------------------
   layer5:
-    build:
-      context: .
-      dockerfile: ./services/layer5-ground-truth/Dockerfile.full
-      args: *id001
-    container_name: vf-live-layer5
-    environment:
-      ENVIRONMENT: development
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
-      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
-      LAYER3_BASE_URL: http://layer3:8001
-      LAYER3_SYNC_ENABLED: 'true'
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ALGORITHM: HS256
-      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-      LOG_LEVEL: info
-      API_PORT: 8005
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:8005/
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '1GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer5
 
   layer5-migrate:
-    build:
-      context: .
-      dockerfile: ./services/layer5-ground-truth/Dockerfile.full
-      args: *id001
-    container_name: vf-live-layer5-migrate
-    command:
-    - sh
-    - -lc
-    - "attempts=0\nuntil /app/.venv/bin/alembic upgrade head; do\n  attempts=$$((attempts\
-      \ + 1))\n  if [ \"$$attempts\" -ge 24 ]; then\n    echo \"layer5 migration failed\
-      \ after $${attempts} attempts\"\n    exit 1\n  fi\n  echo \"waiting for layer5\
-      \ database ($${attempts}/24)\"\n  sleep 5\ndone\n"
-    environment:
-      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
-      MIGRATION_CONNECT_ATTEMPTS: 12
-      MIGRATION_CONNECT_DELAY_SECONDS: 5
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer5-migrate
 
-  # ---------------------------------------------------------------------------
-  # Layer 6: Benchmarks Service (internal container port 8006)
-  # ---------------------------------------------------------------------------
   layer6:
-    build:
-      context: .
-      dockerfile: ./services/layer6-benchmarks/Dockerfile.full
-      args: *id001
-    container_name: vf-live-layer6
-    environment:
-      ENVIRONMENT: development
-      PORT: 8006
-      LOG_LEVEL: info
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      REDIS_URL: redis://redis:6379/0
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer6_benchmarks
-      JWT_SECRET: ${JWT_SECRET}
-      API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
-      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-    volumes:
-    - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -f
-      - http://localhost:8006/health
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '1GiB'
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: layer6
 
-  # ---------------------------------------------------------------------------
-  # Frontend — Live Workflow Validation UI (public host port 3001)
-  # ---------------------------------------------------------------------------
   frontend:
-    build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile.dev
-    container_name: vf-live-frontend
-    ports:
-    - 3001:3001
-    environment:
-      VITE_API_BASE: /api/v1
-      VITE_USE_MOCKS: 'false'
-      VITE_ENABLE_MOCK_FALLBACK: 'false'
-      VITE_ENABLE_SSE: 'true'
-      PLAYWRIGHT_LIVE_MODE: 'true'
-      VITE_PROXY_L1_URL: http://layer1:8000
-      VITE_PROXY_L2_URL: http://layer2:8000
-      VITE_PROXY_L3_URL: http://layer3:8001
-      VITE_PROXY_L4_URL: http://layer4:8000
-      VITE_PROXY_L5_URL: http://layer5:8005
-      VITE_PROXY_L6_URL: http://layer6:8006
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: '512MiB'
-    volumes:
-    - ./apps/web:/app
-    - /app/node_modules
-    networks:
-    - live-network
-    healthcheck:
-      test:
-      - CMD
-      - node
-      - -e
-      - 'require(''http'').get(''http://127.0.0.1:3001'', (res) => process.exit(res.statusCode
-        < 500 ? 0 : 1)).on(''error'', () => process.exit(1))'
-      interval: 15s
-      timeout: 5s
-      retries: 10
-  live-seed:
-    profiles:
-    - seed
-    build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile.dev
-    container_name: vf-live-seed
-    command:
-    - sh
-    - -lc
-    - PLAYWRIGHT_LIVE_MODE=true PLAYWRIGHT_BACKEND_URL=http://layer4:8000 pnpm run
-      seed:live
-    environment:
-      PLAYWRIGHT_LIVE_MODE: 'true'
-      PLAYWRIGHT_BACKEND_URL: http://layer4:8000
-    volumes:
-    - ./apps/web:/app
-    - /app/node_modules
-    networks:
-    - live-network
+    extends:
+      file: ./infra/compose/docker-compose.live.yml
+      service: frontend
+
 volumes:
   live-postgres-data: null
   live-redis-data: null
   live-neo4j-data: null
   live-minio-data: null
+
 networks:
   live-network:
     driver: bridge

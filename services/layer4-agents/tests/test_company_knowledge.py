@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for Company Knowledge Onboarding API and service layer.
 
 Covers:
@@ -7,7 +9,6 @@ Covers:
 - Pipeline integration stubs (Layer 1/2/3 clients mocked)
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -18,28 +19,22 @@ _repo_root = _layer4_dir.parent.parent.resolve()
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from testcontainers.postgres import PostgresContainer
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
 
-from fastapi import FastAPI
-from value_fabric.layer4.api.routes import company_knowledge as company_knowledge_route
-from value_fabric.layer4.database import get_db_from_context
-from value_fabric.layer4.models.company_knowledge import (
-    CompanyKnowledgeProfile,
-    ICPProfile,
-    KnowledgeSource,
-    ValueExtractionRecord,
-)
-from value_fabric.layer4.models.company_knowledge import (
+from layer4_agents.api.routes import company_knowledge as company_knowledge_route
+from layer4_agents.database import _mark_session_tenant_context, get_db_from_context
+from layer4_agents.models.company_knowledge import (
     CompanyKnowledgeProfile,
     CrawlStatus,
     ICPProfile,
@@ -49,13 +44,11 @@ from value_fabric.layer4.models.company_knowledge import (
     SourceType,
     ValueExtractionRecord,
 )
-from value_fabric.layer4.services.company_knowledge_service import CompanyKnowledgeService
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
+from layer4_agents.services.company_knowledge_service import CompanyKnowledgeService
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.requires_postgres,
+    pytest.mark.postgres,
 ]
 
 
@@ -64,15 +57,8 @@ pytestmark = [
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-@pytest.fixture(scope="session")
-def postgres_container():
-    """Start PostgreSQL container for test session."""
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        yield postgres
-
-
 @pytest_asyncio.fixture(scope="function")
-async def test_db(postgres_container) -> AsyncSession:
+async def test_db(postgres_container, tenant_id: str) -> AsyncSession:
     """Create a test database session with fresh tables."""
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
@@ -99,6 +85,8 @@ async def test_db(postgres_container) -> AsyncSession:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
+        # Mark session with tenant context to avoid TenantContextError
+        _mark_session_tenant_context(session, tenant_id)
         yield session
 
     async with engine.begin() as conn:
@@ -158,6 +146,7 @@ def mock_auth_other(other_tenant_id: str):
 def test_app() -> FastAPI:
     """Create a minimal FastAPI app with just the company knowledge router."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
     return app
 
@@ -336,10 +325,13 @@ async def test_update_profile(client: AsyncClient, sample_profile):
 async def test_approve_profile(client: AsyncClient, sample_profile):
     """POST /v1/company-knowledge/profiles/{id}/approve approves profile."""
     reviewer_id = str(uuid4())
-    response = await client.post(
-        f"/v1/company-knowledge/profiles/{sample_profile.id}/approve",
-        json={"approved_by": reviewer_id},
-    )
+    with patch.object(
+        CompanyKnowledgeService, "sync_profile_to_layer3", new_callable=AsyncMock
+    ):
+        response = await client.post(
+            f"/v1/company-knowledge/profiles/{sample_profile.id}/approve",
+            json={"approved_by": reviewer_id},
+        )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "approved"
@@ -357,7 +349,7 @@ async def test_approve_profile(client: AsyncClient, sample_profile):
 async def test_add_knowledge_source(client: AsyncClient, sample_profile):
     """POST /v1/company-knowledge/sources creates a source."""
     with patch(
-        "value_fabric.layer4.api.routes.company_knowledge.CompanyKnowledgeService.trigger_layer1_crawl",
+        "layer4_agents.api.routes.company_knowledge.CompanyKnowledgeService.trigger_layer1_crawl",
         new_callable=AsyncMock,
     ) as mock_crawl:
         response = await client.post(
@@ -552,6 +544,7 @@ async def test_tenant_isolation_profiles(
 ):
     """Profiles from one tenant are not visible to another tenant."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
 
     async def override_db():
@@ -607,6 +600,7 @@ async def test_tenant_isolation_sources(
     await test_db.commit()
 
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(company_knowledge_route.router, prefix="/v1")
 
     async def override_db():
@@ -646,6 +640,13 @@ class TestCompanyKnowledgeServiceUnit:
         result_mock.scalar_one_or_none.return_value = record
         result_mock.scalar.return_value = scalar
         db.execute.return_value = result_mock
+
+    def _make_mock_pipeline_client(self):
+        pipeline_client = MagicMock()
+        pipeline_client.crawl_website = AsyncMock()
+        pipeline_client.extract_value_attributes = AsyncMock()
+        pipeline_client.ingest_profile = AsyncMock()
+        return pipeline_client
 
     @pytest.mark.unit
     @pytest.mark.asyncio
@@ -767,7 +768,9 @@ class TestCompanyKnowledgeServiceUnit:
     async def test_trigger_layer1_crawl(self):
         """Triggering Layer 1 crawl calls client and updates source status."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.crawl_website.return_value = {"target_id": "tgt-1", "job_id": "job-1"}
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
 
         source = KnowledgeSource(
             id=uuid4(),
@@ -784,28 +787,28 @@ class TestCompanyKnowledgeServiceUnit:
         svc.get_knowledge_source = AsyncMock(return_value=source)
         svc.update_crawl_status = AsyncMock(return_value=source)
 
-        with patch.object(
-            svc, "_get_layer1_client", return_value=MagicMock()
-        ) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.crawl_website = AsyncMock(
-                return_value={"target_id": "tgt-1", "job_id": "job-1"}
-            )
-
-            result = await svc.trigger_layer1_crawl(source.id, "t-123")
-            assert result["target_id"] == "tgt-1"
-            mock_client.crawl_website.assert_awaited_once_with(
-                url="https://example.com",
-                tenant_id="t-123",
-                name="Company knowledge crawl: https://example.com",
-            )
+        result = await svc.trigger_layer1_crawl(source.id, "t-123")
+        assert result["target_id"] == "tgt-1"
+        pipeline_client.crawl_website.assert_awaited_once_with(
+            tenant_id="t-123",
+            url="https://example.com",
+            name="Company knowledge crawl: https://example.com",
+        )
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3(self):
         """Syncing approved profile pushes canonical ingest payload to Layer 3."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.return_value = {
+            "status": "success",
+            "source_id": None,
+            "entities_loaded": 5,
+            "relationships_loaded": 0,
+            "triples_processed": 10,
+        }
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
 
         profile = CompanyKnowledgeProfile(
             id=uuid4(),
@@ -823,62 +826,50 @@ class TestCompanyKnowledgeServiceUnit:
 
         svc.get_profile = AsyncMock(return_value=profile)
 
-        with patch.object(
-            svc, "_get_layer3_client", return_value=MagicMock()
-        ) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(return_value={
-                "status": "success",
-                "source_id": f"company-profile:{profile.id}",
-                "entities_loaded": 5,
-                "relationships_loaded": 0,
-                "triples_processed": 10,
-            })
+        pipeline_client.ingest_profile.return_value["source_id"] = f"company-profile:{profile.id}"
 
-            result = await svc.sync_profile_to_layer3(
-                profile.id,
-                "t-123",
-                auth_headers={"Authorization": "Bearer test-token", "X-Tenant-ID": "t-123"},
-            )
-            assert result["profile_id"] == str(profile.id)
-            assert result["ingest_status"] == "success"
-            assert result["entities_loaded"] == 5
-            mock_client.ingest.assert_awaited_once()
-            call_kwargs = mock_client.ingest.await_args.kwargs
-            assert call_kwargs["tenant_id"] == "t-123"
-            assert call_kwargs["passthrough_headers"]["Authorization"] == "Bearer test-token"
+        result = await svc.sync_profile_to_layer3(
+            profile.id,
+            "t-123",
+            auth_headers={"Authorization": "Bearer test-token", "X-Tenant-ID": "t-123"},
+        )
+        assert result["profile_id"] == str(profile.id)
+        assert result["ingest_status"] == "success"
+        assert result["entities_loaded"] == 5
+        pipeline_client.ingest_profile.assert_awaited_once()
+        call_kwargs = pipeline_client.ingest_profile.await_args.kwargs
+        assert call_kwargs["tenant_id"] == "t-123"
+        assert call_kwargs["passthrough_headers"]["Authorization"] == "Bearer test-token"
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3_ingest_failure(self):
         """Syncing raises if canonical ingest call fails."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.side_effect = RuntimeError("layer3 unavailable")
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
         profile = CompanyKnowledgeProfile(
             id=uuid4(), tenant_id="t-123", company_name="SyncCo", status=ProfileStatus.APPROVED.value, version=2, active_source_ids=[]
         )
         svc.get_profile = AsyncMock(return_value=profile)
-        with patch.object(svc, "_get_layer3_client", return_value=MagicMock()) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(side_effect=RuntimeError("layer3 unavailable"))
-            with pytest.raises(RuntimeError, match="layer3 unavailable"):
-                await svc.sync_profile_to_layer3(profile.id, "t-123")
+        with pytest.raises(RuntimeError, match="layer3 unavailable"):
+            await svc.sync_profile_to_layer3(profile.id, "t-123")
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_sync_profile_to_layer3_contract_mismatch(self):
         """Syncing raises on Layer 3 response contract mismatch."""
         db = self._make_mock_db()
-        svc = CompanyKnowledgeService(db)
+        pipeline_client = self._make_mock_pipeline_client()
+        pipeline_client.ingest_profile.return_value = {"status": "success", "source_id": "x"}
+        svc = CompanyKnowledgeService(db, pipeline_client=pipeline_client)
         profile = CompanyKnowledgeProfile(
             id=uuid4(), tenant_id="t-123", company_name="SyncCo", status=ProfileStatus.APPROVED.value, version=2, active_source_ids=[]
         )
         svc.get_profile = AsyncMock(return_value=profile)
-        with patch.object(svc, "_get_layer3_client", return_value=MagicMock()) as mock_client_factory:
-            mock_client = mock_client_factory.return_value
-            mock_client.ingest = AsyncMock(return_value={"status": "success", "source_id": "x"})
-            with pytest.raises(ValueError, match="contract mismatch"):
-                await svc.sync_profile_to_layer3(profile.id, "t-123")
+        with pytest.raises(ValueError, match="contract mismatch"):
+            await svc.sync_profile_to_layer3(profile.id, "t-123")
 
     @pytest.mark.unit
     @pytest.mark.asyncio

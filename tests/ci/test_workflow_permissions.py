@@ -12,7 +12,15 @@ WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
 ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "ai-evals-pipeline.yml": {
         "checks": "updates AI evaluation check runs",
+        "id-token": "authenticates Infisical-backed evaluation jobs through OIDC",
         "pull-requests": "comments on pull requests with evaluation results",
+    },
+    "api-key-rotation.yml": {
+        "id-token": "authenticates rotation automation through OIDC",
+        "issues": "creates API key rotation tracking issues",
+    },
+    "backend-integrated-reproducibility.yml": {
+        "id-token": "authenticates backend-integrated reproducibility jobs through OIDC",
     },
     "build-deploy.yml": {
         "attestations": "publishes build provenance attestations",
@@ -57,13 +65,22 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "id-token": "uses OIDC for evidence signing",
     },
     "repo-hygiene.yml": {
+        "contents": "deletes stale branches selected by the cleanup policy",
         "issues": "comments repository hygiene failures on pull requests",
+        "pull-requests": "comments repository hygiene failures on pull requests",
     },
     "runbook-validation.yml": {
         "issues": "comments runbook validation failures on pull requests",
     },
     "secret-rotation.yml": {
+        "id-token": "authenticates secret rotation automation through OIDC",
         "issues": "creates rotation tracking issues",
+    },
+    "stale.yml": {
+        "pull-requests": "labels and closes stale pull requests",
+    },
+    "terraform-cd.yml": {
+        "id-token": "authenticates Terraform deployment jobs through AWS OIDC",
     },
     "security-gates-merged.yml": {
         "security-events": "uploads security scan SARIF",
@@ -85,8 +102,22 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "codeql-analysis.yml": {
         "security-events": "uploads CodeQL SARIF results",
     },
+    "codeql.yml": {
+        "security-events": "uploads CodeQL SARIF results",
+    },
     "deploy.yml": {
         "contents": "commits release evidence artifacts in the evidence job",
+        "id-token": "authenticates deploy and rollback jobs through cloud/OIDC providers",
+    },
+    "integration-tests.yml": {
+        "id-token": "authenticates integration test jobs through Infisical OIDC",
+    },
+    "pr-checks.yml": {
+        "id-token": "authenticates PR checks that fetch Infisical-managed secrets",
+    },
+    "public-docs.yml": {
+        "pages": "deploys documentation to GitHub Pages",
+        "id-token": "authenticates deploy job to GitHub Pages",
     },
     "refresh-testing-kpis.yml": {
         "contents": "pushes KPI snapshot updates to a PR branch",

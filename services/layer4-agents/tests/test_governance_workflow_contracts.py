@@ -2,19 +2,32 @@ from __future__ import annotations
 
 import os
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
 
-# The Layer 4 app is instantiated at import time, so contract tests that exercise
-# protected governance routes must enable the explicitly acknowledged local
-# development identity before importing the app. Production/default-deny behavior
-# remains covered by the dedicated security tests outside this module.
-os.environ.setdefault("DEV_AUTH_BYPASS", "true")
+# P0-008: Dev auth bypass permanently removed.
+# Contract tests rely on GovernanceMiddleware + test JWT or mocked auth context.
 os.environ.setdefault("ENVIRONMENT", "development")
-os.environ.setdefault("ALLOW_DEV_AUTH_BYPASS", "I_UNDERSTAND_RISK")
 
-from value_fabric.layer4.api.main import app
+from layer4_agents.api.routes import governance_workflows
 
 
+def _test_context() -> RequestContext:
+    return RequestContext(
+        tenant_id="tenant-governance-contract",
+        user_id="user-governance-contract",
+        roles=["content_admin"],
+        permissions=frozenset(),
+    )
+
+
+app = FastAPI()
+register_exception_handlers(app)
+app.include_router(governance_workflows.router, prefix="/v1")
+app.dependency_overrides[governance_workflows.require_authenticated] = _test_context
+app.dependency_overrides[governance_workflows.require_content_admin] = _test_context
 client = TestClient(app)
 
 
@@ -22,6 +35,9 @@ def _error_message(response) -> str:
     """Return the API error message across canonical and legacy response envelopes."""
 
     body = response.json()
+    error = body.get("error")
+    if isinstance(error, dict):
+        return error.get("message", "")
     return body.get("message") or body.get("detail", "")
 
 
@@ -223,5 +239,5 @@ def test_export_fails_closed_when_correlation_id_does_not_match_review() -> None
         json={"review_id": review_id, "correlation_id": "corr-other"},
     )
 
-    assert export.status_code == 400
+    assert export.status_code == 422
     assert _error_message(export) == "export lineage mismatch"

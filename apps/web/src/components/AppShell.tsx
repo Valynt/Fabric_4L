@@ -20,6 +20,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Search, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
+import { GlobalSearchDialog } from "./search";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ const AppShell = memo(function AppShell({
   // Use internal state if external props not provided (backward compatibility)
   const [internalMode, setInternalMode] = useState<UserTier>("standard");
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const currentTier = externalCurrentTier || internalMode;
   const effectiveTier = externalEffectiveTier || (isAdvancedMode && internalMode === "standard" ? "advanced" : internalMode);
@@ -70,9 +72,19 @@ const AppShell = memo(function AppShell({
 
   const selectedAccountId = useAccountContextStore(state => state.selectedAccountId);
   const setSelectedAccountId = useAccountContextStore(state => state.setSelectedAccountId);
-  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts({ page_size: 100 });
+  const {
+    user: currentUser,
+    logout,
+    currentTenantSlug,
+    isAuthenticated,
+    isLoading: authLoading,
+  } = useAuthContext();
+  const shouldLoadAccounts = !authLoading && isAuthenticated && Boolean(currentTenantSlug);
+  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts(
+    { page_size: 100 },
+    { enabled: shouldLoadAccounts, suppressAuthRedirect: true }
+  );
   const accounts = accountsData?.items ?? [];
-  const { user: currentUser, logout } = useAuthContext();
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -80,20 +92,26 @@ const AppShell = memo(function AppShell({
       <header className="h-[52px] shrink-0 bg-card border-b border-border flex items-center px-4 gap-4 z-30">
         <Link to="/command-center">
           <div className="flex flex-col leading-none cursor-pointer select-none">
-            <span className="text-[14px] font-extrabold text-foreground tracking-tight">{t("appShell.platformName")}</span>
-            <span className="text-[10px] text-muted-foreground font-normal">{t("appShell.platformTagline")}</span>
+            <span className="vf-text-body-l font-extrabold text-foreground tracking-tight">{t("appShell.platformName")}</span>
+            <span className="vf-text-micro text-muted-foreground font-normal">{t("appShell.platformTagline")}</span>
           </div>
         </Link>
         <div className="flex-1 max-w-xs">
-          <div className="flex items-center gap-2 h-7 px-3 bg-muted rounded-full text-[11px] text-muted-foreground border border-border">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-2 h-7 px-3 bg-muted rounded-full vf-text-caption text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer w-full"
+          >
             <Search size={11} className="shrink-0"/>
             <span>{t("appShell.searchPlaceholder")}</span>
-          </div>
+            <kbd className="ml-auto vf-text-micro bg-background border border-border rounded px-1.5 py-0.5 opacity-60">
+              ⌘K
+            </kbd>
+          </button>
         </div>
         <div className="ml-auto flex items-center gap-3">
           {/* Active mode pill */}
           <span className={cn(
-            "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border",
+            "vf-text-micro font-semibold px-2.5 py-0.5 rounded-full border",
             MODE_PILL[currentTier as UserMode]
           )}>
             {`${t(`appShell.modes.${currentTier as UserMode}`)} ${t("appShell.modeSuffix")}`}
@@ -101,7 +119,7 @@ const AppShell = memo(function AppShell({
           <button className="w-7 h-7 rounded-full border border-border bg-secondary flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
             <Bell size={12}/>
           </button>
-          <button className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-bold">
+          <button className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center vf-text-micro font-bold">
             <User size={12}/>
           </button>
         </div>
@@ -142,6 +160,14 @@ const AppShell = memo(function AppShell({
           {children}
         </main>
       </div>
+      
+      {/* Global Search Dialog */}
+      <GlobalSearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        tenantSlug={currentTenantSlug || undefined}
+        accountId={selectedAccountId || undefined}
+      />
     </div>
   );
 }, (prevProps, nextProps) => {

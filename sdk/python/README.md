@@ -99,6 +99,70 @@ vf tenants list --json
 vf search "query" --json
 ```
 
+### ValuePact CLI preview
+
+The SDK also ships a Click-based `valuepact` binary for tenant-safe ValuePact
+operations from terminals and automation. It is an application adapter: protected
+commands call authenticated ValuePact APIs, verify tenant access through the
+identity boundary, bind an immutable execution context, and reset that context
+after success or failure.
+
+Credentials are not stored in the ordinary CLI config file. Provide service
+account credentials through a protected environment variable:
+
+```bash
+export VALUEPACT_SERVICE_TOKEN="..."
+export VALUEPACT_API_URL="https://api.valuepact.ai"
+```
+
+Store non-secret context preferences:
+
+```bash
+valuepact context use \
+  --profile acme-staging \
+  --tenant-id tenant_123 \
+  --environment staging \
+  --api-url https://api.staging.valuepact.ai
+```
+
+Context resolution order is explicit command options, environment variables,
+active named profile, then validation error. Tenant selection is not
+authorization; protected commands still verify the authenticated actor against
+the requested tenant.
+
+```bash
+valuepact auth login --api-url https://api.valuepact.ai
+valuepact auth status
+valuepact context show --json
+valuepact workspace list --json
+valuepact workspace execute --workspace-id workspace_456 --input request.json --yes --json
+valuepact execution status exec_789 --json
+valuepact audit list --since 24h --json
+valuepact doctor --json
+valuepact completion
+```
+
+Operational commands support a stable JSON envelope:
+
+```json
+{
+  "ok": true,
+  "data": {},
+  "meta": {
+    "tenant_id": "tenant_123",
+    "environment": "staging",
+    "request_id": "req_...",
+    "actor_id": "svc_123",
+    "actor_type": "service_account"
+  }
+}
+```
+
+Errors use stable symbolic codes and exit codes. Authentication failures exit
+`3`, authorization denials exit `4`, domain failures exit `5`, not-found errors
+exit `6`, retryable infrastructure failures exit `7`, and unexpected internal
+failures exit `8`.
+
 ## Generated Clients
 
 The SDK includes auto-generated clients from OpenAPI specifications:

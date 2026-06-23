@@ -450,7 +450,7 @@ Located co-located in `apps/web/src/` matching pattern `**/*.{test,spec}.{ts,tsx
 | 34 | `.github/workflows/deploy.yml` | Deployment execution | K8s manifest apply, health check | `push` (main), `workflow_dispatch` |
 | 35 | `.github/workflows/environment-promotion.yml` | Dev→Staging→Prod promotion | Promotion gate validation | `workflow_run` |
 | 36 | `.github/workflows/k8s-readiness.yml` | K8s readiness validation | `kustomize build`, kubeval | `pull_request` |
-| 37 | `.github/workflows/launch-readiness.yml` | Launch readiness gate | Full signoff checklist | `workflow_dispatch` |
+| 37 | `.github/workflows/prod-readiness.yml` | Launch and production readiness gate | Full signoff checklist | `push`, `pull_request`, `workflow_dispatch` |
 | 38 | `.github/workflows/prod-readiness.yml` | Production readiness gate | Pre-prod validation | `push` (main) |
 | 39 | `.github/workflows/live-workflow-validation.yml` | Live workflow validation | Production path testing | `workflow_dispatch` |
 | 40 | `.github/workflows/game-day-evidence.yml` | Game day evidence collection | Incident response test | `workflow_dispatch` |
@@ -848,7 +848,7 @@ This section defines the complete set of tests required for production signoff. 
 | 3 | **CRITICAL** /ready checks dependencies | ✅ | services/layer*/tests/integration/ | per layer |
 | 4 | Structured JSON logging | ⚠️ Manual review | logging configuration | — |
 | 5 | Request ID propagation | ❌ MISSING | test_request_tracing.py | — |
-| 6 | Alert rules valid (promtool) | ✅ | CI: launch-readiness.yml | — |
+| 6 | Alert rules valid (promtool) | ✅ | CI: prod-readiness.yml | — |
 
 ### 10.9 Phase 11: Performance Tests
 

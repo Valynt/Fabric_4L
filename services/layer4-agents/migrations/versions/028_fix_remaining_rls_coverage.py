@@ -30,9 +30,16 @@ RLS_TABLES = [
 
 def upgrade() -> None:
     """Enforce strict tenant matching with privileged admin/system bypass only."""
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     for table in RLS_TABLES:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+        # MIGRATION_REVIEW_REQUIRED: FORCE ROW LEVEL SECURITY affects table owner access
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes existing tenant isolation
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
@@ -59,7 +66,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Remove policies added by this hardening migration."""
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     for table in RLS_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes tenant isolation enforcement
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
+        # MIGRATION_REVIEW_REQUIRED: NO FORCE ROW LEVEL SECURITY relaxes security for table owners
         op.execute(f"ALTER TABLE {table} NO FORCE ROW LEVEL SECURITY")

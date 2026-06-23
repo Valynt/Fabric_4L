@@ -58,6 +58,7 @@ def test_registered_non_expired_skip_passes(tmp_path: Path) -> None:
         "unregistered_markers": 0,
         "forbidden_markers": 0,
         "matched_register_entries": 1,
+        "mandatory_p0_register_entries": 1,
     }
 
 
@@ -109,3 +110,11 @@ def test_excluded_generated_paths_are_ignored(tmp_path: Path) -> None:
     _write(tmp_path / "apps/web/e2e/coverage/bad.spec.ts", "test" + ".skip('generated');\n")
     report = evaluate(tmp_path, _register(tmp_path, []), ["apps/web/e2e"], TODAY)
     assert report["findings"] == []
+
+
+def test_release_mode_reports_mandatory_p0_entries(tmp_path: Path) -> None:
+    _write(tmp_path / "tests/security/test_auth.py", 'import pytest\npytest.skip("dependency missing")\n')
+    report = evaluate(tmp_path, _register(tmp_path, [_entry()]), ["tests/security"], TODAY)
+    assert report["register_errors"] == []
+    assert report["mandatory_p0_entries"][0]["id"] == "skip-001"
+    assert report["summary"]["mandatory_p0_register_entries"] == 1

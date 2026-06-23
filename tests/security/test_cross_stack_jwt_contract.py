@@ -81,14 +81,6 @@ class TestCrossStackJWTContract:
 
     def test_shared_identity_decode_token_accepts_services_api_shape(self) -> None:
         """shared identity decode_token accepts a token with the services/api claim shape."""
-        import sys
-        import pathlib
-
-        # Ensure services/api is importable
-        api_src = str(pathlib.Path("services/api").resolve())
-        if api_src not in sys.path:
-            sys.path.insert(0, api_src)
-
         import jwt as pyjwt
 
         # Mint token matching services/api shape

@@ -15,7 +15,7 @@ Covers:
 
 import pytest
 
-from value_fabric.layer1.post_processor.content_extractor import (
+from layer1_ingestion.post_processor.content_extractor import (
     ContentExtractor,
     ExtractedContent,
     extract_content,

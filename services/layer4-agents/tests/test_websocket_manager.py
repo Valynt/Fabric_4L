@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Tests for WebSocket manager workflow streaming.
 
 Tests the pub/sub-style event broadcasting system with connection resilience,
 event replay, and workflow-scoped channels.
 """
 
-from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,7 +14,7 @@ import pytest
 import pytest_asyncio
 from fastapi import WebSocket
 
-from value_fabric.layer4.api.websocket.manager import (
+from layer4_agents.api.websocket.manager import (
     EventStore,
     WorkflowConnection,
     WorkflowWebSocketManager,
@@ -546,7 +547,7 @@ class TestOutputSummarization:
         result = ws_manager._summarize_output({})
         
         # Assert
-        assert result == {}
+        assert dict(result) == {}
     
     def test_summarize_output_handles_none(self, ws_manager):
         """Should handle None output gracefully."""
@@ -554,7 +555,7 @@ class TestOutputSummarization:
         result = ws_manager._summarize_output(None)
         
         # Assert
-        assert result == {}
+        assert dict(result) == {}
 
 
 class TestClientMessageHandling:
@@ -585,7 +586,7 @@ class TestClientMessageHandling:
         await started_manager.connect(mock_websocket, "wf-1", trace_id="trace-ack-1")
 
         # Act & Assert (no error)
-        with patch("src.api.websocket.manager.logger") as mock_logger:
+        with patch("layer4_agents.api.websocket.manager.logger") as mock_logger:
             await started_manager.handle_client_message(
                 mock_websocket,
                 "wf-1",
@@ -636,7 +637,7 @@ class TestSingleton:
     def test_get_ws_manager_creates_new_if_none(self):
         """Should create new instance if none exists."""
         # Arrange - reset singleton
-        import value_fabric.layer4.api.websocket.manager as manager_module
+        import layer4_agents.api.websocket.manager as manager_module
         manager_module._ws_manager = None
         
         # Act
@@ -843,6 +844,88 @@ class TestTenantMismatchEnforcement:
         )
 
         mock_websocket.close.assert_awaited_once_with(code=4403, reason="Access denied")
+
+
+class TestKillSwitch:
+    """Real-time tenant suspension via WebSocket kill-switch."""
+
+    @pytest.mark.asyncio
+    async def test_connect_rejects_suspended_tenant(self, ws_manager, mock_websocket):
+        """connect() must close with 4403 when tenant kill-switch is active."""
+        with patch(
+            "value_fabric.shared.tenant_kill_switch.TenantKillSwitch.is_suspended",
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            await ws_manager.connect(
+                mock_websocket,
+                "wf-suspended",
+                tenant_id="tenant-suspended",
+            )
+
+        mock_websocket.close.assert_awaited_once_with(code=4403, reason="Tenant suspended")
+        mock_websocket.accept.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_connect_allows_active_tenant_when_kill_switch_inactive(self, ws_manager, mock_websocket):
+        """connect() must proceed when tenant is not suspended."""
+        with patch(
+            "value_fabric.shared.tenant_kill_switch.TenantKillSwitch.is_suspended",
+            new_callable=AsyncMock,
+            return_value=False,
+        ):
+            await ws_manager.connect(
+                mock_websocket,
+                "wf-active",
+                tenant_id="tenant-active",
+            )
+
+        mock_websocket.accept.assert_awaited_once()
+        mock_websocket.close.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_disconnect_tenant_closes_all_connections(self, ws_manager, mock_websocket):
+        """disconnect_tenant() must forcibly close every connection for the tenant."""
+        ws2 = MagicMock(spec=WebSocket)
+        ws2.accept = AsyncMock()
+        ws2.send_json = AsyncMock()
+        ws2.close = AsyncMock()
+
+        await ws_manager.connect(mock_websocket, "wf-1", tenant_id="tenant-a")
+        await ws_manager.connect(ws2, "wf-2", tenant_id="tenant-a")
+
+        closed = await ws_manager.disconnect_tenant("tenant-a")
+
+        assert closed == 2
+        mock_websocket.close.assert_awaited_once_with(code=4403, reason="Tenant suspended")
+        ws2.close.assert_awaited_once_with(code=4403, reason="Tenant suspended")
+        assert "wf-1" not in ws_manager._workflow_connections
+        assert "wf-2" not in ws_manager._workflow_connections
+
+    @pytest.mark.asyncio
+    async def test_disconnect_tenant_skips_other_tenants(self, ws_manager, mock_websocket):
+        """disconnect_tenant() must not affect connections from other tenants."""
+        ws2 = MagicMock(spec=WebSocket)
+        ws2.accept = AsyncMock()
+        ws2.send_json = AsyncMock()
+        ws2.close = AsyncMock()
+
+        await ws_manager.connect(mock_websocket, "wf-1", tenant_id="tenant-a")
+        await ws_manager.connect(ws2, "wf-2", tenant_id="tenant-b")
+
+        closed = await ws_manager.disconnect_tenant("tenant-a")
+
+        assert closed == 1
+        mock_websocket.close.assert_awaited_once_with(code=4403, reason="Tenant suspended")
+        ws2.close.assert_not_awaited()
+        assert "wf-1" not in ws_manager._workflow_connections
+        assert "wf-2" in ws_manager._workflow_connections
+
+    @pytest.mark.asyncio
+    async def test_disconnect_tenant_returns_zero_when_no_connections(self, ws_manager):
+        """disconnect_tenant() must return 0 when tenant has no connections."""
+        closed = await ws_manager.disconnect_tenant("tenant-none")
+        assert closed == 0
 
 
 if __name__ == "__main__":

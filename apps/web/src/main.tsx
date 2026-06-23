@@ -1,5 +1,8 @@
-import { lazy, Suspense } from "react";
+import './lib/opentelemetry';  // Initialize RUM
+import "./lib/zod-config";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import {
   QueryCache,
   QueryClient,
@@ -12,11 +15,30 @@ import { I18nProvider } from "./i18n";
 import { STALE_TIME } from "./hooks/useApiShared";
 import { logError } from "./lib/telemetry";
 import { installAnalytics } from "./lib/analytics";
+import { installWebVitals } from "./lib/web-vitals";
+
+// P1-004: Sentry error tracking — initialized when SENTRY_DSN is configured.
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+if (sentryDsn) {
+  try {
+    Sentry.init({
+      dsn: sentryDsn,
+      environment: import.meta.env.MODE,
+      sampleRate: 0.1,
+      tracesSampleRate: 0.01,
+      profilesSampleRate: 0.0,
+      attachStacktrace: true,
+    });
+  } catch (error) {
+    logError("Failed to initialize Sentry", { error: error instanceof Error ? error.message : String(error) });
+  }
+}
 import {
   getClerkPublishableKey,
   getClerkUrls,
   isClerkAuthEnabled,
 } from "./auth/clerkConfig";
+import { shadcn } from "@clerk/ui/themes";
 
 // ReactQueryDevtools is only included in development builds.
 // Vite's tree-shaking drops this import entirely in production,
@@ -57,26 +79,41 @@ const queryClient = new QueryClient({
 });
 
 installAnalytics();
+installWebVitals();
 
-// Phase 2: ClerkProvider is configured from env so the same bundle works for
-// both legacy and Clerk-driven deployments. Dynamically imported so legacy
-// builds do not pay the cost of the Clerk JS bundle.
-const clerkEnabled = isClerkAuthEnabled();
 const clerkUrls = getClerkUrls();
-const clerkPublishableKey = clerkEnabled ? getClerkPublishableKey() : "";
+const clerkAuthEnabled = isClerkAuthEnabled();
+const clerkPublishableKey = clerkAuthEnabled ? getClerkPublishableKey() : "";
 
-const ClerkProvider = clerkEnabled
-  ? lazy(() =>
-      import("@clerk/react").then((m) => ({ default: m.ClerkProvider }))
-    )
-  : null;
+// Brand Clerk's components with the official shadcn theme. The theme maps
+// Clerk's internal UI to the same shadcn CSS tokens the app already defines
+// (--primary, --background, --border, ...). Because those tokens flip under
+// the `.dark` class managed by ThemeProvider, Clerk automatically follows the
+// app's light/dark mode without needing the React theme context — which
+// matters here because <ClerkProvider> is mounted above <ThemeProvider>.
+//
+// We intentionally do NOT hardcode colorPrimary (it previously drifted from
+// the app brand token); the shadcn theme derives it from --primary. Only the
+// app font is carried over so the widget matches the surrounding typography.
+const clerkAppearance = clerkAuthEnabled
+  ? {
+      theme: shadcn,
+      variables: {
+        fontFamily: "var(--font-sans)",
+      },
+    }
+  : {};
+
+const ClerkProvider = lazy(() =>
+  import("@clerk/react").then((m) => ({ default: m.ClerkProvider }))
+);
 
 const AppRoot = (
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
       <App />
       {import.meta.env.DEV && ReactQueryDevtools && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded-md bg-accent" />}>
           <ReactQueryDevtools initialIsOpen={false} />
         </Suspense>
       )}
@@ -85,20 +122,32 @@ const AppRoot = (
 );
 
 createRoot(document.getElementById("root")!).render(
-  clerkEnabled && ClerkProvider ? (
-    <Suspense fallback={null}>
-      <ClerkProvider
-        publishableKey={clerkPublishableKey}
-        signInUrl={clerkUrls.signInUrl}
-        signUpUrl={clerkUrls.signUpUrl}
-        signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
-        signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
-        afterSignOutUrl="/"
-      >
-        {AppRoot}
-      </ClerkProvider>
-    </Suspense>
-  ) : (
-    AppRoot
-  )
+  <StrictMode>
+    {clerkAuthEnabled ? (
+      <Suspense fallback={null}>
+        <ClerkProvider
+          publishableKey={clerkPublishableKey}
+          appearance={clerkAppearance}
+          signInUrl={clerkUrls.signInUrl}
+          signUpUrl={clerkUrls.signUpUrl}
+          signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
+          signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
+          afterSignOutUrl="/"
+        >
+          {AppRoot}
+        </ClerkProvider>
+      </Suspense>
+    ) : (
+      AppRoot
+    )}
+  </StrictMode>
 );
+
+// P2-006: Register service worker for offline asset caching
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => logError("Service worker registration failed", { error: err instanceof Error ? err.message : String(err) }));
+  });
+}

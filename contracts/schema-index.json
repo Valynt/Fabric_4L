@@ -1,0 +1,310 @@
+{
+  "$schema": "https://valuefabric.ai/contracts/schema-index.schema.json",
+  "version": 1,
+  "description": "Canonical schema governance index for contracts verified by scripts/verify-schema-indexes.sh.",
+  "entries": [
+    {
+      "path": "contracts/jsonschema/agent-response-envelope.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agent-response-envelope.json",
+      "title": "AgentResponseEnvelope"
+    },
+    {
+      "path": "contracts/jsonschema/billing-domain.schema.json",
+      "id": "https://valuefabric/contracts/billing-domain.schema.json",
+      "title": "Billing Domain Contracts"
+    },
+    {
+      "path": "contracts/jsonschema/dsar-request.schema.json",
+      "id": "https://valuefabric/contracts/jsonschema/dsar-request.schema.json",
+      "title": "DSARRequest"
+    },
+    {
+      "path": "contracts/jsonschema/entity.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/entity.json",
+      "title": "Entity"
+    },
+    {
+      "path": "contracts/jsonschema/layer3-entity-resolution-contract.json",
+      "id": "https://valuefabric.dev/contracts/layer3/entity-resolution-contract.json",
+      "title": "Layer3EntityResolutionContract"
+    },
+    {
+      "path": "contracts/jsonschema/layer4-workflow-replay-event-envelope-v1.schema.json",
+      "id": "https://valuefabric.dev/contracts/jsonschema/layer4-workflow-replay-event-envelope-v1.schema.json",
+      "title": "Layer4WorkflowReplayEventEnvelopeV1"
+    },
+    {
+      "path": "contracts/jsonschema/signal.json",
+      "id": "https://valuefabric.io/schemas/signal.json",
+      "title": "PainSignal"
+    },
+    {
+      "path": "contracts/jsonschema/system-route-health.json",
+      "id": "https://valuefabric/contracts/jsonschema/system-route-health.json",
+      "title": "SystemRouteHealthResponse"
+    },
+    {
+      "path": "contracts/jsonschema/workflows/common.json",
+      "id": "https://valuefabric.dev/contracts/jsonschema/workflows/common.json",
+      "title": "Workflow Common Contracts"
+    },
+    {
+      "path": "contracts/jsonschema/workflows/workflow-detail.json",
+      "id": "contract:contracts/jsonschema/workflows/workflow-detail.json"
+    },
+    {
+      "path": "contracts/jsonschema/workflows/workflow-event.json",
+      "id": "contract:contracts/jsonschema/workflows/workflow-event.json"
+    },
+    {
+      "path": "contracts/jsonschema/workflows/workflow-list.json",
+      "id": "contract:contracts/jsonschema/workflows/workflow-list.json"
+    },
+    {
+      "path": "contracts/openapi/fabric-4l-api.json",
+      "id": "openapi:contracts/openapi/fabric-4l-api.json",
+      "title": "Fabric_4L API"
+    },
+    {
+      "path": "contracts/openapi/layer1-ingestion.json",
+      "id": "openapi:contracts/openapi/layer1-ingestion.json",
+      "title": "Value Fabric - Layer 1: Intelligent Data Ingestion"
+    },
+    {
+      "path": "contracts/openapi/layer2-extraction.json",
+      "id": "openapi:contracts/openapi/layer2-extraction.json",
+      "title": "Value Fabric - Extraction Pipeline"
+    },
+    {
+      "path": "contracts/openapi/layer2-5-signal-refinery.json",
+      "id": "openapi:contracts/openapi/layer2-5-signal-refinery.json",
+      "title": "Layer 2.5: Signal Refinery"
+    },
+    {
+      "path": "contracts/openapi/layer3-knowledge.json",
+      "id": "openapi:contracts/openapi/layer3-knowledge.json",
+      "title": "Value Fabric - Knowledge Graph & Semantic Layer"
+    },
+    {
+      "path": "contracts/openapi/layer4-agents.json",
+      "id": "openapi:contracts/openapi/layer4-agents.json",
+      "title": "Layer 4: Agentic Workflow Orchestrator"
+    },
+    {
+      "path": "contracts/openapi/layer5-ground-truth.json",
+      "id": "openapi:contracts/openapi/layer5-ground-truth.json",
+      "title": "Value Fabric \u2014 Ground Truth Layer (L5)"
+    },
+    {
+      "path": "contracts/openapi/layer6-benchmarks.json",
+      "id": "openapi:contracts/openapi/layer6-benchmarks.json",
+      "title": "Value Fabric - Benchmark Service"
+    },
+    {
+      "path": "contracts/openapi/layer7-billing.json",
+      "id": "openapi:contracts/openapi/layer7-billing.json",
+      "title": "Layer 7 Billing Service"
+    },
+    {
+      "path": "contracts/openapi/privacy-dsar.json",
+      "id": "openapi:contracts/openapi/privacy-dsar.json",
+      "title": "Privacy DSAR API"
+    },
+    {
+      "path": "contracts/openapi/signals.json",
+      "id": "openapi:contracts/openapi/signals.json",
+      "title": "ValueFabric Signals API"
+    },
+    {
+      "path": "contracts/tool-manifests/analyze_competition.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/analyze_competition.json",
+      "title": "analyze_competition"
+    },
+    {
+      "path": "contracts/tool-manifests/assemble_document.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/assemble_document.json",
+      "title": "assemble_document"
+    },
+    {
+      "path": "contracts/tool-manifests/assess_drift.json",
+      "id": "contract:contracts/tool-manifests/assess_drift.json",
+      "title": "assess_drift"
+    },
+    {
+      "path": "contracts/tool-manifests/audit_ai_systems.json",
+      "id": "contract:contracts/tool-manifests/audit_ai_systems.json",
+      "title": "audit_ai_systems"
+    },
+    {
+      "path": "contracts/tool-manifests/audit_compliance.json",
+      "id": "contract:contracts/tool-manifests/audit_compliance.json",
+      "title": "audit_compliance"
+    },
+    {
+      "path": "contracts/tool-manifests/audit_infrastructure.json",
+      "id": "contract:contracts/tool-manifests/audit_infrastructure.json",
+      "title": "audit_infrastructure"
+    },
+    {
+      "path": "contracts/tool-manifests/audit_performance.json",
+      "id": "contract:contracts/tool-manifests/audit_performance.json",
+      "title": "audit_performance"
+    },
+    {
+      "path": "contracts/tool-manifests/calculate_roi.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/calculate_roi.json",
+      "title": "calculate_roi"
+    },
+    {
+      "path": "contracts/tool-manifests/compare_benchmarks.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/compare_benchmarks.json",
+      "title": "compare_benchmarks"
+    },
+    {
+      "path": "contracts/tool-manifests/create_chart.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/create_chart.json",
+      "title": "create_chart"
+    },
+    {
+      "path": "contracts/tool-manifests/create_task.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/create_task.json",
+      "title": "create_task"
+    },
+    {
+      "path": "contracts/tool-manifests/document_export.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/document_export.json",
+      "title": "document_export"
+    },
+    {
+      "path": "contracts/tool-manifests/evaluate_formula.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/evaluate_formula.json",
+      "title": "evaluate_formula"
+    },
+    {
+      "path": "contracts/tool-manifests/export_to_crm.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/export_to_crm.json",
+      "title": "export_to_crm"
+    },
+    {
+      "path": "contracts/tool-manifests/fetch_interaction_history.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/fetch_interaction_history.json",
+      "title": "fetch_interaction_history"
+    },
+    {
+      "path": "contracts/tool-manifests/find_paths.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/find_paths.json",
+      "title": "find_paths"
+    },
+    {
+      "path": "contracts/tool-manifests/format_currency.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/format_currency.json",
+      "title": "format_currency"
+    },
+    {
+      "path": "contracts/tool-manifests/format_table.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/format_table.json",
+      "title": "format_table"
+    },
+    {
+      "path": "contracts/tool-manifests/generate_business_case.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/generate_business_case.json",
+      "title": "generate_business_case"
+    },
+    {
+      "path": "contracts/tool-manifests/generate_section.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/generate_section.json",
+      "title": "generate_section"
+    },
+    {
+      "path": "contracts/tool-manifests/get_entity.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/get_entity.json",
+      "title": "get_entity"
+    },
+    {
+      "path": "contracts/tool-manifests/get_prospect_data.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/get_prospect_data.json",
+      "title": "get_prospect_data"
+    },
+    {
+      "path": "contracts/tool-manifests/get_relationships.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/get_relationships.json",
+      "title": "get_relationships"
+    },
+    {
+      "path": "contracts/tool-manifests/graph_traverse.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/graph_traverse.json",
+      "title": "graph_traverse"
+    },
+    {
+      "path": "contracts/tool-manifests/query_graph.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/query_graph.json",
+      "title": "query_graph"
+    },
+    {
+      "path": "contracts/tool-manifests/schedule_meeting.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/schedule_meeting.json",
+      "title": "schedule_meeting"
+    },
+    {
+      "path": "contracts/tool-manifests/score_lead.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/score_lead.json",
+      "title": "score_lead"
+    },
+    {
+      "path": "contracts/tool-manifests/semantic_search.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/semantic_search.json",
+      "title": "semantic_search"
+    },
+    {
+      "path": "contracts/tool-manifests/send_notification.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/send_notification.json",
+      "title": "send_notification"
+    },
+    {
+      "path": "contracts/tool-manifests/sensitivity_analysis.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/sensitivity_analysis.json",
+      "title": "sensitivity_analysis"
+    },
+    {
+      "path": "contracts/tool-manifests/update_opportunity.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/update_opportunity.json",
+      "title": "update_opportunity"
+    },
+    {
+      "path": "contracts/tool-manifests/validate_input.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/validate_input.json",
+      "title": "validate_input"
+    },
+    {
+      "path": "contracts/frontend/01-api-boundary-contract.md",
+      "id": "contract:contracts/frontend/01-api-boundary-contract.md"
+    },
+    {
+      "path": "contracts/frontend/02-type-synchronization-contract.md",
+      "id": "contract:contracts/frontend/02-type-synchronization-contract.md"
+    },
+    {
+      "path": "contracts/frontend/03-hook-architecture-contract.md",
+      "id": "contract:contracts/frontend/03-hook-architecture-contract.md"
+    },
+    {
+      "path": "contracts/auth/fabric-auth-envelope.schema.json",
+      "id": "https://contracts.fabric4l/auth/fabric-auth-envelope.schema.json",
+      "title": "Fabric4L Internal AuthContext Envelope (v1)"
+    },
+    {
+      "path": "contracts/config-policy/config_policy.yml",
+      "id": "contract:contracts/config-policy/config_policy.yml"
+    },
+    {
+      "path": "contracts/observability/layer6-metrics.json",
+      "id": "contract:contracts/observability/layer6-metrics.json"
+    },
+    {
+      "path": "contracts/config-policy/behavior-contract-matrix.json",
+      "id": "contract:contracts/config-policy/behavior-contract-matrix.json",
+      "title": "Critical Behavior Contract Matrix"
+    }
+  ],
+  "ignored_orphans": []
+}

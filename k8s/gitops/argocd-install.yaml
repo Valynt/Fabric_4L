@@ -1,0 +1,70 @@
+# P1-009: ArgoCD Bootstrap — production-ready installation
+# ------------------------------------------------------------------------------
+# Install ArgoCD using the official upstream stable manifest:
+#   kubectl create namespace argocd
+#   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#
+# Or via Helm (preferred for production):
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd --namespace argocd --create-namespace \
+#     --values k8s/gitops/argocd-helm-values.yaml
+# ------------------------------------------------------------------------------
+# PREREQUISITES:
+#   1. ArgoCD CRDs (argoproj.io/v1alpha1) must be present.
+#   2. External Secrets Operator and Vault/Infisical credentials must be in place
+#      for: postgres-secret, neo4j-credentials, api-key-cache-secret, jwt-keys-secret.
+#   3. Namespace 'value-fabric' must exist or CreateNamespace=true must be enabled.
+# ------------------------------------------------------------------------------
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/part-of: fabric4l-gitops
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ArgoCD Application for the Fabric_4L base platform manifests.
+# Targets k8s/base kustomization (single source of truth for platform resources).
+# Sync is MANUAL by default. Enable automated prune/selfHeal only after staging
+# validation and secret backend readiness.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fabric-4l-base
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: fabric4l
+    environment: base
+    tier: platform
+spec:
+  project: value-fabric
+  source:
+    repoURL: https://github.com/bmsull560/Fabric_4L.git
+    targetRevision: main
+    path: k8s/base
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: value-fabric
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        app.kubernetes.io/part-of: fabric4l
+        pod-security.kubernetes.io/enforce: restricted
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 10

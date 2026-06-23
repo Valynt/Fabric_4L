@@ -1,0 +1,21 @@
+{
+  "jobs": [
+    {
+      "id": 501,
+      "name": "backend-tests (3.11, ubuntu-latest)",
+      "conclusion": "failure",
+      "started_at": "2026-05-20T10:02:00Z",
+      "completed_at": "2026-05-20T10:04:00Z",
+      "html_url": "https://github.com/acme/fabric/actions/runs/101/job/501",
+      "log_text": "Run pytest services/layer4-agents/tests/test_resume.py\nFAILED services/layer4-agents/tests/test_resume.py::test_resume_checkpoint - AssertionError: expected 2 got 1\nProcess completed with exit code 1.\n"
+    },
+    {
+      "id": 502,
+      "name": "frontend-lint",
+      "conclusion": "success",
+      "started_at": "2026-05-20T10:02:00Z",
+      "completed_at": "2026-05-20T10:03:00Z",
+      "html_url": "https://github.com/acme/fabric/actions/runs/101/job/502"
+    }
+  ]
+}

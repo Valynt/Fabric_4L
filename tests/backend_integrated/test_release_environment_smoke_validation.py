@@ -39,7 +39,7 @@ async def test_release_environment_account_creation(backend, seed_ids):
 @pytest.mark.asyncio
 async def test_release_environment_ingestion_smoke(backend, seed_ids):
     await backend.create_seed_graph()
-    source = await backend.assert_persisted("l1", f"/api/v1/ingestion/sources/{seed_ids.document_id}", seed_ids.document_id)
+    source = await backend.assert_persisted("l1", f"/api/v1/ingestion/sources/{backend.seed_source_id}", backend.seed_source_id)
     assert seed_ids.account_id in str(source)
 
 

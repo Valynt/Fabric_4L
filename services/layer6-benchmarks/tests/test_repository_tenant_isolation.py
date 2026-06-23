@@ -4,16 +4,17 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
 )
-from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 from value_fabric.shared.database import MissingTenantContextError
 
 HOSTILE_TENANT_ID = "00000000-0000-0000-0000-000000000222"
 ISOLATED_TENANT_ID = "00000000-0000-0000-0000-000000000111"
+
 
 @pytest.fixture
 def mock_driver():
@@ -25,9 +26,11 @@ def mock_driver():
     driver.session.return_value = session
     return driver
 
+
 @pytest.fixture
 def repo(mock_driver):
     return BenchmarkRepository(mock_driver)
+
 
 @pytest.fixture
 def sample_dataset(request) -> BenchmarkDataset:
@@ -40,7 +43,7 @@ def sample_dataset(request) -> BenchmarkDataset:
         description="For isolation tests",
         industry="Technology",
         segment="Enterprise",
-        geography="Global"
+        geography="Global",
     )
     metric = BenchmarkMetric(
         name="revenue_growth",
@@ -54,26 +57,25 @@ def sample_dataset(request) -> BenchmarkDataset:
             p90=Decimal("25.0"),
             mean=Decimal("16.0"),
             std_dev=Decimal("4.0"),
-            sample_size=100
-        )
+            sample_size=100,
+        ),
     )
     dataset.add_metric(metric)
     return dataset
 
+
 @pytest.mark.asyncio
 async def test_repository_get_dataset_isolation(
-    repo: BenchmarkRepository,
-    mock_driver: AsyncMock,
-    sample_dataset: BenchmarkDataset
+    repo: BenchmarkRepository, mock_driver: AsyncMock, sample_dataset: BenchmarkDataset
 ):
     """Verify get_dataset executes with the provided tenant_id."""
-    # We mock execute_read to just return None or something, 
+    # We mock execute_read to just return None or something,
     # but more importantly we verify the call arguments of _tx_get_dataset
-    
+
     session = mock_driver.session.return_value
-    
+
     await repo.get_dataset(sample_dataset.dataset_id, tenant_id=HOSTILE_TENANT_ID)
-    
+
     session.execute_read.assert_called_once()
     # execute_read(func, *args, **kwargs)
     args, kwargs = session.execute_read.call_args
@@ -81,34 +83,36 @@ async def test_repository_get_dataset_isolation(
     assert args[1] == sample_dataset.dataset_id
     assert args[2] == HOSTILE_TENANT_ID  # Ensure tenant_id is correctly passed down
 
+
 @pytest.mark.asyncio
 async def test_repository_list_datasets_isolation(
-    repo: BenchmarkRepository,
-    mock_driver: AsyncMock
+    repo: BenchmarkRepository, mock_driver: AsyncMock
 ):
     """Verify list_datasets strictly filters by tenant_id in its query building."""
     session = mock_driver.session.return_value
-    
+
     await repo.list_datasets(industry="Retail", tenant_id=ISOLATED_TENANT_ID)
-    
+
     session.execute_read.assert_called_once()
     args, kwargs = session.execute_read.call_args
     assert args[0] == repo._tx_list_datasets
     assert args[1] == "Retail"
     assert args[2] is None  # segment
     assert args[3] == ISOLATED_TENANT_ID
-    
+
     # Let's also test the raw query generation
     mock_tx = AsyncMock()
     mock_tx.run = AsyncMock(return_value=AsyncMock())
     mock_tx.run.return_value.__aiter__.return_value = []
-    
-    await repo._tx_list_datasets(mock_tx, industry="Retail", segment=None, tenant_id=ISOLATED_TENANT_ID)
-    
+
+    await repo._tx_list_datasets(
+        mock_tx, industry="Retail", segment=None, tenant_id=ISOLATED_TENANT_ID
+    )
+
     mock_tx.run.assert_called_once()
     call_args, call_kwargs = mock_tx.run.call_args
     query = call_args[0]
-    
+
     # Ensure tenant condition is hardcoded as AND condition in the cypher query
     assert "d.tenant_id = $tenant_id" in query
     assert "d.industry = $industry" in query
@@ -145,7 +149,8 @@ async def test_repository_list_datasets_query_always_contains_tenant_predicate(
 
     mock_tx.run.assert_called_once()
     (query,), call_kwargs = mock_tx.run.call_args
-    assert "WHERE d.tenant_id = $tenant_id" in query
+    # Query allows tenant-scoped OR global_system datasets
+    assert "(d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system')" in query
     if industry:
         assert "AND d.industry = $industry" in query
     else:
@@ -159,9 +164,7 @@ async def test_repository_list_datasets_query_always_contains_tenant_predicate(
 
 @pytest.mark.asyncio
 async def test_repository_delete_dataset_isolation(
-    repo: BenchmarkRepository,
-    mock_driver: AsyncMock,
-    sample_dataset: BenchmarkDataset
+    repo: BenchmarkRepository, mock_driver: AsyncMock, sample_dataset: BenchmarkDataset
 ):
     """Verify delete_dataset executes with the provided tenant_id."""
     session = mock_driver.session.return_value
@@ -189,7 +192,8 @@ async def test_repository_get_dataset_cypher_requires_tenant_id(repo: BenchmarkR
     mock_tx.run.assert_called_once()
     call_args, call_kwargs = mock_tx.run.call_args
     query = call_args[0]
-    assert "tenant_id: $tenant_id" in query
+    # Query allows tenant-scoped OR global_system datasets
+    assert "WHERE d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system'" in query
     assert call_kwargs["dataset_id"] == "secret-dataset"
     assert call_kwargs["tenant_id"] == "hostile-tenant"
 

@@ -4,5 +4,5 @@ metadata:
   name: routing-host
   namespace: value-fabric
 data:
-  host: app.value-fabric.example.com
-  apiHost: api.value-fabric.example.com
+  host: www.valuepact.ai
+  apiHost: api.valuepact.ai

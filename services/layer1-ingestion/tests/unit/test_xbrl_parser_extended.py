@@ -12,7 +12,7 @@ Extends the basic tests in test_adapters.py with more thorough coverage:
 
 import pytest
 
-from value_fabric.layer1.adapters.xbrl_parser import (
+from layer1_ingestion.adapters.xbrl_parser import (
     FinancialFact,
     XBRLParser,
     ParsedXBRL,
@@ -67,7 +67,7 @@ class TestXBRLParserErrorHandling:
     def test_parse_date_raises_on_invalid_date(self):
         """_parse_date raises XBRLParseError for unparseable dates."""
         parser = XBRLParser()
-        from value_fabric.layer1.shared.exceptions import XBRLParseError
+        from layer1_ingestion.shared.exceptions import XBRLParseError
         with pytest.raises(XBRLParseError):
             parser._parse_date("not-a-date")
 
@@ -162,7 +162,7 @@ class TestDecimalScaling:
         assert abs(float(fact.value) - 3.14) < 0.001
 
     def test_invalid_decimals_value_skips_fact(self):
-        """Non-numeric decimals attribute raises XBRLParseError and the fact is skipped."""
+        """Non-numeric decimals attribute skips only that fact."""
         facts_xml = """<us-gaap:Revenues contextRef="ctx-2023" unitRef="USD" decimals="bad">99999</us-gaap:Revenues>"""
         result = _parse(self.CTX, self.UNIT, facts_xml)
 
@@ -234,7 +234,7 @@ class TestFinancialStatementGetFact:
     """Tests for the FinancialStatement.get_fact helper."""
 
     def test_get_fact_found(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         fact = FinancialFact(concept="us-gaap:Revenues", value=1000)
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[fact])
@@ -243,7 +243,7 @@ class TestFinancialStatementGetFact:
         assert found is fact
 
     def test_get_fact_case_insensitive(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         fact = FinancialFact(concept="us-gaap:NetIncomeLoss", value=500)
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[fact])
@@ -252,7 +252,7 @@ class TestFinancialStatementGetFact:
         assert found is fact
 
     def test_get_fact_not_found_returns_none(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[])
         assert stmt.get_fact("MissingConcept") is None
@@ -280,6 +280,22 @@ class TestEntityExtraction:
 
         # Entity is set from DEI or context
         assert result.entity is not None
+
+    def test_missing_dei_entity_returns_none_without_failing_parse(self):
+        xml = """<?xml version="1.0"?>
+        <xbrl xmlns="http://www.xbrl.org/2003/instance"
+              xmlns:dei="http://xbrl.sec.gov/dei/2023">
+            <context id="ctx">
+                <entity><identifier>CIK123</identifier></entity>
+                <period><endDate>2023-12-31</endDate></period>
+            </context>
+            <dei:DocumentType contextRef="ctx">10-K</dei:DocumentType>
+        </xbrl>"""
+        parser = XBRLParser()
+        result = parser.parse(xml)
+
+        assert result.entity is None
+        assert result.document_type == "10-K"
 
     def test_document_type_extracted_from_dei(self):
         xml = """<?xml version="1.0"?>

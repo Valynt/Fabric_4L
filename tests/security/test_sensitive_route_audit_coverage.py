@@ -9,23 +9,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 SENSITIVE_ROUTE_AUDIT_EXPECTATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
-        "services/layer4-agents/src/tenants/api/routes/api_keys.py",
+        "services/layer4-agents/src/layer4_agents/tenants/api/routes/api_keys.py",
         ("@router.post", "@router.delete", "emit_audit_event", "AuditAction.API_KEY_"),
     ),
     (
-        "services/layer4-agents/src/tenants/api/routes/oidc.py",
+        "services/layer4-agents/src/layer4_agents/tenants/api/routes/oidc.py",
         ('@router.get("/callback"', "emit_audit_event", "AuditAction.OIDC_LOGIN"),
     ),
     (
-        "services/layer4-agents/src/tenants/api/routes/provisioning.py",
+        "services/layer4-agents/src/layer4_agents/tenants/api/routes/provisioning.py",
         ("@router.post", "emit_audit_event", "AuditAction.TENANT_PROVISIONED_WEBHOOK"),
     ),
     (
-        "services/layer4-agents/src/api/routes/crm_webhooks.py",
+        "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
         ("@router.post", "emit_audit_event", "AuditAction.WEBHOOK_PROCESSING_FAILED"),
     ),
     (
-        "services/layer4-agents/src/api/routes/integrations.py",
+        "services/layer4-agents/src/layer4_agents/api/routes/integrations.py",
         ("@router.post", "@router.delete", "emit_audit_event", "AuditAction."),
     ),
 )

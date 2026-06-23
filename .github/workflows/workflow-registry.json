@@ -1,0 +1,998 @@
+{
+  "version": "1.0.0",
+  "description": "Machine-readable registry of GitHub Actions workflows for Fabric_4L.",
+  "workflows": [
+    {
+      "path": ".github/workflows/ai-evals-pipeline.yml",
+      "name": "AI Evaluation Pipeline",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        "eval-*.json",
+        "eval-summary.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/api-key-rotation.yml",
+      "name": "API Key Rotation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        "rotation_audit_clerk.json",
+        "rotation_audit_openai.json",
+        "rotation_audit_registry.json",
+        "rotation_audit_thesys.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/audit-evidence.yml",
+      "name": "Audit Evidence Collection",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_call",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "audit-evidence-${{ github.run_id }}.sha256",
+        "audit-evidence-${{ github.run_id }}.tar.gz",
+        "audit-evidence/access-control/",
+        "audit-evidence/automated-controls/",
+        "audit-evidence/availability/",
+        "audit-evidence/change-management/",
+        "audit-evidence/policies/",
+        "audit-evidence/security-operations/"
+      ],
+      "runtime_budget_minutes": 20,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/backend-integrated-reproducibility.yml",
+      "name": "Backend-Integrated Reproducibility Evidence",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        "artifacts/live-workflow-validation/**"
+      ],
+      "runtime_budget_minutes": 75,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/branch-protection-validation.yml",
+      "name": "Branch Protection Validation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/build-deploy.yml",
+      "name": "Build and Deploy",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "/tmp/build-metadata/build-metadata-${{ matrix.layer }}.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/chaos-testing.yml",
+      "name": "Chaos Engineering Tests",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_call",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "chaos-results/",
+        "chaos-results/${{ matrix.stress_type }}-stress/",
+        "chaos-results/autoscaler/",
+        "chaos-results/network-partition/",
+        "chaos-results/pod-delete/",
+        "chaos-results/pre-chaos-health.json"
+      ],
+      "runtime_budget_minutes": 25,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/cleanup-repo.yml",
+      "name": "Cleanup Repo",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/codeql.yml",
+      "name": "CodeQL Advanced",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/contract-compliance.yml",
+      "name": "Contract Compliance",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        ".pytest_cache/",
+        "apps/web/.eslintcache",
+        "apps/web/eslint-report.json",
+        "artifacts/canonical-import-drift.txt",
+        "artifacts/contract-breaking/openapi-breaking-report.json",
+        "artifacts/contract-breaking/openapi-breaking-report.md",
+        "contract-scorecard.json",
+        "deprecation-debt-report-enforced.json",
+        "deprecation-debt-report.json",
+        "docs/governance/deprecation-debt-registry.json",
+        "docs/governance/deprecations.json",
+        "services/${{matrix.layer}}/generated-openapi.json",
+        "test-results.xml"
+      ],
+      "runtime_budget_minutes": 15,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/contract-rfc-enforcer.yml",
+      "name": "Contract RFC Enforcer",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/critical-gates.yml",
+      "name": "Critical Gates",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/critical-gates/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "name": "Deploy",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "workflow_call",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "AWS_DEPLOY_ROLE_ARN",
+        "GITHUB_TOKEN",
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        "${{ steps.evidence.outputs.file }}",
+        "deployment-record.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/dr-drill.yml",
+      "name": "dr-drill",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "DR_BACKUP_BUCKET",
+        "DR_IAM_ROLE_ARN",
+        "SLACK_DR_WEBHOOK"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/drift-check.yml",
+      "name": "Contract Drift Check",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "contracts/openapi/*.json",
+        "scripts/export_openapi.py"
+      ],
+      "runtime_budget_minutes": 10,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/environment-promotion.yml",
+      "name": "Environment Promotion",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "workflow_dispatch",
+        "workflow_run"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/frontend-route-audit-check.yml",
+      "name": "Frontend Route Audit Check",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/router-contract/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/generated-api-freshness.yml",
+      "name": "Generated API Freshness",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 15,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/graph-module-tests.yml",
+      "name": "Graph Module Tests",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "apps/web/coverage/"
+      ],
+      "runtime_budget_minutes": 10,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/k8s-readiness.yml",
+      "name": "K8s Readiness",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "/tmp/*.yaml"
+      ],
+      "runtime_budget_minutes": 20,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/l4-frontend-contract-sync.yml",
+      "name": "Layer 4 Frontend Contract Sync",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 15,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/layer3-wrapper-drift.yml",
+      "name": "Layer3 Wrapper Drift Check",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/layer4-route-contract-matrix-check.yml",
+      "name": "layer4-route-contract-matrix-check",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/layer6-wrapper-drift.yml",
+      "name": "Layer6 Wrapper Drift",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/monthly-debt-burndown.yml",
+      "name": "monthly-debt-burndown",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/debt-burndown"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/openapi-drift-check.yml",
+      "name": "OpenAPI Drift Check",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/penetration-testing.yml",
+      "name": "Penetration Testing",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "nikto-results/",
+        "penetration-results/",
+        "zap-results/"
+      ],
+      "runtime_budget_minutes": 45,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/performance-load-tests.yml",
+      "name": "Performance Load Tests",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/performance/k6-summary.json",
+        "artifacts/performance/logs/",
+        "artifacts/performance/slo-evaluation.json",
+        "artifacts/performance/slo-report.md",
+        "artifacts/performance/slo-window-history.json"
+      ],
+      "runtime_budget_minutes": 40,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/pr-checks.yml",
+      "name": "PR Checks",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        ".pytest_cache/",
+        ".schemathesis/",
+        "apps/web/coverage/",
+        "apps/web/dist/public/",
+        "apps/web/dist/stats.html",
+        "apps/web/e2e-results/**",
+        "apps/web/frontend-junit.xml",
+        "apps/web/playwright-report/**",
+        "artifacts/compatibility-debt/",
+        "artifacts/critical-behaviors-gate/result.json",
+        "artifacts/docker-compose-config/**",
+        "artifacts/docs-validation/docs-validation-evidence.json",
+        "artifacts/docs-validation/docs-validation-summary.md",
+        "artifacts/docs-validation/stale-documents.json",
+        "artifacts/duplicate-source-trees.json",
+        "artifacts/l3-contract-drift.json",
+        "artifacts/layer-quality-scorecard.md",
+        "artifacts/layer3-audited-mutation-violations.json",
+        "artifacts/layer3-cypher-scope-audit.json",
+        "artifacts/layer3-query-entrypoint-matrix.json",
+        "artifacts/layer3-source-mirror.txt",
+        "artifacts/legacy-debt-report.json",
+        "artifacts/logs/",
+        "artifacts/observability/**",
+        "artifacts/production-readiness/**",
+        "artifacts/pytest-collection.txt",
+        "artifacts/pytest-skip-governance.json",
+        "artifacts/python-contract-lint.json",
+        "artifacts/readiness/behavior-readiness-audit.json",
+        "artifacts/release-evidence/billing-entitlements-junit.xml",
+        "artifacts/release-evidence/billing-entitlements-summary.json",
+        "artifacts/release-evidence/billing-entitlements-summary.md",
+        "artifacts/release/release-readiness-report.json",
+        "artifacts/release/release-readiness-report.md",
+        "artifacts/release_smoke/**",
+        "artifacts/route-tenant-propagation.json",
+        "artifacts/route-tenant-propagation.md",
+        "artifacts/shared-imports-runtime.json",
+        "artifacts/structural-preflight.json",
+        "artifacts/tenant-isolation/summary.json",
+        "artifacts/test-skip-governance.json",
+        "artifacts/violation-diff-summary.json",
+        "artifacts/violation-diff-summary.md",
+        "artifacts/webhook-security-matrix.md",
+        "sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json",
+        "services/layer1-ingestion/layer1-coverage.xml",
+        "services/layer1-ingestion/layer1-junit.xml",
+        "services/layer1-ingestion/layer1-results.json",
+        "services/layer2-extraction/layer2-coverage.xml",
+        "services/layer2-extraction/layer2-junit.xml",
+        "services/layer2-extraction/layer2-results.json",
+        "services/layer3-knowledge/artifacts/layer3-tenancy/",
+        "services/layer3-knowledge/layer3-coverage.xml",
+        "services/layer3-knowledge/layer3-junit.xml",
+        "services/layer3-knowledge/layer3-results.json",
+        "services/layer4-agents/layer4-coverage.xml",
+        "services/layer4-agents/layer4-junit.xml",
+        "services/layer4-agents/layer4-results.json",
+        "services/layer5-ground-truth/contract-diff/",
+        "services/layer5-ground-truth/layer5-coverage.xml",
+        "services/layer5-ground-truth/layer5-junit.xml",
+        "services/layer5-ground-truth/layer5-results.json",
+        "services/layer6-benchmarks/layer6-coverage.xml",
+        "services/layer6-benchmarks/layer6-junit.xml",
+        "services/layer6-benchmarks/layer6-results.json"
+      ],
+      "runtime_budget_minutes": 45,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/prod-readiness.yml",
+      "name": "Prod Readiness Gates",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/",
+        "artifacts/agent/",
+        "artifacts/arch/",
+        "artifacts/chaos/",
+        "artifacts/database/**",
+        "artifacts/obs/",
+        "artifacts/readiness-10/**",
+        "artifacts/readiness/",
+        "artifacts/release/",
+        "artifacts/release/gate-*.json",
+        "artifacts/release/junit/",
+        "artifacts/release/release-readiness-report.json",
+        "artifacts/release/release-readiness-report.md",
+        "artifacts/security/",
+        "artifacts/smoke/",
+        "artifacts/state/",
+        "reports/scorecards/repo-maturity.json",
+        "reports/scorecards/repo-maturity.schema.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/public-docs.yml",
+      "name": "Public Docs",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/publish-sdk.yml",
+      "name": "Publish SDK",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "sdk/python/dist/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/release-evidence-bundle.yml",
+      "name": "Release Evidence Bundle",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "${{ steps.bundle.outputs.path }}",
+        "artifacts/evidence/*.summary.json",
+        "artifacts/release/release-safety.json",
+        "attestation-${{ matrix.service }}-${{ github.sha }}.json",
+        "bandit-report.*",
+        "prompt-injection-tests.xml",
+        "report_*.html",
+        "report_*.json",
+        "sbom-${{ matrix.service }}-${{ github.sha }}.*",
+        "security-tests.xml",
+        "signing-${{ matrix.service }}-${{ github.sha }}.json",
+        "stack-health.json",
+        "trivy-${{ matrix.service }}.*"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/repo-hygiene.yml",
+      "name": "Repository Hygiene",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "artifacts/repo-hygiene.json"
+      ],
+      "runtime_budget_minutes": 5,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/repro-seed-validation.yml",
+      "name": "Repro Seed Validation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/runbook-validation.yml",
+      "name": "Runbook Validation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/secret-rotation.yml",
+      "name": "Secret Rotation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "INFISICAL_IDENTITY_ID"
+      ],
+      "produced_artifacts": [
+        "rotation-audit.log"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/security-gates.yml",
+      "name": "Security Gates",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "${{matrix.artifact.name}}-sbom-vuln.sarif",
+        "${{matrix.artifact.name}}-sbom.cdx.json",
+        ".fabric/audit/security_regression_gate/",
+        "apps/web/pnpm-audit-report.json",
+        "artifacts/mandatory_security/",
+        "sbom-${{matrix.layer}}.cdx.json",
+        "security-evidence/",
+        "semgrep-cypher-errors.json",
+        "semgrep-cypher-warnings.json",
+        "services/${{matrix.layer}}/bandit-report.json",
+        "services/${{matrix.layer}}/pip-audit-report.json",
+        "zap-reports/"
+      ],
+      "runtime_budget_minutes": 45,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/smoke-gate.yml",
+      "name": "Smoke Gate",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/smoke/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/supply-chain.yml",
+      "name": "Supply Chain Integrity",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_call",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "${{ matrix.layer }}-sbom.cdx.json",
+        "${{ matrix.layer }}-sbom.spdx.json",
+        "${{ matrix.layer }}-vulns.sarif",
+        "*-audit.json",
+        "*.intoto.jsonl",
+        "license-reports/",
+        "source-${{ matrix.layer }}-sbom.cdx.json",
+        "source-${{ matrix.layer }}-vulns.sarif",
+        "supply-chain-report.md"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/terraform-cd.yml",
+      "name": "Terraform CD",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "AWS_TERRAFORM_ROLE_ARN"
+      ],
+      "produced_artifacts": [
+        "infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}"
+      ],
+      "runtime_budget_minutes": 15,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/test-reporting.yml",
+      "name": "Unified Test Reporting",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "workflow_run"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/vault-integration.yml",
+      "name": "Vault Integration",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "workflow_call"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "VAULT_ADDR",
+        "VAULT_ROLE",
+        "VAULT_ROLE_STAGING",
+        "outputs"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/weekly-acceptance-gates.yml",
+      "name": "Weekly Acceptance Gates",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/weekly-gates/weekly-gate-status.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/zero-trust-validation.yml",
+      "name": "Zero Trust Validation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/zero-trust/"
+      ],
+      "runtime_budget_minutes": 15,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    }
+  ],
+  "duplicate_groups": []
+}

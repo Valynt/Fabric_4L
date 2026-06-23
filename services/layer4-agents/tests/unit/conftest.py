@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Unit test conftest — adds src/ to sys.path so bare harness.* imports resolve."""
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path

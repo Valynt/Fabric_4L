@@ -1,10 +1,15 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import axiosRetry from 'axios-retry';
-import { z } from 'zod';
-import { createFeatureLogger } from '@/lib/telemetry';
-import { sessionService } from '@/services/sessionService';
-import { isClerkAuthEnabled } from '@/auth/clerkConfig';
-import { getClerkSessionToken } from '@/auth/clerkSession';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
+import axiosRetry from "axios-retry";
+import { z } from "zod";
+import { createFeatureLogger } from "@/lib/telemetry";
+import { sessionService } from "@/services/sessionService";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { getClerkSessionToken } from "@/auth/clerkSession";
 
 /**
  * Validate that a Clerk-issued session token is safe to embed in an HTTP
@@ -21,7 +26,7 @@ import { getClerkSessionToken } from '@/auth/clerkSession';
  * the cost of a header-injection bug is not.
  */
 function sanitizeBearerToken(raw: string | null | undefined): string | null {
-  if (typeof raw !== 'string') return null;
+  if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
   // Reject CR, LF, and all C0/C1 control characters (incl. DEL).
@@ -30,125 +35,267 @@ function sanitizeBearerToken(raw: string | null | undefined): string | null {
   return trimmed;
 }
 
-const log = createFeatureLogger('api-client');
+const log = createFeatureLogger("api-client");
+const SKIP_AUTH_REDIRECT_HEADER = "X-Fabric-Skip-Auth-Redirect";
+
+function shouldSkipAuthRedirect(headers: unknown): boolean {
+  if (!headers || typeof headers !== "object") {
+    return false;
+  }
+
+  const maybeAxiosHeaders = headers as {
+    get?: (name: string) => unknown;
+  };
+
+  if (typeof maybeAxiosHeaders.get === "function") {
+    const value =
+      maybeAxiosHeaders.get(SKIP_AUTH_REDIRECT_HEADER) ??
+      maybeAxiosHeaders.get(SKIP_AUTH_REDIRECT_HEADER.toLowerCase());
+    return value === "1" || value === 1 || value === true || value === "true";
+  }
+
+  const plainHeaders = headers as Record<string, unknown>;
+  for (const [key, value] of Object.entries(plainHeaders)) {
+    if (key.toLowerCase() === SKIP_AUTH_REDIRECT_HEADER.toLowerCase()) {
+      return value === "1" || value === 1 || value === true || value === "true";
+    }
+  }
+
+  return false;
+}
 
 // ============================================================================
 // MANDATE 4: INPUT VALIDATION - Runtime validation schemas
 // ============================================================================
 
 /** Valid layer keys - single source of truth */
-const VALID_LAYER_KEYS = ['l1', 'l2', 'l2_5', 'l3', 'l4', 'l5', 'l6'] as const;
+const VALID_LAYER_KEYS = [
+  "api",
+  "l1",
+  "l2",
+  "l2_5",
+  "l3",
+  "l4",
+  "l5",
+  "l6",
+  "l7",
+] as const;
 
 /** Zod schema for layer key validation */
 const LayerKeySchema = z.enum(VALID_LAYER_KEYS);
 export type LayerKey = z.infer<typeof LayerKeySchema>;
 
 /** API path validation - must start with / */
-const ApiPathSchema = z.string().regex(/^\//, 'API path must start with /');
+const ApiPathSchema = z.string().regex(/^\//, "API path must start with /");
 
-/** Backend error response schema - replaces unsafe `as ErrorResponse` */
+/** Backend error response schema - canonical ErrorEnvelope plus legacy FastAPI detail fallback. */
 const ErrorResponseSchema = z.object({
-  message: z.string().optional(),
-  code: z.string().optional(),
-  trace_id: z.string().optional(),
-  // FastAPI validation errors use `detail` — may be a string or array of issues
-  detail: z.union([
-    z.string(),
-    z.array(z.object({ loc: z.array(z.unknown()), msg: z.string(), type: z.string() })),
-    z.unknown(),
-  ]).optional(),
+  error: z
+    .object({
+      code: z.string().min(1),
+      message: z.string(),
+      request_id: z.string().min(1),
+      details: z.record(z.string(), z.unknown()).nullable().optional(),
+    })
+    .optional(),
+  // FastAPI validation errors use `detail` when a service has not installed the shared handler.
+  detail: z
+    .union([
+      z.string(),
+      z.array(
+        z.object({
+          loc: z.array(z.unknown()),
+          msg: z.string(),
+          type: z.string(),
+        })
+      ),
+      z.unknown(),
+    ])
+    .optional(),
 });
 
 type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 /** Extract a human-readable message from a FastAPI detail field */
-function extractDetailMessage(detail: ErrorResponse['detail']): string | null {
+function extractDetailMessage(detail: ErrorResponse["detail"]): string | null {
   if (!detail) return null;
-  if (typeof detail === 'string') return detail;
+  if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
     return detail
-      .map((d) => {
-        if (typeof d === 'object' && d !== null && 'msg' in d) {
+      .map(d => {
+        if (typeof d === "object" && d !== null && "msg" in d) {
           return String((d as { msg: unknown }).msg);
         }
         return JSON.stringify(d);
       })
-      .join('; ');
+      .join("; ");
   }
   return null;
 }
 
 function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
   const key = `${name}=`;
-  const match = document.cookie.split('; ').find((part) => part.startsWith(key));
+  const match = document.cookie.split("; ").find(part => part.startsWith(key));
   return match ? decodeURIComponent(match.slice(key.length)) : null;
 }
 
-const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // ============================================================================
 // Environment Configuration with Validation
 // ============================================================================
 
-/** Get environment variable with fallback and validation */
-function getEnvVar(name: string, fallback: string): string {
-  const value = import.meta.env[name];
-  if (typeof value === 'string' && value.length > 0) {
-    return value;
+function isProductionApiConfig(): boolean {
+  return import.meta.env.PROD || import.meta.env.VITE_APP_ENV === "production";
+}
+
+const API_ENV_VALUES: Record<string, string | undefined> = {
+  VITE_API_VERSION_PREFIX: import.meta.env.VITE_API_VERSION_PREFIX,
+  VITE_API_BASE: import.meta.env.VITE_API_BASE,
+  VITE_LAYER1_ROUTE_PREFIX: import.meta.env.VITE_LAYER1_ROUTE_PREFIX,
+  VITE_L1_PREFIX: import.meta.env.VITE_L1_PREFIX,
+  VITE_LAYER2_ROUTE_PREFIX: import.meta.env.VITE_LAYER2_ROUTE_PREFIX,
+  VITE_L2_PREFIX: import.meta.env.VITE_L2_PREFIX,
+  VITE_LAYER2_5_ROUTE_PREFIX: import.meta.env.VITE_LAYER2_5_ROUTE_PREFIX,
+  VITE_L2_5_PREFIX: import.meta.env.VITE_L2_5_PREFIX,
+  VITE_LAYER3_ROUTE_PREFIX: import.meta.env.VITE_LAYER3_ROUTE_PREFIX,
+  VITE_L3_PREFIX: import.meta.env.VITE_L3_PREFIX,
+  VITE_LAYER4_ROUTE_PREFIX: import.meta.env.VITE_LAYER4_ROUTE_PREFIX,
+  VITE_L4_PREFIX: import.meta.env.VITE_L4_PREFIX,
+  VITE_LAYER5_ROUTE_PREFIX: import.meta.env.VITE_LAYER5_ROUTE_PREFIX,
+  VITE_L5_PREFIX: import.meta.env.VITE_L5_PREFIX,
+  VITE_LAYER6_ROUTE_PREFIX: import.meta.env.VITE_LAYER6_ROUTE_PREFIX,
+  VITE_L6_PREFIX: import.meta.env.VITE_L6_PREFIX,
+  VITE_LAYER7_ROUTE_PREFIX: import.meta.env.VITE_LAYER7_ROUTE_PREFIX,
+  VITE_L7_PREFIX: import.meta.env.VITE_L7_PREFIX,
+};
+
+/** Get an API environment variable with development/test fallbacks only. */
+function getApiEnvVar(
+  names: readonly string[],
+  fallback: string,
+  label: string
+): string {
+  for (const name of names) {
+    const value = API_ENV_VALUES[name];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
   }
-  log.warn(`Environment variable ${name} not set, using fallback`, { fallback });
+
+  if (isProductionApiConfig()) {
+    throw new Error(
+      `${label} is required in production frontend builds. Set one of: ${names.join(", ")}.`
+    );
+  }
+
+  log.warn(`API environment variable not set, using non-production fallback`, {
+    names,
+    fallback,
+  });
   return fallback;
 }
 
 // Canonical routing/versioning matrix:
 // docs/reference/service-routing-and-api-version-matrix.md
 // Shared gateway API version prefix.
-const API_VERSION_PREFIX = getEnvVar('VITE_API_VERSION_PREFIX', getEnvVar('VITE_API_BASE', '/api/v1'));
+const API_VERSION_PREFIX = getApiEnvVar(
+  ["VITE_API_VERSION_PREFIX", "VITE_API_BASE"],
+  "/api/v1",
+  "Gateway API version prefix"
+);
 
 // Layer route prefixes (aligned with matrix terminology; legacy VITE_L*_PREFIX still supported)
 const LAYER_PREFIXES = {
-  l1: getEnvVar('VITE_LAYER1_ROUTE_PREFIX', getEnvVar('VITE_L1_PREFIX', '/ingest')),
-  l2: getEnvVar('VITE_LAYER2_ROUTE_PREFIX', getEnvVar('VITE_L2_PREFIX', '/extract')),
-  l2_5: getEnvVar('VITE_LAYER2_5_ROUTE_PREFIX', getEnvVar('VITE_L2_5_PREFIX', '/signals')),
-  l3: getEnvVar('VITE_LAYER3_ROUTE_PREFIX', getEnvVar('VITE_L3_PREFIX', '/graph')),
-  l4: getEnvVar('VITE_LAYER4_ROUTE_PREFIX', getEnvVar('VITE_L4_PREFIX', '/agents')),
-  l5: getEnvVar('VITE_LAYER5_ROUTE_PREFIX', getEnvVar('VITE_L5_PREFIX', '/truths')),
-  l6: getEnvVar('VITE_LAYER6_ROUTE_PREFIX', getEnvVar('VITE_L6_PREFIX', '/benchmarks')),
+  api: getApiEnvVar(
+    ["VITE_API_ROUTE_PREFIX"],
+    "",
+    "API gateway route prefix"
+  ),
+  l1: getApiEnvVar(
+    ["VITE_LAYER1_ROUTE_PREFIX", "VITE_L1_PREFIX"],
+    "/ingest",
+    "Layer 1 route prefix"
+  ),
+  l2: getApiEnvVar(
+    ["VITE_LAYER2_ROUTE_PREFIX", "VITE_L2_PREFIX"],
+    "/extract",
+    "Layer 2 route prefix"
+  ),
+  l2_5: getApiEnvVar(
+    ["VITE_LAYER2_5_ROUTE_PREFIX", "VITE_L2_5_PREFIX"],
+    "/signals",
+    "Layer 2.5 route prefix"
+  ),
+  l3: getApiEnvVar(
+    ["VITE_LAYER3_ROUTE_PREFIX", "VITE_L3_PREFIX"],
+    "/graph",
+    "Layer 3 route prefix"
+  ),
+  l4: getApiEnvVar(
+    ["VITE_LAYER4_ROUTE_PREFIX", "VITE_L4_PREFIX"],
+    "/agents",
+    "Layer 4 route prefix"
+  ),
+  l5: getApiEnvVar(
+    ["VITE_LAYER5_ROUTE_PREFIX", "VITE_L5_PREFIX"],
+    "/truths",
+    "Layer 5 route prefix"
+  ),
+  l6: getApiEnvVar(
+    ["VITE_LAYER6_ROUTE_PREFIX", "VITE_L6_PREFIX"],
+    "/benchmarks",
+    "Layer 6 route prefix"
+  ),
+  l7: getApiEnvVar(
+    ["VITE_LAYER7_ROUTE_PREFIX", "VITE_L7_PREFIX"],
+    "/billing",
+    "Layer 7 route prefix"
+  ),
 } as const;
 
 /**
  * Generate a request correlation ID for tracing
  */
 function generateRequestId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `req_${crypto.randomUUID()}`;
   }
   // Fallback for rare legacy runtimes
   return `req_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
-export interface ApiFetchInitOptions extends Omit<RequestInit, 'headers' | 'method'> {
+export interface ApiFetchInitOptions extends Omit<
+  RequestInit,
+  "headers" | "method"
+> {
   headers?: Record<string, string>;
   method?: string;
 }
 
 export function buildApiFetchInit({
   headers = {},
-  method = 'GET',
-  credentials = 'include',
+  method = "GET",
+  credentials = "include",
   ...rest
 }: ApiFetchInitOptions = {}): RequestInit {
   const normalizedMethod = method.toUpperCase();
   const mergedHeaders: Record<string, string> = {
     ...headers,
-    'X-Request-ID': headers['X-Request-ID'] ?? generateRequestId(),
+    "X-Request-ID": headers["X-Request-ID"] ?? generateRequestId(),
   };
 
-  if (MUTATING_METHODS.has(normalizedMethod) && !mergedHeaders['X-CSRF-Token']) {
-    const csrfToken = getCookie('vf_csrf_token');
+  if (
+    MUTATING_METHODS.has(normalizedMethod) &&
+    !mergedHeaders["X-CSRF-Token"]
+  ) {
+    const csrfToken = getCookie("vf_csrf_token");
     if (csrfToken) {
-      mergedHeaders['X-CSRF-Token'] = csrfToken;
+      mergedHeaders["X-CSRF-Token"] = csrfToken;
     }
   }
 
@@ -171,11 +318,11 @@ export class ApiError extends Error {
   constructor(
     message: string,
     statusCode: number = 500,
-    errorCode: string = 'INTERNAL_ERROR',
+    errorCode: string = "INTERNAL_ERROR",
     traceId: string | null = null
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.traceId = traceId;
     this.statusCode = statusCode;
     this.errorCode = errorCode;
@@ -202,7 +349,10 @@ class ApiClient {
   constructor() {
     this.initializeClients();
     // Cleanup stale entries periodically
-    this.cleanupInterval = setInterval(() => this.cleanupStaleRequests(), this.DEDUPE_TTL_MS);
+    this.cleanupInterval = setInterval(
+      () => this.cleanupStaleRequests(),
+      this.DEDUPE_TTL_MS
+    );
   }
 
   /**
@@ -239,27 +389,32 @@ class ApiClient {
     return `${layer}:${method}:${path}`;
   }
 
-  private trackInFlight<T>(requestKey: string, promise: Promise<T>): Promise<T> {
+  private trackInFlight<T>(
+    requestKey: string,
+    promise: Promise<T>
+  ): Promise<T> {
     this.inFlightRequests.set(requestKey, {
       promise,
       timestamp: Date.now(),
     });
 
     // Cleanup when complete without creating a secondary unhandled rejection.
-    void promise.finally(() => {
-      this.inFlightRequests.delete(requestKey);
-    }).catch(() => undefined);
+    void promise
+      .finally(() => {
+        this.inFlightRequests.delete(requestKey);
+      })
+      .catch(() => undefined);
 
     return promise;
   }
 
   private initializeClients() {
-    (Object.keys(LAYER_PREFIXES) as LayerKey[]).forEach((layer) => {
+    (Object.keys(LAYER_PREFIXES) as LayerKey[]).forEach(layer => {
       const client = axios.create({
         baseURL: `${API_VERSION_PREFIX}${LAYER_PREFIXES[layer]}`,
         withCredentials: true,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         timeout: 30000,
       });
@@ -268,17 +423,22 @@ class ApiClient {
       axiosRetry(client, {
         retries: 3,
         retryDelay: axiosRetry.exponentialDelay,
-        retryCondition: (error) => {
-          // Retry on network errors and 5xx responses
-          return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-            (error.response?.status !== undefined && error.response.status >= 500);
+        retryCondition: error => {
+          // Retry on network errors, 5xx responses, and rate-limiting (429)
+          // so the client can recover from transient infrastructure failures.
+          const status = error.response?.status;
+          return (
+            axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+            (status !== undefined && status >= 500) ||
+            status === 429
+          );
         },
       });
 
       client.interceptors.request.use(
-        async (config) => {
+        async config => {
           // Add correlation ID for request tracing
-          config.headers['X-Request-ID'] = generateRequestId();
+          config.headers["X-Request-ID"] = generateRequestId();
           // Tenant identity must be resolved server-side from authenticated context.
           // Do not send client-controlled tenant headers from browser code.
 
@@ -299,15 +459,15 @@ class ApiClient {
             const rawToken = await getClerkSessionToken();
             const safeToken = sanitizeBearerToken(rawToken);
             if (safeToken) {
-              config.headers['Authorization'] = `Bearer ${safeToken}`;
+              config.headers["Authorization"] = `Bearer ${safeToken}`;
             }
           }
 
-          const method = (config.method ?? 'get').toUpperCase();
+          const method = (config.method ?? "get").toUpperCase();
           if (MUTATING_METHODS.has(method)) {
-            const csrfToken = getCookie('vf_csrf_token');
+            const csrfToken = getCookie("vf_csrf_token");
             if (csrfToken) {
-              config.headers['X-CSRF-Token'] = csrfToken;
+              config.headers["X-CSRF-Token"] = csrfToken;
             }
           }
 
@@ -315,7 +475,7 @@ class ApiClient {
         },
         (error: AxiosError) => {
           // MANDATE 3: ERROR HANDLING COMPLETENESS - Log request errors with context
-          log.error('Request interceptor error', {
+          log.error("Request interceptor error", {
             message: error.message,
             code: error.code,
             stack: error.stack,
@@ -325,30 +485,52 @@ class ApiClient {
       );
 
       client.interceptors.response.use(
-        (response) => response,
+        response => response,
         (error: AxiosError) => {
           // MANDATE 2: TYPE SAFETY - Runtime validation with Zod instead of `as` assertion
-          const parseResult = ErrorResponseSchema.safeParse(error.response?.data);
-          const errorData: ErrorResponse = parseResult.success ? parseResult.data : {};
+          const parseResult = ErrorResponseSchema.safeParse(
+            error.response?.data
+          );
+          const errorData: ErrorResponse = parseResult.success
+            ? parseResult.data
+            : {};
 
           // MANDATE 1: NULL/UNDEFINED SAFETY - Optional chaining with nullish coalescing
           const traceId =
-            (typeof error.response?.headers['x-request-id'] === 'string'
-              ? error.response.headers['x-request-id']
+            (typeof error.response?.headers["x-request-id"] === "string"
+              ? error.response.headers["x-request-id"]
               : null) ??
-            errorData.trace_id ??
+            errorData.error?.request_id ??
             null;
 
-          if (error.response?.status === 401) {
-            sessionService.handleUnauthorized({ route: typeof window !== 'undefined' ? window.location.pathname : undefined, traceId });
+          const skipAuthRedirect = shouldSkipAuthRedirect(error.config?.headers);
+
+          if (error.response?.status === 401 && !skipAuthRedirect) {
+            sessionService.handleUnauthorized({
+              route:
+                typeof window !== "undefined"
+                  ? window.location.pathname
+                  : undefined,
+              traceId,
+            });
+          }
+
+          if (error.response?.status === 403 && !skipAuthRedirect) {
+            sessionService.handleForbidden({
+              route:
+                typeof window !== "undefined"
+                  ? window.location.pathname
+                  : undefined,
+              traceId,
+            });
           }
 
           // MANDATE 3: Log error with full context for debugging
-          log.error('API request failed', {
+          log.error("API request failed", {
             url: error.config?.url,
             method: error.config?.method,
             status: error.response?.status,
-            errorCode: errorData.code,
+            errorCode: errorData.error?.code,
             traceId,
             message: error.message,
           });
@@ -357,9 +539,12 @@ class ApiClient {
           // Prefer `detail` (FastAPI format) over generic `message` for richer error messages.
           const detailMessage = extractDetailMessage(errorData.detail);
           const apiError = new ApiError(
-            detailMessage ?? errorData.message ?? error.message ?? 'API request failed',
+            detailMessage ??
+              errorData.error?.message ??
+              error.message ??
+              "API request failed",
             error.response?.status ?? 500,
-            errorData.code ?? 'INTERNAL_ERROR',
+            errorData.error?.code ?? "INTERNAL_ERROR",
             traceId
           );
 
@@ -381,16 +566,16 @@ class ApiClient {
     const validation = LayerKeySchema.safeParse(layer);
     if (!validation.success) {
       const error = new TypeError(
-        `Invalid layer key: ${String(layer)}. Must be one of: ${VALID_LAYER_KEYS.join(', ')}`
+        `Invalid layer key: ${String(layer)}. Must be one of: ${VALID_LAYER_KEYS.join(", ")}`
       );
-      log.error('Layer validation failed', { layer, error: error.message });
+      log.error("Layer validation failed", { layer, error: error.message });
       throw error;
     }
 
     const client = this.clients.get(layer);
     if (!client) {
       const error = new Error(`API client for layer ${layer} not initialized`);
-      log.error('Client lookup failed', { layer, error: error.message });
+      log.error("Client lookup failed", { layer, error: error.message });
       throw error;
     }
     return client;
@@ -398,36 +583,65 @@ class ApiClient {
 
   // MANDATE 4: INPUT VALIDATION - All HTTP methods validate path starts with /
   // PERF: Request deduplication applied to GET requests
-  async get<T = unknown>(layer: LayerKey, path: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async get<T = unknown>(
+    layer: LayerKey,
+    path: string,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<T>> {
     const validatedPath = ApiPathSchema.parse(path);
-    const requestKey = this.getRequestKey(layer, 'GET', validatedPath);
+    const requestKey = this.getRequestKey(layer, "GET", validatedPath);
 
     // Check for existing in-flight request
     const existing = this.inFlightRequests.get(requestKey);
     if (existing) {
-      log.warn('Deduplicating identical in-flight GET request', { path: validatedPath, layer });
+      log.warn("Deduplicating identical in-flight GET request", {
+        path: validatedPath,
+        layer,
+      });
       return existing.promise as Promise<AxiosResponse<T>>;
     }
 
-    return this.trackInFlight(requestKey, this.getClient(layer).get(validatedPath, config));
+    return this.trackInFlight(
+      requestKey,
+      this.getClient(layer).get(validatedPath, config)
+    );
   }
 
-  async post<T = unknown>(layer: LayerKey, path: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async post<T = unknown>(
+    layer: LayerKey,
+    path: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<T>> {
     const validatedPath = ApiPathSchema.parse(path);
     return this.getClient(layer).post(validatedPath, data, config);
   }
 
-  async put<T = unknown>(layer: LayerKey, path: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async put<T = unknown>(
+    layer: LayerKey,
+    path: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<T>> {
     const validatedPath = ApiPathSchema.parse(path);
     return this.getClient(layer).put(validatedPath, data, config);
   }
 
-  async patch<T = unknown>(layer: LayerKey, path: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async patch<T = unknown>(
+    layer: LayerKey,
+    path: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<T>> {
     const validatedPath = ApiPathSchema.parse(path);
     return this.getClient(layer).patch(validatedPath, data, config);
   }
 
-  async delete<T = unknown>(layer: LayerKey, path: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  async delete<T = unknown>(
+    layer: LayerKey,
+    path: string,
+    config?: AxiosRequestConfig
+  ): Promise<AxiosResponse<T>> {
     const validatedPath = ApiPathSchema.parse(path);
     return this.getClient(layer).delete(validatedPath, config);
   }

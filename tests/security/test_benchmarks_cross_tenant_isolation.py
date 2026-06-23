@@ -17,8 +17,9 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
-from value_fabric.layer3.api.routes.benchmarks import _get_authenticated_tenant_id
+from src.api.routes.benchmarks import _get_authenticated_tenant_id
 
 pytestmark = pytest.mark.tenant_boundary
 
@@ -183,26 +184,32 @@ class TestBenchmarkWriteIsolation:
 class TestBenchmarkFailClosed:
     """Missing or empty tenant context must be rejected before any Neo4j call."""
 
+    def _assert_unauthorized_tenant_context(self, exc: BaseException) -> None:
+        if isinstance(exc, HTTPException):
+            assert exc.status_code == 401
+            return
+        assert isinstance(exc, AuthenticationError)
+
     def test_missing_tenant_id_on_api_key_raises_401(self):
         """If api_key.tenant_id is absent, _get_authenticated_tenant_id raises HTTP 401."""
         mock_key = SimpleNamespace(tenant_id=None)
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
             _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
+        self._assert_unauthorized_tenant_context(exc_info.value)
 
     def test_empty_string_tenant_id_raises_401(self):
         """Empty string tenant_id must also be rejected."""
         mock_key = SimpleNamespace(tenant_id="")
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
             _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
+        self._assert_unauthorized_tenant_context(exc_info.value)
 
     def test_whitespace_only_tenant_id_raises_401(self):
         """Whitespace-only tenant_id must be treated as absent."""
         mock_key = SimpleNamespace(tenant_id="   ")
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
             _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
+        self._assert_unauthorized_tenant_context(exc_info.value)
 
     def test_valid_tenant_id_is_returned(self):
         """Valid tenant_id is returned unchanged."""

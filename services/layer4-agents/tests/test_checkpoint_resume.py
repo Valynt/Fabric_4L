@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Integration tests for LangGraph checkpointing and workflow resume.
 
 Tests the pause/resume lifecycle for human-in-the-loop workflows.
 Verifies state persistence across interruptions and container restarts.
 """
 
-from __future__ import annotations
 
 import os
 from typing import Any
@@ -12,12 +13,16 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.config.checkpoint import CheckpointConfig, CheckpointConnectionError, get_checkpoint_saver
-from value_fabric.layer4.engine.executor import OrchestrationController, WorkflowExecutionError
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
-from value_fabric.layer4.tools.registry import ToolRegistry
-from value_fabric.layer4.workflows.base import BaseWorkflow
+from layer4_agents.config.checkpoint import CheckpointConfig, CheckpointConnectionError, get_checkpoint_saver
+from layer4_agents.engine.executor import (
+    CheckpointConflictError,
+    OrchestrationController,
+    WorkflowExecutionError,
+)
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.tools.registry import ToolRegistry
+from layer4_agents.workflows.base import BaseWorkflow
 
 # Reuse fixtures from conftest.py: mock_checkpoint_saver, mock_tool_registry,
 # state_manager, orchestrator_with_checkpoint, controller_with_running_state,
@@ -79,7 +84,7 @@ class TestResumeWorkflow:
         )
         mock_workflow.run = AsyncMock(return_value=mock_result)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -133,7 +138,7 @@ class TestResumeWorkflow:
 
         resume_data = {"approved": True, "notes": "Proceed with caution"}
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -146,6 +151,178 @@ class TestResumeWorkflow:
         assert result.output_data["resume_decision"] == resume_data
         assert result.output_data["resumed_by"] == "test-user"
         assert "resumed_at" in result.output_data
+
+    @pytest.mark.asyncio
+    async def test_resume_workflow_enforces_replay_policy(self, controller_with_running_state, state_manager):
+        """Resume validates against replay-conflict policy with real hashes."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        existing_state.input_data = {"original": "data"}
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_workflow(
+                workflow_id=workflow_id,
+                user_id="test-user",
+                resume_data={"approved": True}
+            )
+
+        assert result is not None
+        # Fingerprint should be recorded after successful resume
+        assert len(controller._seen_replay_fingerprints) > 0
+
+    @pytest.mark.asyncio
+    async def test_resolve_resume_policy_allows_matching_latest_and_checkpoint_hashes(
+        self, controller_with_running_state, state_manager
+    ):
+        controller, workflow_id, existing_state = controller_with_running_state
+        await state_manager.save_state(workflow_id, existing_state)
+        checkpoint_id = "chk-match-001"
+        expected_hash = controller._compute_state_hash(existing_state)
+
+        controller._get_latest_persisted_checkpoint_hash = AsyncMock(return_value=expected_hash)  # type: ignore[method-assign]
+
+        await controller._resolve_resume_policy(
+            workflow_id=workflow_id,
+            state=existing_state,
+            target_checkpoint_id=checkpoint_id,
+        )
+        controller._get_latest_persisted_checkpoint_hash.assert_awaited_once_with(  # type: ignore[attr-defined]
+            tenant_id=existing_state.tenant_id,
+            workflow_id=workflow_id,
+            run_id=existing_state.run_id,
+            checkpoint_id=checkpoint_id,
+        )
+
+    @pytest.mark.asyncio
+    async def test_resolve_resume_policy_rejects_when_persisted_hash_differs(
+        self, controller_with_running_state, state_manager
+    ):
+        controller, workflow_id, existing_state = controller_with_running_state
+        caller_state = existing_state.model_copy(deep=True)
+        persisted_state = existing_state.model_copy(deep=True)
+        persisted_state.output_data = {"start": {"status": "changed"}}
+        await state_manager.save_state(workflow_id, persisted_state)
+
+        with pytest.raises(CheckpointConflictError) as exc_info:
+            await controller._resolve_resume_policy(
+                workflow_id=workflow_id,
+                state=caller_state,
+                target_checkpoint_id="chk-stale-001",
+            )
+
+        assert exc_info.value.metadata["workflow_id"] == workflow_id
+        assert exc_info.value.metadata["checkpoint_id"] == "chk-stale-001"
+        assert exc_info.value.metadata["expected_hash"] != exc_info.value.metadata["actual_hash"]
+
+    @pytest.mark.asyncio
+    async def test_resume_workflow_rejects_stale_client_state(
+        self, controller_with_running_state, state_manager
+    ):
+        controller, workflow_id, existing_state = controller_with_running_state
+        await state_manager.save_state(workflow_id, existing_state.model_copy(deep=True))
+
+        stale_state = existing_state.model_copy(deep=True)
+        stale_state.input_data = {"stale": "client"}
+
+        async def _load_state(_workflow_id: str):
+            if not hasattr(_load_state, "count"):
+                _load_state.count = 0
+            _load_state.count += 1
+            return stale_state if _load_state.count == 1 else existing_state
+
+        controller.state_manager.load_state = _load_state  # type: ignore[method-assign]
+
+        with pytest.raises(CheckpointConflictError):
+            await controller.resume_workflow(
+                workflow_id=workflow_id,
+                user_id="test-user",
+                resume_data={"approved": True},
+            )
+
+    @pytest.mark.asyncio
+    async def test_resume_policy_rejects_second_writer_after_first_wins(
+        self, controller_with_running_state
+    ):
+        controller, workflow_id, existing_state = controller_with_running_state
+        caller_hash = controller._compute_state_hash(existing_state)
+        stale_persisted_hash = "stale-hash-from-later-writer"
+        assert caller_hash != stale_persisted_hash
+
+        controller._get_latest_persisted_checkpoint_hash = AsyncMock(  # type: ignore[method-assign]
+            side_effect=[caller_hash, stale_persisted_hash]
+        )
+
+        # First writer sees matching durable hash and may continue
+        await controller._resolve_resume_policy(
+            workflow_id=workflow_id,
+            state=existing_state,
+            target_checkpoint_id="chk-race-001",
+        )
+
+        # Second writer reuses stale state and is rejected
+        with pytest.raises(CheckpointConflictError):
+            await controller._resolve_resume_policy(
+                workflow_id=workflow_id,
+                state=existing_state,
+                target_checkpoint_id="chk-race-001",
+            )
+
+    @pytest.mark.asyncio
+    async def test_resume_from_checkpoint_exists_and_runs(self, controller_with_running_state, state_manager):
+        """resume_from_checkpoint is implemented and executes workflow."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        existing_state.input_data = {"original": "data"}
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_from_checkpoint(
+                workflow_id=workflow_id,
+                checkpoint_id="chk-test-001",
+                user_id="test-user",
+                resume_data={"approved": True}
+            )
+
+        assert result is not None
+        assert result["status"] == existing_state.status.value
+        assert result["checkpoint_id"] == "chk-test-001"
+        mock_workflow.run.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_resume_from_checkpoint_uses_requested_checkpoint_not_latest(
+        self, controller_with_running_state, state_manager
+    ):
+        """Resume passes the requested checkpoint ID when a thread has later checkpoints."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        requested_checkpoint_id = "chk-requested-001"
+        latest_checkpoint_id = "chk-latest-002"
+        existing_state.metadata["checkpoint_history"] = [
+            requested_checkpoint_id,
+            latest_checkpoint_id,
+        ]
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_from_checkpoint(
+                workflow_id=workflow_id,
+                checkpoint_id=requested_checkpoint_id,
+                user_id="test-user",
+                resume_data={"approved": True},
+            )
+
+        assert result["checkpoint_id"] == requested_checkpoint_id
+        _, kwargs = mock_workflow.run.call_args
+        assert kwargs["thread_id"] == workflow_id
+        assert kwargs["checkpoint_config"] == {"checkpoint_id": requested_checkpoint_id}
+        assert kwargs["checkpoint_config"]["checkpoint_id"] != latest_checkpoint_id
 
 
 @pytest.mark.unit
@@ -162,7 +339,7 @@ class TestCheckpointConfiguration:
         mock_saver = MagicMock()
         mock_saver_cls.return_value = mock_saver
 
-        with patch("asyncpg.connect") as mock_connect:
+        with patch("psycopg.AsyncConnection.connect", new_callable=AsyncMock) as mock_connect:
             with patch.dict("sys.modules", {"langgraph.checkpoint.postgres.aio": MagicMock(AsyncPostgresSaver=mock_saver_cls)}):
                 mock_conn = AsyncMock()
                 mock_connect.return_value = mock_conn
@@ -196,12 +373,11 @@ class TestCheckpointConfiguration:
         persistence failures gracefully.
         """
         # When database is unavailable, should raise CheckpointConnectionError
-        # Patch asyncpg at the source module where connect is actually used
-        # Mock the langgraph postgres module to avoid psycopg dependency
-        with patch("asyncpg.connect") as mock_connect:
+        # Patch psycopg at the source module where connect is actually used.
+        with patch("psycopg.AsyncConnection.connect", new_callable=AsyncMock) as mock_connect:
             with patch.dict("sys.modules", {"langgraph.checkpoint.postgres.aio": MagicMock()}):
-                import asyncpg
-                mock_connect.side_effect = asyncpg.PostgresError("Database unavailable")
+                import psycopg
+                mock_connect.side_effect = psycopg.OperationalError("Database unavailable")
 
                 with pytest.raises(CheckpointConnectionError) as exc_info:
                     async with CheckpointConfig.get_saver() as _:
@@ -221,7 +397,7 @@ class TestCheckpointConfiguration:
         """
         # Must set env var to trigger DB connection attempt
         with patch.dict(os.environ, {"ENVIRONMENT": "development", "CHECKPOINT_DATABASE_URL": "postgresql://invalid:5432/test"}):
-            with patch("value_fabric.layer4.config.checkpoint.CheckpointConfig.create_saver") as mock_create:
+            with patch("layer4_agents.config.checkpoint.CheckpointConfig.create_saver") as mock_create:
                 mock_create.side_effect = CheckpointConnectionError("Database unavailable")
                 
                 result = await get_checkpoint_saver()
@@ -279,7 +455,7 @@ class TestCheckpointIntegration:
         )
         mock_workflow.run = AsyncMock(return_value=completed_state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -304,7 +480,7 @@ class TestCheckpointIntegration:
         mock_workflow = Mock(spec=BaseWorkflow)
         mock_workflow.run = AsyncMock(side_effect=mock_run)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow) as mock_create:
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow) as mock_create:
             result1 = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="user-1",
@@ -327,7 +503,7 @@ class TestOrchestrationControllerEdgeCases:
     ):
         """Orphaned workflows from a previous pod are marked INTERRUPTED."""
         from datetime import UTC
-        from value_fabric.layer4.models.agent_state import WorkflowStatus
+        from layer4_agents.models.agent_state import WorkflowStatus
 
         controller = OrchestrationController(
             tool_registry=mock_tool_registry,
@@ -375,7 +551,7 @@ class TestOrchestrationControllerEdgeCases:
     @pytest.mark.asyncio
     async def test_pause_already_interrupted_workflow_raises(self, state_manager):
         """Pause on an already-interrupted workflow must raise ValueError."""
-        from value_fabric.layer4.models.agent_state import WorkflowStatus
+        from layer4_agents.models.agent_state import WorkflowStatus
 
         wf_id = "already-interrupted-wf"
         interrupted_state = BaseAgentState(tenant_id="test-tenant", 

@@ -1,7 +1,7 @@
 # Layer 4: Agentic Workflow Engine
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: net-new layer logic must go to canonical runtime packages in `value_fabric/layer*/`. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: net-new Layer 4 logic must go to the canonical `services/layer4-agents/src/layer4_agents/` package. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 LangGraph-powered agentic workflow layer for the Value Fabric platform.
 
@@ -41,27 +41,53 @@ alembic upgrade head
 pytest tests/ -v
 
 # Start API server
-uvicorn src.api.main:app --reload
+uvicorn layer4_agents.api.main:app --reload
 ```
 
 
 ## Canonical namespace and compatibility timeline
 
-- Runtime/deployment entrypoint remains `uvicorn src.api.main:app` (from `services/layer4-agents/src/api/main.py`).
-- Canonical Python import namespace for Layer 4 is `value_fabric.layer4.*`.
-- `layer4_agents/*` at repo root is a deprecated compatibility shim only (deprecated on **2026-05-12**; removal review by **2026-09-30**).
-- New code must not import `layer4_agents.*`; CI enforces this via `scripts/ci/check_layer4_canonical_imports.py`.
+- Runtime/deployment entrypoint remains `uvicorn layer4_agents.api.main:app` (from `services/layer4-agents/src/layer4_agents/api/main.py`).
+- Canonical Python import namespace for Layer 4 is `layer4_agents.*`.
+- `services/layer4-agents/src/{api,agents,engine,workflows,services,...}` top-level packages are deprecated compatibility shims only.
+- New code must import `layer4_agents.*`; CI rejects duplicate top-level implementation files via `scripts/ci/check_duplicate_source_trees.py`.
 
 ## Architecture
 
 ```
-src/
+src/layer4_agents/
 ├── models/          # Agent state, workflow configs, tool schemas
 ├── workflows/       # LangGraph workflow definitions
 ├── tools/           # 24 skill implementations
 ├── engine/          # Core workflow execution engine
 └── api/             # FastAPI REST endpoints
 ```
+
+## Agent Runtime
+
+Layer 4 uses LangGraph as the workflow runtime. The dependency is declared in
+`services/layer4-agents/pyproject.toml` through `langgraph` and
+`langgraph-checkpoint-postgres`; runtime code uses the canonical
+`services/layer4-agents/src/layer4_agents/` package.
+
+Startup flows through `layer4_agents.api.startup.build_lifespan()`, which
+creates `CheckpointConfig.create_saver()`, `StateManager`, and
+`OrchestrationController`. Workflow execution enters
+`OrchestrationController.execute_workflow()`, resolves workflow classes through
+`create_workflow()`, then executes `BaseWorkflow.run(...)`.
+
+`BaseWorkflow._build_graph()` builds a LangGraph `StateGraph`,
+`BaseWorkflow.compile()` injects checkpoint and interrupt configuration, and
+`BaseWorkflow.run()` executes the compiled graph with `compiled.ainvoke(...)`.
+`CHECKPOINT_DATABASE_URL` backs the production `AsyncPostgresSaver`; tests use
+LangGraph `InMemorySaver` for real graph execution without Postgres.
+
+Observability is carried by `Layer4LifecycleLogger`, `Layer4EventContext`,
+workflow Prometheus metrics, stuck-workflow detection, and checkpoint
+corruption/replay metrics using `workflow_id`, `run_id`, `trace_id`, and
+`tenant_id`. See
+[`docs/architecture/agent-runtime.md`](../../docs/architecture/agent-runtime.md)
+for the complete runtime path.
 
 ## API Endpoints
 
@@ -176,6 +202,16 @@ The initial migration creates tables for:
 - **Tenant Governance**: tenants, users, api_keys, tenant_isolation_tier_history
 - **CRM Accounts**: accounts, account_sync_status
 - **Billing**: billing_customers, billing_subscriptions, billing_webhook_events, billing_usage_events, billing_invoices, billing_invoice_items, billing_charges
+
+### Stripe Webhook Reliability Guarantees
+
+- Webhook signatures are verified before any persistence or business logic is run.
+- Stripe events are persisted to `billing_webhook_events` keyed by `event.id` with inbox state (`status`, `attempt_count`, `last_error`, `next_retry_at`, `processed_at`, `payload_hash`).
+- Idempotency scope is `event.id` and applies per Stripe account/event stream; duplicate deliveries are safely re-entrant even when concurrent workers race on the same event row.
+- Duplicate deliveries with already-processed `event.id` are acknowledged idempotently and do not re-run side effects.
+- Business handling runs asynchronously from request handling, with retryable failures marked for bounded exponential backoff and terminal failures moved to a final `failed` state.
+- Durable retry queue processing is supported via `process_due_webhook_retries(...)`, which dequeues due `retryable` rows, applies backoff, and leaves poison messages in durable DLQ state (`status=failed`) with audit logs.
+- Operational metrics are emitted as structured logs under `billing.webhook.metric.{accepted|processed|duplicate|retried|failed}` plus audit records like `billing.webhook.dlq_routed`.
 - **Integrations**: integrations
 
 All tables include `tenant_id` for multi-tenant isolation via Row-Level Security (RLS).

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for L4 provenance models and in-memory store."""
 
-from __future__ import annotations
 
 import sys
 from datetime import UTC, datetime
@@ -109,7 +110,7 @@ class TestPROVEntity:
     def test_to_dict(self):
         entity = PROVEntity(entity_id="urn:uuid:e1", label="Test")
         d = entity.to_dict()
-        assert d["@id"] == "urn:uuid:e1"
+        assert d["id_"] == "urn:uuid:e1"
         assert d["label"] == "Test"
 
 
@@ -154,7 +155,7 @@ class TestPROVActivity:
     def test_to_dict(self):
         activity = PROVActivity(activity_id="urn:uuid:act-1", label="Extraction")
         d = activity.to_dict()
-        assert d["@id"] == "urn:uuid:act-1"
+        assert d["id_"] == "urn:uuid:act-1"
         assert d["label"] == "Extraction"
 
 
@@ -184,7 +185,7 @@ class TestPROVAgent:
             label="ROI Agent",
         )
         d = agent.to_dict()
-        assert d["@type"] == "vf:AIAgent"
+        assert d["type_"] == "vf:AIAgent"
         assert d["label"] == "ROI Agent"
 
 
@@ -284,8 +285,8 @@ class TestPROVGraph:
         graph = PROVGraph(graph_id="prov:test")
         graph.add_entity(PROVEntity(entity_id="urn:uuid:e1"))
         d = graph.to_dict()
-        assert d["@id"] == "prov:test"
-        assert "prov" in d["@context"]
+        assert d["id_"] == "prov:test"
+        assert "prov" in d["context_"]
         assert len(d["entities"]) == 1
 
 

@@ -29,6 +29,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON, TypeDecorator
@@ -78,6 +79,18 @@ class UUID(TypeDecorator):
         if isinstance(value, uuid.UUID):
             return value
         return uuid.UUID(str(value))
+
+
+class JSONBCompat(TypeDecorator):
+    """Use PostgreSQL JSONB in runtime and SQLAlchemy JSON for SQLite tests."""
+
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(JSONB())
+        return dialect.type_descriptor(JSON())
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +226,7 @@ class TruthObject(Base):
         comment="Semantic category — see ClaimType enum",
     )
     value = Column(
-        JSON,
+        JSONBCompat,
         nullable=True,
         comment=(
             "Structured value: {amount, unit, currency, period} "
@@ -324,7 +337,7 @@ class TruthObject(Base):
     # Scope / applicability
     # -------------------------------------------------------------------------
     applies_to = Column(
-        JSON,
+        JSONBCompat,
         nullable=True,
         comment=(
             "Scope of applicability: {opportunity_id, account_id, industry, "
@@ -702,6 +715,10 @@ class MaturityHistory(Base):
     truth_object: Mapped["TruthObject"] = relationship(
         "TruthObject",
         back_populates="maturity_history",
+    )
+
+    __table_args__ = (
+        Index("ix_maturity_history_tenant_recorded", "tenant_id", "recorded_at"),
     )
 
     def __repr__(self) -> str:

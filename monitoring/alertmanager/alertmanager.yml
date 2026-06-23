@@ -12,7 +12,20 @@
 # Upgrade to ESO+Vault:
 # 1. Install External Secrets Operator: kubectl apply -f k8s/external-secrets/
 # 2. Create Vault ClusterSecretStore: kubectl apply -f k8s/external-secrets/vault-store.yml
-# 3. Replace SecretKeyRef with ExternalSecret: see docs/runbooks/alertmanager-secret-management.md
+# 3. Replace SecretKeyRef with ExternalSecret: see docs/troubleshooting/runbooks/infrastructure/alertmanager-secret-management.md
+
+# Canonical runbook URLs used by Alertmanager annotations and receiver fallbacks:
+# - Incident index: https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks/incident
+# - Severity classification: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/severity-classification.md
+# - Communication templates: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/communication-template.md
+# - Data breach response: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/data-breach-response.md
+# - Tenant isolation failure: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/tenant-isolation-failure.md
+# - Ransomware response: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/ransomware-response.md
+# - Cloud provider outage: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/cloud-provider-outage.md
+# - Service down: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/infrastructure/service-down.md
+# - High error rate: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md
+# - LLM cost: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-llm-cost.md
+# - Formula approval: https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/formula-approval.md
 
 global:
   resolve_timeout: 5m
@@ -128,7 +141,7 @@ receivers:
         actions:
           - type: button
             text: 'View Runbook'
-            url: '{{ .CommonAnnotations.runbook_url }}'
+            url: '{{ .CommonAnnotations.runbook_url | default "https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks" }}'
 
   # Slack for warning alerts
   - name: 'slack-warning'
@@ -140,7 +153,7 @@ receivers:
         actions:
           - type: button
             text: 'View Runbook'
-            url: '{{ .CommonAnnotations.runbook_url }}'
+            url: '{{ .CommonAnnotations.runbook_url | default "https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks" }}'
 
   # Slack for FinOps cost alerts
   - name: 'slack-finops'
@@ -152,7 +165,7 @@ receivers:
         actions:
           - type: button
             text: 'View Runbook'
-            url: '{{ .CommonAnnotations.runbook_url }}'
+            url: '{{ .CommonAnnotations.runbook_url | default "https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks" }}'
 
   # Slack for info alerts
   - name: 'slack-info'
@@ -183,12 +196,12 @@ receivers:
         text: |
           *Alert:* {{ .CommonAnnotations.summary }}
           *Description:* {{ .CommonAnnotations.description }}
-          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url | default "https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks" }}
           *Tenant bucket:* {{ .GroupLabels.actor_tenant_tier }}
         actions:
           - type: button
             text: 'View Runbook'
-            url: '{{ .CommonAnnotations.runbook_url }}'
+            url: '{{ .CommonAnnotations.runbook_url | default "https://github.com/bmsull560/Fabric_4L/tree/main/docs/troubleshooting/runbooks" }}'
 
 # Inhibition rules: prevent notification storms
 inhibit_rules:

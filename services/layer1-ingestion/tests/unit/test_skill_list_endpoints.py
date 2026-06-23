@@ -18,8 +18,8 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from value_fabric.layer1.api.main import router
-from value_fabric.layer1.api.main import (
+from layer1_ingestion.api.main import router
+from layer1_ingestion.api.main import (
     get_tenant_id,
     get_db_from_context_sync,
     SourceCorpus,
@@ -91,7 +91,10 @@ def _make_app_with_overrides(tenant_id: UUID, db_mock: MagicMock):
     without an additional prefix.
     """
     from fastapi import FastAPI
+    from value_fabric.shared.error_handling import register_exception_handlers
+
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(router)
 
     app.dependency_overrides[get_tenant_id] = lambda: tenant_id

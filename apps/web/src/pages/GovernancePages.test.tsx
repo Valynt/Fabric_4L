@@ -25,7 +25,7 @@ function wrapperWithPath(path: string) {
 
 function useGovernanceHandlers() {
   server.use(
-    http.get('/api/v1/truths', () => {
+    http.get('/api/v1/agents/ground-truth/truths', () => {
       return HttpResponse.json({
         items: [
           {
@@ -42,14 +42,14 @@ function useGovernanceHandlers() {
         total: 1,
       });
     }),
-    http.get('/api/v1/maturity-ladder', () => {
+    http.get('/api/v1/agents/ground-truth/maturity-ladder', () => {
       return HttpResponse.json({
         levels: [
           { level: 4, name: 'Validated', description: 'Human-validated truth', required_status: 'validated', advancement_trigger: 'Human review completed' },
         ],
       });
     }),
-    http.get('/api/v1/truths/freshness-summary', () => {
+    http.get('/api/v1/agents/ground-truth/truths/freshness-summary', () => {
       return HttpResponse.json({
         tenant_id: "tenant-demo",
         timestamp: "2026-01-02T00:00:00Z",
@@ -57,7 +57,7 @@ function useGovernanceHandlers() {
         warning_threshold_days: 14,
       });
     }),
-    http.get('/api/v1/truths/stale', () => {
+    http.get('/api/v1/agents/ground-truth/truths/stale', () => {
       return HttpResponse.json({
         items: [],
         total: 0,
@@ -66,7 +66,7 @@ function useGovernanceHandlers() {
         has_more: false,
       });
     }),
-    http.get('/api/v1/truths/:truthId/audit', () => {
+    http.get('/api/v1/agents/ground-truth/truths/:truthId/audit', () => {
       return HttpResponse.json([
         {
           id: 'audit-001',

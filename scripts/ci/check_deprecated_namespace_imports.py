@@ -18,7 +18,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCAN_ROOTS = (Path("services"), Path("value_fabric"), Path("tests"), Path("scripts"), Path("docs"))
-DEPRECATED_PREFIXES = ("value_fabric.layer1_ingestion", "value_fabric.layer3_knowledge")
+DEPRECATED_PREFIXES = (
+    "value_fabric.src",
+    "value_fabric.layer1",
+    "value_fabric.layer2",
+    "value_fabric.layer3",
+    "value_fabric.layer4",
+    "value_fabric.layer5",
+    "value_fabric.layer6",
+    "value_fabric.layer1_ingestion",
+    "value_fabric.layer2_extraction",
+    "value_fabric.layer3_knowledge",
+    "value_fabric.layer6_benchmarks",
+)
 SKIP_DIRS = {
     "__pycache__", ".venv", "venv", ".pytest_cache", "node_modules",
     ".git", ".tmp", "archive", ".hypothesis", ".ruff_cache", ".mypy_cache",
@@ -78,6 +90,10 @@ def _deprecated_target(name: str) -> str | None:
     return None
 
 
+def _rel_posix(path: Path, repo_root: Path) -> str:
+    return path.relative_to(repo_root).as_posix()
+
+
 def _categorize_path(rel_path: str) -> str:
     p = Path(rel_path)
     if p.parts and p.parts[0] == "docs":
@@ -105,7 +121,7 @@ def _scan_file(file_path: Path, repo_root: Path) -> list[DeprecatedImport]:
         return []
 
     lines = source.splitlines()
-    rel = str(file_path.relative_to(repo_root))
+    rel = _rel_posix(file_path, repo_root)
     findings: list[DeprecatedImport] = []
 
     for node in ast.walk(tree):

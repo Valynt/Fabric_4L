@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "schedule_meeting",
+  "traces": [
+    {
+      "id": "sm-001",
+      "description": "Schedule stakeholder discovery session",
+      "input": {
+        "title": "Value discovery workshop",
+        "attendees": ["buyer@example.com", "value-consultant@example.com"],
+        "duration_minutes": 60,
+        "timezone": "America/New_York"
+      },
+      "assertions": {
+        "calendar_hold_required": true
+      }
+    }
+  ]
+}

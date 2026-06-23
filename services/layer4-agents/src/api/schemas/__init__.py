@@ -1,63 +1,7 @@
-"""API schemas for Layer 4 Agentic Workflow Engine."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.api.schemas``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .accounts import (
-    AccountActivityResponse,
-    AccountDetailSchema,
-    AccountFilterOptionsResponse,
-    AccountListItemSchema,
-    AccountListResponse,
-    AccountSearchRequest,
-    ActivityItemSchema,
-    ContactSchema,
-    OpportunitySchema,
-    SyncAccountsRequest,
-    SyncAccountsResponse,
-    SyncStatusListResponse,
-    SyncStatusSchema,
-)
-from .workflow_progress import (
-    WorkflowProgressActionableState,
-    WorkflowProgressSchema,
-    normalize_workflow_progress,
-)
-
-__all__ = [
-    "AccountActivityResponse",
-    "AccountDetailSchema",
-    "AccountFilterOptionsResponse",
-    "AccountListItemSchema",
-    "AccountListResponse",
-    "AccountSearchRequest",
-    "ActivityItemSchema",
-    "ContactSchema",
-    "OpportunitySchema",
-    "SyncAccountsRequest",
-    "SyncAccountsResponse",
-    "SyncStatusListResponse",
-    "SyncStatusSchema",
-    "WorkflowProgressActionableState",
-    "WorkflowProgressSchema",
-    "normalize_workflow_progress",
-    "AddInvoiceItemRequest",
-    "CheckoutRequest",
-    "CreateInvoiceRequest",
-    "CustomerSyncRequest",
-    "PortalRequest",
-    "RecordChargeRequest",
-    "SubscriptionResponse",
-    "UsageBatchRequest",
-    "UsageEventRequest",
-]
-from .billing import (
-    AddInvoiceItemRequest,
-    CheckoutRequest,
-    CreateInvoiceRequest,
-    CustomerSyncRequest,
-    PortalRequest,
-    RecordChargeRequest,
-    SubscriptionResponse,
-    UsageBatchRequest,
-    UsageEventRequest,
-)
+from layer4_agents.api.schemas import *  # noqa: F401,F403

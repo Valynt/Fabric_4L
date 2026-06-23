@@ -1,18 +1,7 @@
-"""Integration clients for Layer 4 to communicate with other layers.
+"""Compatibility shim for the canonical Layer 4 module.
 
-Provides hybrid integration approach where L4 agents orchestrate
-L1 (Ingestion), L2 (Extraction), and L3 (Knowledge Graph) via API calls.
+The implementation lives in ``layer4_agents.integration``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
 """
 
-from __future__ import annotations
-
-from .layer1_client import Layer1IngestionClient
-from .layer2_client import Layer2ExtractionClient
-from .layer3_client import Layer3Client, Layer3ClientError
-
-__all__ = [
-    "Layer1IngestionClient",
-    "Layer2ExtractionClient",
-    "Layer3Client",
-    "Layer3ClientError",
-]
+from layer4_agents.integration import *  # noqa: F401,F403

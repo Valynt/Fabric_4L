@@ -19,8 +19,11 @@ describe('withApiError', () => {
       response: {
         status: 409,
         data: {
-          code: 'CONFLICT',
-          trace_id: 'trace-409',
+          error: {
+            code: 'CONFLICT',
+            message: 'Conflict',
+            request_id: 'trace-409',
+          },
         },
       },
     });

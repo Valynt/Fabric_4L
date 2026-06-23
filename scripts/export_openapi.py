@@ -60,19 +60,20 @@ class OpenApiExportSpec:
 
 
 EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
-    OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "api/app_monolith.py", "layer1-ingestion.json"),
+    OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "layer1_ingestion/api/main.py", "layer1-ingestion.json"),
     OpenApiExportSpec("Layer 2", "layer2-extraction", "layer2_extraction", "layer2_extraction/api/main.py", "layer2-extraction.json"),
     OpenApiExportSpec("Layer 3", "layer3-knowledge", "layer3_knowledge", "api/main.py", "layer3-knowledge.json"),
-    OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "api/main.py", "layer4-agents.json"),
+    OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "layer4_agents/api/main.py", "layer4-agents.json"),
     OpenApiExportSpec("Layer 5", "layer5-ground-truth", "layer5_ground_truth", "layer5_ground_truth/api/main.py", "layer5-ground-truth.json"),
     OpenApiExportSpec(
         "Layer 6",
         "layer6-benchmarks",
         "layer6_benchmarks",
-        "api/main.py",
+        "layer6_benchmarks/api/main.py",
         "layer6-benchmarks.json",
-        canonical_module="value_fabric.layer6.api.main",
     ),
+    OpenApiExportSpec("API Gateway", "api", "app", "main.py", "fabric-4l-api.json", canonical_module="app.main"),
+    OpenApiExportSpec("Layer 7 Billing", "layer7-billing", "layer7_billing", "layer7_billing/api/main.py", "layer7-billing.json"),
 )
 
 STATIC_CONTRACTS: tuple[str, ...] = ("signals.json",)
@@ -83,6 +84,7 @@ EXPORT_ENV: dict[str, str] = {
     "ENVIRONMENT": "development",
     "ENV": "development",
     "APP_ENV": "development",
+    "DEBUG": "false",
     "OPENAPI_EXPORT": "1",
     "ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT": "true",
     "LAYER1_ENVIRONMENT": "development",
@@ -112,14 +114,22 @@ EXPORT_ENV: dict[str, str] = {
     "LAYER4_API_URL": "http://localhost:8004",
     "LAYER5_GROUND_TRUTH_URL": "http://localhost:8005",
     "LAYER6_API_URL": "http://localhost:8006",
+    "LAYER7_DATABASE_URL": "postgresql+asyncpg://fabric_export:fabric_export_secret@localhost:5432/layer7_billing",
 }
 
 def _module_stub(name: str, **attrs: Any) -> ModuleType:
     """Create an importable module stub for OpenAPI export subprocesses."""
 
+    is_package = attrs.pop("__package_stub__", "." not in name)
     module = ModuleType(name)
     module.__dict__.update(attrs)
-    module.__spec__ = importlib.util.spec_from_loader(name, loader=None)
+    module.__spec__ = importlib.util.spec_from_loader(
+        name,
+        loader=None,
+        is_package=is_package,
+    )
+    if is_package:
+        module.__path__ = []  # type: ignore[attr-defined]
     sys.modules[name] = module
     return module
 
@@ -160,10 +170,35 @@ class _MockStateGraph:
         return value
 
 
+class _MockAsyncDriver:
+    async def close(self) -> None:
+        return None
+
+
 class _MockAsyncGraphDatabase:
+    @staticmethod
+    def driver(*args: Any, **kwargs: Any) -> _MockAsyncDriver:
+        return _MockAsyncDriver()
+
+
+class _MockNeo4jGraphDatabase:
     @staticmethod
     def driver(*args: Any, **kwargs: Any) -> Any:
         return None
+
+
+class _MockNeo4jError(Exception):
+    pass
+
+
+class _MockLanggraphInterrupt(Exception):
+    pass
+
+
+class _MockLanggraphCommand:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.args = args
+        self.kwargs = kwargs
 
 
 class _MockS3Client:
@@ -224,6 +259,38 @@ def _install_common_openapi_dependency_shims() -> None:
         sys.modules["psycopg2"] = psycopg2
         sys.modules["psycopg2.extras"] = _MockPsycopg2.extras
 
+    if importlib.util.find_spec("passlib") is None:
+        class _MockCryptContext:
+            def verify(self, secret: str, hash: str) -> bool:
+                return True
+
+            def hash(self, secret: str) -> str:
+                return "mock-hash"
+
+        passlib_context = _module_stub("passlib.context", CryptContext=_MockCryptContext)
+        sys.modules["passlib"] = _module_stub("passlib")
+        sys.modules["passlib.context"] = passlib_context
+
+    if importlib.util.find_spec("neo4j") is None:
+        _module_stub(
+            "neo4j",
+            AsyncDriver=_MockAsyncDriver,
+            AsyncGraphDatabase=_MockAsyncGraphDatabase,
+            AsyncSession=object,
+            Driver=object,
+            GraphDatabase=_MockNeo4jGraphDatabase,
+        )
+        _module_stub(
+            "neo4j.exceptions",
+            AuthError=_MockNeo4jError,
+            ClientError=_MockNeo4jError,
+            ConfigurationError=_MockNeo4jError,
+            DatabaseError=_MockNeo4jError,
+            Neo4jError=_MockNeo4jError,
+            ServiceUnavailable=_MockNeo4jError,
+            TransientError=_MockNeo4jError,
+        )
+
     _install_email_validator_shim()
 
 
@@ -236,10 +303,9 @@ def _install_layer4_openapi_dependency_shims() -> None:
         _module_stub("langgraph.checkpoint.base", BaseCheckpointSaver=_MockLanggraphCheckpoint.BaseCheckpointSaver)
         _module_stub("langgraph.checkpoint.postgres")
         _module_stub("langgraph.checkpoint.postgres.aio", AsyncPostgresSaver=_MockLanggraphCheckpoint.AsyncPostgresSaver)
+        _module_stub("langgraph.errors", GraphInterrupt=_MockLanggraphInterrupt, NodeInterrupt=_MockLanggraphInterrupt)
         _module_stub("langgraph.graph", StateGraph=_MockStateGraph)
-
-    if importlib.util.find_spec("neo4j") is None:
-        _module_stub("neo4j", AsyncGraphDatabase=_MockAsyncGraphDatabase)
+        _module_stub("langgraph.types", Command=_MockLanggraphCommand)
 
     if importlib.util.find_spec("boto3") is None:
         class _MockBoto3(ModuleType):

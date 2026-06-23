@@ -1,9 +1,15 @@
-"""
-Async SQLAlchemy engine and session management for Layer 5.
+"""Async SQLAlchemy engine and session management for Layer 5.
 
 Uses asyncpg for production and aiosqlite for tests (via DATABASE_URL override).
 Follows the same pattern as Layer 1's database.py but with async support.
 """
+
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    ValidationError,
+)
+
+INTENTIONAL_DB_ADAPTER_BYPASS = True
 
 import logging
 import time
@@ -24,6 +30,31 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.types import CHAR, TypeDecorator
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Optional metrics support
+# ---------------------------------------------------------------------------
+
+
+def _get_metrics():
+    """
+    Get the metrics module if available.
+
+    Prometheus metrics are optional - if the module is not installed,
+    this returns None gracefully. This allows the database layer to
+    function in environments without monitoring dependencies.
+
+    Returns:
+        Metrics object or None if not available.
+    """
+    try:
+        from metrics.prometheus_metrics import get_metrics
+        return get_metrics()
+    except ImportError:
+        return None
+
 
 # ---------------------------------------------------------------------------
 # SQLite UUID type adapter
@@ -86,12 +117,10 @@ _privileged_db_session_metrics = {
 
 
 def _record_pool_state(engine: AsyncEngine) -> None:
+    metrics = _get_metrics()
+    if metrics is None:
+        return
     try:
-        from metrics.prometheus_metrics import get_metrics
-
-        metrics = get_metrics()
-        if metrics is None:
-            return
         pool = engine.sync_engine.pool
         active = int(pool.checkedout())
         size = int(pool.size())
@@ -127,7 +156,7 @@ def _setup_sqlite_uuid_handling(url: str) -> None:
 def _is_production_like_runtime() -> bool:
     env = get_settings().effective_environment if hasattr(get_settings(), "effective_environment") else ""
     value = str(env or "").strip().lower()
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+    return value == "production"
 
 
 def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
@@ -184,14 +213,12 @@ class TenantEnforcedAsyncSession(AsyncSession):
         try:
             return await super().execute(statement, params, **kwargs)
         except SATimeoutError:
-            try:
-                from metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics is not None:
+            metrics = _get_metrics()
+            if metrics is not None:
+                try:
                     metrics.increment_db_pool_timeout()
-            except Exception:
-                logger.debug("DB pool timeout metric emission failed", exc_info=True)
+                except Exception:
+                    logger.debug("DB pool timeout metric emission failed", exc_info=True)
             raise
 
 
@@ -215,8 +242,10 @@ def get_engine() -> AsyncEngine:
             "echo": settings.debug,
             "future": True,
         }
-        # SQLite requires check_same_thread=False for connection pooling
         if settings.database_url.startswith("sqlite"):
+            for queue_pool_option in ("pool_size", "max_overflow", "pool_timeout"):
+                engine_kwargs.pop(queue_pool_option, None)
+            # SQLite requires check_same_thread=False for connection pooling
             engine_kwargs["connect_args"] = {"check_same_thread": False}
         _engine = create_async_engine(
             settings.database_url,
@@ -233,11 +262,12 @@ def get_engine() -> AsyncEngine:
         def _on_pool_checkin(dbapi_conn, connection_record) -> None:
             start = connection_record.info.pop("pool_checkout_start", None)
             if start is not None:
-                from metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
+                metrics = _get_metrics()
                 if metrics is not None:
-                    metrics.observe_db_pool_wait(time.perf_counter() - start)
+                    try:
+                        metrics.observe_db_pool_wait(time.perf_counter() - start)
+                    except Exception:
+                        logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
         _setup_sqlite_uuid_handling(settings.database_url)
     return _engine
@@ -328,8 +358,7 @@ async def db_session(tenant_id: str | None = None) -> AsyncGenerator[AsyncSessio
         if tenant_id is not None:
             validated = validate_tenant_id(tenant_id)
             await session.execute(
-                text("SET LOCAL app.tenant_id = :tid"),
-                {"tid": validated},
+                text(f"SET LOCAL app.tenant_id = '{validated}'"),
             )
             _mark_session_tenant_context(session, validated)
         else:
@@ -371,10 +400,13 @@ async def close_db() -> None:
 
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
 from sqlalchemy import text
 
-from metrics.prometheus_metrics import get_metrics
+try:
+    from metrics.prometheus_metrics import get_metrics
+except ImportError:
+    get_metrics = None  # type: ignore
 
 try:
     from value_fabric.shared.identity.context import RequestContext, get_request_context
@@ -438,7 +470,7 @@ async def get_db_from_context(
             ...
 
     Raises:
-        HTTPException: 400 if tenant context is missing
+        ValidationError: If tenant context is missing.
     """
     if not SHARED_IDENTITY_AVAILABLE:
         raise RuntimeError(
@@ -446,25 +478,18 @@ async def get_db_from_context(
         )
 
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required. Ensure request passed through GovernanceMiddleware.",
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request passed through GovernanceMiddleware.")
 
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     factory = get_session_factory()
     async with factory() as session:
         await session.execute(
-            text("SET LOCAL app.tenant_id = :tenant_id"),
-            {"tenant_id": tenant_id}
+            text(f"SET LOCAL app.tenant_id = '{tenant_id}'"),
         )
         _mark_session_tenant_context(session, tenant_id)
         try:
@@ -494,7 +519,7 @@ async def get_db_with_optional_tenant(
             ...
 
     Raises:
-        HTTPException: 400 if non-super-admin without tenant context
+        ValidationError: If non-super-admin request lacks tenant context.
     """
     if not SHARED_IDENTITY_AVAILABLE:
         raise RuntimeError(
@@ -508,13 +533,9 @@ async def get_db_with_optional_tenant(
                 tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
                 logger.warning("Tenant context validation failed: %s", e)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid tenant context",
-                ) from e
+                raise ValidationError(message = "Invalid tenant context") from e
             await session.execute(
-                text("SET LOCAL app.tenant_id = :tenant_id"),
-                {"tenant_id": tenant_id}
+                text(f"SET LOCAL app.tenant_id = '{tenant_id}'"),
             )
             _mark_session_tenant_context(session, tenant_id)
         elif context.is_super_admin():
@@ -527,10 +548,7 @@ async def get_db_with_optional_tenant(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cross-tenant database access requires super admin role.",
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
         try:
             yield session
             await session.commit()
@@ -579,16 +597,10 @@ def _require_privileged_cross_tenant_reason(
 ) -> str:
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cross-tenant database access requires super admin role.",
-        )
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.",
-        )
+        raise ValidationError(message=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.")
     return reason

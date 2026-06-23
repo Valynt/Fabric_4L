@@ -1,0 +1,22 @@
+# Optional application cutover endpoint config for routing existing app workloads
+# to the production-data self-hosted HA services. Do not include this file in
+# kustomization.yaml until the managed-service-to-self-hosted cutover is approved.
+#
+# Credentialed DATABASE_URL, LAYER4_DATABASE_URL, CHECKPOINT_DATABASE_URL, and
+# REDIS_URL values must still be rendered by ExternalSecrets using non-superuser
+# PostgreSQL roles and Redis credentials. This file intentionally contains only
+# non-secret endpoint coordinates.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: production-data-endpoints
+  namespace: value-fabric
+data:
+  POSTGRES_HOST: "postgres-patroni.production-data.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  REDIS_HOST: "redis-master.production-data.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_SENTINEL_HOSTS: "redis-sentinel.production-data.svc.cluster.local:26379"
+  REDIS_SENTINEL_MASTER_NAME: "fabric4l-master"
+  NEO4J_URI: "neo4j+s://neo4j.production-data.svc.cluster.local:7687"

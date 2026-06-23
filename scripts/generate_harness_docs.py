@@ -35,8 +35,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
 
-HARNESS_ROUTES = REPO_ROOT / "services/layer4-agents/src/api/routes/harness.py"
-HARNESS_API_MODELS = REPO_ROOT / "services/layer4-agents/src/harness/api_models.py"
+HARNESS_ROUTES = REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/harness.py"
+HARNESS_API_MODELS = REPO_ROOT / "services/layer4-agents/src/layer4_agents/harness/api_models.py"
 HARNESS_RUNTIME_YAML = REPO_ROOT / "services/layer4-agents/config/harness.runtime.yaml"
 HARNESS_SERVICE_YAML = REPO_ROOT / "services/layer4-agents/config/harness.service.yaml"
 ARCH_DOC = REPO_ROOT / "docs/architecture/harness-agent-integration.md"

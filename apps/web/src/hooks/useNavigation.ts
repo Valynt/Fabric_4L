@@ -6,7 +6,7 @@ import { useNavigate, useLocation, type NavigateOptions, type To } from "react-r
 import { getStatePath, type RouteState, type NavigationParams } from "@/navigation/navigationService";
 import { serializeQueryString } from "@/navigation/queryParams";
 import { useWorkflowContext } from "@/hooks/useWorkflowContext";
-import { serializeWorkflowContextToQuery } from "@/workflow/context";
+import { serializeWorkflowContextToQuery } from "@/stores/navigationContext";
 
 interface NavigationOptions extends Omit<NavigateOptions, "state"> {
   replace?: boolean;
@@ -64,6 +64,11 @@ export function useNavigation() {
 
   const navigateToIntelligence = (tenantSlug: string, accountId: string, tab?: string) => {
     const state = tab ? (`intelligence-${tab}` as RouteState) : "intelligence-signals";
+    navigateTo(state, { tenantSlug, accountId });
+  };
+
+  const navigateToStudio = (tenantSlug: string, accountId: string, tab?: string) => {
+    const state = tab ? (`studio-${tab.replace(/-/g, "-")}` as RouteState) : "studio-action-plan";
     navigateTo(state, { tenantSlug, accountId });
   };
 

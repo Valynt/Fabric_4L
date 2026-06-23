@@ -10,7 +10,12 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
 
 from ...api.dependencies import get_sync_manager
 from ...api.models import IngestRequest, IngestResponse, SyncStatusResponse
@@ -31,12 +36,10 @@ async def ingest_rdf(
     sync_manager=Depends(get_sync_manager),
 ) -> IngestResponse:
     """Ingest RDF data from the Layer 2 extraction pipeline."""
-    ctx = getattr(fastapi_request.state, "context", None)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
-        raise HTTPException(
-            status_code=401, detail="Authenticated tenant context required for ingestion"
-        )
+        raise AuthenticationError(message = "Authenticated tenant context required for ingestion")
 
     try:
         stats = await sync_manager.sync_extraction_result(
@@ -71,20 +74,26 @@ async def ingest_rdf(
         )
     except Exception as e:
         logger.error("Ingestion failed: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Ingestion failed. Please try again later."
-        )
+        raise ServiceUnavailableError(message="Ingestion failed. Please try again later.")
 
 
 @router.get("/ingest/status/{source_id}", response_model=SyncStatusResponse)
 async def get_sync_status(
     source_id: str,
+    fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
 ) -> SyncStatusResponse:
     """Get synchronisation status for a source."""
-    status = await sync_manager.get_sync_status(source_id)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
+    tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
+    if not tenant_id:
+        raise AuthenticationError(
+            message="Authenticated tenant context required for ingestion"
+        )
+
+    status = await sync_manager.get_sync_status(source_id, tenant_id=tenant_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+        raise NotFoundError(message = str(f"Source {source_id} not found"))
 
     return SyncStatusResponse(
         source_id=source_id,
@@ -99,10 +108,18 @@ async def get_sync_status(
 @router.delete("/ingest/{source_id}")
 async def delete_source(
     source_id: str,
+    fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
 ) -> dict[str, Any]:
     """Delete all data for a source."""
-    stats = await sync_manager.delete_source(source_id)
+    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
+    tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
+    if not tenant_id:
+        raise AuthenticationError(
+            message="Authenticated tenant context required for ingestion"
+        )
+
+    stats = await sync_manager.delete_source(source_id, tenant_id=tenant_id)
     return {
         "status": "deleted",
         "source_id": source_id,

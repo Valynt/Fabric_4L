@@ -1,3 +1,12 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Analytics domain router — community detection, centrality, similarity, batch ops.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -6,10 +15,10 @@ authenticated request context; the cypher_security allowlist is enforced
 via the shared TenantScopedCypher utility.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -39,6 +48,8 @@ from ...api.models import (
     SimilarityRequest,
     SimilarityResponse,
 )
+from ...db.audited_mutation import AuditedGraphMutation
+from ...db.query_execution import run_validated_query
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +93,8 @@ async def detect_communities(
         elif request.algorithm == "value_tree":
             result = await community_detector.detect_by_value_tree()
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown algorithm: {request.algorithm}"
+            raise ValidationError(
+                message=str(f"Unknown algorithm: {request.algorithm}")
             )
 
         return CommunityDetectionResponse(
@@ -103,9 +114,8 @@ async def detect_communities(
         raise
     except Exception as e:
         logger.error("Community detection failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Community detection failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Community detection failed. Please try again later."
         )
 
 
@@ -134,8 +144,8 @@ async def calculate_centrality(
         elif request.algorithm == "value_tree":
             result = await centrality_analyzer.get_value_tree_centrality()
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown algorithm: {request.algorithm}"
+            raise ValidationError(
+                message=str(f"Unknown algorithm: {request.algorithm}")
             )
 
         return CentralityResponse(
@@ -149,9 +159,8 @@ async def calculate_centrality(
         raise
     except Exception as e:
         logger.error("Centrality calculation failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Centrality calculation failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Centrality calculation failed. Please try again later."
         )
 
 
@@ -182,9 +191,8 @@ async def find_similar_entities(
         )
     except Exception as e:
         logger.error("Similarity analysis failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Similarity analysis failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Similarity analysis failed. Please try again later."
         )
 
 
@@ -200,7 +208,7 @@ async def compare_entities(
             entity_id2=request.entity_id2,
         )
         if "error" in result:
-            raise HTTPException(status_code=404, detail=result["error"])
+            raise NotFoundError(message=str(result["error"]))
 
         return EntityComparisonResponse(
             entity1=result["entity1"],
@@ -214,9 +222,8 @@ async def compare_entities(
         raise
     except Exception as e:
         logger.error("Entity comparison failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Entity comparison failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Entity comparison failed. Please try again later."
         )
 
 
@@ -228,95 +235,86 @@ async def compare_entities(
 async def _create_entity(
     driver: Any, operation: BatchEntityOperation, tenant_id: str | None
 ) -> dict[str, Any]:
-    """Create a single entity in Neo4j, scoped to tenant_id."""
+    """Create a single tenant-scoped entity through the audited mutation gateway."""
     if not tenant_id:
         return {"success": False, "error": "tenant_id is required for entity creation"}
+
     try:
         entity_id = str(uuid.uuid4())
+        properties = dict(operation.properties or {})
+        properties["entity_type"] = (
+            operation.entity_type.value if operation.entity_type else "Unknown"
+        )
+        properties["created_at"] = datetime.utcnow().isoformat()
+
         async with driver.session() as session:
-            query = """
-            CREATE (n:Entity {
-                id: $id,
-                entity_type: $entity_type,
-                tenant_id: $tenant_id,
-                created_at: datetime(),
-                updated_at: datetime()
-            })
-            SET n += $properties
-            RETURN n.id as entity_id
-            """
-            result = await session.run(
-                query,
-                {
-                    "id": entity_id,
-                    "entity_type": (
-                        operation.entity_type.value
-                        if operation.entity_type
-                        else "Unknown"
-                    ),
-                    "tenant_id": tenant_id,
-                    "properties": operation.properties or {},
-                },
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._create_entity",
             )
-            record = await result.single()
-            if record:
-                return {"success": True, "entity_id": record["entity_id"]}
-            return {"success": False, "error": "Failed to create entity"}
-    except Exception as e:
+            await mutation.write_node("Entity", entity_id, properties)
+
+        return {"success": True, "entity_id": entity_id}
+    except Exception:
+        logger.exception("Entity creation failed")
         return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
 async def _update_entity(
     driver: Any, operation: BatchEntityOperation, tenant_id: str | None
 ) -> dict[str, Any]:
-    """Update a single entity in Neo4j, scoped by tenant_id."""
+    """Update a single tenant-scoped entity and emit audit metadata."""
     if not tenant_id:
         return {"success": False, "error": "tenant_id is required for entity updates"}
+    if not operation.entity_id:
+        return {"success": False, "error": "entity_id is required for entity updates"}
+
     try:
-        async with driver.session() as session:
-            query = """
-            MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-            SET n += $properties, n.updated_at = datetime()
-            RETURN n.id as entity_id
-            """
-            result = await session.run(
-                query,
-                {
-                    "entity_id": operation.entity_id,
-                    "tenant_id": tenant_id,
-                    "properties": operation.properties or {},
-                },
-            )
-            record = await result.single()
-            if record:
-                return {"success": True}
+        if not await _snapshot_entity(driver, operation.entity_id, tenant_id):
             return {"success": False, "error": "Entity not found"}
-    except Exception as e:
-        return {"success": False, "error": "ENTITY_CREATE_ERROR"}
+
+        async with driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._update_entity",
+            )
+            await mutation.write_node(
+                "Entity", operation.entity_id, operation.properties or {}
+            )
+
+        return {"success": True}
+    except Exception:
+        logger.exception("Entity update failed for %s", operation.entity_id)
+        return {"success": False, "error": "ENTITY_UPDATE_ERROR"}
 
 
 async def _delete_entity(
     driver: Any, operation: BatchEntityOperation, tenant_id: str | None
 ) -> dict[str, Any]:
-    """Delete a single entity from Neo4j, scoped by tenant_id."""
+    """Delete a single tenant-scoped entity through the audited mutation gateway."""
     if not tenant_id:
         return {"success": False, "error": "tenant_id is required for entity deletion"}
+    if not operation.entity_id:
+        return {"success": False, "error": "entity_id is required for entity deletion"}
+
     try:
-        async with driver.session() as session:
-            query = """
-            MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-            DETACH DELETE n
-            RETURN count(n) as deleted
-            """
-            result = await session.run(
-                query, {"entity_id": operation.entity_id, "tenant_id": tenant_id}
-            )
-            record = await result.single()
-            if record and record["deleted"] > 0:
-                return {"success": True}
+        if not await _snapshot_entity(driver, operation.entity_id, tenant_id):
             return {"success": False, "error": "Entity not found"}
-    except Exception as e:
-        return {"success": False, "error": "ENTITY_CREATE_ERROR"}
+
+        async with driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._delete_entity",
+            )
+            await mutation.delete_node("Entity", operation.entity_id)
+
+        return {"success": True}
+    except Exception:
+        logger.exception("Entity deletion failed for %s", operation.entity_id)
+        return {"success": False, "error": "ENTITY_DELETE_ERROR"}
 
 
 async def _delete_entity_by_id(
@@ -326,10 +324,12 @@ async def _delete_entity_by_id(
     if not tenant_id:
         raise ValueError("tenant_id is required for entity deletion")
     async with driver.session() as session:
-        await session.run(
-            "MATCH (n {id: $entity_id, tenant_id: $tenant_id}) DETACH DELETE n",
-            {"entity_id": entity_id, "tenant_id": tenant_id},
+        mutation = AuditedGraphMutation(
+            tenant_id=tenant_id,
+            session=session,
+            operation_source="analytics._delete_entity_by_id",
         )
+        await mutation.delete_node("Entity", entity_id)
 
 
 async def _snapshot_entity(
@@ -338,9 +338,13 @@ async def _snapshot_entity(
     """Capture a node's current properties for rollback purposes."""
     try:
         async with driver.session() as session:
-            result = await session.run(
-                "MATCH (n {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
+            result = await run_validated_query(
+                session,
+                "MATCH (n:Entity {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
                 {"entity_id": entity_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="analytics.snapshot_entity",
             )
             record = await result.single()
             return dict(record["props"]) if record else None
@@ -355,13 +359,12 @@ async def _restore_entity(
     """Restore a node to a previously captured snapshot."""
     try:
         async with driver.session() as session:
-            await session.run(
-                """
-                MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-                SET n = $snapshot
-                """,
-                {"entity_id": entity_id, "tenant_id": tenant_id, "snapshot": snapshot},
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._restore_entity",
             )
+            await mutation.write_node("Entity", entity_id, snapshot)
     except Exception as e:
         logger.error("Rollback restore failed for entity %s: %s", entity_id, e)
 
@@ -369,16 +372,19 @@ async def _restore_entity(
 async def _recreate_entity(
     driver: Any, snapshot: dict[str, Any], tenant_id: str
 ) -> None:
-    """Re-create a node that was deleted during a batch that is being rolled back."""
+    """Re-create an entity deleted earlier in an atomic batch."""
     try:
+        node_id = str(snapshot.get("id") or "")
+        if not node_id:
+            raise ValueError("snapshot id is required to recreate entity")
+
         async with driver.session() as session:
-            await session.run(
-                """
-                CREATE (n:Entity)
-                SET n = $snapshot
-                """,
-                {"snapshot": {**snapshot, "tenant_id": tenant_id}},
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._recreate_entity",
             )
+            await mutation.write_node("Entity", node_id, snapshot)
     except Exception as e:
         logger.error(
             "Rollback re-create failed for entity %s: %s",
@@ -401,9 +407,8 @@ async def batch_entity_operations(
     """
     tenant_id = _extract_tenant_id(fastapi_request)
     if not tenant_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Authenticated tenant context required for batch entity operations",
+        raise AuthenticationError(
+            message="Authenticated tenant context required for batch entity operations"
         )
 
     results: list[dict[str, Any]] = []
@@ -439,7 +444,9 @@ async def batch_entity_operations(
 
                 elif operation.operation == "update":
                     snapshot = (
-                        await _snapshot_entity(neo4j_driver, operation.entity_id, tenant_id)
+                        await _snapshot_entity(
+                            neo4j_driver, operation.entity_id, tenant_id
+                        )
                         if request.atomic
                         else None
                     )
@@ -447,7 +454,9 @@ async def batch_entity_operations(
                     if result["success"]:
                         successful += 1
                         if request.atomic and snapshot:
-                            rollback_ledger.append(("update", operation.entity_id, snapshot))
+                            rollback_ledger.append(
+                                ("update", operation.entity_id, snapshot)
+                            )
                     else:
                         failed += 1
                     results.append(
@@ -462,7 +471,9 @@ async def batch_entity_operations(
 
                 elif operation.operation == "delete":
                     snapshot = (
-                        await _snapshot_entity(neo4j_driver, operation.entity_id, tenant_id)
+                        await _snapshot_entity(
+                            neo4j_driver, operation.entity_id, tenant_id
+                        )
                         if request.atomic
                         else None
                     )
@@ -470,7 +481,9 @@ async def batch_entity_operations(
                     if result["success"]:
                         successful += 1
                         if request.atomic and snapshot:
-                            rollback_ledger.append(("delete", operation.entity_id, snapshot))
+                            rollback_ledger.append(
+                                ("delete", operation.entity_id, snapshot)
+                            )
                     else:
                         failed += 1
                     results.append(
@@ -483,7 +496,7 @@ async def batch_entity_operations(
                         }
                     )
 
-            except Exception as e:
+            except Exception:
                 failed += 1
                 results.append(
                     {
@@ -498,7 +511,8 @@ async def batch_entity_operations(
         if request.atomic and failed > 0 and rollback_ledger:
             atomic_rollback = True
             logger.warning(
-                "Atomic rollback: reversing %d completed operations", len(rollback_ledger)
+                "Atomic rollback: reversing %d completed operations",
+                len(rollback_ledger),
             )
             # Reverse in LIFO order so dependent operations unwind correctly
             for op_type, entity_id, snapshot in reversed(rollback_ledger):
@@ -506,13 +520,13 @@ async def batch_entity_operations(
                     if op_type == "create":
                         await _delete_entity_by_id(neo4j_driver, entity_id, tenant_id)
                     elif op_type == "update" and snapshot:
-                        await _restore_entity(neo4j_driver, entity_id, snapshot, tenant_id)
+                        await _restore_entity(
+                            neo4j_driver, entity_id, snapshot, tenant_id
+                        )
                     elif op_type == "delete" and snapshot:
                         await _recreate_entity(neo4j_driver, snapshot, tenant_id)
                 except Exception as e:
-                    logger.error(
-                        "Rollback error for %s %s: %s", op_type, entity_id, e
-                    )
+                    logger.error("Rollback error for %s %s: %s", op_type, entity_id, e)
 
         return BatchEntityResponse.model_validate(
             {
@@ -527,9 +541,8 @@ async def batch_entity_operations(
         raise
     except Exception as e:
         logger.error("Batch entity operations failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Batch operations failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Batch operations failed. Please try again later."
         )
 
 
@@ -554,7 +567,11 @@ async def batch_analytics(
                 )
                 if not context.get("center"):
                     results.append(
-                        {"entity_id": entity_id, "success": False, "error": "Entity not found"}
+                        {
+                            "entity_id": entity_id,
+                            "success": False,
+                            "error": "Entity not found",
+                        }
                     )
                     failed += 1
                     continue
@@ -570,11 +587,19 @@ async def batch_analytics(
                 else:
                     metrics = {"context": context}
 
-                results.append({"entity_id": entity_id, "success": True, "metrics": metrics})
+                results.append(
+                    {"entity_id": entity_id, "success": True, "metrics": metrics}
+                )
                 successful += 1
             except Exception as e:
                 logger.warning("Batch analytics failed for %s: %s", entity_id, e)
-                results.append({"entity_id": entity_id, "success": False, "error": "BATCH_ANALYTICS_ERROR"})
+                results.append(
+                    {
+                        "entity_id": entity_id,
+                        "success": False,
+                        "error": "BATCH_ANALYTICS_ERROR",
+                    }
+                )
                 failed += 1
 
         aggregate = None
@@ -597,6 +622,6 @@ async def batch_analytics(
         )
     except Exception as e:
         logger.error("Batch analytics failed: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Batch analytics failed. Please try again later."
+        raise ServiceUnavailableError(
+            message="Batch analytics failed. Please try again later."
         )

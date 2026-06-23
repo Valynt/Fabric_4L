@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for canonical OIDCClient.verify_id_token with JWKS validation."""
 
-from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 

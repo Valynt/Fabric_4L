@@ -109,8 +109,8 @@ PASS
 
 **Baselined (9 entries):**
 
-- `reports/repo-cleanup/BACKEND_TOPOLOGY_STATUS_2026-05-02.md`: historical report
-- `reports/repo-cleanup/PYTEST_COLLECTION_REMEDIATION_REPORT_2026-05-02.md`: historical report (4 occurrences)
+- `docs/archive/evidence/reports/repo-cleanup/BACKEND_TOPOLOGY_STATUS_2026-05-02.md`: historical report
+- `docs/archive/evidence/reports/repo-cleanup/PYTEST_COLLECTION_REMEDIATION_REPORT_2026-05-02.md`: historical report (4 occurrences)
 - `docs/comprehensive-platform-documentation.md`: legacy docs
 - `docs/ValuePack_Framework_v2.0.md`: legacy docs
 - `docs/archive/2026-04-27/ARCHIVED_MULTI_TENANCY_CONFIRMATION.md`: explicitly archived

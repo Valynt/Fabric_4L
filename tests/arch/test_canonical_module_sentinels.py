@@ -25,65 +25,13 @@ class CanonicalModuleSentinel:
 # Keep this list intentionally small and high-impact.
 # Add entries only for modules that would cause broad architecture drift
 # if logic moved into compatibility-only roots.
-SENTINELS: tuple[CanonicalModuleSentinel, ...] = (
-    # Layer 1 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer1/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer1_api_main",
-        canonical_path="services/layer1-ingestion/src/api/main.py",
-        compatibility_path="value_fabric/layer1/__init__.py",
-    ),
-    # Layer 2 migrated to service-first per ADR-027 (2026-05-14).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer2/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer2_api_main",
-        canonical_path="services/layer2-extraction/src/layer2_extraction/api/main.py",
-        compatibility_path="value_fabric/layer2/__init__.py",
-    ),
-    # Layer 3 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer3/__init__.py; no shim file remains.
-    CanonicalModuleSentinel(
-        name="layer3_api_models",
-        canonical_path="services/layer3-knowledge/src/api/models.py",
-        compatibility_path="value_fabric/layer3/__init__.py",
-    ),
-    # Layer 4 already compliant per ADR-027 (2026-05-13).
-    # Implementation lives in services/layer4-agents/src/.
-    CanonicalModuleSentinel(
-        name="layer4_api_main",
-        canonical_path="services/layer4-agents/src/api/main.py",
-        compatibility_path="value_fabric/layer4/__init__.py",
-    ),
-    # Layer 5 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer5/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer5_truth_object_model",
-        canonical_path="services/layer5-ground-truth/src/layer5_ground_truth/models/truth_object.py",
-        compatibility_path="value_fabric/layer5/__init__.py",
-    ),
-    CanonicalModuleSentinel(
-        name="layer5_api_main",
-        canonical_path="services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
-        compatibility_path="value_fabric/layer5/__init__.py",
-    ),
-    # Layer 6 migrated to service-first per ADR-027 (2026-05-14).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer6/__init__.py; no per-module shim files remain.
-    CanonicalModuleSentinel(
-        name="layer6_api_main",
-        canonical_path="services/layer6-benchmarks/src/api/main.py",
-        compatibility_path="value_fabric/layer6/__init__.py",
-    ),
-    CanonicalModuleSentinel(
-        name="layer6_settings",
-        canonical_path="services/layer6-benchmarks/src/settings.py",
-        compatibility_path="value_fabric/layer6/__init__.py",
-    ),
-)
+#
+# NOTE (2026-06-22): All root ``value_fabric/layer*`` compatibility shims and
+# the ``packages/shared/src/value_fabric/layer2`` shim tree have been removed
+# per ADR-027. Sentinel entries for those layers were removed because the
+# compatibility paths no longer exist. The no-production-imports tests below
+# remain as regression guards.
+SENTINELS: tuple[CanonicalModuleSentinel, ...] = ()
 
 
 def _parse_module(path: Path) -> ast.Module:
@@ -173,8 +121,8 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
     """Regression: no production code should import value_fabric.layer5.*.
 
     Layer 5 is fully migrated to service-first. Consumers must use
-    layer5_ground_truth.* directly. The value_fabric/layer5/ shim
-    remains for backward compatibility only.
+    layer5_ground_truth.* directly. The value_fabric/layer5/ shim was
+    removed per ADR-027 and must not be restored.
     """
     import re
     import os
@@ -204,6 +152,8 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
                     continue
+                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
+                    continue
                 if "test_import_topology" in rel_path:
                     continue
 
@@ -222,23 +172,23 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_layer6_resolves_to_canonical_service_tree() -> None:
-    """value_fabric.layer6 must resolve via services/layer6-benchmarks/src/."""
-    import value_fabric.layer6
-
-    canonical = (REPO_ROOT / "services" / "layer6-benchmarks" / "src").resolve()
-    # value_fabric.layer6.__path__ should contain the canonical service src
-    assert any(
-        Path(p).resolve() == canonical for p in value_fabric.layer6.__path__
-    ), f"value_fabric.layer6 path {value_fabric.layer6.__path__} does not include {canonical}"
+def test_layer6_canonical_service_files_exist() -> None:
+    """value_fabric.layer6 shim is neutralized; canonical L6 files must still exist."""
+    canonical = REPO_ROOT / "services" / "layer6-benchmarks" / "src" / "layer6_benchmarks"
+    assert (canonical / "api" / "main.py").exists(), (
+        f"Layer 6 canonical api/main.py not found at {canonical}"
+    )
+    assert (canonical / "settings.py").exists(), (
+        f"Layer 6 canonical settings.py not found at {canonical}"
+    )
 
 
 def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
-    """Regression: no production code should import value_fabric.layer6.*.
+    """Regression: no production code should import layer6_benchmarks.*.
 
     Layer 6 is fully migrated to service-first. Consumers should use
     direct service-path imports where possible. The value_fabric/layer6/
-    shim remains for backward compatibility only.
+    shim was removed per ADR-027 and must not be restored.
     """
     import re
     import os
@@ -268,6 +218,8 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
                     continue
+                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
+                    continue
                 if "test_import_topology" in rel_path:
                     continue
                 if "scripts/ci/check_layer6_imports.py" == rel_path:
@@ -281,6 +233,8 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                 if "tests/security/test_tenant_repository_filter_presence.py" == rel_path:
                     continue
                 if rel_path.startswith("services/layer6-benchmarks/tests/"):
+                    continue
+                if "scripts/migrate_l6_test_imports_canonical.py" == rel_path:
                     continue
 
                 content = py_file.read_text(encoding="utf-8")

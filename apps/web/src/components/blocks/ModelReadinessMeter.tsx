@@ -45,14 +45,14 @@ export interface ModelReadinessMeterProps {
 /* ── Threshold helpers ─────────────────────────────────────────────────── */
 
 function scoreColor(score: number): string {
-  if (score >= 80) return "text-emerald-500";
-  if (score >= 50) return "text-amber-500";
+  if (score >= 80) return "text-success";
+  if (score >= 50) return "text-warning";
   return "text-destructive";
 }
 
 function scoreBg(score: number): string {
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 50) return "bg-amber-500";
+  if (score >= 80) return "bg-success/100";
+  if (score >= 50) return "bg-warning/100";
   return "bg-destructive";
 }
 
@@ -123,7 +123,7 @@ export function ModelReadinessMeter({
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">Model Readiness</h3>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="vf-text-caption text-muted-foreground">
                 {score >= 80
                   ? "Model is well-supported. Generate when ready."
                   : score >= 50
@@ -139,14 +139,14 @@ export function ModelReadinessMeter({
 
       {opportunities.length > 0 && (
         <div className="border-t border-border/60 px-5 py-3">
-          <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-wider mb-2">
+          <p className="vf-text-micro text-muted-foreground uppercase font-medium tracking-wider mb-2">
             Improvement Opportunities
           </p>
           <div className="space-y-1.5">
             {opportunities.map((o) => (
               <div key={o.label} className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{o.label}</span>
-                <span className={cn("text-[10px] font-semibold", colorClass)}>+{o.impact}%</span>
+                <span className={cn("vf-text-micro font-semibold", colorClass)}>+{o.impact}%</span>
               </div>
             ))}
           </div>

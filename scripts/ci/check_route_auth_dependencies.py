@@ -18,12 +18,12 @@ import yaml
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head"}
 DEFAULT_TARGETS = [
     "services/api/app/main.py",
-    "services/layer1-ingestion/src/api/main.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "services/layer3-knowledge/src/api/main.py",
-    "services/layer4-agents/src/api/main.py",
+    "services/layer4-agents/src/layer4_agents/api/main.py",
     "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
-    "services/layer6-benchmarks/src/api/main.py",
+    "services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
 ]
 AUTH_CALL_NAMES = {
     "Depends",
@@ -45,6 +45,12 @@ class RouteRecord:
     source: str
     auth_present: bool
     allowlisted: bool = False
+
+
+@dataclass
+class RouterMeta:
+    auth: bool
+    prefix: str
 
 
 def call_name(node: ast.AST) -> str | None:
@@ -72,39 +78,72 @@ def has_auth_dependency(node: ast.AST) -> bool:
     return False
 
 
-def extract_router_deps(tree: ast.Module) -> dict[str, bool]:
-    router_auth: dict[str, bool] = {}
+def extract_auth_aliases(tree: ast.Module) -> set[str]:
+    aliases: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            if has_auth_dependency(node.value):
+                aliases.add(node.targets[0].id)
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value is not None:
+            if has_auth_dependency(node.value):
+                aliases.add(node.target.id)
+    return aliases
+
+
+def annotation_has_auth_alias(node: ast.AST | None, auth_aliases: set[str]) -> bool:
+    if node is None:
+        return False
+    if isinstance(node, ast.Name):
+        return node.id in auth_aliases
+    if isinstance(node, ast.Subscript):
+        return annotation_has_auth_alias(node.value, auth_aliases) or annotation_has_auth_alias(node.slice, auth_aliases)
+    if isinstance(node, ast.Attribute):
+        return annotation_has_auth_alias(node.value, auth_aliases)
+    if isinstance(node, ast.Tuple):
+        return any(annotation_has_auth_alias(elt, auth_aliases) for elt in node.elts)
+    if isinstance(node, ast.Call):
+        return annotation_has_auth_alias(node.func, auth_aliases) or any(
+            annotation_has_auth_alias(arg, auth_aliases) for arg in node.args
+        )
+    return False
+
+
+def extract_router_meta(tree: ast.Module) -> dict[str, RouterMeta]:
+    router_meta: dict[str, RouterMeta] = {}
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             name = node.targets[0].id
             value = node.value
             if isinstance(value, ast.Call) and call_name(value.func) == "APIRouter":
-                router_auth[name] = has_auth_dependency(value)
-    return router_auth
+                prefix = ""
+                for kw in value.keywords:
+                    if kw.arg == "prefix":
+                        prefix = literal_str(kw.value) or ""
+                router_meta[name] = RouterMeta(auth=has_auth_dependency(value), prefix=prefix)
+    return router_meta
 
 
 def extract_include_prefixes(tree: ast.Module) -> dict[str, str]:
     prefixes: dict[str, str] = {}
-    for node in tree.body:
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            call = node.value
-            if isinstance(call.func, ast.Attribute) and call.func.attr == "include_router" and call.args:
-                router_name = call_name(call.args[0])
-                if not router_name:
-                    continue
-                pref = ""
-                for kw in call.keywords:
-                    if kw.arg == "prefix":
-                        pref = literal_str(kw.value) or ""
-                prefixes[router_name] = pref
-                if "." in router_name:
-                    prefixes[router_name.split(".", 1)[0]] = pref
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "include_router" and node.args:
+            router_name = call_name(node.args[0])
+            if not router_name:
+                continue
+            pref = ""
+            for kw in node.keywords:
+                if kw.arg == "prefix":
+                    pref = literal_str(kw.value) or ""
+            prefixes[router_name] = pref
+            if "." in router_name:
+                prefixes[router_name.split(".", 1)[0]] = pref
     return prefixes
 
 
 def extract_routes(py_file: Path, base_prefix: str = "") -> tuple[list[RouteRecord], dict[str, str]]:
     tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
-    router_auth = extract_router_deps(tree)
+    router_meta = extract_router_meta(tree)
+    auth_aliases = extract_auth_aliases(tree)
     include_prefixes = extract_include_prefixes(tree)
     records: list[RouteRecord] = []
 
@@ -112,6 +151,10 @@ def extract_routes(py_file: Path, base_prefix: str = "") -> tuple[list[RouteReco
         if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             continue
         fn_auth = has_auth_dependency(node)
+        for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
+            if annotation_has_auth_alias(arg.annotation, auth_aliases):
+                fn_auth = True
+                break
         for deco in node.decorator_list:
             if not isinstance(deco, ast.Call):
                 continue
@@ -124,10 +167,11 @@ def extract_routes(py_file: Path, base_prefix: str = "") -> tuple[list[RouteReco
             route_path = literal_str(deco.args[0]) if deco.args else "/"
             if route_path is None:
                 route_path = "/"
-            full = f"{base_prefix}{route_path}".replace("//", "/")
+            router_prefix = router_meta.get(router_name, RouterMeta(auth=False, prefix="")).prefix
+            full = f"{base_prefix}{router_prefix}{route_path}".replace("//", "/")
             auth = fn_auth or has_auth_dependency(deco)
-            if router_name in router_auth:
-                auth = auth or router_auth[router_name]
+            if router_name in router_meta:
+                auth = auth or router_meta[router_name].auth
             records.append(RouteRecord(method.upper(), full, str(py_file), auth))
     return records, include_prefixes
 

@@ -1,0 +1,60 @@
+{
+  "candidate_id": "rc-2026-06-13-116815f3",
+  "environment": "local-docker-staging",
+  "executed_at_utc": "2026-06-14T07:49:09Z",
+  "command": "node .tmp/run-p0-live.mjs e2e/journeys/j11-golden-path-business-lifecycle.spec.ts e2e/journeys/j20-billing-entitlement-gates.spec.ts e2e/security/deep-link-tenant-isolation-deep.spec.ts",
+  "status": "fail",
+  "summary": {
+    "total": 26,
+    "passed": 0,
+    "failed": 26,
+    "skipped": 0,
+    "flaky": 0
+  },
+  "failed_tests": [
+    "e2e/journeys/j1-golden-path-backend-integrated.spec.ts::(syntax error — file unparsable, whole spec blocked)",
+    "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts::test_golden_path_account_to_approved_business_case @backend",
+    "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts::test_business_case_contains_traceable_claims_after_golden_path @backend",
+    "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts::test_export_is_available_only_after_required_approval @backend",
+    "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts::test_crm_push_available_after_case_approval @backend",
+    "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts::test_post_sale_realization_conversion @backend",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-001: enterprise plan users can access all features",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-002: starter plan users are blocked from advanced features",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-003: past_due status blocks new feature access",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-004: billing status displays accurately on subscription page",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-005: usage metrics display correctly on usage page",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-006: billing API failure shows graceful degradation",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-007: billing API timeout shows user-friendly message",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-008: webhook configuration is reflected in UI",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-009: webhook delivery status is visible",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-010: over-limit usage shows warning message",
+    "e2e/journeys/j20-billing-entitlement-gates.spec.ts::BILL-011: usage limits prevent new operations",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-001: deep link respects tenant context after account switch",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-002: deep link after tenant switch uses new tenant context",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-003: stale cached data from one account does not appear in another account",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-004: cache invalidation occurs on account switch",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-005: direct URL with forged tenant-id header blocked at API layer",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-006: forged tenant-id in URL parameters is rejected",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-007: deep link with expired session redirects to login",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-008: deep link after re-auth respects original intent",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-009: deep link navigation after tenant switch respects new context",
+    "e2e/security/deep-link-tenant-isolation-deep.spec.ts::SEC-DEEP-010: deep link with account ID from different tenant is blocked"
+  ],
+  "artifacts": [
+    "apps/web/playwright-report/index.html",
+    "apps/web/playwright-report/seed-report.json",
+    "apps/web/e2e-results/",
+    "apps/web/test-results/.last-run.json",
+    "apps/web/playwright-report/results.json/"
+  ],
+  "notes": [
+    "Canonical package.json script 'test:e2e:live:p0' exists and targets the four P0 specs including j1.",
+    "The script could not be invoked directly on this Windows host because the 'sh -lc' wrapper in package.json caused Windows command-parser errors; execution was performed through an equivalent Node wrapper (.tmp/run-p0-live.mjs) with the same environment and Playwright invocation.",
+    "j1-golden-path-backend-integrated.spec.ts has a TypeScript syntax error at line 51 (missing regex delimiter: '//accounts/new...' is parsed as a comment), so the entire spec fails to parse and no j1 tests were executed.",
+    "Backend deterministic seed was applied via .tmp/run-seed-with-env.mjs. The running layer4 container initially lacked VALIDATION_SEED_PRIVILEGED_REASON, so the validation seed boundary returned 403; layer4 was recreated with docker-compose.live.yml + docker-compose.live-seed-override.yml setting VALIDATION_SEED_PRIVILEGED_REASON=playwright-backend-validation-seed.",
+    "After the env fix, auth-context and business-case lifecycle seed areas reached 'present'; Layer 1 ingestion validation seed endpoint returned 404 via the frontend proxy, and tenant settings seed returned 403 (optional probe).",
+    "All 26 executed backend-integrated tests failed. Root cause appears to be frontend auth-provider mismatch: the app now mounts ClerkProvider and RequireClerkAuth, while the E2E helpers seed a legacy validation-session cookie/localStorage. The browser page renders a 'failed to load' error during route guards, causing beforeEach/auth-setup timeouts and workflow validation failures.",
+    "The frontend container (vf-live-frontend) is not configured with VITE_CLERK_PUBLISHABLE_KEY, which also causes main.tsx to throw at module load when Clerk is enabled.",
+    "No git commit was made. Temporary files created: .tmp/run-seed-with-env.mjs, .tmp/run-p0-live.mjs, docker-compose.live-seed-override.yml."
+  ]
+}

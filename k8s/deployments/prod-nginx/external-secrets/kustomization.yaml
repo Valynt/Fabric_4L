@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - vault-integration.yml
+  - vault-database-dynamic.yml
+  - pgbouncer-secrets.yaml
+  - redis-secrets.yaml
+  - layer1-secrets.yaml
+  - layer2-secrets.yaml
+  - layer2-5-secrets.yaml
+  - layer3-secrets.yaml
+  - layer4-secrets.yaml
+  - layer5-secrets.yaml
+  - layer6-secrets.yaml
+  - wal-g-backup-secrets.yaml

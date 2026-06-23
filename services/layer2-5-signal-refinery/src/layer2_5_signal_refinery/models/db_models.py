@@ -1,20 +1,9 @@
-"""SQLAlchemy ORM models for the L2.5 Signal Refinery.
-
-Design notes:
-- UUID primary keys throughout
-- tenant_id on every table — enforced by RLS policy
-- evidence and provenance stored as JSONB (PostgreSQL) / JSON (SQLite)
-- soft-delete via deleted_at
-- source_refs and related_signal_ids stored as JSON arrays
-"""
-
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import (
-    Boolean,
     Column,
     DateTime,
     Float,
@@ -24,7 +13,17 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.types import JSON, String, TypeDecorator
+from sqlalchemy.types import JSON, TypeDecorator
+
+"""SQLAlchemy ORM models for the L2.5 Signal Refinery.
+
+Design notes:
+- UUID primary keys throughout
+- tenant_id on every table — enforced by RLS policy
+- evidence and provenance stored as JSONB (PostgreSQL) / JSON (SQLite)
+- soft-delete via deleted_at
+- source_refs and related_signal_ids stored as JSON arrays
+"""
 
 
 # ---------------------------------------------------------------------------

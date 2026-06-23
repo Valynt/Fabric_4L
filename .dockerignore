@@ -1,0 +1,67 @@
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+**/.Python
+**/*.egg-info/
+**/dist/
+**/build/
+
+# Testing
+**/.pytest_cache/
+**/.hypothesis/
+**/.tox/
+**/.tmp/
+**/tmp/
+**/.coverage
+**/*.cover
+**/htmlcov/
+
+# IDE
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Documentation
+**/docs/
+**/*.md
+
+# CI/CD
+**/.github/
+**/.gitlab-ci.yml
+
+# Environment
+**/.env
+**/.env.*
+**/.venv/
+**/venv/
+
+# Logs
+**/*.log
+**/logs/
+
+# Docker
+**/docker-compose*.yml
+**/Dockerfile*
+**/.dockerignore
+
+# Node
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log
+
+# Misc
+**/artifacts/
+**/reports/

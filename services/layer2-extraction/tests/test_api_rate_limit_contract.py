@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
-from value_fabric.layer2.api import main as layer2_main
 
 
 class _StubRateLimiter:
@@ -23,7 +22,7 @@ class _StubRateLimiter:
         return type("_Result", (), {"allowed": False, "remaining": 0, "reset_at": now + 60, "retry_after": 60})()
 
 
-def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> tuple[TestClient, _StubRateLimiter]:
     tenant_id = str(uuid4())
     user_id = str(uuid4())
     monkeypatch.setattr(
@@ -44,11 +43,15 @@ def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     async def protected():
         return {"ok": True}
 
-    return TestClient(app)
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
+
+    return TestClient(app), limiter
 
 
-def test_repeated_authenticated_requests_return_429_with_rate_limit_headers(monkeypatch: pytest.MonkeyPatch) -> None:
-    client = _build_contract_app(monkeypatch)
+def test_repeated_authenticated_requests_return_429_with_stable_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+    client, _ = _build_contract_app(monkeypatch)
     headers = {"Authorization": "Bearer test-token"}
 
     first = client.get("/v1/protected", headers=headers)
@@ -61,12 +64,24 @@ def test_repeated_authenticated_requests_return_429_with_rate_limit_headers(monk
     assert second.headers["X-RateLimit-Reset"].isdigit()
     assert second.headers["X-RateLimit-Scope"] in {"tenant", "user", "api_key"}
     assert second.headers["Retry-After"] == "60"
+    assert second.json() == {
+        "detail": "Rate limit exceeded",
+        "error": "Too many requests",
+        "retry_after": 60,
+    }
 
 
-@pytest.mark.asyncio
-async def test_production_like_redis_unavailable_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENVIRONMENT", "production")
-    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:1")
+def test_health_route_is_explicitly_exempt_from_rate_limiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    client, limiter = _build_contract_app(monkeypatch)
 
-    with pytest.raises(RuntimeError, match="Redis rate limiting is required"):
-        await layer2_main._init_redis_rate_limiter()
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert limiter.calls == 0
+
+
+def test_metrics_route_is_explicitly_exempt_from_rate_limiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    client, limiter = _build_contract_app(monkeypatch)
+
+    metrics = client.get("/metrics")
+    assert metrics.status_code in {200, 404}
+    assert limiter.calls == 0

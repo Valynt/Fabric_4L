@@ -6,60 +6,63 @@
  * fast, actionable failure before expensive workflow suites. Use
  * FRONTEND_VERIFY_MODE=full to include the broad validation E2E suite in CI.
  */
-import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runTask } from "../lib/task-runner.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const webRoot = resolve(__dirname, "..", "..");
 const mode = process.env.FRONTEND_VERIFY_MODE || "standard";
-const pnpmCommand = "pnpm";
 
-const gates = [
-  ["Workflow matrix", [pnpmCommand, ["run", "test:workflow-matrix"]]],
-  ["Frontend hygiene", [pnpmCommand, ["run", "test:frontend-hygiene"]]],
-  ["TypeScript", [pnpmCommand, ["run", "check"]]],
-  ["Contract tests", [pnpmCommand, ["run", "test:contracts"]]],
-  ["Trust-boundary parser guard", [pnpmCommand, ["run", "test:trust-boundaries"]]],
-  ["Unit/component tests", [pnpmCommand, ["run", "test"]]],
-  ["Critical E2E guard", [pnpmCommand, ["run", "test:e2e:guard"]]],
-  ["Production build", [pnpmCommand, ["run", "build"]]],
-  ["Bundle budget", [pnpmCommand, ["run", "test:bundle-budget"]]],
-];
+const TASK_REGISTRY = {
+  standard: [
+    task("Workflow matrix", "pnpm", ["run", "test:workflow-matrix"]),
+    task("Frontend hygiene", "pnpm", ["run", "test:frontend-hygiene"]),
+    task("UI design readiness", "pnpm", ["run", "test:ui-readiness"]),
+    task("TypeScript", "pnpm", ["run", "check"]),
+    task("Contract tests", "pnpm", ["run", "test:contracts"]),
+    task("Trust-boundary parser guard", "pnpm", ["run", "test:trust-boundaries"]),
+    task("Unit/component tests", "pnpm", ["run", "test"]),
+    task("Store coverage threshold", "pnpm", ["run", "test:coverage:stores"]),
+    task("Critical E2E guard", "pnpm", ["run", "test:e2e:guard"]),
+    task("Production build", "pnpm", ["run", "build"]),
+    task("Bundle budget", "pnpm", ["run", "test:bundle-budget"]),
+  ],
+  full: [
+    task("Workflow matrix", "pnpm", ["run", "test:workflow-matrix"]),
+    task("Frontend hygiene", "pnpm", ["run", "test:frontend-hygiene"]),
+    task("UI design readiness", "pnpm", ["run", "test:ui-readiness"]),
+    task("TypeScript", "pnpm", ["run", "check"]),
+    task("Contract tests", "pnpm", ["run", "test:contracts"]),
+    task("P0 workflow validation", "pnpm", ["run", "test:e2e:validation:p0"]),
+    task("P1 workflow validation", "pnpm", ["run", "test:e2e:validation:p1"]),
+    task("Broad workflow validation", "pnpm", ["run", "test:e2e:validation"]),
+    task("Trust-boundary parser guard", "pnpm", ["run", "test:trust-boundaries"]),
+    task("Unit/component tests", "pnpm", ["run", "test"]),
+    task("Store coverage threshold", "pnpm", ["run", "test:coverage:stores"]),
+    task("Critical E2E guard", "pnpm", ["run", "test:e2e:guard"]),
+    task("Production build", "pnpm", ["run", "build"]),
+    task("Bundle budget", "pnpm", ["run", "test:bundle-budget"]),
+  ],
+};
 
-if (mode === "full") {
-  gates.splice(5, 0, [
-    "P0 workflow validation",
-    [pnpmCommand, ["run", "test:e2e:validation:p0"]],
-  ]);
-  gates.splice(6, 0, [
-    "Broad workflow validation",
-    [pnpmCommand, ["run", "test:e2e:validation"]],
-  ]);
-}
+const gates = TASK_REGISTRY[mode] || TASK_REGISTRY.standard;
 
-for (const [label, [command, args]] of gates) {
-  console.log(`\n## ${label}`);
-  const spawnCommand = process.platform === "win32" ? "cmd.exe" : command;
-  const spawnArgs =
-    process.platform === "win32"
-      ? ["/d", "/s", "/c", `${command} ${args.join(" ")}`]
-      : args;
-  const result = spawnSync(spawnCommand, spawnArgs, {
-    cwd: webRoot,
-    stdio: "inherit",
-    shell: false,
-    env: process.env,
-  });
-
+for (const gate of gates) {
+  console.log(`\n## ${gate.label}`);
+  const result = runTask(gate, { cwd: webRoot, env: process.env });
   if (result.error) {
-    console.error(`${label} could not start: ${result.error.message}`);
+    console.error(`${gate.label} could not start: ${result.error.message}`);
     process.exit(1);
   }
   if (result.status !== 0) {
-    console.error(`${label} failed with exit code ${result.status}.`);
+    console.error(`${gate.label} failed with exit code ${result.status}.`);
     process.exit(result.status || 1);
   }
 }
 
 console.log(`\nFrontend verification passed in ${mode} mode.`);
+
+function task(label, command, args) {
+  return { label, command, args };
+}

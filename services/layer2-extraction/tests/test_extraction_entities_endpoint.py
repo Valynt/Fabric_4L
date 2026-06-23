@@ -3,7 +3,8 @@
 import pytest
 from unittest.mock import Mock, AsyncMock
 from uuid import uuid4
-from fastapi import HTTPException
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ConflictError
 
 from layer2_extraction.api.routes.extraction import (
     ExtractedEntity,
@@ -144,11 +145,11 @@ async def test_get_extraction_results_incomplete_job(mock_job):
     with pytest.MonkeyPatch().context() as m:
         m.setattr("layer2_extraction.api.routes.extraction.build_job_store", Mock(return_value=job_store))
         
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ConflictError) as exc_info:
             await get_extraction_results(mock_job.job_id, request)
         
         assert exc_info.value.status_code == 409
-        assert "not complete" in exc_info.value.detail
+        assert "not complete" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -171,11 +172,11 @@ async def test_get_extraction_results_missing_job():
     with pytest.MonkeyPatch().context() as m:
         m.setattr("layer2_extraction.api.routes.extraction.build_job_store", Mock(return_value=job_store))
         
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             await get_extraction_results(job_id, request)
         
         assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail
+        assert "not found" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -200,11 +201,11 @@ async def test_get_extraction_results_cross_tenant_access_denied(mock_job):
     with pytest.MonkeyPatch().context() as m:
         m.setattr("layer2_extraction.api.routes.extraction.build_job_store", Mock(return_value=job_store))
         
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             await get_extraction_results(mock_job.job_id, request)
         
         assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail
+        assert "not found" in str(exc_info.value)
         job_store.get_job.assert_awaited_once_with(mock_job.job_id, tenant_id=tenant_id)
 
 
@@ -227,11 +228,11 @@ async def test_get_extraction_results_no_artifacts(mock_job):
     with pytest.MonkeyPatch().context() as m:
         m.setattr("layer2_extraction.api.routes.extraction.build_job_store", Mock(return_value=job_store))
         
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             await get_extraction_results(mock_job.job_id, request)
         
         assert exc_info.value.status_code == 404
-        assert "No extraction artifacts found" in exc_info.value.detail
+        assert "No extraction artifacts found" in str(exc_info.value)
 
 
 def test_extracted_entity_validation():

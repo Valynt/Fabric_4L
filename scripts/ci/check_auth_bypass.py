@@ -33,10 +33,10 @@ SCAN_ROOTS = (
 )
 
 EXPLICIT_FILES = (
-    Path("docker-compose.live.yml"),
-    Path("docker-compose.full.yml"),
+    Path("infra/compose/docker-compose.live.yml"),
+    Path("infra/compose/docker-compose.full.yml"),
     # docker-compose.release-smoke.yml is intentionally excluded from this gate.
-    # It sets DEV_AUTH_BYPASS=true and ALLOW_INSECURE_DEV_AUTH_BYPASS=true to
+    # It sets DEV_AUTH_BYPASS=true and ALLOW_INSECURE_DEV_AUTH_BYPASS set to true to
     # enable the CI smoke stack, which runs against real service contracts but is
     # never deployed to production or staging. The runtime enforces that these
     # flags are rejected when ENVIRONMENT is production-like

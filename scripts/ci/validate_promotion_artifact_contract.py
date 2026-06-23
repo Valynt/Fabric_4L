@@ -9,12 +9,23 @@ import re
 import sys
 from pathlib import Path
 
-REQUIRED_KEYS = {"layer", "image_digest", "published_tag", "source_commit_sha"}
+REQUIRED_KEYS = {
+    "layer",
+    "image_digest",
+    "published_tag",
+    "source_commit_sha",
+    "source_version",
+    "build_timestamp",
+    "environment",
+}
 BUILD_MARKERS = (
     "build-metadata-${{ matrix.layer }}",
     '"image_digest"',
     '"published_tag"',
     '"source_commit_sha"',
+    '"source_version"',
+    '"build_timestamp"',
+    '"environment"',
 )
 PROMOTION_MARKERS = (
     "pattern: build-metadata-*",
@@ -22,6 +33,8 @@ PROMOTION_MARKERS = (
     'json.load(open(sys.argv[1]))["published_tag"]',
 )
 SEMVER_RE = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$")
+PACKAGE_SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$")
+ISO_UTC_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,6 +81,12 @@ def main() -> int:
                 fail(f"{path} has invalid published_tag {payload['published_tag']!r}")
             if len(str(payload["source_commit_sha"])) != 40:
                 fail(f"{path} has invalid source_commit_sha length")
+            if not PACKAGE_SEMVER_RE.match(str(payload["source_version"])):
+                fail(f"{path} has invalid source_version {payload['source_version']!r}")
+            if not ISO_UTC_RE.match(str(payload["build_timestamp"])):
+                fail(f"{path} has invalid build_timestamp {payload['build_timestamp']!r}")
+            if str(payload["environment"]).lower() in {"", "unknown", "placeholder"}:
+                fail(f"{path} has invalid environment {payload['environment']!r}")
 
     print("Build/promotion artifact schema contract passed.")
     return 0

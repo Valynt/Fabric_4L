@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Signal persistence service for Layer 3 Knowledge Graph.
 
 Manages persistence of PainSignal entities and their relationships
 to Evidence, ValueDrivers, and Accounts in Neo4j.
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
@@ -13,27 +14,10 @@ from typing import Any
 
 from neo4j import AsyncDriver
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 
-try:
-    from value_fabric.shared.identity.context import require_context
-except ImportError:
-    require_context = None
-
 logger = logging.getLogger(__name__)
-
-
-def _get_tenant_id() -> str:
-    """Safely retrieve tenant ID from request context.
-
-    Returns "default" if context is not available (e.g., in tests or background tasks).
-    """
-    if not require_context:
-        return "default"
-    try:
-        return str(require_context().tenant_id)
-    except RuntimeError:
-        return "default"
 
 
 class SignalPersistenceService:
@@ -100,28 +84,20 @@ class SignalPersistenceService:
             properties["impact_formula_id"] = signal_data["impact_formula_id"]
 
         async with self._driver.session() as session:
-            # Create/merge PainSignal node
-            query = """
-            MERGE (s:PainSignal {id: $id, tenant_id: $tenant_id})
-            SET s += $properties
-            WITH s
-            MATCH (a:Account {id: $account_id, tenant_id: $tenant_id})
-            MERGE (a)-[r:exhibits]->(s)
-            SET r.discovered_at = datetime()
-            RETURN s.id as signal_id
-            """
-
-            result = await run_validated_query(session,
-                query,
-                {
-                    "id": signal_id,
-                    "tenant_id": tenant_id,
-                    "account_id": account_id,
-                    "properties": properties,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for all node/relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="signal_persistence.persist_signal",
             )
-            record = await result.single()
-            return record["signal_id"] if record else signal_id
+
+            # Create/merge PainSignal node through gateway
+            await mutation.write_node("PainSignal", signal_id, properties)
+
+            # Create exhibits relationship to Account through gateway
+            await mutation.write_relationship(account_id, "exhibits", signal_id)
+
+            return signal_id
 
     async def link_evidence(
         self,
@@ -143,38 +119,31 @@ class SignalPersistenceService:
         links_created = 0
 
         async with self._driver.session() as session:
+            # Phase 1 hardening: Use AuditedGraphMutation for all node/relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="signal_persistence.link_evidence",
+            )
+
             for match in evidence_matches:
                 evidence_id = match.get("evidence_id")
 
-                query = """
-                MATCH (s:PainSignal {id: $signal_id, tenant_id: $tenant_id})
-                MERGE (e:Evidence {id: $evidence_id, tenant_id: $tenant_id})
-                SET e.title = $title,
-                    e.evidence_type = $evidence_type
-                MERGE (s)-[r:supportedBy]->(e)
-                SET r.match_score = $match_score,
-                    r.match_reasoning = $match_reasoning,
-                    r.relevance_quote = $relevance_quote,
-                    r.linked_at = datetime()
-                RETURN count(r) as created
-                """
+                # Create/merge Evidence node through gateway
+                evidence_props = {
+                    "title": match.get("title", ""),
+                    "evidence_type": match.get("evidence_type", "case_study"),
+                }
+                await mutation.write_node("Evidence", evidence_id, evidence_props)
 
-                result = await run_validated_query(session,
-                    query,
-                    {
-                        "signal_id": signal_id,
-                        "evidence_id": evidence_id,
-                        "tenant_id": tenant_id,
-                        "title": match.get("title", ""),
-                        "evidence_type": match.get("evidence_type", "case_study"),
-                        "match_score": match.get("match_score", 0),
-                        "match_reasoning": match.get("match_reasoning", ""),
-                        "relevance_quote": match.get("relevance_quote", ""),
-                    },
-                )
-                record = await result.single()
-                if record and record["created"] > 0:
-                    links_created += 1
+                # Create supportedBy relationship through gateway
+                rel_props = {
+                    "match_score": match.get("match_score", 0),
+                    "match_reasoning": match.get("match_reasoning", ""),
+                    "relevance_quote": match.get("relevance_quote", ""),
+                }
+                await mutation.write_relationship(signal_id, "supportedBy", evidence_id, rel_props)
+                links_created += 1
 
         return links_created
 
@@ -194,24 +163,16 @@ class SignalPersistenceService:
             True if relationship created
         """
         async with self._driver.session() as session:
-            query = """
-            MATCH (s:PainSignal {id: $signal_id, tenant_id: $tenant_id})
-            MATCH (vd:ValueDriver {id: $value_driver_id, tenant_id: $tenant_id})
-            MERGE (s)-[r:mapsTo]->(vd)
-            SET r.mapped_at = datetime()
-            RETURN count(r) > 0 as created
-            """
-
-            result = await run_validated_query(session,
-                query,
-                {
-                    "signal_id": signal_id,
-                    "value_driver_id": value_driver_id,
-                    "tenant_id": tenant_id,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for all relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="signal_persistence.map_to_value_driver",
             )
-            record = await result.single()
-            return record["created"] if record else False
+
+            # Create mapsTo relationship through gateway
+            await mutation.write_relationship(signal_id, "mapsTo", value_driver_id)
+            return True
 
     async def get_signals_for_account(
         self,
@@ -267,7 +228,14 @@ class SignalPersistenceService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="signal_persistence.get_signals_for_account",
+            )
             records = await result.data()
             return [r["signal"] for r in records]
 
@@ -303,9 +271,13 @@ class SignalPersistenceService:
             } as signal
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {"signal_id": signal_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="signal_persistence.get_signal_by_id",
             )
             record = await result.single()
             return record["signal"] if record else None
@@ -330,28 +302,22 @@ class SignalPersistenceService:
             True if updated successfully
         """
         async with self._driver.session() as session:
-            query = """
-            MATCH (s:PainSignal {id: $signal_id, tenant_id: $tenant_id})
-            SET s.impact_value = $impact_value,
-                s.impact_unit = $impact_unit,
-                s.impact_formula_id = $formula_id,
-                s.updated_at = datetime()
-            WITH s
-            MATCH (f:Formula {id: $formula_id, tenant_id: $tenant_id})
-            MERGE (s)-[r:quantifiedBy]->(f)
-            SET r.quantified_at = datetime()
-            RETURN count(s) > 0 as updated
-            """
-
-            result = await run_validated_query(session,
-                query,
-                {
-                    "signal_id": signal_id,
-                    "impact_value": float(impact_value),
-                    "impact_unit": impact_unit,
-                    "formula_id": formula_id,
-                    "tenant_id": tenant_id,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for all node/relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="signal_persistence.quantify_signal",
             )
-            record = await result.single()
-            return record["updated"] if record else False
+
+            # Update PainSignal node properties through gateway
+            signal_props = {
+                "impact_value": float(impact_value),
+                "impact_unit": impact_unit,
+                "impact_formula_id": formula_id,
+            }
+            await mutation.write_node("PainSignal", signal_id, signal_props)
+
+            # Create quantifiedBy relationship through gateway
+            await mutation.write_relationship(signal_id, "quantifiedBy", formula_id)
+
+            return True

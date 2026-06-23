@@ -10,10 +10,12 @@
 // ============================================================================
 
 export interface ApiError {
-  message: string;
-  code: string;
-  trace_id?: string;
-  details?: Record<string, unknown>;
+  error: {
+    code: string;
+    message: string;
+    request_id: string;
+    details?: Record<string, unknown> | null;
+  };
 }
 
 export interface PaginatedResponse<T> {

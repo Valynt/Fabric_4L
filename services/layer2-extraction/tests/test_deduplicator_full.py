@@ -28,7 +28,7 @@ def _uc(id: str, name: str = "Use Case Name", confidence: float = 0.8, **kw) -> 
 
 
 def _persona(id: str, title: str = "Product Manager", confidence: float = 0.8, **kw) -> Persona:
-    return Persona(id=id, title=title, role_type=RoleType.CHAMPION, confidence=confidence, **kw)
+    return Persona(id=id, title=title, role_type=RoleType.CHAMPION, department="Product", confidence=confidence, **kw)
 
 
 def _vd(id: str, name: str = "Value Driver Name", confidence: float = 0.8, **kw) -> ValueDriver:

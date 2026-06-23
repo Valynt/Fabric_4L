@@ -258,10 +258,9 @@ def _is_success(tool_name: str, tool_input_or_resp, resp=None) -> bool:
     """Signature:
         _is_success(tool_name, tool_input, resp)   — preferred, 3-arg form
         _is_success(tool_name, resp)               — legacy 2-arg form;
-                                                     wrapper detection off
+            wrapper detection off
     Detects failure from the tool_response dict. Conservative — only fails
     on unambiguous signals so we don't discard genuine successes."""
-    # Support the legacy 2-arg call (tool_name, resp).
     if resp is None:
         tool_input: dict = {}
         resp = tool_input_or_resp
@@ -270,63 +269,58 @@ def _is_success(tool_name: str, tool_input_or_resp, resp=None) -> bool:
     return _is_success_impl(tool_name, tool_input, resp)
 
 
+def _stderr_text(resp: dict) -> str:
+    return resp.get("error", "") or resp.get("stderr", "") or ""
+
+
+def _stderr_indicates_failure(stderr: str, wrapped: bool) -> bool:
+    if not stderr:
+        return False
+    if wrapped:
+        return bool(_ERROR_SIGNALS.search(stderr))
+    return len(stderr) > 30 and bool(_ERROR_SIGNALS.search(stderr))
+
+
+def _exit_code_success(resp: dict):
+    exit_code = resp.get("exit_code")
+    if exit_code is None:
+        return None
+    return exit_code == 0
+
+
+def _bash_success(tool_input: dict, resp: dict):
+    if resp.get("interrupted", False):
+        return False
+    command = _extract_bash_command(tool_input)
+    wrapped = _is_exit_masked(command)
+    if _stderr_indicates_failure(_stderr_text(resp), wrapped):
+        return False
+    return _exit_code_success(resp)
+
+
+def _first_output_line(output: str) -> str:
+    return output.strip().splitlines()[0] if output.strip() else ""
+
+
+def _generic_output_success(resp: dict):
+    output = _extract_output(resp)
+    if not output or not _ERROR_SIGNALS.search(output[:200]):
+        return True
+    return not bool(_ERROR_SIGNALS.search(_first_output_line(output)))
+
+
 def _is_success_impl(tool_name: str, tool_input: dict, resp: dict) -> bool:
     """Detect failure from the tool_response dict. Conservative — only fails
     on unambiguous signals so we don't discard genuine successes."""
     if not isinstance(resp, dict):
         return True
-
-    # Explicit error flag
     if resp.get("is_error", False):
         return False
-
-    # Bash-specific. Classification rules, in order:
-    #  1. interrupted → failure
-    #  2. stderr looks like an error (length threshold differs by wrapper):
-    #     - wrapped (`|| true`, `|| :`): any non-empty error-looking stderr
-    #       catches masked failures, since they often emit brief messages
-    #       like "build failed" or "permission denied".
-    #     - unwrapped: require >30 chars to avoid tripping on benign warnings
-    #  3. if exit_code is present and no wrapper override fired → trust it.
-    #     Trusting exit_code=0 matters for `grep Error log`, `cat log`,
-    #     `grep X || true`, and other inspections that legitimately print
-    #     error-looking stdout.
-    #  4. otherwise → fall through to generic stdout heuristic (handles
-    #     non-Bash tools and ancient response shapes without exit_code).
     if tool_name == "Bash":
-        exit_code = resp.get("exit_code")
-        if resp.get("interrupted", False):
-            return False
-        stderr = resp.get("error", "") or resp.get("stderr", "") or ""
-        command = _extract_bash_command(tool_input)
-        wrapped = _is_exit_masked(command)
-        if wrapped:
-            # Masked exit. stderr is the best available signal; catch even
-            # short messages because masked failures are often terse.
-            if stderr and _ERROR_SIGNALS.search(stderr):
-                return False
-            # No stderr signal → trust exit_code. Prevents false-failure
-            # misclassification of `grep '^Error' log || true` (benign).
-            if exit_code is not None:
-                return exit_code == 0
-        else:
-            if len(stderr) > 30 and _ERROR_SIGNALS.search(stderr):
-                return False
-            if exit_code is not None:
-                return exit_code == 0
-        # No exit_code and no stderr signal — fall through to the generic
-        # stdout heuristic below.
-
-    # Generic output error heuristic (non-Bash, or Bash without exit_code)
-    output = _extract_output(resp)
-    if output and _ERROR_SIGNALS.search(output[:200]):
-        # Only fail if the very start of output looks like an error,
-        # not just because the word "error" appears mid-output.
-        first_line = output.strip().splitlines()[0] if output.strip() else ""
-        if _ERROR_SIGNALS.search(first_line):
-            return False
-
-    return True
+        bash_result = _bash_success(tool_input, resp)
+        if bash_result is not None:
+            return bash_result
+    return _generic_output_success(resp)
 
 
 # ---------------------------------------------------------------------------
@@ -373,46 +367,67 @@ def _extract_error(resp: dict) -> str:
 # Action label (short, searchable)
 # ---------------------------------------------------------------------------
 
+def _path_value(tool_input: dict, *keys) -> str:
+    for key in keys:
+        value = tool_input.get(key)
+        if value:
+            return value
+    return "?"
+
+
+def _bash_label(tool_input: dict) -> str:
+    cmd = tool_input.get("command", "").strip()
+    first = re.sub(r"\s+", " ", cmd.split("\n")[0].split(";")[0])[:80]
+    return f"bash: {first}"
+
+
+def _edit_label(tool_input: dict) -> str:
+    return f"edit: {_path_value(tool_input, 'file_path', 'path', 'new_path')}"
+
+
+def _write_label(tool_input: dict) -> str:
+    return f"write: {_path_value(tool_input, 'file_path', 'path')}"
+
+
+def _read_label(tool_input: dict) -> str:
+    return f"read: {_path_value(tool_input, 'file_path', 'path')}"
+
+
+def _todo_label(tool_input: dict) -> str:
+    pending = [
+        todo for todo in tool_input.get("todos", [])
+        if isinstance(todo, dict) and todo.get("status") == "in_progress"
+    ]
+    if pending:
+        return f"todo-update: {pending[0].get('content', '')[:60]}"
+    return "todo: updated task list"
+
+
+def _task_label(tool_input: dict) -> str:
+    return f"task: {(tool_input.get('description') or '')[:60]}"
+
+
+def _webfetch_label(tool_input: dict) -> str:
+    return f"fetch: {(tool_input.get('url') or '')[:60]}"
+
+
+_ACTION_LABELS = {
+    "Bash": _bash_label,
+    "Edit": _edit_label,
+    "MultiEdit": _edit_label,
+    "Write": _write_label,
+    "Read": _read_label,
+    "TodoWrite": _todo_label,
+    "Task": _task_label,
+    "WebFetch": _webfetch_label,
+}
+
+
 def _action_label(tool_name: str, tool_input: dict) -> str:
     """First-word summary. Ends up in the `action` field of the episodic entry."""
-    if tool_name == "Bash":
-        cmd = tool_input.get("command", "").strip()
-        # Take first logical line, strip shell boilerplate
-        first = re.sub(r"\s+", " ", cmd.split("\n")[0].split(";")[0])[:80]
-        return f"bash: {first}"
-
-    if tool_name in ("Edit", "MultiEdit"):
-        path = (tool_input.get("file_path")
-                or tool_input.get("path")
-                or tool_input.get("new_path")
-                or "?")
-        return f"edit: {path}"
-
-    if tool_name == "Write":
-        path = tool_input.get("file_path") or tool_input.get("path") or "?"
-        return f"write: {path}"
-
-    if tool_name == "Read":
-        path = tool_input.get("file_path") or tool_input.get("path") or "?"
-        return f"read: {path}"
-
-    if tool_name == "TodoWrite":
-        todos = tool_input.get("todos", [])
-        pending = [t for t in todos if isinstance(t, dict)
-                   and t.get("status") == "in_progress"]
-        if pending:
-            desc = pending[0].get("content", "")[:60]
-            return f"todo-update: {desc}"
-        return "todo: updated task list"
-
-    if tool_name == "Task":
-        desc = (tool_input.get("description") or "")[:60]
-        return f"task: {desc}"
-
-    if tool_name == "WebFetch":
-        url = (tool_input.get("url") or "")[:60]
-        return f"fetch: {url}"
-
+    labeler = _ACTION_LABELS.get(tool_name)
+    if labeler:
+        return labeler(tool_input)
     return f"tool:{tool_name}"
 
 
@@ -420,96 +435,119 @@ def _action_label(tool_name: str, tool_input: dict) -> str:
 # Reflection generation (this is what the dream cycle clusters on)
 # ---------------------------------------------------------------------------
 
+def _short_command(tool_input: dict) -> tuple[str, str]:
+    cmd = tool_input.get("command", "").strip()
+    return cmd, re.sub(r"\s+", " ", cmd.split("\n")[0])[:100]
+
+
+def _append_error(parts: list[str], tool_response: dict) -> None:
+    err = _extract_error(tool_response)
+    if err:
+        parts.append(f"Error: {err[:120]}")
+
+
+def _bash_reflection(tool_input: dict, tool_response: dict, success: bool) -> list[str]:
+    cmd, short_cmd = _short_command(tool_input)
+    match = _HIGH.search(cmd)
+    if match:
+        domain = match.group(0).lower().replace(" ", "-")
+        status = "completed" if success else "FAILED"
+        parts = [f"High-stakes op {status} ({domain}): {short_cmd}"]
+        if not success:
+            _append_error(parts, tool_response)
+        return parts
+    if success:
+        return [f"Ran: {short_cmd}"]
+    parts = [f"Command failed: {short_cmd}"]
+    _append_error(parts, tool_response)
+    return parts
+
+
+def _edit_reflection(tool_input: dict, _tool_response: dict, success: bool) -> list[str]:
+    path = tool_input.get("file_path") or tool_input.get("path") or "?"
+    old = (tool_input.get("old_string") or "")[:50]
+    new = (tool_input.get("new_string") or "")[:50]
+    if old and new:
+        parts = [
+            f"Edited {path}: replaced {repr(old[:30])} "
+            f"with {repr(new[:30])}"
+        ]
+    else:
+        parts = [f"Edited {path}"]
+    if not success:
+        parts.append("Edit failed")
+    return parts
+
+
+def _write_reflection(tool_input: dict, _tool_response: dict, success: bool) -> list[str]:
+    path = tool_input.get("file_path") or tool_input.get("path") or "?"
+    content = tool_input.get("content") or ""
+    lines = content.count("\n") + 1 if content else 0
+    parts = [f"Wrote {path} ({lines} lines)"]
+    if not success:
+        parts.append("Write failed")
+    return parts
+
+
+def _todo_reflection(tool_input: dict, _tool_response: dict, _success: bool) -> list[str]:
+    todos = tool_input.get("todos", [])
+    done = [
+        todo for todo in todos
+        if isinstance(todo, dict) and todo.get("status") == "completed"
+    ]
+    in_progress = [
+        todo for todo in todos
+        if isinstance(todo, dict) and todo.get("status") == "in_progress"
+    ]
+    parts = []
+    if done:
+        parts.append(f"Completed todo: {done[-1].get('content','')[:60]}")
+    if in_progress:
+        parts.append(f"Now working on: {in_progress[0].get('content','')[:60]}")
+    return parts or [f"Updated todo list ({len(todos)} items)"]
+
+
+def _fallback_reflection(tool_name: str, tool_input: dict, success: bool) -> list[str]:
+    status = "successfully" if success else "with failure"
+    parts = [f"Tool {tool_name} completed {status}"]
+    inp_str = json.dumps(tool_input)
+    if inp_str and len(inp_str) < 80:
+        parts.append(inp_str)
+    return parts
+
+
+_REFLECTIONS = {
+    "Bash": _bash_reflection,
+    "Edit": _edit_reflection,
+    "MultiEdit": _edit_reflection,
+    "Write": _write_reflection,
+    "TodoWrite": _todo_reflection,
+}
+
+
+def _reflection_parts(tool_name: str, tool_input: dict,
+                      tool_response: dict, success: bool) -> list[str]:
+    builder = _REFLECTIONS.get(tool_name)
+    if not builder:
+        return _fallback_reflection(tool_name, tool_input, success)
+    return builder(tool_input, tool_response, success)
+
+
+def _join_reflection(tool_name: str, parts: list[str]) -> str:
+    return ". ".join(parts) if parts else f"Tool {tool_name} ran"
+
+
 def _reflection(tool_name: str, tool_input: dict,
                 tool_response: dict, success: bool) -> str:
     """
     Produce a non-empty, content-rich reflection string. This is the most
     important field for the dream cycle — content_cluster() calls word_set()
     on it. An empty reflection means zero clustering signal.
-
-    Rules:
-      1. Describe WHAT happened in domain terms.
-      2. For failures: include the command and the first error line.
-      3. For high-stakes ops: include the matched keyword (deploy, migration,
-         or whatever the user configured in hook_patterns.json).
-      4. Keep under ~200 chars so detail field carries the rest.
     """
-    parts = []
-    inp_str = json.dumps(tool_input)
-
-    # --- Bash ---
-    if tool_name == "Bash":
-        cmd = tool_input.get("command", "").strip()
-        short_cmd = re.sub(r"\s+", " ", cmd.split("\n")[0])[:100]
-
-        m = _HIGH.search(cmd)
-        if m:
-            domain = m.group(0).lower().replace(" ", "-")
-            if success:
-                parts.append(f"High-stakes op completed ({domain}): {short_cmd}")
-            else:
-                parts.append(f"High-stakes op FAILED ({domain}): {short_cmd}")
-                err = _extract_error(tool_response)
-                if err:
-                    parts.append(f"Error: {err[:120]}")
-        elif not success:
-            parts.append(f"Command failed: {short_cmd}")
-            err = _extract_error(tool_response)
-            if err:
-                parts.append(f"Error: {err[:120]}")
-        else:
-            parts.append(f"Ran: {short_cmd}")
-
-    # --- Edit ---
-    elif tool_name in ("Edit", "MultiEdit"):
-        path = tool_input.get("file_path") or tool_input.get("path") or "?"
-        old = (tool_input.get("old_string") or "")[:50]
-        new = (tool_input.get("new_string") or "")[:50]
-        if old and new:
-            parts.append(
-                f"Edited {path}: replaced {repr(old[:30])} "
-                f"with {repr(new[:30])}"
-            )
-        else:
-            parts.append(f"Edited {path}")
-        if not success:
-            parts.append("Edit failed")
-
-    # --- Write ---
-    elif tool_name == "Write":
-        path = tool_input.get("file_path") or tool_input.get("path") or "?"
-        content = tool_input.get("content") or ""
-        lines = content.count("\n") + 1 if content else 0
-        parts.append(f"Wrote {path} ({lines} lines)")
-        if not success:
-            parts.append("Write failed")
-
-    # --- TodoWrite ---
-    elif tool_name == "TodoWrite":
-        todos = tool_input.get("todos", [])
-        done = [t for t in todos if isinstance(t, dict)
-                and t.get("status") == "completed"]
-        in_prog = [t for t in todos if isinstance(t, dict)
-                   and t.get("status") == "in_progress"]
-        if done:
-            parts.append(
-                f"Completed todo: {done[-1].get('content','')[:60]}"
-            )
-        if in_prog:
-            parts.append(
-                f"Now working on: {in_prog[0].get('content','')[:60]}"
-            )
-        if not parts:
-            parts.append(f"Updated todo list ({len(todos)} items)")
-
-    # --- fallback ---
-    else:
-        status = "successfully" if success else "with failure"
-        parts.append(f"Tool {tool_name} completed {status}")
-        if inp_str and len(inp_str) < 80:
-            parts.append(inp_str)
-
-    return ". ".join(parts) if parts else f"Tool {tool_name} ran"
+    return _join_reflection(
+        tool_name,
+        _reflection_parts(tool_name, tool_input, tool_response, success),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -540,61 +578,46 @@ def _detail(tool_name: str, tool_input: dict,
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main() -> None:
-    # --- read payload from stdin ---
+def _read_payload() -> dict:
     try:
         raw = sys.stdin.read()
-        payload = json.loads(raw) if raw.strip() else {}
+        return json.loads(raw) if raw.strip() else {}
     except (json.JSONDecodeError, OSError):
-        payload = {}
+        return {}
 
-    # Fallback to env vars (older Claude Code versions, or empty stdin)
-    tool_name = (
-        payload.get("tool_name")
-        or os.environ.get("CLAUDE_TOOL_NAME")
-        or "Unknown"
-    )
 
-    tool_input = payload.get("tool_input") or {}
-    if isinstance(tool_input, str):
-        try:
-            tool_input = json.loads(tool_input)
-        except (json.JSONDecodeError, ValueError):
-            tool_input = {"raw": tool_input}
+def _json_or_raw(value):
+    if not isinstance(value, str):
+        return value or {}
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, ValueError):
+        return {"raw": value}
 
-    # Env-var fallback for tool_input
-    if not tool_input:
-        raw_input_env = os.environ.get("CLAUDE_TOOL_INPUT", "")
-        if raw_input_env:
-            try:
-                tool_input = json.loads(raw_input_env)
-            except (json.JSONDecodeError, ValueError):
-                tool_input = {"raw": raw_input_env}
 
-    tool_response = payload.get("tool_response") or {}
-    if isinstance(tool_response, str):
-        try:
-            tool_response = json.loads(tool_response)
-        except (json.JSONDecodeError, ValueError):
-            tool_response = {"raw": tool_response}
+def _payload_field(payload: dict, key: str, env_key: str):
+    value = _json_or_raw(payload.get(key) or {})
+    if value:
+        return value
+    return _json_or_raw(os.environ.get(env_key, ""))
 
-    # Env-var fallback for tool_response
-    if not tool_response:
-        raw_resp_env = os.environ.get("CLAUDE_TOOL_RESPONSE", "")
-        if raw_resp_env:
-            try:
-                tool_response = json.loads(raw_resp_env)
-            except (json.JSONDecodeError, ValueError):
-                tool_response = {"raw": raw_resp_env}
 
-    # --- derive everything ---
+def _normalize_payload(payload: dict) -> tuple[str, dict, dict]:
+    tool_name = payload.get("tool_name") or os.environ.get("CLAUDE_TOOL_NAME") or "Unknown"
+    tool_input = _payload_field(payload, "tool_input", "CLAUDE_TOOL_INPUT")
+    tool_response = _payload_field(payload, "tool_response", "CLAUDE_TOOL_RESPONSE")
+    return tool_name, tool_input, tool_response
+
+
+def _emit_memory_entry(tool_name: str, tool_input: dict, tool_response: dict) -> None:
+    tool_input = tool_input if isinstance(tool_input, dict) else {"raw": str(tool_input)}
+    tool_response = tool_response if isinstance(tool_response, dict) else {"raw": str(tool_response)}
+
     success = _is_success(tool_name, tool_input, tool_response)
     importance = _importance(tool_name, json.dumps(tool_input))
     action = _action_label(tool_name, tool_input)
     reflection = _reflection(tool_name, tool_input, tool_response, success)
     detail = _detail(tool_name, tool_input, tool_response, success)
-
-    # --- write episodic entry ---
     pscore = _pain_score(importance, success)
     if success:
         log_execution(
@@ -617,6 +640,11 @@ def main() -> None:
             importance=importance,
             pain_score=pscore,
         )
+
+
+def main() -> None:
+    tool_name, tool_input, tool_response = _normalize_payload(_read_payload())
+    _emit_memory_entry(tool_name, tool_input, tool_response)
 
 
 if __name__ == "__main__":

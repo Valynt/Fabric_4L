@@ -1,33 +1,63 @@
-/**
- * useEntitlements — Check if the current plan has required entitlements.
- *
- * SECURITY WARNING: This hook currently returns true for all entitlements.
- * This is a TEMPORARY placeholder until billing/plan integration is implemented.
- *
- * TODO: Integrate with billing service to check active entitlements based on:
- *   1. User's subscription tier
- *   2. Feature flags
- *   3. Usage limits
- *
- * Placeholder for future billing/plan integration.
- */
-
 import { useMemo } from "react";
-import { logWarn } from "@/lib/telemetry";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/api/typedClient";
+import { createFeatureLogger } from "@/lib/telemetry";
+
+const log = createFeatureLogger("use-entitlements");
+
+type EntitlementDecision = {
+  allowed: boolean;
+  reason: string;
+};
+
+type EntitlementsCheckResponse = {
+  decisions: Record<string, EntitlementDecision>;
+};
 
 export function useEntitlements(requiredEntitlements: string[]) {
+  const uniqueRequired = useMemo(
+    () => Array.from(new Set(requiredEntitlements.filter(Boolean))).sort(),
+    [requiredEntitlements]
+  );
+
+  const query = useQuery({
+    queryKey: ["authz", "entitlements", uniqueRequired],
+    queryFn: async () => {
+      const response = await apiGet<EntitlementsCheckResponse>(
+        "l4",
+        `/v1/authz/entitlements/check?entitlements=${encodeURIComponent(uniqueRequired.join(","))}`
+      );
+      return response.data;
+    },
+    enabled: uniqueRequired.length > 0,
+    retry: false,
+  });
+
   const entitlementsMet = useMemo(() => {
-    if (requiredEntitlements.length === 0) return true;
-    // SECURITY: Placeholder implementation - all entitlements pass
-    // This MUST be replaced with billing integration before production use
-    logWarn('useEntitlements: Using placeholder implementation - no actual entitlement check', {
-      requiredEntitlements,
+    if (uniqueRequired.length === 0) return true;
+    if (query.isLoading || query.isError || !query.data?.decisions) return false;
+    return uniqueRequired.every((key) => query.data.decisions[key]?.allowed === true);
+  }, [query.data, query.isError, query.isLoading, uniqueRequired]);
+
+  const denialReasons = useMemo(() => {
+    if (!query.data?.decisions) return {} as Record<string, string>;
+    return Object.fromEntries(
+      Object.entries(query.data.decisions)
+        .filter(([, value]) => value.allowed !== true)
+        .map(([key, value]) => [key, value.reason])
+    );
+  }, [query.data]);
+
+  if (query.isError) {
+    log.warn("Entitlement verification failed; denying by default", {
+      requiredEntitlements: uniqueRequired,
     });
-    return true;
-  }, [requiredEntitlements]);
+  }
 
   return {
     entitlementsMet,
-    isLoading: false,
+    denialReasons,
+    isLoading: query.isLoading,
+    isError: query.isError,
   };
 }

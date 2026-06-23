@@ -10,6 +10,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+MONITORING_COMPOSE_FILE="infra/compose/docker-compose.monitoring.yml"
 
 cd "${PROJECT_ROOT}"
 
@@ -47,12 +48,12 @@ sys.exit(1 if fail else 0)
 " || ERRORS=$((ERRORS + 1))
 
 echo ""
-echo "=== Validating docker-compose.monitoring.yml ==="
+echo "=== Validating ${MONITORING_COMPOSE_FILE} ==="
 
-if docker compose -f docker-compose.monitoring.yml config > /dev/null 2>&1; then
-    echo "docker-compose.monitoring.yml: OK"
+if docker compose -f "${MONITORING_COMPOSE_FILE}" config > /dev/null 2>&1; then
+    echo "${MONITORING_COMPOSE_FILE}: OK"
 else
-    echo "FAIL: docker-compose.monitoring.yml config validation failed" >&2
+    echo "FAIL: ${MONITORING_COMPOSE_FILE} config validation failed" >&2
     ERRORS=$((ERRORS + 1))
 fi
 

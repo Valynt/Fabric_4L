@@ -29,7 +29,7 @@ import {
   expectSeededBusinessCaseWorkflowResults,
   requireBackendOrThrow,
 } from '../helpers/validation-program';
-import { BACKEND_E2E_TENANT_ID } from '../fixtures/auth-helpers';
+import { BACKEND_E2E_TENANT_ID, DEFAULT_TEST_USER } from '../fixtures/auth-helpers';
 
 // Seeded data IDs from scripts/fixtures/meridian-automotive.ts
 const SEED_ACCOUNT_ID = 'acct-meridian-001';
@@ -47,8 +47,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
   // ── Phase 1: Account Setup ──────────────────────────────────────────────
 
   journeyTest('GP-BI-001: user can create a new account through prospect setup form', async ({ authedPage }) => {
-    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
-    await expect(authedPage).toHaveURL(/\/workflow\/prospect(?:[?#].*)?$/);
+    await authedPage.goto('/accounts/new', { waitUntil: 'domcontentloaded' });
+    await expect(authedPage).toHaveURL(/\/accounts\/new(?:[?#].*)?$/);
 
     const companyInput = authedPage.getByLabel(/company name/i);
     const domainInput = authedPage.getByLabel(/website/i);
@@ -83,7 +83,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
   journeyTest('GP-BI-002: user can assign a value pack to the account', async ({ authedPage }) => {
     await expectWorkflowStep(
       authedPage,
-      '/settings/data/value-packs',
+      `/t/${DEFAULT_TEST_USER.tenantSlug}/settings/value-packs`,
       [{ click: /assign|manufacturing|select pack/i }],
       /value pack|manufacturing|assigned|default/i,
     );

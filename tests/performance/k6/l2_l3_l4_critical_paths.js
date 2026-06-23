@@ -6,13 +6,27 @@ const L2_URL = (__ENV.L2_URL || 'http://localhost:8002').replace(/\/$/, '');
 const L3_URL = (__ENV.L3_URL || 'http://localhost:8003').replace(/\/$/, '');
 const L4_URL = (__ENV.L4_URL || 'http://localhost:8004').replace(/\/$/, '');
 
-const authHeaders = {};
-if (__ENV.PERF_AUTH_BEARER) {
-  authHeaders.Authorization = `Bearer ${__ENV.PERF_AUTH_BEARER}`;
+function requireEnv(name) {
+  const value = __ENV[name];
+  if (!value) {
+    throw new Error(`${name} is required for authenticated performance tests`);
+  }
+  return value;
 }
-if (__ENV.PERF_TENANT_ID) {
-  authHeaders['X-Tenant-ID'] = __ENV.PERF_TENANT_ID;
-}
+
+const PERF_TENANT_ID = requireEnv('PERF_TENANT_ID');
+const PERF_AUTH_BEARER = requireEnv('PERF_AUTH_BEARER');
+const PERF_S2S_BEARER = requireEnv('PERF_S2S_BEARER');
+
+const userAuthHeaders = {
+  Authorization: `Bearer ${PERF_AUTH_BEARER}`,
+  'X-Tenant-ID': PERF_TENANT_ID,
+};
+
+const s2sAuthHeaders = {
+  Authorization: `Bearer ${PERF_S2S_BEARER}`,
+  'X-Tenant-ID': PERF_TENANT_ID,
+};
 
 const l2Duration = new Trend('l2_extract_ingest_duration_ms');
 const l3Duration = new Trend('l3_hybrid_search_duration_ms');
@@ -65,7 +79,7 @@ export const options = {
   },
 };
 
-function defaultHeaders() {
+function defaultHeaders(authHeaders) {
   return {
     'Content-Type': 'application/json',
     ...authHeaders,
@@ -85,7 +99,7 @@ export function runL2ExtractAndIngest() {
   });
 
   const response = http.post(`${L2_URL}/v1/extract-and-ingest`, payload, {
-    headers: defaultHeaders(),
+    headers: defaultHeaders(s2sAuthHeaders),
     timeout: '90s',
   });
 
@@ -109,7 +123,7 @@ export function runL3HybridSearch() {
   const payload = JSON.stringify({ query: 'value optimization', limit: 10 });
 
   const response = http.post(`${L3_URL}/v1/search/hybrid`, payload, {
-    headers: defaultHeaders(),
+    headers: defaultHeaders(userAuthHeaders),
     timeout: '30s',
   });
 
@@ -131,7 +145,7 @@ export function runL3HybridSearch() {
 
 export function runL4WorkflowsActive() {
   const response = http.get(`${L4_URL}/workflows/active`, {
-    headers: defaultHeaders(),
+    headers: defaultHeaders(userAuthHeaders),
     timeout: '30s',
   });
 

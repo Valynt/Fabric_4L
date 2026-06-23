@@ -75,52 +75,67 @@ pnpm install
 pnpm --dir apps/web install
 ```
 
-## Quickstart
+## Canonical Build Commands
 
-### Package manager policy (required)
+The Makefile is the canonical build, test, migration, contract, and release gate interface.
+Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases; direct Python CI
+runners are reserved for reproducing workflow behavior. See
+[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for the hierarchy and
+[`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
+Use [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) to route an issue to
+the right source-of-truth files, drift checks, validation commands, and evidence locations.
 
-This monorepo is **pnpm-only**. Use the root lockfile `pnpm-lock.yaml` as the canonical dependency snapshot.
+## Quickstart (5 minutes)
 
+### 1. Clone and configure
 ```bash
-# Enable Corepack and activate the pinned pnpm version
-corepack enable
-corepack prepare pnpm@10.18.1 --activate
-
-# Install dependencies at repo root
-pnpm install --frozen-lockfile
-```
-
-Running `npm install` or `npm ci` at repo root is not supported and will fail fast via `preinstall` checks.
-
-```bash
-# 1. Clone and enter repo
 git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
-
-# 2. Copy environment template
 cp .env.example .env
 # Fill in OPENAI_API_KEY and JWT_SECRET
+```
 
-# 3. Start all services
-docker compose -f docker-compose.full.yml up -d
+### 2. Select Python 3.11
 
-# 4. Run database migrations
+The backend services declare `requires-python = ">=3.11"`; any supported Python 3.11+ patch release is acceptable. The root `.python-version` tracks the `3.11` series so pyenv users do not need the exact `3.11.10` patch. The `Makefile` resolves `python3.11` first and then falls back only to `python3`/`python` interpreters that report Python 3.11 or newer; override it with `make PYTHON=/path/to/python3.11 ...` if your local shim path is unusual.
+
+```bash
+# Optional for pyenv users; skip if python3.11 already resolves on PATH
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+# Or choose any installed 3.11.x patch explicitly if your pyenv does not support series aliases.
+```
+
+### 3. Start infrastructure
+```bash
+docker compose -f infra/compose/docker-compose.full.yml up -d
+```
+
+### 4. Run migrations
+```bash
 make migrate
+```
 
-# 5. Verify everything works
+### 5. Verify everything works
+```bash
 make verify
+```
 
-# 6. Open the UI
+### 6. Open the UI
+```bash
 open http://localhost:5173
 ```
 
+**For detailed setup instructions:** See [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md)
+
 ## Repository map
 
-Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
-canonical implementation tree is `services/`. The `value_fabric/layer*/`
-packages are **namespace shims only** that re-export from the matching service
-package. See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
+Per **[ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
+canonical implementation tree is `services/`. The legacy root `value_fabric/`
+compatibility package and `value_fabric/layer*/` namespace shims have been
+removed; shared runtime modules resolve from `packages/shared/src/value_fabric/shared/`.
+See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
 for the full matrix (canonical paths, allowed new-development targets, and
-shim-removal review dates).
+removed compatibility paths).
 
 | Path | Status | Purpose |
 |------|--------|---------|
@@ -131,8 +146,7 @@ shim-removal review dates).
 | `services/layer5-ground-truth/src/layer5_ground_truth/` | **Canonical** | Layer 5 ground-truth runtime |
 | `services/layer6-benchmarks/src/` | **Canonical** | Layer 6 benchmark runtime |
 | `services/api/` | **Maintained** | Cross-layer API service |
-| `value_fabric/layer1/` … `value_fabric/layer6/` | **Shim only (per ADR-027)** | Namespace facades; no net-new logic. Shim-removal review by 2026-09-30. |
-| `value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
+| `packages/shared/src/value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
 | `apps/web/` | **Canonical** | React + TypeScript UI |
 | `contracts/` | **Canonical** | Versioned tool manifests, JSON Schemas, OpenAPI specs |
 | `k8s/` | **Canonical** | Kubernetes manifests |
@@ -145,101 +159,88 @@ shim-removal review dates).
 ### Source of truth paths
 
 All net-new runtime code lands under `services/layer{N}-*/src/`. Cross-layer
-imports may use either the service package (`layer{N}_{name}.*`) or the
-`value_fabric.layer{N}.*` shim during transition — the shim resolves to the
-same module objects. See the path governance matrix for layer-specific notes.
+imports must use the service package (`layer{N}_{name}.*`) or contracted
+HTTP/client boundaries. Shared imports continue to use `value_fabric.shared.*`
+from `packages/shared/src`.
 
 ### Per-layer contributor rule
 
 For every layer 1–6: place all runtime implementation changes under
 `services/layer{N}-*/src/`. Do **not** add new logic under
-`value_fabric/layer{N}/` — those packages are namespace shims (per ADR-027)
-and CI enforces this via
+`value_fabric/layer{N}/` or restore the root `value_fabric/` compatibility tree.
+CI enforces this via
 [`scripts/ci/check_layer6_wrapper_drift.py`](scripts/ci/check_layer6_wrapper_drift.py),
 [`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py), and the
 import-topology tests under [`tests/arch/`](tests/arch/) and
 [`tests/contract/`](tests/contract/).
 
-## Core concepts
+## Core Concepts
 
-- **Contracts** — All tool schemas and API shapes live in `contracts/`. They are the source of truth.
-- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/engine/`.
-- **Agents** — Behavior defined as versioned artifacts in `layer4-agents/agents/` and `layer4-agents/skills/`.
-- **Providers** — Vendor-specific adapters (OpenAI, Anthropic, Neo4j, pgvector) isolated from core logic.
-- **Packs** — Domain vertical extensions that add ontology, formulas, and variables without touching core.
-- **Drift Detection** — Automated checks for API contract drift, schema drift, and documentation staleness via CI/CD workflows and the Drift Assessor agent.
+| Document | Description |
+|----------|-------------|
+| [System Architecture](docs/core-concepts/architecture.md) | 6-layer pipeline architecture |
+| [Canonical Platform Contract](docs/contract.md) | Enforced direction for 6 cross-layer concerns |
+| [Architecture Decision Records](docs/explanations/adr/) | Historical design decisions and rationale |
+| [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
+| [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
+
+## Developer Guide
+
+| Document | Description |
+|----------|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup and contribution guide |
+| [AGENTS.md](AGENTS.md) | AI agent reference |
+| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer |
+| [Testing Strategy](docs/reference/testing-strategy.md) | Test pyramid and coverage requirements |
+| [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
+
+## API Reference
+
+| Document | Description |
+|----------|-------------|
+| [API Reference Overview](docs/reference/api-overview.md) | Multi-layer API structure and patterns |
+| [Layer 1 Ingestion API](docs/reference/layer1-ingestion-api.md) | Ingestion service endpoints |
+| [Layer 2 Extraction API](docs/reference/layer2-extraction-api.md) | Extraction service endpoints |
+| [Layer 3 Knowledge API](docs/reference/layer3-knowledge-api.md) | Knowledge graph endpoints |
+| [Layer 4 Agents API](docs/reference/layer4-agents-api.md) | Agent workflow endpoints |
+| [Layer 5 Ground Truth API](docs/reference/layer5-ground-truth-api.md) | Ground truth validation endpoints |
+| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, and generated-client rules |
+
+## Operations
+
+| Document | Description |
+|----------|-------------|
+| [Release Runbook](docs/operations/RELEASE_RUNBOOK.md) | Release procedures |
+| [Operator Runbooks](docs/how-to-guides/operators.md) | Single jumping-off point for operator-facing runbooks |
+| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
+| [Keycloak Integration](docs/operations/keycloak-integration.md) | Keycloak setup and configuration |
+
+## Governance
+
+| Document | Description |
+|----------|-------------|
+| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical registry for compatibility shims |
+| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract/tenant/shim changes |
+| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve |
+
+## Security
+
+| Document | Description |
+|----------|-------------|
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [Security Documentation](docs/security/) | Multi-tenancy, secrets management, threat model |
 
 ## Documentation
 
 📚 **[Complete Documentation →](docs/README.md)**
 
-🚀 **[Platform Launch Checklist →](docs/launch-checklists/platform-launch.md)** (Sprint 4 Release Hardening)
-
 Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with tutorials, how-to guides, reference, and explanations.
 
-### Getting Started
+## Archived Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Quickstart (15 min)](docs/getting-started/quickstart.md) | Get a local instance running fast |
-| [Environment Setup](docs/getting-started/environment.md) | Configure secrets, env vars, and services |
+🗄️ **[Archived Documentation →](docs/archive/INDEX.md)**
 
-### Core Concepts
-
-| Document | Description |
-|----------|-------------|
-| [System Architecture](docs/core-concepts/architecture.md) | C4 model diagrams and layer interactions |
-| [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
-| [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
-
-### API Reference
-
-| Document | Description |
-|----------|-------------|
-| [API Overview](docs/reference/api-overview.md) | Authentication patterns and common formats |
-| [Layer 1: Ingestion](docs/reference/layer1-ingestion-api.md) | Web scraping and job management |
-| [Layer 2: Extraction](docs/reference/layer2-extraction-api.md) | LLM-based entity extraction |
-| [Layer 3: Knowledge Graph](docs/reference/layer3-knowledge-api.md) | Neo4j + pgvector hybrid search |
-| [Layer 4: Agents](docs/reference/layer4-agents-api.md) | Workflow orchestration with LangGraph |
-| [Layer 5: Ground Truth](docs/reference/layer5-ground-truth-api.md) | Evaluation and benchmarking |
-
-### Troubleshooting & Operations
-
-| Document | Description |
-|----------|-------------|
-| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
-| [Runbooks](docs/troubleshooting/runbooks/) | 38 operational procedures |
-| [Drift Detection](docs/how-to-guides/drift-detection.md) | API contract, schema, and documentation drift detection |
-
-### Architecture Decisions
-
-| Document | Description |
-|----------|-------------|
-| [All ADRs](docs/explanations/adr/) | Architecture Decision Records |
-| [ADR-027: Service-first canonical paths](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) | Why `services/` is the implementation tree and `value_fabric/` is shim-only |
-
-### Reference & Governance
-
-| Document | Description |
-|----------|-------------|
-| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer; canonical vs shim paths |
-| [Service Routing & API Version Matrix](docs/reference/service-routing-and-api-version-matrix.md) | Per-service ports, base paths, and version compatibility |
-| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, generated-client rules for `apps/web/` |
-| [Testing Strategy](docs/reference/testing-strategy.md) | Test layers, commands, and contract-test requirements |
-| [Operators' Runbook Index](docs/how-to-guides/operators.md) | Single jumping-off point for every operator-facing runbook |
-| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve; what requires an RFC |
-| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical list of compatibility shims and deprecations |
-| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract / tenant / shim changes |
-
-### Meta
-
-| Document | Description |
-|----------|-------------|
-| [`AGENTS.md`](AGENTS.md) | How to work with this repo as an AI agent |
-| [`DESIGN.md`](DESIGN.md) | Production frontend governance contract for `apps/web/` |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Developer contribution guide |
-| [`SECURITY.md`](SECURITY.md) | Vulnerability reporting |
-| [`ROADMAP.md`](ROADMAP.md) | Completion status and roadmap |
+Historical reports, superseded specifications, and outdated analysis documents retained for traceability.
 
 ## SDK Installation
 

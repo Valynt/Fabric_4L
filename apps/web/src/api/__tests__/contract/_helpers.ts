@@ -17,10 +17,12 @@ import {
 // ---------------------------------------------------------------------------
 
 export const ApiErrorSchema = z.object({
-  message: z.string(),
-  code: z.string().min(1),
-  trace_id: z.string().min(1),
-  details: z.record(z.string(), z.unknown()).nullable().optional(),
+  error: z.object({
+    code: z.string().min(1),
+    message: z.string(),
+    request_id: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
 });
 
 export const PaginatedSchema = <T extends z.ZodTypeAny>(item: T) =>
@@ -38,10 +40,12 @@ export const TenantContextSchema = z.object({
 });
 
 export const CrossTenantErrorSchema = z.object({
-  message: z.string().min(1),
-  code: z.literal('AUTHORIZATION_ERROR'),
-  trace_id: z.string().min(1),
-  details: z.record(z.string(), z.unknown()).nullable().optional(),
+  error: z.object({
+    code: z.literal('AUTHORIZATION_ERROR'),
+    message: z.string().min(1),
+    request_id: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -66,6 +70,39 @@ export const ExtractionStatusSchema = z.object({
   next_retry_at: z.string().nullable().optional(),
   started_at: z.string(),
   completed_at: z.string().nullable(),
+});
+
+export const SignalLifecycleStatusSchema = z.enum([
+  'active',
+  'superseded',
+  'merged',
+]);
+
+export const SignalLifecycleActorSchema = z.object({
+  actor_id: z.string().min(1),
+  account_id: z.string().min(1),
+});
+
+export const SignalLineageSchema = z.object({
+  supersedes: z.array(z.string()).optional(),
+  superseded_by: z.array(z.string()).optional(),
+  merged_into: z.string().nullable().optional(),
+});
+
+export const SignalLifecycleMetadataSchema = z.object({
+  created_by: SignalLifecycleActorSchema,
+  created_at: z.string().optional(),
+  updated_by: SignalLifecycleActorSchema,
+  updated_at: z.string().optional(),
+});
+
+export const OperationalSignalLifecycleRecordSchema = z.object({
+  signal_id: z.string().min(1),
+  tenant_id: z.string().min(1),
+  account_id: z.string().min(1),
+  status: SignalLifecycleStatusSchema.default('active'),
+  lineage: SignalLineageSchema.optional(),
+  lifecycle: SignalLifecycleMetadataSchema,
 });
 
 // ---------------------------------------------------------------------------
@@ -403,6 +440,33 @@ export const fixtures = {
     next_retry_at: null,
     started_at: '2024-01-15T10:00:00Z',
     completed_at: '2024-01-15T10:01:30Z',
+    ...overrides,
+  }),
+
+  operationalSignalLifecycleRecord: (
+    overrides?: Partial<z.infer<typeof OperationalSignalLifecycleRecordSchema>>
+  ): z.infer<typeof OperationalSignalLifecycleRecordSchema> => ({
+    signal_id: 'signal-001',
+    tenant_id: 'tenant-001',
+    account_id: 'account-001',
+    status: 'active',
+    lineage: {
+      supersedes: [],
+      superseded_by: [],
+      merged_into: null,
+    },
+    lifecycle: {
+      created_by: {
+        actor_id: 'user-001',
+        account_id: 'account-001',
+      },
+      created_at: '2024-01-15T10:00:00Z',
+      updated_by: {
+        actor_id: 'user-001',
+        account_id: 'account-001',
+      },
+      updated_at: '2024-01-15T10:00:00Z',
+    },
     ...overrides,
   }),
 

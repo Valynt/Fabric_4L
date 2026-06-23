@@ -7,9 +7,9 @@ from uuid import UUID
 import pytest
 from pydantic import BaseModel
 
-import value_fabric.layer4.tools.registry as registry_module
-from value_fabric.layer4.models.tool_schemas import ToolCategory
-from value_fabric.layer4.tools.registry import BaseTool, ToolRegistry, ToolResult
+import layer4_agents.tools.registry as registry_module
+from layer4_agents.models.tool_schemas import ToolCategory
+from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
 from value_fabric.shared.identity.context import RequestContext, clear_current_context, set_current_context
 
 
@@ -245,6 +245,74 @@ async def test_agent_tool_execution_creates_audit_event(monkeypatch: pytest.Monk
     assert event["details"]["request_hash"]
     assert event["details"]["response_hash"]
     assert event["details"]["trace_id"] == "trace-audit"
+
+
+@pytest.mark.asyncio
+async def test_registry_rejects_raw_tenant_without_request_or_workflow_context() -> None:
+    clear_current_context()
+    registry = ToolRegistry()
+    tool = EchoTool()
+    registry.register(tool)
+
+    result = await registry.execute(
+        tool.name,
+        {"value": 1, "tenant_id": "12345678-1234-1234-1234-123456789abc"},
+    )
+
+    assert result.status == "error"
+    assert result.error["code"] == "TENANT_CONTEXT_UNTRUSTED"
+
+
+@pytest.mark.asyncio
+async def test_registry_accepts_valid_internal_workflow_tenant_context() -> None:
+    clear_current_context()
+    registry = ToolRegistry()
+    tool = EchoTool()
+    registry.register(tool)
+
+    result = await registry.execute(
+        tool.name,
+        {
+            "value": 1,
+            "tenant_id": "12345678-1234-1234-1234-123456789abc",
+            "workflow_id": "wf-1",
+            "run_id": "run-1",
+            "trace_id": "trace-1",
+        },
+    )
+
+    assert result.status == "success"
+    assert result.metadata["tenant_id"] == "12345678-1234-1234-1234-123456789abc"
+    assert clear_current_context() is None
+
+
+@pytest.mark.asyncio
+async def test_registry_request_context_overrides_and_rejects_spoofed_tenant() -> None:
+    clear_current_context()
+    set_current_context(
+        RequestContext(
+            tenant_id=UUID("12345678-1234-1234-1234-123456789abc"),
+            user_id="user-1",
+        )
+    )
+    registry = ToolRegistry()
+    tool = EchoTool()
+    registry.register(tool)
+
+    result = await registry.execute(
+        tool.name,
+        {
+            "value": 1,
+            "tenant_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "workflow_id": "wf-1",
+            "run_id": "run-1",
+            "trace_id": "trace-1",
+        },
+    )
+
+    assert result.status == "error"
+    assert result.error["code"] == "TENANT_CONTEXT_MISMATCH"
+    clear_current_context()
 
 
 @pytest.mark.asyncio

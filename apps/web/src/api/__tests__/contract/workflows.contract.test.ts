@@ -381,30 +381,30 @@ describe('Contract: auth failure responses', () => {
   it('401 response matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-wf-401' },
+      { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-wf-401' } },
       'ApiError (401)'
     );
-    expect(err.message).toBeTruthy();
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.message).toBeTruthy();
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('403 cross-tenant workflow access matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Workflow does not belong to your tenant', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-wf-403' },
+      { error: { message: 'Workflow does not belong to your tenant', code: 'AUTHORIZATION_ERROR', request_id: 'trace-wf-403' } },
       'ApiError (403 cross-tenant)'
     );
-    expect(err.code).toBe('AUTHORIZATION_ERROR');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('AUTHORIZATION_ERROR');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('404 workflow not found matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Workflow not found', code: 'NOT_FOUND', trace_id: 'trace-wf-404' },
+      { error: { message: 'Workflow not found', code: 'NOT_FOUND', request_id: 'trace-wf-404' } },
       'ApiError (404)'
     );
-    expect(err.code).toBe('NOT_FOUND');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('NOT_FOUND');
+    expect(err.error.request_id).toBeTruthy();
   });
 });

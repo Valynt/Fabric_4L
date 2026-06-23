@@ -1,11 +1,12 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import PaginatedResponse, ValueDriver
+from app.models.schemas import PaginatedResponse, ValueDriver, ValueTreeCategories, ValueTreeResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Driver Tree"])
 
@@ -18,21 +19,21 @@ async def list_drivers(
     offset: int = Query(0, ge=0),
 ):
     items = db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id))
+    total = db.drivers.count(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
-@router.get("/value-tree")
+@router.get("/value-tree", response_model=ValueTreeResponse)
 async def get_value_tree(account_id: str, tenant_id: str = Depends(tenant_required)):
     drivers = db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id)
-    return {
-        "account_id": account_id,
-        "categories": {
-            "revenue_uplift": [d for d in drivers if d.category == "revenue_uplift"],
-            "cost_savings": [d for d in drivers if d.category == "cost_savings"],
-            "risk_reduction": [d for d in drivers if d.category == "risk_reduction"],
-        },
-    }
+    return ValueTreeResponse(
+        account_id=account_id,
+        categories=ValueTreeCategories(
+            revenue_uplift=[d for d in drivers if d.category == "revenue_uplift"],
+            cost_savings=[d for d in drivers if d.category == "cost_savings"],
+            risk_reduction=[d for d in drivers if d.category == "risk_reduction"],
+        ),
+    )
 
 
 @router.post("/drivers/generate", response_model=ValueDriver, status_code=201)
@@ -59,5 +60,5 @@ async def update_driver(
 ):
     drv = db.drivers.update(driver_id, tenant_id=tenant_id, **fields)
     if not drv:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise NotFoundError(message="Driver not found")
     return drv

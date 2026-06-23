@@ -32,7 +32,8 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.21.0",
     "opentelemetry-instrumentation-fastapi>=0.42b0",
     "redis>=5.0.0",
-    "prometheus-client>=0.21.0",
+    "prometheus-client>=0.19.0",
+    "sentry-sdk>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +55,39 @@ packages = ["src/layer2_5_signal_refinery"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src", "../..", "../../packages/shared/src"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 80
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = [
+    "migrations/",
+]
+
+# Annotation-gap noise — suppress per-module for SQLAlchemy/Pydantic structural patterns.
+[[tool.mypy.overrides]]
+module = [
+    "layer2_5_signal_refinery.models.db_models",
+    "layer2_5_signal_refinery.repositories.signal_repository",
+    "layer2_5_signal_refinery.api.main",
+    "layer2_5_signal_refinery.clients.l3_graph_client",
+    "layer2_5_signal_refinery.config",
+]
+disable_error_code = ["var-annotated", "attr-defined", "no-any-return", "call-arg"]
 
 [tool.uv]
 dev-dependencies = [

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for OverageService.
 
@@ -5,14 +7,13 @@ Tests the pure-Python helpers and the plan-limits query
 without requiring a live database.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from value_fabric.layer4.services.overage_service import OverageService, UsageCheckResult
+from layer4_agents.services.overage_service import OverageService, UsageCheckResult
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ class TestGetPeriodDates:
         # Simulate December by patching datetime.now
         fixed_now = datetime(2025, 12, 15, 10, 30, 0, tzinfo=UTC)
         with patch(
-            "value_fabric.layer4.services.overage_service.datetime"
+            "layer4_agents.services.overage_service.datetime"
         ) as mock_dt:
             mock_dt.now.return_value = fixed_now
             # Replicate the replace calls to make datetime.now().replace work
@@ -155,10 +156,13 @@ class TestCheckMetricUsageNoPlan:
     @pytest.mark.asyncio
     async def test_plan_without_metric_limit_returns_unlimited(self):
         """Plan exists but has no limit for the requested metric."""
-        from value_fabric.layer4.config.plans import Plan
+        from layer4_agents.config.plans import Plan
 
         plan = Plan(id="pro", name="Pro", description="Pro plan", usage_limits={})
-        svc = OverageService(db=MagicMock(), tenant_id="t1")
+        db = MagicMock()
+        db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
+        svc = OverageService(db=db, tenant_id="t1")
+        svc.plan_versions.get_subscription_plan_version = AsyncMock(return_value=None)
 
         with patch.object(svc, "_get_customer_plan", new=AsyncMock(return_value=plan)):
             result = await svc.check_metric_usage("cust-1", "some_metric")
@@ -273,7 +277,7 @@ class TestCheckAllLimits:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_all_limits_ok_when_no_exceedance(self):
-        from value_fabric.layer4.config.plans import Plan, UsageLimit
+        from layer4_agents.config.plans import Plan, UsageLimit
 
         plan = Plan(
             id="free",

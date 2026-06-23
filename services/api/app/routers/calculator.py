@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
@@ -19,7 +20,7 @@ async def list_scenarios(
     offset: int = Query(0, ge=0),
 ):
     items = db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.scenarios.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -60,5 +61,5 @@ async def run_roi_calculation(
 async def get_roi_calculation(calculation_id: str, tenant_id: str = Depends(tenant_required)):
     calc = db.roi_calculations.get(calculation_id, tenant_id=tenant_id)
     if not calc:
-        raise HTTPException(status_code=404, detail="ROI calculation not found")
+        raise NotFoundError(message="ROI calculation not found")
     return calc

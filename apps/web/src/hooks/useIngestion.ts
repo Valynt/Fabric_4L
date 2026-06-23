@@ -179,16 +179,30 @@ export function useIngestionJobs() {
   });
 }
 
-export function useRecentIngestionJobs(limit = 5) {
+interface RecentIngestionJobsOptions {
+  suppressAuthRedirect?: boolean;
+  enabled?: boolean;
+}
+
+export function useRecentIngestionJobs(
+  limit = 5,
+  options: RecentIngestionJobsOptions = {},
+) {
+  const requestConfig = options.suppressAuthRedirect
+    ? { headers: { 'X-Fabric-Skip-Auth-Redirect': '1' } }
+    : undefined;
+
   return useQuery<IngestionJob[], Error>({
     queryKey: QK.ingestion.recent(),
     queryFn: async () => {
-      const response = await apiGet<l1.components['schemas']['JobListResponse']>('l1', `/jobs?limit=${limit}&sort_by=created_at&sort_order=desc`);
+      const response = await apiGet<l1.components['schemas']['JobListResponse']>('l1', `/jobs?limit=${limit}&sort_by=created_at&sort_order=desc`, requestConfig);
       const jobs = parseIngestionJobs(response.data.data);
       return jobs.map(mapIngestionJob);
     },
+    enabled: options.enabled ?? true,
+    retry: options.suppressAuthRedirect ? false : undefined,
     staleTime: STALE_TIME.poll,
-    refetchInterval: POLL_INTERVALS.ingestion,
+    refetchInterval: options.suppressAuthRedirect ? false : POLL_INTERVALS.ingestion,
   });
 }
 

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Unit tests for OIDC client, claim mapping, and configuration.
 
 Tests the shared OIDC client with PKCE support and role mapping.
 """
 
-from __future__ import annotations
 
 import base64
 import hashlib
@@ -14,12 +15,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+import httpx
 
 # Set required environment variable for shared imports
 os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
 
 # Import from root shared module (canonical implementation)
-from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
+from value_fabric.shared.identity.oidc import OIDCClient, OIDCDiscoveryError, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
 from value_fabric.shared.identity.permissions import Role
 
@@ -145,13 +147,21 @@ class TestOIDCClient:
         """OIDC discovery should retry on transient failures."""
         mock_get_response = MagicMock()
         mock_get_response.raise_for_status = MagicMock()
-        mock_get_response.json = MagicMock(return_value={"issuer": "https://auth.example.com"})
+        mock_get_response.json = MagicMock(return_value={
+            "issuer": "https://auth.example.com",
+            "authorization_endpoint": "https://auth.example.com/oauth/authorize",
+            "token_endpoint": "https://auth.example.com/oauth/token",
+            "jwks_uri": "https://auth.example.com/oauth/keys",
+        })
 
         # First call fails, second succeeds
         with patch.object(
             oidc_client._http,
             "get",
-            side_effect=[Exception("Connection error"), mock_get_response]
+            side_effect=[
+                httpx.RequestError("Connection error", request=MagicMock()),
+                mock_get_response,
+            ]
         ):
             # Should retry and eventually succeed
             with patch("asyncio.sleep"):  # Don't actually sleep in tests
@@ -170,7 +180,7 @@ class TestOIDCClient:
         )
 
         with patch.object(oidc_client._http, "get", return_value=mock_response):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(OIDCDiscoveryError):
                 await oidc_client.discover("https://auth.example.com")
 
     def test_build_authorize_url_basic(self) -> None:

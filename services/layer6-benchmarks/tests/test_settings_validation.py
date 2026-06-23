@@ -2,13 +2,12 @@ import os
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
-
-from value_fabric.layer6.settings import (
+from layer6_benchmarks.settings import (
     Layer6Settings,
     get_layer6_settings,
     validate_layer6_startup_settings,
 )
+from pydantic import ValidationError
 
 
 def _base_env() -> dict[str, str]:
@@ -75,7 +74,9 @@ def test_production_database_sslmode_is_required() -> None:
     env = _base_env()
     env["ENVIRONMENT"] = "production"
     env["DATABASE_URL"] = "postgresql://postgres:postgres@db:5432/fabric"
-    env["DATABASE_URL_SYNC"] = "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=require"
+    env["DATABASE_URL_SYNC"] = (
+        "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=require"
+    )
 
     with pytest.raises(ValidationError, match="sslmode"):
         Layer6Settings.model_validate(env)
@@ -95,7 +96,9 @@ def test_production_neo4j_requires_tls_scheme() -> None:
     env = _base_env()
     env["ENVIRONMENT"] = "production"
     env["DATABASE_URL"] = "postgresql://postgres:postgres@db:5432/fabric?sslmode=require"
-    env["DATABASE_URL_SYNC"] = "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=require"
+    env["DATABASE_URL_SYNC"] = (
+        "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=require"
+    )
     env["NEO4J_URI"] = "bolt://neo4j:7687"
 
     with pytest.raises(ValidationError, match="NEO4J_URI"):
@@ -106,7 +109,9 @@ def test_production_config_passes_with_secure_values() -> None:
     env = _base_env()
     env["ENVIRONMENT"] = "production"
     env["DATABASE_URL"] = "postgresql://postgres:postgres@db:5432/fabric?sslmode=verify-full"
-    env["DATABASE_URL_SYNC"] = "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    env["DATABASE_URL_SYNC"] = (
+        "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    )
     env["NEO4J_URI"] = "neo4j+s://neo4j.example.com:7687"
     env["ALLOW_INSECURE_DEV_AUTH_BYPASS"] = "false"
     env["DEV_AUTH_BYPASS"] = "false"
@@ -133,11 +138,15 @@ def test_production_config_passes_with_secure_values() -> None:
         ("ALLOW_DEV_AUTH_BYPASS", "I_UNDERSTAND_RISK", "ALLOW_INSECURE_DEV_AUTH_BYPASS"),
     ],
 )
-def test_production_rejects_bypass_flags(flag_name: str, flag_value: str, expected_match: str) -> None:
+def test_production_rejects_bypass_flags(
+    flag_name: str, flag_value: str, expected_match: str
+) -> None:
     env = _base_env()
     env["ENVIRONMENT"] = "production"
     env["DATABASE_URL"] = "postgresql://postgres:postgres@db:5432/fabric?sslmode=verify-full"
-    env["DATABASE_URL_SYNC"] = "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    env["DATABASE_URL_SYNC"] = (
+        "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    )
     env["NEO4J_URI"] = "neo4j+s://neo4j.example.com:7687"
     env[flag_name] = flag_value
 
@@ -160,7 +169,9 @@ def test_production_rejects_auth_required_false() -> None:
     env["ENVIRONMENT"] = "production"
     env["AUTH_REQUIRED"] = "false"
     env["DATABASE_URL"] = "postgresql://postgres:postgres@db:5432/fabric?sslmode=verify-full"
-    env["DATABASE_URL_SYNC"] = "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    env["DATABASE_URL_SYNC"] = (
+        "postgresql+psycopg2://postgres:postgres@db:5432/fabric?sslmode=verify-full"
+    )
     env["NEO4J_URI"] = "neo4j+s://neo4j.example.com:7687"
 
     with pytest.raises(ValidationError, match="AUTH_REQUIRED"):
@@ -187,3 +198,21 @@ def test_startup_validation_hook_fails_fast_for_missing_required_env() -> None:
                 validate_layer6_startup_settings()
     finally:
         get_layer6_settings.cache_clear()
+
+
+def test_log_level_uppercase_is_accepted() -> None:
+    env = _base_env()
+    env["LOG_LEVEL"] = "INFO"
+
+    settings = Layer6Settings.model_validate(env)
+
+    assert settings.log_level == "INFO"
+
+
+def test_log_level_lowercase_is_normalized() -> None:
+    env = _base_env()
+    env["LOG_LEVEL"] = "info"
+
+    settings = Layer6Settings.model_validate(env)
+
+    assert settings.log_level == "INFO"

@@ -1,3 +1,8 @@
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -28,6 +33,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
 from ...api.dependencies import get_neo4j_driver
+from ...db.audited_mutation import AuditedGraphMutation
 from ...db.query_execution import run_validated_query
 from ...services.case_study_service import CaseStudy, CaseStudyService
 from ...services.embedding_errors import EmbeddingProviderUnavailableError
@@ -138,7 +144,7 @@ async def create_case_study(
         tags=request.tags,
     )
 
-    result = await service.create(case_study)
+    result = await service.create(case_study, tenant_id=tenant_id)
     return result
 
 
@@ -186,7 +192,7 @@ async def get_case_study(
     result = await service.get(tenant_id, case_study_id)
 
     if result is None:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return result
 
@@ -208,7 +214,7 @@ async def update_case_study(
     result = await service.update(tenant_id, case_study_id, updates)
 
     if result is None:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return result
 
@@ -224,7 +230,7 @@ async def delete_case_study(
     deleted = await service.delete(tenant_id, case_study_id)
 
     if not deleted:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return delete_case_studyResult.model_validate({"status": "deleted", "id": case_study_id})
 
@@ -353,43 +359,40 @@ async def link_evidence_to_driver(
     request: EvidenceLinkRequest,
     tenant_id: str = Depends(get_verified_tenant_id),
     driver=Depends(get_neo4j_driver),
+    fastapi_request: Request = None,
 ) -> EvidenceLinkResponse:
     """Create a graph relationship between Evidence and ValueDriver.
 
     Establishes `HAS_EVIDENCE` from ValueDriver to Evidence node,
     enabling value traceability from driver tree back to proof points.
-    """
-    query = """
-    MATCH (e:Evidence {id: $evidence_id, tenant_id: $tenant_id})
-    MATCH (d:ValueDriver {id: $driver_id, tenant_id: $tenant_id})
-    MERGE (d)-[r:HAS_EVIDENCE]->(e)
-    ON CREATE SET r.linked_at = datetime()
-    RETURN r.linked_at AS linked_at
+    Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "evidence_id": request.evidence_id,
-                "driver_id": request.driver_id,
-                "tenant_id": tenant_id,
-            })
-            record = await result.single()
-            if record is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Evidence or driver not found for tenant",
-                )
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
+            request_id = getattr(fastapi_request.state, "request_id", None) if fastapi_request else None
+            account_id = getattr(fastapi_request.state, "account_id", None) if fastapi_request else None
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                request_id=request_id,
+                account_id=account_id,
+                operation_source="evidence.link_evidence_to_driver",
+            )
+
+            await mutation.write_relationship(request.driver_id, "HAS_EVIDENCE", request.evidence_id)
+
             return EvidenceLinkResponse(
                 evidence_id=request.evidence_id,
                 driver_id=request.driver_id,
                 linked=True,
-                linked_at=record["linked_at"],
+                linked_at=None,  # Timestamp is in audit event
             )
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Failed to link evidence to driver", error_code="LINK_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link creation failed") from e
+        raise ServiceUnavailableError(message="Link creation failed") from e
 
 
 @router.delete("/links", summary="Unlink evidence from a value driver")
@@ -407,17 +410,24 @@ async def unlink_evidence_from_driver(
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "evidence_id": evidence_id,
-                "driver_id": driver_id,
-                "tenant_id": tenant_id,
-            })
+            result = await run_validated_query(
+                session,
+                query,
+                {
+                    "evidence_id": evidence_id,
+                    "driver_id": driver_id,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence.unlink_evidence_from_driver",
+            )
             record = await result.single()
             deleted = record["deleted"] if record else 0
             return {"evidence_id": evidence_id, "driver_id": driver_id, "deleted": deleted}
     except Exception as e:
         logger.error("Failed to unlink evidence from driver", error_code="UNLINK_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link deletion failed") from e
+        raise ServiceUnavailableError(message="Link deletion failed") from e
 
 
 @router.get("/links", summary="List evidence links for a driver")
@@ -434,7 +444,14 @@ async def list_evidence_links(
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {"driver_id": driver_id, "tenant_id": tenant_id})
+            result = await run_validated_query(
+                session,
+                query,
+                {"driver_id": driver_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence.list_driver_evidence_links",
+            )
             records = await result.data()
             return {
                 "driver_id": driver_id,
@@ -449,4 +466,4 @@ async def list_evidence_links(
             }
     except Exception as e:
         logger.error("Failed to list evidence links", error_code="LIST_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link listing failed") from e
+        raise ServiceUnavailableError(message="Link listing failed") from e

@@ -12,14 +12,31 @@ class ErrorCode(str, Enum):
     # Authentication/Authorization errors (4xx)
     AUTHENTICATION_ERROR = "AUTHENTICATION_ERROR"
     AUTHORIZATION_ERROR = "AUTHORIZATION_ERROR"
+    AUTHENTICATION_REQUIRED = "AUTHENTICATION_REQUIRED"
+    AUTHORIZATION_POLICY_MISSING = "AUTHORIZATION_POLICY_MISSING"
+    INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE"
+    TENANT_ISOLATION_ERROR = "TENANT_ISOLATION_ERROR"
+    TENANT_SCOPE_MISMATCH = "TENANT_SCOPE_MISMATCH"
+    TENANT_CONTEXT_MISMATCH = "TENANT_CONTEXT_MISMATCH"
     TOKEN_EXPIRED = "TOKEN_EXPIRED"
     TOKEN_INVALID = "TOKEN_INVALID"
+    AUTH_TOKEN_MISSING = "auth.token_missing"
+    AUTH_TOKEN_INVALID = "auth.token_invalid"
+    AUTH_CLERK_TOKEN_INVALID = "auth.clerk_token_invalid"
+    AUTH_CLERK_TOKEN_EXPIRED = "auth.clerk_token_expired"
+    AUTH_CLERK_UNAUTHORIZED_PARTY = "auth.clerk_unauthorized_party"
+    AUTH_TENANT_UNRESOLVED = "auth.tenant_unresolved"
+    AUTH_USER_UNPROVISIONED = "auth.user_unprovisioned"
+    AUTH_MEMBERSHIP_INACTIVE = "auth.membership_inactive"
+    AUTH_MISCONFIGURED = "auth.misconfigured"
+    AUTH_ENVELOPE_MISCONFIGURED = "auth.envelope_misconfigured"
 
     # Validation errors (4xx)
     VALIDATION_ERROR = "VALIDATION_ERROR"
     INVALID_PARAMETER = "INVALID_PARAMETER"
     MISSING_REQUIRED_FIELD = "MISSING_REQUIRED_FIELD"
     INVALID_FORMAT = "INVALID_FORMAT"
+    WEBHOOK_INVALID_BODY = "auth.webhook_invalid_body"
 
     # Resource errors (4xx)
     NOT_FOUND = "NOT_FOUND"
@@ -30,6 +47,7 @@ class ErrorCode(str, Enum):
 
     # Rate limiting (429)
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
+    THROTTLED = "THROTTLED"
     QUOTA_EXCEEDED = "QUOTA_EXCEEDED"
 
     # Server errors (5xx)

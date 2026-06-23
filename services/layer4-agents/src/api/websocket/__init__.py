@@ -1,16 +1,7 @@
-"""WebSocket support for real-time workflow streaming."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from __future__ import annotations
+The implementation lives in ``layer4_agents.api.websocket``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .auth import WebSocketAuthError, decode_ws_token, extract_token_from_protocol_header
-from .manager import WorkflowWebSocketManager, get_ws_manager
-from .routes import websocket_router
-
-__all__ = [
-    "WebSocketAuthError",
-    "WorkflowWebSocketManager",
-    "decode_ws_token",
-    "extract_token_from_protocol_header",
-    "get_ws_manager",
-    "websocket_router",
-]
+from layer4_agents.api.websocket import *  # noqa: F401,F403

@@ -45,7 +45,8 @@ import { cn } from "@/lib/utils";
 import { StatusBadge as StatusBadgePrimitive } from "@/components/ui/fabric";
 import { Tabs } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, MetricCard, LegacyDataTable, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { PageHeader, MetricCard, DataTable, Btn } from "@/components/ui/fabric";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -87,7 +88,7 @@ function PaginationControls({
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">{displayRange}</span>
         {hasMore && (
-          <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+          <span className="vf-text-micro text-primary bg-primary/10 px-2 py-0.5 rounded">
             More available
           </span>
         )}
@@ -198,7 +199,7 @@ export default function AgentWorkflows() {
     : 0;
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell className="max-w-5xl">
       <PageHeader
         breadcrumbs={[{ label: "Agent Workflows" }, { label: "Dashboard" }]}
         title="Workflow Dashboard"
@@ -278,26 +279,26 @@ export default function AgentWorkflows() {
                 key={workflow.id}
                 className={`flex items-start gap-3 p-3 rounded-lg border ${
                   workflow.status === "pending"
-                    ? "bg-amber-50 border-amber-200"
+                    ? "bg-warning/10 border-warning/20"
                     : "bg-muted/30 border-border"
                 }`}
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                     workflow.status === "pending"
-                      ? "bg-amber-100"
-                      : "bg-blue-100"
+                      ? "bg-warning/10"
+                      : "bg-primary/10"
                   }`}
                 >
                   {workflow.status === "pending" ? (
-                    <AlertTriangle size={14} className="text-amber-600" />
+                    <AlertTriangle size={14} className="text-warning" />
                   ) : (
-                    <Bot size={14} className="text-blue-600" />
+                    <Bot size={14} className="text-primary" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[12px] font-bold text-foreground font-mono">
+                    <span className="vf-text-body-s font-bold text-foreground font-mono">
                       {workflow.id}
                     </span>
                     <StatusBadgePrimitive
@@ -308,7 +309,7 @@ export default function AgentWorkflows() {
                       }
                     />
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="vf-text-caption text-muted-foreground">
                     <span className="font-semibold">{workflow.name}</span>
                     {workflow.progress > 0 && (
                       <div className="flex items-center gap-2 mt-1.5">
@@ -316,7 +317,7 @@ export default function AgentWorkflows() {
                           value={workflow.progress}
                           className="h-1.5 w-24"
                         />
-                        <span className="text-[10px] text-muted-foreground/70">
+                        <span className="vf-text-micro text-muted-foreground/70">
                           {workflow.progress}%
                         </span>
                       </div>
@@ -324,14 +325,14 @@ export default function AgentWorkflows() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+                  <div className="flex items-center gap-1 vf-text-caption text-muted-foreground/60">
                     <Clock size={10} />
                     {workflow.status}
                   </div>
                   {workflow.status === "running" && (
                     <Btn
                       variant="ghost"
-                      className="text-[11px] text-amber-600 hover:text-amber-700"
+                      className="vf-text-caption text-warning hover:text-warning"
                       onClick={() => pauseWorkflow.mutate(workflow.id)}
                       disabled={pauseWorkflow.isPending}
                     >
@@ -342,7 +343,7 @@ export default function AgentWorkflows() {
                   {workflow.status === "pending" && (
                     <Btn
                       variant="ghost"
-                      className="text-[11px] text-green-600 hover:text-green-700"
+                      className="vf-text-caption text-success hover:text-success"
                       onClick={() => resumeWorkflow.mutate(workflow.id)}
                       disabled={resumeWorkflow.isPending}
                     >
@@ -354,7 +355,7 @@ export default function AgentWorkflows() {
                     workflow.status === "pending") && (
                     <Btn
                       variant="ghost"
-                      className="text-[11px] text-red-600 hover:text-red-700"
+                      className="vf-text-caption text-destructive hover:text-destructive"
                       onClick={() => cancelWorkflow.mutate(workflow.id)}
                       disabled={cancelWorkflow.isPending}
                     >
@@ -363,7 +364,7 @@ export default function AgentWorkflows() {
                   )}
                   <Btn
                     variant="ghost"
-                    className="text-[11px]"
+                    className="vf-text-caption"
                     onClick={() => {
                       setSelectedWorkflow(workflow);
                       setIsDetailOpen(true);
@@ -407,7 +408,7 @@ export default function AgentWorkflows() {
           isEmpty={historyWorkflows.length === 0}
           emptyMessage="No workflow history available."
         >
-          <LegacyDataTable
+          <DataTable
             columns={[
               "Job ID",
               "Name",
@@ -417,22 +418,22 @@ export default function AgentWorkflows() {
               "Actions",
             ]}
             rows={historyWorkflows.map((w: Workflow) => [
-              <span className="font-mono text-[11px] text-muted-foreground">
+              <span className="font-mono vf-text-caption text-muted-foreground">
                 {w.id}
               </span>,
               <span className="text-foreground font-semibold">{w.name}</span>,
               <StatusBadgePrimitive
                 status={w.status === "interrupted" ? "failed" : w.status}
               />,
-              <span className="text-muted-foreground text-[11px]">
+              <span className="text-muted-foreground vf-text-caption">
                 {w.progress}%
               </span>,
-              <span className="text-muted-foreground/60 text-[11px]">
+              <span className="text-muted-foreground/60 vf-text-caption">
                 {w.createdAt ? new Date(w.createdAt).toLocaleDateString() : "-"}
               </span>,
               <div className="flex gap-2">
                 <button
-                  className="text-blue-600 text-[11px] hover:underline flex items-center gap-1"
+                  className="text-primary vf-text-caption hover:underline flex items-center gap-1"
                   onClick={() => {
                     setSelectedWorkflow(w);
                     setIsDetailOpen(true);
@@ -478,7 +479,7 @@ export default function AgentWorkflows() {
             emptySubMessage="Harness-backed agent runs will appear here."
             loadingMessage="Loading harness runs…"
           >
-            <LegacyDataTable
+            <DataTable
               columns={["Run ID", "Workflow Type", "State", "Status", "Created", "Actions"]}
               rows={harnessRuns.map((run: HarnessRun) => [
                 <span key="id" className="font-mono text-xs text-muted-foreground truncate max-w-[120px] block">
@@ -492,11 +493,11 @@ export default function AgentWorkflows() {
                   key="status"
                   variant="outline"
                   className={`text-xs ${
-                    run.status === "completed" ? "text-emerald-700 border-emerald-200" :
-                    run.status === "failed"    ? "text-red-700 border-red-200" :
-                    run.status === "running"   ? "text-blue-700 border-blue-200" :
-                    run.status === "waiting_for_human" ? "text-amber-700 border-amber-200" :
-                    "text-slate-600 border-slate-200"
+                    run.status === "completed" ? "text-success border-success/20" :
+                    run.status === "failed"    ? "text-destructive border-destructive/20" :
+                    run.status === "running"   ? "text-primary border-primary/20" :
+                    run.status === "waiting_for_human" ? "text-warning border-warning/20" :
+                    "text-muted-foreground border-border"
                   }`}
                 >
                   {run.status.replace(/_/g, " ")}
@@ -506,14 +507,14 @@ export default function AgentWorkflows() {
                 </span>,
                 <div key="actions" className="flex items-center gap-2">
                   <button
-                    className="text-blue-600 text-[11px] hover:underline flex items-center gap-1"
+                    className="text-primary vf-text-caption hover:underline flex items-center gap-1"
                     onClick={() => { setHarnessRunId(run.id); setIsHarnessDetailOpen(true); }}
                   >
                     <Eye size={12} /> View
                   </button>
                   {!isTerminalState(run.current_state) && run.status === "running" && (
                     <button
-                      className="text-slate-500 text-[11px] hover:underline"
+                      className="text-muted-foreground vf-text-caption hover:underline"
                       onClick={() => transitionRun.mutate({
                         runId: run.id,
                         data: { to_state: "CANCELLED", human_override: true },
@@ -524,7 +525,7 @@ export default function AgentWorkflows() {
                   )}
                   {run.status === "failed" && (
                     <button
-                      className="text-amber-600 text-[11px] hover:underline"
+                      className="text-warning vf-text-caption hover:underline"
                       onClick={() => transitionRun.mutate({
                         runId: run.id,
                         data: { to_state: run.current_state, human_override: true },
@@ -570,6 +571,6 @@ export default function AgentWorkflows() {
         isOpen={isHarnessDetailOpen}
         onClose={() => { setIsHarnessDetailOpen(false); setHarnessRunId(null); }}
       />
-    </div>
+    </PageShell>
   );
 }

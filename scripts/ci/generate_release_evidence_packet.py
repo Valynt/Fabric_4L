@@ -23,6 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = ROOT / "docs/launch/evidence-manifest.example.yaml"
 DEFAULT_OUTPUT_DIR = ROOT / "artifacts/release/evidence-packet"
+DEFAULT_PRODUCTION_READINESS_MANIFEST = ROOT / "artifacts/production-readiness/manifest.json"
 
 
 @dataclass(frozen=True)
@@ -80,6 +81,15 @@ def _load_manifest(path: Path) -> dict[str, Any]:
     return loaded
 
 
+def _load_json_manifest(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise ValueError(f"{path} root must be a JSON object")
+    return loaded
+
+
 def _display_path(path: Path) -> str:
     try:
         return str(path.relative_to(ROOT))
@@ -104,6 +114,8 @@ def _build_packet(
     release_sha: str,
     manifest_path: Path,
     manifest: dict[str, Any],
+    production_readiness_manifest_path: Path,
+    production_readiness_manifest: dict[str, Any] | None,
     validators: list[ValidatorResult],
 ) -> dict[str, Any]:
     gate_statuses = {
@@ -111,6 +123,14 @@ def _build_packet(
         for gate_name, gate in (manifest.get("gates") or {}).items()
         if isinstance(gate, dict)
     }
+    production_readiness = _production_readiness_summary(
+        production_readiness_manifest_path,
+        production_readiness_manifest,
+    )
+    validators = [
+        *validators,
+        _production_readiness_authorization_result(production_readiness),
+    ]
     return {
         "generated_at_utc": _utc_now(),
         "release_sha": release_sha,
@@ -122,7 +142,73 @@ def _build_packet(
         ),
         "validators": [asdict(result) for result in validators],
         "launch_evidence_gate_statuses": gate_statuses,
+        "production_readiness_gate": production_readiness,
     }
+
+
+def _production_readiness_summary(
+    manifest_path: Path,
+    manifest: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if manifest is None:
+        return {
+            "manifest_path": _display_path(manifest_path),
+            "manifest_found": False,
+            "overall_status": "missing",
+            "gate_scope": None,
+            "release_authorizing": False,
+            "covered_regression_domains": [],
+            "required_regression_domains": [],
+            "suites": [],
+        }
+
+    suites = []
+    for suite in manifest.get("suites", []):
+        if not isinstance(suite, dict):
+            continue
+        suites.append(
+            {
+                "suite": suite.get("suite"),
+                "status": suite.get("status"),
+                "blocking": suite.get("blocking"),
+                "regression_domains": suite.get("regression_domains", []),
+                "junit_artifact": suite.get("junit_artifact"),
+                "summary_artifact": suite.get("summary_artifact"),
+            }
+        )
+
+    return {
+        "manifest_path": _display_path(manifest_path),
+        "manifest_found": True,
+        "overall_status": manifest.get("overall_status"),
+        "gate_scope": manifest.get("gate_scope"),
+        "release_authorizing": bool(manifest.get("release_authorizing")),
+        "covered_regression_domains": manifest.get("covered_regression_domains", []),
+        "required_regression_domains": manifest.get("required_regression_domains", []),
+        "suites": suites,
+    }
+
+
+def _production_readiness_authorization_result(production_readiness: dict[str, Any]) -> ValidatorResult:
+    if production_readiness["release_authorizing"] is True:
+        return ValidatorResult(
+            name="production_readiness_release_authorization",
+            passed=True,
+            command=["internal:production_readiness_release_authorization"],
+            detail="production-readiness manifest is full and release-authorizing",
+        )
+
+    return ValidatorResult(
+        name="production_readiness_release_authorization",
+        passed=False,
+        command=["internal:production_readiness_release_authorization"],
+        detail=(
+            "production-readiness manifest is not release-authorizing "
+            f"(found={production_readiness['manifest_found']}, "
+            f"scope={production_readiness['gate_scope']}, "
+            f"status={production_readiness['overall_status']})"
+        ),
+    )
 
 
 def _render_summary(packet: dict[str, Any]) -> str:
@@ -155,6 +241,23 @@ def _render_summary(packet: dict[str, Any]) -> str:
     for gate_name in sorted(gate_statuses):
         lines.append(f"- `{gate_name}`: `{gate_statuses[gate_name]}`")
 
+    production_readiness = packet["production_readiness_gate"]
+    lines.extend(
+        [
+            "",
+            "## Production Readiness Gate",
+            "",
+            f"- Manifest: `{production_readiness['manifest_path']}`",
+            f"- Manifest found: `{production_readiness['manifest_found']}`",
+            f"- Overall status: `{production_readiness['overall_status']}`",
+            f"- Gate scope: `{production_readiness['gate_scope']}`",
+            f"- Release authorizing: `{production_readiness['release_authorizing']}`",
+            "- Covered regression domains: "
+            + ", ".join(f"`{domain}`" for domain in production_readiness["covered_regression_domains"]),
+            "",
+        ]
+    )
+
     lines.extend(
         [
             "",
@@ -180,6 +283,7 @@ def _load_manifest_validator() -> Any:
 def generate_release_evidence_packet(
     *,
     manifest_path: Path,
+    production_readiness_manifest_path: Path,
     output_dir: Path,
     release_sha: str | None,
     allow_placeholder_sha: bool,
@@ -192,11 +296,20 @@ def generate_release_evidence_packet(
     manifest_errors = validate_manifest(manifest_path)
     if manifest_errors:
         raise ValueError("; ".join(manifest_errors))
+    production_readiness_manifest = _load_json_manifest(production_readiness_manifest_path)
 
     validators = [
         _run_validator(
             "launch_evidence_manifest",
             [sys.executable, "scripts/ci/validate_launch_evidence_manifest.py", _display_path(manifest_path)],
+        ),
+        _run_validator(
+            "production_readiness_manifest",
+            [
+                sys.executable,
+                "scripts/ci/validate_production_readiness_manifest.py",
+                _display_path(production_readiness_manifest_path),
+            ],
         ),
         _run_validator(
             "final_testing_launch_gate",
@@ -216,7 +329,14 @@ def generate_release_evidence_packet(
         ),
     ]
 
-    packet = _build_packet(resolved_sha, manifest_path, manifest, validators)
+    packet = _build_packet(
+        resolved_sha,
+        manifest_path,
+        manifest,
+        production_readiness_manifest_path,
+        production_readiness_manifest,
+        validators,
+    )
     summary = _render_summary(packet)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -234,6 +354,12 @@ def generate_release_evidence_packet(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument(
+        "--production-readiness-manifest",
+        type=Path,
+        default=DEFAULT_PRODUCTION_READINESS_MANIFEST,
+        help="Validated manifest emitted by make production-readiness-gate.",
+    )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--release-sha", type=str, default=None)
     parser.add_argument(
@@ -244,6 +370,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     manifest_path = args.manifest if args.manifest.is_absolute() else (ROOT / args.manifest)
+    production_readiness_manifest_path = (
+        args.production_readiness_manifest
+        if args.production_readiness_manifest.is_absolute()
+        else (ROOT / args.production_readiness_manifest)
+    )
     output_dir = args.output_dir if args.output_dir.is_absolute() else (ROOT / args.output_dir)
 
     if not manifest_path.exists():
@@ -253,6 +384,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return generate_release_evidence_packet(
             manifest_path=manifest_path,
+            production_readiness_manifest_path=production_readiness_manifest_path,
             output_dir=output_dir,
             release_sha=args.release_sha,
             allow_placeholder_sha=args.allow_placeholder_sha,

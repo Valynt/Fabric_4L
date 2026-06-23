@@ -1,6 +1,6 @@
 # Architecture
 
-Value Fabric uses a six-layer microservices architecture with strict tenant isolation via PostgreSQL RLS.
+Value Fabric uses a six-layer core microservices architecture with strict tenant isolation via PostgreSQL RLS. Signal refinement and billing remain deployable bounded capabilities, but they are adjacent contracted services rather than horizontal core pipeline layers.
 
 For full details, see:
 
@@ -20,20 +20,27 @@ For full details, see:
 | 5 | layer5-ground-truth | 8005 | TruthObject validation, maturity ladder, evidence-backed claims |
 | 6 | layer6-benchmarks | 8006 | Peer comparison, statistical validation, datasets, benchmark policies |
 
+## Adjacent Deployable Capabilities
+
+| Capability | Service | Port | Purpose |
+| --- | --- | --- | --- |
+| Signal Refinery | layer2-5-signal-refinery | 8007 | Signal refinement, enrichment, and normalization between extraction and the knowledge graph |
+| Billing | layer7-billing | 8008 | Subscription, usage, billing, and entitlements |
+
 ## Core Patterns
 
 - **Tenant isolation** — Every data read/write is scoped by `tenant_id` via GovernanceMiddleware and PostgreSQL RLS.
 - **Contract-first** — Tool schemas, agent outputs, and API response shapes are declared in `contracts/` and enforced by CI.
 - **Provider-agnostic agents** — Core orchestration in `services/layer4-agents/src/engine/` is decoupled from specific LLM vendors.
-- **Runtime packages** — `value_fabric/layer*/` are shim packages that delegate to canonical service implementations in `services/layer*/src/`.
+- **Runtime packages** — Layer runtime packages live in `services/layer*/src/`; shared runtime modules live in `packages/shared/src/value_fabric/shared/`. The legacy root `value_fabric/` compatibility tree has been removed. Adjacent services use their service-local packages and contracted HTTP/client boundaries.
 - **Packs** — Domain-specific ontologies, formulas, and benchmarks live in `packs/` and extend the platform without modifying core logic.
 
 ## Source of Truth Paths
 
 | Concern | Path |
 | --- | --- |
-| Runtime Python packages | `value_fabric/layer{1–6}/`, `value_fabric/shared/` |
-| Service implementations | `services/layer{1–6}-*/src/` |
+| Runtime Python packages | `services/layer{1–6}-*/src/`, `packages/shared/src/value_fabric/shared/`, service-local adjacent packages |
+| Service implementations | `services/layer{1–6}-*/src/`, `services/layer2-5-signal-refinery/`, `services/layer7-billing/` |
 | Frontend | `apps/web/` |
 | API contracts | `contracts/` |
 | Kubernetes manifests | `k8s/` |

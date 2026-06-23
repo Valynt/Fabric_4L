@@ -169,7 +169,7 @@ This document maps Value Fabric platform controls to SOC 2 Type II and ISO 27001
 | Lawful basis for processing (Art. 6) | Lawful-basis declaration required in tenant onboarding and data intake workflows; legal basis metadata captured in intake documentation templates. | `docs/operations/tenant-management-master-plan.md`, `docs/operations/data-intelligence-layer-scope.md` |
 | DSAR handling (Art. 12-23) | Standardized escalation/fulfillment flow for access, rectification, restriction, and objection requests using operations escalation runbooks. | `docs/operations/severity-escalation-policy.md`, `docs/operations/escalation-policy-and-drills.md` |
 | Deletion/export rights (Art. 17, Art. 20) | Tenant lifecycle remediation and provisioning procedures define deletion workflow and export-ready operational checkpoints. | `docs/operations/tenant-management-remediation-plan.md`, `docs/operations/tenant-management-phase-2-provisioning.md` |
-| Cross-border transfer controls (Art. 44-49) | Third-party/vendor and infrastructure controls tied to contractual and routing governance, with security validation gates in CI. | `.github/workflows/security-validation.yml`, `.github/workflows/supply-chain.yml` |
+| Cross-border transfer controls (Art. 44-49) | Third-party/vendor and infrastructure controls tied to contractual and routing governance, with security validation gates in CI. | `.github/workflows/security-gates.yml`, `.github/workflows/supply-chain.yml` |
 | Retention schedules (Art. 5(1)(e)) | Audit trail retention policy and evidence retention configuration enforced in compliance workflows. | `docs/reference/compliance.md`, `.github/workflows/audit-evidence.yml` |
 
 ### HIPAA Controls Mapping (When PHI Processing Applies)

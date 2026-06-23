@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Global Component Library
  * 
  * Single import source for all shared components across the application.
@@ -133,14 +133,12 @@ export {
   SidePanel,
   FabricDialog,
   TeamMemberList,
-  LoadingSkeleton,
   EntityBadge,
 } from "./ui/fabric";
 
 // â”€â”€ Shared Contextual Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export { default as ErrorBoundary } from "./ErrorBoundary";
-export { default as ValueNarrativeHero } from "./ValueNarrativeHero";
 export { QueryState } from "./QueryState";
 export { CenteredLoader } from "./CenteredLoader";
 export { AccountRequiredGuard } from "./AccountRequiredGuard";

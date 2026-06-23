@@ -7,14 +7,40 @@ that has been signed by the gateway.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, FrozenSet
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-DEFAULT_ISSUER = "fabric4l-gateway"
-DEFAULT_AUDIENCE = "fabric4l-internal"
+def _load_canonical_defaults() -> dict[str, Any]:
+    """Load the canonical auth defaults from the platform-contract JSON file."""
+    marker_names = {".git", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"}
+    start = Path(__file__).resolve()
+    for parent in (start, *start.parents):
+        if any((parent / marker).exists() for marker in marker_names):
+            candidate = parent / "packages" / "platform-contract" / "src" / "clerk_defaults.json"
+            if candidate.exists():
+                return json.loads(candidate.read_text(encoding="utf-8"))
+        candidate = parent / "packages" / "platform-contract" / "src" / "clerk_defaults.json"
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8"))
+    # Fallback to hardcoded defaults if the JSON is not found (e.g., installed package).
+    return {
+        "fabric": {
+            "authIssuer": "fabric4l-gateway",
+            "authAudience": "fabric4l-internal",
+        }
+    }
+
+
+_CANONICAL_DEFAULTS = _load_canonical_defaults()
+_FABRIC_DEFAULTS = _CANONICAL_DEFAULTS.get("fabric", {})
+
+DEFAULT_ISSUER = _FABRIC_DEFAULTS.get("authIssuer", "fabric4l-gateway")
+DEFAULT_AUDIENCE = _FABRIC_DEFAULTS.get("authAudience", "fabric4l-internal")
 
 
 class AuthContext(BaseModel):

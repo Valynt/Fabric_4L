@@ -165,6 +165,44 @@ describe("ApiClient", () => {
   });
 
   describe("error handling", () => {
+    it("redirects to /sign-in on 401", async () => {
+      const locationMock = { ...window.location, replace: vi.fn(), href: "http://localhost:3000/home" };
+      Object.defineProperty(window, "location", { value: locationMock, writable: true, configurable: true });
+
+      server.use(
+        http.get("/api/v1/graph/test", () => {
+          return HttpResponse.json({ error: { message: "Authentication required", code: "AUTHENTICATION_ERROR", request_id: "trace-401" } }, { status: 401 });
+        })
+      );
+
+      try {
+        await apiClient.get("l3", "/test");
+      } catch {
+        /* expected */
+      }
+
+      expect(locationMock.replace).toHaveBeenCalledWith("/sign-in");
+    });
+
+    it("redirects to /forbidden on 403", async () => {
+      const locationMock = { ...window.location, replace: vi.fn(), href: "http://localhost:3000/t/acme/accounts/a-1" };
+      Object.defineProperty(window, "location", { value: locationMock, writable: true, configurable: true });
+
+      server.use(
+        http.get("/api/v1/graph/test", () => {
+          return HttpResponse.json({ error: { message: "Access denied", code: "AUTHORIZATION_ERROR", request_id: "trace-403" } }, { status: 403 });
+        })
+      );
+
+      try {
+        await apiClient.get("l3", "/test");
+      } catch {
+        /* expected */
+      }
+
+      expect(locationMock.replace).toHaveBeenCalledWith("/forbidden");
+    });
+
     it("should throw on network errors", async () => {
       server.use(
         http.get("/api/v1/graph/test", () => {

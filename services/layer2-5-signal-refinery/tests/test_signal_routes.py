@@ -120,12 +120,12 @@ async def test_patch_signal_updates_lifecycle_state(client):
     assert patch_resp.json()["lifecycle_state"] == "validated"
 
 
-async def test_patch_signal_empty_body_returns_400(client):
+async def test_patch_signal_empty_body_returns_422(client):
     create_resp = await client.post("/api/v1/signals", json=make_signal_payload())
     signal_id = create_resp.json()["id"]
 
     patch_resp = await client.patch(f"/api/v1/signals/{signal_id}", json={})
-    assert patch_resp.status_code == 400
+    assert patch_resp.status_code == 422
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +188,7 @@ async def test_review_reject_sets_rejected(client):
     assert review_resp.json()["lifecycle_state"] == "rejected"
 
 
-async def test_review_invalid_status_returns_400(client):
+async def test_review_invalid_status_returns_422(client):
     create_resp = await client.post("/api/v1/signals", json=make_signal_payload())
     signal_id = create_resp.json()["id"]
 
@@ -196,7 +196,7 @@ async def test_review_invalid_status_returns_400(client):
         f"/api/v1/signals/{signal_id}/review",
         json={"status": "promoted"},  # not a valid review state
     )
-    assert review_resp.status_code == 400
+    assert review_resp.status_code == 422
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -34,7 +35,7 @@ async def list_review_requests(
         limit=limit,
         offset=offset,
     )
-    total = len(db.review_requests.list(tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id))
+    total = db.review_requests.count(tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -46,7 +47,7 @@ async def get_review_request(
 ):
     review = db.review_requests.get(review_id, tenant_id=tenant_id)
     if not review or review.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Review request not found")
+        raise NotFoundError(message="Review request not found")
     return review
 
 
@@ -59,7 +60,7 @@ async def update_review_request(
 ):
     review = db.review_requests.get(review_id, tenant_id=tenant_id)
     if not review or review.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Review request not found")
+        raise NotFoundError(message="Review request not found")
     updated = db.review_requests.update(review_id, tenant_id=tenant_id, **fields)
     return updated
 
@@ -73,7 +74,7 @@ async def create_review_comment(
 ):
     review = db.review_requests.get(review_id, tenant_id=tenant_id)
     if not review or review.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Review request not found")
+        raise NotFoundError(message="Review request not found")
     comment.review_id = review_id
     comment.tenant_id = tenant_id
     db.review_comments.insert(comment.id, comment)
@@ -93,12 +94,12 @@ async def list_review_comments(
 ):
     review = db.review_requests.get(review_id, tenant_id=tenant_id)
     if not review or review.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Review request not found")
+        raise NotFoundError(message="Review request not found")
     items = db.review_comments.list(
         tenant_id=tenant_id,
         filter_fn=lambda c: c.review_id == review_id,
         limit=limit,
         offset=offset,
     )
-    total = len(db.review_comments.list(tenant_id=tenant_id, filter_fn=lambda c: c.review_id == review_id))
+    total = db.review_comments.count(tenant_id=tenant_id, filter_fn=lambda c: c.review_id == review_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)

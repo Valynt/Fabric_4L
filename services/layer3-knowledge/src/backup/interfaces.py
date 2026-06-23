@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Ports for Layer 3 backup storage adapters."""
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any

@@ -49,9 +49,9 @@ The original assessment underweighted **DevOps + observability**, treating them 
 ### 3. Cross-Layer Smoke Gate ✅ COMPLETE
 **Issue:** No repeatable cross-layer verification; cannot prove E2E workflow works
 **Solution:**
-- `scripts/smoke/production_smoke.py` - 6-stage Python script with retry logic
-- `.github/workflows/smoke-gate.yml` - CI integration with Docker Compose
-- JSON artifacts with pass/fail + timing per stage
+- `make test-backend-integrated-release-smoke` - maintained release-smoke validation target
+- `.github/workflows/pr-checks.yml` (`integration-checks`) - CI integration with Docker Compose
+- Evidence artifacts under `artifacts/release_smoke/` (compose diagnostics, readiness JSON, JUnit XML, pytest logs)
 **Assessment:** Smoke gate operational; validates L2→L3→L4 integration in CI
 
 ---

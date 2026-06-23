@@ -80,7 +80,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/ClaimType"
+                  "$ref": "#/components/schemas/layer5_ground_truth__models__truth_object__ClaimType"
                 },
                 {
                   "type": "null"
@@ -1326,6 +1326,2410 @@
           }
         }
       }
+    },
+    "/api/v1/assumptions": {
+      "post": {
+        "tags": [
+          "assumption-governance"
+        ],
+        "summary": "Create Assumption",
+        "operationId": "create_assumption_api_v1_assumptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/layer5_ground_truth__api__assumption_governance_routes__AssumptionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__assumption_governance_routes__AssumptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policy-rules": {
+      "post": {
+        "tags": [
+          "assumption-governance"
+        ],
+        "summary": "Create Policy Rule",
+        "operationId": "create_policy_rule_api_v1_policy_rules_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/layer5_ground_truth__api__assumption_governance_routes__PolicyRuleCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyRuleCreate-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assumptions/{assumption_id}/apply": {
+      "post": {
+        "tags": [
+          "assumption-governance"
+        ],
+        "summary": "Apply Assumption Selection",
+        "operationId": "apply_assumption_selection_api_v1_assumptions__assumption_id__apply_post",
+        "parameters": [
+          {
+            "name": "assumption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Assumption Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplySelectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Apply Assumption Selection Api V1 Assumptions  Assumption Id  Apply Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Formula",
+        "description": "Create a new value calculation formula with versioning and schema validation.",
+        "operationId": "create_formula_api_v1_governance_formulas_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormulaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Formula created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data"
+          },
+          "409": {
+            "description": "Formula slug already exists"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Formulas",
+        "description": "List formulas with pagination and filtering.",
+        "operationId": "list_formulas_api_v1_governance_formulas_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "formula_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Formula Type"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Get a Formula",
+        "description": "Get a single formula by ID.",
+        "operationId": "get_formula_api_v1_governance_formulas__formula_id__get",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Formula not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/versions": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Formula version",
+        "description": "Create a new version of an existing formula.",
+        "operationId": "create_formula_version_api_v1_governance_formulas__formula_id__versions_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormulaVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Formula version created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaVersionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Formula not found"
+          },
+          "400": {
+            "description": "Invalid version or expression"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/submit": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Submit Formula version for approval",
+        "description": "Submit a formula version for approval (DRAFT \u2192 PENDING).",
+        "operationId": "submit_formula_version_api_v1_governance_formulas__formula_id__versions__version__submit_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaVersionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Formula or version not found"
+          },
+          "400": {
+            "description": "Invalid status transition"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/approve": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Approve Formula version",
+        "description": "Approve a formula version (PENDING \u2192 APPROVED).",
+        "operationId": "approve_formula_version_api_v1_governance_formulas__formula_id__versions__version__approve_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version approved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaVersionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "400": {
+            "description": "Invalid status transition"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/versions/{version}/reject": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Reject Formula version",
+        "description": "Reject a formula version (PENDING \u2192 REJECTED).",
+        "operationId": "reject_formula_version_api_v1_governance_formulas__formula_id__versions__version__reject_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version rejected successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaVersionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "400": {
+            "description": "Invalid status transition"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/deprecate": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Deprecate a Formula",
+        "description": "Deprecate a formula (APPROVED \u2192 DEPRECATED).",
+        "operationId": "deprecate_formula_api_v1_governance_formulas__formula_id__deprecate_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Reason for deprecation",
+              "title": "Reason"
+            },
+            "description": "Reason for deprecation"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Formula deprecated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Formula not found"
+          },
+          "400": {
+            "description": "Formula already deprecated"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/formulas/{formula_id}/archive": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Archive a Formula",
+        "description": "Archive a formula (DEPRECATED \u2192 ARCHIVED or DRAFT \u2192 ARCHIVED).",
+        "operationId": "archive_formula_api_v1_governance_formulas__formula_id__archive_post",
+        "parameters": [
+          {
+            "name": "formula_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Formula Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Formula archived successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Formula not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/benchmarks": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Benchmark",
+        "description": "Create a new benchmark dataset with versioning and metadata.",
+        "operationId": "create_benchmark_api_v1_governance_benchmarks_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BenchmarkCreateWithVersion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Benchmarks",
+        "description": "List benchmarks with pagination and filtering.",
+        "operationId": "list_benchmarks_api_v1_governance_benchmarks_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "benchmark_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Benchmark Type"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/benchmarks/{benchmark_id}/versions": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Benchmark version",
+        "description": "Create a new version of an existing benchmark.",
+        "operationId": "create_benchmark_version_api_v1_governance_benchmarks__benchmark_id__versions_post",
+        "parameters": [
+          {
+            "name": "benchmark_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Benchmark Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BenchmarkVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormulaVersionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/policies": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Policy",
+        "description": "Create a new policy with rules and versioning.",
+        "operationId": "create_policy_api_v1_governance_policies_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Policies",
+        "description": "List policies with pagination and filtering.",
+        "operationId": "list_policies_api_v1_governance_policies_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "policy_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Policy Type"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/policies/{policy_id}/evaluate": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Evaluate a Policy",
+        "description": "Evaluate a policy against an entity.",
+        "operationId": "evaluate_policy_api_v1_governance_policies__policy_id__evaluate_post",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Policy Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyEvaluationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/assumptions": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a new Assumption",
+        "description": "Create a new assumption with evidence linkage.",
+        "operationId": "create_assumption_api_v1_governance_assumptions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Assumptions",
+        "description": "List assumptions with pagination and filtering.",
+        "operationId": "list_assumptions_api_v1_governance_assumptions_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "assumption_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assumption Type"
+            }
+          },
+          {
+            "name": "impact_level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Impact Level"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/assumptions/{assumption_id}/evidence": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Add evidence to an Assumption",
+        "description": "Add supporting evidence to an assumption.",
+        "operationId": "add_assumption_evidence_api_v1_governance_assumptions__assumption_id__evidence_post",
+        "parameters": [
+          {
+            "name": "assumption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Assumption Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumptionEvidenceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/assumptions/{assumption_id}/submit": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Submit Assumption for approval",
+        "description": "Submit a high-impact assumption for approval.",
+        "operationId": "submit_assumption_api_v1_governance_assumptions__assumption_id__submit_post",
+        "parameters": [
+          {
+            "name": "assumption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Assumption Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/value-entries": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create a Value Realization Entry",
+        "description": "Create a new value realization entry with audit trail.",
+        "operationId": "create_value_entry_api_v1_governance_value_entries_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueRealizationEntryCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueRealizationEntryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Value Realization Entries",
+        "description": "List value realization entries with pagination and filtering.",
+        "operationId": "list_value_entries_api_v1_governance_value_entries_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "entry_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entry Type"
+            }
+          },
+          {
+            "name": "opportunity_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opportunity Id"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/value-entries/{entry_id}/updates": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Add Value Realization Update",
+        "description": "Add an update to a value realization entry with audit trail.",
+        "operationId": "add_value_update_api_v1_governance_value_entries__entry_id__updates_post",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueRealizationUpdateCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueRealizationEntryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/approvals": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Approval Requests",
+        "description": "List approval requests with pagination and filtering.",
+        "operationId": "list_approvals_api_v1_governance_approvals_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "entity_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/approvals/{approval_id}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Get Approval Request",
+        "description": "Get a single approval request by ID.",
+        "operationId": "get_approval_request_api_v1_governance_approvals__approval_id__get",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Approval Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/approvals/{approval_id}/approve": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Approve an Approval Request",
+        "description": "Approve a pending approval request.",
+        "operationId": "approve_request_api_v1_governance_approvals__approval_id__approve_post",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "notes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Notes"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/approvals/{approval_id}/reject": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Reject an Approval Request",
+        "description": "Reject a pending approval request.",
+        "operationId": "reject_request_api_v1_governance_approvals__approval_id__reject_post",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Approval Id"
+            }
+          },
+          {
+            "name": "notes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Notes"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/pillars": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Pillars",
+        "operationId": "get_pillars_api_v1_academy_pillars_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PillarListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/pillars/{pillar_id}": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Pillar",
+        "operationId": "get_pillar_api_v1_academy_pillars__pillar_id__get",
+        "parameters": [
+          {
+            "name": "pillar_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pillar Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PillarResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/pillars/by-number/{pillar_number}": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Pillar By Number Route",
+        "operationId": "get_pillar_by_number_route_api_v1_academy_pillars_by_number__pillar_number__get",
+        "parameters": [
+          {
+            "name": "pillar_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pillar Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PillarResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/pillars/{pillar_id}/quiz": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Quiz",
+        "operationId": "get_quiz_api_v1_academy_pillars__pillar_id__quiz_get",
+        "parameters": [
+          {
+            "name": "pillar_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pillar Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/quiz/submit": {
+      "post": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Submit Quiz",
+        "operationId": "submit_quiz_api_v1_academy_quiz_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuizSubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizResultResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/progress": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Progress",
+        "operationId": "get_progress_api_v1_academy_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Update Progress",
+        "operationId": "update_progress_api_v1_academy_progress_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/certifications": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Certifications",
+        "operationId": "get_certifications_api_v1_academy_certifications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificationListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/maturity/levels": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Maturity Levels",
+        "operationId": "get_maturity_levels_api_v1_academy_maturity_levels_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MaturityLevelResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Maturity Levels Api V1 Academy Maturity Levels Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/maturity/assessments": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Maturity Assessments",
+        "operationId": "get_maturity_assessments_api_v1_academy_maturity_assessments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MaturityAssessmentResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Maturity Assessments Api V1 Academy Maturity Assessments Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Create Assessment",
+        "operationId": "create_assessment_api_v1_academy_maturity_assessments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaturityAssessmentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaturityAssessmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/resources": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Resources",
+        "operationId": "get_resources_api_v1_academy_resources_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academy/pillars/{pillar_id}/resources": {
+      "get": {
+        "tags": [
+          "academy"
+        ],
+        "summary": "Get Pillar Resources",
+        "operationId": "get_pillar_resources_api_v1_academy_pillars__pillar_id__resources_get",
+        "parameters": [
+          {
+            "name": "pillar_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pillar Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/value-claims": {
+      "post": {
+        "tags": [
+          "value-claims"
+        ],
+        "summary": "Create a ValueClaim",
+        "operationId": "create_value_claim_api_v1_value_claims_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueClaimCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "value-claims"
+        ],
+        "summary": "List ValueClaims for an account",
+        "operationId": "list_value_claims_api_v1_value_claims_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ClaimStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueClaimListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/value-claims/{claim_id}": {
+      "get": {
+        "tags": [
+          "value-claims"
+        ],
+        "summary": "Get a ValueClaim",
+        "operationId": "get_value_claim_api_v1_value_claims__claim_id__get",
+        "parameters": [
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "value-claims"
+        ],
+        "summary": "Archive a ValueClaim",
+        "operationId": "archive_value_claim_api_v1_value_claims__claim_id__delete",
+        "parameters": [
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/value-claims/{claim_id}/status": {
+      "post": {
+        "tags": [
+          "value-claims"
+        ],
+        "summary": "Transition a ValueClaim status",
+        "operationId": "transition_value_claim_status_api_v1_value_claims__claim_id__status_post",
+        "parameters": [
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Claim Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueClaimStatusTransition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueClaimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1434,23 +3838,771 @@
         "title": "AddSourceRequest",
         "description": "Schema for POST /truths/{id}/sources."
       },
-      "ClaimType": {
+      "ApplySelectionRequest": {
+        "properties": {
+          "context": {
+            "type": "string",
+            "title": "Context",
+            "default": "evaluation"
+          }
+        },
+        "type": "object",
+        "title": "ApplySelectionRequest"
+      },
+      "ApprovalRequestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Entity Id"
+          },
+          "entity_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Version"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "request_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Reason"
+          },
+          "request_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Metadata"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "review_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Notes"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "entity_type",
+          "entity_id",
+          "entity_version",
+          "status",
+          "requested_by",
+          "requested_at",
+          "request_reason",
+          "request_metadata",
+          "reviewed_by",
+          "reviewed_at",
+          "review_notes",
+          "approved_at",
+          "rejected_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ApprovalRequestResponse",
+        "description": "Schema for approval request response."
+      },
+      "AssessmentData": {
+        "properties": {
+          "self_assessment": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Self Assessment"
+          },
+          "quiz_average": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Quiz Average"
+          },
+          "pillars_completed": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Pillars Completed"
+          },
+          "behavior_indicators": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Behavior Indicators"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "self_assessment",
+          "quiz_average",
+          "pillars_completed"
+        ],
+        "title": "AssessmentData"
+      },
+      "AssumptionEvidenceCreate": {
+        "properties": {
+          "evidence_type": {
+            "type": "string",
+            "title": "Evidence Type",
+            "description": "truth_object, external_source"
+          },
+          "truth_object_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Object Id"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "source_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Title"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence",
+            "description": "high, medium, low",
+            "default": "medium"
+          },
+          "relevance": {
+            "type": "string",
+            "title": "Relevance",
+            "description": "high, medium, low",
+            "default": "medium"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "evidence_type"
+        ],
+        "title": "AssumptionEvidenceCreate",
+        "description": "Schema for adding evidence to an assumption."
+      },
+      "BenchmarkCreateWithVersion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Slug"
+          },
+          "benchmark_type": {
+            "type": "string",
+            "title": "Benchmark Type",
+            "description": "industry_standard, competitive, historical, customer_reference, internal, third_party"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "source_name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Source Name"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "research, survey, internal, external"
+          },
+          "source_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Date"
+          },
+          "collection_methodology": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Methodology"
+          },
+          "confidence_level": {
+            "type": "string",
+            "title": "Confidence Level",
+            "description": "high, medium, low",
+            "default": "medium"
+          },
+          "sample_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Size"
+          },
+          "margin_of_error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Of Error"
+          },
+          "data_quality_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Quality Notes"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data",
+            "description": "Benchmark data"
+          },
+          "data_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data Schema",
+            "description": "JSON Schema for data structure"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective From",
+            "description": "Effective start date"
+          },
+          "effective_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Until"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Initial version",
+            "default": "1.0.0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "benchmark_type",
+          "source_name",
+          "source_type",
+          "data",
+          "data_schema",
+          "effective_from"
+        ],
+        "title": "BenchmarkCreateWithVersion",
+        "description": "Schema for creating a benchmark with initial version."
+      },
+      "BenchmarkResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "benchmark_type": {
+            "type": "string",
+            "title": "Benchmark Type"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "current_version": {
+            "type": "string",
+            "title": "Current Version"
+          },
+          "latest_version": {
+            "type": "string",
+            "title": "Latest Version"
+          },
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "source_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Date"
+          },
+          "confidence_level": {
+            "type": "string",
+            "title": "Confidence Level"
+          },
+          "sample_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Size"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "deprecated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "slug",
+          "benchmark_type",
+          "description",
+          "current_version",
+          "latest_version",
+          "source_name",
+          "source_url",
+          "source_type",
+          "source_date",
+          "confidence_level",
+          "sample_size",
+          "is_active",
+          "deprecated_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BenchmarkResponse",
+        "description": "Schema for benchmark response."
+      },
+      "BenchmarkVersionCreate": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Semver version string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data",
+            "description": "Benchmark data"
+          },
+          "data_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data Schema",
+            "description": "JSON Schema for data structure"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective From",
+            "description": "Effective start date"
+          },
+          "effective_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Until"
+          },
+          "change_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "data",
+          "data_schema",
+          "effective_from"
+        ],
+        "title": "BenchmarkVersionCreate",
+        "description": "Schema for creating a benchmark version."
+      },
+      "CertificationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CertificationResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "CertificationListResponse"
+      },
+      "CertificationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "badge_name": {
+            "type": "string",
+            "title": "Badge Name"
+          },
+          "pillar_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pillar Id"
+          },
+          "vos_role": {
+            "type": "string",
+            "title": "Vos Role"
+          },
+          "certificate_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certificate Url"
+          },
+          "awarded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Awarded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "user_id",
+          "badge_name",
+          "pillar_id",
+          "vos_role",
+          "certificate_url",
+          "awarded_at"
+        ],
+        "title": "CertificationResponse"
+      },
+      "ClaimStatus": {
         "type": "string",
         "enum": [
-          "cost_savings_baseline",
-          "revenue_impact",
-          "efficiency_gain",
-          "risk_reduction",
-          "compliance_requirement",
-          "customer_outcome",
-          "technical_capability",
-          "market_benchmark",
-          "persona_pain_point",
-          "value_driver_metric",
-          "other"
+          "draft",
+          "supported",
+          "modeled",
+          "approved",
+          "published",
+          "challenged",
+          "committed",
+          "validated",
+          "invalidated",
+          "archived"
         ],
-        "title": "ClaimType",
-        "description": "Semantic category of the claim being recorded."
+        "title": "ClaimStatus",
+        "description": "Lifecycle states of a ValueClaim.\n\nA claim progresses from raw insight to customer-facing, auditable,\nand eventually realized value statement."
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "Confidence",
+        "description": "Confidence level for a claim, assumption, or piece of evidence."
       },
       "DeploymentEnvironment": {
         "type": "string",
@@ -1473,6 +4625,431 @@
         ],
         "title": "DisputeReason",
         "description": "Reason a truth object was marked as disputed."
+      },
+      "FormulaCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Slug"
+          },
+          "formula_type": {
+            "type": "string",
+            "title": "Formula Type",
+            "description": "roi_calculation, cost_savings, revenue_impact, efficiency_gain, risk_reduction, custom"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "expression": {
+            "type": "string",
+            "title": "Expression",
+            "description": "Formula expression"
+          },
+          "expression_language": {
+            "type": "string",
+            "title": "Expression Language",
+            "description": "python, javascript, etc.",
+            "default": "python"
+          },
+          "input_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Schema",
+            "description": "JSON Schema for input validation"
+          },
+          "output_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Output Schema",
+            "description": "JSON Schema for output validation"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/FormulaParameterCreate"
+            },
+            "type": "array",
+            "title": "Parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "formula_type",
+          "expression",
+          "input_schema",
+          "output_schema"
+        ],
+        "title": "FormulaCreate",
+        "description": "Schema for creating a formula."
+      },
+      "FormulaParameterCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Name"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "parameter_type": {
+            "type": "string",
+            "title": "Parameter Type",
+            "description": "number, string, boolean, currency, percentage, date, duration"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "default_value": {
+            "title": "Default Value"
+          },
+          "min_value": {
+            "title": "Min Value"
+          },
+          "max_value": {
+            "title": "Max Value"
+          },
+          "allowed_values": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Values"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "parameter_type"
+        ],
+        "title": "FormulaParameterCreate",
+        "description": "Schema for creating a formula parameter."
+      },
+      "FormulaResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "formula_type": {
+            "type": "string",
+            "title": "Formula Type"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "latest_version": {
+            "type": "string",
+            "title": "Latest Version"
+          },
+          "input_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Output Schema"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "deprecated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated At"
+          },
+          "deprecation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecation Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "slug",
+          "formula_type",
+          "description",
+          "current_version",
+          "latest_version",
+          "input_schema",
+          "output_schema",
+          "is_active",
+          "deprecated_at",
+          "deprecation_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FormulaResponse",
+        "description": "Schema for formula response."
+      },
+      "FormulaVersionCreate": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Semver version string"
+          },
+          "expression": {
+            "type": "string",
+            "title": "Expression",
+            "description": "Formula expression"
+          },
+          "expression_language": {
+            "type": "string",
+            "title": "Expression Language",
+            "default": "python"
+          },
+          "change_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "expression"
+        ],
+        "title": "FormulaVersionCreate",
+        "description": "Schema for creating a formula version."
+      },
+      "FormulaVersionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "formula_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Formula Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "expression": {
+            "type": "string",
+            "title": "Expression"
+          },
+          "expression_language": {
+            "type": "string",
+            "title": "Expression Language"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "validation_errors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Errors"
+          },
+          "test_results": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Results"
+          },
+          "change_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Description"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "formula_id",
+          "version",
+          "expression",
+          "expression_language",
+          "status",
+          "validation_errors",
+          "test_results",
+          "change_description",
+          "changed_by",
+          "approved_by",
+          "approved_at",
+          "created_at"
+        ],
+        "title": "FormulaVersionResponse",
+        "description": "Schema for formula version response."
       },
       "FreshnessCheckResponse": {
         "properties": {
@@ -1610,6 +5187,76 @@
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
       "JsonValue": {},
+      "LifecycleState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "approved",
+          "deprecated",
+          "archived",
+          "published"
+        ],
+        "title": "LifecycleState"
+      },
+      "MaturityAssessmentCreateRequest": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Level"
+          },
+          "assessment_data": {
+            "$ref": "#/components/schemas/AssessmentData"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "assessment_data"
+        ],
+        "title": "MaturityAssessmentCreateRequest"
+      },
+      "MaturityAssessmentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "assessment_data": {
+            "$ref": "#/components/schemas/AssessmentData"
+          },
+          "assessed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Assessed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "user_id",
+          "level",
+          "assessment_data",
+          "assessed_at"
+        ],
+        "title": "MaturityAssessmentResponse"
+      },
       "MaturityHistoryResponse": {
         "properties": {
           "id": {
@@ -1732,6 +5379,37 @@
           "advancement_trigger"
         ],
         "title": "MaturityLevelDetail"
+      },
+      "MaturityLevelResponse": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "behaviors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Behaviors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "name",
+          "description",
+          "behaviors"
+        ],
+        "title": "MaturityLevelResponse"
       },
       "ModelCapability": {
         "type": "string",
@@ -2441,6 +6119,29 @@
             ],
             "title": "Extra Metadata"
           },
+          "deprecated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated At"
+          },
+          "deprecation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecation Reason"
+          },
           "created_by": {
             "anyOf": [
               {
@@ -2543,6 +6244,561 @@
         "title": "ModelVersionSummary",
         "description": "Summary view of a ModelVersion for list responses."
       },
+      "PaginatedResponse": {
+        "properties": {
+          "items": {
+            "items": {},
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "has_next": {
+            "type": "boolean",
+            "title": "Has Next"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "has_next"
+        ],
+        "title": "PaginatedResponse",
+        "description": "Standard paginated response envelope."
+      },
+      "PillarContent": {
+        "properties": {
+          "overview": {
+            "type": "string",
+            "title": "Overview",
+            "default": ""
+          },
+          "learning_objectives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Learning Objectives"
+          },
+          "key_takeaways": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Takeaways"
+          },
+          "resources": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "title": "PillarContent"
+      },
+      "PillarListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PillarResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "PillarListResponse"
+      },
+      "PillarResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "pillar_number": {
+            "type": "integer",
+            "title": "Pillar Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "target_maturity_level": {
+            "type": "integer",
+            "title": "Target Maturity Level"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PillarContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "pillar_number",
+          "title",
+          "description",
+          "target_maturity_level",
+          "duration",
+          "content",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PillarResponse"
+      },
+      "PillarStatus": {
+        "type": "string",
+        "enum": [
+          "not_started",
+          "in_progress",
+          "completed"
+        ],
+        "title": "PillarStatus"
+      },
+      "PolicyCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Slug"
+          },
+          "policy_type": {
+            "type": "string",
+            "title": "Policy Type",
+            "description": "validation, approval, access_control, data_quality, compliance, security, custom"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Policy description"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__PolicyRuleCreate"
+            },
+            "type": "array",
+            "title": "Rules",
+            "description": "List of policy rules"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "high, medium, low",
+            "default": "medium"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "policy_type",
+          "description",
+          "rules"
+        ],
+        "title": "PolicyCreate",
+        "description": "Schema for creating a policy."
+      },
+      "PolicyEvaluationRequest": {
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type",
+            "description": "formula, benchmark, assumption, value_entry, etc."
+          },
+          "context": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context",
+            "description": "Evaluation context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity_id",
+          "entity_type",
+          "context"
+        ],
+        "title": "PolicyEvaluationRequest",
+        "description": "Schema for policy evaluation request."
+      },
+      "PolicyEvaluationResponse": {
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Policy Id"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "is_compliant": {
+            "type": "boolean",
+            "title": "Is Compliant"
+          },
+          "passed_rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Passed Rules"
+          },
+          "failed_rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Failed Rules"
+          },
+          "evaluation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Evaluation Id"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy_id",
+          "entity_id",
+          "entity_type",
+          "is_compliant",
+          "passed_rules",
+          "failed_rules",
+          "evaluation_id",
+          "evaluated_at"
+        ],
+        "title": "PolicyEvaluationResponse",
+        "description": "Schema for policy evaluation response."
+      },
+      "PolicyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "policy_type": {
+            "type": "string",
+            "title": "Policy Type"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "current_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Version"
+          },
+          "latest_version": {
+            "type": "string",
+            "title": "Latest Version"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "slug",
+          "policy_type",
+          "description",
+          "current_version",
+          "latest_version",
+          "severity",
+          "scope",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PolicyResponse",
+        "description": "Schema for policy response."
+      },
+      "PolicyRuleCreate-Output": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "min_impact_threshold": {
+            "type": "number",
+            "title": "Min Impact Threshold",
+            "default": 0.0
+          },
+          "required_reviewer_role": {
+            "type": "string",
+            "title": "Required Reviewer Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "required_reviewer_role"
+        ],
+        "title": "PolicyRuleCreate"
+      },
+      "ProgressListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "overall_percentage": {
+            "type": "integer",
+            "title": "Overall Percentage"
+          },
+          "completed_count": {
+            "type": "integer",
+            "title": "Completed Count"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "overall_percentage",
+          "completed_count",
+          "total_count"
+        ],
+        "title": "ProgressListResponse"
+      },
+      "ProgressResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "pillar_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pillar Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PillarStatus"
+          },
+          "completion_percentage": {
+            "type": "integer",
+            "title": "Completion Percentage"
+          },
+          "last_accessed": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Accessed"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "user_id",
+          "pillar_id",
+          "status",
+          "completion_percentage",
+          "last_accessed",
+          "completed_at"
+        ],
+        "title": "ProgressResponse"
+      },
+      "ProgressUpdateRequest": {
+        "properties": {
+          "pillar_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pillar Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PillarStatus"
+          },
+          "completion_percentage": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Completion Percentage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pillar_id",
+          "status",
+          "completion_percentage"
+        ],
+        "title": "ProgressUpdateRequest"
+      },
       "PromoteModelRequest": {
         "properties": {
           "environment": {
@@ -2623,6 +6879,238 @@
         "title": "PromoteModelResponse",
         "description": "Response after promoting a model."
       },
+      "QuizAnswer": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Question Id"
+          },
+          "selected_answer": {
+            "type": "string",
+            "title": "Selected Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "selected_answer"
+        ],
+        "title": "QuizAnswer"
+      },
+      "QuizFeedback": {
+        "properties": {
+          "overall": {
+            "type": "string",
+            "title": "Overall"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "improvements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Improvements"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Next Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall"
+        ],
+        "title": "QuizFeedback"
+      },
+      "QuizListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuizQuestionResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "QuizListResponse"
+      },
+      "QuizOption": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "QuizOption"
+      },
+      "QuizQuestionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "question_number": {
+            "type": "integer",
+            "title": "Question Number"
+          },
+          "question_type": {
+            "type": "string",
+            "title": "Question Type"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "question_text": {
+            "type": "string",
+            "title": "Question Text"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/QuizOption"
+            },
+            "type": "array",
+            "title": "Options"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question_number",
+          "question_type",
+          "category",
+          "question_text",
+          "options",
+          "points"
+        ],
+        "title": "QuizQuestionResponse"
+      },
+      "QuizResultResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "pillar_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pillar Id"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "category_scores": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Scores"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "feedback": {
+            "$ref": "#/components/schemas/QuizFeedback"
+          },
+          "attempt_number": {
+            "type": "integer",
+            "title": "Attempt Number"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "user_id",
+          "pillar_id",
+          "score",
+          "category_scores",
+          "passed",
+          "feedback",
+          "attempt_number",
+          "completed_at"
+        ],
+        "title": "QuizResultResponse"
+      },
+      "QuizSubmitRequest": {
+        "properties": {
+          "pillar_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pillar Id"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/QuizAnswer"
+            },
+            "type": "array",
+            "title": "Answers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pillar_id",
+          "answers"
+        ],
+        "title": "QuizSubmitRequest"
+      },
       "RejectionReason": {
         "type": "string",
         "enum": [
@@ -2634,6 +7122,111 @@
         ],
         "title": "RejectionReason",
         "description": "Reason a truth object was rejected."
+      },
+      "ResourceListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "ResourceListResponse"
+      },
+      "ResourceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "file_url": {
+            "type": "string",
+            "title": "File Url"
+          },
+          "pillar_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pillar Id"
+          },
+          "vos_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vos Role"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "title",
+          "description",
+          "resource_type",
+          "file_url",
+          "pillar_id",
+          "vos_role",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ResourceResponse"
       },
       "RollbackModelRequest": {
         "properties": {
@@ -2843,7 +7436,7 @@
             ]
           },
           "claim_type": {
-            "$ref": "#/components/schemas/ClaimType",
+            "$ref": "#/components/schemas/layer5_ground_truth__models__truth_object__ClaimType",
             "description": "Semantic category of the claim",
             "default": "other"
           },
@@ -3955,6 +8548,1234 @@
         ],
         "title": "ValidationEventResponse",
         "description": "Schema for a ValidationEvent in API responses."
+      },
+      "ValueClaimCreate": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "statement": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Statement"
+          },
+          "claim_type": {
+            "$ref": "#/components/schemas/layer5_ground_truth__models__value_evidence_graph_enums__ClaimType"
+          },
+          "value_unit": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Value Unit"
+          },
+          "conservative_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Conservative Value"
+          },
+          "expected_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Expected Value"
+          },
+          "aggressive_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Aggressive Value"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClaimStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "draft"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "truth_object_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Object Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "statement",
+          "claim_type",
+          "value_unit",
+          "conservative_value",
+          "expected_value",
+          "aggressive_value",
+          "confidence"
+        ],
+        "title": "ValueClaimCreate",
+        "description": "Request body for creating a ValueClaim."
+      },
+      "ValueClaimListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ValueClaimSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset",
+          "has_more"
+        ],
+        "title": "ValueClaimListResponse",
+        "description": "Paginated list response for ValueClaims."
+      },
+      "ValueClaimResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "claim_type": {
+            "type": "string",
+            "title": "Claim Type"
+          },
+          "value_unit": {
+            "type": "string",
+            "title": "Value Unit"
+          },
+          "conservative_value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Conservative Value"
+          },
+          "expected_value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Expected Value"
+          },
+          "aggressive_value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Aggressive Value"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "maturity_level": {
+            "type": "integer",
+            "title": "Maturity Level"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "truth_object_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Object Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "account_id",
+          "statement",
+          "claim_type",
+          "value_unit",
+          "conservative_value",
+          "expected_value",
+          "aggressive_value",
+          "confidence",
+          "status",
+          "maturity_level",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ValueClaimResponse",
+        "description": "Full ValueClaim representation in API responses."
+      },
+      "ValueClaimStatusTransition": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ClaimStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ValueClaimStatusTransition",
+        "description": "Request body for transitioning a ValueClaim status."
+      },
+      "ValueClaimSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "statement": {
+            "type": "string",
+            "title": "Statement"
+          },
+          "claim_type": {
+            "type": "string",
+            "title": "Claim Type"
+          },
+          "value_unit": {
+            "type": "string",
+            "title": "Value Unit"
+          },
+          "expected_value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Expected Value"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "maturity_level": {
+            "type": "integer",
+            "title": "Maturity Level"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "statement",
+          "claim_type",
+          "value_unit",
+          "expected_value",
+          "confidence",
+          "status",
+          "maturity_level",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ValueClaimSummary",
+        "description": "Compact ValueClaim representation for list responses."
+      },
+      "ValueRealizationEntryCreate": {
+        "properties": {
+          "entry_type": {
+            "type": "string",
+            "title": "Entry Type",
+            "description": "roi, cost_savings, revenue_impact, efficiency_gain, time_savings, risk_reduction, custom"
+          },
+          "entry_name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Entry Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "current_value": {
+            "type": "number",
+            "title": "Current Value",
+            "description": "Current value of the metric"
+          },
+          "value_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Unit"
+          },
+          "value_currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Currency",
+            "description": "ISO currency code"
+          },
+          "formula_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Id"
+          },
+          "formula_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Version"
+          },
+          "benchmark_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Id"
+          },
+          "benchmark_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Version"
+          },
+          "assumption_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumption Ids"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "business_case_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Case Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_type",
+          "entry_name",
+          "current_value"
+        ],
+        "title": "ValueRealizationEntryCreate",
+        "description": "Schema for creating a value realization entry."
+      },
+      "ValueRealizationEntryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "entry_type": {
+            "type": "string",
+            "title": "Entry Type"
+          },
+          "entry_name": {
+            "type": "string",
+            "title": "Entry Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "current_value": {
+            "type": "number",
+            "title": "Current Value"
+          },
+          "value_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Unit"
+          },
+          "value_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Currency"
+          },
+          "formula_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Id"
+          },
+          "formula_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Version"
+          },
+          "benchmark_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Id"
+          },
+          "benchmark_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Version"
+          },
+          "assumption_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumption Ids"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "business_case_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Case Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "entry_type",
+          "entry_name",
+          "description",
+          "current_value",
+          "value_unit",
+          "value_currency",
+          "formula_id",
+          "formula_version",
+          "benchmark_id",
+          "benchmark_version",
+          "assumption_ids",
+          "opportunity_id",
+          "account_id",
+          "business_case_id",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ValueRealizationEntryResponse",
+        "description": "Schema for value realization entry response."
+      },
+      "ValueRealizationUpdateCreate": {
+        "properties": {
+          "new_value": {
+            "type": "number",
+            "title": "New Value",
+            "description": "New value after update"
+          },
+          "update_reason": {
+            "type": "string",
+            "title": "Update Reason",
+            "description": "new_calculation, data_refresh, formula_change, benchmark_update, assumption_change, correction, revalidation, manual_override, other"
+          },
+          "update_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Update Notes"
+          },
+          "formula_id_at_update": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Id At Update"
+          },
+          "formula_version_at_update": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula Version At Update"
+          },
+          "benchmark_id_at_update": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Id At Update"
+          },
+          "benchmark_version_at_update": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Version At Update"
+          },
+          "assumption_ids_at_update": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumption Ids At Update"
+          },
+          "calculation_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculation Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_value",
+          "update_reason"
+        ],
+        "title": "ValueRealizationUpdateCreate",
+        "description": "Schema for creating a value realization update."
+      },
+      "layer5_ground_truth__api__assumption_governance_routes__AssumptionCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "impact_value": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Impact Value",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "AssumptionCreate"
+      },
+      "layer5_ground_truth__api__assumption_governance_routes__AssumptionResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "impact_value": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Impact Value",
+            "default": 0.0
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "lifecycle_state": {
+            "$ref": "#/components/schemas/LifecycleState"
+          },
+          "is_approved_for_use": {
+            "type": "boolean",
+            "title": "Is Approved For Use"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "lifecycle_state",
+          "is_approved_for_use"
+        ],
+        "title": "AssumptionResponse"
+      },
+      "layer5_ground_truth__api__assumption_governance_routes__PolicyRuleCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "min_impact_threshold": {
+            "type": "number",
+            "title": "Min Impact Threshold",
+            "default": 0.0
+          },
+          "required_reviewer_role": {
+            "type": "string",
+            "title": "Required Reviewer Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "required_reviewer_role"
+        ],
+        "title": "PolicyRuleCreate"
+      },
+      "layer5_ground_truth__api__governance_router__AssumptionCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Slug"
+          },
+          "assumption_type": {
+            "type": "string",
+            "title": "Assumption Type",
+            "description": "market_growth, pricing, cost_structure, timeline, resource_availability, competitive_response, customer_behavior, technical_feasibility, regulatory, custom"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Detailed description of the assumption"
+          },
+          "value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value",
+            "description": "Assumption value"
+          },
+          "value_type": {
+            "type": "string",
+            "title": "Value Type",
+            "description": "number, percentage, currency, string, boolean, date, duration"
+          },
+          "impact_level": {
+            "type": "string",
+            "title": "Impact Level",
+            "description": "low, medium, high, critical"
+          },
+          "truth_object_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Object Id"
+          },
+          "applies_to_opportunity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applies To Opportunity Id"
+          },
+          "applies_to_formula_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applies To Formula Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "assumption_type",
+          "description",
+          "value",
+          "value_type",
+          "impact_level"
+        ],
+        "title": "AssumptionCreate",
+        "description": "Schema for creating an assumption."
+      },
+      "layer5_ground_truth__api__governance_router__AssumptionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "assumption_type": {
+            "type": "string",
+            "title": "Assumption Type"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value"
+          },
+          "value_type": {
+            "type": "string",
+            "title": "Value Type"
+          },
+          "impact_level": {
+            "type": "string",
+            "title": "Impact Level"
+          },
+          "sensitivity_analysis": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensitivity Analysis"
+          },
+          "truth_object_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truth Object Id"
+          },
+          "evidence_count": {
+            "type": "integer",
+            "title": "Evidence Count"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "approval_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Request Id"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "slug",
+          "assumption_type",
+          "description",
+          "value",
+          "value_type",
+          "impact_level",
+          "sensitivity_analysis",
+          "truth_object_id",
+          "evidence_count",
+          "status",
+          "is_active",
+          "approval_request_id",
+          "approved_by",
+          "approved_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AssumptionResponse",
+        "description": "Schema for assumption response."
+      },
+      "layer5_ground_truth__api__governance_router__PolicyRuleCreate": {
+        "properties": {
+          "rule_name": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Rule Name"
+          },
+          "rule_type": {
+            "type": "string",
+            "title": "Rule Type",
+            "description": "validation, constraint, business_rule, security, compliance"
+          },
+          "condition": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Condition",
+            "description": "Rule condition"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "Action to take if condition is met"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "high, medium, low",
+            "default": "medium"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule_name",
+          "rule_type",
+          "condition",
+          "action"
+        ],
+        "title": "PolicyRuleCreate",
+        "description": "Schema for creating a policy rule."
+      },
+      "layer5_ground_truth__models__truth_object__ClaimType": {
+        "type": "string",
+        "enum": [
+          "cost_savings_baseline",
+          "revenue_impact",
+          "efficiency_gain",
+          "risk_reduction",
+          "compliance_requirement",
+          "customer_outcome",
+          "technical_capability",
+          "market_benchmark",
+          "persona_pain_point",
+          "value_driver_metric",
+          "other"
+        ],
+        "title": "ClaimType",
+        "description": "Semantic category of the claim being recorded."
+      },
+      "layer5_ground_truth__models__value_evidence_graph_enums__ClaimType": {
+        "type": "string",
+        "enum": [
+          "cost_savings",
+          "revenue_growth",
+          "risk_reduction",
+          "productivity_gain",
+          "cycle_time_reduction",
+          "compliance_improvement",
+          "customer_experience",
+          "strategic_capability"
+        ],
+        "title": "ClaimType",
+        "description": "Semantic category of a ValueClaim."
       },
       "ErrorEnvelope": {
         "type": "object",

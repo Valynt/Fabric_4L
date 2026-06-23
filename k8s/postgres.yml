@@ -17,6 +17,7 @@ spec:
         app: postgres
         component: infrastructure
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 999

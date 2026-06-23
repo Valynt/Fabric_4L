@@ -1,0 +1,57 @@
+# PostgreSQL RDS/Aurora endpoint and credentials
+# Syncs from Vault to Kubernetes secrets for application consumption
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: postgres-endpoint
+  namespace: value-fabric
+  labels:
+    component: database
+    engine: postgresql
+    managed-by: terraform
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: postgres-endpoint
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        # RDS/Aurora connection details (populated by Terraform -> Vault)
+        POSTGRES_HOST: "{{ .postgres_host }}"
+        POSTGRES_PORT: "{{ .postgres_port | default \"5432\" }}"
+        POSTGRES_DB: "{{ .postgres_db | default \"fabric\" }}"
+        POSTGRES_USER: "{{ .postgres_user | default \"postgres\" }}"
+        POSTGRES_PASSWORD: "{{ .postgres_password }}"
+        POSTGRES_SSL_MODE: "{{ .postgres_ssl_mode | default \"require\" }}"
+        # Full connection URL for SQLAlchemy / asyncpg
+        DATABASE_URL: "postgresql+asyncpg://{{ .postgres_user | default \"postgres\" }}:{{ .postgres_password }}@{{ .postgres_host }}:{{ .postgres_port | default \"5432\" }}/{{ .postgres_db | default \"fabric\" }}?ssl={{ .postgres_ssl_mode | default \"require\" }}"
+  data:
+    - secretKey: postgres_host
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: host
+    - secretKey: postgres_port
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: port
+    - secretKey: postgres_db
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: db
+    - secretKey: postgres_user
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: user
+    - secretKey: postgres_password
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: password
+    - secretKey: postgres_ssl_mode
+      remoteRef:
+        key: secret/data/fabric/postgres
+        property: ssl_mode

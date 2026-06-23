@@ -1,3 +1,5 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -14,7 +16,7 @@ never from raw headers (V-001, V-002 remediation).
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
@@ -130,7 +132,7 @@ class CapabilityCoverageItem(BaseModel):
 
 async def get_product_service(driver=Depends(get_neo4j_driver)):
     """Dependency injection for ProductService."""
-    from services.product_service import ProductService
+    from ...services.product_service import ProductService
 
     return ProductService(driver)
 
@@ -146,7 +148,7 @@ async def create_product(
     service=Depends(get_product_service),
 ):
     """Create a new product in the knowledge graph."""
-    from services.product_service import ProductCreate
+    from ...services.product_service import ProductCreate
 
     product = ProductCreate(
         name=body.name,
@@ -186,7 +188,7 @@ async def get_product(
     """Get a product by ID with its features and capabilities."""
     result = await service.get_product(tenant_id, product_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise NotFoundError(message = "Product not found")
     return result
 
 
@@ -200,10 +202,10 @@ async def update_product(
     """Update a product's properties."""
     updates = body.model_dump(exclude_none=True)
     if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
+        raise ValidationError(message = "No fields to update")
     result = await service.update_product(tenant_id, product_id, updates)
     if not result:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise NotFoundError(message = "Product not found")
     return result
 
 
@@ -216,7 +218,7 @@ async def delete_product(
     """Delete a product and its orphaned features."""
     deleted = await service.delete_product(tenant_id, product_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise NotFoundError(message = "Product not found")
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +233,7 @@ async def add_feature(
     service=Depends(get_product_service),
 ):
     """Add a feature to a product."""
-    from services.product_service import FeatureCreate
+    from ...services.product_service import FeatureCreate
 
     feature = FeatureCreate(
         name=body.name,
@@ -242,7 +244,7 @@ async def add_feature(
     )
     result = await service.add_feature(tenant_id, product_id, feature)
     if not result:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise NotFoundError(message = "Product not found")
     return result
 
 
@@ -256,7 +258,7 @@ async def remove_feature(
     """Remove a feature from a product."""
     removed = await service.remove_feature(tenant_id, product_id, feature_id)
     if not removed:
-        raise HTTPException(status_code=404, detail="Feature or product not found")
+        raise NotFoundError(message = "Feature or product not found")
 
 
 # ---------------------------------------------------------------------------
@@ -275,10 +277,7 @@ async def link_capability(
         tenant_id, product_id, body.capability_id, body.strength
     )
     if not result:
-        raise HTTPException(
-            status_code=404,
-            detail="Product or capability not found",
-        )
+        raise NotFoundError(message = "Product or capability not found")
     return result
 
 
@@ -292,7 +291,7 @@ async def unlink_capability(
     """Remove a product-capability link."""
     removed = await service.unlink_capability(tenant_id, product_id, capability_id)
     if not removed:
-        raise HTTPException(status_code=404, detail="Link not found")
+        raise NotFoundError(message = "Link not found")
 
 
 # ---------------------------------------------------------------------------

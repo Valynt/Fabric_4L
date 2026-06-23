@@ -9,16 +9,35 @@ Measures:
 
 import pytest
 import trafilatura  # noqa: F401 — mandatory dep; already in layer1-ingestion dependencies
+import os
 
 import statistics
 import time
 import asyncio
 from uuid import uuid4
 
-from value_fabric.layer1.crawler.smart_router import SmartRouter, RouteType
-from value_fabric.layer1.crawler.httpx_crawler import HttpxCrawler, FastPathResult
-from value_fabric.layer1.crawler.quality_gate import QualityGate
-from value_fabric.layer1.crawler.decision_store import InMemoryCrawlDecisionRepository
+from layer1_ingestion.crawler.smart_router import SmartRouter, RouteType
+from layer1_ingestion.crawler.httpx_crawler import HttpxCrawler, FastPathResult
+from layer1_ingestion.crawler.quality_gate import QualityGate
+from layer1_ingestion.crawler.decision_store import InMemoryCrawlDecisionRepository
+
+
+def _env_flag_enabled(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+pytestmark = [
+    pytest.mark.performance,
+    pytest.mark.benchmark,
+    pytest.mark.quarantine,
+    pytest.mark.skipif(
+        not _env_flag_enabled("RUN_ROUTER_BENCHMARKS"),
+        reason=(
+            "Environment-sensitive router benchmarks are quarantined by default. "
+            "Set RUN_ROUTER_BENCHMARKS=1 to run explicitly."
+        ),
+    ),
+]
 
 
 class TestStaticSiteSpeedup:

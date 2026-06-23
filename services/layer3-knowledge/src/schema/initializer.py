@@ -26,10 +26,12 @@ from ..schema.constraints import (
 
 
 class SchemaInitializer_health_checkResult(TypedDictModel):
-    database: Any
+    # database/uri are only known when connectivity succeeds; on failure the
+    # health check must still return a valid payload (degraded, not a 500).
+    database: Any = None
     error: str | None = None
     status: str
-    uri: Any
+    uri: Any = None
 
 if TYPE_CHECKING:
     from neo4j import AsyncSession
@@ -181,7 +183,7 @@ class SchemaInitializer:
             await session.run(cypher)
             logger.info(f"Created {item_type}: {name}")
         except ClientError as e:
-            error_msg = str(e).lower()
+            error_msg = repr(e).lower()
             if _ERROR_ALREADY_EXISTS in error_msg or _ERROR_CONSTRAINT_EXISTS in error_msg or _ERROR_INDEX_EXISTS in error_msg:
                 logger.info(f"{item_type.capitalize()} {name} already exists")
                 return
@@ -249,10 +251,31 @@ class SchemaInitializer:
         Args:
             session: Neo4j async session
         """
+        await self._validate_existing_vector_indexes(session)
         for index in INDEXES:
             query = self._build_index_cypher(index)
             await self._execute_schema_statement(
                 session, index.name, query, "index"
+            )
+
+    async def _validate_existing_vector_indexes(self, session: "AsyncSession") -> None:
+        """Fail fast when existing vector indexes use an incompatible dimension."""
+        result = await session.run(
+            "SHOW INDEXES YIELD name, type, options WHERE type = 'VECTOR' RETURN name, options"
+        )
+        expected = self.settings.embedding_dimension
+        mismatches: list[str] = []
+        async for record in result:
+            options = record.get("options") or {}
+            index_cfg = options.get("indexConfig") or {}
+            dim = index_cfg.get("vector.dimensions")
+            if isinstance(dim, int) and dim != expected:
+                mismatches.append(f"{record['name']}={dim}")
+        if mismatches:
+            raise RuntimeError(
+                "VECTOR_INDEX_DIMENSION_MISMATCH: "
+                f"configured={expected}, existing={','.join(mismatches)}. "
+                "Run explicit migration: create parallel *_v2 embedding property/index, backfill, cut over reads/writes, then drop legacy index."
             )
 
     def _build_vector_index_cypher(
@@ -289,7 +312,7 @@ class SchemaInitializer:
                 await session.run(constraint.drop_cypher)
                 logger.info(f"Dropped constraint: {constraint.name}")
             except ClientError as e:
-                if "does not exist" in str(e):
+                if "does not exist" in repr(e):
                     logger.debug(
                         f"Constraint {constraint.name} does not exist, skipping"
                     )
@@ -316,7 +339,7 @@ class SchemaInitializer:
                 await session.run(index.drop_cypher)
                 logger.info(f"Dropped index: {index.name}")
             except ClientError as e:
-                if "does not exist" in str(e):
+                if "does not exist" in repr(e):
                     logger.debug(f"Index {index.name} does not exist, skipping")
                 else:
                     logger.warning(f"Client error dropping index {index.name}: {e}")

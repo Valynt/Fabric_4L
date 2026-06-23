@@ -37,6 +37,7 @@ class AuditAction(str, Enum):
     # ── Data lifecycle ──────────────────────────────────────────────────────
     DOCUMENT_INGESTED = "document.ingested"
     EXTRACTION_RUN = "extraction.run"
+    EXTRACTION_QUARANTINED = "extraction.quarantined"
     KG_NODE_CREATED = "kg.node_created"
     KG_NODE_UPDATED = "kg.node_updated"
     KG_NODE_DELETED = "kg.node_deleted"
@@ -60,10 +61,16 @@ class AuditAction(str, Enum):
     WORKFLOW_STARTED = "workflow.started"
     WORKFLOW_COMPLETED = "workflow.completed"
     WORKFLOW_FAILED = "workflow.failed"
+    WORKFLOW_CANCELLED = "workflow.cancelled"
+    WORKFLOW_PAUSED = "workflow.paused"
+    WORKFLOW_RESUMED = "workflow.resumed"
+    CHECKPOINT_RESUMED = "checkpoint.resumed"
     BUSINESS_CASE_GENERATED = "business_case.generated"
     BUSINESS_CASE_UPDATED = "business_case.updated"
     BUSINESS_CASE_APPROVED = "business_case.approved"
     ROI_CALCULATED = "roi.calculated"
+    BENCHMARK_COMPARED = "benchmark.compared"
+    BENCHMARK_VALIDATED = "benchmark.validated"
     EXPORT_REQUESTED = "export.requested"
     EXPORT_PACKAGE_GENERATED = "export.package_generated"
     EXPORT_DOWNLOAD_ACCESSED = "export.download_accessed"
@@ -71,6 +78,34 @@ class AuditAction(str, Enum):
     # ── Integrations ─────────────────────────────────────────────────────────
     WEBHOOK_RECEIVED = "webhook.received"
     WEBHOOK_PROCESSING_FAILED = "webhook.processing_failed"
+
+    # ── Billing ──────────────────────────────────────────────────────────────
+    BILLING_SUBSCRIPTION_CREATED = "billing.subscription.created"
+    BILLING_SUBSCRIPTION_UPDATED = "billing.subscription.updated"
+    BILLING_SUBSCRIPTION_CANCELED = "billing.subscription.canceled"
+    BILLING_SUBSCRIPTION_REACTIVATED = "billing.subscription.reactivated"
+    BILLING_PLAN_CHANGED = "billing.plan.changed"
+    BILLING_CHECKOUT_INITIATED = "billing.checkout.initiated"
+    BILLING_PORTAL_OPENED = "billing.portal.opened"
+    BILLING_INVOICE_CREATED = "billing.invoice.created"
+    BILLING_INVOICE_UPDATED = "billing.invoice.updated"
+    BILLING_INVOICE_FINALIZED = "billing.invoice.finalized"
+    BILLING_INVOICE_VOIDED = "billing.invoice.voided"
+    BILLING_CHARGE_RECORDED = "billing.charge.recorded"
+    BILLING_USAGE_INGESTED = "billing.usage.ingested"
+    BILLING_CUSTOMER_SYNCED = "billing.customer.synced"
+    BILLING_WEBHOOK_RECEIVED = "billing.webhook.received"
+
+    # ── Ground Truth ────────────────────────────────────────────────────────
+    TRUTH_CREATED = "truth.created"
+    TRUTH_VALIDATED = "truth.validated"
+    TRUTH_DELETED = "truth.deleted"
+    TRUTH_SYNCED = "truth.synced"
+
+    # ── Ingestion / compliance ───────────────────────────────────────────────
+    URL_SAFETY_BLOCKED = "url.safety_blocked"
+    URL_ROBOTS_BLOCKED = "url.robots_blocked"
+    OUTBOX_DEAD_LETTERED = "outbox.dead_lettered"
 
     # ── Merged from root shared/audit/models.py ──────────────────────────────
     CREATE = "create"
@@ -131,6 +166,7 @@ class AuditEvent(BaseModel):
     request_id: Optional[str] = None
     outcome: AuditOutcome = AuditOutcome.SUCCESS
     details: Dict[str, Any] = Field(default_factory=dict, description="Action-specific metadata")
+    chain_id: Optional[str] = Field(None, description="Hash-chain identifier for audit ledger")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __await__(self):
@@ -235,8 +271,7 @@ class TenantResolvedDetails(BaseModel):
         description="HTTP method of the request"
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TenantContextSetDetails(BaseModel):
     """Structured details for TENANT_CONTEXT_SET audit events (Task 3.1).

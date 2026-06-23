@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for prospects start-analysis endpoint.
 
 Validates:
@@ -8,26 +10,28 @@ Validates:
 - Degraded mode handling when services unavailable
 """
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import register_exception_handlers
 
-from value_fabric.layer4.api.routes import prospects
-from value_fabric.layer4.models.account import Account
+from layer4_agents.api.routes import prospects
+from layer4_agents.interfaces.prospect_context import ProspectContextSources
+from layer4_agents.models.account import Account
 
 
 @pytest.fixture
 def prospects_app() -> FastAPI:
     """Build FastAPI app with prospects routes."""
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(prospects.router, prefix="/v1")
     return app
 
@@ -66,10 +70,46 @@ class FakeExecutor:
 
 
 @pytest.mark.asyncio
+async def test_get_prospect_context_uses_context_port(prospects_app: FastAPI) -> None:
+    class FakeProspectContextClient:
+        async def load_context_sources(self, *, prospect_id: str, tenant_id: str) -> ProspectContextSources:
+            assert prospect_id == "prospect-123"
+            assert tenant_id == "tenant-123"
+            return ProspectContextSources(
+                profile_data={"title": "VP Finance", "crm_id": "crm-1"},
+                role_value=None,
+                truth_items=[{"id": "truth-1"}],
+            )
+
+    prospects_app.dependency_overrides[prospects.get_verified_tenant_id] = lambda: "tenant-123"
+    prospects_app.dependency_overrides[prospects.get_prospect_context_client] = (
+        lambda: FakeProspectContextClient()
+    )
+
+    async with AsyncClient(transport=ASGITransport(app=prospects_app), base_url="http://test") as client:
+        response = await client.get("/v1/prospects/prospect-123/context")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["company_profile"]["source"] == "layer3_knowledge_graph"
+    assert payload["contact_role"]["value"] == "VP Finance"
+    assert payload["contact_role"]["needs_confirmation"] is False
+    assert payload["crm_match"]["value"] == {"matched": True, "record_id": "crm-1"}
+    ground_truth_flag = next(
+        item for item in payload["confidence_flags"] if item["name"] == "ground_truth_available"
+    )
+    assert ground_truth_flag["needs_confirmation"] is False
+
+
+@pytest.mark.asyncio
 async def test_start_analysis_missing_tenant_fails_closed(prospects_app: FastAPI) -> None:
     """Missing tenant context should return 401 (fail closed)."""
     # Override auth to return empty tenant
     prospects_app.dependency_overrides[prospects.get_verified_tenant_id] = lambda: None
+    prospects_app.dependency_overrides[prospects.require_authenticated] = lambda: MagicMock(
+        user_id="user-tenant-missing"
+    )
+    prospects_app.dependency_overrides[prospects.get_db_from_context] = lambda: AsyncMock(spec=AsyncSession)
 
     async with AsyncClient(transport=ASGITransport(app=prospects_app), base_url="http://test") as client:
         response = await client.post(
@@ -89,7 +129,7 @@ async def test_start_analysis_missing_tenant_fails_closed(prospects_app: FastAPI
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     data = response.json()
-    detail = data.get("detail", "")
+    detail = data.get("detail") or data.get("error", {}).get("message", "")
     if isinstance(detail, str):
         assert "tenant" in detail.lower()
     else:
@@ -188,7 +228,9 @@ async def test_start_analysis_creates_new_prospect(
     assert added_account.provider == "value_fabric"
     assert added_account.stage == "prospect"
     assert added_account.name == "New Company"
-    mock_db_session.commit.assert_called_once()
+    mock_db_session.flush.assert_awaited_once()
+    mock_db_session.refresh.assert_awaited_once_with(added_account)
+    mock_db_session.commit.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -2,11 +2,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: routing-host
-  namespace: value-fabric
+  namespace: value-fabric-staging
 data:
   host: staging.value-fabric.example.com
   apiHost: staging-api.value-fabric.example.com
   # Ingress controller namespace for NetworkPolicy
   ingressNamespace: ingress-nginx
+  # cert-manager ClusterIssuer for TLS certificates
+  tlsIssuer: letsencrypt-staging
   # cert-manager ClusterIssuer email (must be replaced with valid email)
   issuerEmail: security-staging@value-fabric.example.com

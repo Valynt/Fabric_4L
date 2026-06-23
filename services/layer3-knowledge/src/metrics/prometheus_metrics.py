@@ -6,6 +6,7 @@ Reason: Prometheus metrics collection for Value Fabric Layer 3 API.
 """
 
 import asyncio
+import re
 import time
 from datetime import datetime
 from functools import wraps
@@ -41,7 +42,7 @@ except ImportError:
         pass
 
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -262,6 +263,66 @@ class PrometheusMetrics:
             f"{prefix}graph_slow_queries_total",
             "Slow graph query counter by threshold",
             ["operation", "threshold_bucket"],
+            registry=self.config.registry,
+        )
+
+        # Phase 3 hardening: Graph mutation metrics
+        self._metrics["graph_mutations_total"] = Counter(
+            f"{prefix}graph_mutations_total",
+            "Total graph mutations",
+            ["operation", "route", "status", "entity_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_mutation_rate"] = Gauge(
+            f"{prefix}graph_mutation_rate",
+            "Graph mutation rate per second",
+            ["operation", "route"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["unauthorized_traversals_total"] = Counter(
+            f"{prefix}unauthorized_traversals_total",
+            "Total unauthorized graph traversals blocked",
+            ["category", "route", "violation_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_query_failures_total"] = Counter(
+            f"{prefix}graph_query_failures_total",
+            "Total failed graph queries by category",
+            ["category", "operation", "route"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_index_constraint_health_failures_total"] = Counter(
+            f"{prefix}graph_index_constraint_health_failures_total",
+            "Index/constraint health check failures",
+            ["check_type", "component"],
+            registry=self.config.registry,
+        )
+
+        # Phase 3 hardening: Entity resolution metrics
+        self._metrics["entity_resolution_total"] = Counter(
+            f"{prefix}entity_resolution_total",
+            "Total entity resolution requests",
+            ["strategy", "confidence", "entity_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["entity_resolution_duration"] = Histogram(
+            f"{prefix}entity_resolution_duration_seconds",
+            "Entity resolution duration in seconds",
+            ["strategy", "entity_type"],
+            buckets=self.config.default_buckets,
+            registry=self.config.registry,
+        )
+
+        self._metrics["entity_resolution_confidence"] = Histogram(
+            f"{prefix}entity_resolution_confidence",
+            "Entity resolution confidence scores",
+            ["strategy", "entity_type"],
+            buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
             registry=self.config.registry,
         )
 
@@ -506,6 +567,95 @@ class PrometheusMetrics:
             component=component, violation_type=violation_type
         ).inc()
 
+    # Phase 3 hardening: Graph mutation metrics methods
+    def increment_mutation_success(self, operation: str, route: str = "unknown", entity_type: str = "all") -> None:
+        """Increment mutation success counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_mutations_total"].labels(
+            operation=operation, route=route, status="success", entity_type=entity_type
+        ).inc()
+
+    def increment_mutation_failure(self, operation: str = "unknown", route: str = "unknown", entity_type: str = "all") -> None:
+        """Increment mutation failure counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_mutations_total"].labels(
+            operation=operation, route=route, status="failure", entity_type=entity_type
+        ).inc()
+
+    def increment_unauthorized_traversal(
+        self, category: str, route: str, violation_type: str
+    ) -> None:
+        """Increment unauthorized traversal counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["unauthorized_traversals_total"].labels(
+            category=category, route=route, violation_type=violation_type
+        ).inc()
+
+    # Phase 3 hardening: Entity resolution metrics methods
+    def increment_entity_resolution(
+        self, strategy: str, confidence: str, entity_type: str
+    ) -> None:
+        """Increment entity resolution counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_total"].labels(
+            strategy=strategy, confidence=confidence, entity_type=entity_type
+        ).inc()
+
+    def observe_entity_resolution_duration(
+        self, duration: float, strategy: str, entity_type: str
+    ) -> None:
+        """Observe entity resolution duration."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_duration"].labels(
+            strategy=strategy, entity_type=entity_type
+        ).observe(duration)
+
+    def observe_entity_resolution_confidence(
+        self, confidence: float, strategy: str, entity_type: str
+    ) -> None:
+        """Observe entity resolution confidence score."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_confidence"].labels(
+            strategy=strategy, entity_type=entity_type
+        ).observe(confidence)
+
+
+    def increment_graph_query_failure(
+        self, category: str, operation: str, route: str
+    ) -> None:
+        """Increment failed graph query counter by category."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_query_failures_total"].labels(
+            category=category, operation=operation, route=route
+        ).inc()
+
+    def increment_index_constraint_health_failure(
+        self, check_type: str, component: str
+    ) -> None:
+        """Increment index/constraint health failure counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_index_constraint_health_failures_total"].labels(
+            check_type=check_type, component=component
+        ).inc()
+
+    def increment_graph_mutation_success(
+        self, operation_type: str, route: str = "unknown", entity_type: str = "all"
+    ) -> None:
+        self.increment_mutation_success(operation=operation_type, route=route, entity_type=entity_type)
+
+    def increment_graph_mutation_failure(
+        self, error_type: str = "unknown", route: str = "unknown", entity_type: str = "all"
+    ) -> None:
+        self.increment_mutation_failure(operation=error_type, route=route, entity_type=entity_type)
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics output.
 
@@ -520,6 +670,25 @@ class PrometheusMetrics:
 
 class MetricsMiddleware:
     """Middleware to collect HTTP request metrics."""
+
+    # Patterns to replace with placeholders for cardinality control.
+    _UUID_RE = re.compile(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE
+    )
+    _NUMERIC_SEGMENT_RE = re.compile(r"(?<=/)\d+(?=/|$)")
+
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        """Strip UUIDs and numeric IDs from a URL path to control label cardinality.
+
+        Examples:
+            /entities/abc123def456-1234-5678-abcd-ef0123456789/details
+              → /entities/{id}/details
+            /accounts/42/signals → /accounts/{id}/signals
+        """
+        normalized = cls._UUID_RE.sub("{id}", path)
+        normalized = cls._NUMERIC_SEGMENT_RE.sub("{id}", normalized)
+        return normalized
 
     def __init__(self, metrics: PrometheusMetrics):
         """Initialize metrics middleware.
@@ -555,12 +724,13 @@ class MetricsMiddleware:
             except (ValueError, TypeError):
                 response_size = 0
 
-        # Extract endpoint path (remove query parameters)
+        # Extract endpoint path (remove query parameters) and normalize for cardinality control.
         endpoint = request.url.path
         if endpoint.endswith("/"):
             endpoint = endpoint[:-1]
         if not endpoint:
             endpoint = "/"
+        endpoint = self._normalize_path(endpoint)
 
         # Record metrics
         self.metrics.increment_requests_total(

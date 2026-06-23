@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for tenant provisioning service (Task 3).
 
@@ -9,7 +11,6 @@ Verifies automated tenant lifecycle management with:
 - Rollback on failure
 """
 
-from __future__ import annotations
 
 import pytest
 from datetime import datetime
@@ -18,7 +19,7 @@ from uuid import uuid4
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
-from value_fabric.layer4.services.tenant_provisioning import (
+from layer4_agents.services.tenant_provisioning import (
     TenantProvisioningService,
     TenantProvisionRequest,
     TenantProvisionResult,
@@ -32,6 +33,7 @@ def mock_db_session():
     session.execute = AsyncMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
+    session.flush = AsyncMock()
     return session
 
 
@@ -69,9 +71,11 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"
@@ -90,14 +94,24 @@ class TestTenantProvisioningService:
         )
         
         existing_tenant_id = uuid4()
+        admin_user_id = uuid4()
         
         # Mock: tenant exists
-        mock_db_session.execute.return_value.fetchone.side_effect = [
+        mock_result = MagicMock()
+        mock_result.fetchone.side_effect = [
             # First call: get_tenant_by_name returns existing tenant
-            (existing_tenant_id, "existing-tenant", datetime.utcnow(), "shared"),
+            MagicMock(
+                __getitem__=lambda self, key: {
+                    0: existing_tenant_id,
+                    1: "existing-tenant",
+                    2: datetime.utcnow(),
+                    3: "shared",
+                }.get(key)
+            ),
             # Second call: get admin user
-            (uuid4(),),
+            MagicMock(__getitem__=lambda self, key: {0: admin_user_id}.get(key)),
         ]
+        mock_db_session.execute.return_value = mock_result
         
         result = await provisioning_service.provision_tenant(request)
         
@@ -137,7 +151,7 @@ class TestTenantProvisioningService:
             isolation_tier="invalid",
         )
         
-        with pytest.raises(ValueError, match="shared, schema, database"):
+        with pytest.raises(ValueError, match="Use isolation_tier='shared'"):
             await provisioning_service.provision_tenant(request)
     
     @pytest.mark.asyncio
@@ -149,9 +163,11 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             await provisioning_service.provision_tenant(request)
         
         # Verify execute was called (for INSERT statements)
@@ -170,9 +186,11 @@ class TestTenantProvisioningService:
             admin_email="admin@test.com",
         )
 
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
 
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
 
         password_payload = None
@@ -197,15 +215,17 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("layer4_agents.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             await provisioning_service.provision_tenant(request)
             
             assert mock_emit.called
             call_kwargs = mock_emit.call_args.kwargs
             assert call_kwargs["resource_type"] == "tenant"
-            assert call_kwargs["actor_type"] == "system"
+            assert call_kwargs["user_id"] is None  # System-initiated
             assert "tenant_name" in call_kwargs["details"]
 
     @pytest.mark.asyncio
@@ -219,9 +239,11 @@ class TestTenantProvisioningService:
             tenant_name="test-tenant",
             admin_email="admin@test.com",
         )
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
 
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("layer4_agents.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             result = await provisioning_service.provision_tenant(request)
 
             details = mock_emit.call_args.kwargs["details"]
@@ -238,10 +260,12 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist, but commit fails
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         mock_db_session.commit.side_effect = Exception("Database error")
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             with pytest.raises(RuntimeError, match="provisioning failed"):
                 await provisioning_service.provision_tenant(request)
         
@@ -273,31 +297,26 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"
     
     @pytest.mark.asyncio
-    async def test_provision_tenant_schema_isolation(self, provisioning_service, mock_db_session):
-        """Verify schema-level isolation setup."""
+    async def test_provision_tenant_schema_isolation_rejected(self, provisioning_service):
+        """Verify schema-level isolation is not provisioned by the local service."""
         request = TenantProvisionRequest(
             tenant_name="test-tenant",
             admin_email="admin@test.com",
             isolation_tier="schema",
         )
-        
-        # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
-        
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
-            result = await provisioning_service.provision_tenant(request)
-        
-        # Should succeed (even if schema creation has issues, status is partial)
-        assert result.status in ("success", "partial")
-        assert result.isolation_tier == "schema"
+
+        with pytest.raises(ValueError, match="Use isolation_tier='shared'"):
+            await provisioning_service.provision_tenant(request)
 
 
 class TestTenantProvisionRequest:
@@ -377,10 +396,12 @@ class TestTenantProvisioningIntegration:
         ]
         
         # Mock: no tenants exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         results = []
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             for request in tenants:
                 result = await provisioning_service.provision_tenant(request)
                 results.append(result)
@@ -404,9 +425,11 @@ class TestTenantProvisioningIntegration:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"

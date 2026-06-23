@@ -17,7 +17,7 @@ Covers:
 
 import pytest
 
-from value_fabric.layer1.crawler.smart_router import (
+from layer1_ingestion.crawler.smart_router import (
     QualityDecision,
     RouteType,
     RoutingDecision,
@@ -83,12 +83,19 @@ class TestDecideStaticAssets:
 class TestDecideSitemap:
     """Rule 3: sitemap and robots.txt get FAST with high priority."""
 
-    @pytest.mark.parametrize("path", ["/sitemap.xml", "/robots.txt", "/sitemap_index.xml"])
-    def test_sitemap_routes_fast(self, router, path):
+    @pytest.mark.parametrize(
+        ("path", "reason"),
+        [
+            ("/sitemap.xml", "sitemap"),
+            ("/robots.txt", "robots"),
+            ("/sitemap_index.xml", "sitemap"),
+        ],
+    )
+    def test_sitemap_routes_fast(self, router, path, reason):
         url = f"https://example.com{path}"
         decision = router.decide(url)
         assert decision.route == RouteType.FAST
-        assert decision.reason == "sitemap"
+        assert decision.reason == reason
         assert decision.priority == 10
 
 

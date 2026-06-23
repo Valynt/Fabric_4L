@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
+
 """Extraction results API routes.
 
 Any user-supplied text forwarded to LLM extraction pipelines must be wrapped
@@ -11,12 +15,10 @@ This prevents prompt-injection attacks where user content attempts to override
 system instructions.  All extraction callers must enforce this contract.
 """
 
-from __future__ import annotations
-
 from typing import Any
 from unittest.mock import Mock
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from layer2_extraction.integration.job_store import build_job_store
@@ -80,26 +82,23 @@ async def get_extraction_results(
     try:
         job = await store.get_job(job_id, tenant_id=tenant_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     job_tenant_id = getattr(job, "tenant_id", None)
     if (tenant_id is not None and
             job_tenant_id is not None and
             not isinstance(job_tenant_id, Mock) and
             str(job_tenant_id) != str(tenant_id)):
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     if job.extraction_status != "completed":
-        raise HTTPException(
-            status_code=409,
-            detail=f"Extraction not complete (status: {job.extraction_status})",
-        )
+        raise ConflictError(message=f"Extraction not complete (status: {job.extraction_status})")
 
     artifacts = await store.get_artifacts(job_id, tenant_id=tenant_id)
     if artifacts is None:
-        raise HTTPException(status_code=404, detail="No extraction artifacts found")
+        raise NotFoundError(message = "No extraction artifacts found")
     if artifacts.result is None:
-        raise HTTPException(status_code=404, detail="No extraction artifacts found")
+        raise NotFoundError(message = "No extraction artifacts found")
 
     raw_entities: list[Any] = []
     if hasattr(artifacts.result, "get_all_entities"):

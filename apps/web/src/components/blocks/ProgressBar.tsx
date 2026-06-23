@@ -59,7 +59,7 @@ export function ProgressBar({
         />
       </div>
       {showLabel && (
-        <p className="text-[10px] text-muted-foreground mt-0.5 text-center">
+        <p className="vf-text-micro text-muted-foreground mt-0.5 text-center">
           {Math.round(pct)}%
         </p>
       )}

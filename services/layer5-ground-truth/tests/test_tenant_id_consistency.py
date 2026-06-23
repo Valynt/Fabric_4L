@@ -47,8 +47,9 @@ class TestTenantIdConsistency:
     def test_migrations_do_not_reference_organization_id_in_policies(self) -> None:
         """No migration file may create RLS policies referencing organization_id.
 
-        Migration 002 originally used organization_id, but migration 006 fixes
-        those policies.  This test prevents regressions.
+        Migration 002 originally used organization_id before migration 004 renamed
+        the column to tenant_id, and migration 006 fixes those policies. This test
+        prevents regressions in migrations that run after the rename.
         """
         migrations_dir = (
             Path(__file__).parent.parent
@@ -65,6 +66,9 @@ class TestTenantIdConsistency:
             content = migration_file.read_text(encoding="utf-8")
             # Allow organization_id in the rename migration itself (004)
             if "rename_org_to_tenant" in migration_file.name:
+                continue
+            # Migration 002 predates the rename and is fixed by migration 006
+            if migration_file.name == "002_add_rls_policies.py":
                 continue
             # Any other migration must not create policies with organization_id
             if "organization_id" in content and "CREATE POLICY" in content:

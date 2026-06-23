@@ -30,7 +30,7 @@ This validation covers:
 - Layer 1: `services/layer1-ingestion/src/api/main.py`, `services/layer1-ingestion/src/api/routes/`.
 - Layer 2: `services/layer2-extraction/src/layer2_extraction/api/main.py`, `services/layer2-extraction/src/layer2_extraction/api/routes/`.
 - Layer 3: `services/layer3-knowledge/src/api/main.py`, `services/layer3-knowledge/src/api/routes/`.
-- Layer 4: `services/layer4-agents/src/api/main.py`, `services/layer4-agents/src/api/routes/`.
+- Layer 4: `services/layer4-agents/src/layer4_agents/api/main.py`, `services/layer4-agents/src/layer4_agents/api/routes/`.
 - Layer 5: `services/layer5-ground-truth/src/layer5_ground_truth/api/main.py`, `services/layer5-ground-truth/src/layer5_ground_truth/api/router.py`.
 - Layer 6: `services/layer6-benchmarks/src/api/main.py`, `services/layer6-benchmarks/src/api/routes/`.
 

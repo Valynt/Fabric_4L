@@ -3,14 +3,67 @@ kind: Kustomization
 
 # staging-nginx: staging environment + NGINX Ingress routing.
 # This is a production-like pre-production deployment target.
+#
+# All resources are declared directly in this overlay (or via directory
+# references that stay within Kustomize's default LoadRestrictionsRootOnly)
+# so that `kubectl kustomize` can render without extra flags.
 
-namespace: value-fabric
+namespace: value-fabric-staging
 
 resources:
-  - ../../envs/staging
+  - ../../base
+  - ./external-secrets
+  - ./monitoring
   - ../../routing/nginx
   - hostname-config.yaml
   - oauth2-proxy-config.yaml
+
+labels:
+  - pairs:
+      environment: staging
+
+patches:
+  - path: staging-replicas-patch.yml
+  - path: api-gateway-environment-patch.yml
+
+# Image overrides: match exact base image names, redirect to GHCR.
+# Base manifests use digest-pinned service placeholders (services/<name>@sha256:<digest>, apps/web@sha256:<digest>).
+#
+# Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
+# This file must not contain mutable tags (latest, main, semver, branch names).
+# CI enforces this via scripts/ci/validate-k8s-image-tags.sh.
+images:
+  - name: services/api
+    newName: ghcr.io/bmsull560/fabric_4l/api-gateway
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer1-ingestion
+    newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer2-extraction
+    newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer3-knowledge
+    newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer4-agents
+    newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer5-ground-truth
+    newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: services/layer6-benchmarks
+    newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  - name: apps/web
+    newName: ghcr.io/bmsull560/fabric_4l/frontend
+    digest: sha256:STAGING_DIGEST_PLACEHOLDER
+  # Infrastructure images use explicit versions.
+  - name: postgres
+    newTag: "15.10-alpine"
+  - name: redis
+    newTag: "7.4-alpine"
+  - name: neo4j
+    newTag: "5.25-community"
 
 replacements:
   - source:
@@ -24,6 +77,14 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+      - select:
+          kind: Ingress
+          name: frontend
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
   - source:
       kind: ConfigMap
       name: routing-host
@@ -35,6 +96,14 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+      - select:
+          kind: Ingress
+          name: layer-apis
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
   # Replace ingress namespace in NetworkPolicy
   - source:
       kind: ConfigMap
@@ -51,6 +120,22 @@ replacements:
           name: oauth2-proxy
         fieldPaths:
           - spec.ingress.0.from.0.namespaceSelector.matchLabels.kubernetes\.io/metadata\.name
+  # Replace TLS issuer in Ingress annotations
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.tlsIssuer
+    targets:
+      - select:
+          kind: Ingress
+          name: frontend
+        fieldPaths:
+          - metadata.annotations.cert-manager\.io/cluster-issuer
+      - select:
+          kind: Ingress
+          name: layer-apis
+        fieldPaths:
+          - metadata.annotations.cert-manager\.io/cluster-issuer
   # Replace issuer email in ClusterIssuers
   - source:
       kind: ConfigMap
@@ -67,7 +152,7 @@ replacements:
           name: letsencrypt-staging
         fieldPaths:
           - spec.acme.email
-  # Replace oauth2-proxy allowed domains
+  # Replace oauth2-proxy allowed domains and OIDC provider
   - source:
       kind: ConfigMap
       name: oauth2-proxy-oidc
@@ -77,4 +162,14 @@ replacements:
           kind: Deployment
           name: oauth2-proxy
         fieldPaths:
-          - spec.template.spec.containers.0.env.5.value
+          - spec.template.spec.containers.0.env.10.value
+  - source:
+      kind: ConfigMap
+      name: oauth2-proxy-oidc
+      fieldPath: data.oidc-provider
+    targets:
+      - select:
+          kind: Deployment
+          name: oauth2-proxy
+        fieldPaths:
+          - spec.template.spec.containers.0.env.12.value

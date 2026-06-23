@@ -43,48 +43,61 @@ describe("clerkConfig — provider normalization", () => {
     }
   });
 
-  it("defaults to legacy when VITE_AUTH_PROVIDER is unset", () => {
+  it("defaults to clerk when VITE_AUTH_PROVIDER is unset", () => {
     setAuthProvider(undefined);
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
-    expect(isClerkAuthEnabled()).toBe(false);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
   });
 
-  it("treats empty string as legacy", () => {
+  it("treats empty string as clerk (default)", () => {
     setAuthProvider("");
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
-  it("treats whitespace-only as legacy", () => {
+  it("treats whitespace-only as clerk (default)", () => {
     setAuthProvider("   \t\n  ");
-    expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
   it("treats explicit 'legacy' as legacy", () => {
     setAuthProvider("legacy");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
+    expect(isClerkAuthEnabled()).toBe(false);
   });
 
-  it("activates clerk on exact lowercase 'clerk'", () => {
+  it("treats explicit 'clerk' as clerk", () => {
     setAuthProvider("clerk");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
     expect(isClerkAuthEnabled()).toBe(true);
   });
 
-  it("activates clerk after trim + case-fold", () => {
+  it("activates clerk on exact lowercase", () => {
+    setAuthProvider("clerk");
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
+  });
+
+  it("normalizes 'clerk' after trim + case-fold", () => {
     setAuthProvider("  CLERK  ");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
     setAuthProvider("Clerk");
     expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
   });
 
-  it.each(["true", "1", "yes", "on", "enable", "CLERK_MODE", "clerk-mode", "clerks"])(
-    "does NOT activate clerk for garbage-looking value %s",
-    (v) => {
-      setAuthProvider(v);
-      expect(getAuthProvider()).toBe(AUTH_PROVIDER_LEGACY);
-      expect(isClerkAuthEnabled()).toBe(false);
-    },
-  );
+  it.each([
+    "true",
+    "1",
+    "yes",
+    "on",
+    "enable",
+    "CLERK_MODE",
+    "clerk-mode",
+    "clerks",
+  ])("does NOT activate legacy for garbage-looking value %s", v => {
+    setAuthProvider(v);
+    expect(getAuthProvider()).toBe(AUTH_PROVIDER_CLERK);
+    expect(isClerkAuthEnabled()).toBe(true);
+  });
 });
 
 describe("clerkConfig — publishable key fail-fast", () => {
@@ -99,17 +112,23 @@ describe("clerkConfig — publishable key fail-fast", () => {
 
   it("throws when key is missing", () => {
     delete env().VITE_CLERK_PUBLISHABLE_KEY;
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("throws when key is empty string", () => {
     env().VITE_CLERK_PUBLISHABLE_KEY = "";
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("throws when key is whitespace-only", () => {
     env().VITE_CLERK_PUBLISHABLE_KEY = "   ";
-    expect(() => getClerkPublishableKey()).toThrow(/VITE_CLERK_PUBLISHABLE_KEY/);
+    expect(() => getClerkPublishableKey()).toThrow(
+      /VITE_CLERK_PUBLISHABLE_KEY/
+    );
   });
 
   it("returns the trimmed key when present", () => {
@@ -172,7 +191,7 @@ describe("clerkConfig — getClerkUrls defaults + overrides", () => {
     expect(urls).toEqual({
       signInUrl: "/sign-in",
       signUpUrl: "/sign-up",
-      afterSignInUrl: "/workspaces",
+      afterSignInUrl: "/home",
       afterSignUpUrl: "/onboarding",
       selectOrgUrl: "/workspaces",
     });

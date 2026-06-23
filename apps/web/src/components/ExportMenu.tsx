@@ -58,7 +58,7 @@ export function ExportMenu({ accountId, valueCaseId }: ExportMenuProps) {
           {f.label}
         </button>
       ))}
-      {error && <span className="text-xs text-red-600 ml-1">{error}</span>}
+      {error && <span className="text-xs text-destructive ml-1">{error}</span>}
     </div>
   );
 }

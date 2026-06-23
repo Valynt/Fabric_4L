@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Integration tests for workflow archive and list endpoints.
 
 Tests the following routes added for frontend-backend contract alignment:
@@ -8,7 +10,6 @@ Uses inline FastAPI app (same pattern as test_workflow_controls.py) to avoid
 heavy app-level imports.
 """
 
-from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
@@ -152,7 +153,7 @@ def build_app(fake_executor: FakeOrchestrationController) -> FastAPI:
         try:
             result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
         except PermissionError as e:
-            raise HTTPException(status_code=403, detail=str(e))
+            raise HTTPException(status_code=403, detail="Permission denied")
         if result is None:
             raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")
         archived_at = result.get("archived_at", datetime.now(UTC).isoformat())

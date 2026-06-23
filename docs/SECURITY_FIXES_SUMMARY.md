@@ -12,7 +12,7 @@ This document summarizes all security fixes implemented in response to the adver
 ## P0 Fixes (Critical)
 
 ### P0-8/F-2: `/tools/invoke` Authentication Bypass
-**File:** `services/layer4-agents/src/api/routes/tools.py`
+**File:** `services/layer4-agents/src/layer4_agents/api/routes/tools.py`
 **Change:** Added `require_authenticated` dependency to:
 - `GET /v1/tools`
 - `GET /v1/tools/{tool_name}`
@@ -61,7 +61,7 @@ This document summarizes all security fixes implemented in response to the adver
 **Impact:** Prevents arbitrary code execution via formula evaluation.
 
 ### P0-1: SOQL Injection
-**File:** `services/layer4-agents/src/tools/crm_tools.py`
+**File:** `services/layer4-agents/src/layer4_agents/tools/crm_tools.py`
 **Change:**
 - Added Salesforce ID format validation (15 or 18 alphanumeric chars)
 - Added URL encoding for SOQL queries with `urllib.parse.quote()`
@@ -69,7 +69,7 @@ This document summarizes all security fixes implemented in response to the adver
 **Impact:** Prevents SQL injection via attacker-controlled prospect_id.
 
 ### P0-9: WebSocket Unauthenticated
-**File:** `services/layer4-agents/src/api/routes/signals.py`
+**File:** `services/layer4-agents/src/layer4_agents/api/routes/signals.py`
 **Change:**
 - Added JWT token validation before WebSocket accept
 - Token must be provided in query parameter
@@ -101,7 +101,7 @@ This document summarizes all security fixes implemented in response to the adver
 **Impact:** Ensures authentication cannot be bypassed in production.
 
 ### P1-11: Cypher Injection
-**File:** `services/layer4-agents/src/tools/knowledge_tools.py`
+**File:** `services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py`
 **Change:**
 - Added `_validate_read_only()` method
 - Rejects write keywords: CREATE, DELETE, DETACH, SET, MERGE, REMOVE, DROP, CALL
@@ -115,7 +115,7 @@ This document summarizes all security fixes implemented in response to the adver
 **Impact:** Ensures Celery respects non-root user in containers.
 
 ### P1-19: Jinja2 XSS
-**File:** `services/layer4-agents/src/tools/document_export.py`
+**File:** `services/layer4-agents/src/layer4_agents/tools/document_export.py`
 **Status:** **ALREADY FIXED**
 **Verification:** Line 319 already has `autoescape=select_autoescape(['html', 'xml'])`
 **Impact:** XSS protection already in place.
@@ -229,16 +229,16 @@ grep -r "defusedxml" services/layer1-ingestion/src/
 
 ## Files Modified
 
-1. `services/layer4-agents/src/api/routes/tools.py`
+1. `services/layer4-agents/src/layer4_agents/api/routes/tools.py`
 2. `services/layer1-ingestion/src/api/main.py`
 3. `shared/identity/middleware_sync.py`
 4. `services/layer3-knowledge/Dockerfile`
 5. `services/layer3-knowledge/src/services/signal_quantification.py`
-6. `services/layer4-agents/src/tools/crm_tools.py`
-7. `services/layer4-agents/src/api/routes/signals.py`
+6. `services/layer4-agents/src/layer4_agents/tools/crm_tools.py`
+7. `services/layer4-agents/src/layer4_agents/api/routes/signals.py`
 8. `services/layer3-knowledge/src/cache/redis_cache.py`
 9. `services/layer6-benchmarks/src/api/main.py`
-10. `services/layer4-agents/src/tools/knowledge_tools.py`
+10. `services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py`
 11. `k8s/base/layer1-celery.yaml`
 12. `services/layer1-ingestion/src/adapters/xbrl_parser.py`
 13. `docker-compose.full.yml`

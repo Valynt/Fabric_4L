@@ -10,6 +10,7 @@ only compose endpoint/client keys and map canonical decisions into HTTP
 headers and response payload fields.
 """
 
+import os
 from typing import Any
 
 from fastapi import Request, Response
@@ -22,7 +23,7 @@ from value_fabric.shared.identity.authoritative_rate_limiter import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.rate_limiting.tenant_rate_limiter import SlidingWindowAdapter
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -54,14 +55,53 @@ class RateLimiter:
         logger.info(f"Set rate limit for {endpoint}: {requests}/{seconds}s")
 
     def _get_client_key(self, request: Request) -> str:
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
+        """Return a rate-limit key that resists IP spoofing.
 
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip.strip()
+        Priority:
+          1. Authenticated identity (API key ID → tenant_id → governance_context.tenant_id)
+          2. IP-based key ONLY when TRUSTED_PROXY_COUNT is configured and validated
+          3. Direct connection IP as last resort
+        """
+        # 1. Prefer authenticated identity — never spoofable
+        api_key = getattr(request.state, "authenticated_api_key", None)
+        if api_key is not None:
+            key_id = getattr(api_key, "key_id", None)
+            if key_id:
+                return f"key:{key_id}"
 
+        tenant_id = getattr(request.state, "tenant_id", None)
+        if tenant_id:
+            return f"tenant:{tenant_id}"
+
+        gov_ctx = getattr(request.state, "governance_context", None)
+        if gov_ctx is not None:
+            gov_tenant = getattr(gov_ctx, "tenant_id", None)
+            if gov_tenant:
+                return f"tenant:{gov_tenant}"
+
+        # 2. IP-based fallback only when trusted proxy count is configured
+        trusted_proxy_count_raw = os.getenv("TRUSTED_PROXY_COUNT", "").strip()
+        if trusted_proxy_count_raw:
+            try:
+                trusted_proxy_count = int(trusted_proxy_count_raw)
+            except ValueError:
+                trusted_proxy_count = 0
+
+            if trusted_proxy_count > 0:
+                forwarded_for = request.headers.get("X-Forwarded-For")
+                if forwarded_for:
+                    # Parse from the right: take the Nth from last, where N = trusted_proxy_count
+                    ips = [ip.strip() for ip in forwarded_for.split(",")]
+                    if len(ips) >= trusted_proxy_count:
+                        candidate = ips[-trusted_proxy_count]
+                        if candidate:
+                            return candidate
+
+                real_ip = request.headers.get("X-Real-IP")
+                if real_ip:
+                    return real_ip.strip()
+
+        # 3. Last resort: direct connection IP
         return request.client.host if request.client else "unknown"
 
     def _get_endpoint_limit(self, path: str) -> tuple[int, int]:

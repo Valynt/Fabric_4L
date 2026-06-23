@@ -51,10 +51,37 @@ Reference: `docs/reference/layer5-api-compatibility-policy.md`
 - [ ] I reviewed DR expectations in `docs/reliability/dr-policy.md` and updated recovery docs if service criticality changed.
 - [ ] For resilience-impacting changes, I updated or validated DR runbooks in `docs/runbooks/`.
 - [ ] If this PR claims Layer 5 Phase 0 closure/readiness, all discovered Layer 5 issues include owner and due date (per `docs/governance/layer5-backlog-issue-template.md`); otherwise Phase 0 remains open.
+- [ ] I validated release readiness with either successful chaos smoke + blue-green health-gate checks, or attached an approved exception.
+
+
+## Incremental PR Gate Reporting (Required)
+
+For every incremental PR, provide explicit **Pass / Fail** status and evidence links (job URL, run ID, or log artifact) for each gate below.
+
+| Gate | Status (Pass/Fail) | Evidence (URL or artifact) | Notes |
+|---|---|---|---|
+| structural-preflight |  |  |  |
+| Service layer lint/type/test jobs |  |  |  |
+| Layer 5 source/tenant/contract gates |  |  |  |
+| contract-checks |  |  |  |
+| runtime-contract-checks |  |  |  |
+| route-auth-gate |  |  |  |
+| production-readiness-gate |  |  |  |
+| unified-readiness-gate |  |  |  |
+
+### Behavior Parity (Required for incremental PRs)
+
+- [ ] Behavior parity verified against baseline snapshots captured in Step 1 (attach snapshot references/diffs).
+
+## Why overlap is expected
+
+- Required when PR overlap guard reports high overlap with recently merged PRs.
+- Explain why overlap is intentional, what was reused/coordinated, and why risk is acceptable.
 
 ## Validation
 
 - [ ] `make verify`
+- [ ] `make production-readiness-gate`
 - [ ] `make evals` (required for agent/skill prompt changes)
 
 ## Code Quality Checklist
@@ -73,3 +100,9 @@ Reference: `docs/reference/layer5-api-compatibility-policy.md`
 
 - Known risks:
 - Rollback plan:
+
+## PR Size & Status Policy
+
+- [ ] This PR is small and focused on a single logical change.
+- [ ] If this PR is still a Work-In-Progress, I have marked it as a **Draft** PR.
+- [ ] (For maintainers) If this PR is a trivial change (docs, dependabot group, minor fix), it can be fast-tracked for merge.

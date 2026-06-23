@@ -1,0 +1,105 @@
+# Credentials must come from secure env injection; see .env.production-compose.template.
+# Production launch entrypoint for the full Value Fabric stack.
+#
+# Usage:
+#   docker compose -f infra/compose/docker-compose.prod.yml config
+#   docker compose -f infra/compose/docker-compose.prod.yml up -d
+#
+# This file intentionally reuses docker-compose.full.yml so the launch entrypoint
+# stays stable while the canonical full-stack service definitions remain in one
+# place.
+
+name: fabric4l-prod
+
+x-from-full: &from-full
+  file: ./docker-compose.full.yml
+
+services:
+  api-gateway:
+    extends:
+      <<: *from-full
+      service: api-gateway
+
+  layer1-ingestion:
+    extends:
+      <<: *from-full
+      service: layer1-ingestion
+
+  layer2-extraction:
+    extends:
+      <<: *from-full
+      service: layer2-extraction
+
+  neo4j:
+    extends:
+      <<: *from-full
+      service: neo4j
+
+  layer3-knowledge:
+    extends:
+      <<: *from-full
+      service: layer3-knowledge
+
+  layer4-agents:
+    extends:
+      <<: *from-full
+      service: layer4-agents
+
+  layer5-ground-truth:
+    extends:
+      <<: *from-full
+      service: layer5-ground-truth
+
+  layer5-migrate:
+    extends:
+      <<: *from-full
+      service: layer5-migrate
+
+  layer6-benchmarks:
+    extends:
+      <<: *from-full
+      service: layer6-benchmarks
+
+  layer1-celery-worker:
+    extends:
+      <<: *from-full
+      service: layer1-celery-worker
+
+  layer1-celery-beat:
+    extends:
+      <<: *from-full
+      service: layer1-celery-beat
+
+  flower:
+    extends:
+      <<: *from-full
+      service: flower
+
+  redis:
+    extends:
+      <<: *from-full
+      service: redis
+
+  pgbouncer:
+    extends:
+      <<: *from-full
+      service: pgbouncer
+
+  postgres:
+    extends:
+      <<: *from-full
+      service: postgres
+
+volumes:
+  postgres-data:
+  postgres-backups:
+  redis-data:
+  neo4j-data:
+  neo4j-logs:
+  neo4j-backups:
+  rdf-output:
+  ground-truth-data:
+
+networks:
+  value-fabric-network:
+    driver: bridge

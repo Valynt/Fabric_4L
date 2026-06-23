@@ -271,6 +271,146 @@ class TestRateLimitResult:
         assert middleware._normalize_endpoint("/v1/entities") == "/v1/entities"
 
 
+class TestTenantRateLimitMiddleware:
+    """Regression tests for TenantRateLimitMiddleware dispatch safety."""
+
+    @pytest.mark.asyncio
+    async def test_dispatch_with_requestcontext_missing_tenant_tier(self):
+        """Middleware must not crash when tenant context lacks tenant_tier.
+
+        Regression: ``RequestContext`` carries ``isolation_tier`` but not
+        ``tenant_tier``.  The middleware used to access
+        ``tenant_context.tenant_tier`` directly, raising ``AttributeError``.
+        """
+        from unittest.mock import AsyncMock, MagicMock
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
+
+        app = FastAPI()
+        mock_limiter = AsyncMock()
+        mock_limiter.check_rate_limit = AsyncMock(
+            return_value=MagicMock(
+                allowed=True,
+                limit=100,
+                remaining=99,
+                reset_at=datetime.utcnow(),
+            )
+        )
+        app.add_middleware(
+            TenantRateLimitMiddleware,
+            rate_limiter=mock_limiter,
+            exempt_paths=[],
+        )
+
+        @app.get("/api/v1/entities")
+        def entities():
+            return {"items": []}
+
+        client = TestClient(app)
+
+        # Patch get_tenant_context to return a minimal RequestContext
+        # that does NOT have tenant_tier (matching production behavior).
+        with patch(
+            "value_fabric.shared.boundaries.tenant_boundary.get_tenant_context"
+        ) as mock_ctx:
+            mock_ctx.return_value = MagicMock(
+                tenant_id="tenant-a",
+                user_id="user-1",
+                # Intentionally omit tenant_tier to trigger the regression
+            )
+            response = client.get("/api/v1/entities")
+
+        assert response.status_code == 200
+        mock_limiter.check_rate_limit.assert_awaited_once()
+        # Verify it defaulted to SHARED tier
+        call_kwargs = mock_limiter.check_rate_limit.await_args.kwargs
+        assert call_kwargs["tenant_tier"].value == "shared"
+
+    @pytest.mark.asyncio
+    async def test_backend_unavailable_fails_closed_in_production(self):
+        """When the rate-limit backend is unavailable, production-like environments
+        must fail CLOSED with a controlled 503 — never an unhandled 500 that would
+        also mask the route's authn/authz verdict.
+
+        Regression for Core GA blocker: RBAC returned 500 (RuntimeError
+        ``tenant_rate_limit_unavailable``) when Redis was down.
+        """
+        from unittest.mock import AsyncMock, MagicMock
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
+
+        app = FastAPI()
+        mock_limiter = AsyncMock()
+        mock_limiter.check_rate_limit = AsyncMock(
+            side_effect=RuntimeError("tenant_rate_limit_unavailable")
+        )
+        app.add_middleware(
+            TenantRateLimitMiddleware,
+            rate_limiter=mock_limiter,
+            exempt_paths=[],
+        )
+
+        @app.get("/api/v1/entities")
+        def entities():
+            return {"items": []}
+
+        client = TestClient(app, raise_server_exceptions=False)
+
+        with patch(
+            "value_fabric.shared.boundaries.tenant_boundary.get_tenant_context"
+        ) as mock_ctx, patch(
+            "value_fabric.shared.environment.is_production_like_environment",
+            return_value=True,
+        ):
+            mock_ctx.return_value = MagicMock(tenant_id="tenant-a", user_id="user-1")
+            response = client.get("/api/v1/entities")
+
+        assert response.status_code == 503
+        assert response.json()["error"] == "rate_limit_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_backend_unavailable_fails_open_in_non_production(self):
+        """When the rate-limit backend is unavailable in a non-production environment,
+        the request must proceed to the route handler (where authn/authz are enforced)
+        rather than surfacing a 500.
+        """
+        from unittest.mock import AsyncMock, MagicMock
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
+
+        app = FastAPI()
+        mock_limiter = AsyncMock()
+        mock_limiter.check_rate_limit = AsyncMock(
+            side_effect=RuntimeError("tenant_rate_limit_unavailable")
+        )
+        app.add_middleware(
+            TenantRateLimitMiddleware,
+            rate_limiter=mock_limiter,
+            exempt_paths=[],
+        )
+
+        @app.get("/api/v1/entities")
+        def entities():
+            return {"items": []}
+
+        client = TestClient(app, raise_server_exceptions=False)
+
+        with patch(
+            "value_fabric.shared.boundaries.tenant_boundary.get_tenant_context"
+        ) as mock_ctx, patch(
+            "value_fabric.shared.environment.is_production_like_environment",
+            return_value=False,
+        ):
+            mock_ctx.return_value = MagicMock(tenant_id="tenant-a", user_id="user-1")
+            response = client.get("/api/v1/entities")
+
+        assert response.status_code == 200
+        assert response.json() == {"items": []}
+
+
 class TestRateLimitAdminAPI:
     """Tests for rate limit admin API."""
     

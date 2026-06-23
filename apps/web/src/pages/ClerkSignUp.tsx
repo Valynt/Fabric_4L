@@ -1,17 +1,27 @@
 /**
- * Sign-up page that hosts Clerk's <SignUp /> component. See ClerkSignIn.tsx
- * for routing rationale.
+ * Sign-up page that hosts Clerk's <SignUp /> component.
+ *
+ * If a user is already signed in, this page redirects to the post-sign-in
+ * landing URL *before* mounting <SignUp />. Clerk's <SignUp /> cannot render
+ * for an already-authenticated single-session app and would otherwise emit a
+ * development notice and perform an internal redirect.
  */
-import { SignUp } from "@clerk/react";
+import { SignUp, useAuth } from "@clerk/react";
+import { Navigate } from "react-router-dom";
 
-import { ClerkDisabledNotice } from "@/auth/ClerkDisabledNotice";
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
-export default function ClerkSignUpPage() {
+function ClerkSignUpInner() {
   const urls = getClerkUrls();
+  const { isLoaded, isSignedIn } = useAuth();
 
-  if (!isClerkAuthEnabled()) {
-    return <ClerkDisabledNotice action="sign-up" legacyRoute="/signup" />;
+  // Avoid flashing <SignUp /> (and its notice) before Clerk resolves session.
+  if (!isLoaded) {
+    return null;
+  }
+
+  if (isSignedIn) {
+    return <Navigate to={urls.afterSignInUrl} replace />;
   }
 
   return (
@@ -24,4 +34,18 @@ export default function ClerkSignUpPage() {
       />
     </div>
   );
+}
+
+export default function ClerkSignUpPage() {
+  // Under legacy auth there is no ClerkProvider mounted. Redirect to the
+  // legacy sign-in route to avoid a runtime crash from <SignUp />.
+  if (!isClerkAuthEnabled()) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <Navigate to="/login" replace />
+      </div>
+    );
+  }
+
+  return <ClerkSignUpInner />;
 }

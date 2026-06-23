@@ -6,6 +6,7 @@ from .exceptions import (
     NotFoundError,
     RateLimitError,
     ServiceUnavailableError,
+    TenantIsolationError,
     ValidationError,
     ValueFabricException,
 )
@@ -15,6 +16,7 @@ from .handlers import (
     register_exception_handlers,
 )
 from .helpers import build_error_detail, sanitize_log_error
+from .sanitizer import PublicError, sanitize_error_for_log, sanitize_public_error
 from .middleware import get_request_id, RequestIDMiddleware
 from .models import ErrorCode, ErrorEnvelope, ErrorDetail, ErrorResponse
 
@@ -34,7 +36,11 @@ __all__ = [
     "register_exception_handlers",
     "RequestIDMiddleware",
     "sanitize_log_error",
+    "PublicError",
+    "sanitize_error_for_log",
+    "sanitize_public_error",
     "ServiceUnavailableError",
+    "TenantIsolationError",
     "ValidationError",
     "ValueFabricException",
 ]

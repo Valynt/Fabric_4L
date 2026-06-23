@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional
 from uuid import UUID, uuid4
 
-from fastapi import Header, HTTPException, Request, status
+from fastapi import HTTPException, Request, status
 
 from .context import (
     AUTH_SOURCE_API_KEY,
@@ -29,7 +29,6 @@ from .context import (
     VALID_ISOLATION_TIERS,
     RequestContext,
 )
-from .fallback_telemetry import enforce_fallback_enabled, record_fallback_usage
 from .permissions import Permission, Role, ROLE_PERMISSIONS
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -158,6 +157,12 @@ def _from_request_context(ctx: RequestContext) -> SyncRequestContext:
     )
 
 
+def _from_fabric_auth(auth: Any) -> SyncRequestContext:
+    from value_fabric.shared.identity.fabric_auth import request_context_from_auth
+
+    return _from_request_context(request_context_from_auth(auth))
+
+
 def _service_auth_context(x_tenant_id: str, x_service_auth: Optional[str]) -> SyncRequestContext:
     expected_secret = os.getenv("SERVICE_AUTH_SECRET", "")
     if not expected_secret or not x_service_auth or not hmac.compare_digest(x_service_auth, expected_secret):
@@ -186,19 +191,13 @@ def _service_auth_context(x_tenant_id: str, x_service_auth: Optional[str]) -> Sy
     )
 
 
-def get_request_context_sync(
-    request: Request,
-    x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-ID"),
-    x_service_auth: Optional[str] = Header(None, alias="X-Service-Auth"),
-    x_organization_id: Optional[str] = Header(None, alias="X-Organization-ID"),
-) -> SyncRequestContext:
+def get_request_context_sync(request: Request) -> SyncRequestContext:
     """Return a sync context bridged from canonical governance state.
 
     Prefer the async ``GovernanceMiddleware`` context already stored on
-    ``request.state``. If a legacy caller reaches this dependency without that
-    middleware state, accept ``X-Tenant-ID`` only when paired with the configured
-    ``X-Service-Auth`` secret. ``X-Organization-ID`` remains a legacy fallback for
-    older tests, but it no longer takes precedence over authenticated context.
+    ``request.state``. If the service is protected by the Fabric auth envelope
+    middleware, derive the canonical context from ``request.state.auth``. Tenant
+    headers are never accepted as tenant context for FastAPI service dependencies.
     """
     governance_context = getattr(request.state, "governance_context", None)
     if governance_context is not None:
@@ -216,42 +215,9 @@ def get_request_context_sync(
                 )
         return _from_request_context(governance_context)
 
-    if x_tenant_id:
-        enforce_fallback_enabled("sync.service_auth_header", default=True)
-        record_fallback_usage(
-            "sync.service_auth_header",
-            tenant_id=x_tenant_id,
-            client_id=request.headers.get("X-Client-ID"),
-            service="shared.identity.middleware_sync",
-            path=str(request.url.path),
-        )
-        return _service_auth_context(x_tenant_id, x_service_auth)
-
-    if x_organization_id:
-        enforce_fallback_enabled("sync.organization_header", default=True)
-        try:
-            tenant_id = UUID(x_organization_id)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid X-Organization-ID header",
-            ) from exc
-        record_fallback_usage(
-            "sync.organization_header",
-            tenant_id=tenant_id,
-            client_id=request.headers.get("X-Client-ID"),
-            service="shared.identity.middleware_sync",
-            path=str(request.url.path),
-        )
-        return SyncRequestContext(
-            tenant_id=tenant_id,
-            roles=[Role.SYSTEM.value],
-            permissions=frozenset(ROLE_PERMISSIONS[Role.SYSTEM].permissions),
-            source=AUTH_SOURCE_SERVICE_ACCOUNT,
-            auth_source=AUTH_SOURCE_SERVICE_ACCOUNT,
-            service_account_id="legacy-organization-header",
-            service_account_scopes=["internal:legacy-sync-context"],
-        )
+    fabric_auth = getattr(request.state, "auth", None)
+    if fabric_auth is not None:
+        return _from_fabric_auth(fabric_auth)
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -260,25 +226,15 @@ def get_request_context_sync(
     )
 
 
-def require_request_context_sync(
-    request: Request,
-    x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-ID"),
-    x_service_auth: Optional[str] = Header(None, alias="X-Service-Auth"),
-    x_organization_id: Optional[str] = Header(None, alias="X-Organization-ID"),
-) -> SyncRequestContext:
+def require_request_context_sync(request: Request) -> SyncRequestContext:
     """Require a valid sync request context."""
-    return get_request_context_sync(
-        request,
-        x_tenant_id=x_tenant_id,
-        x_service_auth=x_service_auth,
-        x_organization_id=x_organization_id,
-    )
+    return get_request_context_sync(request)
 
 
 class GovernanceMiddlewareSync:
     """Sync SQLAlchemy-compatible governance middleware."""
 
-    _PUBLIC_PATHS: frozenset[str] = frozenset({
+    _EXTERNAL_AUTH_BOOTSTRAP_PATHS: frozenset[str] = frozenset({
         "/health",
         "/health/detailed",
         "/metrics",
@@ -301,7 +257,7 @@ class GovernanceMiddlewareSync:
 
     def __call__(self, environ: dict, start_response: Callable) -> Any:
         request_path = environ.get("PATH_INFO", "")
-        if self._is_public_path(request_path):
+        if self._is_external_auth_bootstrap_path(request_path):
             return self.app(environ, start_response)
 
         ctx = self._resolve_identity_sync(
@@ -321,8 +277,12 @@ class GovernanceMiddlewareSync:
             _thread_local.request_context = None
             _thread_local.request_id = None
 
-    def _is_public_path(self, path: str) -> bool:
-        return path in self._PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc")
+    def _is_external_auth_bootstrap_path(self, path: str) -> bool:
+        return (
+            path in self._EXTERNAL_AUTH_BOOTSTRAP_PATHS
+            or path.startswith("/docs")
+            or path.startswith("/redoc")
+        )
 
     def _resolve_identity_sync(
         self,
@@ -351,6 +311,13 @@ class GovernanceMiddlewareSync:
             try:
                 record = self._api_key_resolver(api_key_header)
                 if record and record.get("enabled", True):
+                    if not record.get("metadata"):
+                        logger.warning(
+                            "API key context rejected: %s",
+                            INVALID_API_KEY_CONTEXT_ERROR_CODE,
+                            extra={"error_code": INVALID_API_KEY_CONTEXT_ERROR_CODE, "reason": "missing_or_empty_metadata"},
+                        )
+                        return None
                     candidate = self._build_context_from_api_key_sync(record)
                     if candidate.validate():
                         logger.warning(

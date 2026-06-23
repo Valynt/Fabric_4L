@@ -9,7 +9,7 @@ resources:
   - neo4j-config.yml
   - neo4j.yml
   - monitoring-alertmanager.yml
-  - monitoring-prometheus.yml
+  - base/monitoring-prometheus.yml
   - layer1-ingestion.yml
   - layer2-extraction.yml
   - layer3-knowledge.yml

@@ -13,6 +13,7 @@ Note:
 """
 
 import importlib.util
+from importlib.machinery import ModuleSpec
 import os
 import sys
 import types
@@ -32,9 +33,34 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     Marking forces ``-n0`` semantics for these items even when callers pass
     ``-n auto``. See reports/TEST_COVERAGE_RUBRIC_AUDIT_2026-05-12.md §8 M0-3.
     """
+    live_service_fixtures = {
+        "layer1_client",
+        "layer3_client",
+        "layer4_client",
+        "layer5_client",
+        "l1_client",
+        "l3_client",
+        "l4_client",
+        "l4_client_tenant_b",
+        "l5_client",
+    }
+    runtime_contract_modules = {
+        "test_l3_route_alias_parity.py",
+        "test_layer_service_entrypoint_smoke.py",
+        "test_probe_contract_shared.py",
+        "test_system_route_contract.py",
+        "test_journey_contracts.py",
+    }
+
     for item in items:
         item.add_marker(pytest.mark.no_parallel)
-        if "runtime_contract" in item.keywords:
+        if item.path.name == "test_import_topology.py":
+            item.add_marker(pytest.mark.contract_static_no_service)
+        if (
+            "runtime_contract" in item.keywords
+            or item.path.name in runtime_contract_modules
+            or live_service_fixtures.intersection(item.fixturenames)
+        ):
             item.add_marker(pytest.mark.service_required)
         else:
             item.add_marker(pytest.mark.contract_static)
@@ -51,10 +77,12 @@ def _install_neo4j_import_shim() -> None:
         return
 
     module = types.ModuleType("neo4j")
+    module.__spec__ = ModuleSpec("neo4j", loader=None, is_package=True)
     module.AsyncDriver = object
     module.AsyncGraphDatabase = object
     module.GraphDatabase = object
     exceptions_module = types.ModuleType("neo4j.exceptions")
+    exceptions_module.__spec__ = ModuleSpec("neo4j.exceptions", loader=None)
     for exc_name in (
         "ConfigurationError",
         "Neo4jError",
@@ -70,6 +98,7 @@ def _install_neo4j_import_shim() -> None:
         return exc
     exceptions_module.__getattr__ = _missing_exc  # type: ignore[attr-defined]
     time_module = types.ModuleType("neo4j.time")
+    time_module.__spec__ = ModuleSpec("neo4j.time", loader=None)
     time_module.Date = object
     time_module.DateTime = object
     module.exceptions = exceptions_module
@@ -102,30 +131,25 @@ def _contract_service_gate(request: pytest.FixtureRequest):
     """Gate contract tests that require live services.
 
     Skips any test marked ``service_required`` when services are unavailable.
-    Also skips ``contract_static`` tests when services are missing — this handles
-    the case where the session fixture ran (and skipped) in a prior test suite
-    invocation but its skip did not propagate to tests collected later in the
-    same process (e.g. when another test file sets CONTRACT_TEST_MODE=mock).
+    ``contract_static`` tests do NOT require live services and are never gated
+    here — they validate OpenAPI artifacts, schemas, and static topology.
 
-    Note: mock mode bypasses the gate only for ``service_required`` tests
-    (which use live-service client fixtures). Static architecture tests always
-    check service availability regardless of mock mode.
+    Note: mock mode bypasses the gate for ``service_required`` tests
+    (which use live-service client fixtures).
     """
     if "contract_static_no_service" in request.keywords:
         return
 
     is_service_required = "service_required" in request.keywords
-    is_static = "contract_static" in request.keywords
 
-    if not is_service_required and not is_static:
+    if not is_service_required:
         return
 
     source = os.environ
-    if source.get("CONTRACT_TEST_MODE", "").lower() == "mock" and is_service_required:
+    if source.get("CONTRACT_TEST_MODE", "").lower() == "mock":
         return
 
-    env = source if source.get("CONTRACT_TEST_MODE", "").lower() != "mock" else dict(source, CONTRACT_TEST_MODE="")
-    _, missing_services, strict_mode = _evaluate_services_availability(env)
+    _, missing_services, strict_mode = _evaluate_services_availability(source)
     if not missing_services:
         return
 
@@ -198,17 +222,13 @@ def check_services_availability(request: pytest.FixtureRequest):
     Prevents massive traceback dumps when backend infrastructure is missing.
     """
     if request.session.items:
-        has_no_service_static = any(
-            "contract_static_no_service" in item.keywords for item in request.session.items
-        )
+        # If the session contains no service-required tests, never skip here —
+        # static contract tests (contract_static / contract_static_no_service)
+        # validate OpenAPI artifacts and do not need live backends.
         has_service_required = any(
-            "service_required" in item.keywords or "runtime_contract" in item.keywords
-            for item in request.session.items
+            "service_required" in item.keywords for item in request.session.items
         )
-        if has_no_service_static and not has_service_required:
-            # Static OpenAPI artifact checks can run without live services, but
-            # keep service availability gating whenever runtime contract tests
-            # are present in the same collected session.
+        if not has_service_required:
             return
 
     mock_mode, missing_services, strict_mode = _evaluate_services_availability()

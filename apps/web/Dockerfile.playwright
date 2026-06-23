@@ -22,17 +22,16 @@ RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
 # -----------------------------------------------------------------------------
 WORKDIR /baked
 
-# Copy manifest and capture its hash BEFORE we strip workspace deps
-COPY package.json ./
-COPY scripts ./scripts
+# Copy workspace manifests for pnpm --filter support
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
+COPY packages/config/package.json ./packages/config/
+COPY apps/web/scripts ./scripts
 RUN md5sum package.json > /baked/package-json.md5
 
-# Strip monorepo workspace references that cannot resolve in isolation
-RUN sed -i '/eslint-plugin-fabric-contracts/d' package.json && \
-    sed -i '/patchedDependencies/,/}/d' package.json
-
-# Install dependencies (lockfile is omitted because we modified the manifest)
-RUN pnpm install
+# Install from workspace root
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Persist node_modules for runtime seeding
 RUN cp -a /baked/node_modules /baked-node_modules
@@ -45,7 +44,7 @@ RUN date +%s > /baked/image-build.timestamp
 # -----------------------------------------------------------------------------
 WORKDIR /app
 
-COPY scripts/playwright-docker-entrypoint.sh /entrypoint.sh
+COPY apps/web/scripts/playwright-docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

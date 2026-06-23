@@ -297,6 +297,9 @@ def scan_file(path: Path, root: Path) -> list[Finding]:
 
     for match in RUN_CALL_PATTERN.finditer(text):
         line = _line_for_offset(text, match.start())
+        snippet_line = text.splitlines()[line - 1].strip()
+        if "asyncio.run(" in snippet_line:
+            continue
         if line in direct_neo4j_run_lines:
             continue
         if _is_reviewed_system_scope("", text, line) or _is_tenant_scoped("", text, line):

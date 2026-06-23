@@ -5,7 +5,7 @@ Removal/migration target: 2026-09-30
 Reason: Metrics package initialization.
 """
 
-from ..metrics.prometheus_metrics import (
+from .prometheus_metrics import (
     MetricsConfig,
     MetricsMiddleware,
     PrometheusMetrics,

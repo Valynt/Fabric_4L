@@ -46,7 +46,7 @@ export function FilterBar({
       )}
       {filters && <div className="flex items-center gap-2 flex-wrap">{filters}</div>}
       {activeFilterCount !== undefined && activeFilterCount > 0 && (
-        <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+        <span className="vf-text-caption px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
           {activeFilterCount} active
         </span>
       )}

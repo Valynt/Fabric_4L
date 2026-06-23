@@ -12,7 +12,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { apiPost } from '@/api/typedClient';
 import type { l3 } from '@/api/generated';
-import { FormulaApiError } from './useApiShared';
+import { BaseApiError } from './useApiShared';
 import { createFeatureLogger } from '@/lib/telemetry';
 
 const log = createFeatureLogger('useFormulaScenario');
@@ -75,7 +75,7 @@ export interface ScenarioResponse {
  * ```
  */
 export function useFormulaScenario() {
-  return useMutation<ScenarioResponse, FormulaApiError, ScenarioRequest>({
+  return useMutation<ScenarioResponse, BaseApiError, ScenarioRequest>({
     mutationFn: async (request) => {
       const response = await apiPost<l3.components['schemas']['ScenarioResponse']>('l3', '/formulas/scenario', request);
       return response.data;

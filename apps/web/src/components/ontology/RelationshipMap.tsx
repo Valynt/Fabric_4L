@@ -21,11 +21,11 @@ interface RelationshipMapProps {
 }
 
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  capability: { bg: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-800' },
-  feature: { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-600' },
-  usecase: { bg: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-800' },
-  persona: { bg: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-800' },
-  valuedriver: { bg: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-800' },
+  capability: { bg: 'bg-primary/10', border: 'border-primary/30', text: 'text-primary' },
+  feature: { bg: 'bg-primary/10', border: 'border-primary/20', text: 'text-primary' },
+  usecase: { bg: 'bg-info/10', border: 'border-info/30', text: 'text-info' },
+  persona: { bg: 'bg-warning/10', border: 'border-warning/30', text: 'text-warning' },
+  valuedriver: { bg: 'bg-success/10', border: 'border-success/30', text: 'text-success' },
 };
 
 const RELATIONSHIP_COLORS: Record<string, string> = {
@@ -112,7 +112,7 @@ export function RelationshipMap({
     <div className={cn("flex flex-col h-full", className)}>
       {/* Header */}
       <div className="px-3 py-2 border-b border-border">
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <h3 className="vf-text-caption font-bold uppercase tracking-wider text-muted-foreground">
           Relationship Map
         </h3>
       </div>
@@ -123,7 +123,7 @@ export function RelationshipMap({
           {Object.entries(RELATIONSHIP_COLORS).map(([type, color]) => (
             <div key={type} className="flex items-center gap-1">
               <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[10px] text-muted-foreground capitalize">
+              <span className="vf-text-micro text-muted-foreground capitalize">
                 {type.replace(/_/g, ' ')}
               </span>
             </div>
@@ -137,6 +137,8 @@ export function RelationshipMap({
           width={dimensions.width}
           height={dimensions.height}
           className="absolute inset-0"
+          role="img"
+          aria-label="Relationship map showing ontology types and their connections"
         >
           {/* Edges */}
           {relationships.map((rel) => {
@@ -193,10 +195,10 @@ export function RelationshipMap({
               )}
               style={{ left: pos.x, top: pos.y }}
             >
-              <span className={cn("text-muted-foreground", colors.text)}>
+              <span aria-hidden="true" className={cn("text-muted-foreground", colors.text)}>
                 {getTypeIcon(type.id)}
               </span>
-              <span className={cn("text-[10px] font-medium whitespace-nowrap", colors.text)}>
+              <span className={cn("vf-text-micro font-medium whitespace-nowrap", colors.text)}>
                 {type.name}
               </span>
             </button>
@@ -217,10 +219,10 @@ export function RelationshipMap({
             return (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  {getTypeIcon(type.id)}
-                  <span className="text-[12px] font-semibold">{type.name}</span>
+                  <span aria-hidden="true">{getTypeIcon(type.id)}</span>
+                  <span className="vf-text-body-s font-semibold">{type.name}</span>
                 </div>
-                <div className="flex gap-4 text-[10px] text-muted-foreground">
+                <div className="flex gap-4 vf-text-micro text-muted-foreground">
                   <span>{type.properties.length} properties</span>
                   <span>{incoming.length} incoming</span>
                   <span>{outgoing.length} outgoing</span>

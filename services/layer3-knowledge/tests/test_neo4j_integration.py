@@ -38,6 +38,7 @@ except ImportError:
 
 pytestmark = [
     pytest.mark.integration,
+    pytest.mark.vector,
     pytest.mark.skipif(not HAS_TESTCONTAINERS, reason="testcontainers not installed"),
 ]
 
@@ -77,7 +78,7 @@ def neo4j_bolt_url(neo4j_container):
 def settings(neo4j_bolt_url):
     """Return a Settings instance pointing at the test container."""
     # Import here so the module can be collected even without a .env file
-    from value_fabric.layer3.config import Settings
+    from config import Settings
 
     return Settings(
         neo4j_uri=neo4j_bolt_url,
@@ -98,7 +99,7 @@ def settings(neo4j_bolt_url):
 @pytest_asyncio.fixture(scope="session")
 async def driver(settings):
     """Shared async Neo4j driver for the test session."""
-    from value_fabric.layer3.db.driver import get_driver, reset_driver
+    from db.driver import get_driver, reset_driver
 
     drv = await get_driver(settings)
     yield drv
@@ -128,7 +129,7 @@ async def test_driver_verify_connectivity(settings):
     """get_driver should raise on bad credentials, not hang."""
     from neo4j.exceptions import AuthError, ServiceUnavailable
 
-    from value_fabric.layer3.db.driver import get_driver, reset_driver
+    from db.driver import get_driver, reset_driver
 
     bad_settings = settings.model_copy(update={"neo4j_password": "wrongpassword"})
     with pytest.raises((AuthError, ServiceUnavailable, Exception)):
@@ -141,7 +142,7 @@ async def test_driver_verify_connectivity(settings):
 @pytest.mark.asyncio
 async def test_schema_initializer_creates_constraints(driver, settings):
     """SchemaInitializer should create uniqueness constraints for all entity types."""
-    from value_fabric.layer3.schema import SchemaInitializer
+    from schema import SchemaInitializer
 
     initializer = SchemaInitializer(driver=driver, settings=settings)
     await initializer.initialize_schema()
@@ -157,7 +158,7 @@ async def test_schema_initializer_creates_constraints(driver, settings):
 @pytest.mark.asyncio
 async def test_schema_initializer_creates_vector_indexes(driver, settings):
     """SchemaInitializer should create vector indexes for all entity types."""
-    from value_fabric.layer3.schema import SchemaInitializer
+    from schema import SchemaInitializer
 
     initializer = SchemaInitializer(driver=driver, settings=settings)
     await initializer.initialize_schema()
@@ -174,7 +175,7 @@ async def test_schema_initializer_creates_vector_indexes(driver, settings):
 @pytest.mark.asyncio
 async def test_neo4j_loader_merge_capability_node(driver, settings):
     """Neo4jLoader should merge a Capability node using native Cypher."""
-    from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
+    from ingestion.neo4j_loader import Neo4jLoader
 
     loader = Neo4jLoader(driver=driver, settings=settings)
 
@@ -202,7 +203,7 @@ async def test_neo4j_loader_merge_capability_node(driver, settings):
 @pytest.mark.asyncio
 async def test_neo4j_loader_merge_relationship(driver, settings):
     """Neo4jLoader should create a ENABLES relationship without APOC."""
-    from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
+    from ingestion.neo4j_loader import Neo4jLoader
 
     loader = Neo4jLoader(driver=driver, settings=settings)
 
@@ -242,8 +243,8 @@ async def test_neo4j_loader_merge_relationship(driver, settings):
 @pytest.mark.asyncio
 async def test_vector_store_index_exists_after_schema_init(driver, settings):
     """VectorStore should confirm the index exists after schema initialisation."""
-    from value_fabric.layer3.retrieval.vector_store import VectorStore
-    from value_fabric.layer3.schema import SchemaInitializer
+    from retrieval.vector_store import VectorStore
+    from schema import SchemaInitializer
 
     await SchemaInitializer(driver=driver, settings=settings).initialize_schema()
     vs = VectorStore(driver=driver, settings=settings)
@@ -256,8 +257,8 @@ async def test_vector_store_index_exists_after_schema_init(driver, settings):
 @pytest.mark.asyncio
 async def test_vector_store_search_returns_list(driver, settings):
     """VectorStore.search() should return a list (possibly empty) without raising."""
-    from value_fabric.layer3.retrieval.vector_store import VectorStore
-    from value_fabric.layer3.schema import SchemaInitializer
+    from retrieval.vector_store import VectorStore
+    from schema import SchemaInitializer
 
     await SchemaInitializer(driver=driver, settings=settings).initialize_schema()
     vs = VectorStore(driver=driver, settings=settings)
@@ -276,9 +277,9 @@ async def test_vector_store_search_returns_list(driver, settings):
 @pytest.mark.asyncio
 async def test_hybrid_search_no_attribute_error(driver, settings):
     """HybridSearch should initialise and run without raising AttributeError."""
-    from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-    from value_fabric.layer3.retrieval.vector_store import VectorStore
-    from value_fabric.layer3.schema import SchemaInitializer
+    from retrieval.hybrid_search import HybridSearch
+    from retrieval.vector_store import VectorStore
+    from schema import SchemaInitializer
 
     await SchemaInitializer(driver=driver, settings=settings).initialize_schema()
     vs = VectorStore(driver=driver, settings=settings)
@@ -298,9 +299,9 @@ async def test_hybrid_search_no_attribute_error(driver, settings):
 @pytest.mark.asyncio
 async def test_graph_rag_returns_dict(driver, settings):
     """GraphRAGEngine.query() should return a dict with a 'results' key."""
-    from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
-    from value_fabric.layer3.retrieval.vector_store import VectorStore
-    from value_fabric.layer3.schema import SchemaInitializer
+    from retrieval.graph_rag import GraphRAGEngine
+    from retrieval.vector_store import VectorStore
+    from schema import SchemaInitializer
 
     await SchemaInitializer(driver=driver, settings=settings).initialize_schema()
     vs = VectorStore(driver=driver, settings=settings)
@@ -318,7 +319,7 @@ async def test_graph_rag_returns_dict(driver, settings):
 @pytest.mark.asyncio
 async def test_graph_rag_null_driver_raises_503(settings):
     """GraphRAGEngine should raise a meaningful error when driver is None."""
-    from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
+    from retrieval.graph_rag import GraphRAGEngine
 
     rag = GraphRAGEngine(driver=None, vector_store=None, settings=settings)
 
@@ -327,4 +328,3 @@ async def test_graph_rag_null_driver_raises_503(settings):
 
     # Should raise something meaningful, not a bare AttributeError on None
     assert exc_info.type is not AttributeError or "driver" in str(exc_info.value).lower()
-

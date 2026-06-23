@@ -23,13 +23,20 @@ const deferredIntelligenceTabs: Record<string, { flag: string; owner: string }> 
   },
 };
 
+const deferredIntelligenceTabFlagValues: Record<string, string | undefined> = {
+  VITE_ENABLE_IW_ONTOLOGY_MATCH_TAB: import.meta.env.VITE_ENABLE_IW_ONTOLOGY_MATCH_TAB,
+  VITE_ENABLE_IW_ALTERNATIVES_TAB: import.meta.env.VITE_ENABLE_IW_ALTERNATIVES_TAB,
+  VITE_ENABLE_IW_SOLUTION_COST_TAB: import.meta.env.VITE_ENABLE_IW_SOLUTION_COST_TAB,
+};
+
 function isDeferredTabEnabled(tabId: string): boolean {
   const config = deferredIntelligenceTabs[tabId];
   if (!config) return true;
-  return import.meta.env[config.flag] === "true";
+  return deferredIntelligenceTabFlagValues[config.flag] === "true";
 }
 
 // ── Lazy-loaded tab components ────────────────────────────────────────────────
+const OverviewTab = lazy(() => import("./tabs/overview/OverviewTab"));
 const SignalsTab = lazy(() => import("./tabs/signals/SignalsTab"));
 const StakeholdersTab = lazy(() => import("./tabs/stakeholders/StakeholdersTab"));
 const OntologyMatchTab = lazy(() => import("./tabs/ontology-match/OntologyMatchTab"));
@@ -44,7 +51,20 @@ const AlternativesTab = lazy(() => import("./tabs/alternatives/AlternativesTab")
 const SolutionCostTab = lazy(() => import("./tabs/solution-cost/SolutionCostTab"));
 
 // ── Registry ──────────────────────────────────────────────────────────────────
+//
+// Order matters: the five core views lead the workspace tab bar and form the
+// value-case chain (Overview → Signals → Drivers → Evidence → Stakeholders).
+// Advanced / secondary tabs follow.
 export const workspaceTabs: WorkspaceTabDef[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    description: "Summarizes the value case across signals, drivers, evidence, and stakeholders.",
+    component: OverviewTab,
+    status: "active",
+    category: "input",
+    core: true,
+  },
   {
     id: "signals",
     label: "Signals",
@@ -53,14 +73,27 @@ export const workspaceTabs: WorkspaceTabDef[] = [
     queryKey: "signals",
     status: "active",
     category: "input",
+    core: true,
   },
   {
-    id: "enrichment",
-    label: "Account Enrichment",
-    description: "Shows deep account enrichment data including firmographics and tech stack.",
-    component: EnrichmentTab,
+    id: "drivers",
+    label: "Drivers",
+    description: "Maps signals to specific business value drivers.",
+    component: DriversTab,
+    queryKey: "drivers",
     status: "active",
-    category: "input",
+    category: "reasoning",
+    core: true,
+  },
+  {
+    id: "evidence",
+    label: "Evidence",
+    description: "Lists verified evidence points supporting the drivers.",
+    component: EvidenceTab,
+    queryKey: "evidence",
+    status: "active",
+    category: "reasoning",
+    core: true,
   },
   {
     id: "stakeholders",
@@ -68,6 +101,15 @@ export const workspaceTabs: WorkspaceTabDef[] = [
     description: "Identifies key buyer personas and their priorities.",
     component: StakeholdersTab,
     queryKey: "stakeholders",
+    status: "active",
+    category: "input",
+    core: true,
+  },
+  {
+    id: "enrichment",
+    label: "Account Enrichment",
+    description: "Shows deep account enrichment data including firmographics and tech stack.",
+    component: EnrichmentTab,
     status: "active",
     category: "input",
   },
@@ -112,24 +154,6 @@ export const workspaceTabs: WorkspaceTabDef[] = [
     category: "reasoning",
   },
   {
-    id: "drivers",
-    label: "Value Drivers",
-    description: "Maps signals to specific business value drivers.",
-    component: DriversTab,
-    queryKey: "drivers",
-    status: "active",
-    category: "reasoning",
-  },
-  {
-    id: "evidence",
-    label: "Evidence",
-    description: "Lists verified evidence points supporting the drivers.",
-    component: EvidenceTab,
-    queryKey: "evidence",
-    status: "active",
-    category: "reasoning",
-  },
-  {
     id: "alternatives",
     label: "Alternatives",
     description: "Competitor and alternative solution comparison.",
@@ -148,7 +172,7 @@ export const workspaceTabs: WorkspaceTabDef[] = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-export const DEFAULT_TAB: IntelligenceTabId = "signals";
+export const DEFAULT_TAB: IntelligenceTabId = "overview";
 
 export function getProductionTabDefs(): WorkspaceTabDef[] {
   return workspaceTabs.filter((tab) => {
@@ -171,6 +195,16 @@ export function getTabOrDefault(tabId: string | undefined): IntelligenceTabId {
 
 export function getActiveTabDefs(): WorkspaceTabDef[] {
   return getProductionTabDefs();
+}
+
+/** The five core value-case views, in chain order. Always visible. */
+export function getCoreTabDefs(): WorkspaceTabDef[] {
+  return getProductionTabDefs().filter((t) => t.core);
+}
+
+/** Advanced / secondary tabs shown after the core views. */
+export function getSecondaryTabDefs(): WorkspaceTabDef[] {
+  return getProductionTabDefs().filter((t) => !t.core);
 }
 
 export const deferredTabsRollout = deferredIntelligenceTabs;

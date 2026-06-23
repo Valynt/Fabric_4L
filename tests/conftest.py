@@ -19,8 +19,11 @@ from __future__ import annotations
 import os
 import sys
 import time
+import importlib
+import importlib.util
+import types
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional
+from typing import Any, Callable, Dict, Optional
 from uuid import UUID
 
 import jwt as pyjwt
@@ -117,6 +120,10 @@ ADMIN_USER_ID = "admin-super-001"
 TEST_JWT_SECRET = os.getenv("JWT_SECRET", os.getenv("TEST_JWT_SECRET", "test-secret-key"))
 TEST_JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
+_DEBUG_VALUE = os.getenv("DEBUG", "").strip().lower()
+if _DEBUG_VALUE and _DEBUG_VALUE not in {"0", "1", "false", "true", "no", "yes", "off", "on"}:
+    os.environ["DEBUG"] = "false"
+
 # Claim names matching GovernanceMiddleware defaults
 JWT_TENANT_CLAIM = os.getenv("JWT_TENANT_CLAIM", "tenant_id")
 JWT_USER_CLAIM = os.getenv("JWT_USER_CLAIM", "sub")
@@ -142,6 +149,95 @@ _PATHS_TO_ADD = [
 for p in _PATHS_TO_ADD:
     if p not in sys.path:
         sys.path.insert(0, p)
+
+
+def _prepend_namespace_path(module: types.ModuleType, paths: list[Path]) -> None:
+    namespace_paths = list(getattr(module, "__path__", []))
+    requested_paths = [str(path) for path in paths]
+    namespace_paths = [path for path in namespace_paths if path not in requested_paths]
+    for path in reversed(requested_paths):
+        namespace_paths.insert(0, path)
+    module.__path__ = namespace_paths  # type: ignore[attr-defined]
+
+
+def _ensure_namespace_module(name: str, paths: list[Path]) -> types.ModuleType:
+    module = sys.modules.get(name)
+    if module is None:
+        module = types.ModuleType(name)
+        sys.modules[name] = module
+    _prepend_namespace_path(module, paths)
+    return module
+
+
+def _install_legacy_collection_import_aliases() -> None:
+    """Stabilize legacy test import paths during repo-wide collection.
+
+    Several historical tests still import bare ``src.*`` modules or the
+    underscore service path ``services.layer4_agents.src.*``. Keep those imports
+    collection-compatible without changing runtime source-of-truth modules.
+    """
+    layer3_src = _PROJECT_ROOT / "services" / "layer3-knowledge" / "src"
+    layer4_src = _PROJECT_ROOT / "services" / "layer4-agents" / "src"
+
+    src_module = _ensure_namespace_module("src", [layer3_src, layer4_src])
+    src_agents_module = _ensure_namespace_module("src.agents", [layer3_src / "agents", layer4_src / "agents"])
+    src_api_module = _ensure_namespace_module("src.api", [layer3_src / "api", layer4_src / "api"])
+    src_analytics_module = _ensure_namespace_module("src.analytics", [layer3_src / "analytics"])
+    src_models_module = _ensure_namespace_module("src.models", [layer3_src / "models", layer4_src / "models"])
+    src_retrieval_module = _ensure_namespace_module("src.retrieval", [layer3_src / "retrieval"])
+    src_services_module = _ensure_namespace_module("src.services", [layer3_src / "services", layer4_src / "services"])
+    src_tools_module = _ensure_namespace_module("src.tools", [layer4_src / "tools"])
+    setattr(src_module, "agents", src_agents_module)
+    setattr(src_module, "api", src_api_module)
+    setattr(src_module, "analytics", src_analytics_module)
+    setattr(src_module, "models", src_models_module)
+    setattr(src_module, "retrieval", src_retrieval_module)
+    setattr(src_module, "services", src_services_module)
+    setattr(src_module, "tools", src_tools_module)
+
+    layer4_agents_module = _ensure_namespace_module("layer4_agents", [layer4_src / "layer4_agents"])
+    _ = layer4_agents_module  # noqa: F841 - registered for canonical test imports
+
+    services_module = _ensure_namespace_module("services", [_PROJECT_ROOT / "services"])
+
+    layer4_alias = _ensure_namespace_module(
+        "services.layer4_agents",
+        [_PROJECT_ROOT / "services" / "layer4-agents"],
+    )
+    setattr(services_module, "layer4_agents", layer4_alias)
+
+    layer4_src_alias = _ensure_namespace_module("services.layer4_agents.src", [layer4_src])
+    setattr(layer4_alias, "src", layer4_src_alias)
+
+    # Layer 3 still has runtime modules that use top-level ``from config``.
+    # Pin that bare name to the Layer 3 config surface so later sys.path
+    # mutations from service-specific tests cannot redirect it to Layer 4.
+    config_init = layer3_src / "config" / "__init__.py"
+    config_spec = importlib.util.spec_from_file_location(
+        "src.config",
+        config_init,
+        submodule_search_locations=[str(layer3_src / "config")],
+    )
+    if config_spec is None or config_spec.loader is None:
+        raise RuntimeError(f"Cannot load Layer 3 config compatibility module from {config_init}")
+    layer3_config = importlib.util.module_from_spec(config_spec)
+    sys.modules["src.config"] = layer3_config
+    config_spec.loader.exec_module(layer3_config)
+    sys.modules["config"] = layer3_config
+    setattr(src_module, "config", layer3_config)
+
+    if "value_fabric.shared.testing" not in sys.modules:
+        testing_module = types.ModuleType("value_fabric.shared.testing")
+        testing_module.mark = pytest.mark
+        sys.modules["value_fabric.shared.testing"] = testing_module
+
+
+_install_legacy_collection_import_aliases()
+
+
+def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> None:
+    _install_legacy_collection_import_aliases()
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +375,7 @@ def jwt_token_malformed_tenant() -> str:
 def context_a():
     """RequestContext for Tenant A — use with RequestContextManager."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_A_ID,
@@ -294,7 +390,7 @@ def context_a():
 def context_b():
     """RequestContext for Tenant B — use with RequestContextManager."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_B_ID,
@@ -309,7 +405,7 @@ def context_b():
 def context_admin():
     """RequestContext for super_admin."""
     from value_fabric.shared.identity.context import RequestContext
-    from value_fabric.shared.identity.permissions import Permission, Role, get_role_permissions
+    from value_fabric.shared.identity.permissions import Role, get_role_permissions
 
     return RequestContext(
         tenant_id=TENANT_A_ID,
@@ -468,6 +564,37 @@ def skip_if_infra_unavailable(*deps: str) -> None:
 # ---------------------------------------------------------------------------
 # Database fixtures (require live PostgreSQL)
 # ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def postgres_test_db():
+    """PostgreSQL test database for JSONB/RLS/security tests.
+
+    Uses TEST_DATABASE_URL or defaults to docker-compose dev stack.
+    Fails in CI if unavailable, skips locally with clear message.
+    """
+    if not _check_postgres():
+        if os.getenv("CI") == "true":
+            pytest.fail(make_infra_ci_failure_reason("postgres"))
+        pytest.skip(make_infra_skip_reason("postgres"))
+
+    from sqlalchemy import create_engine
+
+    db_url = os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/fabric_test",
+    )
+    engine = create_engine(db_url)
+
+    # Verify dialect
+    if engine.dialect.name != "postgresql":
+        pytest.fail(
+            f"PostgreSQL test configured with {engine.dialect.name} dialect. "
+            f"Set TEST_DATABASE_URL to a PostgreSQL connection string."
+        )
+
+    yield engine
+    engine.dispose()
+
+
 @pytest.fixture
 def db_connection(require_postgres):
     """Raw psycopg2 connection for RLS policy testing."""
@@ -580,3 +707,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     for key, dep in INFRA_DEPENDENCIES.items():
         terminalreporter.write_line(f"{dep.display_name}: {counts[key]} skipped tests")
     terminalreporter.write_line(f"Total infra-gated skips: {total}")
+
+
+@pytest.fixture
+def deterministic_jwt_secret(monkeypatch):
+    """Test-only deterministic JWT secret fixture."""
+    secret = "test-jwt-secret-00000000000000000000000000000000"
+    monkeypatch.setenv("JWT_SECRET", secret)
+    return secret

@@ -1,3 +1,9 @@
+from value_fabric.shared.error_handling.exceptions import (
+    BadRequestError,
+    ConflictError,
+    NotFoundError,
+)
+
 """
 FastAPI router for Layer 5 Ground Truth API.
 
@@ -18,8 +24,10 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.audit import emit_audit_event
+from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 
 from ..cache import cached
 from ..config import get_settings
@@ -112,10 +120,7 @@ async def create_truth(
     # Reload with eager-loaded relationships for the response
     truth = await get_truth_object(db, truth.id, tenant_id)
     if truth is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Truth object not found after creation",
-        )
+        raise NotFoundError(message="Truth object not found after creation")
 
     # Best-effort KG sync for high-confidence objects
     settings = get_settings()
@@ -143,6 +148,24 @@ async def create_truth(
                 truth.kg_synced_at = datetime.now(UTC)
         except Exception:
             logger.warning("create_truth_kg_sync_failed", exc_info=True)
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_CREATED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth.id),
+            details={
+                "claim": payload.claim,
+                "claim_type": payload.claim_type,
+                "confidence": payload.confidence,
+                "status": truth.status,
+            },
+        )
+    except Exception:
+        logger.exception("truth_created_audit_failed")
 
     return TruthObjectResponse.model_validate(truth)
 
@@ -275,32 +298,43 @@ async def sync_to_kg(
     request_id = getattr(request.state, "trace_id", None)
     synced = 0
     failed = 0
-    try:
-        for truth in pending:
-            node_id = await client.sync_truth_object(
-                truth_object_id=truth.id,
-                tenant_id=truth.tenant_id,
-                claim=truth.claim,
-                claim_type=truth.claim_type,
-                confidence=truth.confidence,
-                status=truth.status,
-                maturity_level=truth.maturity_level,
-                value=truth.value,
-                applies_to=truth.applies_to,
-                source_count=len(truth.sources),
-                request_id=str(request_id) if request_id else None,
-            )
-            if node_id:
-                truth.kg_node_id = node_id
-                truth.kg_synced_at = datetime.now(UTC)
-                synced += 1
-            else:
-                failed += 1
+    for truth in pending:
+        node_id = await client.sync_truth_object(
+            truth_object_id=truth.id,
+            tenant_id=truth.tenant_id,
+            claim=truth.claim,
+            claim_type=truth.claim_type,
+            confidence=truth.confidence,
+            status=truth.status,
+            maturity_level=truth.maturity_level,
+            value=truth.value,
+            applies_to=truth.applies_to,
+            source_count=len(truth.sources),
+            request_id=str(request_id) if request_id else None,
+        )
+        if node_id:
+            truth.kg_node_id = node_id
+            truth.kg_synced_at = datetime.now(UTC)
+            synced += 1
+        else:
+            failed += 1
 
-        await db.commit()
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_SYNCED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id="bulk",
+            details={
+                "synced": synced,
+                "failed": failed,
+                "total_pending": len(pending),
+            },
+        )
     except Exception:
-        await db.rollback()
-        raise
+        logger.exception("truth_synced_audit_failed")
 
     return SyncToKgResponse.model_validate(
         {
@@ -450,10 +484,7 @@ async def get_truth(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"TruthObject {truth_id} not found",
-        )
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     return TruthObjectResponse.model_validate(truth)
 
 
@@ -488,10 +519,7 @@ async def validate_truth(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"TruthObject {truth_id} not found",
-        )
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
 
     previous_status = truth.status
     previous_maturity = truth.maturity_level
@@ -514,33 +542,23 @@ async def validate_truth(
         )
     except InvalidTransitionError as exc:
         logger.warning("invalid_truth_transition: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"},
-        )
+        raise BadRequestError(message="Request failed", details={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"})
     except InsufficientEvidenceError as exc:
         logger.warning("insufficient_evidence: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"},
-        )
+        raise BadRequestError(message="Request failed", details={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
     except TransitionConflictError as exc:
         logger.warning("truth_transition_conflict: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
+        raise ConflictError(
+            message="Conflict during state transition",
+            details={
                 "code": "TRANSITION_CONFLICT",
-                "message": "Conflict during state transition",
                 "expected": previous_status,
                 "actual": truth.status if truth else "unknown",
             },
         )
     except ValueError as exc:
         logger.warning("truth_value_error: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_REQUEST", "message": "Invalid request parameters"},
-        )
+        raise BadRequestError(message="Request failed", details={"code": "INVALID_REQUEST", "message": "Invalid request parameters"})
 
     # Sync to Layer 3 after validation
     if truth.status == "validated":
@@ -565,6 +583,26 @@ async def validate_truth(
                 truth.kg_synced_at = datetime.now(UTC)
         except Exception:
             logger.warning("validate_truth_kg_sync_failed", exc_info=True)
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_VALIDATED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth.id),
+            details={
+                "action": payload.action,
+                "previous_status": previous_status,
+                "new_status": truth.status,
+                "previous_maturity": previous_maturity,
+                "new_maturity": truth.maturity_level,
+                "actor": payload.actor,
+            },
+        )
+    except Exception:
+        logger.exception("truth_validated_audit_failed")
 
     return ValidateResponse(
         truth_object_id=truth.id,
@@ -609,10 +647,7 @@ async def add_truth_source(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"TruthObject {truth_id} not found",
-        )
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
 
     _, source = await add_source(
         db=db,
@@ -644,10 +679,7 @@ async def get_audit_trail(
     tenant_id = caller.tenant_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"TruthObject {truth_id} not found",
-        )
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     return [ValidationEventResponse.model_validate(e) for e in truth.validation_events]
 
 
@@ -672,11 +704,21 @@ async def delete_truth(
     deleted_by = caller.user_id
     truth = await get_truth_object(db, truth_id, tenant_id)
     if not truth:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"TruthObject {truth_id} not found",
-        )
+        raise NotFoundError(message=f"TruthObject {truth_id} not found")
     await soft_delete_truth_object(db, truth, deleted_by=deleted_by)
+
+    try:
+        emit_audit_event(
+            action=AuditAction.TRUTH_DELETED,
+            outcome=AuditOutcome.SUCCESS,
+            tenant_id=tenant_id,
+            user_id=caller.user_id,
+            resource_type="TruthObject",
+            resource_id=str(truth_id),
+            details={"deleted_by": deleted_by},
+        )
+    except Exception:
+        logger.exception("truth_deleted_audit_failed")
 
 
 # ---------------------------------------------------------------------------

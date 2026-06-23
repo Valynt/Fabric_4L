@@ -22,6 +22,7 @@ spec:
         app: layer5-ground-truth
         component: layer5
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -31,27 +32,40 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: value-fabric/layer5-ground-truth:main
+          image: services/layer5-ground-truth@sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
           command: ["alembic", "upgrade", "head"]
           env:
             - name: DATABASE_URL_SYNC
               valueFrom:
-                configMapKeyRef:
-                  name: value-fabric-config
-                  key: LAYER5_DATABASE_URL_SYNC
+                secretKeyRef:
+                  name: layer5-database-secret
+                  key: database-url-sync
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false  # Alembic may need write access for cache
-            capabilities:
-              drop: ["ALL"]
-      containers:
-        - name: api
-          image: value-fabric/layer5-ground-truth:main
-          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: api
+          image: services/layer5-ground-truth@sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           ports:
             - containerPort: 8005
               name: http
@@ -60,9 +74,15 @@ spec:
                 name: value-fabric-config
           env:
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth"
+              valueFrom:
+                secretKeyRef:
+                  name: layer5-database-secret
+                  key: database-url
             - name: DATABASE_URL_SYNC
-              value: "postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth"
+              valueFrom:
+                secretKeyRef:
+                  name: layer5-database-secret
+                  key: database-url-sync
             - name: LAYER3_BASE_URL
               valueFrom:
                 configMapKeyRef:
@@ -92,7 +112,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /api/v1/health
+              path: /api/v1/ready
               port: 8005
             initialDelaySeconds: 10
             periodSeconds: 10

@@ -1,5 +1,74 @@
 """Shared models package for Value Fabric."""
 
+from .claim import Claim, ClaimCreate, ClaimOverride, ClaimStatus, ClaimUpdate, EvidenceStrength
+from .fabric_found_summary import (
+    FabricFoundSummary,
+    FabricFoundSummaryProjectionRequest,
+    SummaryItem,
+    SummaryItemStatus,
+    SummarySection,
+)
+from .parameter_manifest import (
+    ParameterEvidenceRequirement,
+    ParameterManifest,
+    ParameterManifestCreate,
+    ParameterStatus,
+    ParameterType,
+    ParameterValue,
+    ParameterValueCreate,
+    ParameterValidationRule,
+)
 from .typed_dict import TypedDictModel
+from .value_signal import (
+    ProvenanceExtractor,
+    RawSignalInput,
+    SignalImpactArea,
+    SignalPromoteRequest,
+    SignalRefineRequest,
+    SignalReviewRequest,
+    ValueSignal,
+    ValueSignalCreate,
+    ValueSignalEvidence,
+    ValueSignalLifecycleState,
+    ValueSignalListResponse,
+    ValueSignalProvenance,
+    ValueSignalType,
+    ValueSignalUpdate,
+)
 
-__all__ = ["TypedDictModel"]
+__all__ = [
+    "TypedDictModel",
+    "Claim",
+    "ClaimCreate",
+    "ClaimOverride",
+    "ClaimStatus",
+    "ClaimUpdate",
+    "EvidenceStrength",
+    "FabricFoundSummary",
+    "FabricFoundSummaryProjectionRequest",
+    "SummaryItem",
+    "SummaryItemStatus",
+    "SummarySection",
+    "ParameterEvidenceRequirement",
+    "ParameterManifest",
+    "ParameterManifestCreate",
+    "ParameterStatus",
+    "ParameterType",
+    "ParameterValue",
+    "ParameterValueCreate",
+    "ParameterValidationRule",
+    "ProvenanceExtractor",
+    "RawSignalInput",
+    "SignalImpactArea",
+    "SignalPromoteRequest",
+    "SignalRefineRequest",
+    "SignalReviewRequest",
+    "ValueSignal",
+    "ValueSignalCreate",
+    "ValueSignalEvidence",
+    "ValueSignalLifecycleState",
+    "ValueSignalListResponse",
+    "ValueSignalProvenance",
+    "ValueSignalType",
+    "ValueSignalUpdate",
+]

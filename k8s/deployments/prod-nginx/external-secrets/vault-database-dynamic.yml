@@ -1,0 +1,25 @@
+# Vault Database Secrets Engine — dynamic PostgreSQL credentials
+# ExternalSecret refreshes credentials every 1h from Vault.
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: postgres-dynamic-credentials
+  namespace: value-fabric
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: postgres-dynamic-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: username
+      remoteRef:
+        key: database/creds/value-fabric-role
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: database/creds/value-fabric-role
+        property: password

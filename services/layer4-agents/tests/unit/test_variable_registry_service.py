@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for Neo4jVariableRegistry helper methods.
 
@@ -5,7 +7,6 @@ Tests the pure-Python logic (_cast_value, _apply_rule) that requires no Neo4j
 connection, and integration-level behaviour with a mocked AsyncDriver.
 """
 
-from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
@@ -14,8 +15,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from value_fabric.layer4.services.variable_registry_service import Neo4jVariableRegistry
-from value_fabric.layer4.interfaces.variable_registry import (
+from layer4_agents.services.variable_registry_service import Neo4jVariableRegistry
+from layer4_agents.interfaces.variable_registry import (
     VariableDataType,
     VariableValidationRule,
 )
@@ -264,7 +265,7 @@ class TestValidateValue:
     """Tests for validate_value via a mocked get_variable."""
 
     def _make_variable(self, data_type: VariableDataType, rules: list):
-        from value_fabric.layer4.interfaces.variable_registry import Variable
+        from layer4_agents.interfaces.variable_registry import Variable
 
         return Variable(
             variable_id="var-001",

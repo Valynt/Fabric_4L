@@ -1,23 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-import hmac
-import secrets
+The implementation lives in ``layer4_agents.api.security.csrf``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from fastapi import Cookie, Header, HTTPException
-
-CSRF_COOKIE_NAME = "vf_csrf_token"
-SESSION_COOKIE_NAME = "vf_session"
-
-
-def issue_csrf_token() -> str:
-    return secrets.token_urlsafe(32)
-
-
-def validate_double_submit(
-    csrf_cookie: str | None = Cookie(default=None, alias=CSRF_COOKIE_NAME),
-    csrf_header: str | None = Header(default=None, alias="X-CSRF-Token"),
-) -> None:
-    if not csrf_cookie or not csrf_header:
-        raise HTTPException(status_code=403, detail="CSRF token missing")
-    if not hmac.compare_digest(csrf_cookie, csrf_header):
-        raise HTTPException(status_code=403, detail="CSRF token mismatch")
+from layer4_agents.api.security.csrf import *  # noqa: F401,F403

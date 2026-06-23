@@ -219,7 +219,14 @@ class TestValidateTruth:
         """Manual validate action: PROPOSED → VALIDATED."""
         # Disable auto-advance so we can test manual validate
         from layer5_ground_truth import config
+        from layer5_ground_truth.services import truth_service
+
         monkeypatch.setattr(config.get_settings(), "auto_advance_to_validated", False)
+        monkeypatch.setattr(
+            truth_service._state_machine._settings,
+            "auto_advance_to_validated",
+            False,
+        )
 
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
@@ -495,11 +502,13 @@ class TestMaturityLadder:
 class TestHealth:
     @pytest.mark.asyncio
     async def test_health_returns_ok(self, client):
-        """Public health endpoint should return 200 with status ok."""
+        """Public health endpoint should return normalized probe payload."""
         resp = await client.get("/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "healthy"
+        assert data["service"] == "layer5-ground-truth"
+        assert data["readiness"]["is_ready"] is True
         assert data["database"] == "ok"
         assert "version" in data
         assert "timestamp" in data

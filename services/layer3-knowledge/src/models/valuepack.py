@@ -9,7 +9,7 @@ Energy, Retail, Logistics, Public Sector.
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ValuePackTier(int, Enum):
@@ -275,16 +275,14 @@ class ValuePackInDB(ValuePackBase):
     """Model for ValuePack as stored in database."""
     tenant_id: str = Field(..., description="Multi-tenant isolation key")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ValuePackResponse(ValuePackBase):
     """Model for ValuePack API responses."""
     completeness_score: float | None = Field(None, description="Schema completeness 0-1")
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ValuePackListResponse(BaseModel):

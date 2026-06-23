@@ -3,9 +3,6 @@ import { render, RenderOptions } from "@testing-library/react";
 import { QueryCache, QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { useAuthContext } from "./contexts/AuthContext";
-import { safeAsync } from './lib/async';
-
 // Re-export for AuthContext tests (avoids circular dependency)
 export type { UserInfo } from "./contexts/AuthContext";
 import { logError } from "./lib/telemetry";
@@ -128,28 +125,4 @@ export function createWrapperWithRetry(enableRetry: boolean) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Auth Test Components
-// ---------------------------------------------------------------------------
 
-/** Shared test component for AuthContext tests — extracts auth state for assertions */
-export function TestAuthComponent() {
-  const auth = useAuthContext();
-  return (
-    <div>
-      <div data-testid="loading">{auth.isLoading ? 'loading' : 'ready'}</div>
-      <div data-testid="authenticated">{auth.isAuthenticated ? 'yes' : 'no'}</div>
-      <div data-testid="user-email">{auth.user?.email ?? 'none'}</div>
-      <div data-testid="access-token">{auth.accessToken ?? 'null'}</div>
-      <button data-testid="login-btn" onClick={() => auth.initiateLogin('test-tenant')}>Login</button>
-      <button data-testid="logout-btn" onClick={() => safeAsync(auth.logout(), "test.logout")}>Logout</button>
-      <button data-testid="refresh-btn" onClick={() => safeAsync(auth.refreshToken(), "test.refresh")}>Refresh</button>
-      <button
-        data-testid="callback-btn"
-        onClick={() => safeAsync(auth.handleCallback('test-code', 'oidc-state-123'), 'test.callback')}
-      >
-        Callback
-      </button>
-    </div>
-  );
-}

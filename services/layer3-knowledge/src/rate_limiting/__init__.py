@@ -1,6 +1,6 @@
 """Rate limiting package initialization."""
 
-from ..rate_limiting.manager import (
+from .manager import (
     AdaptiveRateLimiter,
     FixedWindow,
     LeakyBucket,

@@ -5,7 +5,7 @@
  * via the Layer 2 API.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/api/client';
+import { apiPost } from '@/api/typedClient';
 import { QK } from '@/hooks/queryKeys';
 import { createFeatureLogger } from '@/lib/telemetry';
 
@@ -64,7 +64,7 @@ export function useRunExtraction() {
         extraction_config: params.extractionConfig,
       };
 
-      const response = await apiClient.post<RunExtractionApiResponse>('l2', '/v1/extract', request);
+      const response = await apiPost<RunExtractionApiResponse>('l2', '/v1/extract', request);
       const jobId = response.data.extraction_job_id;
       if (!jobId) {
         throw new Error('Extraction response missing job id');

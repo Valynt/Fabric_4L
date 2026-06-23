@@ -21,6 +21,7 @@ spec:
       backoffLimit: 3
       template:
         spec:
+          automountServiceAccountToken: false
           restartPolicy: OnFailure
           containers:
             - name: neo4j-backup
@@ -32,20 +33,20 @@ spec:
                   BACKUP_DIR=/backups/neo4j
                   mkdir -p $$BACKUP_DIR
                   TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-                  
+
                   # Wait for Neo4j to be ready
                   until cypher-shell -a neo4j:7687 -u neo4j -p $${NEO4J_PASSWORD} 'RETURN 1'; do
                     echo 'Waiting for Neo4j...'
                     sleep 5
                   done
-                  
+
                   # Perform backup using neo4j-admin with --from flag for consistency
                   # Use --fallback-to-full if incremental backup fails
                   neo4j-admin database dump neo4j --from=/data --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true --fallback-to-full=true
-                  
+
                   # Keep last 7 days of backups
                   find $$BACKUP_DIR -name 'backup_*' -mtime +7 -delete
-                  
+
                   echo "Backup completed: $$TIMESTAMP"
               env:
                 - name: NEO4J_PASSWORD

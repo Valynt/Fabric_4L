@@ -1,20 +1,21 @@
+from __future__ import annotations
+
 """OSS-0 tests for legacy-backed ports used by future substitution pilots."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
-from value_fabric.layer4.engine.ports import (
+from layer4_agents.adapters.task_execution import (
     LegacyTaskExecutionAdapter,
-    TaskExecutionPort,
     as_task_execution_port,
 )
-from value_fabric.layer4.engine.scheduler import ScheduledTask, TaskPriority, TaskScheduler
-from value_fabric.layer4.resilience import CircuitBreaker, TenantRateLimiter
-from value_fabric.layer4.resilience_ports import (
+from layer4_agents.engine.ports import TaskExecutionPort
+from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskScheduler
+from layer4_agents.resilience import CircuitBreaker, TenantRateLimiter
+from layer4_agents.resilience_ports import (
     DependencyCircuitBreakerPort,
     LegacyCircuitBreakerAdapter,
     LegacyTenantRateLimitAdapter,

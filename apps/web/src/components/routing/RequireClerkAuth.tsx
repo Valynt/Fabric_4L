@@ -7,9 +7,11 @@
  *     existing <ProtectedRoute /> guards remain authoritative, so this
  *     component is a no-op and zero-risk to add to existing routes.
  *   - When AUTH_PROVIDER=clerk:
- *       - If Clerk is still loading, render a small spinner.
+ *       - If Clerk is still loading, render nothing (null) to prevent any
+ *         protected UI from flashing on screen.
  *       - If the user is not signed in, redirect to the configured sign-in
- *         URL with the original location preserved.
+ *         URL with the original location preserved. The redirect happens
+ *         synchronously via useLayoutEffect before the browser paints.
  *       - If the user has no active organization (and the route requires
  *         one), redirect to the org-picker page.
  *
@@ -17,10 +19,12 @@
  * verified Fabric4L envelope, never anything from the browser.
  */
 import { useAuth, useOrganization } from "@clerk/react";
-import { Navigate, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { useNavigation } from "@/hooks/useNavigation";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { useResolvedTenant } from "@/hooks/useResolvedTenant";
 
 interface RequireClerkAuthProps {
   children: ReactNode;
@@ -32,46 +36,125 @@ interface RequireClerkAuthProps {
   requireOrganization?: boolean;
 }
 
-function ClerkLoadingFallback() {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex h-full min-h-[400px] items-center justify-center"
-    >
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-        <p className="text-sm text-muted-foreground">Verifying session...</p>
-      </div>
-    </div>
-  );
+function buildSafeRedirectPath(pathname: string, search: string): string {
+  if (!search) {
+    return pathname;
+  }
+
+  const params = new URLSearchParams(search);
+  const keysToDelete: string[] = [];
+  params.forEach((_value, key) => {
+    if (key.toLowerCase().startsWith("__clerk_")) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach((key) => params.delete(key));
+
+  const normalized = params.toString();
+  return normalized ? `${pathname}?${normalized}` : pathname;
+}
+
+function RequireClerkAuthOrgCheck({
+  children,
+  requireOrganization,
+}: {
+  children: ReactNode;
+  requireOrganization: boolean;
+}) {
+  const { navigateTo } = useNavigation();
+  const urls = getClerkUrls();
+  // This component is only rendered behind the <RequireClerkAuth> gate, which
+  // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
+  // called unconditionally here.
+  const { isLoaded: orgLoaded, organization } = useOrganization();
+  const { isLoading: tenantLoading, error: tenantError } = useResolvedTenant();
+  const hasNavigated = useRef(false);
+
+  // All hooks must run on every render before any conditional return, so the
+  // redirect effect is registered before the loading/redirect short-circuits
+  // below (orgLoaded transitions false→true as Clerk loads).
+  useLayoutEffect(() => {
+    if (requireOrganization && orgLoaded && !organization && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigateTo(urls.selectOrgUrl, { replace: true });
+    }
+  }, [requireOrganization, orgLoaded, organization, navigateTo, urls.selectOrgUrl]);
+
+  useLayoutEffect(() => {
+    if (!tenantError || hasNavigated.current) {
+      return;
+    }
+    const status = (tenantError as { status?: number }).status;
+    if (status === 401) {
+      hasNavigated.current = true;
+      navigateTo(urls.signInUrl, { replace: true });
+    } else if (status === 403) {
+      hasNavigated.current = true;
+      navigateTo("/forbidden", { replace: true });
+    }
+  }, [tenantError, navigateTo, urls.signInUrl]);
+
+  if (requireOrganization && !orgLoaded) {
+    // Render nothing while org state loads to prevent UI flash
+    return null;
+  }
+
+  if (requireOrganization && !organization) {
+    // Redirect in progress — render nothing to prevent UI flash
+    return null;
+  }
+
+  if (requireOrganization && tenantLoading) {
+    // Render nothing while the backend resolves the tenant mapping.
+    return null;
+  }
+
+  if (requireOrganization && tenantError) {
+    // Redirect in progress; the effect above decides the destination.
+    return null;
+  }
+
+  return <>{children}</>;
 }
 
 function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
+  const { navigateTo } = useNavigation();
   const location = useLocation();
   const urls = getClerkUrls();
+  // This component is only rendered behind the <RequireClerkAuth> gate, which
+  // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
+  // called unconditionally here.
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { isLoaded: orgLoaded, organization } = useOrganization();
+  const hasNavigated = useRef(false);
 
-  if (!authLoaded || (requireOrganization && !orgLoaded)) {
-    return <ClerkLoadingFallback />;
+  // Redirect synchronously before paint to prevent ANY protected UI from flashing.
+  // useLayoutEffect runs after DOM mutations but before the browser paints,
+  // so the user never sees the protected route content.
+  useLayoutEffect(() => {
+    if (authLoaded && !isSignedIn && !hasNavigated.current) {
+      hasNavigated.current = true;
+      const safeCurrentPath = buildSafeRedirectPath(location.pathname, location.search);
+      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+        safeCurrentPath,
+      )}`;
+      navigateTo(redirectTo, { replace: true });
+    }
+  }, [authLoaded, isSignedIn, navigateTo, urls.signInUrl, location.pathname, location.search]);
+
+  // While Clerk is still loading OR the user is not signed in (redirect pending),
+  // render absolutely nothing. This guarantees zero UI flash.
+  if (!authLoaded || !isSignedIn) {
+    return null;
   }
 
-  if (!isSignedIn) {
-    const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-      location.pathname + location.search,
-    )}`;
-    return <Navigate to={redirectTo} replace />;
-  }
-
-  if (requireOrganization && !organization) {
-    return <Navigate to={urls.selectOrgUrl} replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <RequireClerkAuthOrgCheck requireOrganization={requireOrganization}>
+      {children}
+    </RequireClerkAuthOrgCheck>
+  );
 }
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {

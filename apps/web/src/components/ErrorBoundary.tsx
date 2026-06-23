@@ -46,7 +46,7 @@ function CopyButton({ text }: { text: string }) {
       className="ml-2 p-1 rounded hover:bg-muted transition-colors"
       title="Copy trace ID"
     >
-      {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+      {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
     </button>
   );
 }

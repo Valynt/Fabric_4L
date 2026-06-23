@@ -178,6 +178,8 @@ class TestProductionJWTConfiguration:
         with patch.dict(os.environ, {
             "ENVIRONMENT": "production",
             "JWT_SECRET": "short",  # Too short
+            "JWT_ISSUER": "https://auth.example.com",
+            "JWT_AUDIENCE": "https://api.example.com",
             "REDIS_URL": "redis://localhost:6379",
         }, clear=True):
             with pytest.raises(ValueError, match="JWT_SECRET.*at least 32"):
@@ -482,11 +484,18 @@ class TestNegativePathStartupScenarios:
         
         Rationale: Failing on first request means misconfigured app is running.
         """
-        with patch.dict(os.environ, {
-            "ENVIRONMENT": "production",
-            "REDIS_URL": "",
-        }, clear=True):
-            # Validation should fail during import
-            with pytest.raises(ValueError):
-                # This import should trigger validation
-                import value_fabric.layer4.main
+        from tests.config._helpers import read_text
+
+        startup_source = read_text(
+            "services/layer4-agents/src/layer4_agents/api/startup.py"
+        )
+        app_factory_source = read_text(
+            "services/layer4-agents/src/layer4_agents/api/app_factory.py"
+        )
+
+        assert "validate_production_safety()" in startup_source
+        assert "build_lifespan(" in app_factory_source
+        assert (
+            "validate_production_safety=validate_production_safety"
+            in app_factory_source
+        )

@@ -211,8 +211,27 @@ def build_layer3_client_class(*, healthy: bool, success: bool):
 
 
 def build_artifacts(job_id: str, source_url: str) -> api_main.ExtractionArtifacts:
-    capability = Capability(name="Pipeline Capability", description="Capability for orchestration test")
-    use_case = UseCase(name="Pipeline Use Case", description="Use case for orchestration test")
+    capability = Capability(
+        name="Pipeline Capability",
+        description="Capability for orchestration test",
+        tenant_id="tenant-1",
+        extraction_job_id=job_id,
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-1",
+        source_refs=[source_url],
+    )
+    use_case = UseCase(
+        name="Pipeline Use Case",
+        description="Use case for orchestration test",
+        tenant_id="tenant-1",
+        extraction_job_id=job_id,
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-2",
+    )
     relationship = Relationship(
         source_id=capability.id,
         raw_predicate="enables",
@@ -222,10 +241,19 @@ def build_artifacts(job_id: str, source_url: str) -> api_main.ExtractionArtifact
         evidence_text="Capability enables the use case.",
         source_url=source_url,
         extraction_job_id=job_id,
+        tenant_id="tenant-1",
+        schema_version="v1",
+        prompt_version_id="pv-1",
+        model_version="gpt-4o",
+        deterministic_id="det-rel-1",
     )
     result = ExtractionResult(
         job_id=job_id,
         source_url=source_url,
+        tenant_id="tenant-1",
+        schema_version="v1",
+        prompt_version="pv-1",
+        model_version="gpt-4o",
         capabilities=[capability],
         use_cases=[use_case],
         chunks_processed=1,
@@ -242,6 +270,9 @@ def request_payload() -> dict:
             "chunk_size": 200,
             "chunk_overlap": 20,
             "confidence_threshold": 0.8,
+            "model_version": "test-extraction-model",
+            "schema_version": "value-fabric-extraction-v1",
+            "prompt_version": "test-prompt-v1",
         },
     }).model_dump()
 
@@ -249,6 +280,8 @@ def request_payload() -> dict:
 @pytest.fixture(autouse=True)
 def reset_pipeline_state(monkeypatch: pytest.MonkeyPatch) -> None:
     from layer2_extraction.integration.job_store import InMemoryJobStore
+
+    monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
     test_job_store = InMemoryJobStore()
     monkeypatch.setattr(api_main, "job_store", test_job_store)
     yield
@@ -266,6 +299,7 @@ def jwt_token() -> str:
     """Generate a signed JWT for test requests."""
     import os
     import time
+
     import jwt as pyjwt
 
     secret = os.environ.get("JWT_SECRET", "test-secret-key-for-layer2-tests-32b")
@@ -543,6 +577,62 @@ async def test_retry_success_marks_completed_and_clears_queue(
     assert job_id not in fake_store.records
 
 
+@pytest.mark.asyncio
+async def test_pending_retry_reschedules_with_exponential_backoff(
+    async_client,
+    fake_store: FakePendingIngestionStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = FrozenClock(real_datetime(2026, 1, 1, 0, 0, 0))
+    monkeypatch.setattr(api_main, "datetime", clock.datetime_class())
+
+    async def fake_run_extraction(
+        job_id: str,
+        source_url: str,
+        content: str,
+        config: dict,
+        mark_pipeline_complete: bool = True,
+    ) -> api_main.ExtractionArtifacts:
+        await api_main._set_pipeline_job(
+            job_id,
+            extraction_status="completed",
+            entities_extracted=2,
+            relationships_extracted=1,
+            completed_at=None,
+        )
+        return build_artifacts(job_id, source_url)
+
+    monkeypatch.setattr(api_main, "run_extraction", fake_run_extraction)
+    monkeypatch.setattr(
+        api_main,
+        "Layer3KnowledgeClient",
+        build_layer3_client_class(healthy=False, success=False),
+    )
+
+    kickoff = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    job_id = kickoff.json()["job_id"]
+    first_due_at = fake_store.records[job_id].next_retry_at
+
+    clock.advance(int((first_due_at - clock.current).total_seconds()) + 1)
+    retry_started_at = clock.current
+
+    await api_main._process_pending_ingestions()
+
+    record = fake_store.records[job_id]
+    expected_next_retry = naive_utc_from_timestamp(
+        retry_started_at.timestamp() + (api_main.RETRY_BASE_SECONDS * 2)
+    )
+    assert record.retry_count == 2
+    assert record.last_error == "Layer 3 unavailable"
+    assert record.next_retry_at == expected_next_retry
+
+    status = await async_client.get(f"/v1/extract/status/{job_id}")
+    body = status.json()
+    assert body["ingestion_status"] == "queued"
+    assert body["retry_count"] == 2
+    assert body["next_retry_at"] == expected_next_retry.isoformat()
+
+
 def build_layer3_full_double_class():
     """Build a Layer3 client double that simulates full ingest + status flow."""
 
@@ -679,3 +769,39 @@ async def test_cross_layer_extract_ingest_status_flow(
     assert status_body["completed_at"] is not None
 
 
+@pytest.mark.asyncio
+async def test_run_extract_and_ingest_quarantines_invalid_artifacts_before_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifacts = build_artifacts("job-invalid", "https://example.com/doc")
+    artifacts.result.tenant_id = ""
+
+    queued = {"called": False}
+    quarantined = {"called": False}
+
+    async def fake_run_extraction(
+        job_id: str, source_url: str, content: str, config: dict, mark_pipeline_complete: bool = True
+    ):
+        return artifacts
+
+    async def fake_queue_for_retry(*args, **kwargs):
+        queued["called"] = True
+
+    async def fake_quarantine_validation_failure(**kwargs):
+        quarantined["called"] = True
+        return None
+
+    monkeypatch.setattr(api_main, "run_extraction", fake_run_extraction)
+    monkeypatch.setattr(api_main, "_queue_for_retry", fake_queue_for_retry)
+    monkeypatch.setattr(api_main, "_quarantine_validation_failure", fake_quarantine_validation_failure)
+    monkeypatch.setattr(api_main, "Layer3KnowledgeClient", build_layer3_client_class(healthy=False, success=False))
+
+    await api_main.run_extract_and_ingest(
+        job_id="job-invalid",
+        source_url="https://example.com/doc",
+        content="content",
+        config={"tenant_id": "tenant-1", "schema_version": "v1", "model_version": "gpt-4o"},
+    )
+
+    assert quarantined["called"] is True
+    assert queued["called"] is False

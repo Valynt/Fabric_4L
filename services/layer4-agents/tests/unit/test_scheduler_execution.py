@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 """Regression tests for real scheduler task dispatch."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.engine.scheduler import ScheduledTask, TaskScheduler
+from layer4_agents.engine.scheduler import ScheduledTask, TaskScheduler
 
 
 def _task(capability: str, parameters: dict | None = None) -> ScheduledTask:

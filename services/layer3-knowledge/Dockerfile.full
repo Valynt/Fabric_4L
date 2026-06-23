@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 
 WORKDIR /app
 ENV UV_TORCH_BACKEND=cpu
@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir uv
 COPY services/layer3-knowledge/pyproject.toml services/layer3-knowledge/uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
-FROM python:3.11.11-slim-bookworm
+FROM python:3.11.13-slim-bookworm
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*

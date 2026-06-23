@@ -12,7 +12,7 @@ param(
     [switch]$QuickMode,              # Only run chromium + smoke for fast feedback
     [switch]$AllowDegradedHealth,  # Continue even if some backends are unhealthy (for investigation)
     [switch]$InvestigateOnly,        # Run health checks and smoke only, skip full suite
-    [string]$BackendComposeFile = "../docker-compose.full.yml",
+    [string]$BackendComposeFile = "infra/compose/docker-compose.full.yml",
     [int[]]$BackendPorts = @(8001, 8002, 8003, 8004, 8005, 8006),
     [int]$FrontendPort = 3001,
     [int]$HealthCheckTimeout = 60,

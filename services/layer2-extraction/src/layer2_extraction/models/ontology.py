@@ -101,6 +101,11 @@ class Capability(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("name")
     @classmethod
@@ -149,6 +154,11 @@ class UseCase(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("required_capabilities")
     @classmethod
@@ -194,6 +204,11 @@ class Persona(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("influenced_by")
     @classmethod
@@ -234,11 +249,16 @@ class ValueDriver(BaseModel):
     description: str = Field(..., min_length=10)
     metrics: list[str] = Field(default_factory=list)
     formula_string: str | None = None
-    unit: str = Field(..., min_length=1, max_length=50)
+    unit: str | None = Field(default=None, min_length=1, max_length=50)
     time_to_value: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("formula_string")
     @classmethod
@@ -319,6 +339,11 @@ class ValueMetric(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("value_driver_ids")
     @classmethod
@@ -383,6 +408,11 @@ class Feature(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=datetime.utcnow)
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("parent_capability_id")
     @classmethod
@@ -424,6 +454,13 @@ class ExtractionResult(BaseModel):
     processed_at: datetime = Field(default_factory=datetime.utcnow)
     chunks_processed: int = 0
     errors: list[str] = Field(default_factory=list)
+    tenant_id: str | None = None
+    schema_version: str = ""
+    prompt_version: str = ""
+    prompt_template_version: str = ""
+    prompt_template_hash: str | None = None
+    model_version: str = ""
+    security_metadata: list["ExtractionSecurityMetadata"] = Field(default_factory=list)
 
     def get_all_entities(self) -> Sequence[BaseModel]:
         """Return all extracted entities as a flat list."""
@@ -444,6 +481,16 @@ class ExtractionResult(BaseModel):
         return None
 
     model_config = ConfigDict(extra="forbid")
+
+
+class ExtractionSecurityMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    suspicious_instruction_hits: list[str] = Field(default_factory=list)
+    high_risk_token_hits: list[str] = Field(default_factory=list)
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    risk_level: str = "none"
+    rejection_tier: str = "allow"
 
 
 # =============================================================================

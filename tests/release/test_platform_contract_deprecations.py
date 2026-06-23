@@ -5,12 +5,13 @@ from datetime import date
 import fnmatch
 import json
 from pathlib import Path
+import subprocess
 
 import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CANONICAL_ROOTS = ("value_fabric", "services", "apps/web")
+CANONICAL_ROOTS = ("packages/shared/src", "services", "apps/web")
 EXCLUDED_DIR_NAMES = {"docs", "examples", "example", "node_modules", ".git", ".venv", "venv", "dist", "build", "__pycache__"}
 EXCEPTIONS_REGISTER = REPO_ROOT / "docs" / "governance" / "deprecations.json"
 
@@ -30,7 +31,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-001",
         deprecated_pattern="request.state.context",
         canonical_replacement="request.state.governance_context",
-        replacement_module_path="value_fabric/shared/identity/",
+        replacement_module_path="packages/shared/src/value_fabric/shared/identity/",
         deadline=date(2026, 5, 15),
         file_globs=("*.py",),
     ),
@@ -38,7 +39,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-002",
         deprecated_pattern="get_db_with_tenant(",
         canonical_replacement="get_db_from_context()",
-        replacement_module_path="value_fabric/shared/db/",
+        replacement_module_path="packages/shared/src/value_fabric/shared/db/",
         deadline=date(2026, 6, 1),
         file_globs=("*.py",),
     ),
@@ -46,7 +47,7 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
         rule_id="PCD-003",
         deprecated_pattern="datetime.utcnow()",
         canonical_replacement="datetime.now(timezone.utc)",
-        replacement_module_path="value_fabric/ and services/ Python runtime modules",
+        replacement_module_path="packages/shared/src/value_fabric/shared/ and services/ Python runtime modules",
         deadline=date(2026, 6, 1),
         file_globs=("*.py",),
     ),
@@ -63,17 +64,23 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
 
 def _iter_target_files() -> list[Path]:
     files: list[Path] = []
-    for root_name in CANONICAL_ROOTS:
-        root = REPO_ROOT / root_name
-        if not root.exists():
+    result = subprocess.run(
+        ["git", "ls-files", *CANONICAL_ROOTS],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.fail(f"Could not enumerate tracked runtime files: {result.stderr}")
+
+    for raw_path in result.stdout.splitlines():
+        path = REPO_ROOT / raw_path
+        if not path.is_file():
             continue
-        for path in root.rglob("*"):
-            if not path.is_file():
-                continue
-            parts = set(path.parts)
-            if parts.intersection(EXCLUDED_DIR_NAMES):
-                continue
-            files.append(path)
+        if set(path.parts).intersection(EXCLUDED_DIR_NAMES):
+            continue
+        files.append(path)
     return files
 
 

@@ -1,3 +1,9 @@
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
+
 """
 FastAPI router for Model Registry API.
 
@@ -21,7 +27,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import and_, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +59,28 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["model-registry"])
+
+
+async def _get_tenant_model_or_404(
+    db: AsyncSession,
+    tenant_id: UUID,
+    model_id: UUID,
+    *,
+    include_deprecated: bool = True,
+) -> ModelVersion:
+    conditions = [
+        ModelVersion.id == model_id,
+        ModelVersion.tenant_id == tenant_id,
+    ]
+    if not include_deprecated:
+        conditions.append(ModelVersion.deprecated_at.is_(None))
+
+    result = await db.execute(select(ModelVersion).where(and_(*conditions)))
+    model = result.scalar_one_or_none()
+    if not model:
+        suffix = " or deprecated" if not include_deprecated else ""
+        raise NotFoundError(message=f"ModelVersion {model_id} not found{suffix}")
+    return model
 
 
 # ============================================================================
@@ -88,10 +116,7 @@ async def create_model_version(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Model version already exists: {payload.provider.value}/{payload.name}@{payload.version}",
-        )
+        raise ConflictError(message=f"Model version already exists: {payload.provider.value}/{payload.name}@{payload.version}")
 
     # If setting as default, clear other defaults for this provider
     if payload.is_default:
@@ -217,10 +242,7 @@ async def get_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     return ModelVersionResponse.model_validate(model)
 
@@ -251,16 +273,10 @@ async def deprecate_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     if model.deprecated_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"ModelVersion {model_id} is already deprecated",
-        )
+        raise ValidationError(message=f"ModelVersion {model_id} is already deprecated")
 
     model.deprecated_at = datetime.now(UTC)
     model.deprecation_reason = reason or "Manually deprecated"
@@ -304,16 +320,10 @@ async def set_default_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message=f"ModelVersion {model_id} not found")
 
     if model.deprecated_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot set deprecated model as default",
-        )
+        raise ValidationError(message = "Cannot set deprecated model as default")
 
     # Clear other defaults for this provider
     await db.execute(
@@ -376,16 +386,10 @@ async def promote_model(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found or deprecated",
-        )
+        raise NotFoundError(message=f"ModelVersion {model_id} not found or deprecated")
 
     if not model.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot deploy inactive model version",
-        )
+        raise ValidationError(message = "Cannot deploy inactive model version")
 
     # Check for existing deployment
     existing_result = await db.execute(
@@ -420,6 +424,7 @@ async def promote_model(
             deployed_by=caller.user_id or caller.email,
         )
         db.add(deployment)
+        await db.flush()
         await db.refresh(deployment)
 
     # If making default, clear other defaults for this environment
@@ -471,6 +476,7 @@ async def get_model_deployments(
 ) -> ModelDeploymentListResponse:
     """Get deployments for a model version."""
     tenant_id = caller.tenant_id
+    await _get_tenant_model_or_404(db, tenant_id, model_id)
 
     result = await db.execute(
         select(ModelDeployment).where(
@@ -547,10 +553,7 @@ async def rollback_deployment(
     deployment = result.scalar_one_or_none()
 
     if not deployment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deployment {deployment_id} not found",
-        )
+        raise NotFoundError(message=f"Deployment {deployment_id} not found")
 
     previous_status = deployment.status
 
@@ -606,10 +609,7 @@ async def create_evaluation(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {payload.model_version_id} not found",
-        )
+        raise NotFoundError(message=f"ModelVersion {payload.model_version_id} not found")
 
     evaluation = ModelEvaluation(
         tenant_id=tenant_id,
@@ -628,6 +628,7 @@ async def create_evaluation(
     )
 
     db.add(evaluation)
+    await db.flush()
     await db.refresh(evaluation)
 
     logger.info(
@@ -697,6 +698,7 @@ async def get_model_evaluations(
 ) -> ModelEvaluationListResponse:
     """Get evaluations for a model version."""
     tenant_id = caller.tenant_id
+    await _get_tenant_model_or_404(db, tenant_id, model_id)
 
     result = await db.execute(
         select(ModelEvaluation).where(

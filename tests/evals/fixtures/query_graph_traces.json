@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "query_graph",
+  "traces": [
+    {
+      "id": "qg-001",
+      "description": "Read value drivers linked to an account",
+      "input": {
+        "cypher_query": "MATCH (a:Account {id: $account_id})-[:HAS_VALUE_DRIVER]->(v:ValueDriver) RETURN v.name AS name, v.impact AS impact",
+        "parameters": {
+          "account_id": "account-acme"
+        }
+      },
+      "assertions": {
+        "row_count": 2
+      }
+    }
+  ]
+}

@@ -1,27 +1,37 @@
 /**
  * Organization selection / creation gate.
  *
- * Phase 2 invariant: the gateway requires an active Clerk org id to mint a
- * Fabric4L AuthContext envelope. Users without an active org cannot reach
+ * The gateway requires an active Clerk org id to mint a
+ * ValuePact AuthContext envelope. Users without an active org cannot reach
  * tenant-scoped routes; we send them here to pick or create one.
  */
-import { CreateOrganization, OrganizationList } from "@clerk/react";
-import { useNavigate } from "react-router-dom";
+import { OrganizationList } from "@clerk/react";
+import { useOrganization } from "@clerk/react";
+import { Navigate } from "react-router-dom";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
-import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+const POST_ORG_REDIRECT_URL = "/home";
 
 export default function SelectOrganizationPage() {
-  const urls = getClerkUrls();
-  const navigate = useNavigate();
-
+  // Clerk hooks may only be called inside <ClerkProvider>. In legacy mode the
+  // workspace-selection concept does not exist, so redirect home immediately
+  // without rendering the inner component that calls Clerk hooks.
   if (!isClerkAuthEnabled()) {
-    // No org concept under legacy auth; send the user back to home.
-    navigate("/home", { replace: true });
-    return null;
+    return <Navigate to={POST_ORG_REDIRECT_URL} replace />;
+  }
+  return <SelectOrganizationInner />;
+}
+
+function SelectOrganizationInner() {
+  const postOrgRedirectUrl = POST_ORG_REDIRECT_URL;
+  const { isLoaded: orgLoaded, organization } = useOrganization();
+
+  if (orgLoaded && organization) {
+    return <Navigate to={postOrgRedirectUrl} replace />;
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center gap-8 p-6">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center p-6">
       <header className="text-center">
         <h1 className="text-2xl font-semibold">Choose a workspace</h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -29,19 +39,11 @@ export default function SelectOrganizationPage() {
         </p>
       </header>
 
-      <OrganizationList
-        hidePersonal
-        afterSelectOrganizationUrl={urls.afterSignInUrl}
-        afterCreateOrganizationUrl={urls.afterSignInUrl}
-      />
-
-      <div className="w-full">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Or create a new workspace
-        </h2>
-        <CreateOrganization
-          routing="hash"
-          afterCreateOrganizationUrl={urls.afterSignInUrl}
+      <div className="mt-8 w-full max-w-md">
+        <OrganizationList
+          hidePersonal
+          afterSelectOrganizationUrl={postOrgRedirectUrl}
+          afterCreateOrganizationUrl={postOrgRedirectUrl}
         />
       </div>
     </div>

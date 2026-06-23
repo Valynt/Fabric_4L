@@ -22,6 +22,7 @@ spec:
         app: layer2-extraction
         component: layer2
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -62,7 +63,7 @@ spec:
               cpu: "50m"
       containers:
         - name: api
-          image: ghcr.io/bmsull560/fabric_4l/layer2-extraction:main
+          image: ghcr.io/bmsull560/fabric_4l/layer2-extraction@sha256:13029594c9b8a1084e95fddac9b5143605f947b974c742ff8c84b2a0729423ec
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -83,7 +84,11 @@ spec:
             - name: LLM_MODEL
               value: "gpt-4o"
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: NEO4J_URI
               value: "bolt://neo4j-db:7687"
             - name: NEO4J_USER

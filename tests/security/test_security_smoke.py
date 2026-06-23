@@ -9,6 +9,7 @@ Full suite in other test files runs on scheduled workflows.
 """
 
 import time
+from datetime import datetime, timedelta
 from typing import Callable
 
 import jwt as jwt_lib
@@ -42,6 +43,24 @@ def _disable_rate_limiting_for_smoke(monkeypatch):
         return RateLimitResult(allowed=True, remaining=999, reset_at=time.time() + 60, retry_after=None)
 
     monkeypatch.setattr(RedisRateLimiter, "check", _always_allow)
+
+    try:
+        from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
+            RateLimitResult as TenantRateLimitResult,
+            TenantRateLimiter,
+        )
+    except ImportError:
+        return
+
+    async def _tenant_always_allow(self, **kwargs):
+        return TenantRateLimitResult(
+            allowed=True,
+            limit=1000,
+            remaining=999,
+            reset_at=datetime.utcnow() + timedelta(seconds=60),
+        )
+
+    monkeypatch.setattr(TenantRateLimiter, "check_rate_limit", _tenant_always_allow)
 
 
 class TestCriticalTenantIsolation:
@@ -274,9 +293,13 @@ class TestCriticalAccessControl:
             assert entity.get("role") != "admin", "Mass assignment: role was set"
             assert entity.get("is_admin") is not True, "Mass assignment: is_admin was set"
 
-    @pytest.mark.xfail(strict=True, reason='RBAC method enforcement returns 405 (method not allowed) not 403 in test client')
     def test_read_only_cannot_write(self, client: TestClient, jwt_encoder: Callable[[dict], str]):
-        """Read-only permission blocks write operations."""
+        """Read-only principal is forbidden from a mutating admin endpoint.
+
+        ``DELETE /api/v1/entities/{entity_id}`` requires ``TENANT_ADMIN`` or
+        ``SUPER_ADMIN``. A read-only user must receive 403 Forbidden, proving
+        RBAC enforcement rejects the write attempt before any business logic runs.
+        """
         read_token = jwt_encoder({
             "sub": "read-only",
             "tenant_id": "tenant-a",
@@ -284,14 +307,12 @@ class TestCriticalAccessControl:
             "permissions": ["read"],
         })
 
-        response = client.post(
-            "/api/v1/entities",
+        response = client.delete(
+            "/api/v1/entities/test-entity-id",
             headers={"Authorization": f"Bearer {read_token}"},
-            json={"name": "test-entity"},
         )
-        # 403/401 = explicitly rejected; 404 = endpoint not implemented (also blocks write)
-        assert response.status_code in [403, 401, 404], (
-            f"Read-only user allowed to write, got {response.status_code}"
+        assert response.status_code == 403, (
+            f"Read-only user must be forbidden from mutating endpoint, got {response.status_code}"
         )
 
 
