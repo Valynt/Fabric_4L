@@ -1,6 +1,10 @@
 /**
  * ROITab — ROI Calculator & Financial Projections
  *
+ * TODO(dead-code): FABRIC-REM-001 — evaluate for removal; no runtime importer
+ * currently references this file. The active ROI calculator tab uses
+ * `apps/web/src/pages/calculator/ROITab.tsx`.
+ *
  * DIL-backed tab wired to the ROI Calculator Service (L3).
  * Uses: useCalculateROI, useROITemplates, useIndustryBenchmarks from useROICalculator hook.
  *
