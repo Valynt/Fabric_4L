@@ -1,35 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
-import sys
-import types
 from types import SimpleNamespace
 
 import pytest
 
-SRC_ROOT = Path(__file__).resolve().parents[2] / "services/layer4-agents/src"
-SERVICES_ROOT = SRC_ROOT / "services"
-services_pkg = types.ModuleType("services")
-services_pkg.__path__ = [str(SERVICES_ROOT)]
-sys.modules["services"] = services_pkg
-
-iface_spec = importlib.util.spec_from_file_location("services.llm_adapter_interfaces", SERVICES_ROOT / "llm_adapter_interfaces.py")
-iface_module = importlib.util.module_from_spec(iface_spec)
-assert iface_spec and iface_spec.loader
-sys.modules["services.llm_adapter_interfaces"] = iface_module
-iface_spec.loader.exec_module(iface_module)
-
-provider_spec = importlib.util.spec_from_file_location("services.llm_provider", SERVICES_ROOT / "llm_provider.py")
-provider_module = importlib.util.module_from_spec(provider_spec)
-assert provider_spec and provider_spec.loader
-sys.modules["services.llm_provider"] = provider_module
-provider_spec.loader.exec_module(provider_module)
-
-AdapterError = iface_module.AdapterError
-CompletionRequest = iface_module.CompletionRequest
-ErrorCategory = iface_module.ErrorCategory
-get_provider_adapters = provider_module.get_provider_adapters
+from layer4_agents.services.llm_adapter_interfaces import (
+    AdapterError,
+    CompletionRequest,
+    ErrorCategory,
+)
+from layer4_agents.services.llm_provider import get_provider_adapters
 
 
 class _FakeCreate:

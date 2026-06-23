@@ -23,6 +23,7 @@
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
+	check-temporal-skips \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -90,6 +91,12 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+	@echo "→ Running temporal skip guard..."
+	@$(PYTHON) scripts/ci/check_temporal_skips.py \
+		--baseline config/ci/temporal_skip_baseline.json \
+		--exclude "tests/ci/test_temporal_skip_guard.py" \
+		--json-out artifacts/temporal-skip-guard.json \
+		--md-out artifacts/temporal-skip-guard.md
 	@echo "✅  Structure verification passed"
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
@@ -179,6 +186,15 @@ check-pytest-skip-governance: ## Enforce pytest skip governance from collection 
 	@set +e; $(PYTHON) -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
 	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
+
+check-temporal-skips: ## Guard against net-new unregistered hard-coded temporal test skips
+	@echo "→ Checking for unregistered temporal skips..."
+	@$(PYTHON) scripts/ci/check_temporal_skips.py \
+		--baseline config/ci/temporal_skip_baseline.json \
+		--exclude "tests/ci/test_temporal_skip_guard.py" \
+		--json-out artifacts/temporal-skip-guard.json \
+		--md-out artifacts/temporal-skip-guard.md
+	@echo "✅ Temporal skip guard passed"
 
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
 	@$(PYTHON) scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
