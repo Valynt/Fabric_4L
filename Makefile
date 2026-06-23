@@ -1,6 +1,6 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
-        typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
+        typecheck-layer3 typecheck-layer4 typecheck-layer4-strict typecheck-layer5 typecheck-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
@@ -271,6 +271,8 @@ MYPY_LAYER2_FLAGS = --strict --warn-return-any --warn-unused-configs
 MYPY_LAYER3_FLAGS = --strict --warn-return-any --warn-unused-configs
 # Layer 4: Moderate - typed with some flexibility for agent patterns
 MYPY_LAYER4_FLAGS = --warn-return-any --warn-unused-configs
+# Layer 4: Strict - unified canonical namespace
+MYPY_LAYER4_STRICT_FLAGS = --strict --warn-return-any --warn-unused-configs
 # Layer 5: Strict - fully typed codebase
 MYPY_LAYER5_FLAGS = --strict --warn-return-any --warn-unused-configs
 # Layer 2.5: Moderate - signal refinery with some flexibility
@@ -311,6 +313,11 @@ typecheck-layer3: ## Type-check Layer 3 only
 typecheck-layer4: ## Type-check Layer 4 only
 	@echo "→ Type-checking Layer 4..."
 	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
+
+typecheck-layer4-strict: ## Type-check unified Layer 4 namespace strictly
+	@echo "→ Type-checking Layer 4 (strict, unified namespace)..."
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/layer4_agents/ -- $(MYPY_LAYER4_STRICT_FLAGS)
+	@echo "✅ Layer 4 strict type-check passed"
 
 typecheck-layer5: ## Type-check Layer 5 only
 	@echo "→ Type-checking Layer 5..."

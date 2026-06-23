@@ -44,7 +44,7 @@ async def enqueue_crm_sync_job(
         separators=(",", ":"),
     )
     if redis_client is not None:
-        await redis_client.lpush(CRM_SYNC_QUEUE_KEY, payload)
+        await redis_client.lpush(CRM_SYNC_QUEUE_KEY, payload)  # type: ignore[misc]
         return
 
     redis_url = os.getenv("REDIS_URL")

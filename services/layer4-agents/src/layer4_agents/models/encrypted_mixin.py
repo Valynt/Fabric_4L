@@ -111,7 +111,7 @@ class PIIMixin:
 
     @declared_attr.directive
     @classmethod
-    def pii_key_version(cls):
+    def pii_key_version(cls) -> Column[str]:
         """Track the encryption key version used for the most recent write.
 
         Enables deterministic re-encryption when rotating keys: select rows
@@ -271,7 +271,7 @@ class PIIMixin:
 
 @event.listens_for(PIIMixin, "before_insert", propagate=True)
 @event.listens_for(PIIMixin, "before_update", propagate=True)
-def _pii_auto_populate_hash(mapper: Mapper, connection: Any, target: PIIMixin) -> None:
+def _pii_auto_populate_hash(mapper: Mapper[PIIMixin], connection: Any, target: PIIMixin) -> None:
     """Ensure blind indexes are populated before persistence.
 
     Acts as a defense-in-depth guard: even if the hybrid-property setter

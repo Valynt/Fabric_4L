@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from layer4_agents.interfaces.benchmark_client import (
+from ..interfaces.benchmark_client import (
     BenchmarkDataset,
     ComparisonRequest,
     ComparisonResult,

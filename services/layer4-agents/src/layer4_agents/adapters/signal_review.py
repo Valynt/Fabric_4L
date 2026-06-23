@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any, cast
 
 from layer4_agents.integration.layer3_client import Layer3Client
-from layer4_agents.interfaces.signal_review import SignalReviewPort
+
+from ..interfaces.signal_review import SignalReviewPort
 
 
 class Layer3SignalReviewAdapter(SignalReviewPort):
