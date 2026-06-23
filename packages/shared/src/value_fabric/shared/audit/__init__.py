@@ -8,10 +8,6 @@ Provides:
 - AuditWorker — background worker draining queue to PostgreSQL
 """
 
-from .emitter import AuditEmitter, emit_audit_event
-from .redis_queue import RedisAuditQueue
-from .worker import AuditWorker
-from .siem_integration import SIEMAuditSink, SIEMDeliveryConfig
 from .models import (
     AuditAction,
     AuditEvent,
@@ -23,6 +19,19 @@ from .models import (
     MemoryAccessRecord,
     ReplaySnapshotRecord,
 )
+from .redis_queue import RedisAuditQueue
+from .worker import AuditWorker
+from .siem_integration import SIEMAuditSink, SIEMDeliveryConfig
+
+# Lazy-load emitter to avoid circular import with Layer 4 routes
+# that import from this package during module initialization.
+def __getattr__(name: str):
+    if name in ("AuditEmitter", "emit_audit_event"):
+        from .emitter import AuditEmitter, emit_audit_event
+        globals()["AuditEmitter"] = AuditEmitter
+        globals()["emit_audit_event"] = emit_audit_event
+        return AuditEmitter if name == "AuditEmitter" else emit_audit_event
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "TenantResolvedDetails",
