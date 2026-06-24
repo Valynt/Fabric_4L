@@ -148,6 +148,8 @@ class TestDeprecationBudget:
         expired = []
 
         for item in deprecations:
+            if item.get("status", "active") == "resolved":
+                continue
             target = item.get("targetRemoval")
             if target and target != "TBD":
                 try:

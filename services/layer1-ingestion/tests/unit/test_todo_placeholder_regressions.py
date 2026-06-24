@@ -9,7 +9,7 @@ API_MAIN_PATH = (
     / "api"
     / "main.py"
 )
-TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "shared" / "tasks.py"
+TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
 
 
 def test_api_runtime_placeholders_not_hardcoded() -> None:
@@ -46,4 +46,3 @@ def test_task_extraction_time_not_hardcoded_zero() -> None:
     """Extraction timing in storage stage must not use a fixed 0 value."""
     source = TASKS_PATH.read_text(encoding="utf-8")
     assert "extraction_time_ms=0" not in source
-

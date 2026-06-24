@@ -90,7 +90,7 @@ function RequireClerkAuthOrgCheck({
       navigateTo(urls.signInUrl, { replace: true });
     } else if (status === 403) {
       hasNavigated.current = true;
-      navigateTo("/forbidden", { replace: true });
+      navigateTo("/forbidden?wfStep=0", { replace: true });
     }
   }, [tenantError, navigateTo, urls.signInUrl]);
 

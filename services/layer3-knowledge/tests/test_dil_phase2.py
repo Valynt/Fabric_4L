@@ -624,7 +624,7 @@ class TestROITemplateManagement:
         }])
         svc = ROICalculatorService(driver)
 
-        result = await svc.create_template(
+        result = await svc.create_template_for_tenant(
             TENANT_ID,
             ROITemplateCreate(name="Test Template", description="Desc"),
         )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 #!/usr/bin/env python3
-"""Fail CI when Layer 5 compatibility modules drift from shim-only adapters."""
+"""Fail CI when Layer 5 compatibility modules drift from canonical ownership."""
 
 
 import argparse
@@ -99,10 +99,13 @@ def _shim_violations(repo_root: Path | None = None) -> list[str]:
     shim_init = shim_root / "__init__.py"
     violations: list[str] = []
 
-    # Per ADR-027, Layer 5 (like all other layers) uses a namespace package shim:
-    # value_fabric/layer5/__init__.py appends the canonical service src to __path__.
+    # Layer 5 completed shim removal on 2026-06-22. If the compatibility tree is
+    # absent, canonical ownership is valid and there are no shim files to verify.
+    if not shim_root.exists():
+        pass
+    # Historical namespace shims appended the canonical service src to __path__.
     # When this model is active, per-module shim files are NOT required.
-    if _is_namespace_package_shim(shim_init, canonical_root):
+    elif _is_namespace_package_shim(shim_init, canonical_root):
         # Ensure the shim __init__.py itself doesn't contain implementation logic.
         if not _is_thin_shim(shim_init, "layer5_ground_truth"):
             # Namespace shims are allowed to use __path__ appending instead of
@@ -141,7 +144,7 @@ def _shim_violations(repo_root: Path | None = None) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Fail CI when Layer 5 compatibility modules drift from shim-only adapters."
+        description="Fail CI when Layer 5 compatibility modules drift from canonical ownership."
     )
     parser.add_argument(
         "--repo-root",
@@ -158,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print("ERROR: Layer 5 source-of-truth contract failed.", file=sys.stderr)
     print("Canonical source-of-truth: services/layer5-ground-truth/src/layer5_ground_truth", file=sys.stderr)
-    print("Compatibility tree must stay shim-only: value_fabric/layer5", file=sys.stderr)
+    print("Compatibility tree must be absent or shim-only: value_fabric/layer5", file=sys.stderr)
     for violation in violations:
         print(f" - {violation}", file=sys.stderr)
     return 1

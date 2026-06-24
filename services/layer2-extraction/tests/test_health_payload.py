@@ -101,7 +101,7 @@ async def test_build_health_payload_reports_layer3_exception_without_leaking_det
             "name": "layer3_knowledge",
             "status": "unhealthy",
             "required": True,
-            "reason": None,
+            "reason": "dependency_probe_error",
             "error": "Layer 3 health check failed",
         }
     ]
@@ -142,6 +142,7 @@ async def test_layer3_dependency_status_preserves_internal_error_code() -> None:
         "response_time_ms": None,
         "error": "Layer 3 health check failed",
         "error_code": "L3_HEALTH_CHECK_ERROR",
+        "failure_reason": "dependency_probe_error",
     }
 
 

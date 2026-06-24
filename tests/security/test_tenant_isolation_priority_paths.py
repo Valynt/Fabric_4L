@@ -5,7 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 PRIORITY_FILES = [
-    "services/layer1-ingestion/src/api/routes/compatibility.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py",
     "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer3-knowledge/src/api/routes/knowledge.py",
     "services/layer3-knowledge/src/api/routes/query_search.py",

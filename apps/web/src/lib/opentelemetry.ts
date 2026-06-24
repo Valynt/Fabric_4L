@@ -7,7 +7,7 @@ import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-u
 import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch';
 import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { trace } from '@opentelemetry/api';
 import { logDebug } from '@/lib/telemetry';
@@ -22,25 +22,25 @@ const shouldEnable = ['production', 'staging'].includes(ENVIRONMENT);
 
 if (shouldEnable) {
   const provider = new WebTracerProvider({
-    resource: new Resource({
+    resource: resourceFromAttributes({
       [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_NAME,
       [SemanticResourceAttributes.SERVICE_VERSION]: SERVICE_VERSION,
       [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: ENVIRONMENT,
     }),
+    spanProcessors: [
+      new BatchSpanProcessor(
+        new OTLPTraceExporter({
+          url: JAEGER_ENDPOINT,
+          headers: {},
+        }),
+        {
+          maxQueueSize: 2048,
+          maxExportBatchSize: 512,
+          scheduledDelayMillis: 5000,
+        },
+      ),
+    ],
   });
-
-  const exporter = new OTLPTraceExporter({
-    url: JAEGER_ENDPOINT,
-    headers: {},
-  });
-
-  provider.addSpanProcessor(
-    new BatchSpanProcessor(exporter, {
-      maxQueueSize: 2048,
-      maxExportBatchSize: 512,
-      scheduledDelayMillis: 5000,
-    })
-  );
 
   provider.register();
 

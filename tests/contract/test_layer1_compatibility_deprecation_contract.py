@@ -11,7 +11,16 @@ def _load_module(path: Path) -> ast.Module:
 
 
 def test_layer1_compatibility_routes_emit_deprecation_telemetry_contract() -> None:
-    module = _load_module(REPO_ROOT / "services" / "layer1-ingestion" / "src" / "api" / "routes" / "compatibility.py")
+    module = _load_module(
+        REPO_ROOT
+        / "services"
+        / "layer1-ingestion"
+        / "src"
+        / "layer1_ingestion"
+        / "api"
+        / "routes"
+        / "compatibility.py"
+    )
     source = ast.unparse(module)
 
     assert "legacy_route_deprecation_usage" in source

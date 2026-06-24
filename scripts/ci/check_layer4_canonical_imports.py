@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when deprecated ``value_fabric.layer4`` shim imports are introduced.
+"""Fail when deprecated Layer 4 namespace imports are introduced.
 
 The shim has been neutralized. All Layer 4 code must use canonical imports:
   - ``layer4_agents.*``   for the package namespace
@@ -26,7 +26,14 @@ ALLOWED_PREFIXES = (
     "tests/ci/test_layer4_canonical_service_imports.py",
     "services/layer4-agents/tests/test_code_quality.py",
 )
-PATTERN = re.compile(r"(^|\s)(from|import)\s+value_fabric\.layer4(\.|\s|$)")
+PATTERN = re.compile(
+    r"(^|\s)(from|import)\s+("
+    r"value_fabric\.layer4|"
+    r"value_fabric\.layer4_agents|"
+    r"src\.fabric\.l4|"
+    r"fabric\.l4"
+    r")(\.|\s|$)"
+)
 
 
 def main() -> int:
@@ -47,12 +54,15 @@ def main() -> int:
                         violations.append(f"{rel}:{i}: {line.strip()}")
 
     if violations:
-        print("Layer 4 shim import check failed. Use canonical 'layer4_agents.*' imports instead of 'value_fabric.layer4'.", file=sys.stderr)
+        print(
+            "Layer 4 shim import check failed. Use canonical 'layer4_agents.*' imports instead of deprecated Layer 4 namespaces.",
+            file=sys.stderr,
+        )
         for item in violations:
             print(f"  - {item}", file=sys.stderr)
         return 1
 
-    print("OK: no deprecated 'value_fabric.layer4' shim imports found in scanned roots.")
+    print("OK: no deprecated Layer 4 namespace imports found in scanned roots.")
     return 0
 
 

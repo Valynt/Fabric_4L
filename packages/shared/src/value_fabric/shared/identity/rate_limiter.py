@@ -62,6 +62,11 @@ class RedisRateLimiter:
         self._fallback_limiter = _LocalFallbackRateLimiter()
         self._legacy_fail_open = fail_open
 
+    @property
+    def redis_client(self) -> Any | None:
+        """Return the underlying Redis client for shared infrastructure adapters."""
+        return self._adapter._redis
+
     async def check(self, key: str, config: RateLimitConfig) -> RateLimitResult:
         """Check whether a request is allowed under the given config."""
         if config.requests_per_hour is not None:

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from src.fabric.l4.types import (
-    ScheduledTask,
+from layer4_agents.engine.ports import (
     TaskExecutionPort,
     TaskExecutionRequest,
     TaskSchedulerPort,
 )
+from layer4_agents.engine.scheduler import ScheduledTask
 
 
 class LegacyTaskExecutionAdapter:

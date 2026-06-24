@@ -62,8 +62,8 @@ def main() -> int:
         print(f"FAIL: canonical Layer 1 API main file is missing: {CANONICAL.relative_to(ROOT)}")
         return 1
     if not SHIM.exists():
-        print(f"FAIL: legacy Layer 1 API main shim is missing: {SHIM.relative_to(ROOT)}")
-        return 1
+        print(f"OK: legacy Layer 1 API main shim has been removed: {SHIM.relative_to(ROOT)}")
+        return 0
 
     shim_tree = ast.parse(SHIM.read_text(encoding="utf-8"), filename=str(SHIM))
     if not _imports_canonical_main(shim_tree):

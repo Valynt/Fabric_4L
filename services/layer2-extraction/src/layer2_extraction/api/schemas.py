@@ -27,7 +27,7 @@ class ExtractRequest(BaseModel):
     content_id: str = Field(..., description="ID of content to extract from (from Layer 1)")
     source_url: str = Field(..., description="URL of source document")
     markdown_content: str = Field(..., description="Markdown content to extract from")
-    extraction_config: dict = Field(default_factory=default_extraction_config)
+    extraction_config: dict[str, object] = Field(default_factory=default_extraction_config)
 
 
 class ExtractResponse(BaseModel):
@@ -58,7 +58,7 @@ class EntityListResponse(BaseModel):
     """List of entities in the ontology."""
 
     entity_type: str
-    entities: list[dict]
+    entities: list[dict[str, object]]
     total: int
 
 
@@ -66,18 +66,18 @@ class RelationshipsResponse(BaseModel):
     """Relationships for an entity."""
 
     entity_id: str
-    incoming: list[dict]
-    outgoing: list[dict]
+    incoming: list[dict[str, object]]
+    outgoing: list[dict[str, object]]
 
 
 class ProvenanceResponse(BaseModel):
     """Provenance chain for an entity or output."""
 
     activity_id: str
-    source: dict
-    extraction: dict
-    steps: list[dict]
-    output: dict
+    source: dict[str, object]
+    extraction: dict[str, object]
+    steps: list[dict[str, object]]
+    output: dict[str, object]
 
 
 class ExtractAndIngestResponse(BaseModel):

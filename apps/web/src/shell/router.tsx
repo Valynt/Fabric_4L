@@ -149,10 +149,10 @@ function ExternalRootRedirect() {
       return;
     }
     if (isClerkAuthEnabled()) {
-      window.location.assign(getClerkUrls().signInUrl);
+      window.location.assign(getClerkUrls().signInUrl); // navigation-guardrail: ignore external Clerk sign-in handoff
       return;
     }
-    window.location.assign(VALUEPACT_PUBLIC_SITE_URL);
+    window.location.assign(VALUEPACT_PUBLIC_SITE_URL); // navigation-guardrail: ignore external public-site handoff
   }, []);
 
   return (

@@ -5,7 +5,7 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { ShieldX } from "lucide-react";
 
 export default function ForbiddenPage() {
-  const { navigate } = useNavigation();
+  const { navigateToHome } = useNavigation();
 
   return (
     <PageShell>
@@ -21,7 +21,7 @@ export default function ForbiddenPage() {
             <p className="text-sm text-muted-foreground">
               You do not have access to this resource. If you believe this is a mistake, contact your workspace administrator.
             </p>
-            <Button onClick={() => navigate("/home")} variant="outline" className="w-full">
+            <Button onClick={navigateToHome} variant="outline" className="w-full">
               Return home
             </Button>
           </CardContent>

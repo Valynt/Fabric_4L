@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
+    NotFoundError,
     ServiceUnavailableError,
 )
 
@@ -58,7 +59,14 @@ async def short_ingest_compatibility_boundary(
 async def entity_security_boundary(
     _ctx: RequestContext = Depends(require_authenticated),
 ) -> dict[str, list[Any]]:
-    raise ServiceUnavailableError(message="Entity listing is owned by the Layer 3 Knowledge Graph API. Use /api/v1/knowledge/entities instead.")
+    raise NotFoundError(message="Entity listing is owned by the Layer 3 Knowledge Graph API. Use /api/v1/knowledge/entities instead.")
+
+
+@router.post("/api/v1/entities", tags=["Security Compatibility"])
+async def entity_create_security_boundary(
+    _ctx: RequestContext = Depends(require_authenticated),
+) -> dict[str, str]:
+    raise NotFoundError(message="Entity creation is owned by the Layer 3 Knowledge Graph API. Use /api/v1/knowledge/entities instead.")
 
 
 @router.delete("/api/v1/entities/{entity_id}", tags=["Security Compatibility"])

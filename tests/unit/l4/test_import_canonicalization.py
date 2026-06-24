@@ -7,7 +7,7 @@ import sys
 
 
 def test_low_level_task_types_do_not_depend_on_layer4_runtime() -> None:
-    from src.fabric.l4.types import ScheduledTask, TaskPriority, TaskStatus
+    from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskStatus
 
     task = ScheduledTask(
         priority=TaskPriority.NORMAL.value,
@@ -31,10 +31,8 @@ def test_canonical_type_and_core_package_imports_are_lazy() -> None:
             "-c",
             (
                 "import sys; "
-                "import src.fabric.l4.types; "
-                "import src.fabric.l4.core; "
-                "import src.fabric.l4.core.scheduler; "
-                "loaded = [m for m in sys.modules if m.startswith('layer4_agents')]; "
+                "import layer4_agents.engine.ports; "
+                "loaded = [m for m in sys.modules if m.startswith('src.fabric')]; "
                 "raise SystemExit(1 if loaded else 0)"
             ),
         ],
@@ -51,7 +49,7 @@ def test_legacy_scheduler_uses_canonical_task_types() -> None:
         TaskPriority as LegacyTaskPriority,
         TaskStatus as LegacyTaskStatus,
     )
-    from src.fabric.l4.types import ScheduledTask, TaskPriority, TaskStatus
+    from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskStatus
 
     assert LegacyScheduledTask is ScheduledTask
     assert LegacyTaskPriority is TaskPriority
@@ -61,21 +59,19 @@ def test_legacy_scheduler_uses_canonical_task_types() -> None:
 def test_legacy_ports_use_canonical_task_execution_interfaces() -> None:
     from layer4_agents.engine import TaskExecutionPort as EnginePackagePort
     from layer4_agents.engine.ports import TaskExecutionPort as LegacyPort
-    from src.fabric.l4.core import TaskExecutionPort as CorePort
-    from src.fabric.l4.types import TaskExecutionPort, TaskSchedulerPort
+    from layer4_agents.engine.ports import TaskExecutionPort, TaskSchedulerPort
     from layer4_agents.engine.scheduler import TaskScheduler
 
     assert LegacyPort is TaskExecutionPort
     assert EnginePackagePort is TaskExecutionPort
-    assert CorePort is TaskExecutionPort
     assert isinstance(TaskScheduler(max_concurrent_tasks=1), TaskSchedulerPort)
 
 
-def test_core_namespace_redirects_scheduler_without_new_runtime_copy() -> None:
+def test_engine_namespace_exposes_scheduler_without_runtime_copy() -> None:
     from layer4_agents.engine.scheduler import TaskScheduler
-    from src.fabric.l4.core.scheduler import TaskScheduler as CoreTaskScheduler
+    from layer4_agents.engine.scheduler import TaskScheduler as EngineTaskScheduler
 
-    assert TaskScheduler is CoreTaskScheduler
+    assert TaskScheduler is EngineTaskScheduler
 
 
 def test_orchestration_controller_exposes_scheduler_dependency_injection() -> None:
@@ -88,9 +84,19 @@ def test_internal_transport_consumers_use_canonical_type_namespace() -> None:
     import layer4_agents.adapters.task_execution as task_execution_adapter
     import layer4_agents.engine.execution_dispatch as execution_dispatch
     import layer4_agents.engine.executor as executor
-    from src.fabric.l4.types import ScheduledTask, TaskPriority
+    from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority
 
     assert task_execution_adapter.ScheduledTask is ScheduledTask
     assert execution_dispatch.ScheduledTask is ScheduledTask
     assert executor.ScheduledTask is ScheduledTask
     assert executor.TaskPriority is TaskPriority
+
+
+def test_removed_src_fabric_namespace_is_not_importable() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import src.fabric.l4"],
+        cwd=".",
+        check=False,
+    )
+
+    assert result.returncode != 0

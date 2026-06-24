@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = REPO_ROOT / "contracts/jsonschema/system-route-health.json"
 
 HEALTH_FILES = [
-    "services/layer2-extraction/src/layer2_extraction/api/main.py",
+    "services/layer2-extraction/src/layer2_extraction/api/routes/health.py",
     "services/layer3-knowledge/src/api/routes/system.py",
     "services/layer4-agents/src/layer4_agents/api/core_routes.py",
 ]

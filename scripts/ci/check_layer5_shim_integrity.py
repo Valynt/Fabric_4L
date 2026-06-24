@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard that value_fabric/layer5 remains compatibility shims only."""
+"""Guard that value_fabric/layer5 remains removed or compatibility shims only."""
 
 from __future__ import annotations
 

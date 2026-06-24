@@ -5,8 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPATIBILITY_ROUTES = (
-    REPO_ROOT / "value_fabric/layer1/api/routes/compatibility.py",
-    REPO_ROOT / "services/layer1-ingestion/src/api/routes/compatibility.py",
+    REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py",
 )
 
 

@@ -59,7 +59,7 @@ def test_env_example_covers_production_required_keys() -> None:
 
 
 def test_production_compose_uses_required_substitution_for_critical_secrets() -> None:
-    source = read_text("docker-compose.full.yml")
+    source = read_text("infra/compose/docker-compose.full.yml")
     for key in ("POSTGRES_USER", "POSTGRES_PASSWORD", "JWT_SECRET", "API_KEY_HMAC_SECRET", "SERVICE_AUTH_SECRET"):
         assert f"${{{key}:?" in source, f"docker-compose.full.yml must fail when {key} is missing"
 

@@ -42,10 +42,28 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.routing import APIRoute
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
 try:
     import jwt
 except ImportError:
     jwt = None  # type: ignore
+
+try:
+    import redis.asyncio as redis_async
+
+    redis_available = True
+except ImportError:
+    redis_async = None  # type: ignore
+    redis_available = False
+
+# Import RedisError at module level for cleaner exception handling
+try:
+    from redis.exceptions import RedisError
+
+    redis_error_available = True
+except ImportError:
+    RedisError = None  # type: ignore
+    redis_error_available = False
 
 from .context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
@@ -62,7 +80,9 @@ from value_fabric.shared.rate_limiting.http_middleware import (
     build_rate_limit_key,
     should_skip_rate_limit,
 )
-from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
+from value_fabric.shared.tenant_context_metrics import (
+    record_inconsistent_tenant_context_access,
+)
 from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
 
 logger = logging.getLogger(__name__)
@@ -74,7 +94,9 @@ ERR_AUTH_CONTEXT_INVALID = "AUTH_CONTEXT_INVALID"
 
 
 def _request_log_context(request: Request) -> dict[str, Any]:
-    request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Correlation-ID")
+    request_id = request.headers.get("X-Request-ID") or request.headers.get(
+        "X-Correlation-ID"
+    )
     return {
         "request_id": request_id,
         "correlation_id": request.headers.get("X-Correlation-ID"),
@@ -96,13 +118,18 @@ def decode_jwt(token: str):
         try:
             from jose import JWTError
         except ImportError:
+
             class JWTError(Exception):  # type: ignore[no-redef]
                 pass
+
         raise JWTError("expired signature validation failed")
     return _decode_jwt(token)
 
+
 _shared_compat_module = sys.modules.setdefault("shared", types.ModuleType("shared"))
-_identity_compat_module = sys.modules.setdefault("shared.identity", types.ModuleType("shared.identity"))
+_identity_compat_module = sys.modules.setdefault(
+    "shared.identity", types.ModuleType("shared.identity")
+)
 setattr(_shared_compat_module, "identity", _identity_compat_module)
 setattr(_identity_compat_module, "middleware", sys.modules[__name__])
 sys.modules.setdefault("shared.identity.middleware", sys.modules[__name__])
@@ -114,7 +141,9 @@ _tenant_rate_limit_buckets: dict[str, tuple[float, int]] = {}
 _RATE_LIMIT_WINDOW_SECONDS = 60
 
 
-def _check_tenant_rate_limit(tenant_id: str, requests_per_minute: int) -> tuple[bool, int]:
+def _check_tenant_rate_limit(
+    tenant_id: str, requests_per_minute: int
+) -> tuple[bool, int]:
     """Check a process-local per-tenant fixed-window rate limit.
 
     This helper intentionally keeps tenant buckets separate and validates the
@@ -215,7 +244,12 @@ def audit_protected_routes(app: FastAPI) -> None:
 
 
 def _allow_legacy_test_tenant_ids() -> bool:
-    environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV") or "development"
+    environment = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("ENV")
+        or os.getenv("APP_ENV")
+        or "development"
+    )
     explicit_test_flag = (
         os.getenv("ALLOW_LEGACY_TEST_TENANT_IDS", "").strip().lower() == "true"
         or os.getenv("TESTING", "").strip().lower() == "true"
@@ -255,7 +289,9 @@ def _coerce_tenant_id_for_context(raw_tenant_id: Any) -> UUID | str:
     try:
         return UUID(str(raw_tenant_id))
     except (TypeError, ValueError) as exc:
-        if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(str(raw_tenant_id)):
+        if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(
+            str(raw_tenant_id)
+        ):
             return str(raw_tenant_id)
         raise ValueError("Invalid tenant_id in JWT claims") from exc
 
@@ -304,9 +340,7 @@ def extract_context_from_jwt(payload: dict[str, Any]) -> RequestContext:
     # wildcards like "*" or "all") are silently discarded — they must never
     # grant access. This prevents wildcard injection via JWT claims.
     permissions: frozenset[Permission] = frozenset(
-        Permission(str(p))
-        for p in raw_permissions
-        if _is_known_permission(str(p))
+        Permission(str(p)) for p in raw_permissions if _is_known_permission(str(p))
     )
     roles = payload.get("roles") or []
     if not roles and payload.get("role"):
@@ -384,14 +418,20 @@ def validate_context_consistency(
     try:
         header_value: UUID | str = UUID(raw_header)
     except (TypeError, ValueError) as exc:
-        if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(raw_header):
+        if _allow_legacy_test_tenant_ids() and _LEGACY_TEST_TENANT_ID_RE.fullmatch(
+            raw_header
+        ):
             header_value = raw_header
         else:
-            record_inconsistent_tenant_context_access(route=route, source="header_invalid")
+            record_inconsistent_tenant_context_access(
+                route=route, source="header_invalid"
+            )
             raise ValueError("Invalid tenant_id header") from exc
     if str(ctx.tenant_id) != str(header_value):
         record_inconsistent_tenant_context_access(route=route, source="header")
-        raise ValueError("Conflicting tenant_id between authenticated context and header")
+        raise ValueError(
+            "Conflicting tenant_id between authenticated context and header"
+        )
 
 
 def _build_context_from_role(
@@ -495,45 +535,17 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         ctx: Optional[RequestContext] = None
 
         try:
-            if self._enforce_authentication and not _is_external_auth_bootstrap_path(request.url.path):
-                try:
-                    ctx = await self._resolve_identity(request)
-                except HTTPException as exc:
-                    return JSONResponse(
-                        status_code=exc.status_code,
-                        headers=exc.headers or {"WWW-Authenticate": "Bearer"},
-                        content={"detail": exc.detail, "error": "authentication_required"},
-                    )
-                if ctx is None:
-                    return JSONResponse(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        headers={"WWW-Authenticate": "Bearer"},
-                        content={
-                            "detail": "Authentication credentials were not provided.",
-                            "error": "authentication_required",
-                        },
-                    )
-                if not ctx.is_auth_source_valid():
-                    return JSONResponse(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        headers={"WWW-Authenticate": "Bearer"},
-                        content={
-                            "detail": "Authentication context is invalid.",
-                            "error": "authentication_context_invalid",
-                        },
-                    )
-                if self._require_tenant_context and not ctx.tenant_id:
-                    return JSONResponse(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        content={
-                            "detail": "Tenant context is required for this route.",
-                            "error": "tenant_context_required",
-                        },
-                    )
+            try:
+                ctx = await self._handle_authentication(request)
+            except HTTPException as exc:
+                return JSONResponse(
+                    status_code=exc.status_code,
+                    headers=exc.headers or {"WWW-Authenticate": "Bearer"},
+                    content={"detail": exc.detail, "error": "authentication_required"},
+                )
 
             if ctx is not None:
-                _current_context.reset(token)
-                token = set_request_context(ctx)
+                token = self._set_request_context(ctx, token)
                 request.state.governance_context = ctx
 
                 tenant_status_response = await self._enforce_tenant_status(ctx)
@@ -543,49 +555,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 request.state.governance_context = None
 
             # Rate limiting check (after identity, before request handling)
-            if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
-                rate_limit_result = await self._check_rate_limit(request, ctx)
-                request.state.rate_limit_result = rate_limit_result
-                config = getattr(request.state, "rate_limit_config", None)
-                if rate_limit_result is not None and not rate_limit_result.allowed:
-                    rate_limit_rpm = config.requests_per_minute if config else ""
-                    headers = {
-                        "X-RateLimit-Limit": str(rate_limit_rpm),
-                        "X-RateLimit-Remaining": "0",
-                        "X-RateLimit-Reset": str(int(rate_limit_result.reset_at)),
-                        "X-RateLimit-Scope": config.scope.value if config else "tenant",
-                        "X-RateLimit-Policy": getattr(request.state, "rate_limit_policy", "default"),
-                        "Retry-After": str(rate_limit_result.retry_after) if rate_limit_result.retry_after is not None else "60",
-                    }
-                    if self._on_rate_limit_hit is not None and config is not None:
-                        try:
-                            self._on_rate_limit_hit(str(ctx.tenant_id), config.scope.value)
-                        except (RuntimeError, ValueError, TypeError) as exc:
-                            logger.warning(
-                                "rate_limit_hit_callback_failed",
-                                extra={"event": "rate_limit_hit_callback_failed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "error": str(exc), **_request_log_context(request)},
-                            )
-                    logger.warning(
-                        "rate_limit_throttled",
-                        extra={
-                            "event": "rate_limit_throttled",
-                            "tenant_id": str(ctx.tenant_id),
-                            "user_id": str(ctx.user_id) if ctx.user_id else None,
-                            "api_key_id": str(ctx.api_key_id) if ctx.api_key_id else None,
-                            "path": request.url.path,
-                            "method": request.method,
-                            "scope": config.scope.value if config else "tenant",
-                        },
-                    )
-                    return JSONResponse(
-                        status_code=429,
-                        headers=headers,
-                        content={
-                            "detail": "Rate limit exceeded",
-                            "error": "Too many requests",
-                            "retry_after": rate_limit_result.retry_after,
-                        },
-                    )
+            rate_limit_response = await self._check_rate_limit_before_request(
+                request, ctx
+            )
+            if rate_limit_response is not None:
+                return rate_limit_response
 
             response = await call_next(request)
 
@@ -594,22 +568,160 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         if ctx is not None:
             response.headers["X-Tenant-ID-Resolved"] = str(ctx.tenant_id)
-
-        # Add rate limit headers if we performed a rate limit check
-        if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
-            config = getattr(request.state, "rate_limit_config", None)
-            if config is not None:
-                result = getattr(request.state, "rate_limit_result", None)
-                if result is None:
-                    rate_key = self._build_rate_limit_key(request, ctx, config)
-                    result = await self._rate_limiter.check(rate_key, config)
-                response.headers["X-RateLimit-Limit"] = str(config.requests_per_minute)
-                response.headers["X-RateLimit-Remaining"] = str(max(0, result.remaining))
-                response.headers["X-RateLimit-Reset"] = str(int(result.reset_at))
-                response.headers["X-RateLimit-Scope"] = config.scope.value
-                response.headers["X-RateLimit-Policy"] = getattr(request.state, "rate_limit_policy", "default")
+            self._add_rate_limit_headers(response, request, ctx)
 
         return response
+
+    async def _handle_authentication(
+        self, request: Request
+    ) -> Optional[RequestContext]:
+        """Handle authentication and return context or raise HTTPException."""
+        if not self._enforce_authentication or _is_external_auth_bootstrap_path(
+            request.url.path
+        ):
+            return None
+
+        try:
+            ctx = await self._resolve_identity(request)
+        except HTTPException:
+            raise  # Re-raise HTTPException to be caught by dispatch
+
+        if ctx is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                headers={"WWW-Authenticate": "Bearer"},
+                content={
+                    "detail": "Authentication credentials were not provided.",
+                    "error": "authentication_required",
+                },
+            )
+
+        if not ctx.is_auth_source_valid():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                headers={"WWW-Authenticate": "Bearer"},
+                content={
+                    "detail": "Authentication context is invalid.",
+                    "error": "authentication_context_invalid",
+                },
+            )
+
+        if self._require_tenant_context and not ctx.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content={
+                    "detail": "Tenant context is required for this route.",
+                    "error": "tenant_context_required",
+                },
+            )
+
+        return ctx
+
+    def _set_request_context(self, ctx: RequestContext, token: Any) -> Any:
+        """Set the request context in the context var and return new token."""
+        _current_context.reset(token)
+        return set_request_context(ctx)
+
+    async def _check_rate_limit_before_request(
+        self, request: Request, ctx: Optional[RequestContext]
+    ) -> Optional[Response]:
+        """Check rate limit before request handling. Returns 429 response if exceeded."""
+        if ctx is None or self._rate_limiter is None:
+            return None
+
+        if should_skip_rate_limit(
+            request.url.path, config=self._shared_rate_limit_config
+        ):
+            return None
+
+        rate_limit_result = await self._check_rate_limit(request, ctx)
+        request.state.rate_limit_result = rate_limit_result
+        config = getattr(request.state, "rate_limit_config", None)
+
+        if rate_limit_result is None or rate_limit_result.allowed:
+            return None
+
+        rate_limit_rpm = config.requests_per_minute if config else ""
+        headers = {
+            "X-RateLimit-Limit": str(rate_limit_rpm),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": str(int(rate_limit_result.reset_at)),
+            "X-RateLimit-Scope": config.scope.value if config else "tenant",
+            "X-RateLimit-Policy": getattr(
+                request.state, "rate_limit_policy", "default"
+            ),
+            "Retry-After": str(rate_limit_result.retry_after)
+            if rate_limit_result.retry_after is not None
+            else "60",
+        }
+
+        if self._on_rate_limit_hit is not None and config is not None:
+            try:
+                self._on_rate_limit_hit(str(ctx.tenant_id), config.scope.value)
+            except (RuntimeError, ValueError, TypeError) as exc:
+                logger.warning(
+                    "rate_limit_hit_callback_failed",
+                    extra={
+                        "event": "rate_limit_hit_callback_failed",
+                        "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                        "error": str(exc),
+                        **_request_log_context(request),
+                    },
+                )
+
+        logger.warning(
+            "rate_limit_throttled",
+            extra={
+                "event": "rate_limit_throttled",
+                "tenant_id": str(ctx.tenant_id),
+                "user_id": str(ctx.user_id) if ctx.user_id else None,
+                "api_key_id": str(ctx.api_key_id) if ctx.api_key_id else None,
+                "path": request.url.path,
+                "method": request.method,
+                "scope": config.scope.value if config else "tenant",
+            },
+        )
+
+        return JSONResponse(
+            status_code=429,
+            headers=headers,
+            content={
+                "detail": "Rate limit exceeded",
+                "error": "Too many requests",
+                "retry_after": rate_limit_result.retry_after,
+            },
+        )
+
+    async def _add_rate_limit_headers(
+        self, response: Response, request: Request, ctx: Optional[RequestContext]
+    ) -> None:
+        """Add rate limit headers to response."""
+        if ctx is None or self._rate_limiter is None:
+            return
+
+        if should_skip_rate_limit(
+            request.url.path, config=self._shared_rate_limit_config
+        ):
+            return
+
+        config = getattr(request.state, "rate_limit_config", None)
+        if config is None:
+            return
+
+        result = getattr(request.state, "rate_limit_result", None)
+        # Only add headers if a rate limit check was actually performed.
+        # If result is None, it means the check was skipped (e.g., ctx was None during the check),
+        # so we should not perform a redundant check here just to add headers.
+        if result is None:
+            return
+
+        response.headers["X-RateLimit-Limit"] = str(config.requests_per_minute)
+        response.headers["X-RateLimit-Remaining"] = str(max(0, result.remaining))
+        response.headers["X-RateLimit-Reset"] = str(int(result.reset_at))
+        response.headers["X-RateLimit-Scope"] = config.scope.value
+        response.headers["X-RateLimit-Policy"] = getattr(
+            request.state, "rate_limit_policy", "default"
+        )
 
     # ------------------------------------------------------------------
     # Resolution helpers
@@ -641,11 +753,38 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         if tenant_status is None:
             try:
-                kill_switch = TenantKillSwitch(self._redis_client)
+                redis_client = (
+                    self._rate_limiter.redis_client
+                    if self._rate_limiter is not None
+                    else self._redis_client
+                )
+                kill_switch = TenantKillSwitch(redis_client)
                 if await kill_switch.is_suspended(str(ctx.tenant_id)):
                     tenant_status = "suspended"
-            except Exception:
-                pass
+            except Exception as exc:
+                # Catch Redis-specific exceptions gracefully
+                if (
+                    redis_error_available
+                    and RedisError is not None
+                    and isinstance(exc, RedisError)
+                ):
+                    logger.debug(
+                        "tenant_kill_switch_redis_error",
+                        extra={
+                            "tenant_id": str(ctx.tenant_id),
+                            "error_type": type(exc).__name__,
+                        },
+                    )
+                    return None
+                # Catch network-related errors gracefully
+                if isinstance(exc, (OSError, ConnectionError, TimeoutError)):
+                    logger.debug(
+                        "tenant_kill_switch_unavailable",
+                        extra={"tenant_id": str(ctx.tenant_id)},
+                    )
+                    return None
+                # Re-raise unexpected exceptions
+                raise
 
         if tenant_status is None and ctx.raw:
             tenant_status = ctx.raw.get("tenant_status")
@@ -687,96 +826,80 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             return prepopulated_context
 
         # 1. Bearer JWT
+        ctx = await self._resolve_bearer_jwt(request)
+        if ctx is not None:
+            return ctx
+
+        # 2. Browser session cookie
+        ctx = await self._resolve_session_cookie(request)
+        if ctx is not None:
+            return ctx
+
+        # 3. X-API-Key header
+        ctx = await self._resolve_api_key(request)
+        if ctx is not None:
+            return ctx
+
+        # 4. X-Tenant-ID (service-to-service)
+        ctx = await self._resolve_service_to_service(request)
+        if ctx is not None:
+            return ctx
+
+        # No valid identity found
+        return None
+
+    async def _resolve_bearer_jwt(self, request: Request) -> Optional[RequestContext]:
+        """Resolve identity from Bearer JWT token."""
         auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token_str = auth_header[7:]
-            try:
-                claims = await asyncio.to_thread(decode_jwt, token_str)
-            except HTTPException:
-                # ExpiredSignatureError → propagate 401 to client
-                raise
-            except Exception as exc:
-                if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
-                    logger.warning(
-                        "jwt_validation_failed",
-                        extra={"event": "jwt_validation_failed", "error_code": ERR_AUTH_INVALID_TOKEN, **_request_log_context(request)},
-                    )
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={"error_code": ERR_AUTH_INVALID_TOKEN, "message": "Invalid token."},
-                        headers={"WWW-Authenticate": "Bearer"},
-                    ) from exc
-                logger.exception(
-                    "jwt_decode_failed_closed",
-                    extra={"event": "jwt_decode_failed_closed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, **_request_log_context(request)},
+        if not auth_header.startswith("Bearer "):
+            return None
+
+        token_str = auth_header[7:]
+        try:
+            claims = await asyncio.to_thread(decode_jwt, token_str)
+        except HTTPException:
+            # ExpiredSignatureError → propagate 401 to client
+            raise
+        except Exception as exc:
+            if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
+                logger.warning(
+                    "jwt_validation_failed",
+                    extra={
+                        "event": "jwt_validation_failed",
+                        "error_code": ERR_AUTH_INVALID_TOKEN,
+                        **_request_log_context(request),
+                    },
                 )
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail={"error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "message": "Authentication failed."},
+                    detail={
+                        "error_code": ERR_AUTH_INVALID_TOKEN,
+                        "message": "Invalid token.",
+                    },
                     headers={"WWW-Authenticate": "Bearer"},
                 ) from exc
-            if claims is not None:
-                try:
-                    if isinstance(claims, dict):
-                        ctx = extract_context_from_jwt(claims)
-                    else:
-                        ctx = _build_context_from_role(
-                            claims.tenant_id,
-                            user_id=getattr(claims, "user_id", None) or getattr(claims, "sub", None),
-                            roles=list(getattr(claims, "roles", []) or []),
-                            api_key_id=getattr(claims, "api_key_id", None),
-                            source="jwt",
-                            raw=getattr(claims, "extra_claims", {}) or {},
-                        )
-                    validate_context_consistency(
-                        ctx,
-                        request.headers.get(TENANT_ID_HEADER),
-                        route=request.url.path,
-                    )
-                    return ctx
-                except ValueError as exc:
-                    logger.warning(
-                        "jwt_context_rejected",
-                        extra={"event": "jwt_context_rejected", "error_code": ERR_AUTH_CONTEXT_INVALID, "error": str(exc), **_request_log_context(request)},
-                    )
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail={"error_code": ERR_AUTH_CONTEXT_INVALID, "message": "Tenant context mismatch."},
-                    ) from exc
+            logger.exception(
+                "jwt_decode_failed_closed",
+                extra={
+                    "event": "jwt_decode_failed_closed",
+                    "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                    **_request_log_context(request),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                    "message": "Authentication failed.",
+                },
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
 
-            # P1-001: Try service-to-service JWT before rejecting
-            try:
-                from .jwt import decode_service_jwt as _decode_service_jwt
-                # Validate audience if S2S_AUDIENCE is configured
-                expected_audience = os.getenv("S2S_AUDIENCE", "").strip() or None
-                s2s_claims = await asyncio.to_thread(_decode_service_jwt, token_str, expected_audience=expected_audience)
-            except Exception as exc:
-                if jwt is not None and isinstance(exc, jwt.ExpiredSignatureError):
-                    logger.debug("s2s_jwt_expired", extra={**_request_log_context(request)})
-                else:
-                    logger.debug("s2s_jwt_decode_failed", extra={"error": str(exc), **_request_log_context(request)})
-                s2s_claims = None
-            if s2s_claims is not None:
-                try:
-                    tenant_id = UUID(str(s2s_claims.tenant_id))
-                except ValueError:
-                    logger.warning("s2s_jwt_invalid_tenant_id", extra={"tenant_id": s2s_claims.tenant_id, **_request_log_context(request)})
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid S2S token.",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-                return _build_context_from_role(
-                    tenant_id,
-                    user_id=s2s_claims.sub,
-                    roles=[Role.SYSTEM.value],
-                    source=AUTH_SOURCE_SERVICE_ACCOUNT,
-                    raw={"aud": s2s_claims.aud, "sub": s2s_claims.sub},
-                    service_account_id=s2s_claims.sub,
-                    service_account_scopes=["tenant:seed", "system:internal", "s2s:invoke"],
-                )
-
-            # claims is None but no exception → token was invalid, reject
+        if claims is None:
+            # Try service-to-service JWT before rejecting
+            s2s_ctx = await self._resolve_s2s_jwt(token_str, request)
+            if s2s_ctx is not None:
+                return s2s_ctx
             logger.warning("JWT decode returned None")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -784,60 +907,106 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # 2. Browser session cookie. This is the canonical OIDC/session path
-        # for frontend requests; invalid cookies fail closed rather than
-        # falling through to weaker identity sources.
+        return self._build_context_from_claims(claims, request)
+
+    async def _resolve_s2s_jwt(
+        self, token_str: str, request: Request
+    ) -> Optional[RequestContext]:
+        """Try to resolve as service-to-service JWT."""
+        try:
+            from .jwt import decode_service_jwt as _decode_service_jwt
+
+            expected_audience = os.getenv("S2S_AUDIENCE", "").strip() or None
+            s2s_claims = await asyncio.to_thread(
+                _decode_service_jwt, token_str, expected_audience=expected_audience
+            )
+        except Exception as exc:
+            if jwt is not None and isinstance(exc, jwt.ExpiredSignatureError):
+                logger.debug("s2s_jwt_expired", extra={**_request_log_context(request)})
+            else:
+                logger.debug(
+                    "s2s_jwt_decode_failed",
+                    extra={"error": str(exc), **_request_log_context(request)},
+                )
+            return None
+
+        if s2s_claims is None:
+            return None
+
+        try:
+            tenant_id = UUID(str(s2s_claims.tenant_id))
+        except ValueError:
+            logger.warning(
+                "s2s_jwt_invalid_tenant_id",
+                extra={
+                    "tenant_id": s2s_claims.tenant_id,
+                    **_request_log_context(request),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid S2S token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return _build_context_from_role(
+            tenant_id,
+            user_id=s2s_claims.sub,
+            roles=[Role.SYSTEM.value],
+            source=AUTH_SOURCE_SERVICE_ACCOUNT,
+            raw={"aud": s2s_claims.aud, "sub": s2s_claims.sub},
+            service_account_id=s2s_claims.sub,
+            service_account_scopes=["tenant:seed", "system:internal", "s2s:invoke"],
+        )
+
+    async def _resolve_session_cookie(
+        self, request: Request
+    ) -> Optional[RequestContext]:
+        """Resolve identity from session cookie."""
         session_token = request.cookies.get(SESSION_COOKIE_NAME)
-        if session_token:
-            try:
-                claims = await asyncio.to_thread(decode_jwt, session_token)
-            except HTTPException:
-                raise
-            except Exception as exc:
-                if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
-                    logger.warning(
-                        "session_jwt_validation_failed",
-                        extra={"event": "session_jwt_validation_failed", "error_code": ERR_AUTH_INVALID_TOKEN, **_request_log_context(request)},
-                    )
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail={"error_code": ERR_AUTH_INVALID_TOKEN, "message": "Invalid session."},
-                        headers={"WWW-Authenticate": "Bearer"},
-                    ) from exc
-                logger.exception(
-                    "session_jwt_decode_failed_closed",
-                    extra={"event": "session_jwt_decode_failed_closed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, **_request_log_context(request)},
+        if not session_token:
+            return None
+
+        try:
+            claims = await asyncio.to_thread(decode_jwt, session_token)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
+                logger.warning(
+                    "session_jwt_validation_failed",
+                    extra={
+                        "event": "session_jwt_validation_failed",
+                        "error_code": ERR_AUTH_INVALID_TOKEN,
+                        **_request_log_context(request),
+                    },
                 )
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail={"error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "message": "Authentication failed."},
+                    detail={
+                        "error_code": ERR_AUTH_INVALID_TOKEN,
+                        "message": "Invalid session.",
+                    },
                     headers={"WWW-Authenticate": "Bearer"},
                 ) from exc
-            if claims is not None:
-                try:
-                    if isinstance(claims, dict):
-                        ctx = extract_context_from_jwt(claims)
-                    else:
-                        ctx = _build_context_from_role(
-                            claims.tenant_id,
-                            user_id=getattr(claims, "user_id", None) or getattr(claims, "sub", None),
-                            roles=list(getattr(claims, "roles", []) or []),
-                            api_key_id=getattr(claims, "api_key_id", None),
-                            source="jwt",
-                            raw=getattr(claims, "extra_claims", {}) or {},
-                        )
-                    validate_context_consistency(
-                        ctx,
-                        request.headers.get(TENANT_ID_HEADER),
-                        route=request.url.path,
-                    )
-                    return ctx
-                except ValueError as exc:
-                    logger.warning("Session cookie tenant context rejected: %s", exc)
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Tenant context mismatch.",
-                    ) from exc
+            logger.exception(
+                "session_jwt_decode_failed_closed",
+                extra={
+                    "event": "session_jwt_decode_failed_closed",
+                    "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                    **_request_log_context(request),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                    "message": "Authentication failed.",
+                },
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
+        if claims is None:
             logger.warning("Session cookie JWT decode returned None")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -845,90 +1014,150 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # 3. X-API-Key header
+        return self._build_context_from_claims(claims, request)
+
+    async def _resolve_api_key(self, request: Request) -> Optional[RequestContext]:
+        """Resolve identity from X-API-Key header."""
         raw_api_key = request.headers.get("X-API-Key")
-        if raw_api_key and self._api_key_resolver is not None:
-            if inspect.iscoroutinefunction(self._api_key_resolver):
-                record = await self._api_key_resolver(raw_api_key)
-            else:
-                record = self._api_key_resolver(raw_api_key)
-            if record and record.get("enabled", True):
-                try:
-                    tenant_id = UUID(str(record["tenant_id"]))
-                except (ValueError, KeyError):
-                    logger.warning("API key record has invalid tenant_id: %r", record.get("tenant_id"))
-                    return None
+        if not raw_api_key or self._api_key_resolver is None:
+            return None
 
-                role_str: str = record.get("role", Role.READ_ONLY.value)
-                roles = [role_str]
+        if inspect.iscoroutinefunction(self._api_key_resolver):
+            record = await self._api_key_resolver(raw_api_key)
+        else:
+            record = self._api_key_resolver(raw_api_key)
 
-                # Allow explicit per-key permission overrides stored in DB
-                custom_perms: list[str] = record.get("permissions") or []
-                if custom_perms:
-                    extra: set[Permission] = set()
-                    for p in custom_perms:
-                        try:
-                            extra.add(Permission(p))
-                        except ValueError:
-                            logger.warning("api_key_permission_ignored", extra={"event": "api_key_permission_ignored", "error": str(p), **_request_log_context(request)})
-                    role = Role(role_str)
-                    permissions = frozenset(ROLE_PERMISSIONS[role].permissions | extra)
-                else:
-                    try:
-                        permissions = ROLE_PERMISSIONS[Role(role_str)].permissions
-                    except (ValueError, KeyError):
-                        permissions = frozenset()
+        if not record or not record.get("enabled", True):
+            return None
 
-                request.state.api_key_record = record
-                return RequestContext(
-                    tenant_id=tenant_id,
-                    user_id=record.get("user_id"),
-                    roles=roles,
-                    api_key_id=record.get("key_id"),
-                    permissions=permissions,
-                    source="api_key",
-                    raw={"rate_limit_per_minute": record.get("rate_limit_per_minute")},
-                )
-
-        # 3. X-Tenant-ID (service-to-service)
-        # P0 FIX: Require X-Service-Auth shared secret to prevent header spoofing
-        x_tenant = request.headers.get(TENANT_ID_HEADER)
-        if x_tenant:
-            expected_secret = os.getenv("SERVICE_AUTH_SECRET")
-            if not expected_secret:
-                logger.warning(
-                    "X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured"
-                )
-                return None
-            # Validate secret meets minimum length requirement
-            if len(expected_secret) < MIN_SERVICE_SECRET_LENGTH:
-                logger.error(
-                    "SERVICE_AUTH_SECRET too short (%d chars, min %d)",
-                    len(expected_secret),
-                    MIN_SERVICE_SECRET_LENGTH,
-                )
-                return None
-            provided_secret = request.headers.get(SERVICE_AUTH_HEADER, "")
-            if not hmac.compare_digest(provided_secret, expected_secret):
-                logger.warning("X-Tenant-ID rejected: invalid X-Service-Auth")
-                return None
-            try:
-                tenant_id = UUID(x_tenant)
-            except ValueError:
-                logger.debug("Invalid X-Tenant-ID header: %r", x_tenant)
-                return None
-            return _build_context_from_role(
-                tenant_id,
-                user_id="service",
-                roles=[Role.SYSTEM.value],
-                source=AUTH_SOURCE_SERVICE_ACCOUNT,
-                raw={},
-                service_account_id="service-auth-header",
-                service_account_scopes=["tenant:seed", "system:internal"],
+        try:
+            tenant_id = UUID(str(record["tenant_id"]))
+        except (ValueError, KeyError):
+            logger.warning(
+                "API key record has invalid tenant_id: %r", record.get("tenant_id")
             )
+            return None
 
-        # P0 FIX: Query param tenant authentication removed entirely — never trust client-supplied identity
-        return None
+        role_str: str = record.get("role", Role.READ_ONLY.value)
+        roles = [role_str]
+
+        # Allow explicit per-key permission overrides stored in DB
+        custom_perms: list[str] = record.get("permissions") or []
+        if custom_perms:
+            extra: set[Permission] = set()
+            for p in custom_perms:
+                try:
+                    extra.add(Permission(p))
+                except ValueError:
+                    logger.warning(
+                        "api_key_permission_ignored",
+                        extra={
+                            "event": "api_key_permission_ignored",
+                            "error": str(p),
+                            **_request_log_context(request),
+                        },
+                    )
+            role = Role(role_str)
+            permissions = frozenset(ROLE_PERMISSIONS[role].permissions | extra)
+        else:
+            try:
+                permissions = ROLE_PERMISSIONS[Role(role_str)].permissions
+            except (ValueError, KeyError):
+                permissions = frozenset()
+
+        request.state.api_key_record = record
+        return RequestContext(
+            tenant_id=tenant_id,
+            user_id=record.get("user_id"),
+            roles=roles,
+            api_key_id=record.get("key_id"),
+            permissions=permissions,
+            source="api_key",
+            raw={"rate_limit_per_minute": record.get("rate_limit_per_minute")},
+        )
+
+    async def _resolve_service_to_service(
+        self, request: Request
+    ) -> Optional[RequestContext]:
+        """Resolve identity from X-Tenant-ID header with X-Service-Auth."""
+        x_tenant = request.headers.get(TENANT_ID_HEADER)
+        if not x_tenant:
+            return None
+
+        expected_secret = os.getenv("SERVICE_AUTH_SECRET")
+        if not expected_secret:
+            logger.warning("X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured")
+            return None
+
+        if len(expected_secret) < MIN_SERVICE_SECRET_LENGTH:
+            logger.error(
+                "SERVICE_AUTH_SECRET too short (%d chars, min %d)",
+                len(expected_secret),
+                MIN_SERVICE_SECRET_LENGTH,
+            )
+            return None
+
+        provided_secret = request.headers.get(SERVICE_AUTH_HEADER, "")
+        if not hmac.compare_digest(provided_secret, expected_secret):
+            logger.warning("X-Tenant-ID rejected: invalid X-Service-Auth")
+            return None
+
+        try:
+            tenant_id = UUID(x_tenant)
+        except ValueError:
+            logger.debug("Invalid X-Tenant-ID header: %r", x_tenant)
+            return None
+
+        return _build_context_from_role(
+            tenant_id,
+            user_id="service",
+            roles=[Role.SYSTEM.value],
+            source=AUTH_SOURCE_SERVICE_ACCOUNT,
+            raw={},
+            service_account_id="service-auth-header",
+            service_account_scopes=["tenant:seed", "system:internal"],
+        )
+
+    def _build_context_from_claims(
+        self, claims: Any, request: Request
+    ) -> RequestContext:
+        """Build RequestContext from JWT claims with validation."""
+        try:
+            if isinstance(claims, dict):
+                ctx = extract_context_from_jwt(claims)
+            else:
+                ctx = _build_context_from_role(
+                    claims.tenant_id,
+                    user_id=getattr(claims, "user_id", None)
+                    or getattr(claims, "sub", None),
+                    roles=list(getattr(claims, "roles", []) or []),
+                    api_key_id=getattr(claims, "api_key_id", None),
+                    source="jwt",
+                    raw=getattr(claims, "extra_claims", {}) or {},
+                )
+            validate_context_consistency(
+                ctx,
+                request.headers.get(TENANT_ID_HEADER),
+                route=request.url.path,
+            )
+            return ctx
+        except ValueError as exc:
+            logger.warning(
+                "jwt_context_rejected",
+                extra={
+                    "event": "jwt_context_rejected",
+                    "error_code": ERR_AUTH_CONTEXT_INVALID,
+                    "error": str(exc),
+                    **_request_log_context(request),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error_code": ERR_AUTH_CONTEXT_INVALID,
+                    "message": "Tenant context mismatch.",
+                },
+            ) from exc
 
     # ------------------------------------------------------------------
     # Rate limiting helpers
@@ -983,23 +1212,36 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         if self._tenant_settings_resolver is not None:
             try:
                 settings = await self._tenant_settings_resolver(ctx.tenant_id)
-                if settings and isinstance(settings, dict) and "rate_limits" in settings:
+                if (
+                    settings
+                    and isinstance(settings, dict)
+                    and "rate_limits" in settings
+                ):
                     rate_limits = settings["rate_limits"]
                     if isinstance(rate_limits, dict):
                         tenant_config = RateLimitConfig(
-                            requests_per_minute=rate_limits.get("requests_per_minute", 60),
+                            requests_per_minute=rate_limits.get(
+                                "requests_per_minute", 60
+                            ),
                             requests_per_hour=rate_limits.get("requests_per_hour"),
                             burst_size=rate_limits.get("burst_size", 10),
                             scope=RateLimitScope(rate_limits.get("scope", "tenant")),
                         )
                         request.state.rate_limit_config = tenant_config
                         request.state.rate_limit_policy = "tenant_settings"
-                        rate_key = self._build_rate_limit_key(request, ctx, tenant_config)
+                        rate_key = self._build_rate_limit_key(
+                            request, ctx, tenant_config
+                        )
                         return await self._rate_limiter.check(rate_key, tenant_config)
             except (RuntimeError, ValueError, TypeError) as exc:
                 logger.warning(
                     "tenant_settings_resolver_failed_closed",
-                    extra={"event": "tenant_settings_resolver_failed_closed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "error": str(exc), "tenant_id": str(ctx.tenant_id)},
+                    extra={
+                        "event": "tenant_settings_resolver_failed_closed",
+                        "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
+                        "error": str(exc),
+                        "tenant_id": str(ctx.tenant_id),
+                    },
                 )
 
         config = self._resolve_rate_limit_config(request, ctx)
@@ -1028,13 +1270,26 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         method = request.method.upper()
         if path.startswith("/auth/") or path.startswith("/v1/api-keys"):
             return "auth"
-        if path.startswith("/v1/tenants") or path.startswith("/v1/users") or path.startswith("/v1/admin"):
+        if (
+            path.startswith("/v1/tenants")
+            or path.startswith("/v1/users")
+            or path.startswith("/v1/admin")
+        ):
             return "admin"
-        if path.startswith(("/v1/analysis", "/v1/workflows", "/v1/intelligence", "/v1/narratives", "/v1/hypotheses")):
+        if path.startswith(
+            (
+                "/v1/analysis",
+                "/v1/workflows",
+                "/v1/intelligence",
+                "/v1/narratives",
+                "/v1/hypotheses",
+            )
+        ):
             return "expensive_compute"
         if method in {"POST", "PUT", "PATCH", "DELETE"}:
             return "write"
         return "read"
+
 
 # Merged from root shared/identity/middleware.py
 TenantContextMiddleware = GovernanceMiddleware
@@ -1047,6 +1302,7 @@ class RateLimitExceeded(Exception):
         self.retry_after = retry_after
         super().__init__(f"Rate limit exceeded. Retry after {retry_after} seconds.")
 
+
 class MultiWorkerRateLimitError(RuntimeError):
     """Raised when rate limiting is enabled in multi-worker mode without Redis."""
 
@@ -1057,6 +1313,7 @@ class MultiWorkerRateLimitError(RuntimeError):
             "Set REDIS_URL or disable rate limiting with enable_per_tenant_rate_limiting=False."
         )
 
+
 class RateLimiterConfigurationError(RuntimeError):
     """Raised when rate limiter backend is unsafe for the current environment."""
 
@@ -1066,6 +1323,7 @@ class RateLimiterConfigurationError(RuntimeError):
             "Redis backend is required in prod/staging but REDIS_URL or Redis client "
             "is unavailable."
         )
+
 
 class SuspendedTenantError(Exception):
     """Raised when tenant is suspended and cannot access resources."""
@@ -1094,6 +1352,8 @@ class DeletedTenantError(Exception):
 # Compatibility exports used by mandatory security regression tests.
 DEFAULT_REQUESTS_PER_MINUTE = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "120"))
 RATE_LIMIT_WINDOW_SECONDS = _RATE_LIMIT_WINDOW_SECONDS
+
+
 def _evict_stale_rate_limit_entries(now: float | None = None) -> int:
     """Evict stale process-local rate-limit buckets and return the count removed."""
     current = time.time() if now is None else now
@@ -1118,7 +1378,9 @@ def _evict_stale_rate_limit_entries(now: float | None = None) -> int:
 # object.
 # ---------------------------------------------------------------------------
 
-_CANONICAL_MIDDLEWARE_MODULE = "packages.shared.src.value_fabric.shared.identity.middleware"
+_CANONICAL_MIDDLEWARE_MODULE = (
+    "packages.shared.src.value_fabric.shared.identity.middleware"
+)
 if __name__ != _CANONICAL_MIDDLEWARE_MODULE:
     sys.modules.setdefault(_CANONICAL_MIDDLEWARE_MODULE, sys.modules[__name__])
     sys.modules[__name__] = sys.modules[_CANONICAL_MIDDLEWARE_MODULE]

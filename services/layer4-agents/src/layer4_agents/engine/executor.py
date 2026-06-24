@@ -30,9 +30,9 @@ from value_fabric.shared.identity.context import (
     set_request_context,
 )
 
-from src.fabric.l4.types import ScheduledTask, TaskPriority, TaskSchedulerPort
-
 from ..models.agent_state import AgentState, WorkflowStatus
+from .ports import TaskSchedulerPort
+from .scheduler import ScheduledTask, TaskPriority, TaskScheduler
 
 
 class WorkflowExecutionError(Exception):
@@ -50,8 +50,6 @@ class CheckpointConflictError(WorkflowExecutionError):
 
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
-
-from src.fabric.l4.core.scheduler import TaskScheduler
 
 from ..agents.base import BaseAgent
 from ..harness.models import GateStatus, GateType, HumanGate

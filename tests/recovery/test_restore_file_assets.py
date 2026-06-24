@@ -12,7 +12,7 @@ def test_object_storage_restore_is_part_of_dry_run_evidence(restore_dry_run_evid
 
 def test_file_asset_restore_scope_is_documented() -> None:
     runbook = read_text("docs/troubleshooting/runbooks/incident/backup-disaster-recovery.md")
-    compose = read_text("docker-compose.dev.yml")
+    compose = read_text("infra/compose/docker-compose.dev.yml")
     assert_contains_all(
         runbook,
         [

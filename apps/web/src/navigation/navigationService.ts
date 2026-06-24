@@ -45,6 +45,7 @@ export type RouteState =
   | "home"
   | "workspaces"
   | "command-center"
+  | "forbidden"
   // Accounts
   | "accounts"
   | "account-detail"
@@ -182,6 +183,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   home: { path: "/home", analyticsRouteId: "home.dashboard" },
   workspaces: { path: "/workspaces", analyticsRouteId: "auth.workspaces" },
   "command-center": { path: "/command-center", analyticsRouteId: "home.command-center" },
+  forbidden: { path: "/forbidden", analyticsRouteId: "auth.forbidden" },
 
   // Accounts
   accounts: { path: "/t/:tenantSlug/accounts", params: ["tenantSlug"], analyticsRouteId: "accounts.list" },

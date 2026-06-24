@@ -17,6 +17,18 @@ def test_layer5_compatibility_tree_is_shim_only() -> None:
     assert check_layer5_shim_integrity.main(argv=[]) == 0
 
 
+def test_contract_accepts_removed_compatibility_tree(tmp_path, monkeypatch) -> None:
+    canonical = tmp_path / "canonical"
+    shim = tmp_path / "shim"
+    canonical.mkdir()
+    (canonical / "config.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    monkeypatch.setattr(CONTRACT, "CANONICAL_ROOT", canonical)
+    monkeypatch.setattr(CONTRACT, "SHIM_ROOT", shim)
+
+    assert CONTRACT._shim_violations() == []
+
+
 def test_contract_rejects_non_shim_compatibility_file(tmp_path, monkeypatch) -> None:
     canonical = tmp_path / "canonical"
     shim = tmp_path / "shim"

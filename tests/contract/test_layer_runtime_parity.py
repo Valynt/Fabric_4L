@@ -10,12 +10,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 LAYER_PARITY_RULES: dict[str, dict[str, object]] = {
     "layer1": {
-        "canonical_routes": REPO_ROOT / "services/layer1-ingestion/src/api/routes/__init__.py",
-        "service_routes": REPO_ROOT / "services/layer1-ingestion/src/api/routes/__init__.py",
+        "canonical_routes": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/routes/__init__.py",
+        "service_routes": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/routes/__init__.py",
         "service_main": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
         "canonical_import": "layer1_ingestion.api.routes",
         "service_interface": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
-        "repository_interface": REPO_ROOT / "services/layer1-ingestion/src/crawler/decision_store.py",
+        "repository_interface": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/crawler/decision_store.py",
         "middleware_anchor": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     },
     "layer2": {

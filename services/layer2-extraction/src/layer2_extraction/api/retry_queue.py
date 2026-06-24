@@ -32,7 +32,7 @@ class PendingRecordLike(Protocol):
 
 
 def retry_delay_seconds(*, retry_base_seconds: int, retry_count: int) -> int:
-    return retry_base_seconds * max(1, 2 ** max(retry_count - 1, 0))
+    return int(retry_base_seconds * max(1, 2 ** max(retry_count - 1, 0)))
 
 
 def next_retry_at(

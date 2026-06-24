@@ -133,6 +133,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-legacy-debt` | Enforce legacy debt baseline. |
 | `check-behavior-contract` | Enforce behavior contract registry coverage. |
 | `check-behavior-readiness-audit` | Enforce executable behavior readiness audit. |
+| `check-temporal-skips` | Guard against net-new unregistered hard-coded temporal test skips. |
 | `check-ui-duplicates` | Block duplicate UI component filenames. |
 | `check-layer4-boundaries` | Check Layer 4 bounded-context dependencies. |
 | `check-layer3-legacy-tenant-dependency-imports` | Block legacy Layer 3 tenant dependency imports. |
@@ -161,6 +162,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `typecheck-layer2-5` | Type-check Layer 2.5. |
 | `typecheck-layer3` | Type-check Layer 3. |
 | `typecheck-layer4` | Type-check Layer 4. |
+| `typecheck-layer4-strict` | Type-check the unified Layer 4 namespace with strict settings. |
 | `typecheck-layer5` | Type-check Layer 5. |
 | `typecheck-layer6` | Type-check Layer 6. |
 | `gate-lint` | Release-readiness lint gate for all layers. |

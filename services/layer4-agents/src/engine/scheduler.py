@@ -1,7 +1,7 @@
 """Compatibility shim for the canonical Layer 4 module.
 
-The implementation lives in ``src.fabric.l4.core.scheduler``. Keep this file as
+The implementation lives in ``layer4_agents.engine.scheduler``. Keep this file as
 a thin re-export during the namespace transition.
 """
 
-from src.fabric.l4.core.scheduler import *  # noqa: F401,F403
+from layer4_agents.engine.scheduler import *  # noqa: F401,F403

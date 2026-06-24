@@ -22,13 +22,22 @@ if PromCounter is not None:
 
     def _get_or_create_counter(name: str, description: str, labels: list[str]) -> PromCounter:
         """Return an existing counter or create a new one, tolerating test re-imports."""
+        collector_name = name.removesuffix("_total")
+        existing = REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(
+            collector_name
+        )
+        if existing is not None:
+            return existing
+
         try:
             return PromCounter(name, description, labels)
         except ValueError as exc:
             if "Duplicated timeseries" in str(exc):
-                for collector in REGISTRY._collector_to_names.keys():
-                    if isinstance(collector, PromCounter) and collector._name == name:
-                        return collector
+                existing = REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(
+                    collector_name
+                )
+                if existing is not None:
+                    return existing
             raise
 
     _ROUTE_COUNTER = _get_or_create_counter(

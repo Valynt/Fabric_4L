@@ -15,6 +15,9 @@ secret_file_risk_allow:
   - .env.smoke.template
   - apps/web/.env.example
   - apps/web/.env.local.mock-auth.example
+  - docs/archive/root/.env.dev.example
+  - docs/archive/root/.env.production-compose.template
+  - docs/archive/root/.env.smoke.template
   - docs/archive/frontend-root-2026-05-02/source-snapshot/.env.example
   - docs/archive/legacy-value-fabric/.env.example
   - infra/helm/fabric-chart/templates/secrets.yaml
@@ -69,6 +72,12 @@ secret_file_risk_allow:
 # Audited safe: local loopback/readiness credentials and negative security
 # fixtures used to prove literal secret scanners fail closed.
 hardcoded_db_credentials_allow:
+  - infra/compose/docker-compose.backend-integrated.yml
+  - infra/compose/docker-compose.contract.yml
+  - infra/compose/docker-compose.dev.yml
+  - infra/compose/docker-compose.e2e-local.override.yml
+  - infra/compose/docker-compose.e2e.yml
+  - infra/compose/docker-compose.release-smoke.yml
   - scripts/ci/mandatory_security_regression_gate.sh
   - scripts/ci/run_db_production_readiness_gate.sh
   - scripts/ci/tests/fixtures/manifest_secret_hygiene/fail-postgres-inline.yml

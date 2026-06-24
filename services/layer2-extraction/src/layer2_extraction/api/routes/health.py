@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter
 from value_fabric.shared.fastapi_framework.health import ProbeResult
@@ -117,6 +117,7 @@ async def layer3_dependency_status(
                 "response_time_ms": None,
                 "error": "Layer 3 health check failed",
                 "error_code": LAYER3_HEALTH_CHECK_ERROR_CODE,
+                "failure_reason": "dependency_probe_error",
             },
             False,
         )
@@ -165,7 +166,7 @@ async def build_health_payload(
         metrics.set_health_status(overall_status == "healthy", component="api")
         metrics.set_health_status(l3_dep_healthy, component="layer3")
 
-    return normalize_probe_payload(
+    return cast(dict[str, Any], normalize_probe_payload(
         status=overall_status,
         service="layer2-extraction",
         dependencies=dependencies,
@@ -180,4 +181,4 @@ async def build_health_payload(
                 psutil_module=psutil_module,
             ),
         },
-    )
+    ))

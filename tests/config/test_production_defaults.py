@@ -65,7 +65,7 @@ def test_config_policy_has_version_and_scoped_rules() -> None:
 
 
 def test_production_compose_requires_secret_injection_for_core_secrets() -> None:
-    source = read_text("docker-compose.full.yml")
+    source = read_text("infra/compose/docker-compose.full.yml")
     for env_var in (
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
@@ -79,8 +79,8 @@ def test_production_compose_requires_secret_injection_for_core_secrets() -> None
 
 def test_production_manifests_do_not_enable_dev_or_mock_defaults() -> None:
     production_sources = (
-        "docker-compose.full.yml",
-        "docker-compose.prod.yml",
+        "infra/compose/docker-compose.full.yml",
+        "infra/compose/docker-compose.prod.yml",
         "k8s/envs/prod/kustomization.yaml",
     )
     violations: list[str] = []

@@ -540,7 +540,7 @@ async def test_roi_calculator_service_uses_explicit_tenant_for_reads_and_audited
 
     service = ROICalculatorService(FakeAsyncDriver())
 
-    await service.create_template(
+    await service.create_template_for_tenant(
         "tenant-secure",
         ROITemplateCreate(name="Template", description="Desc"),
     )

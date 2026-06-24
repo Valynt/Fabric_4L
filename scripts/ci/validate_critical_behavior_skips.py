@@ -80,14 +80,14 @@ def validate_skips(skips: list[tuple[str, str]]) -> tuple[bool, list[str]]:
     for test_name, reason in skips:
         if reason not in ALLOWED_SKIP_REASONS:
             issues.append(
-                f"❌ DISALLOWED SKIP in {test_name}: {reason}\n"
+                f"FAIL: DISALLOWED SKIP in {test_name}: {reason}\n"
                 f"   This skip reason is not in the approved allowlist."
             )
         else:
             entry = ALLOWED_SKIP_REASONS[reason]
             if entry.get("approved"):
                 print(
-                    f"✅ Approved skip: {reason}\n"
+                    f"PASS: Approved skip: {reason}\n"
                     f"   Reason: {entry['reason']}\n"
                     f"   Category: {entry['category']}"
                 )
@@ -107,7 +107,7 @@ def main() -> int:
     result = run_endpoint_family_tests()
 
     if result["exit_code"] not in [0, 5]:  # 5 = tests collected, some skipped
-        print(f"⚠️  Test execution returned code {result['exit_code']}")
+        print(f"WARN: Test execution returned code {result['exit_code']}")
 
     # Extract skips
     skips = extract_skip_reasons(result["output"])
@@ -115,7 +115,7 @@ def main() -> int:
     print()
 
     if not skips:
-        print("✅ No skipped tests found")
+        print("PASS: No skipped tests found")
         return 0
 
     # Validate skips
@@ -126,7 +126,7 @@ def main() -> int:
     print()
     if is_valid:
         print("=" * 80)
-        print("✅ YELLOW-GREEN: All skipped tests have approved reasons")
+        print("PASS: YELLOW-GREEN: All skipped tests have approved reasons")
         print("=" * 80)
         print()
         print("Approved skip categories:")
@@ -140,7 +140,7 @@ def main() -> int:
         return 0
     else:
         print("=" * 80)
-        print("❌ RED: Disallowed skipped tests detected")
+        print("FAIL: RED: Disallowed skipped tests detected")
         print("=" * 80)
         print()
         for issue in issues:

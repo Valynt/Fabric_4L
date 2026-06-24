@@ -8,9 +8,9 @@ from typing import Any
 _EXPORTS = {
     "LegacyTaskExecutionAdapter": "layer4_agents.adapters.task_execution",
     "StateManager": "layer4_agents.engine.state_manager",
-    "TaskExecutionPort": "src.fabric.l4.types",
-    "TaskExecutionRequest": "src.fabric.l4.types",
-    "TaskSchedulerPort": "src.fabric.l4.types",
+    "TaskExecutionPort": "layer4_agents.engine.ports",
+    "TaskExecutionRequest": "layer4_agents.engine.ports",
+    "TaskSchedulerPort": "layer4_agents.engine.ports",
     "WorkflowExecutionError": "layer4_agents.engine.executor",
     "WorkflowExecutor": "layer4_agents.engine.executor",
     "as_task_execution_port": "layer4_agents.adapters.task_execution",

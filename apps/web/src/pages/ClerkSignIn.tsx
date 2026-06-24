@@ -7,7 +7,7 @@
 import { useAuth, useClerk } from "@clerk/react";
 import { AlertCircle, Apple, Layers3, Loader2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 
 import { getClerkUrls } from "@/auth/clerkConfig";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useNavigation } from "@/hooks/useNavigation";
 
 type OAuthStrategy = "oauth_google" | "oauth_apple" | "oauth_microsoft";
 
@@ -118,7 +119,7 @@ function MicrosoftIcon() {
 function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string }) {
   const urls = getClerkUrls();
   const clerk = useClerk();
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const emailId = useId();
   const passwordId = useId();
   const errorId = useId();
@@ -147,7 +148,7 @@ function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string })
 
       if (result.status === "complete" && result.createdSessionId) {
         await clerk.setActive({ session: result.createdSessionId });
-        navigate(redirectTarget, { replace: true });
+        navigateTo(redirectTarget, { replace: true });
         return;
       }
 

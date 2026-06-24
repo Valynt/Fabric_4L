@@ -4,9 +4,9 @@
 Per ADR-027, the canonical settings module is:
   services/layer3-knowledge/src/config/settings.py
 
-The service-local compat shim is:
+The historical service-local compat shim path is:
   services/layer3-knowledge/src/config.py
-  (must only re-export via wildcard; no class/function definitions)
+  (must remain either a thin re-export or an inert docstring-only marker)
 """
 
 from __future__ import annotations
@@ -49,8 +49,19 @@ def _extract_aliases(module: ast.Module) -> set[str]:
     return aliases
 
 
+def _is_inert_marker_shim(module: ast.Module) -> bool:
+    """Return true for the intentionally shadowed docstring-only config.py marker."""
+    docstring = ast.get_docstring(module) or ""
+    body_after_docstring = module.body[1:] if module.body and isinstance(module.body[0], ast.Expr) else module.body
+    return (
+        not body_after_docstring
+        and "config/ package" in docstring
+        and "never imported" in docstring
+    )
+
+
 def _validate_shim(module: ast.Module) -> list[str]:
-    """Shim must be a thin re-export; no class or function definitions allowed."""
+    """Shim must be a thin re-export or inert marker; no local logic allowed."""
     errors: list[str] = []
     class_defs = [node.name for node in module.body if isinstance(node, ast.ClassDef)]
     if class_defs:
@@ -59,6 +70,12 @@ def _validate_shim(module: ast.Module) -> list[str]:
     fn_defs = [node.name for node in module.body if isinstance(node, ast.FunctionDef)]
     if fn_defs:
         errors.append(f"Shim must not define functions, found: {', '.join(fn_defs)}")
+
+    if errors:
+        return errors
+
+    if _is_inert_marker_shim(module):
+        return []
 
     # Accept wildcard re-export from any value_fabric.layer3.config* path
     has_wildcard_reexport = any(
@@ -70,7 +87,8 @@ def _validate_shim(module: ast.Module) -> list[str]:
     )
     if not has_wildcard_reexport:
         errors.append(
-            "Shim must re-export via wildcard from value_fabric.layer3.config (or submodule)"
+            "Shim must re-export via wildcard from value_fabric.layer3.config "
+            "(or submodule), or be the documented docstring-only inert marker"
         )
     return errors
 
