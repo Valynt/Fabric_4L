@@ -558,7 +558,6 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
         attributes={"job_id": str(job_id), "tenant_id": str(tenant_uuid)},
     ):
         try:
-            # Set tenant context BEFORE any database queries
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 job = session.query(ScrapingJob).get(job_id)
                 if not job:
@@ -567,18 +566,9 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 config = job.configuration
                 url = config.get("url", "")
                 browser_config = config.get("browser_config", {})
-                target_config = {}
-                if job.target_id:
-                    target = session.query(ScrapingTarget).get(job.target_id)
-                    if target:
-                        target_config = target.extraction_config or {}
-
-                tenant_id = str(job.tenant_id) if job.tenant_id else None
+                target_config = _get_target_config(session, job)
+                tenant_id_str = str(job.tenant_id) if job.tenant_id else None
                 effective_mode = target_config.get("crawl_path", "browser")
-
-                router = SmartRouter()
-                gate = QualityGate()
-                decision_repo = CrawlDecisionRepository()
 
                 # Stage 2: Browser Launch
                 _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "RUNNING")
@@ -587,110 +577,15 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 job.resources_browser_sessions_used += 1
                 session.commit()
 
-                # Routing decision
-                route_type = RouteType(effective_mode)
-                routing_decision = router.decide(url, route_type)
-
-                decision_record = CrawlDecisionRecord(
-                    decision_id=str(uuid4()),
-                    job_id=str(job_id),
-                    tenant_id=tenant_id,
-                    url=url,
-                    domain=urlparse(url).netloc,
-                    requested_path=effective_mode,
-                    router_decision=routing_decision.route.value,
-                    router_rule=routing_decision.reason,
-                    quality_passed=None,
-                    quality_checks=None,
-                    fallback_reason=None,
-                    final_path="unknown",
-                    status_code=None,
-                    fast_duration_ms=0,
-                    browser_duration_ms=None,
-                    fetch_time_ms=0,
-                    bytes_transferred=0,
-                    spa_detected=False,
-                    text_length=0,
+                # Execute routing
+                crawl_result, fast_result, final_path, decision_record = await _execute_routing(
+                    url, browser_config, effective_mode, job_id, tenant_id_str
                 )
 
-                # Determine crawl path
-                crawl_result = None
-                fast_result = None
-                final_path = "unknown"
-
-                if routing_decision.route == RouteType.FAST:
-                    logger.info("Using FAST path (HTTPX)", job_id=str(job_id), url=url)
-                    fast_result = await _execute_fast_path(url)
-                    final_path = "fast"
-                    html_bytes = (fast_result.html or "").encode("utf-8")
-                    decision_record.final_path = "fast"
-                    decision_record.status_code = fast_result.status_code
-                    decision_record.fast_duration_ms = fast_result.fetch_time_ms
-                    decision_record.fetch_time_ms = fast_result.fetch_time_ms
-                    decision_record.bytes_transferred = len(html_bytes)
-                    decision_record.spa_detected = fast_result.is_spa_detected
-                    decision_record.text_length = len(fast_result.text_content)
-                    decision_record.quality_passed = fast_result.status_code == 200
-                    decision_record.quality_checks = {"direct_fast": True}
-
-                elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
-                    logger.info("Using FAST_WITH_FALLBACK path", job_id=str(job_id), url=url)
-                    fast_result = await _execute_fast_path(url)
-                    decision_record.fast_duration_ms = fast_result.fetch_time_ms
-                    decision_record.spa_detected = fast_result.is_spa_detected
-                    quality = gate.evaluate(fast_result)
-                    decision_record.quality_passed = quality.passed
-                    decision_record.quality_checks = quality.checks
-                    decision_record.fallback_reason = quality.fallback_reason
-                    if quality.passed:
-                        final_path = "fast"
-                        decision_record.final_path = "fast"
-                        decision_record.status_code = fast_result.status_code
-                        decision_record.fetch_time_ms = fast_result.fetch_time_ms
-                        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8"))
-                        decision_record.text_length = len(fast_result.text_content)
-                        logger.info("Fast path succeeded", job_id=str(job_id), duration_ms=fast_result.fetch_time_ms)
-                    else:
-                        logger.warning(
-                            "Fast path failed quality, escalating to browser",
-                            job_id=str(job_id),
-                            url=url,
-                            fallback_reason=quality.fallback_reason,
-                        )
-                        crawl_result = await _crawl_browser(url, browser_config)
-                        final_path = "fallback"
-                        decision_record.final_path = "fallback"
-                        decision_record.status_code = crawl_result.status_code
-                        decision_record.browser_duration_ms = crawl_result.duration_ms
-                        decision_record.fetch_time_ms = fast_result.fetch_time_ms + crawl_result.duration_ms
-                        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8")) + len((crawl_result.html_content or "").encode("utf-8"))
-                        decision_record.text_length = len(crawl_result.html_content or "") // 10
-
-                else:  # RouteType.BROWSER
-                    logger.info("Using BROWSER path (Playwright)", job_id=str(job_id), url=url)
-                    crawl_result = await _crawl_browser(url, browser_config)
-                    final_path = "browser"
-                    decision_record.final_path = "browser"
-                    decision_record.status_code = crawl_result.status_code
-                    decision_record.browser_duration_ms = crawl_result.duration_ms
-                    decision_record.fetch_time_ms = crawl_result.duration_ms
-                    decision_record.bytes_transferred = len((crawl_result.html_content or "").encode("utf-8"))
-                    decision_record.text_length = len(crawl_result.html_content or "") // 10
-
-                # Persist routing decision and emit path metric
-                await decision_repo.save(decision_record)
-                metrics = get_metrics()
-                if metrics:
-                    metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
-
+                # Persist routing decision
+                await _persist_routing_decision(decision_record, final_path, url)
                 _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
-
-                if metrics:
-                    metrics.observe_job_stage_duration(
-                        time.monotonic() - stage_started_at,
-                        stage=PipelineStage.BROWSER_LAUNCH.value,
-                        status="completed",
-                    )
+                _record_stage_metrics(stage_started_at, PipelineStage.BROWSER_LAUNCH)
 
                 # Stage 3: Navigation
                 _update_stage(session, job_id, PipelineStage.NAVIGATION, "RUNNING")
@@ -701,27 +596,9 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 if crawl_result and crawl_result.error:
                     raise Exception(crawl_result.error)
 
-                # Extract unified result
-                final_url = ""
-                status_code = None
-                headers = {}
-                html_content = ""
-                title = ""
-                duration_ms = 0
-                if fast_result and final_path in ("fast",):
-                    final_url = fast_result.url
-                    status_code = fast_result.status_code
-                    headers = fast_result.headers
-                    html_content = fast_result.html or ""
-                    title = fast_result.title
-                    duration_ms = fast_result.fetch_time_ms
-                elif crawl_result:
-                    final_url = crawl_result.final_url
-                    status_code = crawl_result.status_code
-                    headers = crawl_result.headers
-                    html_content = crawl_result.html_content or ""
-                    title = crawl_result.title or ""
-                    duration_ms = crawl_result.duration_ms
+                final_url, status_code, headers, html_content, title, duration_ms = _extract_unified_crawl_result(
+                    fast_result, crawl_result, final_path
+                )
 
                 job.configuration["navigation_result"] = {
                     "final_url": final_url,
@@ -731,47 +608,9 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 _update_stage(session, job_id, PipelineStage.NAVIGATION, "COMPLETED")
 
                 # Stage 4: Content Capture
-                _update_stage(session, job_id, PipelineStage.CONTENT_CAPTURE, "RUNNING")
-                job.status = JobStatus.EXTRACTING.value
-                job.progress_stage = PipelineStage.CONTENT_CAPTURE.value
-                session.commit()
-
-                content_hash = hashlib.sha256(html_content.encode()).hexdigest()
-                existing = (
-                    session.query(RawContent)
-                    .filter(
-                        RawContent.tenant_id == job.tenant_id,
-                        RawContent.content_hash == content_hash,
-                    )
-                    .first()
+                raw_content_id = await _capture_raw_content(
+                    session, job, url, final_url, status_code, headers, title, html_content, duration_ms, fast_result, final_path
                 )
-                is_duplicate = existing is not None
-
-                capture_method = "STATIC" if fast_result and final_path == "fast" else "DYNAMIC"
-                js_executed = not (fast_result and final_path == "fast")
-
-                raw_content = RawContent(
-                    job_id=job_id,
-                    tenant_id=job.tenant_id,
-                    target_id=job.target_id,
-                    source_url=url,
-                    source_final_url=final_url,
-                    source_domain=url.split("/")[2] if "/" in url else url,
-                    source_http_status=status_code,
-                    source_headers=headers,
-                    meta_title=title,
-                    capture_method=capture_method,
-                    capture_javascript_executed=js_executed,
-                    capture_wait_time_ms=duration_ms,
-                    content_hash=content_hash,
-                    is_duplicate=is_duplicate,
-                    duplicate_of_id=existing.id if existing else None,
-                    processing_status="PENDING",
-                )
-                session.add(raw_content)
-                session.flush()
-                job.configuration["raw_content_id"] = str(raw_content.id)
-                job.results_raw_content_count += 1
 
                 _update_stage(session, job_id, PipelineStage.CONTENT_CAPTURE, "COMPLETED")
                 session.commit()
@@ -779,14 +618,14 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 logger.info(
                     "Smart crawl completed",
                     job_id=str(job_id),
-                    raw_content_id=str(raw_content.id),
+                    raw_content_id=str(raw_content_id),
                     final_path=final_path,
                     final_url=final_url,
                 )
                 return browser_crawl_stageResult.model_validate({
                     "success": True,
                     "job_id": str(job_id),
-                    "raw_content_id": str(raw_content.id),
+                    "raw_content_id": str(raw_content_id),
                 }).model_dump()
 
         except Exception as exc:
@@ -803,6 +642,218 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                     status="failed",
                 )
             raise self.retry(exc=exc, countdown=30)
+
+
+def _get_target_config(session, job) -> dict:
+    """Get target configuration from job."""
+    target_config = {}
+    if job.target_id:
+        target = session.query(ScrapingTarget).get(job.target_id)
+        if target:
+            target_config = target.extraction_config or {}
+    return target_config
+
+
+async def _execute_routing(url: str, browser_config: dict, effective_mode: str, job_id: UUID, tenant_id: str):
+    """Execute routing decision and return crawl results."""
+    router = SmartRouter()
+    gate = QualityGate()
+
+    route_type = RouteType(effective_mode)
+    routing_decision = router.decide(url, route_type)
+
+    decision_record = CrawlDecisionRecord(
+        decision_id=str(uuid4()),
+        job_id=str(job_id),
+        tenant_id=tenant_id,
+        url=url,
+        domain=urlparse(url).netloc,
+        requested_path=effective_mode,
+        router_decision=routing_decision.route.value,
+        router_rule=routing_decision.reason,
+        quality_passed=None,
+        quality_checks=None,
+        fallback_reason=None,
+        final_path="unknown",
+        status_code=None,
+        fast_duration_ms=0,
+        browser_duration_ms=None,
+        fetch_time_ms=0,
+        bytes_transferred=0,
+        spa_detected=False,
+        text_length=0,
+    )
+
+    crawl_result = None
+    fast_result = None
+    final_path = "unknown"
+
+    if routing_decision.route == RouteType.FAST:
+        fast_result, decision_record = _execute_fast_path_routing(url, fast_result, decision_record)
+        final_path = "fast"
+    elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
+        crawl_result, fast_result, decision_record, final_path = await _execute_fast_with_fallback_routing(
+            url, browser_config, gate, fast_result, decision_record
+        )
+    else:  # RouteType.BROWSER
+        crawl_result, decision_record, final_path = _execute_browser_routing(url, browser_config, decision_record)
+
+    return crawl_result, fast_result, final_path, decision_record
+
+
+def _execute_fast_path_routing(url: str, fast_result, decision_record):
+    """Execute fast path routing."""
+    logger.info("Using FAST path (HTTPX)", url=url)
+    fast_result = asyncio.run(_execute_fast_path(url))
+    html_bytes = (fast_result.html or "").encode("utf-8")
+    decision_record.final_path = "fast"
+    decision_record.status_code = fast_result.status_code
+    decision_record.fast_duration_ms = fast_result.fetch_time_ms
+    decision_record.fetch_time_ms = fast_result.fetch_time_ms
+    decision_record.bytes_transferred = len(html_bytes)
+    decision_record.spa_detected = fast_result.is_spa_detected
+    decision_record.text_length = len(fast_result.text_content)
+    decision_record.quality_passed = fast_result.status_code == 200
+    decision_record.quality_checks = {"direct_fast": True}
+    return fast_result, decision_record
+
+
+async def _execute_fast_with_fallback_routing(url: str, browser_config: dict, gate, fast_result, decision_record):
+    """Execute fast with fallback routing."""
+    logger.info("Using FAST_WITH_FALLBACK path", url=url)
+    fast_result = await _execute_fast_path(url)
+    decision_record.fast_duration_ms = fast_result.fetch_time_ms
+    decision_record.spa_detected = fast_result.is_spa_detected
+    quality = gate.evaluate(fast_result)
+    decision_record.quality_passed = quality.passed
+    decision_record.quality_checks = quality.checks
+    decision_record.fallback_reason = quality.fallback_reason
+    
+    if quality.passed:
+        final_path = "fast"
+        decision_record.final_path = "fast"
+        decision_record.status_code = fast_result.status_code
+        decision_record.fetch_time_ms = fast_result.fetch_time_ms
+        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8"))
+        decision_record.text_length = len(fast_result.text_content)
+        logger.info("Fast path succeeded", duration_ms=fast_result.fetch_time_ms)
+        crawl_result = None
+    else:
+        logger.warning("Fast path failed quality, escalating to browser", url=url, fallback_reason=quality.fallback_reason)
+        crawl_result = await _crawl_browser(url, browser_config)
+        final_path = "fallback"
+        decision_record.final_path = "fallback"
+        decision_record.status_code = crawl_result.status_code
+        decision_record.browser_duration_ms = crawl_result.duration_ms
+        decision_record.fetch_time_ms = fast_result.fetch_time_ms + crawl_result.duration_ms
+        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8")) + len((crawl_result.html_content or "").encode("utf-8"))
+        decision_record.text_length = len(crawl_result.html_content or "") // 10
+    
+    return crawl_result, fast_result, decision_record, final_path
+
+
+def _execute_browser_routing(url: str, browser_config: dict, decision_record):
+    """Execute browser routing."""
+    logger.info("Using BROWSER path (Playwright)", url=url)
+    crawl_result = asyncio.run(_crawl_browser(url, browser_config))
+    final_path = "browser"
+    decision_record.final_path = "browser"
+    decision_record.status_code = crawl_result.status_code
+    decision_record.browser_duration_ms = crawl_result.duration_ms
+    decision_record.fetch_time_ms = crawl_result.duration_ms
+    decision_record.bytes_transferred = len((crawl_result.html_content or "").encode("utf-8"))
+    decision_record.text_length = len(crawl_result.html_content or "") // 10
+    return crawl_result, decision_record, final_path
+
+
+async def _persist_routing_decision(decision_record, final_path, url):
+    """Persist routing decision and emit path metric."""
+    decision_repo = CrawlDecisionRepository()
+    await decision_repo.save(decision_record)
+    metrics = get_metrics()
+    if metrics:
+        metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
+
+
+def _record_stage_metrics(stage_started_at, stage):
+    """Record stage duration metrics."""
+    metrics = get_metrics()
+    if metrics:
+        metrics.observe_job_stage_duration(
+            time.monotonic() - stage_started_at,
+            stage=stage.value,
+            status="completed",
+        )
+
+
+def _extract_unified_crawl_result(fast_result, crawl_result, final_path):
+    """Extract unified crawl result from fast or browser path."""
+    if fast_result and final_path in ("fast",):
+        return (
+            fast_result.url,
+            fast_result.status_code,
+            fast_result.headers,
+            fast_result.html or "",
+            fast_result.title,
+            fast_result.fetch_time_ms,
+        )
+    elif crawl_result:
+        return (
+            crawl_result.final_url,
+            crawl_result.status_code,
+            crawl_result.headers,
+            crawl_result.html_content or "",
+            crawl_result.title or "",
+            crawl_result.duration_ms,
+        )
+    return "", None, {}, "", "", 0
+
+
+async def _capture_raw_content(session, job, url, final_url, status_code, headers, title, html_content, duration_ms, fast_result, final_path):
+    """Capture raw content to database."""
+    _update_stage(session, job.id, PipelineStage.CONTENT_CAPTURE, "RUNNING")
+    job.status = JobStatus.EXTRACTING.value
+    job.progress_stage = PipelineStage.CONTENT_CAPTURE.value
+    session.commit()
+
+    content_hash = hashlib.sha256(html_content.encode()).hexdigest()
+    existing = (
+        session.query(RawContent)
+        .filter(
+            RawContent.tenant_id == job.tenant_id,
+            RawContent.content_hash == content_hash,
+        )
+        .first()
+    )
+    is_duplicate = existing is not None
+
+    capture_method = "STATIC" if fast_result and final_path == "fast" else "DYNAMIC"
+    js_executed = not (fast_result and final_path == "fast")
+
+    raw_content = RawContent(
+        job_id=job.id,
+        tenant_id=job.tenant_id,
+        target_id=job.target_id,
+        source_url=url,
+        source_final_url=final_url,
+        source_domain=url.split("/")[2] if "/" in url else url,
+        source_http_status=status_code,
+        source_headers=headers,
+        meta_title=title,
+        capture_method=capture_method,
+        capture_javascript_executed=js_executed,
+        capture_wait_time_ms=duration_ms,
+        content_hash=content_hash,
+        is_duplicate=is_duplicate,
+        duplicate_of_id=existing.id if existing else None,
+        processing_status="PENDING",
+    )
+    session.add(raw_content)
+    session.flush()
+    job.configuration["raw_content_id"] = str(raw_content.id)
+    job.results_raw_content_count += 1
+
+    return raw_content.id
 
 
 @celery_app.task(bind=True, max_retries=5)
