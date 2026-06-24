@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -147,6 +148,16 @@ def _run(
     if check and result.returncode != 0:
         raise SystemExit(result.returncode)
     return result
+
+
+def _pnpm_command(*args: str) -> list[str]:
+    corepack = shutil.which("corepack")
+    if corepack:
+        return [corepack, "pnpm", *args]
+    pnpm = shutil.which("pnpm")
+    if pnpm:
+        return [pnpm, *args]
+    return ["pnpm", *args]
 
 
 def _git_changed_files(base_ref: str) -> list[str]:
@@ -385,14 +396,14 @@ def _run_targeted_typecheck(specs: tuple[str, ...]) -> None:
         temp_name = Path(handle.name)
 
     try:
-        _run(["pnpm", "exec", "tsc", "-p", temp_name.name, "--noEmit", "--pretty", "false"], cwd=WEB_ROOT)
+        _run(_pnpm_command("exec", "tsc", "-p", temp_name.name, "--noEmit", "--pretty", "false"), cwd=WEB_ROOT)
     finally:
         temp_name.unlink(missing_ok=True)
 
 
 def _run_full_typecheck() -> None:
     _print_header("Frontend Typecheck (Full)")
-    _run(["pnpm", "exec", "tsc", "-p", "tsconfig.json", "--noEmit", "--pretty", "false"], cwd=WEB_ROOT)
+    _run(_pnpm_command("exec", "tsc", "-p", "tsconfig.json", "--noEmit", "--pretty", "false"), cwd=WEB_ROOT)
 
 
 def parse_args() -> argparse.Namespace:

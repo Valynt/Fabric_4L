@@ -2720,6 +2720,29 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Security Compatibility"
+        ],
+        "summary": "Entity Create Security Boundary",
+        "operationId": "entity_create_security_boundary_api_v1_entities_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Entity Create Security Boundary Api V1 Entities Post"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/entities/{entity_id}": {
