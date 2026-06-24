@@ -1,6 +1,6 @@
-from __future__ import annotations
+"""Lazy namespace redirects for the Layer 4 core engine."""
 
-"""Engine package for workflow execution."""
+from __future__ import annotations
 
 from importlib import import_module
 from typing import Any

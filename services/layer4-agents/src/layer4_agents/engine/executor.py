@@ -30,6 +30,8 @@ from value_fabric.shared.identity.context import (
     set_request_context,
 )
 
+from src.fabric.l4.types import ScheduledTask, TaskPriority, TaskSchedulerPort
+
 from ..models.agent_state import AgentState, WorkflowStatus
 
 
@@ -48,6 +50,8 @@ class CheckpointConflictError(WorkflowExecutionError):
 
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from src.fabric.l4.core.scheduler import TaskScheduler
 
 from ..agents.base import BaseAgent
 from ..harness.models import GateStatus, GateType, HumanGate
@@ -69,7 +73,6 @@ from .execution_dispatch import build_workflow_task
 from .execution_persistence import mark_workflow_running, persist_workflow_failure
 from .execution_validation import ensure_controller_accepts_execution
 from .output_contract import validate_final_output
-from .scheduler import ScheduledTask, TaskPriority, TaskScheduler
 from .state_manager import StateManager
 
 
@@ -262,6 +265,7 @@ class OrchestrationController:
         max_concurrent: int = 100,
         scaling_config: dict[str, Any] | None = None,
         checkpoint_saver: BaseCheckpointSaver | None = None,
+        task_scheduler: TaskSchedulerPort | None = None,
     ):
         """Initialize orchestration controller.
 
@@ -272,6 +276,7 @@ class OrchestrationController:
             max_concurrent: Maximum concurrent tasks
             scaling_config: Scaling policy configuration
             checkpoint_saver: LangGraph checkpoint saver for workflow persistence
+            task_scheduler: Optional scheduler implementation for dependency injection
         """
         self.tool_registry = tool_registry
         self.state_manager = state_manager or StateManager()
@@ -287,7 +292,7 @@ class OrchestrationController:
         }
 
         # Task scheduling
-        self.scheduler = TaskScheduler(max_concurrent_tasks=max_concurrent)
+        self.scheduler = task_scheduler or TaskScheduler(max_concurrent_tasks=max_concurrent)
         self.scheduler.set_callbacks(
             on_complete=self._on_task_complete,
             on_fail=self._on_task_fail,

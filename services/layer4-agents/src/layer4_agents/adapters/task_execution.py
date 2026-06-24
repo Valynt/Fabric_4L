@@ -4,14 +4,18 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from layer4_agents.engine.ports import TaskExecutionPort, TaskExecutionRequest
-from layer4_agents.engine.scheduler import ScheduledTask, TaskScheduler
+from src.fabric.l4.types import (
+    ScheduledTask,
+    TaskExecutionPort,
+    TaskExecutionRequest,
+    TaskSchedulerPort,
+)
 
 
 class LegacyTaskExecutionAdapter:
     """TaskExecutionPort adapter around the current TaskScheduler."""
 
-    def __init__(self, scheduler: TaskScheduler) -> None:
+    def __init__(self, scheduler: TaskSchedulerPort) -> None:
         self._scheduler = scheduler
 
     async def submit(self, task: TaskExecutionRequest) -> str:
@@ -45,7 +49,7 @@ class LegacyTaskExecutionAdapter:
         return cast(dict[str, Any], self._scheduler.get_stats())
 
 
-def as_task_execution_port(scheduler: TaskScheduler) -> TaskExecutionPort:
+def as_task_execution_port(scheduler: TaskSchedulerPort) -> TaskExecutionPort:
     """Return the legacy scheduler through the stable task-execution port."""
 
     return LegacyTaskExecutionAdapter(scheduler)
