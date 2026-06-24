@@ -155,6 +155,17 @@ audit-output/
 *.key
 *.crt
 *.cer
+*.pfx
+*.p12
+
+# Credential files
+credentials.json
+token.json
+
+# Private folders
+legal/
+tax/
+private/
 
 # Archived frontend snapshots/backups (non-runtime)
 # Stale archive subtrees that are no longer tracked
