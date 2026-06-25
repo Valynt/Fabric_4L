@@ -159,16 +159,19 @@ class TestGraphVizInputValidation:
         assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     def test_valid_relationship_types_pass_regex(self):
-        """Standard uppercase relationship types pass validation."""
+        """Standard relationship types pass validation."""
         assert _VALID_REL_TYPE.match("ENABLES")
         assert _VALID_REL_TYPE.match("REQUIRES")
         assert _VALID_REL_TYPE.match("RELATED_TO")
         assert _VALID_REL_TYPE.match("_PRIVATE")
+        # Canonical lowercase/camelCase relationship types must also be accepted.
+        assert _VALID_REL_TYPE.match("enables")
+        assert _VALID_REL_TYPE.match("Requires")
+        assert _VALID_REL_TYPE.match("subTypeOf")
+        assert _VALID_REL_TYPE.match("requiresFeature")
 
-    def test_lowercase_relationship_type_rejected_by_regex(self):
-        """Lowercase relationship types are rejected — prevents injection."""
-        assert _VALID_REL_TYPE.match("enables") is None
-        assert _VALID_REL_TYPE.match("Requires") is None
+    def test_invalid_relationship_type_rejected_by_regex(self):
+        """Malformed relationship types are rejected — prevents injection."""
 
     def test_relationship_type_with_special_chars_rejected(self):
         """Special characters in relationship type are rejected."""

@@ -51,7 +51,14 @@ _TOKEN_PATTERNS = [
     re.compile(r"\bsk-[A-Za-z0-9][A-Za-z0-9._-]{8,}\b"),
     re.compile(r"\b(?:sk|pk|rk|vf)_(?:live|test)_[A-Za-z0-9][A-Za-z0-9._-]{6,}\b", re.IGNORECASE),
     re.compile(r"\b(?:Bearer|Token)\s+[A-Za-z0-9._~+/=-]{8,}\b", re.IGNORECASE),
+    # Base64-encoded JWT tokens (typically 3 parts separated by dots)
+    re.compile(r"\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b"),
 ]
+# Pattern to catch KEY=value assignments where KEY is a sensitive field
+_SECRET_ASSIGNMENT_PATTERN = re.compile(
+    rf"\b({'|'.join(_SECRET_QUERY_KEYS)}|jwt_secret|service_auth_secret|api_key|private_key|client_secret)=[^\s,)]+",
+    re.IGNORECASE
+)
 _EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 _URL_PATTERN = re.compile(r"https?://[^\s)\]}>\"']+")
@@ -87,6 +94,8 @@ def redact_credentials(message: object) -> str:
     rendered = _URL_PATTERN.sub(_redact_url_match, rendered)
     rendered = _EMAIL_PATTERN.sub(REDACTED_VALUE, rendered)
     rendered = _SSN_PATTERN.sub(REDACTED_VALUE, rendered)
+    # Redact secret assignments (e.g., JWT_SECRET=value)
+    rendered = _SECRET_ASSIGNMENT_PATTERN.sub(lambda m: f"{m.group(1).split('=')[0]}={REDACTED_VALUE}", rendered)
     for pattern in _TOKEN_PATTERNS:
         rendered = pattern.sub(REDACTED_VALUE, rendered)
     return rendered
