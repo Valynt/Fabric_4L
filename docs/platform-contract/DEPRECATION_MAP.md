@@ -12,7 +12,7 @@
 | get_tiered_db_session() | get_db_from_context() | 2026-06-15 | Tier routing not yet implemented | complete | `rg` scan across canonical runtime paths (no hits); deprecated surface retained for compatibility tests only |
 | get_db_with_optional_tenant() | get_db_from_context() + require_super_admin() | 2026-06-15 | Admin routes only | complete | `rg` scan across canonical runtime paths (no hits); deprecated surface retained for compatibility tests only |
 | Layer 3 AuthenticationMiddleware | shared.identity.GovernanceMiddleware | 2026-05-15 | Remove duplicate middleware | waived-with-exception | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE |
-| Raw dict agent returns | AgentResultEnvelope | 2026-06-30 | Gradual migration | in-progress | Pending migration/validation |
+| Raw dict agent returns | AgentResultEnvelope | 2026-12-31 | Gradual migration | in-progress | Extended by S1-T1-CI-STABILIZE; migrations continue |
 | ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-07-15 | Agents must use ctx['tool_gateway'] | in-progress | Pending migration/validation |
 | GraphRAGEngine.query() direct call | MemoryGateway.query() | 2026-07-15 | Agents must use ctx['memory_gateway'] | complete | MemoryGateway wired into BaseAgent.run() and ConversationService gate context; tests in services/layer4-agents/tests/test_base_agent_memory_gateway.py |
 | datetime.utcnow() | datetime.now(timezone.utc) | 2026-06-01 | Deprecated in Python 3.12 | waived-with-exception | DEP-EXC-2026-06-04-UTCNOW |
