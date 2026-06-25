@@ -590,63 +590,182 @@ class TestRedisExceptionHandling:
     """Integration tests for Redis exception handling."""
 
     @pytest.mark.asyncio
+    async def test_tenant_kill_switch_unknown_returns_503(
+        self, middleware, sample_context
+    ):
+        """RB-4: When Redis is unavailable, check_status() returns UNKNOWN.
+
+        The middleware MUST return HTTP 503 (not None/allow) when the kill
+        switch cannot confirm tenant status. Returning None would be a
+        fail-open vulnerability: a suspended tenant could bypass the kill
+        switch during a Redis outage.
+        """
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
+        with patch(
+            "value_fabric.shared.identity.middleware.TenantKillSwitch"
+        ) as MockKillSwitch:
+            mock_kill_switch = MagicMock()
+            # check_status() is now called instead of is_suspended()
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.UNKNOWN
+            )
+            MockKillSwitch.return_value = mock_kill_switch
+
+            result = await middleware._enforce_tenant_status(sample_context)
+
+            # MUST return 503, not None (fail-open)
+            assert result is not None, (
+                "Middleware must NOT return None (allow) when kill switch status is "
+                "UNKNOWN. A Redis outage must not allow suspended tenants through."
+            )
+            assert result.status_code == 503
+            import json
+            body = json.loads(result.body)
+            assert body["error"] == "tenant_status_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_tenant_kill_switch_no_redis_returns_503(
+        self, middleware, sample_context
+    ):
+        """RB-4: When no Redis client is configured, check_status() returns UNKNOWN.
+
+        A missing Redis client is the most common production misconfiguration.
+        The middleware must fail safe (503) rather than silently allowing all
+        requests through.
+        """
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
+        with patch(
+            "value_fabric.shared.identity.middleware.TenantKillSwitch"
+        ) as MockKillSwitch:
+            mock_kill_switch = MagicMock()
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.UNKNOWN
+            )
+            MockKillSwitch.return_value = mock_kill_switch
+
+            result = await middleware._enforce_tenant_status(sample_context)
+
+            assert result is not None
+            assert result.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_tenant_kill_switch_active_allows_request(
+        self, middleware, sample_context
+    ):
+        """RB-4: When Redis confirms tenant is ACTIVE, request proceeds normally."""
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
+        with patch(
+            "value_fabric.shared.identity.middleware.TenantKillSwitch"
+        ) as MockKillSwitch:
+            mock_kill_switch = MagicMock()
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.ACTIVE
+            )
+            MockKillSwitch.return_value = mock_kill_switch
+
+            result = await middleware._enforce_tenant_status(sample_context)
+
+            # ACTIVE status: no blocking response
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_tenant_kill_switch_suspended_returns_403(
+        self, middleware, sample_context
+    ):
+        """RB-4: When Redis confirms tenant is SUSPENDED, middleware returns 403."""
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
+        with patch(
+            "value_fabric.shared.identity.middleware.TenantKillSwitch"
+        ) as MockKillSwitch:
+            mock_kill_switch = MagicMock()
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.SUSPENDED
+            )
+            MockKillSwitch.return_value = mock_kill_switch
+
+            result = await middleware._enforce_tenant_status(sample_context)
+
+            assert result is not None
+            assert result.status_code == 403
+            import json
+            body = json.loads(result.body)
+            assert body["error"] == "tenant_suspended"
+
+    @pytest.mark.asyncio
     async def test_tenant_kill_switch_handles_redis_error(
         self, middleware, sample_context
     ):
-        """Test that Redis-specific exceptions are handled gracefully."""
-        mock_redis_client = MagicMock()
-        mock_redis_client.get.side_effect = Exception("Redis connection failed")
+        """RB-4 (updated): Redis errors now produce UNKNOWN → 503, not None → allow.
+
+        Previously this test asserted result is None (fail-open). The correct
+        behavior after the RB-4 fix is to return 503 when Redis is unavailable.
+        """
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
 
         with patch(
-            "value_fabric.shared.identity.middleware.redis_error_available", True
-        ):
-            with patch("value_fabric.shared.identity.middleware.RedisError", Exception):
-                with patch(
-                    "value_fabric.shared.identity.middleware.TenantKillSwitch"
-                ) as MockKillSwitch:
-                    mock_kill_switch = MagicMock()
-                    mock_kill_switch.is_suspended.side_effect = Exception(
-                        "RedisError: Connection refused"
-                    )
-                    MockKillSwitch.return_value = mock_kill_switch
+            "value_fabric.shared.identity.middleware.TenantKillSwitch"
+        ) as MockKillSwitch:
+            mock_kill_switch = MagicMock()
+            # check_status() returns UNKNOWN on any Redis error
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.UNKNOWN
+            )
+            MockKillSwitch.return_value = mock_kill_switch
 
-                    # Should not raise, should return None and fall through to JWT claims
-                    result = await middleware._enforce_tenant_status(sample_context)
-                    assert result is None
+            result = await middleware._enforce_tenant_status(sample_context)
+
+            # Must be 503, not None (fail-open)
+            assert result is not None
+            assert result.status_code == 503
 
     @pytest.mark.asyncio
     async def test_tenant_kill_switch_handles_network_error(
         self, middleware, sample_context
     ):
-        """Test that network errors are handled gracefully."""
-        mock_redis_client = MagicMock()
-        mock_redis_client.get.side_effect = ConnectionError("Network unreachable")
+        """RB-4 (updated): Network errors now produce UNKNOWN → 503, not None → allow."""
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
 
         with patch(
             "value_fabric.shared.identity.middleware.TenantKillSwitch"
         ) as MockKillSwitch:
             mock_kill_switch = MagicMock()
-            mock_kill_switch.is_suspended.side_effect = ConnectionError(
-                "Network unreachable"
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.UNKNOWN
             )
             MockKillSwitch.return_value = mock_kill_switch
 
-            # Should not raise, should return None and fall through to JWT claims
             result = await middleware._enforce_tenant_status(sample_context)
-            assert result is None
+
+            assert result is not None
+            assert result.status_code == 503
 
     @pytest.mark.asyncio
     async def test_tenant_kill_switch_re_raises_unexpected_exception(
         self, middleware, sample_context
     ):
-        """Test that non-Redis/non-network exceptions are re-raised."""
+        """Unexpected exceptions from check_status() are handled via UNKNOWN → 503.
+
+        The new check_status() implementation catches all exceptions internally
+        and returns UNKNOWN. The middleware no longer receives raw exceptions
+        from the kill switch. This test verifies the middleware handles UNKNOWN
+        correctly (503) rather than re-raising.
+        """
+        from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
+
         with patch(
             "value_fabric.shared.identity.middleware.TenantKillSwitch"
         ) as MockKillSwitch:
             mock_kill_switch = MagicMock()
-            mock_kill_switch.is_suspended.side_effect = ValueError("Unexpected error")
+            # check_status() absorbs all exceptions and returns UNKNOWN
+            mock_kill_switch.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.UNKNOWN
+            )
             MockKillSwitch.return_value = mock_kill_switch
 
-            # Should re-raise unexpected exceptions
-            with pytest.raises(ValueError, match="Unexpected error"):
-                await middleware._enforce_tenant_status(sample_context)
+            result = await middleware._enforce_tenant_status(sample_context)
+            assert result is not None
+            assert result.status_code == 503
