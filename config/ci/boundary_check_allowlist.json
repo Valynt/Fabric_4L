@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "owner": "platform-security",
+  "expires_on": "2026-12-31",
+  "allowlist": [
+    {
+      "file": "services/layer3-knowledge/src/services/competitive_intel_service.py",
+      "line": 176,
+      "reason": "Internal Cypher parameter dict validated by mandatory ValidatedNeo4jSession gateway; tenant_id is required and passed through, not inferred from a request."
+    },
+    {
+      "file": "services/layer3-knowledge/src/services/product_service.py",
+      "line": 149,
+      "reason": "Internal Cypher parameter dict validated by mandatory ValidatedNeo4jSession gateway; tenant_id is required and passed through, not inferred from a request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/api/routes/integrations.py",
+      "line": 251,
+      "reason": "Tenant ID is read from a signed/encrypted OAuth state payload that the service itself created; not a user-supplied request parameter."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/api/routes/signals.py",
+      "line": 465,
+      "reason": "Tenant ID is extracted from an internal validated signal payload; not a user-supplied request parameter."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/api/websocket/auth.py",
+      "line": 84,
+      "reason": "Tenant ID is extracted from an authenticated WebSocket token payload after signature verification; not a raw request parameter."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/engine/executor.py",
+      "line": 1459,
+      "reason": "Tenant ID is propagated from an already-authenticated workflow execution context; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/services/tenant_query_helper.py",
+      "line": 33,
+      "reason": "Internal helper receives tenant_id via its caller's authenticated context; the variable name 'params' shadows a Cypher parameter dict."
+    },
+    {
+      "file": "services/layer5-ground-truth/src/layer5_ground_truth/api/auth.py",
+      "line": 228,
+      "reason": "Tenant hint is read from query parameters only to explicitly reject it with AUTH_TENANT_HINT_REJECTED; canonical context is enforced."
+    },
+    {
+      "file": "services/layer5-ground-truth/src/layer5_ground_truth/api/auth.py",
+      "line": 236,
+      "reason": "Tenant hint is read from headers only to explicitly reject it with AUTH_TENANT_HINT_REJECTED; canonical context is enforced."
+    },
+    {
+      "file": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
+      "line": 608,
+      "reason": "Tenant ID is read from a downstream Layer 3 response body to detect cross-tenant data leakage; it is compared against the authenticated tenant."
+    },
+    {
+      "file": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
+      "line": 779,
+      "reason": "Tenant ID is read from a downstream Layer 3 response body to detect cross-tenant data leakage; it is compared against the authenticated tenant."
+    }
+  ]
+}
