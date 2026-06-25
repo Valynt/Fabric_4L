@@ -16,17 +16,13 @@ Covers:
 """
 
 
-import sys
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from harness.live_l5_validator import LiveL5Validator
-from harness.models import (
+from layer4_agents.harness.live_l5_validator import LiveL5Validator
+from layer4_agents.harness.models import (
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -37,9 +33,9 @@ from harness.models import (
     ValidationState,
     ValidationSummary,
 )
-from harness.policies import aggregate_validation_results
-from harness.state_machine import StateMachine, ValidationRequiredError
-from harness.validation_hooks import ClaimValidationRequest
+from layer4_agents.harness.policies import aggregate_validation_results
+from layer4_agents.harness.state_machine import StateMachine, ValidationRequiredError
+from layer4_agents.harness.validation_hooks import ClaimValidationRequest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -150,7 +146,7 @@ class TestAggregateValidationResults:
 
 class TestStateMachinePublishGate:
     def _make_run(self, current_state: HarnessState = HarnessState.VALIDATE_CLAIMS):
-        from harness.models import HarnessRun
+        from layer4_agents.harness.models import HarnessRun
         return HarnessRun(
             tenant_id="t1",
             workflow_type=HarnessWorkflowType.BUSINESS_CASE_GENERATION,
@@ -331,8 +327,8 @@ class TestHumanOverrideAudited:
     @pytest.mark.asyncio
     async def test_gate_decision_by_is_recorded(self):
         """Approving a gate records decision_by on the gate object."""
-        from harness.factory import make_in_memory_registry
-        from harness.models import HarnessWorkflowType, InitiatedBy
+        from layer4_agents.harness.factory import make_in_memory_registry
+        from layer4_agents.harness.models import HarnessWorkflowType, InitiatedBy
 
         registry = make_in_memory_registry()
         run = registry.create_run(
@@ -358,8 +354,8 @@ class TestHumanOverrideAudited:
     @pytest.mark.asyncio
     async def test_rejected_gate_records_decision_by(self):
         """Rejecting a gate also records decision_by."""
-        from harness.factory import make_in_memory_registry
-        from harness.models import HarnessWorkflowType, InitiatedBy
+        from layer4_agents.harness.factory import make_in_memory_registry
+        from layer4_agents.harness.models import HarnessWorkflowType, InitiatedBy
 
         registry = make_in_memory_registry()
         run = registry.create_run(

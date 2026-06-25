@@ -17,15 +17,9 @@ All tests must prove behavior, not just imports.
 """
 
 
-# Ensure harness is importable
-import sys
-from pathlib import Path
-
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from harness import (
+from layer4_agents.harness import (
     ApprovalRequiredError,
     CheckpointError,
     CheckpointManager,
@@ -648,7 +642,7 @@ class TestCheckpoints:
             state_name=HarnessState.INIT,
             state_payload={},
         )
-        from harness.checkpoints import CheckpointTenantError
+        from layer4_agents.harness.checkpoints import CheckpointTenantError
         with pytest.raises(CheckpointTenantError):
             checkpoint_manager.get_checkpoint(cp.id, run.id, other_tenant)
 
@@ -764,7 +758,7 @@ class TestValidationHooks:
         self, harness: HarnessRegistry, tenant_id: str
     ) -> None:
         """UnavailableValidator never returns PASSED."""
-        from harness.validation_hooks import ClaimValidationRequest, UnavailableValidator
+        from layer4_agents.harness.validation_hooks import ClaimValidationRequest, UnavailableValidator
 
         validator = UnavailableValidator()
         request = ClaimValidationRequest(
@@ -1026,7 +1020,7 @@ class TestPolicies:
         self, tenant_id: str
     ) -> None:
         """Insufficient evidence requires human review."""
-        from harness.policies import requires_human_review
+        from layer4_agents.harness.policies import requires_human_review
         result = ClaimValidationResult(
             tenant_id=tenant_id,
             claim_id="c1",
@@ -1040,7 +1034,7 @@ class TestPolicies:
 
     def test_no_human_review_needed_when_all_passed(self, tenant_id: str) -> None:
         """No human review needed when all validations passed."""
-        from harness.policies import requires_human_review
+        from layer4_agents.harness.policies import requires_human_review
         result = ClaimValidationResult(
             tenant_id=tenant_id,
             claim_id="c1",
@@ -1145,7 +1139,7 @@ class TestTenantIsolation:
             state_name=HarnessState.INIT,
             state_payload={},
         )
-        from harness.checkpoints import CheckpointTenantError
+        from layer4_agents.harness.checkpoints import CheckpointTenantError
         with pytest.raises(CheckpointTenantError):
             harness._checkpoints.get_checkpoint(cp.id, run.id, other_tenant)
 
@@ -1552,7 +1546,7 @@ class TestAntiDrift:
     def test_no_speculative_abstractions(self) -> None:
         """MVP has no speculative abstractions beyond scope."""
         # Verify core classes exist without bloat
-        import harness as h
+        import layer4_agents.harness as h
         assert hasattr(h, 'HarnessRun')
         assert hasattr(h, 'StateMachine')
         assert hasattr(h, 'ToolContractRegistry')

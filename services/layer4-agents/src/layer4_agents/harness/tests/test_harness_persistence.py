@@ -16,26 +16,20 @@ Test classes:
 
 
 import asyncio
-import sys
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
-
-# Ensure harness is importable from src/
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from harness.checkpoints import CheckpointError, CheckpointTenantError
+from layer4_agents.harness.checkpoints import CheckpointError, CheckpointTenantError
 
 # ---------------------------------------------------------------------------
 # SQLite fixtures
 # ---------------------------------------------------------------------------
 # Import Base from db_models — it falls back to a local DeclarativeBase
 # when src.database is unavailable (e.g. SQLite test environment).
-from harness.db_models import (
+from layer4_agents.harness.db_models import (
     Base,  # noqa: E402
     ClaimValidationResultRow,
     HarnessCheckpointRow,
@@ -44,9 +38,9 @@ from harness.db_models import (
     HumanGateRow,
     ToolContractRow,
 )
-from harness.factory import make_in_memory_registry, make_sql_registry
-from harness.human_gates import GateNotFoundError
-from harness.models import (
+from layer4_agents.harness.factory import make_in_memory_registry, make_sql_registry
+from layer4_agents.harness.human_gates import GateNotFoundError
+from layer4_agents.harness.models import (
     GateStatus,
     GateType,
     HarnessCheckpoint,
@@ -62,15 +56,15 @@ from harness.models import (
     ToolRiskLevel,
     ToolSideEffectClass,
 )
-from harness.registry import RunNotFoundError, TransitionConflictError
-from harness.repositories import (
+from layer4_agents.harness.registry import RunNotFoundError, TransitionConflictError
+from layer4_agents.harness.repositories import (
     CheckpointRepository,
     HarnessRunRepository,
     HumanGateRepository,
     ToolContractRepository,
     TraceEventRepository,
 )
-from harness.tool_contracts import ToolNotFoundError, ToolRegistrationError
+from layer4_agents.harness.tool_contracts import ToolNotFoundError, ToolRegistrationError
 
 
 @pytest_asyncio.fixture
@@ -781,7 +775,7 @@ class TestSqlHarnessRegistryIntegration:
 
     async def test_make_in_memory_registry_returns_compatible_object(self) -> None:
         """make_in_memory_registry returns a HarnessRegistry-compatible object."""
-        from harness.registry import HarnessRegistry
+        from layer4_agents.harness.registry import HarnessRegistry
 
         reg = make_in_memory_registry()
         assert isinstance(reg, HarnessRegistry)
@@ -813,7 +807,7 @@ class TestSqlHarnessRegistryIntegration:
         self, session: AsyncSession
     ) -> None:
         """SqlTelemetryEmitter.get_events() mirrors in-memory filtering behavior."""
-        from harness.sql_stores import SqlTelemetryEmitter
+        from layer4_agents.harness.sql_stores import SqlTelemetryEmitter
 
         emitter = SqlTelemetryEmitter(session)
         run = HarnessRun(
@@ -981,8 +975,8 @@ class TestSqlClaimValidationStore:
 
     @pytest.mark.asyncio
     async def test_save_and_retrieve_results(self, session):
-        from harness.models import ClaimValidationResult, ValidationState
-        from harness.sql_stores import SqlClaimValidationStore
+        from layer4_agents.harness.models import ClaimValidationResult, ValidationState
+        from layer4_agents.harness.sql_stores import SqlClaimValidationStore
 
         store = SqlClaimValidationStore(session)
         run_id = "run-cvr-001"
@@ -1019,8 +1013,8 @@ class TestSqlClaimValidationStore:
     @pytest.mark.asyncio
     async def test_cross_tenant_isolation(self, session):
         """Results saved for TENANT_A are not visible to TENANT_B."""
-        from harness.models import ClaimValidationResult, ValidationState
-        from harness.sql_stores import SqlClaimValidationStore
+        from layer4_agents.harness.models import ClaimValidationResult, ValidationState
+        from layer4_agents.harness.sql_stores import SqlClaimValidationStore
 
         store = SqlClaimValidationStore(session)
         run_id = "run-cvr-002"
@@ -1042,8 +1036,8 @@ class TestSqlClaimValidationStore:
     @pytest.mark.asyncio
     async def test_save_is_idempotent_on_claim_id(self, session):
         """Re-saving the same claim_id replaces the previous result."""
-        from harness.models import ClaimValidationResult, ValidationState
-        from harness.sql_stores import SqlClaimValidationStore
+        from layer4_agents.harness.models import ClaimValidationResult, ValidationState
+        from layer4_agents.harness.sql_stores import SqlClaimValidationStore
 
         store = SqlClaimValidationStore(session)
         run_id = "run-cvr-003"
@@ -1080,7 +1074,7 @@ class TestSqlClaimValidationStore:
     @pytest.mark.asyncio
     async def test_empty_run_returns_empty_list(self, session):
         """get_results_for_run returns [] when no results have been saved."""
-        from harness.sql_stores import SqlClaimValidationStore
+        from layer4_agents.harness.sql_stores import SqlClaimValidationStore
 
         store = SqlClaimValidationStore(session)
         fetched = await store.get_results_for_run("run-nonexistent", TENANT_A)
@@ -1091,16 +1085,16 @@ class TestSqlClaimValidationStore:
         """SqlHarnessRegistry.validate_claims persists results when run_id is given."""
         from unittest.mock import AsyncMock
 
-        from harness.models import ClaimValidationResult, ValidationState
-        from harness.sql_stores import (
+        from layer4_agents.harness.models import ClaimValidationResult, ValidationState
+        from layer4_agents.harness.sql_stores import (
             SqlCheckpointManager,
             SqlHarnessRegistry,
             SqlHumanGateManager,
             SqlTelemetryEmitter,
             SqlToolContractRegistry,
         )
-        from harness.state_machine import StateMachine
-        from harness.validation_hooks import ClaimValidationRequest, ValidationHook
+        from layer4_agents.harness.state_machine import StateMachine
+        from layer4_agents.harness.validation_hooks import ClaimValidationRequest, ValidationHook
 
         # Stub the ValidationHook to return a known PASSED result
         mock_hook = ValidationHook(primary_validator=None)
