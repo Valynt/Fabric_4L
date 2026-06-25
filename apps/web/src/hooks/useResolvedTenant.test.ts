@@ -2,16 +2,95 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
-
+import { useAuth, useOrganization } from '@clerk/react';
 import { createWrapper } from '../test-utils';
 import { server } from '../test/mocks/server';
 import { useResolvedTenant } from './useResolvedTenant';
 import { useAccountContextStore, type AccountContextState } from '@/stores/accountContextStore';
 import { QK } from './queryKeys';
 import { BaseApiError } from './useApiShared';
-import { setupClerkSignedIn, setupClerkLoading, setupLegacyAuth, resetClerkMocks, getClerkMocks } from '@/test/utils/clerkTestHelpers';
+import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 
-const { mockUseOrganization } = getClerkMocks();
+// Vitest hoists vi.mock to the top of the file; these must live in the test
+// file (not in a helper) so that the module factory is registered before any
+// imports are resolved.
+vi.mock('@clerk/react', () => ({
+  useAuth: vi.fn(() => ({ isLoaded: true, isSignedIn: false, getToken: vi.fn() })),
+  useOrganization: vi.fn(() => ({ isLoaded: true, organization: null })),
+}));
+vi.mock('@/auth/clerkConfig', () => ({
+  isClerkAuthEnabled: vi.fn(() => false),
+  getClerkUrls: vi.fn(() => ({
+    signInUrl: '/sign-in',
+    signUpUrl: '/sign-up',
+    afterSignInUrl: '/home',
+    afterSignUpUrl: '/onboarding',
+    selectOrgUrl: '/workspaces',
+  })),
+}));
+
+// Use vi.mocked() on the imports from THIS file so we get the correct mock
+// instances (the ones registered by the vi.mock factories above).
+const mockUseAuth = vi.mocked(useAuth);
+const mockUseOrganization = vi.mocked(useOrganization);
+const mockIsClerkAuthEnabled = vi.mocked(isClerkAuthEnabled);
+
+/** Convenience: set up Clerk mocks for a signed-in user with an active org. */
+function localSetupClerkSignedIn(orgId: string | null): void {
+  mockIsClerkAuthEnabled.mockReturnValue(true);
+  mockUseAuth.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    getToken: vi.fn(),
+  } as unknown as ReturnType<typeof useAuth>);
+  mockUseOrganization.mockReturnValue({
+    isLoaded: true,
+    organization: orgId ? { id: orgId, slug: 'acme' } : null,
+  } as unknown as ReturnType<typeof useOrganization>);
+}
+
+/** Convenience: set up Clerk mocks for the loading state. */
+function localSetupClerkLoading(): void {
+  mockIsClerkAuthEnabled.mockReturnValue(true);
+  mockUseAuth.mockReturnValue({
+    isLoaded: false,
+    isSignedIn: undefined,
+    getToken: vi.fn(),
+  } as unknown as ReturnType<typeof useAuth>);
+  mockUseOrganization.mockReturnValue({
+    isLoaded: false,
+    organization: undefined,
+  } as unknown as ReturnType<typeof useOrganization>);
+}
+
+/** Convenience: set up Clerk mocks for legacy (Clerk-disabled) mode. */
+function localSetupLegacyAuth(): void {
+  mockIsClerkAuthEnabled.mockReturnValue(false);
+  mockUseAuth.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: false,
+    getToken: vi.fn(),
+  } as unknown as ReturnType<typeof useAuth>);
+  mockUseOrganization.mockReturnValue({
+    isLoaded: true,
+    organization: null,
+  } as unknown as ReturnType<typeof useOrganization>);
+}
+
+/** Reset all mocks to the safe default (Clerk disabled, signed out). */
+function localResetClerkMocks(): void {
+  vi.clearAllMocks();
+  mockIsClerkAuthEnabled.mockReturnValue(false);
+  mockUseAuth.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: false,
+    getToken: vi.fn(),
+  } as unknown as ReturnType<typeof useAuth>);
+  mockUseOrganization.mockReturnValue({
+    isLoaded: true,
+    organization: null,
+  } as unknown as ReturnType<typeof useOrganization>);
+}
 
 const TENANT_API_PATH = '/api/v1/auth/clerk/tenant';
 
@@ -26,7 +105,7 @@ const mockTenantResponse = {
 
 describe('useResolvedTenant', () => {
   beforeEach(() => {
-    resetClerkMocks();
+    localResetClerkMocks();
     sessionStorage.clear();
     useAccountContextStore.setState({
       selectedAccountId: null,
@@ -35,7 +114,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('loads tenant mapping for a valid Clerk organization', async () => {
-    setupClerkSignedIn('org_123');
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () => HttpResponse.json(mockTenantResponse))
     );
@@ -59,7 +138,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('is a no-op when Clerk auth is disabled', async () => {
-    setupLegacyAuth();
+    localSetupLegacyAuth();
 
     const { result } = renderHook(() => useResolvedTenant(), {
       wrapper: createWrapper(),
@@ -71,7 +150,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('is a no-op while Clerk auth is still loading', async () => {
-    setupClerkLoading();
+    localSetupClerkLoading();
 
     const { result } = renderHook(() => useResolvedTenant(), {
       wrapper: createWrapper(),
@@ -82,7 +161,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('does not fetch when no active organization is selected', async () => {
-    setupClerkSignedIn(null);
+    localSetupClerkSignedIn(null);
 
     const { result } = renderHook(() => useResolvedTenant(), {
       wrapper: createWrapper(),
@@ -93,7 +172,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('query key includes the active Clerk org id', async () => {
-    setupClerkSignedIn('org_123');
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () => HttpResponse.json(mockTenantResponse))
     );
@@ -132,12 +211,13 @@ describe('useResolvedTenant', () => {
   });
 
   it('clears selected account and invalidates account cache on org switch', async () => {
-    setupClerkSignedIn('org_123');
+    // Start signed in with org_123 and let the first tenant query resolve.
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () => HttpResponse.json(mockTenantResponse))
     );
 
-    const { result } = renderHook(
+    const { result, rerender } = renderHook(
       () => {
         const queryClient = useQueryClient();
         const tenant = useResolvedTenant();
@@ -148,20 +228,30 @@ describe('useResolvedTenant', () => {
       { wrapper: createWrapper() }
     );
 
-    // Seed account selection and a cached accounts list
-    act(() => {
+        // Wait for the first tenant query to resolve.
+    await waitFor(() => expect(result.current.tenant).not.toBeNull());
+
+    // Seed account selection and a cached accounts list to simulate a user
+    // who has already selected an account in the previous org.
+    // Use await act() to flush all pending effects before checking state.
+    await act(async () => {
       result.current.setSelectedAccountId('acct_123');
       result.current.queryClient.setQueryData(QK.accounts.all, [{ id: 'acct_123' }]);
     });
 
-    await waitFor(() => expect(result.current.tenant).not.toBeNull());
+    // Simulate an org switch: update the Clerk mock to return a different org,
+    // then re-render the hook so the activeOrgId change is detected.
+    localSetupClerkSignedIn('org_456');
+    rerender();
 
-    expect(result.current.selectedAccountId).toBeNull();
+    // The org-switch effect should clear the selected account and invalidate
+    // the accounts cache.
+    await waitFor(() => expect(result.current.selectedAccountId).toBeNull());
     expect(result.current.queryClient.getQueryData(QK.accounts.all)).toBeUndefined();
   });
 
   it('stale tenant mapping is not reused after org switch', async () => {
-    setupClerkSignedIn('org_123');
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () => HttpResponse.json(mockTenantResponse))
     );
@@ -173,7 +263,7 @@ describe('useResolvedTenant', () => {
     await waitFor(() => expect(result.current.tenant?.tenantSlug).toBe('acme'));
 
     // Switch org
-    setupClerkSignedIn('org_456');
+    localSetupClerkSignedIn('org_456');
     server.use(
       http.get(TENANT_API_PATH, () =>
         HttpResponse.json({
@@ -196,7 +286,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('exposes 401 errors for missing/invalid token', async () => {
-    setupClerkSignedIn('org_123');
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () =>
         HttpResponse.json({ code: 'auth.token_missing', message: 'Authentication required.' }, { status: 401 })
@@ -216,7 +306,7 @@ describe('useResolvedTenant', () => {
   });
 
   it('exposes 403 errors for unmapped org or inactive tenant', async () => {
-    setupClerkSignedIn('org_123');
+    localSetupClerkSignedIn('org_123');
     server.use(
       http.get(TENANT_API_PATH, () =>
         HttpResponse.json({ code: 'auth.tenant_unresolved', message: 'Tenant not resolved.' }, { status: 403 })

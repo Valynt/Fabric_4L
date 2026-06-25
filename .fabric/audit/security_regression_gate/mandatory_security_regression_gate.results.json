@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-06-23T11:08:06Z",
-  "git_sha": "ef1317288",
-  "branch": "main",
-  "os": "MINGW64_NT-10.0-26200",
+  "timestamp": "2026-06-25T16:43:21Z",
+  "git_sha": "0c6da8a4",
+  "branch": "chore/production-readiness",
+  "os": "Linux",
   "gate_version": "1.2.0",
   "test_mode": 1,
   "suites": [
@@ -24,7 +24,7 @@
       "name": "Cross-Layer Tenant Isolation Matrix",
       "command": "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py",
       "required": "Yes",
-      "result": "PASS",
+      "result": "PARTIAL",
       "evidence": "artifacts/mandatory_security/cross_layer_tenant_isolation_matrix.json"
     },
     {

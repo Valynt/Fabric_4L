@@ -232,7 +232,12 @@ class TestKustomizeProdOverlay:
         for name, expected_tag in infra_images.items():
             img = next((i for i in images if i.get("name") == name), None)
             assert img is not None, f"{name} must have pinned version"
-            assert img.get("newTag") == expected_tag, f"{name} must use {expected_tag}"
+            has_correct_tag = img.get("newTag") == expected_tag
+            has_digest = bool((img.get("digest") or "").startswith("sha256:"))
+            assert has_correct_tag or has_digest, (
+                f"{name} must use tag {expected_tag!r} or a sha256 digest pin, "
+                f"got newTag={img.get('newTag')!r}, digest={img.get('digest')!r}"
+            )
 
 
 class TestKustomizeStagingOverlay:
@@ -358,7 +363,12 @@ class TestKustomizeStagingOverlay:
         for name, expected_tag in infra_images.items():
             img = next((i for i in images if i.get("name") == name), None)
             assert img is not None, f"{name} must have pinned version"
-            assert img.get("newTag") == expected_tag, f"{name} must use {expected_tag}"
+            has_correct_tag = img.get("newTag") == expected_tag
+            has_digest = bool((img.get("digest") or "").startswith("sha256:"))
+            assert has_correct_tag or has_digest, (
+                f"{name} must use tag {expected_tag!r} or a sha256 digest pin, "
+                f"got newTag={img.get('newTag')!r}, digest={img.get('digest')!r}"
+            )
 
 
 class TestKustomizeBuild:

@@ -15,6 +15,8 @@ from value_fabric.shared.error_handling.exceptions import AuthorizationError, Va
 from value_fabric.shared.identity.context import RequestContext
 
 import src.database as database
+import layer4_agents.database as _layer4_db
+import layer4_agents.metrics as _layer4_metrics
 
 
 class _AsyncFactory:
@@ -44,6 +46,7 @@ async def test_optional_tenant_rejects_non_super_admin_without_tenant(monkeypatc
     fake_session = MagicMock()
     fake_session.info = {}
     monkeypatch.setattr(database, "get_session_factory", lambda: _AsyncFactory(fake_session))
+    monkeypatch.setattr(_layer4_db, "get_session_factory", lambda: _AsyncFactory(fake_session))
 
     context = RequestContext(
         tenant_id=None,
@@ -65,6 +68,7 @@ async def test_optional_tenant_super_admin_requires_privileged_reason(monkeypatc
     fake_session = MagicMock()
     fake_session.info = {}
     monkeypatch.setattr(database, "get_session_factory", lambda: _AsyncFactory(fake_session))
+    monkeypatch.setattr(_layer4_db, "get_session_factory", lambda: _AsyncFactory(fake_session))
 
     context = RequestContext(
         tenant_id=None,
@@ -90,9 +94,12 @@ async def test_optional_tenant_super_admin_uses_privileged_mode_without_empty_te
     fake_session.execute = AsyncMock()
     metrics = MagicMock()
     monkeypatch.setattr(database, "get_session_factory", lambda: _AsyncFactory(fake_session))
+    monkeypatch.setattr(_layer4_db, "get_session_factory", lambda: _AsyncFactory(fake_session))
     monkeypatch.setattr("src.metrics.get_metrics", lambda: metrics)
+    monkeypatch.setattr(_layer4_metrics, "get_metrics", lambda: metrics)
     audit_mock = AsyncMock()
     monkeypatch.setattr(database, "_emit_tenant_context_set_audit", audit_mock)
+    monkeypatch.setattr(_layer4_db, "_emit_tenant_context_set_audit", audit_mock)
 
     context = RequestContext(
         tenant_id=None,

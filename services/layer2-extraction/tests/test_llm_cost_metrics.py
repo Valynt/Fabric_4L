@@ -132,6 +132,9 @@ def test_monitoring_contract_metric_names_and_labels() -> None:
     metrics.record_confidence(entity_type="capability", confidence=0.91, **labels)
     metrics.record_cache_failure(failure_type="decode", operation="read", **labels)
     output = metrics.get_metrics()
+    # Metrics use a stable low-cardinality tenant_bucket label (not raw tenant_id)
+    # to bound Prometheus cardinality. extraction_job_id and value_pack_id are
+    # stored internally but not emitted as Prometheus labels.
     for expected in (
         "vf_extraction_outcomes_total",
         "vf_schema_validation_failures_total",
@@ -141,9 +144,7 @@ def test_monitoring_contract_metric_names_and_labels() -> None:
         "vf_extraction_confidence_count",
         "vf_extraction_confidence_avg",
         "vf_cache_failures_total",
-        'tenant_id="tenant-1"',
-        'extraction_job_id="job-1"',
+        "tenant_bucket",
         'schema_version="v1"',
-        'value_pack_id="pack-1"',
     ):
         assert expected in output

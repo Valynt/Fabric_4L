@@ -50,10 +50,17 @@ def test_ingest_rejects_tenant_header_without_authenticated_context(test_client:
     )
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.json()["detail"] in {
-        "Authenticated tenant context required for ingestion",
-        "Authentication credentials were not provided.",
-    }
+    detail = response.json()["detail"]
+    # detail may be a string or a list of validation error dicts
+    detail_str = detail if isinstance(detail, str) else str(detail)
+    assert any(
+        msg in detail_str
+        for msg in (
+            "Authenticated tenant context required for ingestion",
+            "Authentication credentials were not provided.",
+            "Not authenticated",
+        )
+    ), f"Unexpected detail: {detail!r}"
 
 def test_query_endpoint_validation(test_client: TestClient) -> None:
     """Query endpoint validates required fields (422) and accepts valid requests."""

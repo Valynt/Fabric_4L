@@ -1,8 +1,4 @@
 # mypy: ignore-missing-imports, disable-error-code="import-not-found,import-untyped,type-arg,no-any-return,no-untyped-def,truthy-function,list-item,assignment,arg-type,call-overload,union-attr,var-annotated,misc,attr-defined"
-from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError,
-)
-
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.

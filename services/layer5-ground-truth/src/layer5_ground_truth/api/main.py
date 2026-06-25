@@ -693,6 +693,11 @@ def create_app() -> FastAPI:
         def __init__(self, application: FastAPI):
             self._application = application
 
+        @property
+        def redis_client(self):
+            """Expose the underlying Redis client for GovernanceMiddleware/TenantKillSwitch."""
+            return getattr(self._application.state, "redis_client", None)
+
         async def check(self, rate_key, config):
             limiter = getattr(self._application.state, "redis_rate_limiter", None)
             if limiter is None:
