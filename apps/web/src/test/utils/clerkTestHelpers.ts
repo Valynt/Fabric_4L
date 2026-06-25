@@ -104,7 +104,10 @@ export function resetClerkMocks(): void {
 export function getClerkMocks() {
   return {
     useAuth: mockUseAuth,
+    mockUseAuth,
     useOrganization: mockUseOrganization,
+    mockUseOrganization,
     isClerkAuthEnabled: mockClerkEnabled,
+    mockIsClerkAuthEnabled: mockClerkEnabled,
   };
 }

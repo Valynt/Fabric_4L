@@ -356,9 +356,9 @@ class TestPDFAdapter:
         """Test OCR text extraction from scanned PDF."""
         mock_image = Mock()
 
-        with patch('src.adapters.pdf_adapter.convert_from_path', return_value=[mock_image, mock_image]):
-            with patch('src.adapters.pdf_adapter.pytesseract.image_to_string', return_value="OCR text"):
-                with patch('src.adapters.pdf_adapter.pytesseract.image_to_data', return_value={
+        with patch('layer1_ingestion.adapters.pdf_adapter.convert_from_path', return_value=[mock_image, mock_image]):
+            with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_string', return_value="OCR text"):
+                with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_data', return_value={
                     "conf": [80, 85, 90]
                 }):
                     text, confidence = await adapter._ocr_extract(tmp_path, "eng")
@@ -371,9 +371,9 @@ class TestPDFAdapter:
         """Test OCR when confidence data unavailable."""
         mock_image = Mock()
 
-        with patch('src.adapters.pdf_adapter.convert_from_path', return_value=[mock_image]):
-            with patch('src.adapters.pdf_adapter.pytesseract.image_to_string', return_value="OCR text"):
-                with patch('src.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
+        with patch('layer1_ingestion.adapters.pdf_adapter.convert_from_path', return_value=[mock_image]):
+            with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_string', return_value="OCR text"):
+                with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
                     text, confidence = await adapter._ocr_extract(tmp_path, "eng")
 
                     assert text == "OCR text"
@@ -382,7 +382,7 @@ class TestPDFAdapter:
     @pytest.mark.asyncio
     async def test_ocr_extract_failure(self, adapter, tmp_path):
         """Test OCR handling of extraction failure."""
-        with patch('src.adapters.pdf_adapter.convert_from_path', side_effect=Exception("OCR failed")):
+        with patch('layer1_ingestion.adapters.pdf_adapter.convert_from_path', side_effect=Exception("OCR failed")):
             text, confidence = await adapter._ocr_extract(tmp_path, "eng")
 
             assert text == ""
@@ -509,10 +509,10 @@ class TestPDFAdapter:
         # Set excessively high DPI
         adapter.config.dpi = 5000
 
-        with patch('src.adapters.pdf_adapter.convert_from_path') as mock_convert:
+        with patch('layer1_ingestion.adapters.pdf_adapter.convert_from_path') as mock_convert:
             mock_convert.return_value = [mock_image]
-            with patch('src.adapters.pdf_adapter.pytesseract.image_to_string', return_value="text"):
-                with patch('src.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
+            with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_string', return_value="text"):
+                with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
                     await adapter._ocr_extract(tmp_path, "eng")
 
                     # Verify DPI was clamped to 1200 (MAX_DPI)
@@ -529,10 +529,10 @@ class TestPDFAdapter:
         # Set too-low DPI
         adapter.config.dpi = 10
 
-        with patch('src.adapters.pdf_adapter.convert_from_path') as mock_convert:
+        with patch('layer1_ingestion.adapters.pdf_adapter.convert_from_path') as mock_convert:
             mock_convert.return_value = [mock_image]
-            with patch('src.adapters.pdf_adapter.pytesseract.image_to_string', return_value="text"):
-                with patch('src.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
+            with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_string', return_value="text"):
+                with patch('layer1_ingestion.adapters.pdf_adapter.pytesseract.image_to_data', return_value={"conf": []}):
                     await adapter._ocr_extract(tmp_path, "eng")
 
                     # Verify DPI was clamped to at least 72 (MIN_DPI)

@@ -162,12 +162,24 @@ Depends, HTTPException, Request, status, DependsParam = _resolve_fastapi_depende
 # Lazy-load audit to avoid circular import with security.config
 _emit_audit_event = None
 
+
 def _get_emit_audit_event():
     global _emit_audit_event
     if _emit_audit_event is None:
         from value_fabric.shared.audit import emit_audit_event
         _emit_audit_event = emit_audit_event
     return _emit_audit_event
+
+
+def emit_audit_event(*args: Any, **kwargs: Any) -> Any:  # type: ignore[return]
+    """Module-level shim so tests can patch ``shared.identity.dependencies.emit_audit_event``.
+
+    The real implementation is loaded lazily via :func:`_get_emit_audit_event` to
+    avoid circular imports at module init time.  Exposing a stable module-level
+    name here makes it trivial for security tests to monkeypatch this single
+    symbol without having to know the internal lazy-loading mechanism.
+    """
+    return _get_emit_audit_event()(*args, **kwargs)
 
 from value_fabric.shared.audit.models import (  # noqa: E402
     AuditAction,
@@ -563,7 +575,7 @@ def require_privileged_access(
                 )
 
                 await _maybe_await(
-                    _get_emit_audit_event()(
+                    emit_audit_event(
                         action=AuditAction.CROSS_TENANT_ACCESS,
                         outcome=AuditOutcome.SUCCESS,
                         actor_id=context.user_id,
