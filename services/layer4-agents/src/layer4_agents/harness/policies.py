@@ -12,7 +12,7 @@ Rules:
 """
 
 
-from ..policies import approval_actions
+from layer4_agents.policies import approval_actions
 from .models import (
     ActionClass,
     ClaimValidationResult,
