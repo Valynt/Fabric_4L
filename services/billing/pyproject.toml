@@ -7,7 +7,7 @@ packages = ["src/billing"]
 
 [project]
 name = "billing"
-version = "0.1.0"
+version = "1.1.0"
 description = "Stripe-integrated billing microservice for Value Fabric – subscription management, customer sync, webhook idempotency"
 readme = "README.md"
 requires-python = ">=3.11"

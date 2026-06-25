@@ -1,3 +1,0 @@
-â†’ Checking for unregistered temporal skips...
-OK: 2554 files scanned; no net-new temporal skips found.
-âœ… Temporal skip guard passed

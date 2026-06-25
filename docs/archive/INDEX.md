@@ -130,6 +130,19 @@ Archived temporal reports, redirect-only files, and outdated documentation:
 - [archive-registry.md](archive-registry.md) — registry of previously archived items.
 - [MIGRATION_REPORT.md](MIGRATION_REPORT.md) — prior migration report.
 
+## 2026-06-25 Launch Polish Cleanup
+
+Archived root-level planning and tracking files that are not part of the canonical documentation:
+
+| File | Date | Replaced by |
+| ---- | ---- | ----------- |
+| [sprint-plans/sprint-plan-7-phase-roadmap.md](sprint-plans/sprint-plan-7-phase-roadmap.md) | 2026-06-25 | Active sprint tracking in `.devin/plans/` |
+| [CLEANUP_PLAN_DEAD_CODE.md](CLEANUP_PLAN_DEAD_CODE.md) | 2026-06-25 | Ongoing dead-code removal tracked in `CHANGELOG.md` |
+
+**Note:** These files were moved from the repository root to `docs/archive/` to reduce root-level clutter before the official launch.
+
+---
+
 ## Files intentionally **not** archived
 
 These were considered and kept active because they are evergreen references or
