@@ -20,25 +20,38 @@ DEPRECATION_ACCEPTANCE_THRESHOLDS = compat_policy.DEPRECATION_ACCEPTANCE_THRESHO
 if PromCounter is not None:
     from prometheus_client import REGISTRY
 
+    _ROUTE_COUNTER: PromCounter | None = None
+    _FIELD_COUNTER: PromCounter | None = None
+
     def _get_or_create_counter(name: str, description: str, labels: list[str]) -> PromCounter:
-        """Return an existing counter or create a new one, tolerating test re-imports."""
+        """Return the singleton counter or create one, tolerating test re-imports."""
+        global _ROUTE_COUNTER, _FIELD_COUNTER
+
+        if name == "layer3_deprecated_route_hits_total" and _ROUTE_COUNTER is not None:
+            return _ROUTE_COUNTER
+        if name == "layer3_legacy_field_usage_total" and _FIELD_COUNTER is not None:
+            return _FIELD_COUNTER
+
         collector_name = name.removesuffix("_total")
         existing = REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(
             collector_name
         )
-        if existing is not None:
-            return existing
+        if isinstance(existing, PromCounter):
+            counter = existing
+        else:
+            if existing is not None:
+                try:
+                    REGISTRY.unregister(existing)
+                except KeyError:
+                    pass
+            counter = PromCounter(name, description, labels)
 
-        try:
-            return PromCounter(name, description, labels)
-        except ValueError as exc:
-            if "Duplicated timeseries" in str(exc):
-                existing = REGISTRY._names_to_collectors.get(name) or REGISTRY._names_to_collectors.get(
-                    collector_name
-                )
-                if existing is not None:
-                    return existing
-            raise
+        if name == "layer3_deprecated_route_hits_total":
+            _ROUTE_COUNTER = counter
+        elif name == "layer3_legacy_field_usage_total":
+            _FIELD_COUNTER = counter
+
+        return counter
 
     _ROUTE_COUNTER = _get_or_create_counter(
         "layer3_deprecated_route_hits_total",

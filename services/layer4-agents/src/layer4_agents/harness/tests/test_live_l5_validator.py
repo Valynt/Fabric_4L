@@ -17,22 +17,18 @@ Covers:
 """
 
 
-import sys
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from harness.live_l5_validator import (
+from layer4_agents.harness.live_l5_validator import (
     LiveL5Validator,
     _infer_claim_type,
     _map_status,
 )
-from harness.models import ClaimValidationResult, ValidationState
-from harness.validation_hooks import ClaimValidationRequest, ValidationHook
+from layer4_agents.harness.models import ClaimValidationResult, ValidationState
+from layer4_agents.harness.validation_hooks import ClaimValidationRequest, ValidationHook
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -742,8 +738,8 @@ class TestValidateClaimsTenantEnforcement:
     @pytest.mark.asyncio
     async def test_mismatched_tenant_raises(self):
         """validate_claims raises when a request tenant_id doesn't match the caller's."""
-        from harness.factory import make_in_memory_registry
-        from harness.registry import HarnessRegistryError
+        from layer4_agents.harness.factory import make_in_memory_registry
+        from layer4_agents.harness.registry import HarnessRegistryError
 
         registry = make_in_memory_registry()
         requests = [
@@ -760,7 +756,7 @@ class TestValidateClaimsTenantEnforcement:
     @pytest.mark.asyncio
     async def test_matching_tenant_does_not_raise(self):
         """validate_claims succeeds when all request tenant_ids match."""
-        from harness.factory import make_in_memory_registry
+        from layer4_agents.harness.factory import make_in_memory_registry
 
         registry = make_in_memory_registry()
         requests = [
@@ -777,8 +773,8 @@ class TestValidateClaimsTenantEnforcement:
     @pytest.mark.asyncio
     async def test_mixed_tenants_raises_and_lists_mismatched_claims(self):
         """Error message includes the mismatched claim IDs."""
-        from harness.factory import make_in_memory_registry
-        from harness.registry import HarnessRegistryError
+        from layer4_agents.harness.factory import make_in_memory_registry
+        from layer4_agents.harness.registry import HarnessRegistryError
 
         registry = make_in_memory_registry()
         requests = [
@@ -810,7 +806,7 @@ class TestEnvVarAbsentFallback:
         # make_live_l5_registry still constructs a client (with default URL),
         # but the validator's health() will fail → falls back to UnavailableValidator.
         # We test the fallback path via ValidationHook directly.
-        from harness.validation_hooks import ValidationHook
+        from layer4_agents.harness.validation_hooks import ValidationHook
 
         hook = ValidationHook(primary_validator=None)
         req = ClaimValidationRequest(
@@ -826,7 +822,7 @@ class TestEnvVarAbsentFallback:
     @pytest.mark.asyncio
     async def test_unavailable_validator_never_approves(self):
         """UnavailableValidator always returns INSUFFICIENT_EVIDENCE, never PASSED."""
-        from harness.validation_hooks import UnavailableValidator
+        from layer4_agents.harness.validation_hooks import UnavailableValidator
 
         validator = UnavailableValidator()
         req = ClaimValidationRequest(

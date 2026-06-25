@@ -102,6 +102,9 @@ jobs:
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
 
+      - name: Check Layer 4 canonical paths
+        run: python scripts/ci/check_layer4_canonical_paths.py
+
       - name: Validate staging namespace consistency
         run: |
           bash scripts/ci/validate-staging-namespace.sh k8s/envs/staging
@@ -278,7 +281,7 @@ jobs:
 
       - name: OpenAPI linting with Spectral
         run: |
-          pnpm dlx @stoplight/spectral-cli spectral lint contracts/openapi/*.json --ruleset .spectral.yaml
+          pnpm dlx @stoplight/spectral-cli lint contracts/openapi/*.json --ruleset .spectral.yaml
 
       - name: Run error envelope consistency contract tests
         run: |
@@ -973,6 +976,11 @@ jobs:
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
+
+      - name: Layer 4 pytest collection check
+        run: |
+          cd services/layer4-agents
+          pytest --collect-only . -q
 
       - name: Run tests with coverage
         run: |

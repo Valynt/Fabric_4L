@@ -3,7 +3,7 @@ from __future__ import annotations
 """Replay determinism tests for restart/retry checkpoint scenarios."""
 
 
-from utils.replay_assertions import (
+from tests.utils.replay_assertions import (
     assert_semantically_equivalent_replay,
     normalize_checkpoint_snapshot,
 )

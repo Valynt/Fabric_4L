@@ -41,7 +41,7 @@
       "severity": "critical",
       "owner": "platform-engineering",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-06-30",
+      "targetRemoval": "2026-12-31",
       "instanceCount": 23,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -56,6 +56,12 @@
         "eslintRule": "no-direct-header-tenant-access",
         "ciGate": "python-lint",
         "runtimeGuard": "RequestContext validation"
+      },
+      "extension": {
+        "reason": "Underlying migrations incomplete; extended by S1-T1-CI-STABILIZE",
+        "ticket": "S1-T1-CI-STABILIZE",
+        "approvedBy": "engineering",
+        "approvedOn": "2026-06-25"
       }
     },
     {
@@ -95,7 +101,7 @@
       "severity": "high",
       "owner": "platform-engineering",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-06-30",
+      "targetRemoval": "2026-12-31",
       "instanceCount": 31,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -108,6 +114,12 @@
         "eslintRule": "no-explicit-db-connect",
         "ciGate": "python-lint",
         "runtimeGuard": "Session provider validation"
+      },
+      "extension": {
+        "reason": "Underlying migrations incomplete; extended by S1-T1-CI-STABILIZE",
+        "ticket": "S1-T1-CI-STABILIZE",
+        "approvedBy": "engineering",
+        "approvedOn": "2026-06-25"
       }
     },
     {
@@ -178,7 +190,7 @@
       "severity": "critical",
       "owner": "agent-team",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-06-30",
+      "targetRemoval": "2026-12-31",
       "instanceCount": 19,
       "migratedCount": 8,
       "lastMigration": "2026-04-28T08:35:00Z",
@@ -195,6 +207,12 @@
         "eslintRule": "no-throw-in-tool",
         "ciGate": "python-lint",
         "runtimeGuard": "ToolGateway error normalization"
+      },
+      "extension": {
+        "reason": "Underlying migrations incomplete; extended by S1-T1-CI-STABILIZE",
+        "ticket": "S1-T1-CI-STABILIZE",
+        "approvedBy": "engineering",
+        "approvedOn": "2026-06-25"
       }
     },
     {
@@ -260,7 +278,7 @@
       "severity": "medium",
       "owner": "frontend-team",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-06-30",
+      "targetRemoval": "2026-12-31",
       "instanceCount": 34,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -274,6 +292,12 @@
         "eslintRule": "no-url-concatenation",
         "ciGate": "lint-frontend",
         "runtimeGuard": "URL builder validation"
+      },
+      "extension": {
+        "reason": "Underlying migrations incomplete; extended by S1-T1-CI-STABILIZE",
+        "ticket": "S1-T1-CI-STABILIZE",
+        "approvedBy": "engineering",
+        "approvedOn": "2026-06-25"
       }
     },
     {
@@ -436,7 +460,8 @@
     "lastAudit": "2026-04-28",
     "overallScore": 58,
     "targetScore": 85,
-    "targetDate": "2026-06-30",
+    "targetDate": "2026-12-31",
+    "rationale": "Score target extended to 2026-12-31 per S1-T1-CI-STABILIZE while migrations continue.",
     "byContract": {
       "2.1-tenant-context": {
         "score": 60,

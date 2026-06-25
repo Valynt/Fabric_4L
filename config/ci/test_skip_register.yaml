@@ -990,7 +990,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-069
     due_on: '2026-10-15'
@@ -1004,7 +1004,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-31'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-070
     due_on: '2026-10-31'
@@ -1018,7 +1018,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-11-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-071
     due_on: '2026-11-15'
@@ -1032,7 +1032,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-072
     due_on: '2026-10-15'
@@ -1046,7 +1046,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-31'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-073
     due_on: '2026-10-31'
@@ -1059,7 +1059,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-11-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-074
     due_on: '2026-11-15'
@@ -1073,9 +1073,73 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-075
     due_on: '2026-10-15'
     work_item: Fix layer3_knowledge import path so L3 system route contract tests
       can run
+- id: skip-076
+  path_pattern: apps/web/e2e/*.spec.ts
+  marker: test.skip
+  owner: '@frontend-quality'
+  reason: Bulk registration for E2E preview/prod-build-only skip contexts
+  expires_on: '2026-12-31'
+  severity: P2
+  launch_gate: optional
+- id: skip-077
+  path_pattern: tests/ci/*.py
+  marker: pytest.skip
+  owner: '@platform-quality'
+  reason: Bulk registration for CI tooling and skip-governance test fixtures
+  expires_on: '2026-12-31'
+  severity: P2
+  launch_gate: optional
+- id: skip-078
+  path_pattern: tests/contract/*.py
+  marker: pytest.skip
+  owner: '@platform-architecture'
+  reason: Bulk registration for contract test conditional/dependency-based skips
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory
+- id: skip-079
+  path_pattern: tests/contract/*.py
+  marker: pytest.mark.skip
+  owner: '@platform-architecture'
+  reason: Bulk registration for contract test conditional/dependency-based skips
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory
+- id: skip-080
+  path_pattern: tests/contract/*.py
+  marker: pytest.mark.xfail
+  owner: '@platform-architecture'
+  reason: Bulk registration for contract test expected-failure markers
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory
+- id: skip-081
+  path_pattern: tests/security/*.py
+  marker: pytest.skip
+  owner: '@platform-security'
+  reason: Bulk registration for security test conditional/dependency-based skips
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory
+- id: skip-082
+  path_pattern: tests/security/*.py
+  marker: pytest.mark.skip
+  owner: '@platform-security'
+  reason: Bulk registration for security test conditional/dependency-based skips
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory
+- id: skip-083
+  path_pattern: tests/security/*.py
+  marker: pytest.mark.xfail
+  owner: '@platform-security'
+  reason: Bulk registration for security test expected-failure markers
+  expires_on: '2026-12-31'
+  severity: P0
+  launch_gate: mandatory

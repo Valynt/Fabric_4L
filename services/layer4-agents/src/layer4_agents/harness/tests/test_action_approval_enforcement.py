@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from harness.models import ActionClass, GateStatus, GateType, HumanGate
-from harness.policies import enforce_action_approval
+from layer4_agents.harness.models import ActionClass, GateStatus, GateType, HumanGate
+from layer4_agents.harness.policies import enforce_action_approval
 from policies.approval_actions import ACTION_APPROVAL_POLICIES, ApprovalRequiredError
 
 

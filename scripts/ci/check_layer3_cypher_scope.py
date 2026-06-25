@@ -45,7 +45,7 @@ class QueryFinding:
     message: str
 
     def key(self) -> str:
-        return f"{self.path.relative_to(ROOT)}::{self.function}::{self.line}"
+        return f"{self.path.relative_to(ROOT).as_posix()}::{self.function}::{self.line}"
 
 
 class QueryClassifier(ast.NodeVisitor):
@@ -152,7 +152,10 @@ def main() -> int:
     unknown_missing_allowlist = [f for f in unknown if f.key() not in allowlisted_unknowns]
 
     report_payload = {
-        "targets": [str(t.relative_to(ROOT) if t.is_relative_to(ROOT) else t) for t in targets],
+        "targets": [
+            (t.relative_to(ROOT).as_posix() if t.is_relative_to(ROOT) else str(t))
+            for t in targets
+        ],
         "files_scanned": files_scanned,
         "summary": {
             CLASS_SAFE: sum(1 for f in findings if f.classification == CLASS_SAFE),
@@ -162,7 +165,7 @@ def main() -> int:
         },
         "findings": [
             {
-                "path": str(f.path.relative_to(ROOT)),
+                "path": f.path.relative_to(ROOT).as_posix(),
                 "line": f.line,
                 "function": f.function,
                 "classification": f.classification,

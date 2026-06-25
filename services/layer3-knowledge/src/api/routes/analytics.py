@@ -21,6 +21,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+import neo4j
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ...api.dependencies import (
@@ -256,8 +257,8 @@ async def _create_entity(
             await mutation.write_node("Entity", entity_id, properties)
 
         return {"success": True, "entity_id": entity_id}
-    except Exception:
-        logger.exception("Entity creation failed")
+    except (neo4j.exceptions.DriverError, neo4j.exceptions.DatabaseError, ValueError) as e:
+        logger.exception("Entity creation failed", error=str(e))
         return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
@@ -285,8 +286,8 @@ async def _update_entity(
             )
 
         return {"success": True}
-    except Exception:
-        logger.exception("Entity update failed for %s", operation.entity_id)
+    except (neo4j.exceptions.DriverError, neo4j.exceptions.DatabaseError, ValueError) as e:
+        logger.exception("Entity update failed for %s", operation.entity_id, error=str(e))
         return {"success": False, "error": "ENTITY_UPDATE_ERROR"}
 
 
@@ -312,8 +313,8 @@ async def _delete_entity(
             await mutation.delete_node("Entity", operation.entity_id)
 
         return {"success": True}
-    except Exception:
-        logger.exception("Entity deletion failed for %s", operation.entity_id)
+    except (neo4j.exceptions.DriverError, neo4j.exceptions.DatabaseError, ValueError) as e:
+        logger.exception("Entity deletion failed for %s", operation.entity_id, error=str(e))
         return {"success": False, "error": "ENTITY_DELETE_ERROR"}
 
 
@@ -424,89 +425,17 @@ async def batch_entity_operations(
 
     try:
         for i, operation in enumerate(request.operations):
-            try:
-                if operation.operation == "create":
-                    result = await _create_entity(neo4j_driver, operation, tenant_id)
-                    if result["success"]:
-                        successful += 1
-                        rollback_ledger.append(("create", result["entity_id"], None))
-                    else:
-                        failed += 1
-                    results.append(
-                        {
-                            "index": i,
-                            "operation": "create",
-                            "entity_id": result.get("entity_id"),
-                            "success": result["success"],
-                            "error": result.get("error"),
-                        }
-                    )
+            result, rollback_entry = await _execute_operation(
+                neo4j_driver, operation, tenant_id, request.atomic, i
+            )
+            results.append(result)
 
-                elif operation.operation == "update":
-                    snapshot = (
-                        await _snapshot_entity(
-                            neo4j_driver, operation.entity_id, tenant_id
-                        )
-                        if request.atomic
-                        else None
-                    )
-                    result = await _update_entity(neo4j_driver, operation, tenant_id)
-                    if result["success"]:
-                        successful += 1
-                        if request.atomic and snapshot:
-                            rollback_ledger.append(
-                                ("update", operation.entity_id, snapshot)
-                            )
-                    else:
-                        failed += 1
-                    results.append(
-                        {
-                            "index": i,
-                            "operation": "update",
-                            "entity_id": operation.entity_id,
-                            "success": result["success"],
-                            "error": result.get("error"),
-                        }
-                    )
-
-                elif operation.operation == "delete":
-                    snapshot = (
-                        await _snapshot_entity(
-                            neo4j_driver, operation.entity_id, tenant_id
-                        )
-                        if request.atomic
-                        else None
-                    )
-                    result = await _delete_entity(neo4j_driver, operation, tenant_id)
-                    if result["success"]:
-                        successful += 1
-                        if request.atomic and snapshot:
-                            rollback_ledger.append(
-                                ("delete", operation.entity_id, snapshot)
-                            )
-                    else:
-                        failed += 1
-                    results.append(
-                        {
-                            "index": i,
-                            "operation": "delete",
-                            "entity_id": operation.entity_id,
-                            "success": result["success"],
-                            "error": result.get("error"),
-                        }
-                    )
-
-            except Exception:
+            if result["success"]:
+                successful += 1
+                if rollback_entry:
+                    rollback_ledger.append(rollback_entry)
+            else:
                 failed += 1
-                results.append(
-                    {
-                        "index": i,
-                        "operation": operation.operation,
-                        "entity_id": getattr(operation, "entity_id", None),
-                        "success": False,
-                        "error": "BATCH_OPERATION_ERROR",
-                    }
-                )
 
         if request.atomic and failed > 0 and rollback_ledger:
             atomic_rollback = True
@@ -514,19 +443,7 @@ async def batch_entity_operations(
                 "Atomic rollback: reversing %d completed operations",
                 len(rollback_ledger),
             )
-            # Reverse in LIFO order so dependent operations unwind correctly
-            for op_type, entity_id, snapshot in reversed(rollback_ledger):
-                try:
-                    if op_type == "create":
-                        await _delete_entity_by_id(neo4j_driver, entity_id, tenant_id)
-                    elif op_type == "update" and snapshot:
-                        await _restore_entity(
-                            neo4j_driver, entity_id, snapshot, tenant_id
-                        )
-                    elif op_type == "delete" and snapshot:
-                        await _recreate_entity(neo4j_driver, snapshot, tenant_id)
-                except Exception as e:
-                    logger.error("Rollback error for %s %s: %s", op_type, entity_id, e)
+            await _perform_rollback(neo4j_driver, rollback_ledger, tenant_id)
 
         return BatchEntityResponse.model_validate(
             {
@@ -546,6 +463,95 @@ async def batch_entity_operations(
         )
 
 
+async def _execute_operation(
+    driver: Any,
+    operation: BatchEntityOperation,
+    tenant_id: str,
+    atomic: bool,
+    index: int,
+) -> tuple[dict[str, Any], tuple[str, str, dict[str, Any] | None] | None]:
+    """Execute a single batch operation and return result with rollback entry."""
+    rollback_entry: tuple[str, str, dict[str, Any] | None] = None
+
+    try:
+        if operation.operation == "create":
+            result = await _create_entity(driver, operation, tenant_id)
+            if result["success"]:
+                rollback_entry = ("create", result["entity_id"], None)
+            return _build_operation_result(index, "create", result), rollback_entry
+
+        elif operation.operation == "update":
+            snapshot = await _snapshot_entity(driver, operation.entity_id, tenant_id) if atomic else None
+            result = await _update_entity(driver, operation, tenant_id)
+            if result["success"] and atomic and snapshot:
+                rollback_entry = ("update", operation.entity_id, snapshot)
+            return _build_operation_result(index, "update", result), rollback_entry
+
+        elif operation.operation == "delete":
+            snapshot = await _snapshot_entity(driver, operation.entity_id, tenant_id) if atomic else None
+            result = await _delete_entity(driver, operation, tenant_id)
+            if result["success"] and atomic and snapshot:
+                rollback_entry = ("delete", operation.entity_id, snapshot)
+            return _build_operation_result(index, "delete", result), rollback_entry
+
+        else:
+            return (
+                {
+                    "index": index,
+                    "operation": operation.operation,
+                    "entity_id": getattr(operation, "entity_id", None),
+                    "success": False,
+                    "error": "UNKNOWN_OPERATION",
+                },
+                None,
+            )
+
+    except (neo4j.exceptions.DriverError, neo4j.exceptions.DatabaseError, ValueError) as e:
+        logger.error("Batch operation error at index %d: %s", index, str(e))
+        return (
+            {
+                "index": index,
+                "operation": operation.operation,
+                "entity_id": getattr(operation, "entity_id", None),
+                "success": False,
+                "error": "BATCH_OPERATION_ERROR",
+            },
+            None,
+        )
+
+
+def _build_operation_result(
+    index: int, operation_type: str, result: dict[str, Any]
+) -> dict[str, Any]:
+    """Build standardized operation result dictionary."""
+    return {
+        "index": index,
+        "operation": operation_type,
+        "entity_id": result.get("entity_id"),
+        "success": result["success"],
+        "error": result.get("error"),
+    }
+
+
+async def _perform_rollback(
+    driver: Any,
+    rollback_ledger: list[tuple[str, str, dict[str, Any] | None]],
+    tenant_id: str,
+) -> None:
+    """Perform atomic rollback in LIFO order."""
+    # Reverse in LIFO order so dependent operations unwind correctly
+    for op_type, entity_id, snapshot in reversed(rollback_ledger):
+        try:
+            if op_type == "create":
+                await _delete_entity_by_id(driver, entity_id, tenant_id)
+            elif op_type == "update" and snapshot:
+                await _restore_entity(driver, entity_id, snapshot, tenant_id)
+            elif op_type == "delete" and snapshot:
+                await _recreate_entity(driver, snapshot, tenant_id)
+        except Exception as e:
+            logger.error("Rollback error for %s %s: %s", op_type, entity_id, e)
+
+
 @router.post("/batch/analytics", response_model=BatchAnalyticsResponse)
 async def batch_analytics(
     request: BatchAnalyticsRequest,
@@ -560,56 +566,19 @@ async def batch_analytics(
 
     try:
         for entity_id in request.entity_ids:
-            try:
-                context = await graph_rag.get_entity_context(
-                    entity_id=entity_id,
-                    hops=request.max_hops,
-                )
-                if not context.get("center"):
-                    results.append(
-                        {
-                            "entity_id": entity_id,
-                            "success": False,
-                            "error": "Entity not found",
-                        }
-                    )
-                    failed += 1
-                    continue
+            result, score = await _process_entity_analytics(
+                graph_rag, entity_id, request.max_hops, request.algorithm
+            )
+            results.append(result)
 
-                if request.algorithm in ["centrality", "pagerank"]:
-                    metrics: dict[str, Any] = {
-                        "entity_count": context["entity_count"],
-                        "relationship_count": context["relationship_count"],
-                        "center_entity": context["center"],
-                        "neighbors": len(context.get("neighbors", [])),
-                    }
-                    all_scores.append(context["entity_count"])
-                else:
-                    metrics = {"context": context}
-
-                results.append(
-                    {"entity_id": entity_id, "success": True, "metrics": metrics}
-                )
+            if result["success"]:
                 successful += 1
-            except Exception as e:
-                logger.warning("Batch analytics failed for %s: %s", entity_id, e)
-                results.append(
-                    {
-                        "entity_id": entity_id,
-                        "success": False,
-                        "error": "BATCH_ANALYTICS_ERROR",
-                    }
-                )
+                if score is not None:
+                    all_scores.append(score)
+            else:
                 failed += 1
 
-        aggregate = None
-        if all_scores:
-            aggregate = {
-                "avg_entities_per_context": sum(all_scores) / len(all_scores),
-                "max_entities": max(all_scores),
-                "min_entities": min(all_scores),
-                "total_entities_analyzed": sum(all_scores),
-            }
+        aggregate = _calculate_aggregate_metrics(all_scores) if all_scores else None
 
         return BatchAnalyticsResponse.model_validate(
             {
@@ -625,3 +594,66 @@ async def batch_analytics(
         raise ServiceUnavailableError(
             message="Batch analytics failed. Please try again later."
         )
+
+
+async def _process_entity_analytics(
+    graph_rag: Any,
+    entity_id: str,
+    max_hops: int,
+    algorithm: str,
+) -> tuple[dict[str, Any], int | None]:
+    """Process analytics for a single entity and return result with score."""
+    try:
+        context = await graph_rag.get_entity_context(
+            entity_id=entity_id,
+            hops=max_hops,
+        )
+        if not context.get("center"):
+            return (
+                {
+                    "entity_id": entity_id,
+                    "success": False,
+                    "error": "Entity not found",
+                },
+                None,
+            )
+
+        if algorithm in ["centrality", "pagerank"]:
+            metrics: dict[str, Any] = {
+                "entity_count": context["entity_count"],
+                "relationship_count": context["relationship_count"],
+                "center_entity": context["center"],
+                "neighbors": len(context.get("neighbors", [])),
+            }
+            score = context["entity_count"]
+        else:
+            metrics = {"context": context}
+            score = None
+
+        return (
+            {"entity_id": entity_id, "success": True, "metrics": metrics},
+            score,
+        )
+    except Exception as e:
+        logger.warning("Batch analytics failed for %s: %s", entity_id, e)
+        return (
+            {
+                "entity_id": entity_id,
+                "success": False,
+                "error": "BATCH_ANALYTICS_ERROR",
+            },
+            None,
+        )
+
+
+def _calculate_aggregate_metrics(scores: list[int]) -> dict[str, Any] | None:
+    """Calculate aggregate metrics from entity scores."""
+    if not scores:
+        return None
+
+    return {
+        "avg_entities_per_context": sum(scores) / len(scores),
+        "max_entities": max(scores),
+        "min_entities": min(scores),
+        "total_entities_analyzed": sum(scores),
+    }

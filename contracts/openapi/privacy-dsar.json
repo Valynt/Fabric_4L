@@ -5,6 +5,7 @@
     "/v1/privacy/dsar": {
       "post": {
         "summary": "Register DSAR and launch export",
+        "operationId": "register_dsar_v1_privacy_dsar_post",
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DSARRequest"}}}},
         "responses": {"202": {"description": "Accepted"}}
       }

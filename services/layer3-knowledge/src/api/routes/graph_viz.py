@@ -402,7 +402,7 @@ async def _build_entity_subgraph(
     return nodes_map, edges_map, node_types
 
 
-_VALID_REL_TYPE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+_VALID_REL_TYPE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 @router.get("/graph/subgraph", response_model=SubgraphResponse)

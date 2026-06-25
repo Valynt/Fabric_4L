@@ -15,7 +15,7 @@ RUNTIME_MARKER_PATHS = [
     ROOT / "sdk/python/src",
 ]
 IGNORED_PARTS = {"/tests/", "/test_", "_test.", "/docs/", "/archive/", "/prototypes/"}
-IGNORED_DIR_MARKERS = ("/.venv/", "/site-packages/", "/__pycache__/", "/governance/")
+IGNORED_DIR_MARKERS = ("/.venv/", "/site-packages/", "/__pycache__/", "/governance/", "/node_modules/")
 IGNORED_SUFFIXES = (".pyc",)
 
 MODULE_PATH = ROOT / "scripts" / "ci" / "compatibility_registry.py"
@@ -122,6 +122,17 @@ def test_registry_target_removal_dates_not_exceeded_without_extension_note() -> 
         "Compatibility shim target removal date exceeded without documented extension note:\n"
         + "\n".join(overdue)
     )
+
+
+def test_compat_web_shims_have_post_june_2026_target_or_extension():
+    registry = compatibility_registry.parse_registry(REGISTRY)
+    shim_ids = {"COMPAT-WEB-005", "COMPAT-WEB-012", "COMPAT-WEB-014", "COMPAT-WEB-016", "COMPAT-WEB-017"}
+    for entry in registry:
+        if entry.shim_id in shim_ids:
+            target = entry.target_removal_date
+            assert target > "2026-06-30" or "extension" in entry.review_metadata.lower(), (
+                f"{entry.shim_id} target {target} has passed 2026-06-30 without extension"
+            )
 
 
 def test_gate_inventory_entries_are_present_and_unique() -> None:

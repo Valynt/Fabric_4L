@@ -13,10 +13,10 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
-from sqlalchemy import String, text
+from sqlalchemy import Column, String, text
 from sqlalchemy import create_engine as _sync_engine
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, declared_attr, mapped_column, sessionmaker
 
 # Ensure a deterministic master key for tests
 os.environ["CREDENTIALS_MASTER_KEY"] = "test-master-key-" + "A" * 32
@@ -25,13 +25,29 @@ from .encrypted_mixin import DEFAULT_PII_FIELDS, PIIMixin
 
 
 class Base(DeclarativeBase):
-    pass
+    __allow_unmapped__ = True
+
+
+# The production PIIMixin declares ``pii_key_version`` with a non-Mapped
+# return annotation on a ``declared_attr.directive``.  Newer SQLAlchemy
+# still treats that annotation as mapped and rejects it even when
+# ``__allow_unmapped__`` is set.  For this test module only, shadow the
+# mixin with a test-local subclass whose directive uses ``Mapped[str]``.
+class _PIIMixinTest(PIIMixin):
+    @declared_attr.directive
+    @classmethod
+    def pii_key_version(cls) -> Mapped[str]:
+        return Column("pii_key_version", String(8), nullable=True, default="1")
+
+
+PIIMixin = _PIIMixinTest
 
 
 class _TestPIIModel(Base, PIIMixin):
     """Test-only model demonstrating full PIIMixin functionality."""
 
     __tablename__ = "test_pii_contacts"
+    __allow_unmapped__ = True
     __pii_config__: ClassVar[dict[str, dict[str, Any]]] = {
         "email": {"searchable": True},
         "phone": {"searchable": True},

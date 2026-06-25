@@ -37,12 +37,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 # so the Postgres schema gets the proper JSONB type with indexing support.
 _JsonType = JSON
 
-# Base is resolved at import time. In the full service context (src/ on sys.path)
-# we use src.database.Base so harness tables are included in Alembic autogenerate.
+# Base is resolved at import time. In the full service context we use the
+# canonical layer4_agents.database.Base so harness tables are included in Alembic autogenerate.
 # In standalone harness tests (SQLite, no full service stack) we fall back to a
 # local DeclarativeBase so the module remains importable without the service deps.
 try:
-    from src.database import Base  # full service context
+    from layer4_agents.database import Base  # full service context
 except ImportError:
     from sqlalchemy.orm import DeclarativeBase  # type: ignore[assignment]
 

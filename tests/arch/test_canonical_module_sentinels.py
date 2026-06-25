@@ -243,3 +243,46 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
         "Found production imports via value_fabric.layer6:\n"
         + "\n".join(violations)
     )
+
+
+# ---------------------------------------------------------------------------
+# Layer 4 — Agents canonical import regression (ADR-027)
+# ---------------------------------------------------------------------------
+
+L4_SRC = REPO_ROOT / "services" / "layer4-agents" / "src"
+L4_CANON = L4_SRC / "layer4_agents"
+
+
+def _is_star_import_shim(module: ast.Module) -> bool:
+    for node in module.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+            continue  # docstring
+        if isinstance(node, ast.ImportFrom):
+            if node.module and node.module.startswith("layer4_agents."):
+                if any(a.name == "*" for a in node.names):
+                    return True
+    return False
+
+
+def test_layer4_top_level_files_are_shims() -> None:
+    for path in L4_SRC.glob("*.py"):
+        if path.name == "__init__.py":
+            continue
+        if not (L4_CANON / path.name).exists():
+            continue
+        module = _parse_module(path)
+        assert _is_star_import_shim(module), f"{path} must be a star-import shim"
+
+
+def test_layer4_canonical_code_does_not_import_src_modules() -> None:
+    for path in L4_CANON.rglob("*.py"):
+        module = _parse_module(path)
+        for node in ast.walk(module):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.module.startswith("src.")
+            ):
+                raise AssertionError(
+                    f"{path} imports deprecated top-level src module {node.module}"
+                )
