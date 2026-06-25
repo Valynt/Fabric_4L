@@ -20,6 +20,7 @@ Provides endpoints for:
 - Compliance auditing (/compliance)
 """
 
+import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
@@ -29,6 +30,8 @@ from typing import Any, NoReturn
 from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
+import redis
+import sqlalchemy.exc
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -305,7 +308,8 @@ async def _l1_db_probe() -> ProbeResult:
         await asyncio.to_thread(
             lambda: engine.connect().execute(text("SELECT 1")).close()
         )
-    except Exception:
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as e:
+        logger.warning("l1_db_probe_failed", error=str(e))
         return ProbeResult(name="postgres", healthy=False, detail="probe_failed")
     return ProbeResult(name="postgres", healthy=True)
 
@@ -784,7 +788,8 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
     try:
         addr = ipaddress.ip_address(hostname)
     except ValueError:
-        pass  # hostname is a domain name, not an IP literal — OK at this stage
+        # hostname is a domain name, not an IP literal — OK at this stage
+        logger.debug("callback_url_hostname_is_domain", hostname=hostname)
     else:
         if (
             addr.is_private
@@ -1734,71 +1739,14 @@ async def execute_target(
         raise ConflictError(message=f"Target is not active (status: {target.status})")
 
     # P0-04: Idempotency check with atomic SET NX to prevent race condition
-    if request.idempotency_key:
-        idempotency_key = f"idempotency:{org_id}:{target_id}:{request.idempotency_key}"
-        from ..shared.database import redis_client
-
-        if redis_client:
-            # Try to set idempotency key atomically (only if not exists)
-            # This prevents race condition where multiple requests create duplicate jobs
-            job_id_placeholder = f"placeholder:{uuid4()}"
-            set_result = redis_client.set(
-                idempotency_key, job_id_placeholder, nx=True, ex=86400
-            )
-
-            if set_result is None:
-                # Key already exists - return existing job
-                existing_job_id = redis_client.get(idempotency_key)
-                if existing_job_id and not existing_job_id.startswith("placeholder:"):
-                    logger.info(
-                        "Idempotency key hit, returning existing job",
-                        idempotency_key=request.idempotency_key,
-                        job_id=existing_job_id,
-                    )
-                    # Verify job exists and is recent (within 24h)
-                    existing_job = db.query(ScrapingJob).get(UUID(existing_job_id))
-                    if existing_job and existing_job.tenant_id == org_id:
-                        from ..metrics.prometheus_metrics import get_metrics
-
-                        metrics = get_metrics()
-                        if metrics and metrics.config.enabled:
-                            metrics.increment_idempotency_key_hit()
-                        return ExecuteTargetResponse(
-                            job_id=UUID(existing_job_id),
-                            status=existing_job.status,
-                            estimated_start_time=existing_job.started_at,
-                            queue_position=None,
-                            queue_position_metadata=None,
-                        )
-                    else:
-                        # Job not found or tenant mismatch, clear stale key
-                        redis_client.delete(idempotency_key)
-                else:
-                    # Placeholder from another concurrent request - wait and retry or proceed
-                    # For simplicity, we'll clear and proceed (could be improved with retry logic)
-                    redis_client.delete(idempotency_key)
-            else:
-                # Successfully claimed idempotency key
-                from ..metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics and metrics.config.enabled:
-                    metrics.increment_idempotency_key_miss()
+    existing_response = await _check_idempotency_key(
+        request.idempotency_key, org_id, target_id, db
+    )
+    if existing_response:
+        return existing_response
 
     # Create configuration snapshot
-    configuration = {
-        "target_id": str(target.id),
-        "target_name": target.name,
-        "url": target.url,
-        "target_type": target.target_type,
-        "extraction_config": target.extraction_config,
-        "browser_config": target.browser_config,
-        "rate_limit": target.rate_limit,
-        "compliance": target.compliance,
-        "proxy_config": target.proxy_config,
-        "authentication": target.authentication,
-        "override_config": request.override_config,
-    }
+    configuration = _build_job_configuration(target, request.override_config)
 
     # Create job
     correlation_id = str(uuid4())
@@ -1818,21 +1766,30 @@ async def execute_target(
 
     # P0-04: Update idempotency key with actual job ID if provided
     if request.idempotency_key:
-        idempotency_key = f"idempotency:{org_id}:{target_id}:{request.idempotency_key}"
-        from ..shared.database import redis_client
+        _update_idempotency_key(org_id, target_id, request.idempotency_key, job.id)
 
-        if redis_client:
-            redis_client.setex(idempotency_key, 86400, str(job.id))  # 24h TTL
+    try:
+        # Initialize pipeline stages
+        _initialize_pipeline_stages(job.id, org_id, db)
 
-    # Initialize pipeline stages
-    for stage in PipelineStage:
-        stage_detail = JobStageDetail(
-            job_id=job.id, tenant_id=org_id, stage=stage.value, status="PENDING"
+        # Queue job
+        job.status = JobStatus.QUEUED.value
+        db.commit()
+    except sqlalchemy.exc.SQLAlchemyError as exc:
+        db.rollback()
+        logger.error(
+            "failed_to_persist_queued_job",
+            job_id=str(job.id),
+            tenant_id=str(org_id),
+            error=str(exc),
         )
-        db.add(stage_detail)
-
-    # Queue job
-    job.status = JobStatus.QUEUED.value
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "SERVICE_UNAVAILABLE",
+                "message": "Failed to queue scraping job",
+            },
+        ) from exc
 
     # Start background processing with tenant context envelope
     process_scraping_job.apply_async(
@@ -1845,18 +1802,146 @@ async def execute_target(
     return ExecuteTargetResponse(
         job_id=job.id,
         status=JobStatus.QUEUED.value,
-        queue_position=db.query(ScrapingJob)
-        .filter(
-            ScrapingJob.tenant_id == org_id,
-            ScrapingJob.status == JobStatus.QUEUED.value,
-            ScrapingJob.created_at <= job.created_at,
-        )
-        .count(),
+        queue_position=_calculate_queue_position(db, org_id, job.created_at),
         queue_position_metadata={
             "calculation": "count_queued_jobs_created_before_or_at_current_job",
             "scope": "organization",
         },
         estimated_start_time=None,
+    )
+
+
+async def _check_idempotency_key(
+    idempotency_key: str | None,
+    org_id: UUID,
+    target_id: UUID,
+    db: Session,
+) -> ExecuteTargetResponse | None:
+    """Check idempotency key and return existing job response if found."""
+    if not idempotency_key:
+        return None
+
+    idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
+    from ..shared.database import redis_client
+
+    if not redis_client:
+        return None
+
+    # Try to set idempotency key atomically (only if not exists)
+    # This prevents race condition where multiple requests create duplicate jobs
+    job_id_placeholder = f"placeholder:{uuid4()}"
+    set_result = redis_client.set(
+        idempotency_key_str, job_id_placeholder, nx=True, ex=86400
+    )
+
+    if set_result is not None:
+        # Successfully claimed idempotency key
+        from ..metrics.prometheus_metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics and metrics.config.enabled:
+            metrics.increment_idempotency_key_miss()
+        return None
+
+    for attempt in range(5):
+        existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
+        if not existing_job_id or not existing_job_id.startswith("placeholder:"):
+            break
+        await asyncio.sleep(0.05 * (2**attempt))
+
+    # Key already exists - return existing job
+    existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
+    if existing_job_id and not existing_job_id.startswith("placeholder:"):
+        logger.info(
+            "Idempotency key hit, returning existing job",
+            idempotency_key=idempotency_key,
+            job_id=existing_job_id,
+        )
+        # Verify job exists and is recent (within 24h)
+        existing_job = db.query(ScrapingJob).get(UUID(existing_job_id))
+        if existing_job and existing_job.tenant_id == org_id:
+            from ..metrics.prometheus_metrics import get_metrics
+
+            metrics = get_metrics()
+            if metrics and metrics.config.enabled:
+                metrics.increment_idempotency_key_hit()
+            return ExecuteTargetResponse(
+                job_id=UUID(existing_job_id),
+                status=existing_job.status,
+                estimated_start_time=existing_job.started_at,
+                queue_position=None,
+                queue_position_metadata=None,
+            )
+        else:
+            # Job not found or tenant mismatch, clear stale key
+            redis_client.delete(idempotency_key_str)
+
+    if existing_job_id and existing_job_id.startswith("placeholder:"):
+        raise ConflictError(
+            message="A request with this idempotency key is already in progress"
+        )
+
+    return None
+
+
+def _decode_redis_value(value: Any) -> str | None:
+    """Normalize Redis client return values for idempotency comparisons."""
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+def _build_job_configuration(
+    target: ScrapingTarget, override_config: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Build configuration snapshot for job execution."""
+    return {
+        "target_id": str(target.id),
+        "target_name": target.name,
+        "url": target.url,
+        "target_type": target.target_type,
+        "extraction_config": target.extraction_config,
+        "browser_config": target.browser_config,
+        "rate_limit": target.rate_limit,
+        "compliance": target.compliance,
+        "proxy_config": target.proxy_config,
+        "authentication": target.authentication,
+        "override_config": override_config,
+    }
+
+
+def _update_idempotency_key(
+    org_id: UUID, target_id: UUID, idempotency_key: str, job_id: UUID
+) -> None:
+    """Update idempotency key with actual job ID."""
+    idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
+    from ..shared.database import redis_client
+
+    if redis_client:
+        redis_client.setex(idempotency_key_str, 86400, str(job_id))  # 24h TTL
+
+
+def _initialize_pipeline_stages(job_id: UUID, org_id: UUID, db: Session) -> None:
+    """Initialize pipeline stages for a job."""
+    for stage in PipelineStage:
+        stage_detail = JobStageDetail(
+            job_id=job_id, tenant_id=org_id, stage=stage.value, status="PENDING"
+        )
+        db.add(stage_detail)
+
+
+def _calculate_queue_position(db: Session, org_id: UUID, created_at: datetime) -> int:
+    """Calculate queue position for a job."""
+    return (
+        db.query(ScrapingJob)
+        .filter(
+            ScrapingJob.tenant_id == org_id,
+            ScrapingJob.status == JobStatus.QUEUED.value,
+            ScrapingJob.created_at <= created_at,
+        )
+        .count()
     )
 
 
@@ -3244,7 +3329,8 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
 
         redis_client.ping()
         components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
-    except Exception:
+    except (redis.RedisError, ConnectionError) as e:
+        logger.warning("redis_ping_failed", error=str(e))
         components["queue"] = ComponentHealth(
             status="degraded", message="Redis not available"
         )

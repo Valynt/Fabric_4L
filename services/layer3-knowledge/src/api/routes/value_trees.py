@@ -81,6 +81,65 @@ class ValueTreeResponse(BaseModel):
     stats: ValueTreeStats = Field(..., description="Tree statistics")
 
 
+def _process_path_nodes(
+    path_nodes_data: list[dict[str, Any]],
+    layer_map: dict[str, int],
+    nodes_map: dict[str, ValueTreeNode],
+    by_layer: dict[str, int],
+) -> None:
+    """Process nodes from a path and add them to the nodes map."""
+    for node_data in path_nodes_data:
+        if not node_data or not node_data.get("id"):
+            continue
+
+        node_id = node_data.get("id")
+        node_type = node_data.get("type", "Unknown")
+        node_layer = layer_map.get(node_type, 1)
+
+        if node_id not in nodes_map:
+            by_layer[str(node_layer)] = by_layer.get(str(node_layer), 0) + 1
+            nodes_map[node_id] = ValueTreeNode(
+                id=node_id,
+                label=node_data.get("name") or node_id,
+                type=node_type,
+                layer=node_layer,
+                confidence=node_data.get("confidence") or 0.8,
+                properties={},
+            )
+
+
+def _process_path_relationships(
+    rels: list[dict[str, Any]], edges_map: dict[str, ValueTreeEdge]
+) -> None:
+    """Process relationships from a path and add them to the edges map."""
+    for rel in rels:
+        start_id = rel.get("start_node", {}).get("id")
+        end_id = rel.get("end_node", {}).get("id")
+        rel_type = rel.get("type", "RELATED_TO")
+
+        if start_id and end_id:
+            edge_key = f"{start_id}-{end_id}-{rel_type}"
+            if edge_key not in edges_map:
+                edges_map[edge_key] = ValueTreeEdge(
+                    source=start_id,
+                    target=end_id,
+                    type=rel_type,
+                    weight=rel.get("weight", 1.0),
+                )
+
+
+def _build_path_structure(
+    path_nodes_data: list[dict[str, Any]], path_length: int
+) -> dict[str, Any] | None:
+    """Build a path structure from path nodes."""
+    if path_length > 0:
+        return {
+            "length": path_length,
+            "nodes": [n.get("id") for n in path_nodes_data if n],
+        }
+    return None
+
+
 @router.get(
     "/value-trees/{entity_id}",
     response_model=ValueTreeResponse,
@@ -219,50 +278,12 @@ async def get_value_tree(
             path_length = r.get("path_length", 0)
             max_path_length = max(max_path_length, path_length)
 
-            # Process nodes in path
-            for i, node_data in enumerate(path_nodes_data):
-                if not node_data or not node_data.get("id"):
-                    continue
+            _process_path_nodes(path_nodes_data, layer_map, nodes_map, by_layer)
+            _process_path_relationships(rels, edges_map)
 
-                node_id = node_data.get("id")
-                node_type = node_data.get("type", "Unknown")
-                node_layer = layer_map.get(node_type, 1)
-
-                if node_id not in nodes_map:
-                    by_layer[str(node_layer)] = by_layer.get(str(node_layer), 0) + 1
-                    nodes_map[node_id] = ValueTreeNode(
-                        id=node_id,
-                        label=node_data.get("name") or node_id,
-                        type=node_type,
-                        layer=node_layer,
-                        confidence=node_data.get("confidence") or 0.8,
-                        properties={},
-                    )
-
-            # Process relationships
-            for rel in rels:
-                start_id = rel.get("start_node", {}).get("id")
-                end_id = rel.get("end_node", {}).get("id")
-                rel_type = rel.get("type", "RELATED_TO")
-
-                if start_id and end_id:
-                    edge_key = f"{start_id}-{end_id}-{rel_type}"
-                    if edge_key not in edges_map:
-                        edges_map[edge_key] = ValueTreeEdge(
-                            source=start_id,
-                            target=end_id,
-                            type=rel_type,
-                            weight=rel.get("weight", 1.0),
-                        )
-
-            # Build path structure
-            if path_length > 0:
-                paths.append(
-                    {
-                        "length": path_length,
-                        "nodes": [n.get("id") for n in path_nodes_data if n],
-                    }
-                )
+            path_structure = _build_path_structure(path_nodes_data, path_length)
+            if path_structure:
+                paths.append(path_structure)
 
         nodes = list(nodes_map.values())
         edges = list(edges_map.values())
