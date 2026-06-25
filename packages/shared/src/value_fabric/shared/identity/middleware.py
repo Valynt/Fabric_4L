@@ -83,7 +83,7 @@ from value_fabric.shared.rate_limiting.http_middleware import (
 from value_fabric.shared.tenant_context_metrics import (
     record_inconsistent_tenant_context_access,
 )
-from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+from value_fabric.shared.tenant_kill_switch import TenantKillSwitch, TenantSuspensionStatus
 
 logger = logging.getLogger(__name__)
 _LEGACY_TEST_TENANT_ID_RE = re.compile(r"^tenant-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -752,39 +752,37 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 )
 
         if tenant_status is None:
-            try:
-                redis_client = (
-                    self._rate_limiter.redis_client
-                    if self._rate_limiter is not None
-                    else self._redis_client
+            # RB-4 FIX: Use check_status() (tri-state) instead of is_suspended()
+            # (bool). When Redis is unavailable, check_status() returns UNKNOWN
+            # which is mapped to HTTP 503 below — not a silent allow (fail-open).
+            redis_client = (
+                self._rate_limiter.redis_client
+                if self._rate_limiter is not None
+                else self._redis_client
+            )
+            kill_switch = TenantKillSwitch(redis_client)
+            ks_status = await kill_switch.check_status(str(ctx.tenant_id))
+            if ks_status == TenantSuspensionStatus.SUSPENDED:
+                tenant_status = "suspended"
+            elif ks_status == TenantSuspensionStatus.UNKNOWN:
+                # Redis unavailable — fail safe with 503 rather than silently
+                # allowing the request through (fail-open vulnerability).
+                logger.warning(
+                    "tenant_kill_switch_unknown",
+                    extra={
+                        "event": "tenant_kill_switch_unknown",
+                        "tenant_id": str(ctx.tenant_id),
+                    },
                 )
-                kill_switch = TenantKillSwitch(redis_client)
-                if await kill_switch.is_suspended(str(ctx.tenant_id)):
-                    tenant_status = "suspended"
-            except Exception as exc:
-                # Catch Redis-specific exceptions gracefully
-                if (
-                    redis_error_available
-                    and RedisError is not None
-                    and isinstance(exc, RedisError)
-                ):
-                    logger.debug(
-                        "tenant_kill_switch_redis_error",
-                        extra={
-                            "tenant_id": str(ctx.tenant_id),
-                            "error_type": type(exc).__name__,
-                        },
-                    )
-                    return None
-                # Catch network-related errors gracefully
-                if isinstance(exc, (OSError, ConnectionError, TimeoutError)):
-                    logger.debug(
-                        "tenant_kill_switch_unavailable",
-                        extra={"tenant_id": str(ctx.tenant_id)},
-                    )
-                    return None
-                # Re-raise unexpected exceptions
-                raise
+                return JSONResponse(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    content={
+                        "detail": "Tenant status could not be verified. Please retry.",
+                        "error": "tenant_status_unavailable",
+                        "tenant_id": str(ctx.tenant_id),
+                    },
+                )
+            # ks_status == ACTIVE: confirmed not suspended, continue
 
         if tenant_status is None and ctx.raw:
             tenant_status = ctx.raw.get("tenant_status")

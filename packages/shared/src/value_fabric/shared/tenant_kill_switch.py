@@ -7,14 +7,31 @@ query to fail closed immediately when a tenant is suspended.
 Design decisions:
 - Redis set with TTL: entries auto-expire so a stale entry cannot block
   a tenant forever if the cleanup path fails.
-- Graceful degradation: if Redis is unavailable, ``is_suspended`` returns
-  ``False`` (not suspended) — this is the *safer* default because the
-  middleware already performs a DB fallback check.
+- Fail-safe tri-state: ``is_suspended`` now returns a ``TenantSuspensionStatus``
+  enum instead of a plain bool. When Redis is unavailable or raises an
+  exception, the result is ``UNKNOWN`` — not ``ACTIVE`` (allow). Callers
+  MUST handle ``UNKNOWN`` explicitly; the middleware maps it to HTTP 503.
 - Synchronous API for Celery workers; async API for FastAPI handlers.
+
+RB-4 FIX: The previous implementation returned ``False`` (allow) when Redis
+was unavailable or raised an exception. This is a fail-open vulnerability:
+a suspended tenant could bypass the kill switch during a Redis outage.
+
+The fix introduces ``TenantSuspensionStatus`` with three values:
+  - ACTIVE   — Redis confirmed the tenant is NOT suspended (allow)
+  - SUSPENDED — Redis confirmed the tenant IS suspended (block with 403)
+  - UNKNOWN  — Redis unavailable or error (block with 503 by default)
+
+The ``_enforce_tenant_status`` middleware method is updated to map UNKNOWN
+to a 503 response, not a silent allow. The ``_tenant_status_resolver``
+(DB fallback) is still consulted first when injected; UNKNOWN from the
+kill switch is only reached when no resolver is configured or the resolver
+also fails.
 """
 
 from __future__ import annotations
 
+import enum
 import logging
 import os
 from typing import Any
@@ -27,6 +44,20 @@ SUSPENDED_TENANTS_SET = "tenant_kill_switch:suspended"
 SUSPENDED_ENTRY_TTL_SECONDS = 300  # 5 minutes
 
 
+class TenantSuspensionStatus(enum.Enum):
+    """Tri-state result of a kill-switch lookup.
+
+    Callers MUST handle all three values explicitly. The ``UNKNOWN`` state
+    MUST NOT be treated as ``ACTIVE`` (allow). It indicates that the
+    authoritative source (Redis) was unavailable and the caller should
+    fail safe — typically by returning HTTP 503.
+    """
+
+    ACTIVE = "active"       # Confirmed not suspended — allow request
+    SUSPENDED = "suspended" # Confirmed suspended — block with 403
+    UNKNOWN = "unknown"     # Redis unavailable or error — block with 503
+
+
 class TenantKillSwitch:
     """Redis-backed tenant suspension kill switch.
 
@@ -35,6 +66,8 @@ class TenantKillSwitch:
         kill_switch = TenantKillSwitch(redis_client)
         await kill_switch.suspend(tenant_id)      # async
         await kill_switch.unsuspend(tenant_id)    # async
+        status = await kill_switch.check_status(tenant_id)  # async, tri-state
+        # Legacy bool API preserved for backward compatibility:
         is_suspended = await kill_switch.is_suspended(tenant_id)  # async
 
     For Celery (sync)::
@@ -74,20 +107,57 @@ class TenantKillSwitch:
         except Exception as exc:
             logger.warning("Kill switch unsuspend failed: %s", exc)
 
+    async def check_status(self, tenant_id: str) -> TenantSuspensionStatus:
+        """Return the tri-state suspension status for a tenant.
+
+        Returns:
+            TenantSuspensionStatus.SUSPENDED  — tenant is in the suspended set
+            TenantSuspensionStatus.ACTIVE     — tenant is confirmed not suspended
+            TenantSuspensionStatus.UNKNOWN    — Redis unavailable or error
+
+        Callers MUST handle UNKNOWN explicitly. The middleware maps UNKNOWN
+        to HTTP 503 (service unavailable) rather than silently allowing
+        the request through.
+        """
+        if self._redis is None:
+            logger.warning(
+                "kill_switch_no_redis",
+                extra={"event": "kill_switch_no_redis", "tenant_id": str(tenant_id)},
+            )
+            return TenantSuspensionStatus.UNKNOWN
+        try:
+            result = await self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
+            return (
+                TenantSuspensionStatus.SUSPENDED
+                if bool(result)
+                else TenantSuspensionStatus.ACTIVE
+            )
+        except Exception as exc:
+            logger.warning(
+                "kill_switch_check_failed",
+                extra={
+                    "event": "kill_switch_check_failed",
+                    "tenant_id": str(tenant_id),
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                },
+            )
+            return TenantSuspensionStatus.UNKNOWN
+
     async def is_suspended(self, tenant_id: str) -> bool:
         """Return True if the tenant is in the suspended set.
 
-        Returns False if Redis is unavailable — the middleware DB fallback
-        provides the authoritative check.
+        .. deprecated::
+            Use ``check_status()`` instead. This method returns ``False`` for
+            both ACTIVE and UNKNOWN states, masking Redis failures. It is
+            preserved for backward compatibility with existing call sites that
+            have not yet been updated to handle the tri-state result.
+
+        Returns False if Redis is unavailable — callers that use this method
+        directly will not detect Redis outages. Prefer ``check_status()``.
         """
-        if self._redis is None:
-            return False
-        try:
-            result = await self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
-            return bool(result)
-        except Exception as exc:
-            logger.warning("Kill switch check failed: %s", exc)
-            return False
+        status = await self.check_status(tenant_id)
+        return status == TenantSuspensionStatus.SUSPENDED
 
     # ------------------------------------------------------------------
     # Sync API (for Celery workers)
