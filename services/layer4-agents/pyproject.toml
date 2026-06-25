@@ -635,8 +635,8 @@ disable_error_code = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests", "src/harness/tests"]
-addopts = "-v --tb=short"
+testpaths = ["tests", "src/layer4_agents/harness/tests"]
+addopts = "-v --tb=short --ignore=src/harness/tests"
 pythonpath = ["src", "../..", "../../packages/shared/src", "../../services/layer3-knowledge/src", "../../packages/platform-contract/src/python"]
 markers = [
     "unit: Fast unit tests with no external dependencies",
