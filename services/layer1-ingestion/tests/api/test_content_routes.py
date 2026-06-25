@@ -9,8 +9,8 @@ These tests prove that the content routes (``get_raw_content``,
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Generator
+from collections.abc import Generator
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
@@ -71,13 +71,13 @@ def _make_raw_content(
         target_id=job.target_id,
         source_url=f"https://{source_domain}/page",
         source_domain=source_domain,
-        source_accessed_at=datetime.now(timezone.utc),
+        source_accessed_at=datetime.now(UTC),
         processing_status="PENDING",
         capture_javascript_executed=True,
         capture_wait_time_ms=0,
         meta_og_tags={},
         meta_structured_data=[],
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db.add(raw)
     db.flush()
@@ -99,8 +99,8 @@ def _make_extracted_data(
         validation_schema_valid=True,
         validation_errors=[],
         provenance_source_url=raw.source_url,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     db.add(extracted)
     db.flush()

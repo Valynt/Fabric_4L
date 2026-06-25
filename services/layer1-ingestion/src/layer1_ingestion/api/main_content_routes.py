@@ -4,30 +4,31 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import main
+from . import content_handlers
+from .schemas.content_schemas import ExtractedDataResponse, RawContentResponse
 
 router = APIRouter()
 router.add_api_route(
     "/content/raw/{content_id}",
-    main.get_raw_content,
+    content_handlers.get_raw_content,
     methods=["GET"],
-    response_model=main.RawContentResponse,
+    response_model=RawContentResponse,
     operation_id="get_raw_content",
     summary="Retrieve raw content by ID",
     tags=["Content"],
 )
 router.add_api_route(
     "/content/extracted/{extracted_data_id}",
-    main.get_extracted_data,
+    content_handlers.get_extracted_data,
     methods=["GET"],
-    response_model=main.ExtractedDataResponse,
+    response_model=ExtractedDataResponse,
     operation_id="get_extracted_data",
     summary="Retrieve extracted data by ID",
     tags=["Content"],
 )
 router.add_api_route(
     "/content",
-    main.list_content,
+    content_handlers.list_content,
     methods=["GET"],
     operation_id="list_content",
     summary="List raw content with filtering",
