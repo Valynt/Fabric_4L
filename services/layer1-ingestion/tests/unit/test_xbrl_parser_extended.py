@@ -12,6 +12,8 @@ Extends the basic tests in test_adapters.py with more thorough coverage:
 
 import pytest
 
+from defusedxml.ElementTree import fromstring
+
 from layer1_ingestion.adapters.xbrl_parser import (
     FinancialFact,
     XBRLParser,
@@ -311,3 +313,120 @@ class TestEntityExtraction:
         result = parser.parse(xml)
 
         assert result.document_type == "10-K"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Refactored helper methods
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRefactoredHelperMethods:
+    """Tests for helper methods extracted during refactoring."""
+
+    def test_get_tag_name_with_namespace(self):
+        """_get_tag_name extracts tag name from namespaced element."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues>100</us-gaap:Revenues></root>')
+        assert parser._get_tag_name(elem[0]) == "Revenues"
+
+    def test_get_tag_name_without_namespace(self):
+        """_get_tag_name handles elements without namespace."""
+        parser = XBRLParser()
+        elem = fromstring("<Revenues>100</Revenues>")
+        assert parser._get_tag_name(elem) == "Revenues"
+
+    def test_get_unit_with_ref(self):
+        """_get_unit returns unit when unitRef is present."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues unitRef="USD">100</us-gaap:Revenues></root>')
+        units = {"USD": "iso4217:USD"}
+        assert parser._get_unit(elem[0], units) == "iso4217:USD"
+
+    def test_get_unit_without_ref(self):
+        """_get_unit returns None when unitRef is absent."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues>100</us-gaap:Revenues></root>')
+        units = {"USD": "iso4217:USD"}
+        assert parser._get_unit(elem[0], units) is None
+
+    def test_get_latest_fact_with_period_end(self):
+        """_get_latest_fact returns fact with most recent period_end."""
+        parser = XBRLParser()
+        from datetime import datetime
+        fact1 = FinancialFact(concept="Revenues", value=100, period_end=datetime(2023, 1, 1))
+        fact2 = FinancialFact(concept="Revenues", value=200, period_end=datetime(2023, 12, 31))
+        fact3 = FinancialFact(concept="Revenues", value=150, period_end=datetime(2023, 6, 30))
+
+        latest = parser._get_latest_fact([fact1, fact2, fact3])
+        assert latest.value == 200
+
+    def test_get_latest_fact_without_period_end(self):
+        """_get_latest_fact handles facts without period_end."""
+        parser = XBRLParser()
+        fact1 = FinancialFact(concept="Revenues", value=100)
+        fact2 = FinancialFact(concept="Revenues", value=200)
+
+        latest = parser._get_latest_fact([fact1, fact2])
+        assert latest is not None
+
+    def test_get_latest_fact_empty_list(self):
+        """_get_latest_fact returns None for empty list."""
+        parser = XBRLParser()
+        assert parser._get_latest_fact([]) is None
+
+    def test_find_metric_value_with_matching_pattern(self):
+        """_find_metric_value returns metric when pattern matches."""
+        parser = XBRLParser()
+        from datetime import datetime
+        fact = FinancialFact(
+            concept="us-gaap:Revenues",
+            value=1000,
+            unit="USD",
+            period_end=datetime(2023, 12, 31)
+        )
+
+        result = parser._find_metric_value([fact], ["Revenues"])
+        assert result is not None
+        assert result["value"] == 1000
+        assert result["concept"] == "us-gaap:Revenues"
+
+    def test_find_metric_value_no_match(self):
+        """_find_metric_value returns None when no pattern matches."""
+        parser = XBRLParser()
+        fact = FinancialFact(concept="us-gaap:Assets", value=500)
+
+        result = parser._find_metric_value([fact], ["Revenues"])
+        assert result is None
+
+    def test_apply_decimals_scale_negative_scale(self):
+        """_apply_decimals_scale applies negative scale (divide)."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues decimals="-3">500</us-gaap:Revenues></root>')
+
+        result = parser._apply_decimals_scale(elem[0], "Revenues", 500, "ctx")
+        # decimals="-3" means value is in thousands, so 500 * 10^-3 = 0.5
+        assert result == 0.5
+
+    def test_apply_decimals_scale_no_decimals(self):
+        """_apply_decimals_scale returns value when no decimals attribute."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues>100</us-gaap:Revenues></root>')
+
+        result = parser._apply_decimals_scale(elem[0], "Revenues", 100, "ctx")
+        assert result == 100
+
+    def test_apply_decimals_scale_inf(self):
+        """_apply_decimals_scale returns value for INF decimals."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues decimals="INF">3.14</us-gaap:Revenues></root>')
+
+        result = parser._apply_decimals_scale(elem[0], "Revenues", 3.14, "ctx")
+        assert result == 3.14
+
+    def test_apply_decimals_scale_invalid_returns_none(self):
+        """_apply_decimals_scale returns None for invalid decimals."""
+        parser = XBRLParser()
+        elem = fromstring('<root xmlns:us-gaap="http://fasb.org/us-gaap/2023"><us-gaap:Revenues decimals="bad">100</us-gaap:Revenues></root>')
+
+        result = parser._apply_decimals_scale(elem[0], "Revenues", 100, "ctx")
+        assert result is None
+

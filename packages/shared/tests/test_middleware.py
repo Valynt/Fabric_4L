@@ -47,7 +47,7 @@ def sample_context():
         tenant_id=uuid4(),
         user_id=uuid4(),
         roles=[Role.TENANT_ADMIN.value],
-        permissions=frozenset([Permission.READ, Permission.WRITE]),
+        permissions=frozenset([Permission.READ_HEALTH, Permission.WRITE_ANALYTICS]),
         source="jwt",
         raw={"sub": "user123"},
     )

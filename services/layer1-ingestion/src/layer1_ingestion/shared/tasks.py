@@ -346,189 +346,216 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
         attributes={"job_id": str(job_id), "tenant_id": str(tenant_uuid)},
     ):
         try:
-            # Set tenant context BEFORE any database queries
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 job = session.query(ScrapingJob).get(job_id)
                 if not job:
                     raise ValueError(f"Job {job_id} not found")
-                queue_latency_seconds = max(0.0, (datetime.now(UTC) - job.created_at).total_seconds())
-                metrics = get_metrics()
-                if metrics:
-                    metrics.observe_queue_latency(
-                        queue_latency_seconds,
-                        stage=PipelineStage.COMPLIANCE_CHECK.value,
-                        status=job.status,
-                    )
-
-                # Idempotent: skip if already completed (handles retry after crawl delay)
-                existing_stage = (
-                    session.query(JobStageDetail)
-                    .filter(
-                        JobStageDetail.job_id == job_id,
-                        JobStageDetail.stage == PipelineStage.COMPLIANCE_CHECK.value,
-                    )
-                    .first()
-                )
-                if existing_stage and existing_stage.status == "COMPLETED":
+                
+                _record_queue_latency(job, PipelineStage.COMPLIANCE_CHECK)
+                
+                if _is_stage_already_completed(session, job_id, PipelineStage.COMPLIANCE_CHECK):
                     logger.info("Compliance check already completed (idempotent retry)", job_id=str(job_id))
                     return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
-                # Update stage status
                 _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
                 job.status = JobStatus.VALIDATING.value
                 job.progress_stage = PipelineStage.COMPLIANCE_CHECK.value
                 session.commit()
 
-                # Get target configuration
                 config = job.configuration
                 url = config.get("url", "")
                 target = session.query(ScrapingTarget).filter(ScrapingTarget.id == job.target_id).first()
                 compliance_allowlist = ((target.compliance or {}) if target else {}).get("domain_allowlist")
-                try:
-                    safety_result = validate_url_safety(url, allowlist_domains=compliance_allowlist)
-                    log_url_compliance_event(
-                        session,
-                        tenant_id=job.tenant_id,
-                        job_id=job.id,
-                        target_id=job.target_id,
-                        request_url=url,
-                        reason_code="URL_ALLOWED",
-                        action="ALLOWED",
-                    )
-                    config["url"] = safety_result.normalized_url
-                    url = safety_result.normalized_url
-                except URLSafetyError as exc:
-                    log_url_compliance_event(
-                        session,
-                        tenant_id=job.tenant_id,
-                        job_id=job.id,
-                        target_id=job.target_id,
-                        request_url=url,
-                        reason_code=exc.reason_code,
-                        action="BLOCKED",
-                    )
-                    session.commit()
-                    metrics = get_metrics()
-                    if metrics:
-                        metrics.increment_url_blocked(reason="url_safety", domain_class=_domain_class(url))
-                    try:
-                        emit_audit_event(
-                            action=AuditAction.URL_SAFETY_BLOCKED,
-                            outcome=AuditOutcome.DENIED,
-                            tenant_id=job.tenant_id,
-                            resource_type="ScrapingJob",
-                            resource_id=str(job_id),
-                            details={"url": url, "reason_code": exc.reason_code},
-                        )
-                    except Exception:
-                        logger.exception("url_safety_blocked_audit_failed")
-                    _fail_job(job_id, str(job.tenant_id), "URL blocked by compliance policy", PipelineStage.COMPLIANCE_CHECK)
+                
+                url = await _validate_url_safety(session, job, url, compliance_allowlist)
+                if url is None:
                     return compliance_check_stageResult.model_validate(
-                        {
-                            "success": False,
-                            "error": "URL blocked by compliance policy",
-                            "job_id": str(job_id),
-                        }
+                        {"success": False, "error": "URL blocked by compliance policy", "job_id": str(job_id)}
                     ).model_dump()
+                
+                config["url"] = url
+                crawl_delay = await _check_robots_txt(session, job, url, config.get("compliance", {}))
+                if crawl_delay is None:
+                    return compliance_check_stageResult.model_validate(
+                        {"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}
+                    ).model_dump()
+                
+                if crawl_delay > 0:
+                    _apply_crawl_delay(session, job_id, crawl_delay)
+                    raise self.retry(countdown=int(crawl_delay))
 
-                compliance_config = config.get("compliance", {})
-
-                # Check robots.txt
-                if compliance_config.get("respect_robots_txt", True):
-                    checker = RobotsChecker(
-                        tenant_id=str(job.tenant_id),
-                        strict_mode=compliance_config.get("strict_robots_compliance", False),
-                    )
-                    parsed_url = urlparse(url)
-                    domain = parsed_url.netloc
-
-                    allowed, reason, rules = await checker.check_url(url, job_id=str(job_id))
-                    crawl_delay = rules.get("crawl_delay") if rules else None
-
-                    # Log compliance check
-                    log = ComplianceLog(
-                        tenant_id=job.tenant_id,
-                        job_id=job_id,
-                        target_id=job.target_id,
-                        event_type=ComplianceEventType.ROBOTS_TXT_CHECK.value,
-                        severity="INFO" if allowed else "WARNING",
-                        robots_txt_check={
-                            "url": url,
-                            "robots_txt_url": f"https://{domain}/robots.txt",
-                            "user_agent": compliance_config.get("user_agent_string", "ValueFabricBot"),
-                            "allowed": allowed,
-                            "crawl_delay": crawl_delay,
-                        },
-                        request_url=url,
-                        request_user_agent=compliance_config.get("user_agent_string", "ValueFabricBot"),
-                    )
-                    session.add(log)
-
-                    if not allowed:
-                        metrics = get_metrics()
-                        if metrics:
-                            metrics.increment_url_blocked(reason="robots_txt", domain_class=_domain_class(url))
-                        try:
-                            emit_audit_event(
-                                action=AuditAction.URL_ROBOTS_BLOCKED,
-                                outcome=AuditOutcome.DENIED,
-                                tenant_id=job.tenant_id,
-                                resource_type="ScrapingJob",
-                                resource_id=str(job_id),
-                                details={"url": url, "reason": reason},
-                            )
-                        except Exception:
-                            logger.exception("url_robots_blocked_audit_failed")
-                        _fail_job(job_id, str(job.tenant_id), "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
-                        return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
-
-                    # OPTIMIZATION: Apply crawl delay via Celery retry instead of blocking sleep.
-                    # This frees the worker to process other tasks during the delay.
-                    if crawl_delay:
-                        _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
-                        session.commit()
-                        logger.info(
-                            "Applying crawl delay via Celery retry",
-                            job_id=str(job_id),
-                            crawl_delay_seconds=crawl_delay,
-                        )
-                        raise self.retry(countdown=int(crawl_delay))
-
-                # Complete stage
                 _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "COMPLETED")
                 session.commit()
 
                 logger.info("Compliance check completed", job_id=str(job_id))
-                metrics = get_metrics()
-                if metrics:
-                    metrics.observe_job_stage_duration(
-                        time.monotonic() - stage_started_at,
-                        stage=PipelineStage.COMPLIANCE_CHECK.value,
-                        status="completed",
-                    )
+                _record_stage_completion(stage_started_at, PipelineStage.COMPLIANCE_CHECK)
                 return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
         except Exception as exc:
-            # Propagate Celery retry exceptions directly; don't wrap them
             if "Retry" in type(exc).__name__:
                 raise
             logger.error("Compliance check failed", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(exc))
-            try:
-                with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as error_session:
-                    _update_stage(
-                        error_session, job_id, PipelineStage.COMPLIANCE_CHECK, "FAILED", sanitize_log_error(exc)[:200]
-                    )
-            except Exception as update_exc:
-                logger.error("Failed to update stage status", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(update_exc))
-            metrics = get_metrics()
-            if metrics:
-                metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
-                metrics.observe_job_stage_duration(
-                    time.monotonic() - stage_started_at,
-                    stage=PipelineStage.COMPLIANCE_CHECK.value,
-                    status="failed",
-                )
+            _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, PipelineStage.COMPLIANCE_CHECK)
             raise self.retry(exc=exc, countdown=30)
+
+
+def _record_queue_latency(job, stage):
+    """Record queue latency metrics."""
+    queue_latency_seconds = max(0.0, (datetime.now(UTC) - job.created_at).total_seconds())
+    metrics = get_metrics()
+    if metrics:
+        metrics.observe_queue_latency(
+            queue_latency_seconds,
+            stage=stage.value,
+            status=job.status,
+        )
+
+
+def _is_stage_already_completed(session, job_id, stage):
+    """Check if stage is already completed (idempotency)."""
+    existing_stage = (
+        session.query(JobStageDetail)
+        .filter(
+            JobStageDetail.job_id == job_id,
+            JobStageDetail.stage == stage.value,
+        )
+        .first()
+    )
+    return existing_stage and existing_stage.status == "COMPLETED"
+
+
+async def _validate_url_safety(session, job, url, compliance_allowlist):
+    """Validate URL safety and return normalized URL or None if blocked."""
+    try:
+        safety_result = validate_url_safety(url, allowlist_domains=compliance_allowlist)
+        log_url_compliance_event(
+            session,
+            tenant_id=job.tenant_id,
+            job_id=job.id,
+            target_id=job.target_id,
+            request_url=url,
+            reason_code="URL_ALLOWED",
+            action="ALLOWED",
+        )
+        return safety_result.normalized_url
+    except URLSafetyError as exc:
+        log_url_compliance_event(
+            session,
+            tenant_id=job.tenant_id,
+            job_id=job.id,
+            target_id=job.target_id,
+            request_url=url,
+            reason_code=exc.reason_code,
+            action="BLOCKED",
+        )
+        session.commit()
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_url_blocked(reason="url_safety", domain_class=_domain_class(url))
+        try:
+            emit_audit_event(
+                action=AuditAction.URL_SAFETY_BLOCKED,
+                outcome=AuditOutcome.DENIED,
+                tenant_id=job.tenant_id,
+                resource_type="ScrapingJob",
+                resource_id=str(job.id),
+                details={"url": url, "reason_code": exc.reason_code},
+            )
+        except Exception:
+            logger.exception("url_safety_blocked_audit_failed")
+        _fail_job(job.id, str(job.tenant_id), "URL blocked by compliance policy", PipelineStage.COMPLIANCE_CHECK)
+        return None
+
+
+async def _check_robots_txt(session, job, url, compliance_config):
+    """Check robots.txt and return crawl_delay or None if blocked."""
+    if not compliance_config.get("respect_robots_txt", True):
+        return 0
+    
+    checker = RobotsChecker(
+        tenant_id=str(job.tenant_id),
+        strict_mode=compliance_config.get("strict_robots_compliance", False),
+    )
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc
+
+    allowed, reason, rules = await checker.check_url(url, job_id=str(job.id))
+    crawl_delay = rules.get("crawl_delay") if rules else None
+
+    log = ComplianceLog(
+        tenant_id=job.tenant_id,
+        job_id=job.id,
+        target_id=job.target_id,
+        event_type=ComplianceEventType.ROBOTS_TXT_CHECK.value,
+        severity="INFO" if allowed else "WARNING",
+        robots_txt_check={
+            "url": url,
+            "robots_txt_url": f"https://{domain}/robots.txt",
+            "user_agent": compliance_config.get("user_agent_string", "ValueFabricBot"),
+            "allowed": allowed,
+            "crawl_delay": crawl_delay,
+        },
+        request_url=url,
+        request_user_agent=compliance_config.get("user_agent_string", "ValueFabricBot"),
+    )
+    session.add(log)
+
+    if not allowed:
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_url_blocked(reason="robots_txt", domain_class=_domain_class(url))
+        try:
+            emit_audit_event(
+                action=AuditAction.URL_ROBOTS_BLOCKED,
+                outcome=AuditOutcome.DENIED,
+                tenant_id=job.tenant_id,
+                resource_type="ScrapingJob",
+                resource_id=str(job.id),
+                details={"url": url, "reason": reason},
+            )
+        except Exception:
+            logger.exception("url_robots_blocked_audit_failed")
+        _fail_job(job.id, str(job.tenant_id), "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
+        return None
+    
+    return crawl_delay if crawl_delay is not None else 0
+
+
+def _apply_crawl_delay(session, job_id, crawl_delay):
+    """Apply crawl delay via Celery retry."""
+    _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
+    session.commit()
+    logger.info("Applying crawl delay via Celery retry", job_id=str(job_id), crawl_delay_seconds=crawl_delay)
+
+
+def _record_stage_completion(stage_started_at, stage):
+    """Record stage completion metrics."""
+    metrics = get_metrics()
+    if metrics:
+        metrics.observe_job_stage_duration(
+            time.monotonic() - stage_started_at,
+            stage=stage.value,
+            status="completed",
+        )
+
+
+def _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, stage):
+    """Handle compliance check errors."""
+    try:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as error_session:
+            _update_stage(
+                error_session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200]
+            )
+    except Exception as update_exc:
+        logger.error("Failed to update stage status", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(update_exc))
+    metrics = get_metrics()
+    if metrics:
+        metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
+        metrics.observe_job_stage_duration(
+            time.monotonic() - stage_started_at,
+            stage=stage.value,
+            status="failed",
+        )
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -1666,63 +1693,88 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
                 attempt=self.request.retries + 1,
             )
 
-            # Record the failure on the outbox row.
-            try:
-                with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                    event = (
-                        session.query(EventOutbox)
-                        .filter(EventOutbox.id == event_uuid)
-                        .first()
-                    )
-                    if event:
-                        event.attempts = (event.attempts or 0) + 1
-                        event.last_error = sanitize_log_error(exc)[:200]
-
-                        if event.attempts >= MAX_DISPATCH_ATTEMPTS:
-                            event.status = OutboxStatus.DEAD_LETTER.value
-                            event.dead_lettered_at = datetime.now(UTC)
-                            logger.error(
-                                "EventOutbox dead-lettered after max attempts",
-                                event_id=event_id,
-                                event_type=event.event_type,
-                                attempts=event.attempts,
-                            )
-                            try:
-                                emit_audit_event(
-                                    action=AuditAction.OUTBOX_DEAD_LETTERED,
-                                    outcome=AuditOutcome.FAILURE,
-                                    tenant_id=tenant_uuid,
-                                    resource_type="EventOutbox",
-                                    resource_id=event_id,
-                                    details={
-                                        "event_type": event.event_type,
-                                        "attempts": event.attempts,
-                                        "last_error": event.last_error,
-                                    },
-                                )
-                            except Exception:
-                                logger.exception("outbox_dead_lettered_audit_failed")
-                            metrics = get_metrics()
-                            if metrics:
-                                metrics.increment_outbox_dead_lettered()
-                            session.commit()
-                            return  # Do not retry dead-lettered events.
-                        else:
-                            event.status = OutboxStatus.FAILED.value
-                            session.commit()
-            except Exception as inner_exc:
-                logger.error(
-                    "Failed to record outbox dispatch error",
-                    event_id=event_id,
-                    error_code="NOTIFICATION_ERROR",
-                    error=sanitize_log_error(inner_exc),
-                )
+            should_retry = _handle_dispatch_failure(event_uuid, tenant_uuid, exc, self.request.retries)
+            
+            if not should_retry:
+                return  # Dead-lettered, do not retry
 
             # Retry with exponential backoff.
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="notification", reason="dispatch_failure")
             raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries))
+
+
+def _handle_dispatch_failure(event_uuid: UUID, tenant_uuid: UUID, exc: Exception, current_retries: int) -> bool:
+    """Handle dispatch failure and return whether to retry.
+    
+    Returns False if event was dead-lettered (no retry), True otherwise.
+    """
+    try:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
+            event = (
+                session.query(EventOutbox)
+                .filter(EventOutbox.id == event_uuid)
+                .first()
+            )
+            if not event:
+                logger.warning("EventOutbox not found for failure handling, skipping retry", event_id=str(event_uuid))
+                return False
+            
+            event.attempts = (event.attempts or 0) + 1
+            event.last_error = sanitize_log_error(exc)[:200]
+
+            if event.attempts >= MAX_DISPATCH_ATTEMPTS:
+                event.status = OutboxStatus.DEAD_LETTER.value
+                event.dead_lettered_at = datetime.now(UTC)
+                logger.error(
+                    "EventOutbox dead-lettered after max attempts",
+                    event_id=str(event_uuid),
+                    event_type=event.event_type,
+                    attempts=event.attempts,
+                )
+                _emit_dead_letter_audit(event_uuid, tenant_uuid, event)
+                _record_dead_letter_metrics()
+                session.commit()
+                return False  # Do not retry dead-lettered events
+            else:
+                event.status = OutboxStatus.FAILED.value
+                session.commit()
+                return True
+    except Exception as inner_exc:
+        logger.error(
+            "Failed to record outbox dispatch error",
+            event_id=str(event_uuid),
+            error_code="NOTIFICATION_ERROR",
+            error=sanitize_log_error(inner_exc),
+        )
+        return True
+
+
+def _emit_dead_letter_audit(event_uuid: UUID, tenant_uuid: UUID, event):
+    """Emit audit event for dead-lettered outbox event."""
+    try:
+        emit_audit_event(
+            action=AuditAction.OUTBOX_DEAD_LETTERED,
+            outcome=AuditOutcome.FAILURE,
+            tenant_id=tenant_uuid,
+            resource_type="EventOutbox",
+            resource_id=str(event_uuid),
+            details={
+                "event_type": event.event_type,
+                "attempts": event.attempts,
+                "last_error": event.last_error,
+            },
+        )
+    except Exception:
+        logger.exception("outbox_dead_lettered_audit_failed")
+
+
+def _record_dead_letter_metrics():
+    """Record metrics for dead-lettered events."""
+    metrics = get_metrics()
+    if metrics:
+        metrics.increment_outbox_dead_lettered()
 
 
 # =============================================================================

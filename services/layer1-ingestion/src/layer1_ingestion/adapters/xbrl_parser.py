@@ -173,22 +173,18 @@ class XBRLParser:
 
             return result
 
-        except ET.ParseError:
-            self.logger.error("XBRL XML parse error", error_code="XBRL_PARSE_ERROR")
+        except ET.ParseError as e:
+            self.logger.error("XBRL XML parse error", error_code="XBRL_PARSE_ERROR", error=str(e))
             return ParsedXBRL()
-        except Exception:
-            self.logger.error("XBRL parsing failed", error_code="XBRL_PARSING_ERROR")
+        except Exception as e:
+            self.logger.error("XBRL parsing failed", error_code="XBRL_PARSING_ERROR", error=str(e))
             return ParsedXBRL()
 
     def _extract_contexts(self, root: ET.Element) -> dict[str, dict]:
         """Extract context definitions from XBRL."""
         contexts = {}
 
-        # Find all context elements (can be in different namespaces)
-        context_elements = root.findall(".//{http://www.xbrl.org/2003/instance}context")
-        if not context_elements:
-            # Try without namespace
-            context_elements = root.findall(".//context")
+        context_elements = self._find_context_elements(root)
 
         for ctx in context_elements:
             ctx_id = ctx.get("id")
@@ -196,64 +192,70 @@ class XBRLParser:
                 continue
 
             context_data = {"id": ctx_id}
-
-            # Extract period
-            period = ctx.find(".//{http://www.xbrl.org/2003/instance}period")
-            if period is None:
-                period = ctx.find(".//period")
-
-            if period is not None:
-                # Instant date (for balance sheet items)
-                instant = period.find(".//{http://www.xbrl.org/2003/instance}instant")
-                if instant is None:
-                    instant = period.find(".//instant")
-
-                if instant is not None and instant.text:
-                    context_data["instant"] = self._parse_date(instant.text)
-
-                # Duration period
-                start = period.find(".//{http://www.xbrl.org/2003/instance}startDate")
-                end = period.find(".//{http://www.xbrl.org/2003/instance}endDate")
-
-                if start is None:
-                    start = period.find(".//startDate")
-                if end is None:
-                    end = period.find(".//endDate")
-
-                if start is not None and start.text:
-                    context_data["start_date"] = self._parse_date(start.text)
-                if end is not None and end.text:
-                    context_data["end_date"] = self._parse_date(end.text)
-                if end is not None and end.text:
-                    context_data["instant"] = self._parse_date(end.text)
-
-            # Extract entity identifier
-            entity = ctx.find(".//{http://www.xbrl.org/2003/instance}entity")
-            if entity is None:
-                entity = ctx.find(".//entity")
-
-            if entity is not None:
-                identifier = entity.find(".//{http://www.xbrl.org/2003/instance}identifier")
-                if identifier is None:
-                    identifier = entity.find(".//identifier")
-                if identifier is not None and identifier.text:
-                    context_data["entity"] = identifier.text
-
-            # Extract dimensions (segment data)
-            segment = ctx.find(".//{http://www.xbrl.org/2003/instance}segment")
-            if segment is None:
-                segment = ctx.find(".//segment")
-
-            if segment is not None:
-                dimensions = {}
-                for dim in segment:
-                    dim_name = dim.tag.split("}")[-1] if "}" in dim.tag else dim.tag
-                    dimensions[dim_name] = dim.text or ""
-                context_data["dimensions"] = dimensions
+            self._extract_period_data(ctx, context_data)
+            self._extract_entity_data(ctx, context_data)
+            self._extract_dimensions(ctx, context_data)
 
             contexts[ctx_id] = context_data
 
         return contexts
+
+    def _find_context_elements(self, root: ET.Element) -> list[ET.Element]:
+        """Find all context elements in the XML."""
+        context_elements = root.findall(".//{http://www.xbrl.org/2003/instance}context")
+        if not context_elements:
+            context_elements = root.findall(".//context")
+        return context_elements
+
+    def _extract_period_data(self, ctx: ET.Element, context_data: dict) -> None:
+        """Extract period information from context."""
+        period = self._find_element(ctx, "period")
+        if period is None:
+            return
+
+        instant = self._find_element(period, "instant")
+        if instant is not None and instant.text:
+            context_data["instant"] = self._parse_date(instant.text)
+
+        start = self._find_element(period, "startDate")
+        end = self._find_element(period, "endDate")
+
+        if start is not None and start.text:
+            context_data["start_date"] = self._parse_date(start.text)
+        if end is not None and end.text:
+            context_data["end_date"] = self._parse_date(end.text)
+            if "instant" not in context_data:
+                context_data["instant"] = self._parse_date(end.text)
+
+    def _extract_entity_data(self, ctx: ET.Element, context_data: dict) -> None:
+        """Extract entity identifier from context."""
+        entity = self._find_element(ctx, "entity")
+        if entity is None:
+            return
+
+        identifier = self._find_element(entity, "identifier")
+        if identifier is not None and identifier.text:
+            context_data["entity"] = identifier.text
+
+    def _extract_dimensions(self, ctx: ET.Element, context_data: dict) -> None:
+        """Extract dimension data from context segment."""
+        segment = self._find_element(ctx, "segment")
+        if segment is None:
+            return
+
+        dimensions = {}
+        for dim in segment:
+            dim_name = dim.tag.split("}")[-1] if "}" in dim.tag else dim.tag
+            dimensions[dim_name] = dim.text or ""
+        context_data["dimensions"] = dimensions
+
+    def _find_element(self, parent: ET.Element, tag_name: str) -> ET.Element | None:
+        """Find an element by tag name, trying with and without namespace."""
+        namespace = "http://www.xbrl.org/2003/instance"
+        elem = parent.find(f".//{{{namespace}}}{tag_name}")
+        if elem is None:
+            elem = parent.find(f".//{tag_name}")
+        return elem
 
     def _extract_units(self, root: ET.Element) -> dict[str, str]:
         """Extract unit definitions from XBRL."""
@@ -292,68 +294,83 @@ class XBRLParser:
         """Extract all facts from XBRL."""
         facts = []
 
-        # Iterate through all elements with contextRef (these are facts)
         for elem in root.iter():
-            context_ref = elem.get("contextRef")
-            if not context_ref:
-                continue
-
-            # Skip context and unit definitions
-            tag_name = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
-            if tag_name in ["context", "unit"]:
-                continue
-
-            # Get value
-            value_text = elem.text
-            if not value_text:
-                continue
-
-            # Parse value
-            value = self._parse_value(value_text)
-
-            # Get context info
-            ctx = contexts.get(context_ref, {})
-
-            # Get unit
-            unit_ref = elem.get("unitRef")
-            unit = units.get(unit_ref) if unit_ref else None
-
-            # Get decimals/scale info
-            decimals = elem.get("decimals")
-            scale = 0
-            if decimals and decimals != "INF":
-                try:
-                    scale = int(decimals)
-                except ValueError:
-                    logger.warning(
-                        "xbrl_decimals_parse_failed",
-                        concept=tag_name,
-                        decimals_value=decimals,
-                        context_ref=context_ref,
-                        fallback="skipping_fact",
-                    )
-                    metrics = get_metrics()
-                    if metrics:
-                        metrics.increment_errors(error_type="xbrl_parse_fallback", component="xbrl_parser")
-                    continue
-
-            # Apply scale if needed
-            if scale != 0 and isinstance(value, (int, float, Decimal)):
-                value = value * (10**scale)
-
-            fact = FinancialFact(
-                concept=tag_name,
-                value=value,
-                unit=unit,
-                context_ref=context_ref,
-                period_start=ctx.get("start_date"),
-                period_end=ctx.get("end_date"),
-                dimensions=ctx.get("dimensions", {}),
-            )
-
-            facts.append(fact)
+            fact = self._extract_fact_from_element(elem, contexts, units)
+            if fact:
+                facts.append(fact)
 
         return facts
+
+    def _extract_fact_from_element(
+        self, elem: ET.Element, contexts: dict[str, dict], units: dict[str, str]
+    ) -> FinancialFact | None:
+        """Extract a single fact from an XML element."""
+        context_ref = elem.get("contextRef")
+        if not context_ref:
+            return None
+
+        tag_name = self._get_tag_name(elem)
+        if tag_name in ["context", "unit"]:
+            return None
+
+        value_text = elem.text
+        if not value_text:
+            return None
+
+        value = self._parse_value(value_text)
+        ctx = contexts.get(context_ref, {})
+        unit = self._get_unit(elem, units)
+
+        scaled_value = self._apply_decimals_scale(elem, tag_name, value, context_ref)
+        if scaled_value is None:
+            return None
+
+        return FinancialFact(
+            concept=tag_name,
+            value=scaled_value,
+            unit=unit,
+            context_ref=context_ref,
+            period_start=ctx.get("start_date"),
+            period_end=ctx.get("end_date"),
+            dimensions=ctx.get("dimensions", {}),
+        )
+
+    def _get_tag_name(self, elem: ET.Element) -> str:
+        """Extract tag name from element, handling namespaces."""
+        return elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+
+    def _get_unit(self, elem: ET.Element, units: dict[str, str]) -> str | None:
+        """Get unit reference from element."""
+        unit_ref = elem.get("unitRef")
+        return units.get(unit_ref) if unit_ref else None
+
+    def _apply_decimals_scale(
+        self, elem: ET.Element, tag_name: str, value: Any, context_ref: str
+    ) -> Any | None:
+        """Apply decimals scale to value if needed."""
+        decimals = elem.get("decimals")
+        if not decimals or decimals == "INF":
+            return value
+
+        try:
+            scale = int(decimals)
+        except ValueError:
+            logger.warning(
+                "xbrl_decimals_parse_failed",
+                concept=tag_name,
+                decimals_value=decimals,
+                context_ref=context_ref,
+                fallback="skipping_fact",
+            )
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_errors(error_type="xbrl_parse_fallback", component="xbrl_parser")
+            return None
+
+        if scale != 0 and isinstance(value, (int, float, Decimal)):
+            return value * (10**scale)
+
+        return value
 
     def _build_financial_statements(self, facts: list[FinancialFact]) -> ParsedXBRL:
         """Organize facts into financial statements."""
@@ -424,27 +441,35 @@ class XBRLParser:
         metrics = {}
 
         for metric_name, concept_patterns in self.CONCEPT_MAPPINGS.items():
-            for pattern in concept_patterns:
-                matching_facts = [f for f in facts if pattern.lower() in f.concept.lower()]
-
-                if matching_facts:
-                    # Get the most recent value
-                    latest = max(
-                        matching_facts, key=lambda f: f.period_end or datetime.min, default=None
-                    )
-
-                    if latest:
-                        metrics[metric_name] = {
-                            "value": latest.value,
-                            "unit": latest.unit,
-                            "period_end": latest.period_end.isoformat()
-                            if latest.period_end
-                            else None,
-                            "concept": latest.concept,
-                        }
-                        break
+            metric_value = self._find_metric_value(facts, concept_patterns)
+            if metric_value:
+                metrics[metric_name] = metric_value
 
         return metrics
+
+    def _find_metric_value(
+        self, facts: list[FinancialFact], concept_patterns: list[str]
+    ) -> dict[str, Any] | None:
+        """Find the most recent value for a metric from its concept patterns."""
+        for pattern in concept_patterns:
+            matching_facts = [f for f in facts if pattern.lower() in f.concept.lower()]
+            if not matching_facts:
+                continue
+
+            latest = self._get_latest_fact(matching_facts)
+            if latest:
+                return {
+                    "value": latest.value,
+                    "unit": latest.unit,
+                    "period_end": latest.period_end.isoformat() if latest.period_end else None,
+                    "concept": latest.concept,
+                }
+
+        return None
+
+    def _get_latest_fact(self, facts: list[FinancialFact]) -> FinancialFact | None:
+        """Get the most recent fact from a list."""
+        return max(facts, key=lambda f: f.period_end or datetime.min, default=None)
 
     def _extract_entity(self, root: ET.Element) -> str | None:
         """Extract entity identifier from DEI."""
@@ -496,7 +521,7 @@ class XBRLParser:
         # Try decimal
         try:
             return Decimal(value)
-        except Exception:
+        except (ValueError, ArithmeticError):
             logger.debug("xbrl_value_parse_fallback", target_type="decimal", value_preview=value[:50] if len(value) > 50 else value)
             metrics = get_metrics()
             if metrics:
