@@ -3,6 +3,7 @@ from __future__ import annotations
 """Neo4j repository for BenchmarkDataset persistence."""
 
 
+import json
 import logging
 from datetime import datetime
 from decimal import Decimal
@@ -67,7 +68,26 @@ class BenchmarkRepository:
                 p90: metric.p90,
                 mean: metric.mean,
                 std_dev: metric.std_dev,
-                sample_size: metric.sample_size
+                sample_size: metric.sample_size,
+                display_name: metric.display_name,
+                functional_domain: metric.functional_domain,
+                category: metric.category,
+                lifecycle_stage: metric.lifecycle_stage,
+                value_type: metric.value_type,
+                company_size_band: metric.company_size_band,
+                maturity_band: metric.maturity_band,
+                revenue_band: metric.revenue_band,
+                distribution_shape: metric.distribution_shape,
+                source_name: metric.source_name,
+                source_type: metric.source_type,
+                source_count: metric.source_count,
+                source_publication_year: metric.source_publication_year,
+                license_class: metric.license_class,
+                confidence_score: metric.confidence_score,
+                caveats_json: metric.caveats_json,
+                vintage: metric.vintage,
+                governance_status: metric.governance_status,
+                stale_after: metric.stale_after
             })
             MERGE (d)-[:HAS_METRIC]->(m)
             """,
@@ -185,6 +205,25 @@ def _metric_to_dict(metric: BenchmarkMetric) -> dict[str, Any]:
         "mean": str(metric.profile.mean),
         "std_dev": str(metric.profile.std_dev),
         "sample_size": metric.profile.sample_size,
+        "display_name": metric.display_name,
+        "functional_domain": metric.functional_domain,
+        "category": metric.category,
+        "lifecycle_stage": metric.lifecycle_stage,
+        "value_type": metric.value_type,
+        "company_size_band": metric.company_size_band,
+        "maturity_band": metric.maturity_band,
+        "revenue_band": metric.revenue_band,
+        "distribution_shape": metric.distribution_shape,
+        "source_name": metric.source_name,
+        "source_type": metric.source_type,
+        "source_count": metric.source_count,
+        "source_publication_year": metric.source_publication_year,
+        "license_class": metric.license_class,
+        "confidence_score": metric.confidence_score,
+        "caveats_json": json.dumps(metric.caveats),
+        "vintage": metric.vintage,
+        "governance_status": metric.governance_status,
+        "stale_after": metric.stale_after,
     }
 
 
@@ -229,7 +268,38 @@ def _node_to_dataset(node: Any, metric_nodes: list[Any]) -> BenchmarkDataset:
             lower_bound=Decimal(m["lower_bound"]) if m.get("lower_bound") else None,
             upper_bound=Decimal(m["upper_bound"]) if m.get("upper_bound") else None,
             is_higher_better=m.get("is_higher_better", True),
+            display_name=m.get("display_name"),
+            functional_domain=m.get("functional_domain"),
+            category=m.get("category"),
+            lifecycle_stage=m.get("lifecycle_stage"),
+            value_type=m.get("value_type"),
+            company_size_band=m.get("company_size_band"),
+            maturity_band=m.get("maturity_band"),
+            revenue_band=m.get("revenue_band"),
+            distribution_shape=m.get("distribution_shape", "unknown"),
+            source_name=m.get("source_name"),
+            source_type=m.get("source_type"),
+            source_count=m.get("source_count", 0),
+            source_publication_year=m.get("source_publication_year"),
+            license_class=m.get("license_class", "unspecified"),
+            confidence_score=m.get("confidence_score"),
+            caveats=_json_list(m.get("caveats_json")),
+            vintage=m.get("vintage"),
+            governance_status=m.get("governance_status"),
+            stale_after=m.get("stale_after"),
         )
         dataset.metrics[metric.name] = metric
 
     return dataset
+
+
+def _json_list(raw: Any) -> list[str]:
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(item) for item in parsed]

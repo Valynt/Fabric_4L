@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/valueos-vmrt.schema.json",
+  "title": "ValueModelingReasoningTrace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trace_id",
+    "schema_version",
+    "industry",
+    "persona",
+    "value_type",
+    "lifecycle_stage",
+    "product_category",
+    "scope",
+    "pains",
+    "capabilities",
+    "outcomes",
+    "kpis",
+    "financial_impacts",
+    "reasoning",
+    "assumptions",
+    "quality_scores"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "industry": {
+      "type": "string",
+      "enum": ["technology", "financial_services", "healthcare", "manufacturing", "retail"]
+    },
+    "persona": {
+      "type": "string",
+      "minLength": 1
+    },
+    "value_type": {
+      "type": "string",
+      "enum": ["cost_reduction", "cost_savings", "revenue_growth", "revenue_uplift", "risk_mitigation"]
+    },
+    "lifecycle_stage": {
+      "type": "string",
+      "enum": ["prospect", "onboarding", "expansion", "renewal", "justify_commit", "realize_expand"]
+    },
+    "product_category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["tenant", "global_system"]
+    },
+    "pains": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/pain"
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/outcome"
+      }
+    },
+    "kpis": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/kpi"
+      }
+    },
+    "financial_impacts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/financial_impact"
+      }
+    },
+    "reasoning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["natural_language_chain"],
+      "properties": {
+        "natural_language_chain": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assumption"
+      }
+    },
+    "quality_scores": {
+      "$ref": "#/$defs/quality_scores"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "money_or_number": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit"],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "pain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "persona_owner", "severity"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "persona_owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "pain_ids"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pain_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "capability_ids"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "kpi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "outcome_ids", "baseline", "target", "timeframe", "benchmark_metric_id"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "baseline": {
+          "$ref": "#/$defs/money_or_number"
+        },
+        "target": {
+          "$ref": "#/$defs/money_or_number"
+        },
+        "timeframe": {
+          "type": "string",
+          "minLength": 1
+        },
+        "benchmark_metric_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+        }
+      }
+    },
+    "financial_impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "kpi_ids", "formula", "inputs", "currency", "time_horizon", "sensitivity_bounds"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kpi_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["number", "string", "boolean"]
+          }
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "time_horizon": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensitivity_bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["low", "high"],
+          "properties": {
+            "low": {
+              "type": "number"
+            },
+            "high": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "assumption_type", "confidence", "approval_state"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assumption_type": {
+          "type": "string",
+          "enum": ["benchmark", "customer_input", "expert_estimate", "model_inference"]
+        },
+        "source": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "approval_state": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "not_required"]
+        }
+      }
+    },
+    "quality_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_coherence",
+        "benchmark_alignment",
+        "financial_rigor",
+        "story_clarity",
+        "overall"
+      ],
+      "properties": {
+        "logical_coherence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "benchmark_alignment": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "financial_rigor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "story_clarity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "overall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

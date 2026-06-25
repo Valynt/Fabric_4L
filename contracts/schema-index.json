@@ -44,6 +44,16 @@
       "title": "SystemRouteHealthResponse"
     },
     {
+      "path": "contracts/jsonschema/valueos-benchmark-metric.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/valueos-benchmark-metric.schema.json",
+      "title": "ValueOSBenchmarkMetric"
+    },
+    {
+      "path": "contracts/jsonschema/valueos-vmrt.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/valueos-vmrt.schema.json",
+      "title": "ValueModelingReasoningTrace"
+    },
+    {
       "path": "contracts/jsonschema/workflows/common.json",
       "id": "https://valuefabric.dev/contracts/jsonschema/workflows/common.json",
       "title": "Workflow Common Contracts"

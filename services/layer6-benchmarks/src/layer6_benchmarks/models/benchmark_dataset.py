@@ -77,6 +77,28 @@ class BenchmarkMetric:
     upper_bound: Decimal | None = None
     is_higher_better: bool = True  # For comparison direction
 
+    # ValueOS governance/provenance metadata. These are optional so existing
+    # tenant-created benchmark datasets keep their current shape.
+    display_name: str | None = None
+    functional_domain: str | None = None
+    category: str | None = None
+    lifecycle_stage: str | None = None
+    value_type: str | None = None
+    company_size_band: str | None = None
+    maturity_band: str | None = None
+    revenue_band: str | None = None
+    distribution_shape: str = "unknown"
+    source_name: str | None = None
+    source_type: str | None = None
+    source_count: int = 0
+    source_publication_year: int | None = None
+    license_class: str = "unspecified"
+    confidence_score: float | None = None
+    caveats: list[str] = field(default_factory=list)
+    vintage: str | None = None
+    governance_status: str | None = None
+    stale_after: str | None = None
+
 
 @dataclass
 class BenchmarkDataset:

@@ -6,6 +6,8 @@ Uses src.* imports with pytest pythonpath configuration.
 """
 
 
+from decimal import Decimal
+
 import pytest
 
 from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
@@ -15,6 +17,7 @@ from layer4_agents.interfaces import (
     BusinessCaseGroundTruthClientFactory,
     BusinessCaseGroundTruthPort,
     CompanyKnowledgePipelinePort,
+    CompareDistributionRequest,
     ComparisonRequest,
     ContextFinancialExtractionPort,
     ContextIngestionPort,
@@ -30,10 +33,12 @@ from layer4_agents.interfaces import (
     IVariableRegistry,
     PackExecutionRequest,
     PackStatus,
+    RecommendRangeRequest,
     ResolutionContext,
     SignalExtractionPort,
     SignalKnowledgePort,
     SignalReviewPort,
+    ValidateValueRequest,
     ValuePack,
     Variable,
     VariableDataType,
@@ -203,6 +208,165 @@ def test_comparison_request_construction():
     )
     assert comparison.dataset_id == dataset.id
     assert comparison.metric == "revenue"
+
+
+def test_groundtruthapi_request_construction():
+    """Verify ValueOS GroundTruthAPI request dataclasses construct cleanly."""
+    range_request = RecommendRangeRequest(
+        dataset_id="ds-1",
+        metric="finance_ap_cost_per_invoice",
+        industry="technology",
+    )
+    compare_request = CompareDistributionRequest(
+        dataset_id="ds-1",
+        metric="finance_ap_cost_per_invoice",
+        company_value=100,
+        industry="technology",
+    )
+    validate_request = ValidateValueRequest(
+        dataset_id="ds-1",
+        metric="finance_ap_cost_per_invoice",
+        value=100,
+    )
+
+    assert range_request.metric == "finance_ap_cost_per_invoice"
+    assert compare_request.company_value == 100
+    assert validate_request.tolerance_percent == 0
+
+
+class _FakeResponse:
+    def __init__(self, payload: object, status_code: int = 200) -> None:
+        self._payload = payload
+        self.status_code = status_code
+
+    def json(self) -> object:
+        return self._payload
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise AssertionError(f"unexpected status {self.status_code}")
+
+
+class _FakeBenchmarkHttpClient:
+    def __init__(self) -> None:
+        self.requests: list[tuple[str, str, object | None]] = []
+
+    async def get(self, url: str, params: dict | None = None) -> _FakeResponse:
+        self.requests.append(("GET", url, params))
+        return _FakeResponse(
+            [
+                {
+                    "dataset_id": "ds-1",
+                    "name": "Bench",
+                    "industry": "technology",
+                    "segment": "mid_market",
+                    "metrics": ["finance_ap_cost_per_invoice"],
+                }
+            ]
+        )
+
+    async def post(self, url: str, json: dict | None = None) -> _FakeResponse:
+        self.requests.append(("POST", url, json))
+        if url.endswith("/recommend-range"):
+            return _FakeResponse(_groundtruth_range_payload())
+        if url.endswith("/compare-distribution"):
+            payload = _groundtruth_range_payload()
+            payload.update(
+                {
+                    "company_value": "12.4",
+                    "percentile": 82,
+                    "variance_from_median_percent": 47.6,
+                    "peer_median": "8.4",
+                    "peer_range": ["4.2", "14.9"],
+                    "sample_size": 6744,
+                    "confidence": "high",
+                    "assessment": "top_performer",
+                }
+            )
+            return _FakeResponse(payload)
+        if url.endswith("/validate-value"):
+            payload = _groundtruth_range_payload()
+            payload.update(
+                {
+                    "is_valid": True,
+                    "expected_range": ["4.2", "14.9"],
+                    "actual_value": "12.4",
+                    "deviation_percent": 47.6,
+                    "severity": "info",
+                    "message": "ok",
+                }
+            )
+            return _FakeResponse(payload)
+        raise AssertionError(f"unexpected url {url}")
+
+
+def _groundtruth_range_payload() -> dict:
+    return {
+        "dataset_id": "ds-1",
+        "metric": "finance_ap_cost_per_invoice",
+        "industry": "technology",
+        "segment": "mid_market",
+        "unit": "USD",
+        "distribution": {
+            "p10": "4.2",
+            "p25": "6.33",
+            "p50": "8.4",
+            "p75": "10.89",
+            "p90": "14.9",
+            "mean": "8.8",
+            "std_dev": "2.1",
+            "sample_size": 6744,
+            "shape": "unknown",
+        },
+        "provenance": {
+            "metric": "finance_ap_cost_per_invoice",
+            "dataset_id": "ds-1",
+            "data_source": "APQC",
+            "source_count": 1,
+            "confidence": "high",
+            "confidence_score": 0.9,
+            "license_class": "unspecified",
+            "caveats": [],
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_http_benchmark_client_uses_groundtruthapi_routes():
+    """Verify the Layer 4 adapter reaches Layer 6 through governed endpoints."""
+    client = HTTPBenchmarkClient(base_url="http://layer6:8006")
+    fake_http = _FakeBenchmarkHttpClient()
+    client._client = fake_http  # noqa: SLF001 - injected fake transport for port test.
+
+    datasets = await client.list_datasets(industry="technology")
+    recommended = await client.recommend_range(
+        RecommendRangeRequest(dataset_id="ds-1", metric="finance_ap_cost_per_invoice")
+    )
+    compared = await client.compare_distribution(
+        CompareDistributionRequest(
+            dataset_id="ds-1",
+            metric="finance_ap_cost_per_invoice",
+            company_value=100,
+        )
+    )
+    validated = await client.validate_value(
+        ValidateValueRequest(
+            dataset_id="ds-1",
+            metric="finance_ap_cost_per_invoice",
+            value=100,
+        )
+    )
+
+    assert datasets[0].id == "ds-1"
+    assert recommended.distribution.p90 == Decimal("14.9")
+    assert compared.percentile == 82
+    assert validated.is_valid is True
+    assert [request[1] for request in fake_http.requests] == [
+        "http://layer6:8006/v1/benchmarks/datasets",
+        "http://layer6:8006/v1/benchmarks/recommend-range",
+        "http://layer6:8006/v1/benchmarks/compare-distribution",
+        "http://layer6:8006/v1/benchmarks/validate-value",
+    ]
 
 
 def test_variable_source_type_enum_values():

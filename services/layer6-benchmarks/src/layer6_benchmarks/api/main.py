@@ -56,7 +56,10 @@ from ..models.benchmark_dataset import (
     BenchmarkMetric,
     StatisticalProfile,
 )
+from ..models.valueos_contracts import validate_vmrt_trace
+from ..models.vmrt_trace import VMRTTraceRecord
 from ..repositories.benchmark_repository import BenchmarkRepository
+from ..repositories.vmrt_trace_repository import VMRTTraceRepository
 from ..seed.load_benchmark_packs import load_default_benchmark_packs
 from ..settings import Layer6Settings, validate_layer6_startup_settings
 from ..shared_bootstrap import (
@@ -72,13 +75,31 @@ from ..shared_bootstrap import (
 )
 from .routes import benchmarks, system
 from .schemas import (
+    BenchmarkProvenanceResponse,
+    CompareDistributionRequestPayload,
+    CompareDistributionResponse,
     ComparisonRequestPayload,
     ComparisonResponse,
+    CoverageCell,
+    CoverageStatusResponse,
     DatasetDetail,
     DatasetSummary,
     DatasetUpsertPayload,
+    MetricCatalogItem,
+    MetricCatalogResponse,
+    MetricProvenanceRequestPayload,
+    PercentileDistributionResponse,
+    RecommendRangeRequestPayload,
+    RecommendRangeResponse,
+    ValidateValueRequestPayload,
+    ValidateValueResponse,
     ValidationRequestPayload,
     ValidationResponse,
+    VMRTTracePromotionRequestPayload,
+    VMRTTraceRecordResponse,
+    VMRTTraceUpsertRequestPayload,
+    VMRTValidationRequestPayload,
+    VMRTValidationResponse,
 )
 from .startup_logging import emit_startup_metadata, runtime_metadata_from_env
 
@@ -91,6 +112,7 @@ SERVICE_VERSION = "1.0.0"
 _SETTINGS: Layer6Settings = validate_layer6_startup_settings()
 reject_insecure_bypass_in_production(service_name="layer6-benchmarks", settings=_SETTINGS)
 _benchmark_repo: BenchmarkRepository | None = None
+_vmrt_trace_repo: VMRTTraceRepository | None = None
 _neo4j_startup_error: str | None = None
 
 
@@ -135,6 +157,90 @@ def _record_compare_metric(*, industry: str, outcome: str) -> None:
     metrics = get_metrics()
     if metrics is not None:
         metrics.increment_dataset_comparisons(industry=industry, outcome=outcome)
+
+
+def _confidence_for_sample_size(sample_size: int) -> str:
+    if sample_size >= 1000:
+        return "high"
+    if sample_size >= 500:
+        return "medium"
+    return "low"
+
+
+def _confidence_score_for_sample_size(sample_size: int) -> float:
+    if sample_size >= 1000:
+        return 0.9
+    if sample_size >= 500:
+        return 0.7
+    return 0.45
+
+
+def _profile_response(
+    profile: StatisticalProfile, *, shape: str = "unknown"
+) -> PercentileDistributionResponse:
+    return PercentileDistributionResponse(
+        p10=str(profile.p10),
+        p25=str(profile.p25),
+        p50=str(profile.p50),
+        p75=str(profile.p75),
+        p90=str(profile.p90),
+        mean=str(profile.mean),
+        std_dev=str(profile.std_dev),
+        sample_size=profile.sample_size,
+        shape=shape,
+    )
+
+
+def _provenance_response(
+    *, dataset: BenchmarkDataset, metric: BenchmarkMetric
+) -> BenchmarkProvenanceResponse:
+    confidence_score = (
+        metric.confidence_score
+        if metric.confidence_score is not None
+        else _confidence_score_for_sample_size(metric.profile.sample_size)
+    )
+    return BenchmarkProvenanceResponse(
+        metric=metric.name,
+        dataset_id=dataset.dataset_id,
+        data_source=metric.source_name or dataset.data_source,
+        source_count=metric.source_count or (1 if dataset.data_source else 0),
+        confidence=_confidence_for_sample_size(metric.profile.sample_size),
+        confidence_score=confidence_score,
+        license_class=metric.license_class,
+        caveats=metric.caveats,
+    )
+
+
+def _distribution_percentile(*, company_value: Decimal, metric: BenchmarkMetric) -> int:
+    profile = metric.profile
+    if company_value <= profile.p10:
+        distribution_percentile = 5
+    elif company_value <= profile.p25:
+        distribution_percentile = 17
+    elif company_value <= profile.p50:
+        distribution_percentile = 37
+    elif company_value <= profile.p75:
+        distribution_percentile = 62
+    elif company_value <= profile.p90:
+        distribution_percentile = 82
+    else:
+        distribution_percentile = 95
+
+    if metric.is_higher_better:
+        return distribution_percentile
+    return 100 - distribution_percentile
+
+
+def _assessment_for_percentile(percentile: int) -> str:
+    if percentile >= 80:
+        return "top_performer"
+    if percentile >= 60:
+        return "above_average"
+    if percentile >= 40:
+        return "average"
+    if percentile >= 20:
+        return "below_average"
+    return "needs_improvement"
 
 
 def _build_dataset_from_seed(seed: dict[str, Any]) -> BenchmarkDataset:
@@ -211,11 +317,12 @@ async def lifespan(app: FastAPI):
             build_sha=runtime_metadata["build_sha"],
         )
 
-    global _benchmark_repo, _neo4j_startup_error
+    global _benchmark_repo, _vmrt_trace_repo, _neo4j_startup_error
     dataset_count = 0
     try:
         driver = await get_driver()
         _benchmark_repo = BenchmarkRepository(driver)
+        _vmrt_trace_repo = VMRTTraceRepository(driver)
         await _init_seed_data()
         await load_default_benchmark_packs(_benchmark_repo)
         dataset_count = len(await _benchmark_repo.list_datasets(tenant_id="system"))
@@ -223,6 +330,7 @@ async def lifespan(app: FastAPI):
         logger.info("Layer 6 Benchmark Service started with %d datasets", dataset_count)
     except Exception as exc:  # pragma: no cover - exercised through readiness tests
         _benchmark_repo = None
+        _vmrt_trace_repo = None
         _neo4j_startup_error = "Neo4j benchmark store unavailable"
         logger.warning(
             "Layer 6 Benchmark Service starting degraded; Neo4j benchmark store unavailable",
@@ -232,6 +340,7 @@ async def lifespan(app: FastAPI):
     yield
     await close_driver()
     _benchmark_repo = None
+    _vmrt_trace_repo = None
 
 
 app = create_fabric_app(
@@ -628,6 +737,359 @@ async def validate(
         severity=severity,
         message=message,
     )
+
+
+async def _get_dataset_metric(
+    *, dataset_id: str, metric_name: str, ctx: RequestContext
+) -> tuple[BenchmarkDataset, BenchmarkMetric]:
+    if _benchmark_repo is None:
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    dataset = await _benchmark_repo.get_dataset(dataset_id, tenant_id=tenant_id)
+    if not dataset:
+        raise NotFoundError(message="Dataset not found")
+
+    metric = dataset.get_metric(metric_name)
+    if not metric:
+        raise NotFoundError(message=str(f"Metric '{metric_name}' not found"))
+    return dataset, metric
+
+
+async def recommend_range(
+    payload: RecommendRangeRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.recommend_range", ctx)
+    dataset, metric = await _get_dataset_metric(
+        dataset_id=payload.dataset_id, metric_name=payload.metric, ctx=ctx
+    )
+    return RecommendRangeResponse(
+        dataset_id=dataset.dataset_id,
+        metric=metric.name,
+        industry=dataset.industry,
+        segment=dataset.segment,
+        unit=metric.unit,
+        distribution=_profile_response(metric.profile, shape=metric.distribution_shape),
+        provenance=_provenance_response(dataset=dataset, metric=metric),
+    )
+
+
+async def compare_distribution(
+    payload: CompareDistributionRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.compare_distribution", ctx)
+    dataset, metric = await _get_dataset_metric(
+        dataset_id=payload.dataset_id, metric_name=payload.metric, ctx=ctx
+    )
+    try:
+        company_value = Decimal(payload.company_value)
+    except (ValueError, decimal.InvalidOperation):
+        raise ValidationError(message="Invalid company_value format")
+
+    profile = metric.profile
+    percentile = _distribution_percentile(company_value=company_value, metric=metric)
+    median = profile.p50
+    variance_from_median_percent = (
+        0.0 if company_value == median else float((company_value - median) / median * 100)
+    )
+
+    _record_compare_metric(industry=dataset.industry, outcome="success")
+    return CompareDistributionResponse(
+        dataset_id=dataset.dataset_id,
+        metric=metric.name,
+        company_value=str(company_value),
+        percentile=percentile,
+        variance_from_median_percent=variance_from_median_percent,
+        peer_median=str(profile.p50),
+        peer_range=(str(profile.p10), str(profile.p90)),
+        sample_size=profile.sample_size,
+        confidence=_confidence_for_sample_size(profile.sample_size),
+        assessment=_assessment_for_percentile(percentile),
+        distribution=_profile_response(profile, shape=metric.distribution_shape),
+        provenance=_provenance_response(dataset=dataset, metric=metric),
+    )
+
+
+async def validate_value(
+    payload: ValidateValueRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.validate_value", ctx)
+    dataset, metric = await _get_dataset_metric(
+        dataset_id=payload.dataset_id, metric_name=payload.metric, ctx=ctx
+    )
+    try:
+        value = Decimal(payload.value)
+    except (ValueError, decimal.InvalidOperation):
+        raise ValidationError(message="Invalid value format")
+
+    profile = metric.profile
+    tolerance_factor = Decimal(payload.tolerance_percent) / Decimal(100)
+    range_min = profile.p10 * (Decimal(1) - tolerance_factor)
+    range_max = profile.p90 * (Decimal(1) + tolerance_factor)
+    is_valid = range_min <= value <= range_max
+    median = profile.p50
+    deviation_percent = 0.0 if value == median else float((value - median) / median * 100)
+
+    if is_valid:
+        severity = "info"
+        message = f"Value {value} is within expected p10-p90 range ({range_min} - {range_max})"
+    else:
+        abs_deviation = abs(deviation_percent)
+        if abs_deviation > 50:
+            severity = "error"
+        elif abs_deviation > 25:
+            severity = "warning"
+        else:
+            severity = "info"
+        message = f"Value {value} is outside expected p10-p90 range ({range_min} - {range_max})"
+
+    return ValidateValueResponse(
+        dataset_id=dataset.dataset_id,
+        metric=metric.name,
+        is_valid=is_valid,
+        expected_range=(str(range_min), str(range_max)),
+        actual_value=str(value),
+        deviation_percent=deviation_percent,
+        severity=severity,
+        message=message,
+        distribution=_profile_response(profile, shape=metric.distribution_shape),
+        provenance=_provenance_response(dataset=dataset, metric=metric),
+    )
+
+
+async def list_metric_catalog(
+    industry: str | None = None,
+    segment: str | None = None,
+    ctx: RequestContext = Depends(get_request_context),
+):
+    authorize_action("layer6.benchmarks.metric_catalog", ctx)
+    if _benchmark_repo is None:
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    datasets = await _benchmark_repo.list_datasets(
+        industry=industry,
+        segment=segment,
+        tenant_id=tenant_id,
+    )
+    items: list[MetricCatalogItem] = []
+    for dataset in datasets:
+        for metric in dataset.metrics.values():
+            items.append(
+                MetricCatalogItem(
+                    dataset_id=dataset.dataset_id,
+                    metric=metric.name,
+                    display_name=metric.name.replace("_", " ").title(),
+                    description=metric.description,
+                    industry=dataset.industry,
+                    segment=dataset.segment,
+                    geography=dataset.geography,
+                    unit=metric.unit,
+                    sample_size=metric.profile.sample_size,
+                    confidence=_confidence_for_sample_size(metric.profile.sample_size),
+                )
+            )
+    return MetricCatalogResponse(metrics=items)
+
+
+async def get_metric_provenance(
+    payload: MetricProvenanceRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.metric_provenance", ctx)
+    dataset, metric = await _get_dataset_metric(
+        dataset_id=payload.dataset_id, metric_name=payload.metric, ctx=ctx
+    )
+    return _provenance_response(dataset=dataset, metric=metric)
+
+
+async def get_coverage_status(ctx: RequestContext = Depends(get_request_context)):
+    authorize_action("layer6.benchmarks.coverage", ctx)
+    if _benchmark_repo is None:
+        raise ServiceUnavailableError(message="Benchmark store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    datasets = await _benchmark_repo.list_datasets(tenant_id=tenant_id)
+    required_industries = [
+        "technology",
+        "financial_services",
+        "healthcare",
+        "manufacturing",
+        "retail",
+    ]
+    counts: dict[str, int] = {industry: 0 for industry in required_industries}
+    for dataset in datasets:
+        counts[dataset.industry] = counts.get(dataset.industry, 0) + len(dataset.metrics)
+
+    cells = [
+        CoverageCell(
+            industry=industry,
+            metric_count=metric_count,
+            status=(
+                "complete"
+                if metric_count >= 20
+                else "partial"
+                if metric_count > 0
+                else "empty"
+            ),
+        )
+        for industry, metric_count in sorted(counts.items())
+    ]
+    missing_required_industries = [
+        industry for industry in required_industries if counts.get(industry, 0) == 0
+    ]
+    return CoverageStatusResponse(
+        total_metrics=sum(counts.values()),
+        industries=cells,
+        required_industries=required_industries,
+        missing_required_industries=missing_required_industries,
+    )
+
+
+async def validate_vmrt(
+    payload: VMRTValidationRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.vmrt.validate", ctx)
+    _require_tenant_id(ctx)
+    return _evaluate_vmrt_trace(
+        trace_payload=payload.trace,
+        min_quality_score=payload.min_quality_score,
+    )
+
+
+def _evaluate_vmrt_trace(
+    *, trace_payload: dict[str, Any], min_quality_score: float
+) -> VMRTValidationResponse:
+    try:
+        trace = validate_vmrt_trace(trace_payload)
+    except Exception as exc:
+        return VMRTValidationResponse(
+            is_valid=False,
+            trace_id=trace_payload.get("trace_id"),
+            schema_version=trace_payload.get("schema_version"),
+            production_ready=False,
+            quality_score_overall=None,
+            errors=[str(exc)],
+        )
+
+    score_values = [
+        trace.quality_scores.logical_coherence,
+        trace.quality_scores.benchmark_alignment,
+        trace.quality_scores.financial_rigor,
+        trace.quality_scores.story_clarity,
+        trace.quality_scores.overall,
+    ]
+    production_ready = all(score >= Decimal(str(min_quality_score)) for score in score_values)
+    return VMRTValidationResponse(
+        is_valid=True,
+        trace_id=trace.trace_id,
+        schema_version=trace.schema_version,
+        production_ready=production_ready,
+        quality_score_overall=str(trace.quality_scores.overall),
+        errors=[],
+    )
+
+
+def _vmrt_trace_response(
+    record: VMRTTraceRecord, *, include_trace: bool = False
+) -> VMRTTraceRecordResponse:
+    return VMRTTraceRecordResponse(
+        trace_id=record.trace_id,
+        schema_version=record.schema_version,
+        status=record.status,
+        production_ready=record.production_ready,
+        quality_score_overall=record.quality_score_overall,
+        errors=record.errors,
+        reviewer=record.reviewer,
+        created_at=record.created_at.isoformat(),
+        updated_at=record.updated_at.isoformat(),
+        promoted_at=record.promoted_at.isoformat() if record.promoted_at else None,
+        trace=record.trace if include_trace else None,
+    )
+
+
+async def upsert_vmrt_trace(
+    payload: VMRTTraceUpsertRequestPayload, ctx: RequestContext = Depends(get_request_context)
+):
+    authorize_action("layer6.benchmarks.vmrt.write", ctx)
+    if _vmrt_trace_repo is None:
+        raise ServiceUnavailableError(message="VMRT trace store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    evaluation = _evaluate_vmrt_trace(
+        trace_payload=payload.trace,
+        min_quality_score=payload.min_quality_score,
+    )
+    if not evaluation.is_valid:
+        raise ValidationError(
+            message="VMRT trace failed schema or linkage validation",
+            details={"errors": evaluation.errors},
+        )
+
+    trace = validate_vmrt_trace(payload.trace)
+    status = "production_ready" if evaluation.production_ready else payload.status
+    trace_payload = trace.model_dump(mode="json")
+    record = VMRTTraceRecord(
+        trace_id=trace.trace_id,
+        tenant_id=tenant_id,
+        schema_version=trace.schema_version,
+        status=status,
+        trace=trace_payload,
+        quality_score_overall=evaluation.quality_score_overall,
+        production_ready=evaluation.production_ready,
+        errors=evaluation.errors,
+    )
+    saved = await _vmrt_trace_repo.save_trace(record)
+    return _vmrt_trace_response(saved, include_trace=True)
+
+
+async def get_vmrt_trace(
+    trace_id: str, ctx: RequestContext = Depends(get_request_context)
+) -> VMRTTraceRecordResponse:
+    authorize_action("layer6.benchmarks.vmrt.read", ctx)
+    if _vmrt_trace_repo is None:
+        raise ServiceUnavailableError(message="VMRT trace store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    record = await _vmrt_trace_repo.get_trace(trace_id, tenant_id=tenant_id)
+    if record is None:
+        raise NotFoundError(message="VMRT trace not found")
+    return _vmrt_trace_response(record, include_trace=True)
+
+
+async def promote_vmrt_trace(
+    trace_id: str,
+    payload: VMRTTracePromotionRequestPayload,
+    ctx: RequestContext = Depends(get_request_context),
+) -> VMRTTraceRecordResponse:
+    authorize_action("layer6.benchmarks.vmrt.promote", ctx)
+    if _vmrt_trace_repo is None:
+        raise ServiceUnavailableError(message="VMRT trace store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    existing = await _vmrt_trace_repo.get_trace(trace_id, tenant_id=tenant_id)
+    if existing is None:
+        raise NotFoundError(message="VMRT trace not found")
+
+    evaluation = _evaluate_vmrt_trace(
+        trace_payload=existing.trace,
+        min_quality_score=payload.min_quality_score,
+    )
+    if not evaluation.is_valid:
+        raise ValidationError(
+            message="VMRT trace failed schema or linkage validation",
+            details={"errors": evaluation.errors},
+        )
+    if not evaluation.production_ready:
+        raise ValidationError(
+            message="VMRT trace quality scores are below production readiness threshold",
+            details={
+                "trace_id": trace_id,
+                "quality_score_overall": evaluation.quality_score_overall,
+            },
+        )
+
+    promoted = await _vmrt_trace_repo.promote_trace(
+        trace_id,
+        tenant_id=tenant_id,
+        reviewer=payload.reviewer,
+    )
+    if promoted is None:
+        raise ValidationError(message="VMRT trace is not production ready")
+    return _vmrt_trace_response(promoted, include_trace=True)
 
 
 async def list_industries(ctx: RequestContext = Depends(get_request_context)):

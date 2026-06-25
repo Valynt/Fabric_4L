@@ -152,6 +152,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/benchmarks/recommend-range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recommend Range */
+        post: operations["recommend_range_v1_benchmarks_recommend_range_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/compare-distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compare Distribution */
+        post: operations["compare_distribution_v1_benchmarks_compare_distribution_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/validate-value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Value */
+        post: operations["validate_value_v1_benchmarks_validate_value_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Metric Catalog */
+        get: operations["list_metric_catalog_v1_benchmarks_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/metric-provenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get Metric Provenance */
+        post: operations["get_metric_provenance_v1_benchmarks_metric_provenance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Coverage Status */
+        get: operations["get_coverage_status_v1_benchmarks_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/vmrt/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Vmrt */
+        post: operations["validate_vmrt_v1_benchmarks_vmrt_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/vmrt/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upsert Vmrt Trace */
+        post: operations["upsert_vmrt_trace_v1_benchmarks_vmrt_traces_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/vmrt/traces/{trace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vmrt Trace */
+        get: operations["get_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/vmrt/traces/{trace_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Vmrt Trace */
+        post: operations["promote_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/benchmarks/industries": {
         parameters: {
             query?: never;
@@ -173,6 +343,84 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * BenchmarkProvenanceResponse
+         * @description Provenance-safe benchmark source metadata.
+         */
+        BenchmarkProvenanceResponse: {
+            /** Metric */
+            metric: string;
+            /** Dataset Id */
+            dataset_id: string;
+            /** Data Source */
+            data_source: string | null;
+            /** Source Count */
+            source_count: number;
+            /** Confidence */
+            confidence: string;
+            /** Confidence Score */
+            confidence_score: number;
+            /**
+             * License Class
+             * @default unspecified
+             */
+            license_class: string;
+            /**
+             * Caveats
+             * @default []
+             */
+            caveats: string[];
+        };
+        /**
+         * CompareDistributionRequestPayload
+         * @description Payload for compareAgainstDistribution.
+         */
+        CompareDistributionRequestPayload: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /**
+             * Company Value
+             * @description Company value as string (Decimal)
+             */
+            company_value: string;
+            /** Industry */
+            industry?: string | null;
+            /** Segment */
+            segment?: string | null;
+        };
+        /**
+         * CompareDistributionResponse
+         * @description Response for compareAgainstDistribution.
+         */
+        CompareDistributionResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /** Company Value */
+            company_value: string;
+            /** Percentile */
+            percentile: number;
+            /** Variance From Median Percent */
+            variance_from_median_percent: number;
+            /** Peer Median */
+            peer_median: string;
+            /** Peer Range */
+            peer_range: [
+                string,
+                string
+            ];
+            /** Sample Size */
+            sample_size: number;
+            /** Confidence */
+            confidence: string;
+            /** Assessment */
+            assessment: string;
+            distribution: components["schemas"]["PercentileDistributionResponse"];
+            provenance: components["schemas"]["BenchmarkProvenanceResponse"];
+        };
         /**
          * ComparisonRequestPayload
          * @description Payload for comparison request.
@@ -212,6 +460,32 @@ export interface components {
             confidence: string;
             /** Assessment */
             assessment: string;
+        };
+        /**
+         * CoverageCell
+         * @description Coverage status for a benchmark dimension cell.
+         */
+        CoverageCell: {
+            /** Industry */
+            industry: string;
+            /** Metric Count */
+            metric_count: number;
+            /** Status */
+            status: string;
+        };
+        /**
+         * CoverageStatusResponse
+         * @description Response for benchmark coverage status.
+         */
+        CoverageStatusResponse: {
+            /** Total Metrics */
+            total_metrics: number;
+            /** Industries */
+            industries: components["schemas"]["CoverageCell"][];
+            /** Required Industries */
+            required_industries: string[];
+            /** Missing Required Industries */
+            missing_required_industries: string[];
         };
         /**
          * DatasetDetail
@@ -340,6 +614,252 @@ export interface components {
         IndustriesResponse: {
             /** Industries */
             industries: string[];
+        };
+        /**
+         * MetricCatalogItem
+         * @description Metric catalog entry independent from raw storage shape.
+         */
+        MetricCatalogItem: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /** Display Name */
+            display_name: string;
+            /** Description */
+            description: string;
+            /** Industry */
+            industry: string;
+            /** Segment */
+            segment: string | null;
+            /** Geography */
+            geography: string | null;
+            /** Unit */
+            unit: string;
+            /** Sample Size */
+            sample_size: number;
+            /** Confidence */
+            confidence: string;
+        };
+        /**
+         * MetricCatalogResponse
+         * @description Response listing available benchmark metrics.
+         */
+        MetricCatalogResponse: {
+            /** Metrics */
+            metrics: components["schemas"]["MetricCatalogItem"][];
+        };
+        /**
+         * MetricProvenanceRequestPayload
+         * @description Payload for getMetricProvenance.
+         */
+        MetricProvenanceRequestPayload: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+        };
+        /**
+         * PercentileDistributionResponse
+         * @description Distribution envelope returned by GroundTruthAPI methods.
+         */
+        PercentileDistributionResponse: {
+            /** P10 */
+            p10: string;
+            /** P25 */
+            p25: string;
+            /** P50 */
+            p50: string;
+            /** P75 */
+            p75: string;
+            /** P90 */
+            p90: string;
+            /** Mean */
+            mean: string;
+            /** Std Dev */
+            std_dev: string;
+            /** Sample Size */
+            sample_size: number;
+            /**
+             * Shape
+             * @default unknown
+             */
+            shape: string;
+        };
+        /**
+         * RecommendRangeRequestPayload
+         * @description Payload for GroundTruthAPI range recommendation.
+         */
+        RecommendRangeRequestPayload: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /** Industry */
+            industry?: string | null;
+            /** Segment */
+            segment?: string | null;
+        };
+        /**
+         * RecommendRangeResponse
+         * @description Response for recommendRange.
+         */
+        RecommendRangeResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /** Industry */
+            industry: string;
+            /** Segment */
+            segment: string | null;
+            /** Unit */
+            unit: string;
+            distribution: components["schemas"]["PercentileDistributionResponse"];
+            provenance: components["schemas"]["BenchmarkProvenanceResponse"];
+        };
+        /**
+         * VMRTTracePromotionRequestPayload
+         * @description Payload for promoting a VMRT trace to production-ready governance state.
+         */
+        VMRTTracePromotionRequestPayload: {
+            /** Reviewer */
+            reviewer: string;
+            /**
+             * Min Quality Score
+             * @default 3.5
+             */
+            min_quality_score: number;
+        };
+        /**
+         * VMRTTraceRecordResponse
+         * @description Persisted VMRT trace metadata response.
+         */
+        VMRTTraceRecordResponse: {
+            /** Trace Id */
+            trace_id: string;
+            /** Schema Version */
+            schema_version: string;
+            /** Status */
+            status: string;
+            /** Production Ready */
+            production_ready: boolean;
+            /** Quality Score Overall */
+            quality_score_overall: string | null;
+            /** Errors */
+            errors: string[];
+            /** Reviewer */
+            reviewer?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Promoted At */
+            promoted_at?: string | null;
+            /** Trace */
+            trace?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * VMRTTraceUpsertRequestPayload
+         * @description Payload for validating and persisting a VMRT trace.
+         */
+        VMRTTraceUpsertRequestPayload: {
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            };
+            /**
+             * Min Quality Score
+             * @default 3.5
+             */
+            min_quality_score: number;
+            /**
+             * Status
+             * @default validated
+             */
+            status: string;
+        };
+        /**
+         * VMRTValidationRequestPayload
+         * @description Payload for VMRT schema/linkage validation.
+         */
+        VMRTValidationRequestPayload: {
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            };
+            /**
+             * Min Quality Score
+             * @default 3.5
+             */
+            min_quality_score: number;
+        };
+        /**
+         * VMRTValidationResponse
+         * @description Response from VMRT validation.
+         */
+        VMRTValidationResponse: {
+            /** Is Valid */
+            is_valid: boolean;
+            /** Trace Id */
+            trace_id: string | null;
+            /** Schema Version */
+            schema_version: string | null;
+            /** Production Ready */
+            production_ready: boolean;
+            /** Quality Score Overall */
+            quality_score_overall: string | null;
+            /** Errors */
+            errors: string[];
+        };
+        /**
+         * ValidateValueRequestPayload
+         * @description Payload for validateValue.
+         */
+        ValidateValueRequestPayload: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /**
+             * Value
+             * @description Value as string (Decimal)
+             */
+            value: string;
+            /**
+             * Tolerance Percent
+             * @default 0
+             */
+            tolerance_percent: number;
+        };
+        /**
+         * ValidateValueResponse
+         * @description Response for validateValue.
+         */
+        ValidateValueResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Metric */
+            metric: string;
+            /** Is Valid */
+            is_valid: boolean;
+            /** Expected Range */
+            expected_range: [
+                string,
+                string
+            ];
+            /** Actual Value */
+            actual_value: string;
+            /** Deviation Percent */
+            deviation_percent: number | null;
+            /** Severity */
+            severity: string;
+            /** Message */
+            message: string;
+            distribution: components["schemas"]["PercentileDistributionResponse"];
+            provenance: components["schemas"]["BenchmarkProvenanceResponse"];
         };
         /** ValidationError */
         ValidationError: {
@@ -703,6 +1223,324 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recommend_range_v1_benchmarks_recommend_range_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecommendRangeRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendRangeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_distribution_v1_benchmarks_compare_distribution_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompareDistributionRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompareDistributionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_value_v1_benchmarks_validate_value_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateValueRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateValueResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_metric_catalog_v1_benchmarks_metrics_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by industry */
+                industry?: string | null;
+                /** @description Filter by segment */
+                segment?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_metric_provenance_v1_benchmarks_metric_provenance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MetricProvenanceRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkProvenanceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_coverage_status_v1_benchmarks_coverage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageStatusResponse"];
+                };
+            };
+        };
+    };
+    validate_vmrt_v1_benchmarks_vmrt_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VMRTValidationRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMRTValidationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_vmrt_trace_v1_benchmarks_vmrt_traces_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VMRTTraceUpsertRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMRTTraceRecordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMRTTraceRecordResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VMRTTracePromotionRequestPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VMRTTraceRecordResponse"];
                 };
             };
             /** @description Validation Error */

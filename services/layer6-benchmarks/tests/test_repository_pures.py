@@ -32,6 +32,22 @@ class TestMetricToDict:
             lower_bound=Decimal("0.0"),
             upper_bound=Decimal("100.0"),
             is_higher_better=True,
+            display_name="Metric One",
+            functional_domain="finance",
+            category="planning",
+            lifecycle_stage="justify_commit",
+            value_type="cost_savings",
+            distribution_shape="skewed_right",
+            source_name="ValueOS",
+            source_type="proprietary_survey",
+            source_count=1,
+            source_publication_year=2026,
+            license_class="internal",
+            confidence_score=0.82,
+            caveats=["default pack"],
+            vintage="2026Q2",
+            governance_status="active",
+            stale_after="2027-06-25",
         )
         d = _metric_to_dict(metric)
         assert d["name"] == "m1"
@@ -40,6 +56,10 @@ class TestMetricToDict:
         assert d["p10"] == "1.1"
         assert d["mean"] == "3.0"
         assert d["sample_size"] == 100
+        assert d["display_name"] == "Metric One"
+        assert d["source_name"] == "ValueOS"
+        assert d["confidence_score"] == 0.82
+        assert d["caveats_json"] == '["default pack"]'
 
     def test_handles_none_bounds(self) -> None:
         metric = BenchmarkMetric(
@@ -98,6 +118,22 @@ class TestNodeToDataset:
             "lower_bound": "0.0",
             "upper_bound": "100.0",
             "is_higher_better": True,
+            "display_name": "Metric One",
+            "functional_domain": "finance",
+            "category": "planning",
+            "lifecycle_stage": "justify_commit",
+            "value_type": "cost_savings",
+            "distribution_shape": "skewed_right",
+            "source_name": "ValueOS",
+            "source_type": "proprietary_survey",
+            "source_count": 1,
+            "source_publication_year": 2026,
+            "license_class": "internal",
+            "confidence_score": 0.82,
+            "caveats_json": '["default pack"]',
+            "vintage": "2026Q2",
+            "governance_status": "active",
+            "stale_after": "2027-06-25",
         }
         defaults.update(kwargs)
         return defaults
@@ -113,6 +149,10 @@ class TestNodeToDataset:
         metric = dataset.metrics["m1"]
         assert metric.name == "m1"
         assert metric.profile.mean == Decimal("3.0")
+        assert metric.display_name == "Metric One"
+        assert metric.source_name == "ValueOS"
+        assert metric.caveats == ["default pack"]
+        assert metric.vintage == "2026Q2"
 
     def test_skips_none_metric_nodes(self) -> None:
         node = self._make_node()

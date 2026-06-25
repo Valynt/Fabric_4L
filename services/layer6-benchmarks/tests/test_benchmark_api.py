@@ -3,9 +3,12 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
-import layer6_benchmarks.api.main as main_module
 import pytest
 from httpx import ASGITransport, AsyncClient
+from test_valueos_contracts import valid_vmrt_payload
+from value_fabric.shared.identity.context import RequestContext
+
+import layer6_benchmarks.api.main as main_module
 from layer6_benchmarks.api.deps import get_request_context
 from layer6_benchmarks.api.main import app
 from layer6_benchmarks.models.benchmark_dataset import (
@@ -13,13 +16,14 @@ from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkMetric,
     StatisticalProfile,
 )
-from value_fabric.shared.identity.context import RequestContext
+from layer6_benchmarks.models.vmrt_trace import VMRTTraceRecord
 
 
 @pytest.fixture(autouse=True)
 def setup_mock_repo(monkeypatch):
     """Set up a deterministic benchmark repository for API tests."""
     mock_repo = AsyncMock()
+    vmrt_trace_repo = AsyncMock()
     monkeypatch.setattr(main_module, "authorize_action", lambda *args, **kwargs: None)
     monkeypatch.setattr(main_module, "_neo4j_startup_error", None)
 
@@ -77,7 +81,11 @@ def setup_mock_repo(monkeypatch):
         return None
 
     mock_repo.get_dataset = AsyncMock(side_effect=get_dataset)
+    vmrt_trace_repo.save_trace = AsyncMock(side_effect=lambda record: record)
+    vmrt_trace_repo.get_trace = AsyncMock(return_value=None)
+    vmrt_trace_repo.promote_trace = AsyncMock(return_value=None)
     monkeypatch.setattr(main_module, "_benchmark_repo", mock_repo)
+    monkeypatch.setattr(main_module, "_vmrt_trace_repo", vmrt_trace_repo)
     yield mock_repo
 
 
@@ -179,6 +187,284 @@ async def test_validate(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_recommend_range_returns_distribution_and_provenance(client: AsyncClient):
+    payload = {
+        "dataset_id": "manufacturing-efficiency-2024",
+        "metric": "oee_overall_equipment_effectiveness",
+        "industry": "manufacturing",
+    }
+    response = await client.post("/v1/benchmarks/recommend-range", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["dataset_id"] == "manufacturing-efficiency-2024"
+    assert data["metric"] == "oee_overall_equipment_effectiveness"
+    assert data["distribution"]["p10"] == "60"
+    assert data["distribution"]["p90"] == "95"
+    assert data["provenance"]["data_source"] == "source"
+    assert data["provenance"]["confidence"] == "high"
+
+
+@pytest.mark.asyncio
+async def test_compare_distribution_positions_value_against_peer_distribution(
+    client: AsyncClient,
+):
+    payload = {
+        "dataset_id": "manufacturing-efficiency-2024",
+        "metric": "oee_overall_equipment_effectiveness",
+        "company_value": "92",
+        "industry": "manufacturing",
+    }
+    response = await client.post("/v1/benchmarks/compare-distribution", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["percentile"] == 82
+    assert data["assessment"] == "top_performer"
+    assert data["variance_from_median_percent"] == 15.0
+    assert data["distribution"]["sample_size"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_validate_value_uses_p10_p90_as_default_expected_range(client: AsyncClient):
+    payload = {
+        "dataset_id": "manufacturing-efficiency-2024",
+        "metric": "defect_rate_percent",
+        "value": "6.0",
+    }
+    response = await client.post("/v1/benchmarks/validate-value", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] is False
+    assert data["expected_range"] == ["1", "5"]
+    assert data["severity"] == "error"
+    assert data["provenance"]["source_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_metric_catalog_lists_metrics_without_raw_storage_access(client: AsyncClient):
+    response = await client.get("/v1/benchmarks/metrics")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [item["metric"] for item in data["metrics"]] == [
+        "oee_overall_equipment_effectiveness",
+        "defect_rate_percent",
+    ]
+    assert data["metrics"][0]["dataset_id"] == "manufacturing-efficiency-2024"
+
+
+@pytest.mark.asyncio
+async def test_metric_provenance_returns_safe_source_summary(client: AsyncClient):
+    response = await client.post(
+        "/v1/benchmarks/metric-provenance",
+        json={
+            "dataset_id": "manufacturing-efficiency-2024",
+            "metric": "defect_rate_percent",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["data_source"] == "source"
+    assert data["confidence_score"] == 0.9
+    assert data["license_class"] == "unspecified"
+
+
+@pytest.mark.asyncio
+async def test_coverage_status_reports_required_valueos_industries(client: AsyncClient):
+    response = await client.get("/v1/benchmarks/coverage")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_metrics"] == 2
+    assert "retail" in data["missing_required_industries"]
+    manufacturing = next(
+        cell for cell in data["industries"] if cell["industry"] == "manufacturing"
+    )
+    assert manufacturing == {
+        "industry": "manufacturing",
+        "metric_count": 2,
+        "status": "partial",
+    }
+
+
+@pytest.mark.asyncio
+async def test_validate_vmrt_accepts_production_ready_trace(client: AsyncClient):
+    response = await client.post(
+        "/v1/benchmarks/vmrt/validate",
+        json={"trace": valid_vmrt_payload(), "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {
+        "is_valid": True,
+        "trace_id": "vos-pt1-trace-001",
+        "schema_version": "1.0.0",
+        "production_ready": True,
+        "quality_score_overall": "4.25",
+        "errors": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_validate_vmrt_blocks_low_quality_trace_from_production(client: AsyncClient):
+    trace = valid_vmrt_payload()
+    trace["quality_scores"]["financial_rigor"] = 2.9
+
+    response = await client.post(
+        "/v1/benchmarks/vmrt/validate",
+        json={"trace": trace, "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] is True
+    assert data["production_ready"] is False
+    assert data["errors"] == []
+
+
+@pytest.mark.asyncio
+async def test_validate_vmrt_fails_closed_on_broken_trace_linkage(client: AsyncClient):
+    trace = valid_vmrt_payload()
+    trace["financial_impacts"][0]["kpi_ids"] = ["missing-kpi"]
+
+    response = await client.post(
+        "/v1/benchmarks/vmrt/validate",
+        json={"trace": trace, "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_valid"] is False
+    assert data["production_ready"] is False
+    assert data["trace_id"] == "vos-pt1-trace-001"
+    assert "VMRT_UNKNOWN_KPI_REF" in data["errors"][0]
+
+
+@pytest.mark.asyncio
+async def test_upsert_vmrt_trace_persists_tenant_scoped_record(client: AsyncClient):
+    response = await client.post(
+        "/v1/benchmarks/vmrt/traces",
+        json={"trace": valid_vmrt_payload(), "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["trace_id"] == "vos-pt1-trace-001"
+    assert data["status"] == "production_ready"
+    assert data["production_ready"] is True
+    assert data["quality_score_overall"] == "4.25"
+    assert data["trace"]["trace_id"] == "vos-pt1-trace-001"
+    saved_record = main_module._vmrt_trace_repo.save_trace.call_args.args[0]
+    assert saved_record.tenant_id == "system"
+
+
+@pytest.mark.asyncio
+async def test_upsert_vmrt_trace_rejects_broken_linkage(client: AsyncClient):
+    trace = valid_vmrt_payload()
+    trace["financial_impacts"][0]["kpi_ids"] = ["missing-kpi"]
+
+    response = await client.post(
+        "/v1/benchmarks/vmrt/traces",
+        json={"trace": trace, "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 422
+    assert main_module._vmrt_trace_repo.save_trace.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_get_vmrt_trace_returns_tenant_record(client: AsyncClient):
+    record = VMRTTraceRecord(
+        trace_id="vos-pt1-trace-001",
+        tenant_id="test-tenant",
+        schema_version="1.0.0",
+        status="validated",
+        trace=valid_vmrt_payload(),
+        quality_score_overall="4.25",
+        production_ready=False,
+    )
+    main_module._vmrt_trace_repo.get_trace.return_value = record
+
+    response = await client.get("/v1/benchmarks/vmrt/traces/vos-pt1-trace-001")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["trace_id"] == "vos-pt1-trace-001"
+    assert data["trace"]["schema_version"] == "1.0.0"
+    main_module._vmrt_trace_repo.get_trace.assert_awaited_with(
+        "vos-pt1-trace-001", tenant_id="system"
+    )
+
+
+@pytest.mark.asyncio
+async def test_promote_vmrt_trace_rejects_low_quality_record(client: AsyncClient):
+    trace = valid_vmrt_payload()
+    trace["quality_scores"]["financial_rigor"] = 2.9
+    record = VMRTTraceRecord(
+        trace_id="vos-pt1-trace-001",
+        tenant_id="test-tenant",
+        schema_version="1.0.0",
+        status="validated",
+        trace=trace,
+        quality_score_overall="4.25",
+        production_ready=False,
+    )
+    main_module._vmrt_trace_repo.get_trace.return_value = record
+
+    response = await client.post(
+        "/v1/benchmarks/vmrt/traces/vos-pt1-trace-001/promote",
+        json={"reviewer": "governance-owner", "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 422
+    assert main_module._vmrt_trace_repo.promote_trace.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_promote_vmrt_trace_marks_ready_record(client: AsyncClient):
+    existing = VMRTTraceRecord(
+        trace_id="vos-pt1-trace-001",
+        tenant_id="test-tenant",
+        schema_version="1.0.0",
+        status="production_ready",
+        trace=valid_vmrt_payload(),
+        quality_score_overall="4.25",
+        production_ready=True,
+    )
+    promoted = VMRTTraceRecord(
+        trace_id="vos-pt1-trace-001",
+        tenant_id="test-tenant",
+        schema_version="1.0.0",
+        status="production_ready",
+        trace=valid_vmrt_payload(),
+        quality_score_overall="4.25",
+        production_ready=True,
+        reviewer="governance-owner",
+    )
+    main_module._vmrt_trace_repo.get_trace.return_value = existing
+    main_module._vmrt_trace_repo.promote_trace.return_value = promoted
+
+    response = await client.post(
+        "/v1/benchmarks/vmrt/traces/vos-pt1-trace-001/promote",
+        json={"reviewer": "governance-owner", "min_quality_score": 3.5},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "production_ready"
+    assert data["reviewer"] == "governance-owner"
+    main_module._vmrt_trace_repo.promote_trace.assert_awaited_with(
+        "vos-pt1-trace-001",
+        tenant_id="system",
+        reviewer="governance-owner",
+    )
+
+
+@pytest.mark.asyncio
 async def test_list_industries(client: AsyncClient):
     response = await client.get("/v1/benchmarks/industries")
     assert response.status_code == 200
@@ -193,6 +479,16 @@ async def test_list_industries(client: AsyncClient):
     [
         ("GET", "/v1/benchmarks/datasets", None),
         ("GET", "/v1/benchmarks/datasets/manufacturing-efficiency-2024", None),
+        (
+            "POST",
+            "/v1/benchmarks/recommend-range",
+            {
+                "dataset_id": "manufacturing-efficiency-2024",
+                "metric": "oee_overall_equipment_effectiveness",
+            },
+        ),
+        ("GET", "/v1/benchmarks/metrics", None),
+        ("GET", "/v1/benchmarks/coverage", None),
         (
             "POST",
             "/v1/benchmarks/compare",

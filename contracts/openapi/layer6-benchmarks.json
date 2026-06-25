@@ -371,6 +371,436 @@
         }
       }
     },
+    "/v1/benchmarks/recommend-range": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Recommend Range",
+        "operationId": "recommend_range_v1_benchmarks_recommend_range_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendRangeRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendRangeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/compare-distribution": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Compare Distribution",
+        "operationId": "compare_distribution_v1_benchmarks_compare_distribution_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareDistributionRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareDistributionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/validate-value": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Validate Value",
+        "operationId": "validate_value_v1_benchmarks_validate_value_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateValueRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateValueResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/metrics": {
+      "get": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "List Metric Catalog",
+        "operationId": "list_metric_catalog_v1_benchmarks_metrics_get",
+        "parameters": [
+          {
+            "name": "industry",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by industry",
+              "title": "Industry"
+            },
+            "description": "Filter by industry"
+          },
+          {
+            "name": "segment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by segment",
+              "title": "Segment"
+            },
+            "description": "Filter by segment"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricCatalogResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/metric-provenance": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Get Metric Provenance",
+        "operationId": "get_metric_provenance_v1_benchmarks_metric_provenance_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetricProvenanceRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkProvenanceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/coverage": {
+      "get": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Get Coverage Status",
+        "operationId": "get_coverage_status_v1_benchmarks_coverage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/vmrt/validate": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Validate Vmrt",
+        "operationId": "validate_vmrt_v1_benchmarks_vmrt_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMRTValidationRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMRTValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/vmrt/traces": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Upsert Vmrt Trace",
+        "operationId": "upsert_vmrt_trace_v1_benchmarks_vmrt_traces_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMRTTraceUpsertRequestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMRTTraceRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/vmrt/traces/{trace_id}": {
+      "get": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Get Vmrt Trace",
+        "operationId": "get_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__get",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMRTTraceRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/vmrt/traces/{trace_id}/promote": {
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Promote Vmrt Trace",
+        "operationId": "promote_vmrt_trace_v1_benchmarks_vmrt_traces__trace_id__promote_post",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMRTTracePromotionRequestPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMRTTraceRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/benchmarks/industries": {
       "get": {
         "tags": [
@@ -395,6 +825,189 @@
   },
   "components": {
     "schemas": {
+      "BenchmarkProvenanceResponse": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "data_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Source"
+          },
+          "source_count": {
+            "type": "integer",
+            "title": "Source Count"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "confidence_score": {
+            "type": "number",
+            "title": "Confidence Score"
+          },
+          "license_class": {
+            "type": "string",
+            "title": "License Class",
+            "default": "unspecified"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Caveats",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric",
+          "dataset_id",
+          "data_source",
+          "source_count",
+          "confidence",
+          "confidence_score"
+        ],
+        "title": "BenchmarkProvenanceResponse",
+        "description": "Provenance-safe benchmark source metadata."
+      },
+      "CompareDistributionRequestPayload": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "company_value": {
+            "type": "string",
+            "title": "Company Value",
+            "description": "Company value as string (Decimal)"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "company_value"
+        ],
+        "title": "CompareDistributionRequestPayload",
+        "description": "Payload for compareAgainstDistribution."
+      },
+      "CompareDistributionResponse": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "company_value": {
+            "type": "string",
+            "title": "Company Value"
+          },
+          "percentile": {
+            "type": "integer",
+            "title": "Percentile"
+          },
+          "variance_from_median_percent": {
+            "type": "number",
+            "title": "Variance From Median Percent"
+          },
+          "peer_median": {
+            "type": "string",
+            "title": "Peer Median"
+          },
+          "peer_range": {
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Peer Range"
+          },
+          "sample_size": {
+            "type": "integer",
+            "title": "Sample Size"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "assessment": {
+            "type": "string",
+            "title": "Assessment"
+          },
+          "distribution": {
+            "$ref": "#/components/schemas/PercentileDistributionResponse"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/BenchmarkProvenanceResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "company_value",
+          "percentile",
+          "variance_from_median_percent",
+          "peer_median",
+          "peer_range",
+          "sample_size",
+          "confidence",
+          "assessment",
+          "distribution",
+          "provenance"
+        ],
+        "title": "CompareDistributionResponse",
+        "description": "Response for compareAgainstDistribution."
+      },
       "ComparisonRequestPayload": {
         "properties": {
           "dataset_id": {
@@ -456,9 +1069,6 @@
               }
             ],
             "type": "array",
-            "items": {
-              "type": "string"
-            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Peer Range"
@@ -487,6 +1097,68 @@
         ],
         "title": "ComparisonResponse",
         "description": "Response from comparison."
+      },
+      "CoverageCell": {
+        "properties": {
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "metric_count": {
+            "type": "integer",
+            "title": "Metric Count"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "industry",
+          "metric_count",
+          "status"
+        ],
+        "title": "CoverageCell",
+        "description": "Coverage status for a benchmark dimension cell."
+      },
+      "CoverageStatusResponse": {
+        "properties": {
+          "total_metrics": {
+            "type": "integer",
+            "title": "Total Metrics"
+          },
+          "industries": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageCell"
+            },
+            "type": "array",
+            "title": "Industries"
+          },
+          "required_industries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Industries"
+          },
+          "missing_required_industries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Required Industries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_metrics",
+          "industries",
+          "required_industries",
+          "missing_required_industries"
+        ],
+        "title": "CoverageStatusResponse",
+        "description": "Response for benchmark coverage status."
       },
       "DatasetDetail": {
         "properties": {
@@ -818,6 +1490,591 @@
         "title": "IndustriesResponse",
         "description": "Response listing available industries."
       },
+      "MetricCatalogItem": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          },
+          "geography": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geography"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "sample_size": {
+            "type": "integer",
+            "title": "Sample Size"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "display_name",
+          "description",
+          "industry",
+          "segment",
+          "geography",
+          "unit",
+          "sample_size",
+          "confidence"
+        ],
+        "title": "MetricCatalogItem",
+        "description": "Metric catalog entry independent from raw storage shape."
+      },
+      "MetricCatalogResponse": {
+        "properties": {
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/MetricCatalogItem"
+            },
+            "type": "array",
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metrics"
+        ],
+        "title": "MetricCatalogResponse",
+        "description": "Response listing available benchmark metrics."
+      },
+      "MetricProvenanceRequestPayload": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric"
+        ],
+        "title": "MetricProvenanceRequestPayload",
+        "description": "Payload for getMetricProvenance."
+      },
+      "PercentileDistributionResponse": {
+        "properties": {
+          "p10": {
+            "type": "string",
+            "title": "P10"
+          },
+          "p25": {
+            "type": "string",
+            "title": "P25"
+          },
+          "p50": {
+            "type": "string",
+            "title": "P50"
+          },
+          "p75": {
+            "type": "string",
+            "title": "P75"
+          },
+          "p90": {
+            "type": "string",
+            "title": "P90"
+          },
+          "mean": {
+            "type": "string",
+            "title": "Mean"
+          },
+          "std_dev": {
+            "type": "string",
+            "title": "Std Dev"
+          },
+          "sample_size": {
+            "type": "integer",
+            "title": "Sample Size"
+          },
+          "shape": {
+            "type": "string",
+            "title": "Shape",
+            "default": "unknown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "p10",
+          "p25",
+          "p50",
+          "p75",
+          "p90",
+          "mean",
+          "std_dev",
+          "sample_size"
+        ],
+        "title": "PercentileDistributionResponse",
+        "description": "Distribution envelope returned by GroundTruthAPI methods."
+      },
+      "RecommendRangeRequestPayload": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric"
+        ],
+        "title": "RecommendRangeRequestPayload",
+        "description": "Payload for GroundTruthAPI range recommendation."
+      },
+      "RecommendRangeResponse": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "distribution": {
+            "$ref": "#/components/schemas/PercentileDistributionResponse"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/BenchmarkProvenanceResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "industry",
+          "segment",
+          "unit",
+          "distribution",
+          "provenance"
+        ],
+        "title": "RecommendRangeResponse",
+        "description": "Response for recommendRange."
+      },
+      "VMRTTracePromotionRequestPayload": {
+        "properties": {
+          "reviewer": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reviewer"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Min Quality Score",
+            "default": 3.5
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviewer"
+        ],
+        "title": "VMRTTracePromotionRequestPayload",
+        "description": "Payload for promoting a VMRT trace to production-ready governance state."
+      },
+      "VMRTTraceRecordResponse": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "production_ready": {
+            "type": "boolean",
+            "title": "Production Ready"
+          },
+          "quality_score_overall": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score Overall"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "reviewer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "promoted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promoted At"
+          },
+          "trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "schema_version",
+          "status",
+          "production_ready",
+          "quality_score_overall",
+          "errors",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VMRTTraceRecordResponse",
+        "description": "Persisted VMRT trace metadata response."
+      },
+      "VMRTTraceUpsertRequestPayload": {
+        "properties": {
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Min Quality Score",
+            "default": 3.5
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^(draft|validated)$",
+            "title": "Status",
+            "default": "validated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace"
+        ],
+        "title": "VMRTTraceUpsertRequestPayload",
+        "description": "Payload for validating and persisting a VMRT trace."
+      },
+      "VMRTValidationRequestPayload": {
+        "properties": {
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Min Quality Score",
+            "default": 3.5
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace"
+        ],
+        "title": "VMRTValidationRequestPayload",
+        "description": "Payload for VMRT schema/linkage validation."
+      },
+      "VMRTValidationResponse": {
+        "properties": {
+          "is_valid": {
+            "type": "boolean",
+            "title": "Is Valid"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "production_ready": {
+            "type": "boolean",
+            "title": "Production Ready"
+          },
+          "quality_score_overall": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Score Overall"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_valid",
+          "trace_id",
+          "schema_version",
+          "production_ready",
+          "quality_score_overall",
+          "errors"
+        ],
+        "title": "VMRTValidationResponse",
+        "description": "Response from VMRT validation."
+      },
+      "ValidateValueRequestPayload": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Value as string (Decimal)"
+          },
+          "tolerance_percent": {
+            "type": "integer",
+            "title": "Tolerance Percent",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "value"
+        ],
+        "title": "ValidateValueRequestPayload",
+        "description": "Payload for validateValue."
+      },
+      "ValidateValueResponse": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "is_valid": {
+            "type": "boolean",
+            "title": "Is Valid"
+          },
+          "expected_range": {
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Expected Range"
+          },
+          "actual_value": {
+            "type": "string",
+            "title": "Actual Value"
+          },
+          "deviation_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviation Percent"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "distribution": {
+            "$ref": "#/components/schemas/PercentileDistributionResponse"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/BenchmarkProvenanceResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "metric",
+          "is_valid",
+          "expected_range",
+          "actual_value",
+          "deviation_percent",
+          "severity",
+          "message",
+          "distribution",
+          "provenance"
+        ],
+        "title": "ValidateValueResponse",
+        "description": "Response for validateValue."
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -904,9 +2161,6 @@
               }
             ],
             "type": "array",
-            "items": {
-              "type": "string"
-            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Expected Range"
