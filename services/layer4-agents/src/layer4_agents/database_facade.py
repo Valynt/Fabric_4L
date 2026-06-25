@@ -122,7 +122,7 @@ else:
                 request_id=context.request_id,
                 details=details.model_dump(exclude_none=True),
             )
-        except (AttributeError, TypeError) as exc:  # pragma: no cover
+        except Exception as exc:  # pragma: no cover  # noqa: BLE001
             logger.debug("Tenant context audit emission failed (non-critical): %s", exc)
 
     async def get_db_from_context(*args, **kwargs):
