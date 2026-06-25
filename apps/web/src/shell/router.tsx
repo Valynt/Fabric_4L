@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -7,9 +7,10 @@ import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
-import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import { EmptyState } from "@/components/states/EmptyState";
+import { PublicLandingPage } from "@/features/public-landing";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
@@ -111,8 +112,6 @@ const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 
-export const VALUEPACT_PUBLIC_SITE_URL = "https://valuepact.ai";
-
 function AcademyFollowUpState({ title, description }: { title: string; description: string }) {
   return (
     <div className="p-6">
@@ -136,31 +135,10 @@ export function RootRedirect() {
         return isAuthenticated ? (
           <Navigate to="/home" replace />
         ) : (
-          <ExternalRootRedirect />
+          <PublicLandingPage />
         );
       }}
     </RootAuthStateAdapter>
-  );
-}
-
-function ExternalRootRedirect() {
-  useEffect(() => {
-    if (import.meta.env.MODE === "test") {
-      return;
-    }
-    if (isClerkAuthEnabled()) {
-      window.location.assign(getClerkUrls().signInUrl); // navigation-guardrail: ignore external Clerk sign-in handoff
-      return;
-    }
-    window.location.assign(VALUEPACT_PUBLIC_SITE_URL); // navigation-guardrail: ignore external public-site handoff
-  }, []);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <a className="text-sm text-primary underline-offset-4 hover:underline" href={isClerkAuthEnabled() ? getClerkUrls().signInUrl : VALUEPACT_PUBLIC_SITE_URL}>
-        Continue to ValuePact
-      </a>
-    </div>
   );
 }
 

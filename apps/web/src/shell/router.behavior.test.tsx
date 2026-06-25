@@ -3,7 +3,6 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import {
   RootRedirect,
-  VALUEPACT_PUBLIC_SITE_URL,
   LegacyFlatRedirect,
   LegacyIntelligenceRedirect,
   LEGACY_FLAT_ROUTE_MAP,
@@ -74,14 +73,11 @@ describe("RootRedirect auth-provider boundary", () => {
     setAuthProvider(savedProvider);
   });
 
-  it("legacy mode: unauthenticated root routes to the public ValuePact site", () => {
+  it("legacy mode: unauthenticated root renders the public landing page", () => {
     setAuthProvider("legacy");
     mockAuthContext.isAuthenticated = false;
     renderRedirect();
-    expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
-      "href",
-      VALUEPACT_PUBLIC_SITE_URL,
-    );
+    expect(screen.getByRole("heading", { name: /Turn account evidence/i, level: 1 })).toBeInTheDocument();
   });
 
   it("legacy mode: authenticated user is redirected to /home", () => {
@@ -107,17 +103,12 @@ describe("RootRedirect auth-provider boundary", () => {
     expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
   });
 
-  it("clerk mode: signed-out root shows sign-in link", () => {
+  it("clerk mode: signed-out root renders the public landing page", () => {
     setAuthProvider("clerk");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = false;
     renderRedirect();
-    // In Clerk mode, signed-out users are directed to the Clerk sign-in page,
-    // not the public marketing site. The default Clerk sign-in URL is /sign-in.
-    expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
-      "href",
-      "/sign-in",
-    );
+    expect(screen.getByRole("heading", { name: /Turn account evidence/i, level: 1 })).toBeInTheDocument();
   });
 
   it("clerk mode: signed-in user is redirected to /home", () => {
