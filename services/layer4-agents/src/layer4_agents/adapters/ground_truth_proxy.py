@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from layer4_agents.integration.layer5_client import Layer5GroundTruthClient
+
 from ..interfaces.ground_truth_proxy import GroundTruthProxyPort
 
 

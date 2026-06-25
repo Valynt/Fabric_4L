@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from layer4_agents.contracts.tool_dto import (
-    JsonValue,
     ToolCategoryListResponse,
     ToolSchemaExample,
     ToolSchemaResponse,

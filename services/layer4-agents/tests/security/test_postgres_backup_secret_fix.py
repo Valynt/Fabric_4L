@@ -8,7 +8,6 @@ ExternalSecrets-managed Patroni credential used by the HA Postgres deployment.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import yaml

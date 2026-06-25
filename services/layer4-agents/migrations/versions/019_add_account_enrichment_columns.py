@@ -6,8 +6,8 @@ tech stack detection, executive mapping, financial data, and pain signals.
 Revision ID: 019
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import JSON
 
 revision = "019"

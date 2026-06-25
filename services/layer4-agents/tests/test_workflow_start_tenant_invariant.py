@@ -3,14 +3,10 @@ from __future__ import annotations
 """Tests for mandatory tenant scope as a workflow-start invariant."""
 
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from layer4_agents.engine.executor import OrchestrationController, WorkflowExecutionError
-from layer4_agents.engine.scheduler import TaskPriority
-from layer4_agents.models.agent_state import TenantMissingError
 from layer4_agents.tools.registry import ToolRegistry
 from layer4_agents.workflows.roi_calculator import ROICalculatorWorkflow
 

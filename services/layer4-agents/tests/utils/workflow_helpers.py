@@ -2,7 +2,6 @@
 
 from datetime import UTC, datetime
 
-
 TEST_WORKFLOW_TYPE = "roi_calculator"
 
 

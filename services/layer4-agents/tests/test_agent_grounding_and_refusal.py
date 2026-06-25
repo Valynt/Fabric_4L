@@ -6,10 +6,10 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from value_fabric.shared.audit import AuditAction
 
 import layer4_agents.services.conversation as conversation_module
 from layer4_agents.services.conversation import ConversationService
-from value_fabric.shared.audit import AuditAction
 
 try:
     from .fixtures.prompt_injection_documents import PROMPT_INJECTION_DOCUMENTS
@@ -94,7 +94,7 @@ async def test_agent_refuses_claim_when_evidence_is_missing(captured_audit: list
     content = result["content"].lower()
     assert "cannot present it as verified" in content
     assert "assumption:" in content
-    assert "trace-grounding" == result["metadata"]["trace_id"]
+    assert result["metadata"]["trace_id"] == "trace-grounding"
 
 
 @pytest.mark.asyncio

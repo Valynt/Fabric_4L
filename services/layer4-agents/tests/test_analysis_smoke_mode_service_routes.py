@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from uuid import UUID, uuid4
-import sys
 
 import pytest
 from fastapi import FastAPI
@@ -17,9 +17,10 @@ for module_name in list(sys.modules):
     if module_name == "src" or module_name.startswith("src."):
         sys.modules.pop(module_name, None)
 
+from value_fabric.shared.audit import AuditAction
+
 from layer4_agents.api.routes import analysis
 from layer4_agents.config.settings import settings
-from value_fabric.shared.audit import AuditAction
 from layer4_agents.database import get_db_from_context
 
 

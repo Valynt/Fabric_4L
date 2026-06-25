@@ -5,8 +5,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -15,7 +14,7 @@ os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from layer4_agents.services.oidc_cleanup import cleanup_expired_oidc_sessions, OIDCCleanupTask
+from layer4_agents.services.oidc_cleanup import OIDCCleanupTask, cleanup_expired_oidc_sessions
 
 
 class TestCleanupExpiredSessions:

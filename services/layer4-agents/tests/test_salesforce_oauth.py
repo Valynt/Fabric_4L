@@ -240,8 +240,9 @@ class TestSchedulerTenantIsolation:
     @pytest.mark.asyncio
     async def test_scheduler_uses_request_context_for_sync(self, mock_db):
         """Verify _execute_sync_for_tenant builds proper RequestContext and uses db_session_for_context."""
-        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
         from value_fabric.shared.identity.context import RequestContext
+
+        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
 
         scheduler = CRMSyncScheduler()
 
@@ -272,8 +273,9 @@ class TestSchedulerTenantIsolation:
 
     def test_scheduler_source_no_unsafe_assignment(self):
         """Verify CRMSyncScheduler does not contain unsafe app.tenant_id = '' assignment outside SQL strings."""
-        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
         import inspect
+
+        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
 
         module_source = inspect.getsource(CRMSyncScheduler)
         lines = module_source.splitlines()
@@ -291,8 +293,9 @@ class TestNoEnvFallback:
 
     def test_no_env_fallback_in_source(self):
         """Verify ALLOW_ENV_CRM_FALLBACK is removed from sync service."""
-        from layer4_agents.services.crm_sync_service import CRMSyncService
         import inspect
+
+        from layer4_agents.services.crm_sync_service import CRMSyncService
 
         module_source = inspect.getsource(CRMSyncService)
         assert "ALLOW_ENV_CRM_FALLBACK" not in module_source

@@ -16,13 +16,11 @@ Note: billing tables use String IDs instead of UUID, so FK constraints require
 type migration first. This is tracked separately as P2-1 (database consolidation).
 """
 
-from collections.abc import Sequence
 import logging
+from collections.abc import Sequence
 from typing import Union
 
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 logger = logging.getLogger(__name__)
 

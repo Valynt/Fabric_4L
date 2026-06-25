@@ -17,8 +17,8 @@ import pytest
 from fastapi import HTTPException
 
 from layer4_agents.services.tenant_provisioning import (
-    TenantProvisionRequest,
     TenantProvisioningService,
+    TenantProvisionRequest,
 )
 
 
@@ -114,8 +114,9 @@ async def test_schema_tier_rejected_before_db_write():
 @pytest.mark.asyncio
 async def test_get_tiered_db_session_schema_raises_422():
     """get_tiered_db_session with schema tier must raise HTTP 422, not 501."""
-    from layer4_agents.database import get_tiered_db_session
     import uuid
+
+    from layer4_agents.database import get_tiered_db_session
 
     tenant_id = uuid.uuid4()
 
@@ -130,8 +131,9 @@ async def test_get_tiered_db_session_schema_raises_422():
 @pytest.mark.asyncio
 async def test_get_tiered_db_session_database_raises_422():
     """get_tiered_db_session with database tier must raise HTTP 422, not 501."""
-    from layer4_agents.database import get_tiered_db_session
     import uuid
+
+    from layer4_agents.database import get_tiered_db_session
 
     tenant_id = uuid.uuid4()
 
@@ -147,6 +149,7 @@ async def test_get_tiered_db_session_emits_deprecation_warning():
     """get_tiered_db_session must emit DeprecationWarning on every call."""
     import uuid
     import warnings
+
     from layer4_agents.database import get_tiered_db_session
 
     tenant_id = uuid.uuid4()
@@ -171,7 +174,8 @@ async def test_get_tiered_db_session_emits_deprecation_warning():
 @pytest.mark.asyncio
 async def test_db_session_for_context_unsupported_tier_raises_422():
     """db_session_for_context with an unsupported isolation tier must raise HTTP 422, not 501."""
-    from unittest.mock import MagicMock, patch, AsyncMock
+    from unittest.mock import AsyncMock, patch
+
     from layer4_agents.database import db_session_for_context
 
     context = MagicMock()

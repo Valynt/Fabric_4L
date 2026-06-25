@@ -1,5 +1,6 @@
 """Prometheus metrics collection for Layer 1 Ingestion Service."""
 
+import hashlib
 import logging
 import time
 from typing import Any
@@ -7,6 +8,31 @@ from typing import Any
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, Info, generate_latest
 
 logger = logging.getLogger(__name__)
+
+try:
+    from value_fabric.shared.observability import PathNormalizer
+except ImportError:  # pragma: no cover - shared package not on path in some test envs
+    logger.warning(
+        "PathNormalizer not available from value_fabric.shared.observability - "
+        "metric endpoint labels may have unbounded cardinality. "
+        "Ensure the shared package is installed."
+    )
+    PathNormalizer = None  # type: ignore[assignment]
+
+# Known route templates for Layer 1 Ingestion API.
+# Used to keep `endpoint` label cardinality bounded.
+_L1_KNOWN_ROUTES: dict[str, str] = {
+    "/health": "/health",
+    "/ready": "/ready",
+    "/metrics": "/metrics",
+    "/api/v1/ingestion/jobs": "/api/v1/ingestion/jobs",
+    "/api/v1/ingestion/jobs/{job_id}": "/api/v1/ingestion/jobs/{id}",
+    "/api/v1/ingestion/jobs/{job_id}/status": "/api/v1/ingestion/jobs/{id}/status",
+    "/api/v1/ingestion/jobs/{job_id}/cancel": "/api/v1/ingestion/jobs/{id}/cancel",
+    "/api/v1/ingestion/sources": "/api/v1/ingestion/sources",
+    "/api/v1/ingestion/sources/{source_id}": "/api/v1/ingestion/sources/{id}",
+    "/api/v1/ingestion/health": "/api/v1/ingestion/health",
+}
 
 
 class MetricsConfig:
@@ -19,12 +45,26 @@ class MetricsConfig:
         prefix: str = "layer1_",
         label_namespace: str = "ingestion",
         default_buckets: list[float] | None = None,
+        tenant_bucket_count: int = 64,
     ):
         self.enabled = enabled
         self.registry = registry or CollectorRegistry()
         self.prefix = prefix
         self.label_namespace = label_namespace
         self.default_buckets = default_buckets or [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 25.0, 50.0]
+        self.tenant_bucket_count = tenant_bucket_count
+
+
+def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
+    """Return a stable low-cardinality bucket label for a tenant_id.
+
+    Raw tenant IDs are high-cardinality and sensitive; we hash them into a
+    fixed set of buckets so Prometheus labels stay bounded.
+    """
+    if not tenant_id or tenant_id == "unknown":
+        return "unknown"
+    digest = hashlib.sha256(tenant_id.encode("utf-8")).digest()
+    return f"bucket_{digest[0] % count:02d}"
 
 
 class PrometheusMetrics:
@@ -35,22 +75,29 @@ class PrometheusMetrics:
         self._metrics: dict[str, Any] = {}
         self._setup_metrics()
 
+    @staticmethod
+    def _status_class(status_code: int | str) -> str:
+        code = int(status_code)
+        return f"{code // 100}xx"
+
     def _setup_metrics(self) -> None:
         """Setup all Prometheus metrics."""
         prefix = self.config.prefix
 
-        # HTTP request metrics
+        # HTTP request metrics — endpoint label is normalized via PathNormalizer
+        # in the middleware; tenant_id is hashed to a bucket to bound cardinality.
+        # Both status_code and status_class are included for backward compatibility.
         self._metrics["requests_total"] = Counter(
             f"{prefix}http_requests_total",
             "Total HTTP requests",
-            ["method", "endpoint", "status_code", "tenant_id"],
+            ["method", "endpoint", "status_code", "status_class", "tenant_bucket"],
             registry=self.config.registry,
         )
 
         self._metrics["request_duration"] = Histogram(
             f"{prefix}http_request_duration_seconds",
             "HTTP request duration",
-            ["method", "endpoint", "tenant_id"],
+            ["method", "endpoint", "tenant_bucket"],
             buckets=self.config.default_buckets,
             registry=self.config.registry,
         )
@@ -224,6 +271,32 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # ---------------------------------------------------------------------------
+        # Phase N: security / auth-failure metrics (bounded labels)
+        # ---------------------------------------------------------------------------
+        self._metrics["auth_failures_total"] = Counter(
+            f"{prefix}auth_failures_total",
+            "Total authentication/authorization failures",
+            ["reason", "component"],
+            registry=self.config.registry,
+        )
+
+        # ---------------------------------------------------------------------------
+        # Phase N: worker / queue depth metrics
+        # ---------------------------------------------------------------------------
+        self._metrics["celery_workers_active"] = Gauge(
+            f"{prefix}celery_workers_active",
+            "Number of active Celery workers",
+            ["queue"],
+            registry=self.config.registry,
+        )
+        self._metrics["celery_queue_depth"] = Gauge(
+            f"{prefix}celery_queue_depth",
+            "Number of pending tasks in Celery queues",
+            ["queue"],
+            registry=self.config.registry,
+        )
+
         # Build info
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry
@@ -242,7 +315,8 @@ class PrometheusMetrics:
                 method=method,
                 endpoint=endpoint,
                 status_code=str(status_code),
-                tenant_id=tenant_id,
+                status_class=self._status_class(status_code),
+                tenant_bucket=_tenant_bucket(tenant_id, self.config.tenant_bucket_count),
             ).inc()
 
     def observe_request_duration(
@@ -256,7 +330,7 @@ class PrometheusMetrics:
             self._metrics["request_duration"].labels(
                 method=method,
                 endpoint=endpoint,
-                tenant_id=tenant_id,
+                tenant_bucket=_tenant_bucket(tenant_id, self.config.tenant_bucket_count),
             ).observe(duration)
 
     def increment_ingestion_jobs(self, status: str, target_type: str) -> None:
@@ -362,6 +436,25 @@ class PrometheusMetrics:
         for stage, count in counts_by_stage.items():
             self._metrics["stuck_jobs"].labels(stage=stage).set(count)
 
+    def increment_auth_failure(self, reason: str, component: str = "http") -> None:
+        """Record an authentication/authorization failure.
+
+        `reason` should be a bounded token such as "missing_token",
+        "invalid_token", "insufficient_role", "tenant_mismatch".
+        """
+        if self.config.enabled:
+            self._metrics["auth_failures_total"].labels(
+                reason=reason, component=component
+            ).inc()
+
+    def set_celery_workers_active(self, count: int, queue: str = "default") -> None:
+        if self.config.enabled:
+            self._metrics["celery_workers_active"].labels(queue=queue).set(count)
+
+    def set_celery_queue_depth(self, count: int, queue: str = "default") -> None:
+        if self.config.enabled:
+            self._metrics["celery_queue_depth"].labels(queue=queue).set(count)
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics output."""
         if not self.config.enabled:
@@ -370,30 +463,50 @@ class PrometheusMetrics:
 
 
 class MetricsMiddleware:
-    """Middleware to collect HTTP request metrics."""
+    """Middleware to collect HTTP request metrics with path normalization."""
 
     def __init__(self, metrics: PrometheusMetrics):
         self.metrics = metrics
+        if PathNormalizer is not None:
+            self._normalizer = PathNormalizer(known_routes=_L1_KNOWN_ROUTES)
+        else:
+            self._normalizer = None
+
+    def _normalize_path(self, path: str) -> str:
+        if self._normalizer is None:
+            return path or "/"
+        return self._normalizer.normalize(path)
 
     async def __call__(self, request, call_next):
         start_time = time.time()
         response = await call_next(request)
         duration = time.time() - start_time
 
-        endpoint = request.url.path
-        if endpoint.endswith("/"):
-            endpoint = endpoint[:-1]
-        if not endpoint:
-            endpoint = "/"
+        endpoint = self._normalize_path(request.url.path)
+        context = getattr(request.state, "governance_context", None)
+        tenant_id = str(getattr(context, "tenant_id", None) or "unknown")
 
         self.metrics.increment_requests_total(
-            method=request.method, endpoint=endpoint, status_code=response.status_code
+            method=request.method,
+            endpoint=endpoint,
+            status_code=response.status_code,
+            tenant_id=tenant_id,
         )
         self.metrics.observe_request_duration(
-            duration=duration, method=request.method, endpoint=endpoint
+            duration=duration,
+            method=request.method,
+            endpoint=endpoint,
+            tenant_id=tenant_id,
         )
 
-        if response.status_code >= 400:
+        if response.status_code == 401:
+            # Note: 401 can represent multiple auth failure modes (missing, invalid, expired).
+            # This metric uses a generic "unauthorized" reason. For granular debugging,
+            # consult application logs which contain detailed auth context.
+            self.metrics.increment_auth_failure(reason="unauthorized", component="http")
+        elif response.status_code == 403:
+            self.metrics.increment_auth_failure(reason="forbidden", component="http")
+        elif response.status_code >= 400:
             error_type = "client_error" if response.status_code < 500 else "server_error"
             self.metrics.increment_errors(error_type=error_type, component="http")
 

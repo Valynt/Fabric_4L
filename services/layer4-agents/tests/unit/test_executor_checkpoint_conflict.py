@@ -8,7 +8,7 @@ and tenant-scoped hash loading.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -20,7 +20,6 @@ from layer4_agents.engine.executor import (
 from layer4_agents.models.agent_state import (
     BaseAgentState,
     WorkflowStatus,
-    WorkflowType,
 )
 from layer4_agents.tools.registry import ToolRegistry
 

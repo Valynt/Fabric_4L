@@ -3,20 +3,19 @@ from __future__ import annotations
 """Targeted tests for analysis routes executor integration."""
 
 
-import asyncio
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
-from layer4_agents.api.routes import analysis
-from layer4_agents.api.common.db import get_route_db
-from layer4_agents.config.settings import settings
 from value_fabric.shared.error_handling import register_exception_handlers
+
+from layer4_agents.api.common.db import get_route_db
+from layer4_agents.api.routes import analysis
+from layer4_agents.config.settings import settings
 
 
 async def _async_return(value: Any) -> Any:

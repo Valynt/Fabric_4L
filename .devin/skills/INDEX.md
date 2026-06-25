@@ -18,6 +18,18 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Quality Debt & Code Hygiene
 
+### repowise-production-readiness
+**Description:** Systematic codebase transformation using repowise MCP intelligence to bring code from functional to production-ready through assessment, prioritization, and execution
+**When to Use:** Preparing for production deployment, code health assessment, security audits, technical debt cleanup
+**Side Effects:** read, write
+**Related Workflow:** `/repowise-production-readiness`
+
+### code-quality-improvement
+**Description:** Focused production-quality pass for functional code with concrete quality gaps
+**When to Use:** Code is functional but rough, fragile, or incomplete; code review identifies quality gaps; repowise reports maintainability or fragility findings
+**Side Effects:** read, write
+**Related Workflow:** `/code-quality-improvement`
+
 ### security-auditor
 **Description:** Security auditing for CORS, API key leaks, penetration testing support, and vulnerability scanning
 **When to Use:** Auditing CORS configuration, scanning for API key header leaks, checking for hardcoded secrets, validating WebSocket authentication, penetration testing support
@@ -241,12 +253,12 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Skill Maintenance
 
-**Last Updated:** 2026-05-23
+**Last Updated:** 2026-06-25
 
-**Total Skills:** 39
+**Total Skills:** 41
 
 **Skills with Full Frontmatter:** 10 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth)
 
-**Skills Needing Frontmatter Updates:** 29 remaining
+**Skills Needing Frontmatter Updates:** 31 remaining
 
 **Note:** This index is generated manually. Consider automating this index generation by parsing SKILL.md frontmatter from all skill directories.

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
-import pytest
 
 from layer4_agents.api.app_factory import create_app
 from layer4_agents.api.startup import (

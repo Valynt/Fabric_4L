@@ -15,17 +15,15 @@ Covers critical bugs fixed during the production readiness pass:
 
 import asyncio
 import json
-import sys
 from datetime import UTC, datetime
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from layer4_agents.api.routes.workflows import WorkflowEvent, WorkflowEventPayload
 from layer4_agents.config.checkpoint import CheckpointConfig
 from layer4_agents.engine.executor import OrchestrationController
-from layer4_agents.engine.scheduler import ScheduledTask, TaskScheduler, TaskStatus
+from layer4_agents.engine.scheduler import ScheduledTask
 from layer4_agents.engine.state_manager import StateManager
 from layer4_agents.models.agent_state import (
     BaseAgentState,
@@ -33,7 +31,6 @@ from layer4_agents.models.agent_state import (
     WorkflowType,
 )
 from layer4_agents.workflows.base import BaseWorkflow, WorkflowBuilder
-from layer4_agents.workflows import WORKFLOW_TYPES
 
 
 class TestSettingsImportSafety:

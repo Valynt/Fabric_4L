@@ -10,10 +10,8 @@ Covers:
 """
 
 
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import httpx
 import pytest
 
 from layer4_agents.models.tool_schemas import GetProspectDataInput

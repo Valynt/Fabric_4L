@@ -90,6 +90,59 @@ async function audit(page: any, routePath: string, from: string): Promise<R>{
   return {path:routePath,from,title,heading,status,shot,ce,nf,notes,vp:'desktop'};
 }
 
+function buildHookMap(results: R[]): Map<string,{routes:string[];msg:string}> {
+  const hookMap=new Map<string,{routes:string[];msg:string}>();
+  for(const r of results)for(const e of r.ce){
+    let name='Generic error';
+    if(/useParams|params/i.test(e))name='useParams null/undefined';
+    else if(/useAuth|auth/i.test(e))name='useAuth context failure';
+    else if(/zustand/i.test(e))name='Zustand store error';
+    else if(/invalid hook/i.test(e))name='Invalid hook call';
+    else if(/wouter/i.test(e))name='Wouter routing error';
+    else if(/react query|tanstack|useQuery/i.test(e))name='React Query failure';
+    else continue;
+    const ex=hookMap.get(name)||{routes:[],msg:e};ex.routes.push(r.path);hookMap.set(name,ex);
+  }
+  return hookMap;
+}
+
+function generateMarkdownReport(health: number, verdict: string, ceTotal: number, nfTotal: number, risks: string[], results: R[], backOk: boolean, reloadOk: boolean): string {
+  let md=`# Playwright Route & Hook Audit Report\n**Date:** ${new Date().toISOString().split('T')[0]} **Base:** ${BASE_URL}\n\n`;
+  md+=`## 1. Executive Summary\n- Health score: ${health}%\n- Verdict: ${verdict}\n- Console errors: ${ceTotal} | Network failures: ${nfTotal}\n`;
+  md+=`### Top 5 Risks\n`;risks.slice(0,5).forEach((r,i)=>md+=`${i+1}. ${r}\n`);
+  md+=`### Top 5 Fixes\n1. Fix P0 hook null-checks on route params\n2. Add ErrorBoundary to all lazy tabs\n3. Handle API 401/403 with visible UI\n4. Preserve account/tenant context on refresh\n5. Fix responsive overflow & mobile nav\n\n`;
+  md+=`## 2. Route Inventory\n| Route | From | Title | Heading | Status | CE | NF | Notes |\n|-------|------|-------|---------|--------|----|----|-------|\n`;
+  for(const r of results){md+=`| ${r.path} | ${r.from} | ${r.title.substring(0,28)} | ${r.heading.substring(0,28)} | ${r.status} | ${r.ce.length} | ${r.nf.length} | ${r.notes.join('; ').substring(0,60).replace(/\|/g,'\\|')} |\n`;}
+  md+=`\n## 3. Hook & State Audit\n`;
+  const hookMap=buildHookMap(results);
+  if(hookMap.size===0)md+=`_No hook errors detected._\n`;
+  for(const [k,v] of hookMap){md+=`- **${k}** — routes: ${[...new Set(v.routes)].join(', ')} — ${v.msg.substring(0,120)}\n`;}
+  md+=`\n## 4. Navigation & Routing Audit\n`;
+  md+=`- Back/forward: ${backOk?'OK':'FAIL'}\n`;
+  md+=`- Nested reload: ${reloadOk?'OK':'FAIL'}\n`;
+  const reds=results.filter(r=>r.notes.some(n=>n.includes('redirect:')));
+  if(reds.length){md+=`Redirects observed:\n`;reds.forEach(r=>md+=`  - ${r.path}\n`);}
+  md+=`\n## 5. Data & API Audit\n`;
+  const api=results.filter(r=>r.nf.length>0);
+  if(api.length===0)md+=`_No API failures._\n`;else api.forEach(r=>md+=`- ${r.path}: ${r.nf.slice(0,2).join('; ')}\n`);
+  md+=`\n## 6. Accessibility & Responsive Audit\n_Needs manual verification — automated checks limited in this run._\n`;
+  md+=`\n## 7. Prioritized Fix Backlog\n`;
+  results.filter(r=>r.status==='Fail'||r.status==='Blocked').slice(0,8).forEach((r,i)=>{
+    md+=`### ${i+1}. Fix ${r.status.toLowerCase()} route ${r.path}\n`;
+    md+=`- Severity: ${r.status==='Blocked'?'P0':'P1'} | Area: Routing/Rendering\n`;
+    md+=`- Problem: ${r.ce.join('; ').substring(0,120)} ${r.notes.join('; ').substring(0,120)}\n`;
+    md+=`- AC: No console errors, graceful empty/error states, screenshot match\n\n`;
+  });
+  md+=`## 8. Playwright Test Recommendations\n`;
+  md+=`1. Route smoke tests for every canonical path\n`;
+  md+=`2. Deep-link reload tests for /intelligence/:id/:tab and /studio/:id/:tab\n`;
+  md+=`3. Auth/tenant context propagation tests\n`;
+  md+=`4. Responsive viewport matrix (390/768/1280/1440)\n`;
+  md+=`5. Axe-core scan on all pages + keyboard-only journey\n`;
+  md+=`6. Error/empty/loading state tests with mocked API\n`;
+  return md;
+}
+
 async function main(){
   console.log('Starting fast audit...');
   const browser=await chromium.launch();
@@ -125,50 +178,7 @@ async function main(){
   if(!backOk)risks.push('Back nav broken');
   if(!reloadOk)risks.push('Nested reload broken');
 
-  let md=`# Playwright Route & Hook Audit Report\n**Date:** ${new Date().toISOString().split('T')[0]} **Base:** ${BASE_URL}\n\n`;
-  md+=`## 1. Executive Summary\n- Health score: ${health}%\n- Verdict: ${verdict}\n- Console errors: ${ceTotal} | Network failures: ${nfTotal}\n`;
-  md+=`### Top 5 Risks\n`;risks.slice(0,5).forEach((r,i)=>md+=`${i+1}. ${r}\n`);
-  md+=`### Top 5 Fixes\n1. Fix P0 hook null-checks on route params\n2. Add ErrorBoundary to all lazy tabs\n3. Handle API 401/403 with visible UI\n4. Preserve account/tenant context on refresh\n5. Fix responsive overflow & mobile nav\n\n`;
-  md+=`## 2. Route Inventory\n| Route | From | Title | Heading | Status | CE | NF | Notes |\n|-------|------|-------|---------|--------|----|----|-------|\n`;
-  for(const r of results){md+=`| ${r.path} | ${r.from} | ${r.title.substring(0,28)} | ${r.heading.substring(0,28)} | ${r.status} | ${r.ce.length} | ${r.nf.length} | ${r.notes.join('; ').substring(0,60).replace(/\|/g,'\\|')} |\n`;}
-  md+=`\n## 3. Hook & State Audit\n`;
-  const hookMap=new Map<string,{routes:string[];msg:string}>();
-  for(const r of results)for(const e of r.ce){
-    let name='Generic error';
-    if(/useParams|params/i.test(e))name='useParams null/undefined';
-    else if(/useAuth|auth/i.test(e))name='useAuth context failure';
-    else if(/zustand/i.test(e))name='Zustand store error';
-    else if(/invalid hook/i.test(e))name='Invalid hook call';
-    else if(/wouter/i.test(e))name='Wouter routing error';
-    else if(/react query|tanstack|useQuery/i.test(e))name='React Query failure';
-    else continue;
-    const ex=hookMap.get(name)||{routes:[],msg:e};ex.routes.push(r.path);hookMap.set(name,ex);
-  }
-  if(hookMap.size===0)md+=`_No hook errors detected._\n`;
-  for(const [k,v] of hookMap){md+=`- **${k}** — routes: ${[...new Set(v.routes)].join(', ')} — ${v.msg.substring(0,120)}\n`;}
-  md+=`\n## 4. Navigation & Routing Audit\n`;
-  md+=`- Back/forward: ${backOk?'OK':'FAIL'}\n`;
-  md+=`- Nested reload: ${reloadOk?'OK':'FAIL'}\n`;
-  const reds=results.filter(r=>r.notes.some(n=>n.includes('redirect:')));
-  if(reds.length){md+=`Redirects observed:\n`;reds.forEach(r=>md+=`  - ${r.path}\n`);}
-  md+=`\n## 5. Data & API Audit\n`;
-  const api=results.filter(r=>r.nf.length>0);
-  if(api.length===0)md+=`_No API failures._\n`;else api.forEach(r=>md+=`- ${r.path}: ${r.nf.slice(0,2).join('; ')}\n`);
-  md+=`\n## 6. Accessibility & Responsive Audit\n_Needs manual verification — automated checks limited in this run._\n`;
-  md+=`\n## 7. Prioritized Fix Backlog\n`;
-  results.filter(r=>r.status==='Fail'||r.status==='Blocked').slice(0,8).forEach((r,i)=>{
-    md+=`### ${i+1}. Fix ${r.status.toLowerCase()} route ${r.path}\n`;
-    md+=`- Severity: ${r.status==='Blocked'?'P0':'P1'} | Area: Routing/Rendering\n`;
-    md+=`- Problem: ${r.ce.join('; ').substring(0,120)} ${r.notes.join('; ').substring(0,120)}\n`;
-    md+=`- AC: No console errors, graceful empty/error states, screenshot match\n\n`;
-  });
-  md+=`## 8. Playwright Test Recommendations\n`;
-  md+=`1. Route smoke tests for every canonical path\n`;
-  md+=`2. Deep-link reload tests for /intelligence/:id/:tab and /studio/:id/:tab\n`;
-  md+=`3. Auth/tenant context propagation tests\n`;
-  md+=`4. Responsive viewport matrix (390/768/1280/1440)\n`;
-  md+=`5. Axe-core scan on all pages + keyboard-only journey\n`;
-  md+=`6. Error/empty/loading state tests with mocked API\n`;
+  const md=generateMarkdownReport(health, verdict, ceTotal, nfTotal, risks, results, backOk, reloadOk);
 
   const mdPath=path.join(OUT,`playwright-route-hook-audit-${new Date().toISOString().split('T')[0]}.md`);
   fs.writeFileSync(mdPath,md);

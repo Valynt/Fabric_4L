@@ -23,7 +23,6 @@ from layer4_agents.api.websocket.auth import (
 )
 from layer4_agents.api.websocket.routes import workflow_websocket
 
-
 # ---------------------------------------------------------------------------
 # extract_token_from_protocol_header
 # ---------------------------------------------------------------------------

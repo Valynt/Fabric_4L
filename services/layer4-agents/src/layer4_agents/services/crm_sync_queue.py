@@ -11,7 +11,6 @@ It intentionally does NOT import any of those service modules at module scope.
 import json
 import logging
 import os
-from typing import Awaitable, cast
 
 import redis.asyncio as redis
 from value_fabric.shared.redis_ha import create_async_redis_client

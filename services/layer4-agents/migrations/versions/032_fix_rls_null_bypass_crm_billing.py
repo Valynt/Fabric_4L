@@ -28,7 +28,6 @@ from typing import Union
 
 from alembic import op
 
-
 revision: str = "032"
 down_revision: Union[str, None] = "031"
 branch_labels: Union[str, Sequence[str], None] = None

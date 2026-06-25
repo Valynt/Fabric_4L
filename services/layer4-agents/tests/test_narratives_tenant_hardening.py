@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-import pytest
 
 from layer4_agents.api.routes import narratives
 from layer4_agents.services.narrative_builder_service import (

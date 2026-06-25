@@ -11,8 +11,8 @@ This migration creates:
 - Indexes and RLS policies for tenant isolation
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # Revision identifiers

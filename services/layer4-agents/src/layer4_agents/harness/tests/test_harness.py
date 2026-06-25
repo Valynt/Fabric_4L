@@ -16,6 +16,7 @@ Covers:
 All tests must prove behavior, not just imports.
 """
 
+from pathlib import Path
 
 import pytest
 
@@ -758,7 +759,10 @@ class TestValidationHooks:
         self, harness: HarnessRegistry, tenant_id: str
     ) -> None:
         """UnavailableValidator never returns PASSED."""
-        from layer4_agents.harness.validation_hooks import ClaimValidationRequest, UnavailableValidator
+        from layer4_agents.harness.validation_hooks import (
+            ClaimValidationRequest,
+            UnavailableValidator,
+        )
 
         validator = UnavailableValidator()
         request = ClaimValidationRequest(

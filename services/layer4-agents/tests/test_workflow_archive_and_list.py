@@ -11,18 +11,14 @@ heavy app-level imports.
 """
 
 
-import json
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from fastapi import Depends, FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
-
 
 # ---------------------------------------------------------------------------
 # Fake executor that simulates the real OrchestrationController
@@ -152,7 +148,7 @@ def build_app(fake_executor: FakeOrchestrationController) -> FastAPI:
             )
         try:
             result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
-        except PermissionError as e:
+        except PermissionError:
             raise HTTPException(status_code=403, detail="Permission denied")
         if result is None:
             raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")

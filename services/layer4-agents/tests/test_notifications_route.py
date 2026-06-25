@@ -16,7 +16,6 @@ from value_fabric.shared.identity.context import RequestContext
 
 from layer4_agents.api.routes import notifications
 
-
 TENANT_A = UUID("12345678-1234-1234-1234-123456789abc")
 TENANT_B = UUID("abcdefab-1234-1234-1234-abcdefabcdef")
 

@@ -19,16 +19,15 @@ from uuid import uuid4
 
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
-
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
-    RateLimiterConfigurationError,
     _check_tenant_rate_limit,
     _tenant_rate_limit_buckets,
 )
 from value_fabric.shared.identity.rate_limiter import RateLimitResult, RedisRateLimiter
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig, RateLimitScope
+
 from layer4_agents.tenants.settings_schema import (
     RateLimitSettings,
     TenantSettings,

@@ -15,12 +15,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from layer4_agents.services.variable_registry_service import Neo4jVariableRegistry
 from layer4_agents.interfaces.variable_registry import (
     VariableDataType,
     VariableValidationRule,
 )
-
+from layer4_agents.services.variable_registry_service import Neo4jVariableRegistry
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers

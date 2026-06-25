@@ -13,27 +13,24 @@ Covers:
 
 
 from typing import Any
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-import pytest
-
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.api.main import app
+from layer4_agents.api.routes import crm_webhooks
 from layer4_agents.models.account import (
     Account,
     CRMProvider,
     SyncStatus,
 )
 from layer4_agents.services.crm_sync_service import CRMSyncService
-from value_fabric.shared.models.typed_dict import TypedDictModel
-from layer4_agents.api.routes import crm_webhooks
 
 AUTH_HEADERS = {
     "Authorization": "Bearer test-token",

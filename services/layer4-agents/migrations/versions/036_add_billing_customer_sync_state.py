@@ -5,8 +5,8 @@ Revises: 035_add_billing_plan_versions
 Create Date: 2026-05-22
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "036_add_billing_customer_sync_state"
 down_revision = "035_add_billing_plan_versions"

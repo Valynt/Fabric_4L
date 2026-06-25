@@ -10,15 +10,13 @@ Covers:
 
 
 import uuid
-from typing import Any
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
-
-from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.models.typed_dict import TypedDictModel
 

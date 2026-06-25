@@ -21,6 +21,7 @@ The index is stored at .agent/memory/.index/memory.db and auto-rebuilds
 when any memory file changes, is renamed, or is deleted.
 """
 import json
+import os
 import re
 import shutil
 import sys
@@ -35,6 +36,16 @@ FEATURES_PATH = MEMORY_DIR / ".features.json"
 
 # Files we consider "memory documents" for both indexing and search.
 MEMORY_SUFFIXES = (".md", ".jsonl")
+SKIP_DIRS = {
+    ".git",
+    ".hypothesis",
+    ".index",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "node_modules",
+}
 CJK_RE = re.compile(r"[\u3400-\u9fff]")
 
 
@@ -53,12 +64,13 @@ def feature_enabled() -> bool:
 
 
 def _memory_files():
-    """Yield memory document paths, skipping the .index/ side directory."""
-    for f in MEMORY_DIR.rglob("*"):
-        if ".index" in f.parts:
-            continue
-        if f.suffix in MEMORY_SUFFIXES and f.is_file():
-            yield f
+    """Yield memory document paths, skipping generated/cache directories."""
+    for root, dirs, files in os.walk(MEMORY_DIR):
+        dirs[:] = [name for name in dirs if name not in SKIP_DIRS]
+        for name in files:
+            f = Path(root) / name
+            if f.suffix in MEMORY_SUFFIXES and f.is_file():
+                yield f
 
 
 def check_fts5() -> bool:
@@ -205,7 +217,22 @@ def _fallback_command(query, targets):
     """
     if shutil.which("rg"):
         # -l: files-with-matches, -i: case-insensitive, -- ends flags
-        return (["rg", "-li", "--", query, *targets], "ripgrep")
+        return (
+            [
+                "rg",
+                "-li",
+                "--glob",
+                "!.pytest_cache/**",
+                "--glob",
+                "!__pycache__/**",
+                "--glob",
+                "!node_modules/**",
+                "--",
+                query,
+                *targets,
+            ],
+            "ripgrep",
+        )
     if shutil.which("grep"):
         return (["grep", "-ril", query, *targets], "grep")
     return (None, None)

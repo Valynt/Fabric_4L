@@ -14,16 +14,13 @@ Pattern: inline FastAPI app with FakeOrchestrationController and auth override.
 """
 
 
-import json
 from typing import Any
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from fastapi import Depends, FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
 
 # ---------------------------------------------------------------------------
 # Fake executor

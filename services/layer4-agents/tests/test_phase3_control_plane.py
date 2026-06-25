@@ -13,10 +13,7 @@ correctly wired — per Agent Workflow Testing Best Practices.
 """
 
 
-import asyncio
-from datetime import UTC, datetime, timedelta
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -232,6 +229,7 @@ class TestTierEnforcement:
 
     def test_require_feature_raises_when_disabled(self) -> None:
         from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
         from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
@@ -423,6 +421,7 @@ class TestAdminDashboardAuthorization:
         self, mock_context_admin: MagicMock,
     ) -> None:
         from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
         from layer4_agents.tenants.api.routes.admin_dashboard import _authorize_tenant_access
 
         other_tenant = uuid4()
@@ -446,6 +445,7 @@ class TestSettingsFeatureGate:
 
     def test_branding_blocked_on_free_tier(self) -> None:
         from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
         from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())
@@ -464,6 +464,7 @@ class TestSettingsFeatureGate:
 
     def test_sso_blocked_on_basic_tier(self) -> None:
         from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
         from layer4_agents.tenants.tier_enforcement import TierEnforcement
 
         enforcer = TierEnforcement(MagicMock())

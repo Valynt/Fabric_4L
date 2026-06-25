@@ -8,7 +8,6 @@ that Alembic requires (Alembic does not support asyncpg natively).
 
 import logging
 import os
-import sys
 import time
 from logging.config import fileConfig
 

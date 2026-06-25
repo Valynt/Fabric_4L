@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from layer4_agents.services.usage_service import UsageService
 from layer4_agents.services.billing_service import BillingService
+from layer4_agents.services.usage_service import UsageService
 
 
 @pytest.mark.asyncio

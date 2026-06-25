@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
 import base64
 import hashlib
 import hmac
 import json
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 

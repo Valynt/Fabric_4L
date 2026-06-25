@@ -12,11 +12,11 @@ Verifies automated tenant lifecycle management with:
 """
 
 
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 from layer4_agents.services.tenant_provisioning import (

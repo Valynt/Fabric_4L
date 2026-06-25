@@ -7,19 +7,17 @@ behavior without bypassing security or weakening production middleware.
 """
 
 
-from typing import Any, Callable, Optional
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import Request
-
 from value_fabric.shared.identity.context import (
     RequestContext,
     RequestContextManager,
 )
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.permissions import Role
-
 
 # =============================================================================
 # Test-Specific Middleware Factory
@@ -36,14 +34,14 @@ class TestGovernanceMiddleware(GovernanceMiddleware):
     def __init__(
         self,
         app: Any,
-        test_context: Optional[RequestContext] = None,
+        test_context: RequestContext | None = None,
         **kwargs: Any,
     ) -> None:
         # Always disable auth enforcement in tests to allow test context injection
         super().__init__(app, enforce_authentication=False, **kwargs)
         self._test_context = test_context
 
-    async def _resolve_identity(self, request: Request) -> Optional[RequestContext]:
+    async def _resolve_identity(self, request: Request) -> RequestContext | None:
         """Return test context if provided, otherwise use parent logic."""
         if self._test_context:
             return self._test_context
@@ -174,7 +172,7 @@ def test_governance_middleware():
 
     def _create_middleware(
         app: Any,
-        test_context: Optional[RequestContext] = None,
+        test_context: RequestContext | None = None,
         **kwargs: Any,
     ) -> TestGovernanceMiddleware:
         """Create a TestGovernanceMiddleware with optional test context."""

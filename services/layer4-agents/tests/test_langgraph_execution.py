@@ -16,8 +16,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-
 from value_fabric.shared.identity.context import RequestContext, RequestContextManager
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.models.agent_state import (
     BusinessCaseAgentState,
@@ -28,7 +28,6 @@ from layer4_agents.tools.registry import ToolRegistry
 from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
 from layer4_agents.workflows.roi_calculator import ROICalculatorWorkflow
 from layer4_agents.workflows.whitespace import WhitespaceAnalysisWorkflow
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class BusinessCaseGeneratorWorkflowMockExecuteErrorResult(TypedDictModel):
@@ -1241,8 +1240,9 @@ class TestSignalDetectionAgent:
     @pytest.mark.asyncio
     async def test_detect_signals_returns_complete_result(self) -> None:
         """_detect_signals success path must include all required fields (message, signals, processing_metadata)."""
-        from layer4_agents.agents.signal_detection import SignalDetectionAgent
         from value_fabric.shared.identity.context import RequestContext
+
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
 
         # Mock Layer 2 to return signals
         mock_l2_instance = Mock()

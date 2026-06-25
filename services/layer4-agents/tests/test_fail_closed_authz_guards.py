@@ -13,7 +13,6 @@ permissive runtime behavior.
 import unittest
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 HEALTH_BADGES_ROUTE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/health_badges.py"
 TOOLS_ROUTE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/routes/tools.py"

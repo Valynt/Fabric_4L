@@ -8,18 +8,20 @@ Verifies state persistence across interruptions and container restarts.
 
 
 import os
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from layer4_agents.config.checkpoint import CheckpointConfig, CheckpointConnectionError, get_checkpoint_saver
+from layer4_agents.config.checkpoint import (
+    CheckpointConfig,
+    CheckpointConnectionError,
+    get_checkpoint_saver,
+)
 from layer4_agents.engine.executor import (
     CheckpointConflictError,
     OrchestrationController,
     WorkflowExecutionError,
 )
-from layer4_agents.engine.state_manager import StateManager
 from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
 from layer4_agents.tools.registry import ToolRegistry
 from layer4_agents.workflows.base import BaseWorkflow
@@ -28,7 +30,6 @@ from layer4_agents.workflows.base import BaseWorkflow
 # state_manager, orchestrator_with_checkpoint, controller_with_running_state,
 # controller_with_paused_state, completed_workflow_state, simple_test_workflow,
 # setup_workflow_metadata
-
 from tests.utils.workflow_helpers import setup_workflow_metadata
 
 # Test constants
@@ -501,7 +502,6 @@ class TestOrchestrationControllerEdgeCases:
         self, state_manager, mock_tool_registry
     ):
         """Orphaned workflows from a previous pod are marked INTERRUPTED."""
-        from datetime import UTC
         from layer4_agents.models.agent_state import WorkflowStatus
 
         controller = OrchestrationController(

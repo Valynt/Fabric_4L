@@ -18,7 +18,6 @@ import pytest
 from fastapi import Depends, FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
 
 TEST_TENANT_ID = uuid4()
 TEST_USER_ID = uuid4()

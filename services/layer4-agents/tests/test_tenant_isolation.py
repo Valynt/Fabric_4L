@@ -10,21 +10,18 @@ These tests verify that:
 
 
 import uuid
-from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request, status
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
-
 from value_fabric.shared.identity.context import (
-    RequestContext,
-    ISOLATION_TIER_SHARED,
-    ISOLATION_TIER_SCHEMA,
-    AUTH_SOURCE_JWT,
     AUTH_SOURCE_API_KEY,
+    AUTH_SOURCE_JWT,
     AUTH_SOURCE_UNKNOWN,
+    ISOLATION_TIER_SCHEMA,
+    ISOLATION_TIER_SHARED,
+    RequestContext,
 )
 from value_fabric.shared.identity.dependencies import require_tenant_context
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
@@ -405,8 +402,6 @@ class TestTierChangeValidation:
 
     def test_log_isolation_tier_change_validates_change_source(self):
         """log_isolation_tier_change should reject invalid change_source."""
-        import pytest
-        from layer4_agents.tenants.service import log_isolation_tier_change
         from layer4_agents.tenants.models import IsolationTier
 
         # This test validates the function logic without needing a DB session

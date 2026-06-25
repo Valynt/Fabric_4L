@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -11,9 +11,10 @@ SERVICE_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVICE_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVICE_ROOT))
 
-import src.database as database
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
 from value_fabric.shared.identity.context import RequestContext
+
+import src.database as database
 
 
 class _AsyncFactory:

@@ -24,7 +24,6 @@ from collections.abc import Sequence
 from typing import Union
 
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "023"
