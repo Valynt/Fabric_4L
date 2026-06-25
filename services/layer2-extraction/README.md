@@ -1,7 +1,7 @@
 # Layer 2: Ontology-Guided Extraction Pipeline
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: net-new Layer 2 logic must go to `services/layer2-extraction/src/`. The legacy `value_fabric/layer2/` namespace has been removed per [ADR-027](../../docs/explanations/adr/ADR-027-shim-removal.md). See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: net-new Layer 2 logic must go to the canonical service runtime package under `services/layer2-extraction/src/layer2_extraction/`. The legacy `value_fabric/layer2/` namespace has been removed per [ADR-027](../../docs/explanations/adr/ADR-027-shim-removal.md). See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Transforms unstructured Markdown content into structured RDF/OWL triples using LLM-guided extraction with strict schema compliance.
 
@@ -283,12 +283,13 @@ Per the Value Fabric specification:
 4. Add monitoring (Prometheus metrics)
 5. Build ontology visualization tool
 
-## Runtime path governance (edit here vs consume there)
+## Runtime path governance
 
-- **Canonical runtime implementation (edit here):** `services/layer2-extraction/src/`
+- **Canonical runtime implementation:** `services/layer2-extraction/src/layer2_extraction/`
 - **Canonical import namespace (consume here):** `layer2_extraction.*`
+- **Removed legacy namespace:** `value_fabric/layer2/`
 
-`value_fabric/layer2/` has been removed. Do not restore that namespace, copy service files into it during builds, or add new `value_fabric.layer2.*` imports. Keep extraction, API, model, integration, and validation logic under `services/layer2-extraction/src/layer2_extraction/`.
+`value_fabric/layer2/` and `value_fabric/layer2_extraction/` were removed under ADR-027. Do not restore shim packages or add compatibility re-exports there, copy service files into them during builds, or add new `value_fabric.layer2.*` imports. Keep extraction, API, model, integration, and validation logic under `services/layer2-extraction/src/layer2_extraction/`.
 
 
 ## Migration reproducibility reference

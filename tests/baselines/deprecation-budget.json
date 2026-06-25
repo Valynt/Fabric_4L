@@ -43,11 +43,6 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/hooks/useAgentStream.ts:4:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
       "id": "apps/web/src/api/legacy.ts:8:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"

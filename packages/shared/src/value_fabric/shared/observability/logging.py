@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import structlog
+import logging
+from typing import Any
+
 from value_fabric.shared.observability.request_context import logging_context_dict
 from value_fabric.shared.security.redaction import install_redaction_filter, redaction_processor
 
@@ -12,6 +14,15 @@ from value_fabric.shared.observability.correlation import (
 )
 
 _STRUCTLOG_CONFIGURED = False
+_STRUCTLOG_UNAVAILABLE = False
+
+
+def _load_structlog() -> Any | None:
+    try:
+        import structlog
+    except ImportError:
+        return None
+    return structlog
 
 
 def enrich_event_with_request_context(_, __, event_dict: dict) -> dict:
@@ -21,10 +32,14 @@ def enrich_event_with_request_context(_, __, event_dict: dict) -> dict:
     return event_dict
 
 
-def configure_structlog() -> None:
-    global _STRUCTLOG_CONFIGURED
+def configure_structlog() -> bool:
+    global _STRUCTLOG_CONFIGURED, _STRUCTLOG_UNAVAILABLE
     if _STRUCTLOG_CONFIGURED:
-        return
+        return True
+    structlog = _load_structlog()
+    if structlog is None:
+        _STRUCTLOG_UNAVAILABLE = True
+        return False
     install_redaction_filter()
     structlog.configure(
         processors=[
@@ -37,10 +52,15 @@ def configure_structlog() -> None:
         ],
     )
     _STRUCTLOG_CONFIGURED = True
+    _STRUCTLOG_UNAVAILABLE = False
+    return True
 
 
 def get_logger(name: str | None = None):
     """Return a structlog logger using the repository-standard logging facade."""
+    structlog = _load_structlog()
+    if structlog is None:
+        return logging.getLogger(name)
     configure_structlog()
     return structlog.get_logger(name) if name else structlog.get_logger()
 

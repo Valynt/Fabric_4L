@@ -7,7 +7,6 @@ from typing import Any, Optional
 from .exceptions import (
     AuthenticationError,
     AuthorizationError,
-    NotFoundError,
     ServiceUnavailableError,
     ValidationError,
     ValueFabricException,
@@ -100,31 +99,6 @@ def raise_authorization_error(
     raise AuthorizationError(message=message, details=details)
 
 
-def raise_not_found_error(
-    resource_type: str = "Resource",
-    resource_id: Optional[str] = None,
-    message: Optional[str] = None,
-    details: Optional[dict[str, Any]] = None,
-) -> None:
-    """Raise a not found error with standardized error code.
-
-    Args:
-        resource_type: Type of resource that was not found
-        resource_id: Optional ID of the resource
-        message: Optional custom message (auto-generated if not provided)
-        details: Optional additional error context
-
-    Raises:
-        NotFoundError: With NOT_FOUND code and 404 status
-    """
-    raise NotFoundError(
-        resource_type=resource_type,
-        resource_id=resource_id,
-        message=message,
-        details=details,
-    )
-
-
 def raise_conflict_error(
     message: str = "Resource conflict",
     details: Optional[dict[str, Any]] = None,
@@ -183,4 +157,3 @@ def raise_tenant_context_error(
         status_code=500,
         details=details,
     )
-

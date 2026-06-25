@@ -136,6 +136,23 @@ What becomes easier or more difficult to do because of this change?
 
 ---
 
+## When To Write An ADR
+
+Create or update an ADR when a change makes a durable architecture decision that future contributors need to understand. Use ADRs for changes that:
+
+- Change layer boundaries, canonical runtime paths, deployable service ownership, or cross-service communication patterns.
+- Change authentication, authorization, tenant isolation, data residency, encryption, secrets, or other security-critical behavior.
+- Add, remove, or extend compatibility shims, facade layers, public API contracts, generated client contracts, or migration/deprecation policy.
+- Select or replace core infrastructure, storage, messaging, orchestration, observability, AI provider, or package/runtime tooling.
+- Introduce production rollout, rollback, resilience, disaster recovery, or managed-service posture that operators must follow.
+- Resolve a recurring governance dispute where code comments or implementation-only documentation would not preserve the rationale.
+
+Do not create an ADR for routine implementation details, local refactors that do not change ownership or contracts, small bug fixes, test-only changes, or documentation wording updates unless they encode one of the decision types above.
+
+Every new ADR must include status, date, deciders or owning roles, context, decision, consequences, alternatives considered, related implementation paths, and validation evidence or the gate that will prove the decision.
+
+---
+
 ## Contributing
 
 To propose a new ADR:

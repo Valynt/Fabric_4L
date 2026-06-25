@@ -22,11 +22,13 @@ Target labels:
     - :SourceBinding   (backfill only)
 
 Usage:
+    cd services/layer3-knowledge
+
     # Dry run
-    python -m services.layer3-knowledge.src.migrations.028_l3_tenant_standardization --dry-run
+    python -m src.migrations.028_l3_tenant_standardization --dry-run
 
     # Execute
-    python -m services.layer3-knowledge.src.migrations.028_l3_tenant_standardization
+    python -m src.migrations.028_l3_tenant_standardization
 
 Environment:
     NEO4J_URI       (default: bolt://localhost:7687)

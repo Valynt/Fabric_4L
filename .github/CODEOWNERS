@@ -13,6 +13,10 @@
 packages/shared/src/value_fabric/shared/identity/ @value-fabric/security-leads @value-fabric/maintainers
 contracts/tool-manifests/ @value-fabric/security-leads @value-fabric/maintainers
 **/*auth* @value-fabric/security-leads @value-fabric/backend-leads
+# Frontend auth/routing components that do not match **/*auth* but require security review
+apps/web/src/components/routing/RequireClerkAuth.tsx @value-fabric/security-leads @value-fabric/frontend-leads
+apps/web/src/components/routing/UnifiedRouteGuard.tsx @value-fabric/security-leads @value-fabric/frontend-leads
+apps/web/src/pages/ClerkSignIn.tsx @value-fabric/security-leads @value-fabric/frontend-leads
 **/*rbac* @value-fabric/security-leads @value-fabric/backend-leads
 
 # Security configurations
@@ -129,7 +133,7 @@ docs/explanations/adr/ @value-fabric/architects @value-fabric/maintainers
 
 services/layer4-agents/src/layer4_agents/agents/ @value-fabric/agent-team @value-fabric/architects
 services/layer4-agents/skills/ @value-fabric/agent-team @value-fabric/architects
-services/layer4-agents/workflows/ @value-fabric/agent-team @value-fabric/architects
+services/layer4-agents/src/layer4_agents/workflows/ @value-fabric/agent-team @value-fabric/architects
 
 # ============================================
 # DATABASE MIGRATIONS

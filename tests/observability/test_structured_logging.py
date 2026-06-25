@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
+import value_fabric.shared.observability.logging as shared_logging
 from value_fabric.shared.observability.logging import (
     enrich_event_with_logging_context,
     enrich_event_with_request_context,
@@ -71,3 +73,23 @@ def test_logging_context_enrichment_uses_request_context() -> None:
     assert event["correlation_id"] == "req-contract"
     assert event["tenant_id"] == "tenant-alpha"
     json.dumps(event)
+
+
+def test_shared_structlog_config_is_soft_noop_when_dependency_missing(monkeypatch) -> None:
+    monkeypatch.setattr(shared_logging, "_STRUCTLOG_CONFIGURED", False)
+    monkeypatch.setattr(shared_logging, "_STRUCTLOG_UNAVAILABLE", False)
+    monkeypatch.setattr(shared_logging, "_load_structlog", lambda: None)
+
+    assert shared_logging.configure_structlog() is False
+    assert shared_logging._STRUCTLOG_UNAVAILABLE is True
+
+
+def test_shared_get_logger_falls_back_to_stdlib_when_structlog_missing(monkeypatch) -> None:
+    monkeypatch.setattr(shared_logging, "_STRUCTLOG_CONFIGURED", False)
+    monkeypatch.setattr(shared_logging, "_STRUCTLOG_UNAVAILABLE", False)
+    monkeypatch.setattr(shared_logging, "_load_structlog", lambda: None)
+
+    logger = shared_logging.get_logger("fabric.test")
+
+    assert isinstance(logger, logging.Logger)
+    assert logger.name == "fabric.test"

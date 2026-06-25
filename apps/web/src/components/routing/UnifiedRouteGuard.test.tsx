@@ -86,4 +86,29 @@ describe("UnifiedRouteGuard deny behavior", () => {
     expect(screen.getByText("protected")).toBeInTheDocument();
     expect(screen.queryByText("redirect:/sign-in")).not.toBeInTheDocument();
   });
+
+  it("fails closed for guarded routes without access policy metadata", () => {
+    mockUseMatches.mockReturnValue([{ handle: {} }]);
+
+    render(
+      <AuthContext.Provider
+        value={{
+          isAuthenticated: false,
+          isLoading: false,
+          user: null,
+          currentTenantSlug: null,
+          accessToken: null,
+          initiateLogin: vi.fn(),
+          handleCallback: vi.fn(async () => true),
+          logout: vi.fn(),
+          refreshToken: vi.fn(async () => true),
+        }}
+      >
+        <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
+      </AuthContext.Provider>
+    );
+
+    expect(screen.getByText("redirect:/sign-in")).toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+  });
 });

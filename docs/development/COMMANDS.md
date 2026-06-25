@@ -128,12 +128,12 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-hermetic-build-inputs` | Enforce digest-pinned Docker base images and approved CI external domains. |
 | `check-production-k8s-mutable-tags` | Fail if production-facing K8s manifests use `:latest` or `:main` image tags. |
 | `check-k8s-image-digests` | Fail if production K8s overlays use mutable image tags. |
+| `check-temporal-skips` | Guard against net-new unregistered hard-coded temporal test skips. |
 | `check-test-skip-register-uniqueness` | Enforce unique skip register keys. |
 | `check-reports-evidence-policy` | Enforce reports artifact policy. |
 | `check-legacy-debt` | Enforce legacy debt baseline. |
 | `check-behavior-contract` | Enforce behavior contract registry coverage. |
 | `check-behavior-readiness-audit` | Enforce executable behavior readiness audit. |
-| `check-temporal-skips` | Guard against net-new unregistered hard-coded temporal test skips. |
 | `check-ui-duplicates` | Block duplicate UI component filenames. |
 | `check-layer4-boundaries` | Check Layer 4 bounded-context dependencies. |
 | `check-layer3-legacy-tenant-dependency-imports` | Block legacy Layer 3 tenant dependency imports. |

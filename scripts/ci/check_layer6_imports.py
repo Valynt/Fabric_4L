@@ -40,10 +40,8 @@ DEAD_DIRECTORIES = {
 
 # Files and directories that are allowed to reference value_fabric.layer6.
 ALLOWLIST: set[str] = {
-    # Shim files
-    "value_fabric/layer6/__init__.py",
     # ADR and governance docs
-    "docs/architecture/ADR-021-layer-3-canonical-runtime-path.md",
+    "docs/explanations/adr/ADR-027-shim-removal.md",
     "docs/reference/layer-runtime-path-governance.md",
     # CI and contract tests that intentionally verify the shim
     "tests/arch/test_canonical_module_sentinels.py",
@@ -85,9 +83,6 @@ SKIP_DIRS = {
 def _is_allowed(rel_path: str) -> bool:
     """Return True when *rel_path* is in the allowlist or inside an allowed dir."""
     if rel_path in ALLOWLIST:
-        return True
-    # Allow anything under value_fabric/layer6/ (shim tree)
-    if rel_path.startswith("value_fabric/layer6/"):
         return True
     # Allow anything under directory entries in ALLOWLIST
     for allowed in ALLOWLIST:

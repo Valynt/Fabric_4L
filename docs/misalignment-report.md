@@ -92,9 +92,9 @@
 
 ### 4. Agent Streaming - Limited Error Handling
 **Severity:** Warning  
-**Description:** `useAgentStream.ts` (SSE streaming) lacks comprehensive error recovery patterns.
+**Description:** `useAgentEvents.ts` (AG-UI event streaming) needs continued error recovery review.
 
-**Frontend:** `hooks/useAgentStream.ts` (12,241 bytes)  
+**Frontend:** `agui/useAgentEvents.ts`  
 **Backend:** `layer4-agents/src/api/routes/agent_stream.py` (8,336 bytes)
 
 **Gap:** No automatic reconnection on network failure.

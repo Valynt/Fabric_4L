@@ -49,13 +49,14 @@ The CI gates added in ADR-021 (`adr027-duplicate-source-trees`, `adr027-deprecat
 
 ### Migration Rule
 
-All imports must use service packages directly:
+During the migration window, all imports must move off the removed shims and
+use service packages or canonical service source roots directly:
 
 | Old (shim, deprecated) | New (canonical) |
 |------------------------|-----------------|
 | `from value_fabric.layer1 import ...` | `from layer1_ingestion import ...` |
 | `from value_fabric.layer2 import ...` | `from layer2_extraction import ...` |
-| `from value_fabric.layer3 import ...` | `from layer3_knowledge import ...` |
+| `from value_fabric.layer3 import ...` | Import from the canonical Layer 3 service source under `services/layer3-knowledge/src/` |
 | `from value_fabric.layer4 import ...` | `from layer4_agents import ...` |
 | `from value_fabric.layer5 import ...` | `from layer5_ground_truth import ...` |
 | `from value_fabric.layer6 import ...` | `from layer6_benchmarks import ...` |

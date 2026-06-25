@@ -8,7 +8,7 @@ The following files were incorrectly flagged as "high-confidence unused exports"
 |---|---|---|
 | `apps/web/src/pages/studio/NarrativeTab.tsx` | **KEEP** | Dynamically imported by `apps/web/src/features/value-studio/studioTabRegistry.ts` as `lazy(() => import("@/pages/studio/NarrativeTab"))` and mounted as the `narrative` tab in the Value Studio workspace. |
 | `apps/web/src/pages/InteractiveBusinessCase.tsx` | **KEEP** | Dynamically imported by `apps/web/src/shell/router.tsx` as `lazy(() => import("@/pages/InteractiveBusinessCase"))` and wired into the React Router route tree. |
-| `apps/web/src/pages/intelligence/ROITab.tsx` | **UNVERIFIED / DEAD-CODE CANDIDATE** | No `lazy(() => import(...))`, static `import`, or re-export reference found anywhere under `apps/web/src`. The active ROI calculator tab in `studioTabRegistry.ts` points to `@/pages/calculator/ROITab.tsx`, not this file. The expected re-export path `features/intelligence-workspace/tabs/calculator/ROITab.tsx` does not exist. `TODO(dead-code): FABRIC-REM-001` — evaluate under dead-code removal ticket. |
+| `apps/web/src/pages/intelligence/ROITab.tsx` | **REMOVED** | Deleted as dead code after verifying no `lazy(() => import(...))`, static import, re-export, route, or tab registry reference under `apps/web/src`; the active ROI calculator tab remains `@/pages/calculator/ROITab.tsx`. |
 | `apps/web/src/pages/value-case/ValueCasePage.tsx` | **KEEP** | Dynamically imported by `apps/web/src/features/value-studio/studioTabRegistry.ts` as `lazy(() => import("@/pages/value-case/ValueCasePage"))` and mounted as the `value-case` tab. |
 | `apps/web/src/pages/realization/RealizationPage.tsx` | **KEEP** | Dynamically imported by `apps/web/src/features/value-studio/studioTabRegistry.ts` as `lazy(() => import("@/pages/realization/RealizationPage"))` and mounted as the `value-realization` tab. |
 
@@ -21,7 +21,7 @@ The following files were incorrectly flagged as "high-confidence unused exports"
 
 ### Notes
 
-- `apps/web/src/pages/intelligence/ROITab.tsx` is **not** currently kept alive by any importer. It should be evaluated under a separate dead-code removal ticket unless a runtime importer is added. `TODO(dead-code): FABRIC-REM-001`
+- `apps/web/src/pages/intelligence/ROITab.tsx` was removed as dead code; the active ROI calculator remains `apps/web/src/pages/calculator/ROITab.tsx`.
 
 ## Validation
 
@@ -52,3 +52,4 @@ Commands were re-run on the clean worktree to verify that the dynamic-import ana
    ```
 
 Both failures reproduce on the clean worktree and are independent of the files listed in this allowlist. `typecheck` passes on its own; only `build` fails, and only for pre-existing environment/dependency reasons.
+

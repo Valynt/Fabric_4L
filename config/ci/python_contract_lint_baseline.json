@@ -328,8 +328,6 @@
     "services/billing/tests/test_api.py:22:tenant_context",
     "services/billing/tests/test_api.py:35:tenant_context",
     "services/layer1-ingestion/src/api/routes/compatibility.py:32:tenant_context",
-    "services/layer1-ingestion/src/compliance/robots_checker.py:56:tenant_context",
-    "services/layer1-ingestion/src/compliance/url_safety.py:120:tenant_context",
     "services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py:32:tenant_context",
     "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py:56:tenant_context",
     "services/layer1-ingestion/src/layer1_ingestion/compliance/url_safety.py:120:tenant_context",

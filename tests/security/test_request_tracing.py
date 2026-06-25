@@ -227,32 +227,36 @@ class TestRequestContextRequestID:
         )
 
     def test_request_id_in_to_log_dict(self):
-        """POSITIVE: request_id appears in to_log_dict() output."""
+        """POSITIVE: request and trace identifiers appear in to_log_dict() output."""
         from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
             auth_source=AUTH_SOURCE_JWT,
             request_id="req-log-dict-001",
+            trace_id="trace-log-dict-001",
         )
         log_dict = ctx.to_log_dict()
         assert "request_id" in log_dict, (
             "to_log_dict() must include 'request_id'."
         )
         assert log_dict["request_id"] == "req-log-dict-001"
+        assert log_dict["trace_id"] == "trace-log-dict-001"
 
     def test_request_id_in_to_dict(self):
-        """POSITIVE: request_id appears in to_dict() output."""
+        """POSITIVE: request and trace identifiers appear in to_dict() output."""
         from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
             auth_source=AUTH_SOURCE_JWT,
             request_id="req-dict-001",
+            trace_id="trace-dict-001",
         )
         d = ctx.to_dict()
         assert "request_id" in d, "to_dict() must include 'request_id'."
         assert d["request_id"] == "req-dict-001"
+        assert d["trace_id"] == "trace-dict-001"
 
     def test_adversarial_request_id_injection(self):
         """ADVERSARIAL: Injection payload in request_id is stored as a plain string."""
