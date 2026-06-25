@@ -206,8 +206,8 @@ class TestComplianceCheckStage:
                     with patch("layer1_ingestion.shared.tasks.get_metrics", return_value=None):
                         result = await _compliance_check_stage_async(mock_self, mock_job.id, str(mock_job.tenant_id))
 
-                            assert result["success"] is False
-                            assert "blocked" in result["error"].lower()
+                        assert result["success"] is False
+                        assert "blocked" in result["error"].lower()
 
 
 class TestBrowserCrawlStage:
