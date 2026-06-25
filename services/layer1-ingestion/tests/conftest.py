@@ -60,7 +60,11 @@ _otel_sdk_trace_exp.BatchSpanProcessor = getattr(_otel_sdk_trace_exp, "BatchSpan
 _otel_sdk_trace_exp.ConsoleSpanExporter = getattr(_otel_sdk_trace_exp, "ConsoleSpanExporter", type("ConsoleSpanExporter", (), {}))
 
 _otel_grpc = sys.modules.get("opentelemetry.exporter.otlp.proto.grpc.trace_exporter") or _make_pkg("opentelemetry.exporter.otlp.proto.grpc.trace_exporter")
-_otel_grpc.OTLPSpanExporter = getattr(_otel_grpc, "OTLPSpanExporter", type("OTLPSpanExporter", (), {}))
+_otel_grpc.OTLPSpanExporter = getattr(
+    _otel_grpc,
+    "OTLPSpanExporter",
+    type("OTLPSpanExporter", (), {"__init__": lambda self, **kwargs: None}),
+)
 
 try:
     import psycopg2  # noqa: F401

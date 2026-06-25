@@ -425,8 +425,8 @@ class TestExtractionPipeline:
     """
     
     @pytest.mark.skipif(
-        not os.getenv("OPENAI_API_KEY"),
-        reason="Requires OPENAI_API_KEY environment variable"
+        not os.getenv("OPENAI_API_KEY") or not os.getenv("LIVE_LLM_TESTS"),
+        reason="Requires OPENAI_API_KEY and LIVE_LLM_TESTS=1 (skipped in sandbox/CI)"
     )
     async def test_entity_extraction(self):
         """Test entity extraction with real LLM."""
@@ -446,7 +446,8 @@ class TestExtractionPipeline:
             text=text,
             source_url="https://test.com",
             extraction_job_id="test-job",
-            confidence_threshold=0.8
+            confidence_threshold=0.8,
+            telemetry_context={"tenant_id": "test-tenant"},
         )
         
         # Should extract at least one capability

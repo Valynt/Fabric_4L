@@ -13,6 +13,7 @@ from value_fabric.shared.identity.middleware import GovernanceMiddleware
 class _StubRateLimiter:
     def __init__(self) -> None:
         self.calls = 0
+        self.redis_client = None  # required by GovernanceMiddleware for TenantKillSwitch
 
     async def check(self, key: str, config):
         self.calls += 1

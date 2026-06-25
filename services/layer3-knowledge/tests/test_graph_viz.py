@@ -11,14 +11,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from layer3_knowledge.api.models import (
+from src.api.models import (
     GraphEdge,
     GraphNode,
     GraphNodeWithLayout,
     GraphResponse,
     SubgraphResponse,
 )
-from layer3_knowledge.api.routes.graph_viz import (
+from src.api.routes.graph_viz import (
     _build_graph_node,
     _calculate_density,
     _fetch_graph_edges,
@@ -373,7 +373,7 @@ class TestRecordMetrics:
 
     def test_record_full_graph_metrics_with_metrics(self):
         """Test metrics recording when metrics module is available."""
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics") as mock_get_metrics:
+        with patch("src.api.routes.graph_viz.get_metrics") as mock_get_metrics:
             mock_metrics = MagicMock()
             mock_get_metrics.return_value = mock_metrics
 
@@ -385,12 +385,12 @@ class TestRecordMetrics:
 
     def test_record_full_graph_metrics_without_metrics(self):
         """Test graceful handling when metrics module is not available."""
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics", return_value=None):
+        with patch("src.api.routes.graph_viz.get_metrics", return_value=None):
             _record_full_graph_metrics(100)  # Should not raise
 
     def test_record_subgraph_metrics_with_metrics(self):
         """Test subgraph metrics recording when metrics module is available."""
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics") as mock_get_metrics:
+        with patch("src.api.routes.graph_viz.get_metrics") as mock_get_metrics:
             mock_metrics = MagicMock()
             mock_get_metrics.return_value = mock_metrics
 
@@ -411,13 +411,14 @@ class TestGetFullGraph:
     async def test_get_full_graph_success(self, mock_app_state, sample_tenant_id):
         """Test successful full graph retrieval."""
         mock_app_state.neo4j_driver.execute_query.side_effect = [
-            [{"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9}],  # Nodes
+            # Nodes — include x/y/r so _build_graph_node returns GraphNodeWithLayout
+            [{"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9, "x": 0.0, "y": 0.0, "r": 5.0}],
             [{"source": "node-1", "target": "node-1", "rel_type": "SELF", "weight": 1.0}],  # Edges
             [{"total": 1}],  # Total nodes
             [{"total": 1}],  # Total edges
         ]
 
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics", return_value=None):
+        with patch("src.api.routes.graph_viz.get_metrics", return_value=None):
             response = await get_full_graph(sample_tenant_id, 1000, mock_app_state)
 
         assert isinstance(response, GraphResponse)
@@ -452,7 +453,7 @@ class TestGetEntitySubgraph:
             ],  # Subgraph
         ]
 
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics", return_value=None):
+        with patch("src.api.routes.graph_viz.get_metrics", return_value=None):
             response = await get_entity_subgraph("entity-1", sample_tenant_id, 2, mock_app_state)
 
         assert isinstance(response, SubgraphResponse)
@@ -479,7 +480,7 @@ class TestGetQuerySubgraph:
 
         mock_hybrid_search = AsyncMock()
 
-        with patch("layer3_knowledge.api.routes.graph_viz.get_metrics", return_value=None):
+        with patch("src.api.routes.graph_viz.get_metrics", return_value=None):
             response = await get_query_subgraph(
                 tenant_id=sample_tenant_id,
                 query=None,

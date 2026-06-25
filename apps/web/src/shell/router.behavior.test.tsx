@@ -107,11 +107,13 @@ describe("RootRedirect auth-provider boundary", () => {
     expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
   });
 
-  it("clerk mode: signed-out root routes to Clerk sign-in", () => {
+  it("clerk mode: signed-out root shows sign-in link", () => {
     setAuthProvider("clerk");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = false;
     renderRedirect();
+    // In Clerk mode, signed-out users are directed to the Clerk sign-in page,
+    // not the public marketing site. The default Clerk sign-in URL is /sign-in.
     expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
       "href",
       "/sign-in",

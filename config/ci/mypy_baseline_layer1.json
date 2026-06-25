@@ -1,6 +1,7 @@
 {
   "src/layer1_ingestion/api/_batch_and_stats.py": 12,
-  "src/layer1_ingestion/api/app_monolith.py": 167,
+  "src/layer1_ingestion/api/admin_handlers.py": 7,
+  "src/layer1_ingestion/api/compliance_handlers.py": 4,
   "src/layer1_ingestion/api/consent_routes.py": 36,
   "src/layer1_ingestion/shared/consent_service.py": 4
 }

@@ -172,8 +172,15 @@ class TestLoadConfig:
         config_file.write_text("max_concurrent: 7\n")
 
         first = load_config(config_file)
-        # Ensure mtime changes by writing after a small delay
+        # Explicitly advance mtime by 2 seconds to guarantee cache invalidation
+        # regardless of filesystem mtime resolution (e.g. 1-second granularity on
+        # some Linux filesystems when running inside a container).
+        import os
+        import time
+        current_mtime = config_file.stat().st_mtime
         config_file.write_text("max_concurrent: 9\n")
+        os.utime(config_file, (current_mtime + 2.0, current_mtime + 2.0))
+        time.sleep(0)  # yield to ensure stat is flushed
 
         second = load_config(config_file)
 

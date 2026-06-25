@@ -314,15 +314,18 @@ def get_engine() -> AsyncEngine:
     if _engine is None:
         database_url = get_database_url()
         _assert_rls_safe_database_url(database_url, source="Layer 4 database URL")
-        _engine = create_async_engine(
-            database_url,
-            pool_size=get_settings().database_pool_size,
-            max_overflow=get_settings().database_max_overflow,
-            pool_pre_ping=True,
-            pool_timeout=30.0,
-            echo=False,
-            future=True,
-        )
+        _is_sqlite = database_url.startswith("sqlite")
+        _engine_kwargs: dict = {
+            "pool_pre_ping": not _is_sqlite,
+            "echo": False,
+            "future": True,
+        }
+        if not _is_sqlite:
+            # SQLite uses StaticPool and does not accept pool_size/max_overflow/pool_timeout
+            _engine_kwargs["pool_size"] = get_settings().database_pool_size
+            _engine_kwargs["max_overflow"] = get_settings().database_max_overflow
+            _engine_kwargs["pool_timeout"] = 30.0
+        _engine = create_async_engine(database_url, **_engine_kwargs)
         _record_pool_state(_engine)
 
         @event.listens_for(_engine.sync_engine.pool, "checkout")

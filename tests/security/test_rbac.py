@@ -125,7 +125,6 @@ class TestRoleHierarchy:
 class TestPermissionGranularity:
     """Test permission-level granularity for read vs write operations."""
 
-    @pytest.mark.xfail(strict=True, reason='RBAC method enforcement returns 405 not 403/404 in test client')
     def test_read_permission_allows_get_blocks_post(self, client: TestClient, jwt_encoder):
         """P0: Read permission allows GET but blocks POST/PUT/DELETE."""
         read_only_token = jwt_encoder({

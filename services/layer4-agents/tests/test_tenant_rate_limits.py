@@ -155,6 +155,7 @@ class FakeRateLimiter:
     def __init__(self, allowed: bool = True):
         self.allowed = allowed
         self.calls = []
+        self.redis_client = None  # Required by GovernanceMiddleware._enforce_tenant_status
 
     async def check(self, key, config):
         self.calls.append((key, config))

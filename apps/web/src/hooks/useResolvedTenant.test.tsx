@@ -8,12 +8,23 @@ import React from "react";
 
 import { setupClerkSignedIn, resetClerkMocks, getClerkMocks } from "@/test/utils/clerkTestHelpers";
 
+// vi.mock must be in the test file (not a helper) so Vitest can hoist it.
 vi.mock("@clerk/react", () => ({
-  useAuth: vi.fn(),
-  useOrganization: vi.fn(),
+  useAuth: vi.fn(() => ({ isLoaded: true, isSignedIn: false, getToken: vi.fn() })),
+  useOrganization: vi.fn(() => ({ isLoaded: true, organization: null })),
+}));
+vi.mock("@/auth/clerkConfig", () => ({
+  isClerkAuthEnabled: vi.fn(() => false),
+  getClerkUrls: vi.fn(() => ({
+    signInUrl: "/sign-in",
+    signUpUrl: "/sign-up",
+    afterSignInUrl: "/home",
+    afterSignUpUrl: "/onboarding",
+    selectOrgUrl: "/workspaces",
+  })),
 }));
 
-const { useAuth: mockUseAuth, useOrganization: mockUseOrganization } = getClerkMocks();
+const { mockUseAuth, mockUseOrganization } = getClerkMocks();
 
 const mockGetToken = vi.fn<(template?: string) => Promise<string | null>>(async () => "clerk-token");
 
