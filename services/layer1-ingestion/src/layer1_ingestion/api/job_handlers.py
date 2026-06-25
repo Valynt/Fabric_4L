@@ -444,8 +444,6 @@ async def get_job_results(
     job_id: UUID,
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
-    include_raw: bool = Query(default=False),
-    fields: list[str] | None = Query(None),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
@@ -540,6 +538,7 @@ async def retry_job(
         db.add(stage_detail)
 
     new_job.status = JobStatus.QUEUED.value
+    db.commit()
 
     process_scraping_job.apply_async(
         args=[str(new_job.id), str(new_job.tenant_id)],

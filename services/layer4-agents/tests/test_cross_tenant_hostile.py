@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-"""Cross-tenant hostile invariants for layer4-agents."""
+"""Cross-tenant hostile invariants for layer4-agents.
+
+These tests prove runtime tenant isolation at the workflow controller level:
+a tenant can only archive, list, or transition workflows that belong to their
+own tenant, and the tenant kill-switch blocks suspended tenants.
+"""
 
 
 from datetime import UTC
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -13,29 +17,6 @@ from layer4_agents.engine.executor import OrchestrationController
 from layer4_agents.engine.state_manager import StateManager
 from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
 from layer4_agents.tools.registry import ToolRegistry
-
-
-def _load_service_code() -> str:
-    """Concatenate all Python source under the service ``src`` tree."""
-    service_root = Path(__file__).resolve().parents[1] / "src"
-    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in service_root.rglob("*.py"))
-
-
-def test_tenant_a_cannot_read_tenant_b_patterns_present() -> None:
-    content = _load_service_code()
-    assert "tenant_id" in content, "Expected tenant_id references in source"
-    assert "list_" in content or "get_" in content, "Expected read-style method names in source"
-
-
-def test_tenant_a_cannot_mutate_tenant_b_patterns_present() -> None:
-    content = _load_service_code()
-    assert "tenant_id" in content, "Expected tenant_id references in source"
-    assert (
-        "create" in content
-        or "update" in content
-        or "delete" in content
-        or "ingest" in content
-    ), "Expected write-style method names in source"
 
 
 # ---------------------------------------------------------------------------

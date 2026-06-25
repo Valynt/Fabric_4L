@@ -1,32 +1,54 @@
-"""Tenant context propagation guardrails for layer1-ingestion."""
+"""Tenant context propagation guardrails for layer1-ingestion.
+
+These tests prove that the L1 FastAPI dependencies extract tenant and user
+identity from the canonical governance context and fail closed when the
+context is missing or malformed.
+"""
 
 from __future__ import annotations
 
-from pathlib import Path
+import uuid
+from types import SimpleNamespace
+
+import pytest
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
+from value_fabric.shared.identity.context import RequestContext
+
+from layer1_ingestion.api.dependencies import get_current_user_id, get_tenant_id
 
 
-def _load_service_code() -> str:
-    """Concatenate all Python source under the service ``src`` tree."""
-    service_root = Path(__file__).resolve().parents[1] / "src"
-    py_files = list(service_root.rglob("*.py"))
-    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in py_files)
+def _make_request(context: RequestContext | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        state=SimpleNamespace(governance_context=context),
+        url=SimpleNamespace(path="/test"),
+    )
 
 
-def test_repository_calls_use_context_tenant_id() -> None:
-    """Enforce trusted context propagation by checking canonical route code."""
-    content = _load_service_code()
-    assert (
-        "tenant_id=ctx.tenant_id" in content
-        or "tenant_id=context.tenant_id" in content
-        or "return ctx.tenant_id" in content
-        or "tenant_id=str(ctx.tenant_id)" in content
-    ), "Expected tenant_id propagated from trusted context object"
+def test_get_tenant_id_extracts_from_governance_context() -> None:
+    tenant_id = uuid.uuid4()
+    request = _make_request(context=RequestContext(tenant_id=tenant_id))
+    assert get_tenant_id(request) == tenant_id
 
 
-def test_missing_tenant_context_has_fail_closed_guard() -> None:
-    content = _load_service_code()
-    assert (
-        "Tenant context required" in content
-        or "require_tenant_context" in content
-        or "HTTPException(status_code=401" in content
-    ), "Expected fail-closed guard for missing tenant context"
+def test_get_tenant_id_fails_closed_without_context() -> None:
+    request = _make_request(context=None)
+    with pytest.raises(AuthenticationError, match="Authentication required"):
+        get_tenant_id(request)
+
+
+def test_get_current_user_id_extracts_uuid_from_governance_context() -> None:
+    user_id = uuid.uuid4()
+    request = _make_request(context=RequestContext(tenant_id=uuid.uuid4(), user_id=str(user_id)))
+    assert get_current_user_id(request) == user_id
+
+
+def test_get_current_user_id_fails_closed_without_context() -> None:
+    request = _make_request(context=None)
+    with pytest.raises(AuthenticationError, match="Authentication required"):
+        get_current_user_id(request)
+
+
+def test_get_current_user_id_rejects_invalid_uuid_format() -> None:
+    request = _make_request(context=RequestContext(tenant_id=uuid.uuid4(), user_id="not-a-uuid"))
+    with pytest.raises(AuthenticationError, match="Invalid user ID format"):
+        get_current_user_id(request)

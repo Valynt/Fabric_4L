@@ -1,6 +1,6 @@
 # mypy: ignore-missing-imports, disable-error-code="import-not-found,import-untyped,type-arg,no-any-return,no-untyped-def,truthy-function,list-item,assignment,arg-type,call-overload,union-attr,var-annotated,misc,attr-defined"
 from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError as AuthorizationError,
+    AuthorizationError,
 )
 
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
@@ -63,10 +63,8 @@ from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import (
     engine,
+    get_db_from_context_sync,
     redis_client_async,
-)
-from ..shared.database import (
-    get_db_from_context_sync as get_db_from_context_sync,
 )
 from ..shared.models import AccountIntelligencePacket, SourceCorpus
 from .admin_handlers import (
@@ -526,8 +524,8 @@ from .source_routes import register_routes as register_source_routes
 register_source_routes(router)
 register_consent_routes(router)
 router.include_router(target_routes)
-router.include_router(job_routes)
 router.include_router(skill_routes)
+router.include_router(job_routes)
 router.include_router(content_routes)
 router.include_router(compliance_routes)
 router.include_router(admin_routes)

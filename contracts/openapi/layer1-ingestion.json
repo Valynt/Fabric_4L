@@ -1393,46 +1393,6 @@
               "default": 20,
               "title": "Limit"
             }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "pattern": "^(json|csv|ndjson)$",
-              "default": "json",
-              "title": "Format"
-            }
-          },
-          {
-            "name": "include_raw",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Include Raw"
-            }
-          },
-          {
-            "name": "fields",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Fields"
-            }
           }
         ],
         "responses": {

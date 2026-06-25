@@ -98,6 +98,8 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
     try:
         from ..shared.database import redis_client
 
+        if redis_client is None:
+            raise ConnectionError("Redis client not configured")
         redis_client.ping()
         components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
     except (redis.RedisError, ConnectionError) as e:

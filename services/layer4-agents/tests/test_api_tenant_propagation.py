@@ -1,30 +1,53 @@
 from __future__ import annotations
 
-"""Tenant context propagation guardrails for layer4-agents."""
+"""Tenant context propagation guardrails for layer4-agents.
+
+These tests prove that the Layer 4 tenant context API extracts tenant identity
+from the canonical shared request context and fails closed when context is missing.
+"""
+
+import uuid
+
+import pytest
+from value_fabric.shared.identity.context import RequestContext, set_request_context
+
+from layer4_agents.tenant.context import TenantContext, get_current_tenant
 
 
-from pathlib import Path
+def test_get_current_tenant_extracts_from_shared_request_context():
+    tenant_id = uuid.uuid4()
+    ctx = RequestContext(tenant_id=tenant_id, user_id="user-1", roles=["admin"])
+    token = set_request_context(ctx)
+    try:
+        tenant = get_current_tenant()
+        assert isinstance(tenant, TenantContext)
+        assert tenant.tenant_id == str(tenant_id)
+        assert tenant.user_id == "user-1"
+        assert tenant.roles == ["admin"]
+    finally:
+        set_request_context(None)
 
 
-def _load_service_code() -> str:
-    """Concatenate all Python source under the service ``src`` tree."""
-    service_root = Path(__file__).resolve().parents[1] / "src"
-    py_files = list(service_root.rglob("*.py"))
-    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in py_files)
+def test_get_current_tenant_returns_none_without_context():
+    set_request_context(None)
+    assert get_current_tenant() is None
 
 
-def test_repository_calls_use_context_tenant_id() -> None:
-    """Enforce trusted context propagation by checking canonical route code."""
-    content = _load_service_code()
-    assert (
-        "tenant_id=ctx.tenant_id" in content or "tenant_id=context.tenant_id" in content
-    ), "Expected tenant_id propagated from trusted context object"
+def test_get_current_tenant_returns_none_with_empty_tenant_id():
+    ctx = RequestContext(tenant_id="", user_id="user-1")
+    token = set_request_context(ctx)
+    try:
+        assert get_current_tenant() is None
+    finally:
+        set_request_context(None)
 
 
-def test_missing_tenant_context_has_fail_closed_guard() -> None:
-    content = _load_service_code()
-    assert (
-        "Tenant context required" in content
-        or "require_tenant_context" in content
-        or "HTTPException(status_code=401" in content
-    ), "Expected fail-closed guard for missing tenant context"
+def test_tenant_context_round_trip_preserves_identity():
+    tenant = TenantContext(tenant_id="tenant-a", user_id="user-1", roles=["admin"], metadata={"key": "value"})
+    data = tenant.to_dict()
+    restored = TenantContext.from_dict(data)
+
+    assert restored.tenant_id == "tenant-a"
+    assert restored.user_id == "user-1"
+    assert restored.roles == ["admin"]
+    assert restored.metadata == {"key": "value"}

@@ -207,6 +207,7 @@ def _create_skill_job(
         db.add(stage_detail)
 
     job.status = JobStatus.QUEUED.value
+    db.commit()
     process_scraping_job.apply_async(
         args=[str(job.id), str(job.tenant_id)],
         **(build_celery_options() or {}),

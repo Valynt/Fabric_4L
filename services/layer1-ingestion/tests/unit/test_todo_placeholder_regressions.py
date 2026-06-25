@@ -23,12 +23,32 @@ SKILL_HANDLERS_PATH = (
     / "api"
     / "skill_handlers.py"
 )
+ADMIN_HANDLERS_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "layer1_ingestion"
+    / "api"
+    / "admin_handlers.py"
+)
+COMPLIANCE_HANDLERS_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "layer1_ingestion"
+    / "api"
+    / "compliance_handlers.py"
+)
 TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
 
 
 def test_api_runtime_placeholders_not_hardcoded() -> None:
     """API must not return TODO-era hardcoded constants."""
-    source = API_MAIN_PATH.read_text(encoding="utf-8")
+    source = (
+        API_MAIN_PATH.read_text(encoding="utf-8")
+        + TARGET_HANDLERS_PATH.read_text(encoding="utf-8")
+        + SKILL_HANDLERS_PATH.read_text(encoding="utf-8")
+        + ADMIN_HANDLERS_PATH.read_text(encoding="utf-8")
+        + COMPLIANCE_HANDLERS_PATH.read_text(encoding="utf-8")
+    )
 
     disallowed_literals = [
         "queue_position=1",
@@ -48,6 +68,8 @@ def test_api_unknown_values_include_explanatory_metadata() -> None:
         API_MAIN_PATH.read_text(encoding="utf-8")
         + TARGET_HANDLERS_PATH.read_text(encoding="utf-8")
         + SKILL_HANDLERS_PATH.read_text(encoding="utf-8")
+        + ADMIN_HANDLERS_PATH.read_text(encoding="utf-8")
+        + COMPLIANCE_HANDLERS_PATH.read_text(encoding="utf-8")
     )
 
     required_metadata_fields = [

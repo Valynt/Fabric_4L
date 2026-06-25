@@ -17,12 +17,111 @@ Invariants:
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from layer1_ingestion.shared.models import JobStatus, ScrapingJob, ScrapingTarget
 
 BASE = "/api/v1/ingestion"
+API_DIR = Path(__file__).resolve().parents[1] / "src" / "layer1_ingestion" / "api"
+
+ROUTE_HANDLER_NAMES = {
+    "create_licensing_company_intake_job",
+    "create_prospect_research_job",
+    "create_proxy_pool_endpoint",
+    "create_target",
+    "delete_target",
+    "execute_target",
+    "get_account_intelligence_packet",
+    "get_account_intelligence_packet_detail",
+    "get_compliance_summary",
+    "get_domain_fallback_stats",
+    "get_extracted_data",
+    "get_job",
+    "get_job_progress",
+    "get_job_results",
+    "get_job_router_report",
+    "get_job_skill_output",
+    "get_raw_content",
+    "get_source_corpus",
+    "get_source_corpus_detail",
+    "get_target",
+    "get_target_decisions",
+    "health_check",
+    "list_account_intelligence_packets",
+    "list_compliance_logs",
+    "list_content",
+    "list_jobs",
+    "list_source_corpora",
+    "list_targets",
+    "metrics_endpoint",
+    "retry_job",
+    "trigger_cleanup",
+    "update_target",
+    "validate_target",
+}
+
+HANDLER_MODULES = {
+    "admin_handlers.py",
+    "compliance_handlers.py",
+    "content_handlers.py",
+    "job_handlers.py",
+    "skill_handlers.py",
+    "target_handlers.py",
+}
+
+ROUTE_MODULES = {
+    "main_admin_routes.py",
+    "main_compliance_routes.py",
+    "main_content_routes.py",
+    "main_job_routes.py",
+    "main_skill_routes.py",
+    "main_target_routes.py",
+}
+
+
+def _async_function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return {
+        node.name for node in ast.walk(tree) if isinstance(node, ast.AsyncFunctionDef)
+    }
+
+
+# ---------------------------------------------------------------------------
+# Static route ownership
+# ---------------------------------------------------------------------------
+
+
+def test_layer1_main_does_not_define_split_route_handlers() -> None:
+    """api/main.py remains app bootstrap and compatibility exports only."""
+    main_handlers = _async_function_names(API_DIR / "main.py") & ROUTE_HANDLER_NAMES
+    assert main_handlers == set()
+
+
+def test_layer1_split_route_handlers_have_single_canonical_owner() -> None:
+    """Each public route handler lives in exactly one extracted handler module."""
+    owners: dict[str, list[str]] = {name: [] for name in ROUTE_HANDLER_NAMES}
+    for filename in HANDLER_MODULES:
+        names = _async_function_names(API_DIR / filename)
+        for handler_name in ROUTE_HANDLER_NAMES & names:
+            owners[handler_name].append(filename)
+
+    assert {name for name, files in owners.items() if not files} == set()
+    assert {name: files for name, files in owners.items() if len(files) > 1} == {}
+
+
+def test_layer1_split_route_modules_do_not_register_main_handlers() -> None:
+    """Route registration modules import concrete handler modules, not api.main."""
+    offenders = []
+    for filename in ROUTE_MODULES:
+        source = (API_DIR / filename).read_text(encoding="utf-8")
+        if "from . import main" in source or "main." in source:
+            offenders.append(filename)
+
+    assert offenders == []
 
 
 @pytest.fixture(autouse=True)
