@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from fastapi import HTTPException
 
+from ..security.redaction import redact_credentials
 from .exceptions import ValueFabricException
 from .helpers import sanitize_log_error
 from .models import ErrorCode
@@ -68,16 +69,21 @@ def sanitize_public_error(exc: BaseException, *, status_code: int = 500) -> Publ
 
 
 def sanitize_error_message(message: str) -> str:
-    """Redact sensitive identifier values from public-facing error messages.
+    """Redact sensitive identifier values and credentials from public-facing error messages.
 
     Internal IDs (tenant, subscription, customer, user, org, workspace, account)
     are replaced with ``<redacted>`` to prevent cross-tenant information leakage
-    and subscription identifier exposure.  Generic guidance text is preserved so
-    the response remains actionable.
+    and subscription identifier exposure. Credentials (passwords, tokens, API keys)
+    are also redacted to prevent secret exposure. Generic guidance text is preserved
+    so the response remains actionable.
     """
     if not message:
         return message
-    return _IDENTIFIER_REDACTION_RE.sub(lambda m: f"{m.group(1)}=<redacted>", message)
+    # First redact identifiers
+    message = _IDENTIFIER_REDACTION_RE.sub(lambda m: f"{m.group(1)}=<redacted>", message)
+    # Then redact credentials (passwords, tokens, API keys)
+    message = redact_credentials(message)
+    return message
 
 
 def sanitize_error_for_log(exc: BaseException) -> str:
