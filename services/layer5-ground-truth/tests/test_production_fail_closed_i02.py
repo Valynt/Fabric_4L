@@ -13,8 +13,11 @@ from pydantic import ValidationError
 
 from layer5_ground_truth.config import Settings
 
-# Mark all tests in this file as requiring PostgreSQL
-pytestmark = pytest.mark.requires_postgres
+# RB-5 FIX: The blanket requires_postgres pytestmark was incorrectly applied
+# to the entire file. TestLayer5ProductionSettingsFailClosed only tests
+# Settings() validation (pydantic) — it does NOT require a live PostgreSQL
+# instance. Applying requires_postgres only to TestLayer5GetCurrentUserHardening
+# which exercises the actual database auth layer.
 
 VALID_JWT_SECRET = "layer5-production-secret-with-more-than-32-characters"
 VALID_DATABASE_URL = "postgresql://layer5_app:strong-password@layer5-db.internal:5432/layer5_prod"
@@ -294,6 +297,7 @@ class TestLayer5ProductionSettingsFailClosed:
         )
 
 
+@pytest.mark.requires_postgres
 class TestLayer5GetCurrentUserHardening:
     """Regression coverage for ``get_current_user`` adapter.
 
