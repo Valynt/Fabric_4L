@@ -19,6 +19,9 @@ A workflow is considered release-significant when it appears in the **P0** or **
 | UI design readiness | `pnpm run test:ui-readiness` passes and confirms release-significant paths keep documented state, accessibility, and placeholder guardrails. |
 | Build and bundle confidence | `pnpm run build` and `pnpm run test:bundle-budget` pass. |
 | Master workflow traceability | `docs/validation/product_workflow_validation_inventory.md` remains aligned to P0/P1 evidence owners in this matrix. |
+| Executable workflow contracts | `docs/frontend-workflow-contracts.json` defines actions, UI proof, backend proof, security invariants, audit invariants, failure cases, and evidence files for each P0/P1 workflow; `pnpm run test:workflow-contracts` enforces the contract. |
+| Route inventory safety | `pnpm run test:route-inventory` verifies `TieredNav` destinations resolve to canonical router entries, protected/admin routes carry access-policy metadata, and legacy redirects target real tenant-scoped routes. |
+| Release evidence supplement | `pnpm run verify:frontend:release` requires `FRONTEND_RELEASE_EVIDENCE` to point at a redacted JSON file shaped like `docs/frontend-release-evidence.template.json`; `pnpm run test:frontend-release-evidence` fails closed unless the evidence records exact commit SHA, image digest, production-build status, live P0 browser journeys against real internal infra, no unexpected browser errors, no HTTP 5xx, no unhandled mock requests, no failed background jobs, authorization-matrix pass counts, API and retrieval tenant-isolation results, approval/export/audit results, live-provider smoke, post-deploy synthetics, trace retention, and canonical release evidence packet status. |
 
 ## Alignment With Comprehensive Workflow Inventory
 

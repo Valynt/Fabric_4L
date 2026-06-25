@@ -175,6 +175,13 @@ function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string })
     }
   }
 
+  function startOAuthSignIn(strategy: OAuthStrategy): void {
+    handleOAuthSignIn(strategy).catch((authError) => {
+      setError(getSafeAuthError(authError));
+      setPendingAction(null);
+    });
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <div className="grid min-h-screen lg:grid-cols-2">
@@ -213,7 +220,7 @@ function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string })
                       className="w-full"
                       disabled={isBusy}
                       data-testid="oauth-google"
-                      onClick={() => void handleOAuthSignIn("oauth_google")}
+                      onClick={() => startOAuthSignIn("oauth_google")}
                     >
                       {pendingAction === "oauth_google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
                       Continue with Google
@@ -225,7 +232,7 @@ function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string })
                         className="w-full"
                         disabled={isBusy}
                         data-testid="oauth-apple"
-                        onClick={() => void handleOAuthSignIn("oauth_apple")}
+                        onClick={() => startOAuthSignIn("oauth_apple")}
                       >
                         {pendingAction === "oauth_apple" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Apple className="size-4" aria-hidden="true" />}
                         Apple
@@ -236,7 +243,7 @@ function CustomClerkSignInScreen({ redirectTarget }: { redirectTarget: string })
                         className="w-full"
                         disabled={isBusy}
                         data-testid="oauth-microsoft"
-                        onClick={() => void handleOAuthSignIn("oauth_microsoft")}
+                        onClick={() => startOAuthSignIn("oauth_microsoft")}
                       >
                         {pendingAction === "oauth_microsoft" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <MicrosoftIcon />}
                         Microsoft

@@ -1,6 +1,6 @@
 # Async Boundary Inventory
 
-Generated: 2026-06-18T09:02:38.408Z
+Generated: 2026-06-25T19:22:02.346Z
 
 ## src/api/auth.ts
 - L26 [async-boundary] `async function registerWithEmailPassword`
@@ -21,7 +21,7 @@ Generated: 2026-06-18T09:02:38.408Z
 - L21 [async-boundary] `async function search`
 
 ## src/api/thesysClient.ts
-- L184 [async-boundary] `async function evaluateWhatIf`
+- L148 [async-boundary] `async function evaluateWhatIf`
 
 ## src/api/typedClient.ts
 - L13 [async-boundary] `async function apiGet`
@@ -44,10 +44,10 @@ Generated: 2026-06-18T09:02:38.408Z
 - L153 [async-boundary] `async function importValueTree`
 
 ## src/app/settings/access.ts
-- L47 [async-boundary] `async function fetchEffectivePermissions`
+- L27 [async-boundary] `async function fetchEffectivePermissions`
 
 ## src/app/settings/pages/BillingWorkspace.tsx
-- L30 [async-boundary] `const handleSave = async (`
+- L31 [async-boundary] `const handleSave = async (`
 
 ## src/auth/clerkSession.ts
 - L62 [async-boundary] `async function getClerkSessionToken`
@@ -62,8 +62,8 @@ Generated: 2026-06-18T09:02:38.408Z
 - L16 [async-boundary] `const handleExport = async (`
 
 ## src/components/login-form.tsx
-- L146 [async-boundary] `const handleSubmit = async (`
-- L375 [async-boundary] `const handleSubmit = async (`
+- L143 [async-boundary] `const handleSubmit = async (`
+- L359 [async-boundary] `const handleSubmit = async (`
 
 ## src/components/skill-outputs/SkillJobLauncher.tsx
 - L59 [async-boundary] `async function handleSubmit`
@@ -75,10 +75,10 @@ Generated: 2026-06-18T09:02:38.408Z
 - L1286 [async-boundary] `const handleAttach = async (`
 
 ## src/contexts/AuthContext.tsx
-- L113 [async-boundary] `const initiateLogin = async (`
-- L117 [async-boundary] `const handleCallback = async (`
-- L122 [async-boundary] `const logout = async (`
-- L131 [async-boundary] `const refreshToken = async (`
+- L62 [async-boundary] `const initiateLogin = async (`
+- L66 [async-boundary] `const handleCallback = async (`
+- L71 [async-boundary] `const logout = async (`
+- L80 [async-boundary] `const refreshToken = async (`
 
 ## src/hooks/useAcademy.ts
 - L120 [async-boundary] `async function fetchPillars`
@@ -110,7 +110,7 @@ Generated: 2026-06-18T09:02:38.408Z
 - L440 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useApiShared.ts
-- L82 [async-boundary] `async function withApiError`
+- L83 [async-boundary] `async function withApiError`
 
 ## src/hooks/useBenchmarks.ts
 - L82 [async-boundary] `async function fetchBenchmarks`
@@ -191,7 +191,7 @@ Generated: 2026-06-18T09:02:38.408Z
 - L182 [async-boundary] `async function fetchProductStats`
 - L202 [async-boundary] `queryFn: async (`
 - L266 [async-boundary] `mutationFn: async (`
-- L421 [async-boundary] `queryFn: async (`
+- L394 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useExtraction.ts
 - L76 [async-boundary] `queryFn: async (`
@@ -331,18 +331,16 @@ Generated: 2026-06-18T09:02:38.408Z
 
 ## src/hooks/useOntology.ts
 - L170 [async-boundary] `queryFn: async (`
-- L185 [async-boundary] `queryFn: async (`
-- L220 [async-boundary] `mutationFn: async (`
-- L256 [async-boundary] `mutationFn: async (`
-- L292 [async-boundary] `mutationFn: async (`
-- L315 [async-boundary] `mutationFn: async (`
-- L360 [async-boundary] `mutationFn: async (`
-- L406 [async-boundary] `mutationFn: async (`
-- L438 [async-boundary] `mutationFn: async (`
-- L474 [async-boundary] `mutationFn: async (`
-- L496 [async-boundary] `mutationFn: async (`
-- L533 [async-boundary] `mutationFn: async (`
-- L575 [async-boundary] `mutationFn: async (`
+- L183 [async-boundary] `mutationFn: async (`
+- L219 [async-boundary] `mutationFn: async (`
+- L255 [async-boundary] `mutationFn: async (`
+- L278 [async-boundary] `mutationFn: async (`
+- L323 [async-boundary] `mutationFn: async (`
+- L355 [async-boundary] `mutationFn: async (`
+- L391 [async-boundary] `mutationFn: async (`
+- L413 [async-boundary] `mutationFn: async (`
+- L450 [async-boundary] `mutationFn: async (`
+- L492 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useOperationalAudit.ts
 - L68 [async-boundary] `async function fetchOperationalAudit`
@@ -377,6 +375,9 @@ Generated: 2026-06-18T09:02:38.408Z
 - L61 [async-boundary] `queryFn: async (`
 - L85 [async-boundary] `mutationFn: async (`
 
+## src/hooks/useResolvedTenant.ts
+- L86 [async-boundary] `queryFn: async (`
+
 ## src/hooks/useROICalculator.ts
 - L161 [async-boundary] `async function fetchTemplates`
 - L166 [async-boundary] `async function fetchCalculations`
@@ -410,30 +411,30 @@ Generated: 2026-06-18T09:02:38.408Z
 - L310 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useSources.ts
-- L390 [async-boundary] `queryFn: async (`
-- L427 [async-boundary] `queryFn: async (`
-- L450 [async-boundary] `queryFn: async (`
-- L481 [async-boundary] `mutationFn: async (`
-- L507 [async-boundary] `mutationFn: async (`
-- L554 [async-boundary] `mutationFn: async (`
-- L574 [async-boundary] `mutationFn: async (`
-- L602 [async-boundary] `mutationFn: async (`
+- L383 [async-boundary] `queryFn: async (`
+- L420 [async-boundary] `queryFn: async (`
+- L443 [async-boundary] `queryFn: async (`
+- L464 [async-boundary] `mutationFn: async (`
+- L490 [async-boundary] `mutationFn: async (`
+- L537 [async-boundary] `mutationFn: async (`
+- L557 [async-boundary] `mutationFn: async (`
+- L585 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useSuperAdminOverview.ts
 - L33 [async-boundary] `async function fetchTenantOverview`
 
 ## src/hooks/useTargets.ts
-- L280 [async-boundary] `queryFn: async (`
-- L316 [async-boundary] `queryFn: async (`
-- L334 [async-boundary] `queryFn: async (`
-- L358 [async-boundary] `queryFn: async (`
-- L397 [async-boundary] `mutationFn: async (`
-- L418 [async-boundary] `mutationFn: async (`
-- L441 [async-boundary] `mutationFn: async (`
-- L463 [async-boundary] `mutationFn: async (`
-- L490 [async-boundary] `mutationFn: async (`
-- L534 [async-boundary] `mutationFn: async (`
-- L580 [async-boundary] `mutationFn: async (`
+- L273 [async-boundary] `queryFn: async (`
+- L309 [async-boundary] `queryFn: async (`
+- L327 [async-boundary] `queryFn: async (`
+- L343 [async-boundary] `queryFn: async (`
+- L382 [async-boundary] `mutationFn: async (`
+- L403 [async-boundary] `mutationFn: async (`
+- L426 [async-boundary] `mutationFn: async (`
+- L448 [async-boundary] `mutationFn: async (`
+- L475 [async-boundary] `mutationFn: async (`
+- L519 [async-boundary] `mutationFn: async (`
+- L565 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useTasks.ts
 - L60 [async-boundary] `queryFn: async (`
@@ -495,21 +496,23 @@ Generated: 2026-06-18T09:02:38.408Z
 - L121 [async-boundary] `mutationFn: async (`
 - L151 [async-boundary] `mutationFn: async (`
 - L185 [async-boundary] `mutationFn: async (`
-- L219 [async-boundary] `mutationFn: async (`
-- L260 [async-boundary] `mutationFn: async (`
-- L314 [async-boundary] `async function getOrCreateCanonicalCaseId`
-- L343 [async-boundary] `async function persistWorkspaceTab`
+- L235 [async-boundary] `mutationFn: async (`
+- L289 [async-boundary] `async function getOrCreateCanonicalCaseId`
+- L318 [async-boundary] `async function persistWorkspaceTab`
+
+## src/lib/clipboard.ts
+- L7 [async-boundary] `async function copyToClipboard`
 
 ## src/pages/admin/FormulaGovernance.tsx
 - L228 [async-boundary] `const handleApprovalAction = async (`
 
 ## src/pages/admin/PermissionsAdmin.tsx
-- L164 [async-boundary] `const handleInvite = async (`
-- L175 [async-boundary] `const handleCreateKey = async (`
-- L199 [async-boundary] `const handleRevokeConfirm = async (`
+- L169 [async-boundary] `const handleInvite = async (`
+- L183 [async-boundary] `const handleCreateKey = async (`
+- L210 [async-boundary] `const handleRevokeConfirm = async (`
 
 ## src/pages/admin/PlatformSettings.tsx
-- L415 [async-boundary] `const handleUpdate = async (`
+- L422 [async-boundary] `const handleUpdate = async (`
 
 ## src/pages/admin/VariableRegistry.tsx
 - L206 [async-boundary] `const handleTestBinding = async (`
@@ -520,137 +523,10 @@ Generated: 2026-06-18T09:02:38.408Z
 - L129 [async-boundary] `mutationFn: async (`
 
 ## src/pages/ClerkSignIn.tsx
-- L131 [async-boundary] `async function handleEmailSignIn`
-- L162 [async-boundary] `async function handleOAuthSignIn`
-- L351 [async-boundary] `useEffect(() => {`
-- L379 [async-boundary] `useEffect(() => {`
-- L215 [fire-and-forget-no-catch] `void handleOAuthSignIn("oauth_google")}
-                    >
-                      {pendingAction === "oauth_google" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <GoogleIcon />}
-                      Continue with Google
-                    </Button>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isBusy}
-                        data-testid="oauth-apple"
-                        onClick={() => void handleOAuthSignIn("oauth_apple")}
-                      >
-                        {pendingAction === "oauth_apple" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Apple className="size-4" aria-hidden="true" />}
-                        Apple
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isBusy}
-                        data-testid="oauth-microsoft"
-                        onClick={() => void handleOAuthSignIn("oauth_microsoft")}
-                      >
-                        {pendingAction === "oauth_microsoft" ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <MicrosoftIcon />}
-                        Microsoft
-                      </Button>
-                    </div>
-                  </FieldGroup>
-
-                  <FieldSeparator>Or continue with email</FieldSeparator>
-
-                  <FieldGroup className="gap-4">
-                    <Field data-invalid={Boolean(error)}>
-                      <FieldLabel htmlFor={emailId}>Email</FieldLabel>
-                      <Input
-                        id={emailId}
-                        data-testid="login-email"
-                        type="email"
-                        autoComplete="username"
-                        placeholder="name@company.com"
-                        value={email}
-                        disabled={isBusy}
-                        aria-describedby={error ? errorId : undefined}
-                        aria-invalid={Boolean(error)}
-                        onChange={(event) => setEmail(event.target.value)}
-                      />
-                    </Field>
-
-                    <Field data-invalid={Boolean(error)}>
-                      <div className="flex items-center justify-between gap-3">
-                        <FieldLabel htmlFor={passwordId}>Password</FieldLabel>
-                        <Link
-                          to={\`${urls.signInUrl}/forgot-password\`}
-                          className="text-sm text-primary underline-offset-4 hover:underline"
-                          data-testid="forgot-password-link"
-                        >
-                          Forgot password?
-                        </Link>
-                      </div>
-                      <Input
-                        id={passwordId}
-                        data-testid="login-password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        disabled={isBusy}
-                        aria-describedby={error ? errorId : undefined}
-                        aria-invalid={Boolean(error)}
-                        onChange={(event) => setPassword(event.target.value)}
-                      />
-                      <FieldError>{error}</FieldError>
-                    </Field>
-                  </FieldGroup>
-
-                  <Button type="submit" className="w-full" disabled={isBusy} data-testid="login-submit">
-                    {pendingAction === "email" ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-
-                  <p className="text-center text-sm text-muted-foreground">
-                    No account yet?{" "}
-                    <Link to={urls.signUpUrl} className="font-medium text-primary underline-offset-4 hover:underline" data-testid="signup-link">
-                      Create one
-                    </Link>
-                  </p>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        <section className="hidden bg-muted lg:block">
-          <div className="flex h-full flex-col justify-between p-10">
-            <div className="flex flex-col gap-4">
-              <div className="w-fit rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-                Ontology-guided revenue operations
-              </div>
-              <h2 className="max-w-xl text-3xl font-semibold tracking-normal text-foreground">
-                Turn evidence, workflows, and benchmarks into auditable value cases.
-              </h2>
-              <p className="max-w-lg text-sm leading-6 text-muted-foreground">
-                Secure access protects tenant-scoped intelligence, agent workflows, and governed business-case evidence.
-              </p>
-            </div>
-            <Card>
-              <CardContent className="flex flex-col gap-3 p-4">
-                {["Tenant-aware workspaces", "Evidence-backed claims", "Provider-agnostic agents"].map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm text-foreground">
-                    <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-                    {item}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      </div>
-    </main>
-  );`
+- L132 [async-boundary] `async function handleEmailSignIn`
+- L163 [async-boundary] `async function handleOAuthSignIn`
+- L359 [async-boundary] `useEffect(() => {`
+- L387 [async-boundary] `useEffect(() => {`
 
 ## src/pages/CollaborationCommentsPage.tsx
 - L29 [async-boundary] `const handleSubmit = async (`
@@ -680,7 +556,7 @@ Generated: 2026-06-18T09:02:38.408Z
 - L129 [async-boundary] `onClick={async (`
 
 ## src/pages/ValueNarrativeHome.tsx
-- L215 [async-boundary] `const handleLaunch = async (`
+- L214 [async-boundary] `const handleLaunch = async (`
 
 ## src/pages/ValueTreeExplorer.tsx
 - L303 [async-boundary] `const handleCreateTree = async (`

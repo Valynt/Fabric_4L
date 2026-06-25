@@ -60,6 +60,48 @@
       "allowed_agents": ["test-assurance"]
     },
     {
+      "skill_id": "invariant-driven-testing",
+      "name": "invariant-driven-testing",
+      "version": "1.0.0",
+      "description": "Turn user workflows into testable business and security invariants through adversarial design, tenant isolation, full-stack automation, business-rule validation, failure injection, observability, environment engineering, and honest reporting.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workflow": { "type": "string" },
+          "target_layer": { "type": "string", "enum": ["frontend", "layer1", "layer2", "layer3", "layer4", "layer5", "layer6", "cross_layer"] },
+          "scope": { "type": "array", "items": { "type": "string", "enum": ["all", "adversarial", "tenant_isolation", "full_stack", "business_rules", "failure_injection", "observability", "environment", "readiness"] }, "default": ["all"] },
+          "severity_threshold": { "type": "string", "enum": ["P0", "P1", "P2", "P3"], "default": "P0" },
+          "generate_tests": { "type": "boolean", "default": true },
+          "report_path": { "type": "string", "default": "artifacts/testing/invariant-driven-report.md" }
+        },
+        "required": ["workflow", "target_layer"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "tests_written": { "type": "array", "items": { "type": "string" } },
+          "gap_matrix": { "type": "object" },
+          "verification_result": { "type": "string", "enum": ["pass", "fail", "partial"] },
+          "report_path": { "type": "string" },
+          "readiness_assessment": {
+            "type": "object",
+            "properties": {
+              "verdict": { "type": "string", "enum": ["Go", "Conditional Go", "No-Go"] },
+              "rationale": { "type": "string" },
+              "verified_count": { "type": "integer" },
+              "assumed_count": { "type": "integer" },
+              "skipped_count": { "type": "integer" }
+            },
+            "required": ["verdict"]
+          }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 300000,
+      "required_context": ["project_graph", "test_inventory", "production_invariants"],
+      "allowed_agents": ["*"]
+    },
+    {
       "skill_id": "contract-enforcement-auditor",
       "name": "contract-enforcement-auditor",
       "version": "1.0.0",

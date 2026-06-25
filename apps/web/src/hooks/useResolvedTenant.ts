@@ -70,8 +70,6 @@ function normalizeTenant(response: ClerkTenantResponse): ResolvedTenant {
  */
 export function useResolvedTenant(): UseResolvedTenantResult {
   const queryClient = useQueryClient();
-  const clearSelectedAccountId = useAccountContextStore((s) => s.clearSelectedAccountId);
-  const syncTenant = useAccountContextStore((s) => s.syncTenant);
 
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: orgLoaded, organization } = useOrganization();
@@ -106,9 +104,9 @@ export function useResolvedTenant(): UseResolvedTenantResult {
     if (!activeOrgId) {
       return;
     }
-    clearSelectedAccountId();
+    useAccountContextStore.getState().clearSelectedAccountId();
     queryClient.invalidateQueries({ queryKey: QK.accounts.all });
-  }, [activeOrgId, clearSelectedAccountId, queryClient]);
+  }, [activeOrgId, queryClient]);
 
   // Only invalidate cache when the actual tenant ID changes, not on every data refresh
   useEffect(() => {
@@ -117,12 +115,13 @@ export function useResolvedTenant(): UseResolvedTenantResult {
     }
     const currentTenantId = query.data.fabricTenantId;
     if (previousTenantId.current !== currentTenantId) {
-      syncTenant();
-      clearSelectedAccountId();
+      const accountContext = useAccountContextStore.getState();
+      accountContext.syncTenant();
+      accountContext.clearSelectedAccountId();
       queryClient.invalidateQueries({ queryKey: QK.accounts.all });
       previousTenantId.current = currentTenantId;
     }
-  }, [query.data, syncTenant, clearSelectedAccountId, queryClient]);
+  }, [query.data, queryClient]);
 
   return {
     tenant: query.data ?? null,

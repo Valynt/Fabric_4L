@@ -81,6 +81,11 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 **When to Use:** Comprehensive test suite transformation into production assurance without human checkpoints
 **Related Workflow:** `/autonomous-test-assurance-agent`
 
+### invariant-driven-testing
+**Description:** Turn user workflows into testable business and security invariants through adversarial design, tenant isolation, full-stack automation, business-rule validation, failure injection, observability, environment engineering, and honest reporting
+**When to Use:** A user workflow needs to be proven beyond the UI, including security boundaries, business rules, failure modes, and full-stack Playwright evidence
+**Side Effects:** write
+
 ### test-quality-auditor
 **Description:** Evaluate test suites against quality principles and safely rewrite tests for Python/pytest and TypeScript/Vitest
 **When to Use:** Auditing test quality, applying targeted rewrites, resolving failures
@@ -255,10 +260,10 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 **Last Updated:** 2026-06-25
 
-**Total Skills:** 41
+**Total Skills:** 42
 
-**Skills with Full Frontmatter:** 10 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth)
+**Skills with Full Frontmatter:** 11 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth, invariant-driven-testing)
 
-**Skills Needing Frontmatter Updates:** 31 remaining
+**Skills Needing Frontmatter Updates:** 30 remaining
 
 **Note:** This index is generated manually. Consider automating this index generation by parsing SKILL.md frontmatter from all skill directories.

@@ -64,7 +64,12 @@ const criticalFiles = [
   'e2e/business-case.spec.ts',
   'e2e/business-case-list.spec.ts',
   'docs/frontend-workflow-coverage-matrix.md',
+  'docs/frontend-workflow-contracts.json',
+  'docs/frontend-release-evidence.template.json',
   'scripts/quality/assert-frontend-workflow-matrix.mjs',
+  'scripts/quality/assert-frontend-workflow-contracts.mjs',
+  'scripts/quality/assert-route-inventory.mjs',
+  'scripts/quality/assert-frontend-release-evidence.mjs',
   'scripts/quality/verify-frontend.mjs',
 ];
 
@@ -182,6 +187,56 @@ const requiredEvidence = [
     file: 'e2e/journeys/j23-personal-settings.spec.ts',
     pattern: /PERSONAL-001[\s\S]*PERSONAL-006/,
     label: 'direct personal settings journey coverage',
+  },
+  {
+    file: 'package.json',
+    pattern: /test:workflow-contracts/,
+    label: 'workflow business-contract validation command',
+  },
+  {
+    file: 'docs/frontend-workflow-coverage-matrix.md',
+    pattern: /docs\/frontend-workflow-contracts\.json[\s\S]*test:workflow-contracts/,
+    label: 'workflow matrix executable-contract reference',
+  },
+  {
+    file: 'docs/frontend-workflow-contracts.json',
+    pattern: /P0-ACCOUNT-LIFECYCLE[\s\S]*expectedBackend[\s\S]*securityInvariants[\s\S]*auditInvariants/,
+    label: 'P0 business contract planes',
+  },
+  {
+    file: 'package.json',
+    pattern: /test:route-inventory/,
+    label: 'route inventory validation command',
+  },
+  {
+    file: 'package.json',
+    pattern: /test:frontend-release-evidence/,
+    label: 'frontend release evidence validation command',
+  },
+  {
+    file: 'package.json',
+    pattern: /verify:frontend:release/,
+    label: 'frontend release verification command',
+  },
+  {
+    file: 'docs/frontend-workflow-coverage-matrix.md',
+    pattern: /docs\/frontend-release-evidence\.template\.json[\s\S]*test:frontend-release-evidence[\s\S]*exact commit SHA[\s\S]*image digest[\s\S]*live P0 browser journeys/,
+    label: 'release evidence supplement policy',
+  },
+  {
+    file: 'scripts/quality/assert-frontend-release-evidence.mjs',
+    pattern: /commitSha[\s\S]*imageDigest[\s\S]*noUnexpectedBrowserErrors[\s\S]*noHttp5xx[\s\S]*tenantIsolationRetrieval[\s\S]*liveProviderSmoke[\s\S]*postDeploySynthetics/,
+    label: 'frontend release evidence validator coverage',
+  },
+  {
+    file: 'docs/frontend-workflow-coverage-matrix.md',
+    pattern: /test:route-inventory[\s\S]*TieredNav[\s\S]*legacy redirects/,
+    label: 'route inventory safety gate reference',
+  },
+  {
+    file: 'scripts/quality/assert-route-inventory.mjs',
+    pattern: /validateTieredNavDestinations[\s\S]*validateRouteAccessPolicyMetadata[\s\S]*validateAdminRoutePolicyMetadata[\s\S]*validateLegacyRedirectTargets/,
+    label: 'route inventory static drift checks',
   },
   {
     file: 'package.json',

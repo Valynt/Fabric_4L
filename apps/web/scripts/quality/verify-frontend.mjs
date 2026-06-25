@@ -17,6 +17,8 @@ const mode = process.env.FRONTEND_VERIFY_MODE || "standard";
 const TASK_REGISTRY = {
   standard: [
     task("Workflow matrix", "pnpm", ["run", "test:workflow-matrix"]),
+    task("Workflow contracts", "pnpm", ["run", "test:workflow-contracts"]),
+    task("Route inventory", "pnpm", ["run", "test:route-inventory"]),
     task("Frontend hygiene", "pnpm", ["run", "test:frontend-hygiene"]),
     task("UI design readiness", "pnpm", ["run", "test:ui-readiness"]),
     task("TypeScript", "pnpm", ["run", "check"]),
@@ -30,6 +32,8 @@ const TASK_REGISTRY = {
   ],
   full: [
     task("Workflow matrix", "pnpm", ["run", "test:workflow-matrix"]),
+    task("Workflow contracts", "pnpm", ["run", "test:workflow-contracts"]),
+    task("Route inventory", "pnpm", ["run", "test:route-inventory"]),
     task("Frontend hygiene", "pnpm", ["run", "test:frontend-hygiene"]),
     task("UI design readiness", "pnpm", ["run", "test:ui-readiness"]),
     task("TypeScript", "pnpm", ["run", "check"]),

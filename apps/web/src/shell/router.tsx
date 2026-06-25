@@ -205,7 +205,7 @@ export const LEGACY_FLAT_ROUTE_MAP: Record<string, string> = {
   "/governance/compliance": "/t/{tenantSlug}/governance/compliance",
   "/governance/benchmarks": "/t/{tenantSlug}/governance/benchmarks",
   "/settings/governance/health": "/t/{tenantSlug}/settings/governance/health",
-  "/settings/governance/benchmarks": "/t/{tenantSlug}/settings/governance/benchmarks",
+  "/settings/governance/benchmarks": "/t/{tenantSlug}/governance/benchmarks",
 };
 
 const LEGACY_FLAT_ROUTE_REGISTRATIONS = [
@@ -448,6 +448,7 @@ export const router = createBrowserRouter([
       {
         path: "/t/:tenantSlug/accounts/:accountId",
         element: <AccountOverviewRedirect />,
+        handle: { accessPolicy: accountStdPolicy("accounts.overview-redirect") },
       },
       {
         path: "/t/:tenantSlug/accounts/:accountId/overview",

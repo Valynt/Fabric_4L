@@ -67,10 +67,10 @@ export default defineConfig({
     /* Base URL for all tests */
     baseURL: BASE_URL,
 
-    /* Collect complete traces in live mode so the validation gate has durable evidence. */
-    trace: LIVE_MODE ? 'on' : 'on-first-retry',
+    /* Retain failure artifacts for workflow release evidence. */
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: LIVE_MODE ? 'retain-on-failure' : 'on-first-retry',
+    video: 'retain-on-failure',
 
     /* Action timeout - generous for slower operations */
     actionTimeout: 15000,

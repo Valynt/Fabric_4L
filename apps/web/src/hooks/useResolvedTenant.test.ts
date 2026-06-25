@@ -9,9 +9,35 @@ import { useResolvedTenant } from './useResolvedTenant';
 import { useAccountContextStore, type AccountContextState } from '@/stores/accountContextStore';
 import { QK } from './queryKeys';
 import { BaseApiError } from './useApiShared';
-import { setupClerkSignedIn, setupClerkLoading, setupLegacyAuth, resetClerkMocks, getClerkMocks } from '@/test/utils/clerkTestHelpers';
+import {
+  _resetClerkSessionForTests,
+  setActiveClerkOrgId,
+  setClerkTokenGetter,
+} from '@/auth/clerkSession';
 
-const { mockUseOrganization } = getClerkMocks();
+const clerkMocks = vi.hoisted(() => ({
+  mockUseAuth: vi.fn(),
+  mockUseOrganization: vi.fn(),
+  mockClerkEnabled: vi.fn(),
+}));
+
+vi.mock("@clerk/react", () => ({
+  useAuth: clerkMocks.mockUseAuth,
+  useOrganization: clerkMocks.mockUseOrganization,
+}));
+
+vi.mock("@/auth/clerkConfig", () => ({
+  isClerkAuthEnabled: clerkMocks.mockClerkEnabled,
+  getClerkUrls: vi.fn(() => ({
+    signInUrl: "/sign-in",
+    signUpUrl: "/sign-up",
+    afterSignInUrl: "/home",
+    afterSignUpUrl: "/onboarding",
+    selectOrgUrl: "/workspaces",
+  })),
+}));
+
+const { mockUseAuth, mockUseOrganization, mockClerkEnabled } = clerkMocks;
 
 const TENANT_API_PATH = '/api/v1/auth/clerk/tenant';
 
@@ -23,6 +49,57 @@ const mockTenantResponse = {
   roles: ['admin'],
   permissions: ['read:accounts', 'write:accounts'],
 };
+
+function setupClerkSignedIn(orgId: string | null): void {
+  setActiveClerkOrgId(orgId);
+  setClerkTokenGetter(() => Promise.resolve("clerk-token"));
+  mockClerkEnabled.mockReturnValue(true);
+  mockUseAuth.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    getToken: vi.fn(),
+  });
+  mockUseOrganization.mockReturnValue({
+    isLoaded: true,
+    organization: orgId ? { id: orgId, slug: 'acme' } : null,
+  });
+}
+
+function setupClerkLoading(): void {
+  setActiveClerkOrgId(null);
+  setClerkTokenGetter(null);
+  mockClerkEnabled.mockReturnValue(true);
+  mockUseAuth.mockReturnValue({
+    isLoaded: false,
+    isSignedIn: undefined,
+    getToken: vi.fn(),
+  });
+  mockUseOrganization.mockReturnValue({
+    isLoaded: false,
+    organization: undefined,
+  });
+}
+
+function setupLegacyAuth(): void {
+  setActiveClerkOrgId(null);
+  setClerkTokenGetter(null);
+  mockClerkEnabled.mockReturnValue(false);
+  mockUseAuth.mockReturnValue({
+    isLoaded: true,
+    isSignedIn: false,
+    getToken: vi.fn(),
+  });
+  mockUseOrganization.mockReturnValue({
+    isLoaded: true,
+    organization: null,
+  });
+}
+
+function resetClerkMocks(): void {
+  vi.clearAllMocks();
+  _resetClerkSessionForTests();
+  setupLegacyAuth();
+}
 
 describe('useResolvedTenant', () => {
   beforeEach(() => {
@@ -110,7 +187,7 @@ describe('useResolvedTenant', () => {
     mockUseOrganization.mockReturnValue({
       isLoaded: true,
       organization: { id: 'org_456', slug: 'other' },
-    } as unknown as ReturnType<typeof useOrganization>);
+    } as unknown as ReturnType<typeof mockUseOrganization>);
 
     server.use(
       http.get(TENANT_API_PATH, () =>
@@ -137,7 +214,7 @@ describe('useResolvedTenant', () => {
       http.get(TENANT_API_PATH, () => HttpResponse.json(mockTenantResponse))
     );
 
-    const { result } = renderHook(
+    const { result, rerender } = renderHook(
       () => {
         const queryClient = useQueryClient();
         const tenant = useResolvedTenant();
@@ -148,16 +225,34 @@ describe('useResolvedTenant', () => {
       { wrapper: createWrapper() }
     );
 
-    // Seed account selection and a cached accounts list
-    act(() => {
-      result.current.setSelectedAccountId('acct_123');
-      result.current.queryClient.setQueryData(QK.accounts.all, [{ id: 'acct_123' }]);
-    });
-
     await waitFor(() => expect(result.current.tenant).not.toBeNull());
+    await act(async () => {});
 
-    expect(result.current.selectedAccountId).toBeNull();
-    expect(result.current.queryClient.getQueryData(QK.accounts.all)).toBeUndefined();
+    // Seed stale account selection and a cached accounts list before the org switch.
+    useAccountContextStore.setState({
+      selectedAccountId: 'acct_123',
+      _persistedTenantId: 'org_123',
+    });
+    result.current.queryClient.setQueryData(QK.accounts.all, [{ id: 'acct_123' }]);
+    expect(useAccountContextStore.getState().selectedAccountId).toBe('acct_123');
+
+    setupClerkSignedIn('org_456');
+    server.use(
+      http.get(TENANT_API_PATH, () =>
+        HttpResponse.json({
+          ...mockTenantResponse,
+          fabric_tenant_id: 'tenant-456',
+          tenant_slug: 'other',
+          clerk_org_id: 'org_456',
+        })
+      )
+    );
+    rerender();
+
+    await waitFor(() => expect(result.current.selectedAccountId).toBeNull());
+    await waitFor(() =>
+      expect(result.current.queryClient.getQueryData(QK.accounts.all)).toBeUndefined()
+    );
   });
 
   it('stale tenant mapping is not reused after org switch', async () => {

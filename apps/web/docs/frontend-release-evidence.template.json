@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-25T00:00:00Z",
+  "releaseCandidate": {
+    "commitSha": "REPLACE_WITH_40_CHARACTER_GIT_SHA",
+    "imageDigest": "sha256:REPLACE_WITH_64_HEX_CHARACTER_DIGEST",
+    "productionBuildCommand": "corepack pnpm --dir apps/web run build",
+    "productionBuildStatus": "passed"
+  },
+  "staticFrontendGates": {
+    "workflowContracts": {
+      "command": "corepack pnpm --dir apps/web run test:workflow-contracts",
+      "status": "passed"
+    },
+    "routeInventory": {
+      "command": "corepack pnpm --dir apps/web run test:route-inventory",
+      "status": "passed"
+    },
+    "frontendVerification": {
+      "command": "corepack pnpm --dir apps/web run verify:frontend",
+      "status": "passed"
+    }
+  },
+  "p0BrowserJourneys": {
+    "command": "corepack pnpm --dir apps/web run test:e2e:live:p0",
+    "status": "passed",
+    "environment": "production-build-real-internal-infra",
+    "unexpectedSkippedP0": [],
+    "noUnexpectedBrowserErrors": true,
+    "noHttp5xx": true,
+    "noUnhandledMockRequests": true,
+    "noFailedBackgroundJobs": true,
+    "traceRetention": "retain-on-failure",
+    "screenshots": "only-on-failure",
+    "videos": "retain-on-failure",
+    "artifacts": [
+      "REPLACE_WITH_PLAYWRIGHT_TRACE_OR_REPORT_PATH"
+    ]
+  },
+  "securityAndAuthorization": {
+    "authorizationMatrix": {
+      "command": "REPLACE_WITH_AUTHORIZATION_MATRIX_COMMAND",
+      "status": "passed",
+      "casesPassed": 0,
+      "casesTotal": 0
+    },
+    "tenantIsolationApi": {
+      "command": "REPLACE_WITH_API_TENANT_ISOLATION_COMMAND",
+      "status": "passed"
+    },
+    "tenantIsolationRetrieval": {
+      "command": "REPLACE_WITH_RETRIEVAL_TENANT_ISOLATION_COMMAND",
+      "status": "passed"
+    }
+  },
+  "governanceAndAudit": {
+    "approvalGatedExport": {
+      "command": "REPLACE_WITH_APPROVAL_EXPORT_COMMAND",
+      "status": "passed"
+    },
+    "auditTrail": {
+      "command": "REPLACE_WITH_AUDIT_TRAIL_COMMAND",
+      "status": "passed"
+    }
+  },
+  "liveProviderSmoke": {
+    "command": "REPLACE_WITH_LIVE_PROVIDER_SMOKE_COMMAND",
+    "status": "passed",
+    "providers": [
+      {
+        "name": "REPLACE_WITH_PROVIDER_NAME",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      }
+    ]
+  },
+  "postDeploySynthetics": {
+    "command": "REPLACE_WITH_SYNTHETIC_COMMAND",
+    "status": "passed",
+    "checks": [
+      {
+        "name": "REPLACE_WITH_SYNTHETIC_CHECK_NAME",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      }
+    ]
+  },
+  "canonicalEvidencePacket": {
+    "path": "artifacts/release/evidence-packet/release-evidence-packet.json",
+    "status": "passed"
+  }
+}

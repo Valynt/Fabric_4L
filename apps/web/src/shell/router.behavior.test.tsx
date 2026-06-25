@@ -107,14 +107,14 @@ describe("RootRedirect auth-provider boundary", () => {
     expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
   });
 
-  it("clerk mode: signed-out root routes to the public ValuePact site", () => {
+  it("clerk mode: signed-out root routes to Clerk sign-in", () => {
     setAuthProvider("clerk");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = false;
     renderRedirect();
     expect(screen.getByRole("link", { name: /continue to valuepact/i })).toHaveAttribute(
       "href",
-      VALUEPACT_PUBLIC_SITE_URL,
+      "/sign-in",
     );
   });
 

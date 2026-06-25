@@ -8,7 +8,12 @@ import React from "react";
 
 import { setupClerkSignedIn, resetClerkMocks, getClerkMocks } from "@/test/utils/clerkTestHelpers";
 
-const { mockUseAuth, mockUseOrganization } = getClerkMocks();
+vi.mock("@clerk/react", () => ({
+  useAuth: vi.fn(),
+  useOrganization: vi.fn(),
+}));
+
+const { useAuth: mockUseAuth, useOrganization: mockUseOrganization } = getClerkMocks();
 
 const mockGetToken = vi.fn<(template?: string) => Promise<string | null>>(async () => "clerk-token");
 
