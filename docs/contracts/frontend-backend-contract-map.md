@@ -162,7 +162,7 @@
 | Billing Portal | — | L4 | `/v1/billing/portal` | POST | `customer_id` query | — | `PortalResponse` | `X-Tenant-ID`, Bearer JWT | `implemented` | — |
 | Billing Entitlements | — | L4 | `/v1/billing/entitlements` | GET | `customer_id` query | — | `EntitlementsResponse` | `X-Tenant-ID`, Bearer JWT | `implemented` | — |
 | Billing Feature Check | — | L4 | `/v1/billing/check-feature` | GET | `feature`, `customer_id` | — | `FeatureCheck` | `X-Tenant-ID`, Bearer JWT | `implemented` | — |
-| Agent Stream Chat | — | L4 | `/v1/agent-stream/chat` | POST | — | `{ message, thread_id?, context? }` | SSE stream | `X-Tenant-ID`, Bearer JWT | `implemented` | Consumed by `useAgentStream.ts` and `AgentEventClient.ts`. |
+| Agent Stream Chat | — | L4 | `/v1/agent-stream/chat` | POST | — | `{ message, thread_id?, context? }` | SSE stream | `X-Tenant-ID`, Bearer JWT | `implemented` | Consumed by `useAgentEvents.ts` and `AgentEventClient.ts`. |
 | C1 Stream | — | L4 | `/v1/c1/stream` | POST | — | `C1Message[]` | SSE stream (`C1StreamChunk`) | `X-Tenant-ID`, Bearer JWT | `implemented` | Thesys C1 generative UI proxy. |
 | Analysis ROI | — | L4 | `/v1/analysis/roi` | POST | — | `ROIAnalysisRequest` | `ROIAnalysisResponse` | `X-Tenant-ID`, Bearer JWT | `implemented` | — |
 | Analysis Whitespace | — | L4 | `/v1/analysis/whitespace` | POST | — | `WhitespaceAnalysisRequest` | `WhitespaceAnalysisResponse` | `X-Tenant-ID`, Bearer JWT | `implemented` | — |

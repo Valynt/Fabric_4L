@@ -484,7 +484,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
       ]
     },
@@ -626,7 +625,6 @@
         }
       ],
       "frontend_consumers": [
-        "apps/web/src/hooks/useAgentStream.ts",
         "apps/web/src/components/layout/AgentChat.tsx",
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/agui/AgentEventClient.ts"
@@ -1179,7 +1177,6 @@
       ],
       "sse_event_channels": [],
       "frontend_consumers": [
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/pages/studio/StudioROITab.tsx",
         "apps/web/src/pages/calculator/ValueModelTab.tsx"
@@ -1214,7 +1211,6 @@
       ],
       "sse_event_channels": [],
       "frontend_consumers": [
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/pages/studio/StudioROITab.tsx",
         "apps/web/src/pages/calculator/ValueModelTab.tsx"
       ]
@@ -1954,7 +1950,6 @@
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/lib/schemas/competitiveIntel.ts",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
       ]
     },
@@ -1989,7 +1984,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
       ]
     },
@@ -2903,7 +2897,6 @@
       "sse_event_channels": [],
       "frontend_consumers": [
         "apps/web/src/pages/admin/PlatformSettings.tsx",
-        "apps/web/src/hooks/useAgentStream.ts",
         "apps/web/src/hooks/useBenchmarks.test.ts",
         "apps/web/src/hooks/useSources.ts",
         "apps/web/src/hooks/useIngestion.ts",
@@ -2991,7 +2984,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/NotificationsPage.tsx",
         "apps/web/src/pages/value-case/ValueCasePage.tsx",
-        "apps/web/src/pages/intelligence/ROITab.tsx",
         "apps/web/src/pages/intelligence/HypothesesTab.tsx"
       ]
     },
@@ -3087,7 +3079,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/HypothesesTab.tsx",
         "apps/web/src/agui/AgentEventClient.ts",
-        "apps/web/src/hooks/useAgentStream.ts",
         "apps/web/src/hooks/useHypotheses.ts"
       ]
     },

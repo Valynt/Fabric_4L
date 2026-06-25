@@ -1,7 +1,7 @@
 # Layer 6: Benchmark Service
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. The legacy `value_fabric/layer6/` namespace placeholder has been removed. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: per [ADR-027](../../docs/explanations/adr/ADR-027-shim-removal.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. The legacy `value_fabric/layer6/` namespace has been removed. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Standalone service for comparative intelligence and peer benchmarking.
 
@@ -46,7 +46,7 @@ Layer 6 integrates with Layer 4 Agents via the `IBenchmarkClient` interface (see
 
 ## Source ownership
 
-Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)).
+Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/explanations/adr/ADR-027-shim-removal.md)).
 
 `value_fabric/layer6/` has been removed. It must not be restored, resolve `value_fabric.layer6.*` imports to the service tree, append paths, or contain implementation files. CI gates (`scripts/ci/check_layer6_imports.py`, `scripts/ci/check_stale_namespace_dirs.py`) reject regressions.
 
@@ -60,7 +60,7 @@ Use canonical imports (`layer6_benchmarks.*`) for all new Layer 6 runtime code.
 Contributor placement rule:
 
 - Add or change Layer 6 runtime logic under `services/layer6-benchmarks/src/`.
-- Do not add files to `value_fabric/layer6/`; it is placeholder-only.
+- Do not add files to `value_fabric/layer6/`; the namespace has been removed.
 - Mirrored compatibility wrappers (if registered in `scripts/mirrored_files.json`) must stay aligned to the generated re-export template.
 
 This section previously recommended the opposite; treat the rule above as authoritative.
@@ -113,7 +113,7 @@ See `docs/operations/layer6/observability.md` for Layer 6 metrics, SLO indicator
 
 ## Environment variables (Layer 6)
 
-The Layer 6 service uses a centralized Pydantic settings module at `value_fabric/layer6/settings.py` with a compatibility shim at `services/layer6-benchmarks/src/settings.py`. Startup calls `validate_layer6_startup_settings()` at import time so missing or invalid critical configuration fails closed before the API begins serving traffic.
+The Layer 6 service uses a centralized Pydantic settings module at `services/layer6-benchmarks/src/layer6_benchmarks/settings.py`, with compatibility-only service-local import surfaces under `services/layer6-benchmarks/src/` where retained. Startup calls `validate_layer6_startup_settings()` at import time so missing or invalid critical configuration fails closed before the API begins serving traffic.
 
 Use the service-local template at `services/layer6-benchmarks/.env.example` for local bootstrapping and mirror the same variables in deployment secrets/config maps.
 

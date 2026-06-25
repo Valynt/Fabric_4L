@@ -8,7 +8,6 @@ from typing import Any, cast
 from layer4_agents.harness.live_l5_validator import LiveL5Validator
 from layer4_agents.harness.validation_hooks import ClaimValidationRequest
 from layer4_agents.integration.layer5_client import Layer5GroundTruthClient
-
 from ..interfaces.business_case_ground_truth import BusinessCaseGroundTruthPort
 
 

@@ -206,7 +206,7 @@
 | Hook | Backend File | Endpoints |
 |------|--------------|-----------|
 | `useWorkflows` | `workflows.py` | 11 |
-| `useAgentStream` | `agent_stream.py` | 1 (SSE) |
+| `useAgentEvents` | `agent_stream.py` | 1 (SSE) |
 | `useSignals` | `signals.py` | 4 |
 
 ---

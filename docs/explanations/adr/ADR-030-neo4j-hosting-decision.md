@@ -12,6 +12,8 @@ Fabric_4L requires a graph database for Layer 3 (Knowledge Graph) and Layer 2.5 
 
 ### Production Path: Managed Neo4j Aura
 
+Production uses this path. The production overlay deletes the in-cluster Neo4j Deployment, Service, PVCs, and PDB via `k8s/envs/prod/neo4j-aura-patch.yml`; connection material is sourced from Vault/ExternalSecrets through `k8s/external-secrets/neo4j-secrets.yaml`.
+
 **Rationale:**
 - Lowest operational burden: automated backups, patching, scaling, and monitoring
 - Built-in HA and clustering without custom Kubernetes StatefulSet management
@@ -63,12 +65,17 @@ Fabric_4L requires a graph database for Layer 3 (Knowledge Graph) and Layer 2.5 
 ## Action Items
 
 1. **Platform:** Keep `k8s/envs/prod/neo4j-aura-patch.yml` in the production overlay so in-cluster Neo4j is not deployed for production traffic.
-2. **SRE:** Validate Aura endpoint connectivity, backup SLA evidence, and restore/export procedures as release evidence.
-3. **Security:** Keep production/staging startup validation fail-closed for non-Aura or insecure Neo4j targets.
-4. **Architecture:** Prepare Helm fallback only as an exception path, not as the default production deployment.
+2. **SRE:** Validate Aura endpoint connectivity, backup SLA evidence, and restore/export procedures as release evidence. Verify all staging/pre-prod namespaces use Aura endpoints or carry explicit self-hosted risk acceptance.
+3. **Network:** Validate VPC peering, PrivateLink, or allowlisted egress latency from EKS worker nodes to Aura endpoints.
+4. **Security:** Keep production/staging startup validation fail-closed for non-Aura or insecure Neo4j targets.
+5. **Compliance:** Keep graph storage control evidence current for both Aura and self-hosted fallback paths.
+6. **Readiness:** Add Neo4j Aura connection health to staging and production readiness evidence.
+7. **Architecture:** Prepare Helm fallback only as an exception path, not as the default production deployment.
 
 ## Related
 
 - P0-002 Production Readiness Audit: HA Database Deployment
-- `k8s/ha/neo4j/helm-values.yaml` (fallback implementation, created if needed)
-- `k8s/external-secrets/neo4j-secrets.yaml` (already exists for connection credentials)
+- `k8s/envs/prod/neo4j-aura-patch.yml` (production removes in-cluster Neo4j)
+- `k8s/external-secrets/neo4j-secrets.yaml` (connection credentials)
+- `docs/runbooks/neo4j-ha.md` (HA operating runbook)
+- `docs/governance/graph-storage-encryption-control.md` (Aura-first and self-hosted storage control)

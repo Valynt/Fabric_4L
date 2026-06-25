@@ -25,6 +25,18 @@ Do not run `npm install`, `npm ci`, or `yarn install` in this repository.
 - `pnpm-lock.yaml` (repo root)
 - `apps/web/pnpm-lock.yaml`
 
+### pnpm override rollback plan
+
+When a root `package.json` `pnpm.overrides` entry is no longer needed:
+
+1. Confirm the upstream dependency graph no longer resolves the vulnerable or incompatible version.
+2. Remove only the resolved override entry from the root `package.json`.
+3. Run `corepack pnpm install --lockfile-only`.
+4. Review `pnpm-lock.yaml` and confirm the expected dependency graph changed, with no unrelated churn.
+5. Run `corepack pnpm install --frozen-lockfile`, `pnpm run check:package-manager-policy`, and `pnpm audit:ci`.
+
+If validation fails, restore the override and lockfile hunk, then capture the failing package and version evidence in the dependency review issue.
+
 ## Python services (uv + service-local tooling)
 
 Each maintained Python service follows a service-local dependency boundary. Use `uv` with service-local `pyproject.toml` / `uv.lock` as the source of truth.

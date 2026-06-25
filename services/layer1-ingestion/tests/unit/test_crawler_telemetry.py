@@ -14,7 +14,6 @@ from layer1_ingestion.crawler.telemetry import (
     init_telemetry,
     start_batch_span,
     start_crawl_span,
-    trace_method,
 )
 
 
@@ -186,30 +185,4 @@ class TestStartBatchSpan:
         mock_tracer.start_as_current_span.assert_called_once()
         call_kwargs = mock_tracer.start_as_current_span.call_args[1]
         assert call_kwargs["attributes"]["crawl.batch_size"] == 10
-
-
-class TestTraceMethodDecorator:
-    """Test the trace_method decorator."""
-    
-    @patch('layer1_ingestion.crawler.telemetry.get_tracer')
-    def test_decorator_adds_span(self, mock_get_tracer):
-        """Test that decorator adds tracing to methods."""
-        mock_span = MagicMock()
-        mock_tracer = MagicMock()
-        mock_tracer.start_as_current_span.return_value.__enter__ = MagicMock(return_value=mock_span)
-        mock_tracer.start_as_current_span.return_value.__exit__ = MagicMock(return_value=False)
-        mock_get_tracer.return_value = mock_tracer
-        
-        class TestClass:
-            @trace_method("test_operation")
-            async def test_method(self, value):
-                return value * 2
-                
-        obj = TestClass()
-        result = obj.test_method(5)
-        
-        # Async test needs to be awaited, so we just check the decorator was applied
-        import asyncio
-        result = asyncio.run(obj.test_method(5))
-        assert result == 10
 

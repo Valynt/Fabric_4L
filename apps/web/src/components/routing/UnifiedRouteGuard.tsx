@@ -14,6 +14,13 @@ import { createFeatureLogger } from "@/lib/telemetry";
 
 const log = createFeatureLogger("route-guard");
 
+const FAIL_CLOSED_ACCESS_POLICY: RouteAccessPolicy = {
+  requiresAuth: true,
+  tenantScoped: false,
+  fallbackRoute: "/sign-in",
+  analyticsRouteId: "route.unclassified",
+};
+
 interface UnifiedRouteGuardProps {
   children: React.ReactNode;
 }
@@ -43,7 +50,7 @@ function UnifiedRouteGuardInner({
   const policy = matches
     .map((m) => (m.handle as Record<string, unknown> | undefined)?.accessPolicy as RouteAccessPolicy | undefined)
     .filter(Boolean)
-    .pop();
+    .pop() ?? FAIL_CLOSED_ACCESS_POLICY;
 
   // ALL hooks must be called before any conditional return (Rules of Hooks).
   // Use optional chaining so hooks are unconditionally invoked even when policy
@@ -69,10 +76,6 @@ function UnifiedRouteGuardInner({
   const { entitlementsMet, isLoading: entitlementsLoading } = useEntitlements(
     policy?.requiredEntitlements ?? []
   );
-
-  if (!policy) {
-    return <ErrorBoundary>{children}</ErrorBoundary>;
-  }
 
   if (isLoading) {
     return <RouteGuardSkeleton />;

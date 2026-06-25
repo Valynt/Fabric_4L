@@ -6,7 +6,6 @@ established in Layer 4 agent tracing (per AGENTS.md).
 
 from collections.abc import Generator
 from contextlib import contextmanager
-from functools import wraps
 from typing import Any
 
 import structlog
@@ -173,44 +172,6 @@ def start_batch_span(url_count: int, operation: str = "crawl_urls") -> Generator
             raise
 
 
-def trace_method(operation_name: str | None = None):
-    """Decorator to add tracing to async methods.
-
-    Args:
-        operation_name: Custom operation name (defaults to method name)
-
-    Usage:
-        @trace_method("custom_operation")
-        async def my_method(self, url: str):
-            ...
-    """
-
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            name = operation_name or func.__name__
-            tracer = get_tracer()
-
-            with tracer.start_as_current_span(name) as span:
-                # Add self attributes if available
-                if args and hasattr(args[0], "__class__"):
-                    span.set_attribute("method.class", args[0].__class__.__name__)
-                span.set_attribute("method.name", func.__name__)
-
-                try:
-                    result = await func(*args, **kwargs)
-                    span.set_status(Status(StatusCode.OK))
-                    return result
-                except Exception as e:
-                    span.set_status(Status(StatusCode.ERROR, "METHOD_ERROR"))
-                    span.record_exception(e)
-                    raise
-
-        return wrapper
-
-    return decorator
-
-
 class CrawlMetrics:
     """Metrics collector for crawler operations.
 
@@ -289,5 +250,4 @@ class CrawlMetrics:
             "rate_limit_delays": self._rate_limit_delays,
             "blocked_resources": self._blocked_resources_count,
         }).model_dump()
-
 

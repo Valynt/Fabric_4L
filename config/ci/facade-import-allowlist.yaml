@@ -52,11 +52,6 @@ scripts/migrate_l6_test_imports_canonical.py:
   reason: "Migration script documenting old-to-new mapping"
   owner: "Platform Team"
   removal_target: "indefinite"
-value_fabric/layer6/__init__.py:
-  reason: "Neutralized shim placeholder"
-  owner: "Platform Team"
-  removal_target: "indefinite"
-
 # CI tests with facade references
 tests/ci/**:
   reason: "CI sentinel tests with facade references"

@@ -26,7 +26,8 @@ Usage:
     export NEO4J_PASSWORD="password"
     
     # Run migration
-    python -m services.layer3-knowledge.src.migrations.create_composite_tenant_indexes
+    cd services/layer3-knowledge
+    python -m src.migrations.create_composite_tenant_indexes
 
 Or programmatically:
     from create_composite_tenant_indexes import CompositeTenantIndexMigration

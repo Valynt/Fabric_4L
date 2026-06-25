@@ -18,14 +18,11 @@ services/layer1-ingestion/src/api/main.py:38:value_fabric.shared.startup
 services/layer1-ingestion/src/api/main.py:282:value_fabric.shared.identity.fabric_auth
 services/layer1-ingestion/src/api/routes/compatibility.py:11:value_fabric.shared.identity
 services/layer1-ingestion/src/api/routes/compatibility.py:12:value_fabric.shared.observability.logging
-services/layer1-ingestion/src/compliance/pii_scanner.py:23:value_fabric.shared.models.typed_dict
-services/layer1-ingestion/src/compliance/robots_checker.py:15:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/crawler/crawler_config.py:12:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/crawler/smart_router.py:15:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/crawler/httpx_crawler.py:23:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/crawler/execution_logger.py:17:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/crawler/telemetry.py:18:value_fabric.shared.models.typed_dict
-services/layer1-ingestion/src/adapters/sec_edgar.py:19:value_fabric.shared.models.typed_dict
 services/layer1-ingestion/src/shared/database.py:405:value_fabric.shared.identity.middleware_sync
 services/layer1-ingestion/src/shared/maintenance.py:32:value_fabric.shared.error_handling
 services/layer1-ingestion/src/shared/config.py:12:value_fabric.shared.secrets

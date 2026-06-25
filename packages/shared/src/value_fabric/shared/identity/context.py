@@ -56,6 +56,7 @@ class RequestContext_to_log_dictResult(TypedDictModel):
     tenant_id: Any
     user_id: Any
     request_id: Any
+    trace_id: Any
 
 
 def _normalise_auth_source(value: Optional[str]) -> str:
@@ -246,6 +247,7 @@ class RequestContext:
             "source": self.source,
             "service_account_scopes": list(self.service_account_scopes),
             "request_id": self.request_id,
+            "trace_id": self.trace_id,
             "impersonator_id": self.impersonator_id,
         }
 
@@ -259,6 +261,7 @@ class RequestContext:
             "source": self.source,
             "auth_source": self.auth_source,
             "request_id": self.request_id,
+            "trace_id": self.trace_id,
         })
 
 

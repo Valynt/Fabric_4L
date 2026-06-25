@@ -34,6 +34,7 @@ from .dependencies import (
     require_role,
     require_super_admin,
     require_tenant,
+    require_tenant_context,
     require_tenant_admin,
 )
 from .feature_flags import (
@@ -96,6 +97,7 @@ __all__ = [
     "require_role",
     "require_super_admin",
     "require_tenant",
+    "require_tenant_context",
     "require_tenant_admin",
     # Feature flags
     "is_enabled",

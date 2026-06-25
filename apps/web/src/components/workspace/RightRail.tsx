@@ -18,8 +18,8 @@
  *   RunFinished event for observability.
  *
  * Backward Compatibility:
- *   All new props are optional. Existing consumers that use the old
- *   useAgentStream hook continue to work without changes.
+ *   All AG-UI props are optional so existing detail-panel consumers continue
+ *   to work without changes.
  */
 import { useState } from "react";
 import { cn } from "@/lib/utils";

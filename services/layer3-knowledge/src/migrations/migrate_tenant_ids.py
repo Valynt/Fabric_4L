@@ -16,7 +16,8 @@ Usage:
     export DEFAULT_TENANT_ID="system"
     
     # Run migration
-    python -m services.layer3-knowledge.src.migrations.migrate_tenant_ids
+    cd services/layer3-knowledge
+    python -m src.migrations.migrate_tenant_ids
 
 Or programmatically:
     from migrate_tenant_ids import TenantIdMigration
