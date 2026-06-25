@@ -150,10 +150,5 @@ class JobProgressResponse(BaseModel):
 
     job_id: UUID
     status: str
-    progress_percent_complete: int
-    current_stage: str
-    current_url: str | None = None
-    total_pages: int | None = None
-    processed_pages: int
-    failed_pages: int
-    estimated_remaining_seconds: int | None = None
+    progress: JobProgressDetail
+    last_update: datetime

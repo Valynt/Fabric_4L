@@ -13,10 +13,13 @@ Never:
   - promotion to LESSONS.md (graduate.py does that)
   - git commit (unattended repo writes are dangerous on a host hook)
 """
-import contextlib, json, os
+
+import contextlib
+import json
+import os
 from promote import cluster_and_extract, write_candidates
 from validate import heuristic_check
-from review_state import mark_rejected, write_review_queue_summary
+from review_state import _mark_rejected_from_dict, write_review_queue_summary
 from decay import decay_old_entries
 from archive import archive_stale_workspace
 
@@ -136,29 +139,36 @@ def _heuristic_prefilter(candidates_dir, semantic_dir):
     if not os.path.isdir(candidates_dir):
         return 0
     lessons_path = os.path.join(semantic_dir, "LESSONS.md")
-    existing = open(lessons_path).read() if os.path.exists(lessons_path) else ""
+    if os.path.exists(lessons_path):
+        with open(lessons_path) as f:
+            existing = f.read()
+    else:
+        existing = ""
     rejected = 0
-    for fname in sorted(os.listdir(candidates_dir)):
-        if not fname.endswith(".json"):
-            continue
-        path = os.path.join(candidates_dir, fname)
-        if not os.path.isfile(path):
-            continue
-        try:
-            with open(path) as f:
-                cand = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            continue
-        check = heuristic_check(cand, existing)
-        if not check["passed"]:
-            reason = ", ".join(check["reasons"])
-            # Record the specific lesson(s) that triggered the duplicate
-            # rejection so write_candidates can check whether THIS blocker
-            # is still there, not just whether LESSONS.md as a whole changed.
-            mark_rejected(cand["id"], "heuristic_prefilter", reason,
-                          candidates_dir,
-                          duplicate_claims=check.get("duplicates", []))
-            rejected += 1
+    with os.scandir(candidates_dir) as entries:
+        for entry in sorted(entries, key=lambda e: e.name):
+            if not entry.name.endswith(".json") or not entry.is_file():
+                continue
+            try:
+                with open(entry.path) as f:
+                    cand = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                continue
+            check = heuristic_check(cand, existing)
+            if not check["passed"]:
+                reason = ", ".join(check["reasons"])
+                # Record the specific lesson(s) that triggered the duplicate
+                # rejection so write_candidates can check whether THIS blocker
+                # is still there, not just whether LESSONS.md as a whole changed.
+                # Pass the already-loaded dict to avoid re-reading the file.
+                _mark_rejected_from_dict(
+                    cand,
+                    candidates_dir,
+                    "heuristic_prefilter",
+                    reason,
+                    duplicate_claims=check.get("duplicates", []),
+                )
+                rejected += 1
     return rejected
 
 
@@ -179,18 +189,23 @@ def run_dream_cycle():
             return
 
         patterns = cluster_and_extract(entries, threshold=CLUSTER_SIMILARITY)
-        promotable = {k: p for k, p in patterns.items()
-                      if p.get("canonical_salience", 0) >= PROMOTION_THRESHOLD}
+        promotable = {
+            k: p
+            for k, p in patterns.items()
+            if p.get("canonical_salience", 0) >= PROMOTION_THRESHOLD
+        }
 
         staged = write_candidates(promotable, CANDIDATES)
         prefiltered = _heuristic_prefilter(CANDIDATES, SEMANTIC)
 
         kept, archived = decay_old_entries(
-            entries, archive_dir=os.path.join(ROOT, "episodic/snapshots"))
+            entries, archive_dir=os.path.join(ROOT, "episodic/snapshots")
+        )
         _write_entries_locked(fd, kept)
         archive_stale_workspace(
             working_dir=os.path.join(ROOT, "working"),
-            archive_dir=os.path.join(ROOT, "episodic/snapshots"))
+            archive_dir=os.path.join(ROOT, "episodic/snapshots"),
+        )
 
         pending = write_review_queue_summary(CANDIDATES, REVIEW_QUEUE)
 

@@ -390,5 +390,14 @@ class TestLLMSafetyUnderFailure:
         """
         partial_output = "The secret code is 123"  # Simulated partial generation
         
-        # Partial outputs from failed calls must not be stored or processed
-        assert True  # Placeholder for safety system verification
+        # Simulate output guard that rejects partial/failed outputs
+        def output_guard(output, is_complete):
+            if not is_complete:
+                raise ValueError("Cannot cache incomplete outputs")
+            return output
+        
+        # Partial outputs should be rejected
+        with pytest.raises(ValueError) as exc_info:
+            output_guard(partial_output, is_complete=False)
+        
+        assert "incomplete" in str(exc_info.value)

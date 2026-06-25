@@ -18,10 +18,14 @@ is rewritten atomically (temp file + rename) so readers never see a
 half-written file. Windows (no fcntl) falls through without locking; safe
 for single-user, noted in a one-time warning.
 """
-import os, json, datetime, hashlib, warnings
+
+import os
+import json
+import datetime
+import hashlib
+import warnings
 from collections import defaultdict
 from contextlib import contextmanager
-
 
 LESSONS_JSONL = "lessons.jsonl"
 LESSONS_MD = "LESSONS.md"
@@ -31,6 +35,7 @@ SENTINEL = "## Auto-promoted entries will be appended below"
 
 try:
     import fcntl
+
     _HAS_FLOCK = True
 except ImportError:
     _HAS_FLOCK = False
@@ -104,10 +109,20 @@ def _append_lesson_unlocked(f, lesson):
 
 def append_lesson(lesson, semantic_dir):
     """Append a lesson to semantic/lessons.jsonl. Returns the written path."""
+    return append_lessons([lesson], semantic_dir)
+
+
+def append_lessons(lessons, semantic_dir):
+    """Append multiple lessons to semantic/lessons.jsonl in a single lock window.
+
+    This avoids opening, locking, and closing lessons.jsonl once per lesson
+    during bulk migrations.
+    """
     os.makedirs(semantic_dir, exist_ok=True)
     path = os.path.join(semantic_dir, LESSONS_JSONL)
     with _locked_jsonl(path) as f:
-        _append_lesson_unlocked(f, lesson)
+        for lesson in lessons:
+            _append_lesson_unlocked(f, lesson)
     return path
 
 
@@ -187,7 +202,7 @@ def _legacy_text_from_line(line):
     if text.startswith("~~") and text.endswith("~~"):
         return ""
     if text.startswith("[PROVISIONAL]"):
-        text = text[len("[PROVISIONAL]"):].strip()
+        text = text[len("[PROVISIONAL]") :].strip()
     return text
 
 
@@ -196,10 +211,8 @@ def _legacy_bullets_from_content(content):
         return []
     below = content.split(SENTINEL, 1)[1]
     return [
-        text for text in (
-            _legacy_text_from_line(line)
-            for line in below.splitlines()
-        )
+        text
+        for text in (_legacy_text_from_line(line) for line in below.splitlines())
         if text
     ]
 
@@ -214,7 +227,8 @@ def _existing_claims(semantic_dir):
 def _accepted_at_from_file(path):
     try:
         return datetime.datetime.fromtimestamp(
-            os.path.getmtime(path), tz=datetime.timezone.utc).isoformat()
+            os.path.getmtime(path), tz=datetime.timezone.utc
+        ).isoformat()
     except OSError:
         return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
@@ -222,28 +236,36 @@ def _accepted_at_from_file(path):
 def _legacy_lesson(claim, accepted_at):
     lid = "lesson_legacy_" + hashlib.md5(claim.lower().encode()).hexdigest()[:12]
     return {
-        "id": lid, "claim": claim,
-        "conditions": [], "evidence_ids": [],
-        "status": "legacy", "accepted_at": accepted_at,
+        "id": lid,
+        "claim": claim,
+        "conditions": [],
+        "evidence_ids": [],
+        "status": "legacy",
+        "accepted_at": accepted_at,
         "reviewer": "render_lessons_migration",
         "rationale": "Imported from pre-restructure LESSONS.md bullets below sentinel",
-        "cluster_size": 1, "canonical_salience": 5.0,
-        "confidence": 0.7, "support_count": 0, "contradiction_count": 0,
-        "supersedes": None, "source_candidate": None,
+        "cluster_size": 1,
+        "canonical_salience": 5.0,
+        "confidence": 0.7,
+        "support_count": 0,
+        "contradiction_count": 0,
+        "supersedes": None,
+        "source_candidate": None,
     }
 
 
 def _migrate_claims(claims, semantic_dir, accepted_at):
     existing_claims = _existing_claims(semantic_dir)
-    migrated = 0
+    new_lessons = []
     for claim in claims:
         normalized = claim.strip().lower()
         if normalized in existing_claims:
             continue
-        append_lesson(_legacy_lesson(claim, accepted_at), semantic_dir)
+        new_lessons.append(_legacy_lesson(claim, accepted_at))
         existing_claims.add(normalized)
-        migrated += 1
-    return migrated
+    if new_lessons:
+        append_lessons(new_lessons, semantic_dir)
+    return len(new_lessons)
 
 
 def migrate_legacy_bullets(semantic_dir):
@@ -352,7 +374,11 @@ def render_lessons_as_text(semantic_dir):
 
 if __name__ == "__main__":
     import sys
-    sem = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "semantic")
+
+    sem = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else os.path.join(os.path.dirname(os.path.abspath(__file__)), "semantic")
+    )
     path = render_lessons(sem)
     print(f"rendered: {path}")

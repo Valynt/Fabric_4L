@@ -26,13 +26,18 @@ async def test_upsert_plan_includes_tenant_id_in_query():
         mock_session, "tenant-123", "plan-abc", "Test Plan", ["feature1"]
     )
     
-    # Assert: execute was called
+    # Assert: execute was called with correct tenant_id
     assert mock_session.execute.called
-    # The SQL should include tenant_id in the index_elements
     call_args = mock_session.execute.call_args
     stmt = call_args[0][0]
     # Verify the statement includes tenant_id in the composite key
     assert "tenant_id" in str(stmt)
+    # Verify the tenant_id value is passed correctly
+    if hasattr(stmt, 'compile'):
+        compiled = stmt.compile()
+        params = compiled.params
+        # Check that tenant_id parameter exists and has correct value
+        assert params.get('tenant_id') == 'tenant-123' or 'tenant-123' in str(params)
 
 
 @pytest.mark.asyncio
@@ -53,6 +58,10 @@ async def test_get_plan_entitlements_filters_by_tenant_id():
     stmt = call_args[0][0]
     # Verify the statement includes tenant_id in WHERE clause
     assert "tenant_id" in str(stmt)
+    # Verify result is not None and contains expected features
+    assert result is not None
+    assert "feature1" in result
+    assert "feature2" in result
 
 
 @pytest.mark.asyncio

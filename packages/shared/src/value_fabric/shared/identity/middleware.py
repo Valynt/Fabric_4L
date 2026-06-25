@@ -568,7 +568,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         if ctx is not None:
             response.headers["X-Tenant-ID-Resolved"] = str(ctx.tenant_id)
-            self._add_rate_limit_headers(response, request, ctx)
+            await self._add_rate_limit_headers(response, request, ctx)
 
         return response
 
@@ -590,7 +590,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={"WWW-Authenticate": "Bearer"},
-                content={
+                detail={
                     "detail": "Authentication credentials were not provided.",
                     "error": "authentication_required",
                 },
@@ -600,7 +600,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={"WWW-Authenticate": "Bearer"},
-                content={
+                detail={
                     "detail": "Authentication context is invalid.",
                     "error": "authentication_context_invalid",
                 },
@@ -609,7 +609,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         if self._require_tenant_context and not ctx.tenant_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                content={
+                detail={
                     "detail": "Tenant context is required for this route.",
                     "error": "tenant_context_required",
                 },

@@ -94,12 +94,16 @@ class RawContentResponse(BaseModel):
 
     id: UUID
     job_id: UUID
-    url: str
-    content_type: str
-    content_hash: str
-    content_length: int
-    storage_location: str
-    metadata: dict[str, Any] | None = None
+    source_url: str
+    source_final_url: str | None
+    source_domain: str
+    source_http_status: int | None
+    storage: dict[str, str | None]
+    metadata: dict[str, Any]
+    capture: dict[str, Any]
+    content_hash: str | None
+    is_duplicate: bool
+    processing_status: str
     created_at: datetime
 
 
@@ -108,12 +112,12 @@ class ExtractedDataResponse(BaseModel):
 
     id: UUID
     job_id: UUID
-    source_url: str
+    raw_content_id: UUID
     extraction_method: str
-    schema_version: str
+    extraction_confidence_score: float
     data: dict[str, Any]
-    confidence_score: float | None = None
-    extraction_metadata: dict[str, Any] | None = None
+    validation: dict[str, Any]
+    post_processing: dict[str, Any]
     created_at: datetime
 
 
@@ -122,18 +126,20 @@ class ContentListResponse(BaseModel):
 
     items: list[RawContentResponse]
     total: int
-    limit: int
-    next_cursor: str | None
+    page: int
+    per_page: int
 
 
 class CrawlDecisionSummary(BaseModel):
     """Summary of a crawl decision for API responses."""
 
     decision_id: UUID
-    job_id: UUID
     url: str
-    decision: str
-    reason: str | None = None
+    router_decision: str
+    router_rule: str
+    final_path: str
+    fallback_reason: str | None
+    fetch_time_ms: int
     created_at: datetime
 
 
@@ -142,20 +148,26 @@ class RouterQualityReportResponse(BaseModel):
 
     job_id: UUID
     total_urls: int
-    successful_urls: int
-    failed_urls: int
-    skipped_urls: int
-    average_response_time_ms: float
-    fastest_url: str | None
+    fast_path_count: int
+    browser_path_count: int
+    fallback_count: int
+    fallback_rate: float
+    quality_gate_accuracy: float
+    top_router_rules: dict[str, int]
+    avg_fetch_time_ms: float
     slowest_url: str | None
+    fastest_url: str | None
 
 
 class DomainFallbackStatsResponse(BaseModel):
     """Fallback statistics for a domain."""
 
     domain: str
-    total_attempts: int
-    successful_attempts: int
+    total_decisions: int
+    fast_count: int
+    browser_count: int
     fallback_count: int
-    average_response_time_ms: float
-    last_attempt_at: datetime | None = None
+    fallback_rate: float
+    top_fallback_reasons: dict[str, int]
+    avg_fast_duration_ms: float
+    avg_browser_duration_ms: float

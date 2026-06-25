@@ -10,18 +10,15 @@ Provides:
 
 from __future__ import annotations
 
-import types
-from typing import Generator
+from collections.abc import Generator
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi import Request
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-
 
 # ---------------------------------------------------------------------------
 # Lazy import helpers — avoid importing the main app at module level so that
@@ -31,12 +28,16 @@ from starlette.types import ASGIApp
 def _get_app():
     # Patch rate limiting before app import so tests don't get 429 from Redis
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
     async def _mock_check_rate_limit(self, request, ctx):
-        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
-        return _MockResult()
+        mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return mock_result()
+
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    from layer1_ingestion.api.main import app
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
+
+    from layer1_ingestion.api.main import app
+
     register_exception_handlers(app)
     return app
 
@@ -86,8 +87,8 @@ class _InjectGovernanceMiddleware(BaseHTTPMiddleware):
         )
         # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
         # skips its Redis rate-limit check (avoids 429 in tests).
-        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
-        request.state.rate_limit_result = _MockResult()
+        mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        request.state.rate_limit_result = mock_result()
         request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
         return await call_next(request)
 
@@ -103,8 +104,8 @@ def engine():
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
-    Base = _get_base()
-    Base.metadata.create_all(eng)
+    base = _get_base()
+    base.metadata.create_all(eng)
     yield eng
     eng.dispose()
 
@@ -114,8 +115,8 @@ def db(engine) -> Generator[Session, None, None]:
     """Per-test DB session that rolls back after each test."""
     connection = engine.connect()
     transaction = connection.begin()
-    TestingSession = sessionmaker(bind=connection)
-    session = TestingSession()
+    testing_session = sessionmaker(bind=connection)
+    session = testing_session()
     yield session
     session.close()
     transaction.rollback()
@@ -148,13 +149,12 @@ def client(db: Session, org_id: UUID, user_id: UUID):
 
     # Add middleware that injects governance_context
     # We wrap the app in a new ASGI app with the middleware applied
-    from fastapi import FastAPI
-    from fastapi.testclient import TestClient as _TC
+    from fastapi.testclient import TestClient
 
     # Build a thin wrapper app that injects the context then delegates
     wrapped = _InjectGovernanceMiddleware(app, tenant_id=org_id, user_id=user_id)
 
-    with _TC(wrapped) as c:
+    with TestClient(wrapped) as c:
         yield c
 
     app.dependency_overrides.clear()
@@ -164,7 +164,7 @@ def client(db: Session, org_id: UUID, user_id: UUID):
 def make_target(db: Session, user_id: UUID):
     """Factory: create a ScrapingTarget row in the test DB."""
     factory = _make_target_factory()
-    from layer1_ingestion.shared.models import TargetType, SourceCategory
+    from layer1_ingestion.shared.models import SourceCategory, TargetType
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", **kwargs) -> object:
         t = factory(
@@ -196,10 +196,15 @@ def _mock_process_scraping_job(monkeypatch, request):
     if request.node.get_closest_marker("contract_static"):
         return
     import layer1_ingestion.api._batch_and_stats as _batch_mod
+    import layer1_ingestion.api.job_handlers as _job_handlers_mod
     import layer1_ingestion.api.main as _main_mod
-    _MockTask = type("_MockTask", (), {
+    import layer1_ingestion.api.target_handlers as _target_handlers_mod
+
+    mock_task = type("_MockTask", (), {
         "delay": lambda *a, **k: None,
         "apply_async": lambda *a, **k: None,
     })
-    monkeypatch.setattr(_batch_mod, "process_scraping_job", _MockTask())
-    monkeypatch.setattr(_main_mod, "process_scraping_job", _MockTask())
+    monkeypatch.setattr(_batch_mod, "process_scraping_job", mock_task())
+    monkeypatch.setattr(_job_handlers_mod, "process_scraping_job", mock_task())
+    monkeypatch.setattr(_main_mod, "process_scraping_job", mock_task())
+    monkeypatch.setattr(_target_handlers_mod, "process_scraping_job", mock_task())

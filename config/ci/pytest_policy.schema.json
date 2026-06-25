@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pytest Policy Configuration",
+  "description": "Schema for the repository-level pytest marker/dependency policy loaded by tests/support/root_pytest_policy.py.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mandatory_deps",
+    "tenant_isolation",
+    "mandatory_markers",
+    "mandatory_exclusion_markers"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Config format version."
+    },
+    "mandatory_deps": {
+      "type": "object",
+      "description": "Package names that must be importable for the mandatory test profile, mapped to installation hints.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 1
+    },
+    "tenant_isolation": {
+      "type": "object",
+      "required": ["aliases", "target_paths", "target_nodeids"],
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "target_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "target_nodeids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "mandatory_markers": {
+      "type": "array",
+      "description": "Markers that qualify a test for the mandatory CI profile when no exclusion marker is present.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "mandatory_exclusion_markers": {
+      "type": "array",
+      "description": "Markers that disqualify a test from the mandatory CI profile.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

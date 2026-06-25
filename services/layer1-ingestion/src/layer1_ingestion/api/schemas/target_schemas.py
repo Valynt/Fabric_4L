@@ -1,5 +1,5 @@
 """Pydantic schemas for target-related API operations."""
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 from zoneinfo import available_timezones
@@ -14,7 +14,6 @@ from ...shared.models import (
     LLMProvider,
     ProxyRotationStrategy,
     RetryBackoff,
-    ScrapingTarget,
     TargetStatus,
     TargetType,
 )
@@ -60,7 +59,7 @@ class ExtractionConfigInput(BaseModel):
 
     method: ExtractionMethod = ExtractionMethod.DETERMINISTIC
     llm_provider: LLMProvider | None = None
-    extraction_schema: dict[str, any] | None = None
+    extraction_schema: dict[str, Any] | None = None
     visual_hints: bool = False
     max_depth: int | None = None
     follow_links: bool = True
@@ -214,15 +213,14 @@ class ScrapingTargetDetail(ScrapingTargetSummary):
     description: str | None
     url_pattern: str | None
     crawl_path: str
-    extraction_config: dict[str, any]
-    browser_config: dict[str, any]
-    schedule: dict[str, any] | None
-    rate_limit: dict[str, any]
-    compliance: dict[str, any]
-    proxy_config: dict[str, any]
-    authentication: dict[str, any] | None
-    created_by: UUID | None = None
-    updated_by: UUID | None = None
+    extraction_config: dict[str, Any]
+    browser_config: dict[str, Any]
+    schedule: dict[str, Any] | None
+    rate_limit: dict[str, Any]
+    compliance: dict[str, Any]
+    proxy_config: dict[str, Any]
+    authentication: dict[str, Any] | None
+    created_by: UUID
     last_error_at: datetime | None = None
 
 
@@ -230,16 +228,16 @@ class TargetListResponse(BaseModel):
     """List of scraping targets."""
 
     data: list[ScrapingTargetSummary]
-    pagination: dict[str, any]
+    pagination: dict[str, Any]
 
 
 class ValidateTargetRequest(BaseModel):
     """Request to validate a target configuration."""
 
     test_url: str | None = None
+    validate_robots_txt: bool = True
+    validate_schema: bool = True
     test_browser_connection: bool = False
-    test_extraction: bool = False
-    test_compliance: bool = False
 
 
 class ValidationErrorDetail(BaseModel):
@@ -261,27 +259,62 @@ class ValidateTargetResponse(BaseModel):
     """Response from target validation."""
 
     valid: bool
-    errors: list[ValidationErrorDetail] = []
-    warnings: list[ValidationWarning] = []
-    test_results: dict[str, any] = {}
+    errors: list[ValidationErrorDetail]
+    warnings: list[ValidationWarning]
+    robots_txt_check: dict[str, Any] | None = None
+    schema_validation: dict[str, Any] | None = None
+    browser_test: dict[str, Any] | None = None
 
 
-def _validate_callback_url_no_ssrf(value: str) -> str:
-    """Validate callback URL to prevent SSRF attacks."""
+# Cloud metadata endpoints that must never be targeted by callbacks.
+_SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
+    {
+        "169.254.169.254",  # AWS / Azure / GCP instance metadata
+        "169.254.170.2",  # AWS ECS Task metadata endpoint
+        "100.100.100.200",  # Alibaba Cloud instance metadata
+        "192.0.0.254",  # Oracle Cloud instance metadata
+        "fd00:ec2::254",  # AWS EC2 IPv6 instance metadata
+        "metadata.google.internal",  # GCP metadata domain
+        "metadata.internal",  # GCP/internal alias
+    }
+)
+
+
+def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
+    """Block SSRF-prone callback URLs (private IPs, localhost, non-HTTPS)."""
+    if value is None:
+        return None
+    import ipaddress
     from urllib.parse import urlparse
 
     parsed = urlparse(value)
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError("Callback URL must use HTTP or HTTPS scheme")
-    
-    # Block private/internal IPs
-    hostname = parsed.hostname or ""
-    if hostname.startswith(("127.", "10.", "192.168.", "172.")):
-        raise ValueError("Callback URL cannot point to private IP addresses")
-    
-    if hostname == "localhost":
-        raise ValueError("Callback URL cannot use localhost")
-    
+    if parsed.scheme != "https":
+        raise ValueError("callback_url must use HTTPS scheme")
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("callback_url must have a valid hostname")
+    hostname_lower = hostname.lower()
+    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # nosec B104
+        raise ValueError("callback_url must not point to localhost")
+    if hostname_lower in _SSRF_BLOCKED_HOSTNAMES:
+        raise ValueError("callback_url must not point to cloud metadata endpoints")
+    if hostname_lower.endswith(".metadata"):
+        raise ValueError("callback_url must not point to cloud metadata endpoints")
+    try:
+        addr = ipaddress.ip_address(hostname)
+    except ValueError:
+        pass
+    else:
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_unspecified
+        ):
+            raise ValueError(
+                "callback_url must not point to private or reserved IP addresses"
+            )
     return value
 
 
@@ -289,15 +322,15 @@ class ExecuteTargetRequest(BaseModel):
     """Request to execute a target."""
 
     priority: int = Field(default=5, ge=1, le=10)
+    override_config: dict[str, Any] | None = None
     callback_url: str | None = None
-    override_config: dict[str, any] | None = None
+    webhook_events: list[str] | None = None
+    idempotency_key: str | None = Field(default=None, max_length=255)
 
     @field_validator("callback_url")
     @classmethod
-    def validate_callback(cls, v: str | None) -> str | None:
-        if v is not None:
-            return _validate_callback_url_no_ssrf(v)
-        return v
+    def _check_callback_url(cls, v: str | None) -> str | None:
+        return _validate_callback_url_no_ssrf(v)
 
 
 class ExecuteTargetResponse(BaseModel):
@@ -305,4 +338,6 @@ class ExecuteTargetResponse(BaseModel):
 
     job_id: UUID
     status: str
-    estimated_completion_time: datetime | None = None
+    estimated_start_time: datetime | None = None
+    queue_position: int | None = None
+    queue_position_metadata: dict[str, Any] | None = None

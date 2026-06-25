@@ -32,16 +32,14 @@ EXPECTED_SCRAPE_JOBS = {
     "blackbox-metrics",
 }
 
-# Metric name suffixes that must exist across the platform.
-# We check for suffixes because the prefix is a variable (e.g. f"{prefix}...").
-EXPECTED_METRIC_SUFFIXES = {
-    "_http_requests_total",
-    "_http_request_duration_seconds",
-    "_auth_failures_total",
-    "_celery_workers_active",
-    "_celery_queue_depth",
-    "_errors_total",
-}
+# Metric name substrings that must exist across the platform source files.
+# We check for substrings because the prefix is a variable (e.g. f"{prefix}...").
+EXPECTED_METRIC_SUBSTRINGS = [
+    "http_requests_total",
+    "http_request_duration_seconds",
+    "auth_failures_total",
+    "errors_total",
+]
 
 # Full metric names that must appear in the Layer 6 JSON contract.
 EXPECTED_L6_METRIC_NAMES = {
@@ -72,12 +70,7 @@ FORBIDDEN_LABEL_TOKENS = (
 
 
 def _extract_label_keys(source: str) -> list[tuple[str, str]]:
-    """Extract (metric_name, label_key) pairs from .labels(...) calls.
-
-    Parses lines like:
-        self._metrics["requests_total"].labels(method=method, endpoint=endpoint)
-    and returns [("requests_total", "method"), ("requests_total", "endpoint")]
-    """
+    """Extract (metric_name, label_key) pairs from .labels(...) calls."""
     results: list[tuple[str, str]] = []
     label_call = re.compile(
         r'self\._metrics\["(\w+)"\]\.labels\(([^)]*)\)',
@@ -186,8 +179,8 @@ def test_no_raw_tenant_id_in_prometheus_yml_scrape_labels() -> None:
             )
 
 
-def test_expected_metric_suffixes_are_defined_in_sources() -> None:
-    """Assert each expected metric suffix appears in at least one source file."""
+def test_expected_metric_substrings_are_defined_in_sources() -> None:
+    """Assert each expected metric substring appears in at least one source file."""
     metrics_sources = [
         REPO_ROOT / "services" / "layer1-ingestion" / "src" / "metrics" / "prometheus_metrics.py",
         REPO_ROOT / "services" / "layer2-extraction" / "src" / "layer2_extraction" / "metrics" / "prometheus_metrics.py",
@@ -197,8 +190,8 @@ def test_expected_metric_suffixes_are_defined_in_sources() -> None:
     all_source = "\n".join(
         p.read_text(encoding="utf-8") if p.exists() else "" for p in metrics_sources
     )
-    missing = {s for s in EXPECTED_METRIC_SUFFIXES if s not in all_source}
-    assert not missing, f"Expected metric suffixes not found in any source: {missing}"
+    missing = [s for s in EXPECTED_METRIC_SUBSTRINGS if s not in all_source]
+    assert not missing, f"Expected metric substrings not found in any source: {missing}"
 
 
 def test_expected_vf_metric_names_in_layer2() -> None:

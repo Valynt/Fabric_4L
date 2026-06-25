@@ -10,10 +10,9 @@ Tests verify that /targets/{id}/execute supports idempotency keys and replay sem
 
 from __future__ import annotations
 
+from uuid import UUID, uuid4
+
 import pytest
-from uuid import uuid4, UUID
-from fastapi.testclient import TestClient
-from unittest.mock import patch
 
 
 class _FakeRedis:
@@ -43,8 +42,10 @@ class _FakeRedis:
 def _mock_process_scraping_job_and_redis(monkeypatch):
     """Mock Celery task and Redis so execute tests don't need a broker."""
     import layer1_ingestion.api.main as _app_mod
+    import layer1_ingestion.api.target_handlers as _target_handlers_mod
     import layer1_ingestion.shared.database as _db_mod
     monkeypatch.setattr(_app_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None, "apply_async": lambda *a, **k: None})())
+    monkeypatch.setattr(_target_handlers_mod, "process_scraping_job", type("_MockTask", (), {"delay": lambda *a, **k: None, "apply_async": lambda *a, **k: None})())
     monkeypatch.setattr(_db_mod, "redis_client", _FakeRedis())
 
 

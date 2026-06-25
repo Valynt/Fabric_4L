@@ -308,16 +308,19 @@ export function validateToolInvocationEnvelope(
   return result;
 }
 
-export function validateWorkflowTransitionEnvelope(
-  payload: unknown,
-  mode: ValidationMode = "warn"
-): ContractValidationResult<WorkflowTransitionEnvelope> {
-  const result = emptyResult<WorkflowTransitionEnvelope>(mode);
-  if (!isRecord(payload)) {
-    addViolation(result, "$", "workflow transition envelope must be an object");
-    return result;
-  }
+interface WorkflowTransitionFields {
+  workflowType?: string;
+  workflowId?: string;
+  sourceState?: string;
+  targetState?: string;
+  triggeringAgentType?: string;
+  provenance?: ProvenanceRef;
+}
 
+function extractWorkflowTransitionFields(
+  result: MutableValidation<WorkflowTransitionEnvelope>,
+  payload: Record<string, unknown>,
+): WorkflowTransitionFields {
   const workflowType = requireString(result, payload, "workflowType");
   const workflowId = requireString(result, payload, "workflowId");
   const sourceState = requireString(result, payload, "sourceState");
@@ -328,20 +331,40 @@ export function validateWorkflowTransitionEnvelope(
     tenantId: typeof payload.tenantId === "string" ? payload.tenantId : undefined,
     traceId: typeof payload.traceId === "string" ? payload.traceId : undefined,
   });
-  if (!workflowType || !workflowId || !sourceState || !targetState || !triggeringAgentType || !provenance || !result.valid) {
+  return { workflowType, workflowId, sourceState, targetState, triggeringAgentType, provenance };
+}
+
+function hasAllWorkflowTransitionFields(fields: WorkflowTransitionFields): boolean {
+  return (
+    fields.workflowType !== undefined &&
+    fields.workflowId !== undefined &&
+    fields.sourceState !== undefined &&
+    fields.targetState !== undefined &&
+    fields.triggeringAgentType !== undefined &&
+    fields.provenance !== undefined
+  );
+}
+
+export function validateWorkflowTransitionEnvelope(
+  payload: unknown,
+  mode: ValidationMode = "warn"
+): ContractValidationResult<WorkflowTransitionEnvelope> {
+  const result = emptyResult<WorkflowTransitionEnvelope>(mode);
+  if (!isRecord(payload)) {
+    addViolation(result, "$", "workflow transition envelope must be an object");
+    return result;
+  }
+
+  const fields = extractWorkflowTransitionFields(result, payload);
+  if (!hasAllWorkflowTransitionFields(fields) || !result.valid) {
     return result;
   }
 
   result.normalized = {
-    workflowType,
-    workflowId,
-    sourceState,
-    targetState,
-    triggeringAgentType,
-    provenance,
+    ...fields,
     contractVersions: normalizeContractVersions(payload.contractVersions ?? payload.contract_versions),
     transitionReason: optionalString(payload, "transitionReason"),
-  };
+  } as WorkflowTransitionEnvelope;
   return result;
 }
 

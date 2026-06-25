@@ -5,8 +5,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ...shared.models import ComplianceEventType
-
 
 class ComplianceLogResponse(BaseModel):
     """Compliance log entry."""

@@ -8,9 +8,13 @@ Every staged candidate carries lifecycle metadata (status, decisions,
 rejection_count) from birth so repeated churn is visible rather than looking
 fresh each time the pattern recurs.
 """
-import os, json, datetime, hashlib, warnings
+
+import os
+import json
+import datetime
+import hashlib
+import warnings
 from cluster import content_cluster, extract_pattern
-from review_state import _lessons_sha
 from validate import extract_lesson_lines, check_exact_duplicate
 
 
@@ -37,7 +41,9 @@ def _find_prior(slug, candidates_dir):
     old location when moving the candidate back to staged.
     """
     for location in _candidate_locations():
-        record = _read_prior_candidate(_candidate_path(candidates_dir, location, slug), location)
+        record = _read_prior_candidate(
+            _candidate_path(candidates_dir, location, slug), location
+        )
         if record:
             return record, location
     return {}, None
@@ -68,13 +74,44 @@ def _read_prior_candidate(path, location):
         return None
 
 
+def _load_candidate_index(candidates_dir):
+    """Scan staged/rejected/graduated once and return a slug -> (record, location) map.
+
+    write_candidates previously called _find_prior for every pattern, which in
+    turn stat/opened up to three files per pattern.  Building the index once
+    removes that N+1 I/O.
+    """
+    index = {}
+    for location in _candidate_locations():
+        if location == "staged":
+            search_dir = candidates_dir
+        else:
+            search_dir = os.path.join(candidates_dir, location)
+        if not os.path.isdir(search_dir):
+            continue
+        with os.scandir(search_dir) as entries:
+            for entry in entries:
+                if not entry.name.endswith(".json") or not entry.is_file():
+                    continue
+                slug = entry.name[:-5]
+                if slug in index:
+                    # staged wins over rejected/graduated if a stale duplicate exists.
+                    continue
+                record = _read_prior_candidate(entry.path, location)
+                if record is not None:
+                    index[slug] = (record, location)
+    return index
+
+
 def _lessons_text_for_candidates(candidates_dir):
     lessons_path = os.path.join(
-        os.path.dirname(candidates_dir), "semantic", "LESSONS.md")
+        os.path.dirname(candidates_dir), "semantic", "LESSONS.md"
+    )
     if not os.path.exists(lessons_path):
         return ""
     try:
-        return open(lessons_path).read()
+        with open(lessons_path) as f:
+            return f.read()
     except OSError as exc:
         warnings.warn(
             f"Unable to read lessons file {lessons_path}: {exc}",
@@ -123,7 +160,9 @@ def _can_restage(prev, prev_loc, pattern, current_terminal_lessons):
     return not _blocker_still_present(last, current_terminal_lessons)
 
 
-def _should_stage(claim, lessons_text, prev, prev_loc, pattern, current_terminal_lessons):
+def _should_stage(
+    claim, lessons_text, prev, prev_loc, pattern, current_terminal_lessons
+):
     if not claim or _already_terminal_claim(claim, lessons_text):
         return False
     if _terminal_graduated(prev, prev_loc):
@@ -195,15 +234,20 @@ def write_candidates(patterns, candidates_dir):
     written = 0
     lessons_text = _lessons_text_for_candidates(candidates_dir)
     current_terminal_lessons = set(extract_lesson_lines(lessons_text))
+    prior_index = _load_candidate_index(candidates_dir)
 
     for key, p in patterns.items():
         claim = _claim(p)
         slug = _slug(p)
-        prev, prev_loc = _find_prior(slug, candidates_dir)
-        if not _should_stage(claim, lessons_text, prev, prev_loc, p, current_terminal_lessons):
+        prev, prev_loc = prior_index.get(slug, ({}, None))
+        if not _should_stage(
+            claim, lessons_text, prev, prev_loc, p, current_terminal_lessons
+        ):
             continue
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        _write_candidate(candidates_dir, slug, _candidate(slug, key, p, claim, prev, now))
+        _write_candidate(
+            candidates_dir, slug, _candidate(slug, key, p, claim, prev, now)
+        )
         _cleanup_prior_location(candidates_dir, slug, prev_loc)
         written += 1
     return written

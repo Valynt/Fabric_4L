@@ -20,7 +20,7 @@ _SRC = Path(__file__).resolve().parents[1] / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from layer1_ingestion.api.main import ExecuteTargetRequest  # noqa: E402
+from layer1_ingestion.api.main import ExecuteTargetRequest  # noqa: E402, I001
 
 
 # ---------------------------------------------------------------------------
@@ -141,9 +141,14 @@ def test_metadata_internal_hostname_rejected():
 def test_validator_uses_try_except_else_not_bare_pass():
     """The validator must use try/except/else, not the pattern that swallows raises."""
     service_root = Path(__file__).resolve().parents[1] / "src"
-    # Read from canonical module, not the compatibility shim
-    main_file = service_root / "layer1_ingestion" / "api" / "main.py"
-    content = main_file.read_text(encoding="utf-8", errors="ignore")
+    schema_file = (
+        service_root
+        / "layer1_ingestion"
+        / "api"
+        / "schemas"
+        / "target_schemas.py"
+    )
+    content = schema_file.read_text(encoding="utf-8", errors="ignore")
     # The broken pattern raises ValueError inside the try block and catches it.
     # The fixed pattern uses else: after except ValueError.
     assert "except ValueError:" in content, "Expected except ValueError in validator"
@@ -156,4 +161,3 @@ def test_validator_uses_try_except_else_not_bare_pass():
         "is_private check must be inside the else: branch, not the try: block. "
         "The validator likely reverted to the broken pattern that swallows the raise."
     )
-
