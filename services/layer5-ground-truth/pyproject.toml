@@ -2,7 +2,7 @@
 
 [project]
 name = "layer5-ground-truth"
-version = "0.1.0"
+version = "1.1.0"
 description = "Ground Truth Layer for Value Fabric Platform — evidence-backed, CFO-defensible facts"
 requires-python = ">=3.11"
 readme = "README.md"

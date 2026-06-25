@@ -1,7 +1,7 @@
 /**
  * ValuePacks Page Integration Tests
  *
- * Tests for the wireframe-aligned Value Packs page:
+ * Tests for the Value Packs page:
  * - Page loads with header, filter bar, preview panel, pack actions
  * - 3-col pack grid populates from API
  * - Dropdown filters and search narrow displayed packs

@@ -1,9 +1,9 @@
 {
   "name": "fabric-4l-monorepo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "generate:contracts": "python scripts/ci/contract_compliance_gate.py --mode full --refresh-only",
     "generate:api": "corepack pnpm --filter ./apps/web run generate:types",

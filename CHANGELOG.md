@@ -9,6 +9,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-06-25
+
+### Added
+- **Official Launch Polish**: Cleaned up documentation, metadata, and removed placeholder tracking.
+- Removed AI-prompt-named sprint plan files and dead code plans from root (moved to `docs/archive/`).
+- Updated `manifest.json` with correct app description and icon paths for PWA readiness.
+
+### Changed
+- **Branding**: Fixed `index.html` title from "Wireframes" to the official "Value Fabric — Intelligence Platform".
+- **Metadata**: Updated all `package.json` and `pyproject.toml` files to version `1.1.0` to align the monorepo versions.
+- **License**: Fixed the root `package.json` and `apps/web/package.json` license fields from "MIT" to "SEE LICENSE IN LICENSE" to correctly reflect the proprietary nature of the platform.
+- **Documentation**: Corrected broken path references in `SECURITY.md` and updated the contact email in the `LICENSE` file.
+- Removed `.tmp/` scratch files from Git tracking.
+
+## [1.1.0] — 2026-05-14
+
 ### Security
 - **P0 Security patches**: Added pnpm overrides to resolve 24 frontend vulnerabilities (3 high, 14 moderate, 7 low)
   - `dompurify`: upgraded to >=3.4.9 (fixes GHSA-vxr8-fq34-vvx9, GHSA-gvmj-g25r-r7wr)

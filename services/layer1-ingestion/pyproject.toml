@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "layer1-ingestion"
-version = "1.0.0"
+version = "1.1.0"
 description = "Intelligent Data Ingestion Service for Value Fabric"
 readme = "README.md"
 requires-python = ">=3.11"

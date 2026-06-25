@@ -1,6 +1,6 @@
 /**
  * Ingestion Jobs Page
- * Design: Refined Enterprise SaaS matching the wireframe
+ * Design: Refined Enterprise SaaS
  *
  * Layout:
  *   - Page header with title, Refresh, and + New Job buttons

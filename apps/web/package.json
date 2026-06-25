@@ -1,8 +1,8 @@
 {
-  "name": "value-fabric-wireframes",
-  "version": "1.0.0",
+  "name": "value-fabric",
+  "version": "1.1.0",
   "type": "module",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",

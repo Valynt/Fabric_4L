@@ -35,7 +35,7 @@ Please include:
 
 ## Security design principles
 
-- **No secrets in code.** All credentials use environment variables. See `value-fabric/.env.example`.
+- **No secrets in code.** All credentials use environment variables. See [`.env.example`](.env.example).
 - **JWT secret policy is environment-aware.** `JWT_SECRET` may use a local fallback only in
   development/test-like environments (`ENVIRONMENT`/`APP_ENV` of `dev`, `development`,
   `local`, `test`, `testing`, or `ci`). In non-dev environments, startup hard-fails if
@@ -43,7 +43,7 @@ Please include:
 - **API keys use HMAC-SHA256** (not bcrypt) for throughput; bcrypt is reserved for user passwords.
 - **JWT tokens** are short-lived and signed with `JWT_SECRET`.
 - **Audit logs** are append-only and protected by a database trigger that prevents UPDATE/DELETE.
-- **RBAC** is enforced via `GovernanceMiddleware` in `value-fabric/shared/identity/`.
+- **RBAC** is enforced via `GovernanceMiddleware` in `packages/shared/src/value_fabric/shared/identity/`.
 - **CI uses short-lived OIDC credentials** — no long-lived secrets stored in GitHub Actions.
 
 ## Dependency management

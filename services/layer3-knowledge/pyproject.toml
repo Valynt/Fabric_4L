@@ -1,6 +1,6 @@
 [project]
 name = "layer3-knowledge"
-version = "0.1.0"
+version = "1.1.0"
 description = "Knowledge Graph & Semantic Layer for Value Fabric Platform"
 requires-python = ">=3.11"
 readme = "README.md"
