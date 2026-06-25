@@ -52,4 +52,3 @@ Commands were re-run on the clean worktree to verify that the dynamic-import ana
    ```
 
 Both failures reproduce on the clean worktree and are independent of the files listed in this allowlist. `typecheck` passes on its own; only `build` fails, and only for pre-existing environment/dependency reasons.
-

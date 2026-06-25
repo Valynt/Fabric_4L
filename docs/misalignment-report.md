@@ -94,7 +94,7 @@
 **Severity:** Warning  
 **Description:** `useAgentEvents.ts` (AG-UI event streaming) needs continued error recovery review.
 
-**Frontend:** `agui/useAgentEvents.ts`  
+**Frontend:** `agui/useAgentEvents.ts`
 **Backend:** `layer4-agents/src/api/routes/agent_stream.py` (8,336 bytes)
 
 **Gap:** No automatic reconnection on network failure.

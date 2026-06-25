@@ -202,4 +202,3 @@ Source of truth: `contracts/layer4-route-contract-matrix.json`.
 | `GET /v1/workflows/{workflow_id}/state/performance` | `get_performance_metrics_v1_workflows__workflow_id__state_performance_get` | `-` | `#/components/schemas/PerformanceMetricsResponse` | `422` | `apps/web/src/hooks/useGraphQuery.comprehensive.test.ts, apps/web/src/hooks/useGraphQuery.performance.test.ts, apps/web/src/hooks/useWorkflows.ts` |
 | `GET /v1/workflows/{workflow_id}/state/schema` | `get_state_schema_v1_workflows__workflow_id__state_schema_get` | `-` | `#/components/schemas/StateSchemaResponse` | `422` | `apps/web/src/pages/ValueTreeExplorer.tsx, apps/web/src/pages/OntologyEditor.tsx` |
 | `GET /v1/workflows/{workflow_id}/state/values` | `get_state_values_v1_workflows__workflow_id__state_values_get` | `-` | `#/components/schemas/StateValueResponse` | `422` | `apps/web/src/pages/formulaBuilderLogic.test.ts, apps/web/src/pages/OntologyEditor.tsx, apps/web/src/api/legacy.ts` |
-
