@@ -974,6 +974,11 @@ jobs:
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
 
+      - name: Layer 4 pytest collection check
+        run: |
+          cd services/layer4-agents
+          pytest --collect-only . -q
+
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ -v --tb=short \
