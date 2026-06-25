@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "layer7-billing"
-version = "0.1.0"
+version = "1.1.0"
 description = "Layer 7 Billing Service for Value Fabric - Usage event ingestion, plan entitlement checks, invoice listing, and payment state"
 readme = "README.md"
 requires-python = ">=3.11"

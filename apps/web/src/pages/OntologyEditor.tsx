@@ -1,7 +1,7 @@
 /**
  * OntologyEditor — Visual ontology schema editing environment
  *
- * Three-panel layout matching the wireframe:
+ * Three-panel layout production layout:
  * - Left: Type Tree (hierarchical type browser)
  * - Center: Property Editor (type definition editing)
  * - Right: Relationship Map (visual relationship graph)

@@ -1,1 +1,16 @@
-{"name":"Value Fabric","short_name":"VFabric","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0f172a"}
+{
+  "name": "Value Fabric",
+  "short_name": "VFabric",
+  "description": "AI-powered intelligence platform for enterprise value realization and ROI analysis.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

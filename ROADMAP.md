@@ -10,39 +10,45 @@ canonical readiness percentage, when present, belongs in
 `docs/readiness/current.md` and must remain aligned with the readiness
 consistency gate.
 
-## MVP (Current)
+## v1.0 — Launched (2026-05-12)
 
-- React frontend with workspace workflows
-- FastAPI unified backend with mock persistence
-- Deterministic ROI calculations
-- Tenant isolation
-- Governance review queues
-- Agent orchestration mock layer
-- Value pack integration
+- React + TypeScript frontend with full workspace workflows
+- FastAPI multi-layer backend with PostgreSQL + Neo4j persistence
+- Deterministic ROI calculations and business case generation
+- Multi-tenant isolation via PostgreSQL RLS and GovernanceMiddleware
+- Governance review queues and append-only audit log
+- LangGraph agent orchestration (Layer 4)
+- Value pack integration (life-sciences, manufacturing, software)
+- Kubernetes production deployment (6-layer microservices)
+- Clerk authentication + Keycloak/OIDC enterprise SSO
+- Prometheus + Grafana observability stack
 
-## Q2 2026
+## v1.1 — Released (2026-05-14)
 
-- PostgreSQL + Neo4j persistence
-- Real LLM integration (OpenAI, Together.ai)
-- Semantic search with pgvector
-- Celery async job processing
-- Webhook integrations (CRM, Slack)
+- ADR-027 canonical path migration (Layers 2, 3, 4, 6)
+- OIDC/JWT validation hardening
+- Layer 4 contract fixes and import topology enforcement
+- 24 frontend security vulnerability patches
+
+## v1.2 — Released (2026-06-25)
+
+- Official launch polish: branding, metadata, and documentation cleanup
+- Version alignment across all service packages
+- Removal of stale scratch files and placeholder content
 
 ## Q3 2026
 
-- Multi-agent LangGraph workflows
-- Advanced evidence provenance
-- Real-time collaboration
+- Advanced evidence provenance and ground-truth validation
+- Real-time collaboration and notifications
 - Mobile-responsive optimizations
-- SSO / SAML enterprise auth
+- Enhanced CRM webhook integrations (Salesforce, HubSpot)
 
 ## Q4 2026
 
-- Kubernetes production deployment
-- Advanced analytics and reporting
-- Custom formula builder UI
-- Value realization dashboards
-- Expansion revenue signals
+- Advanced analytics and reporting dashboards
+- Custom formula builder UI enhancements
+- Value realization tracking and dashboards
+- Expansion revenue signals and churn prediction
 
 ## Future
 

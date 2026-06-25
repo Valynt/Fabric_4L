@@ -1,6 +1,6 @@
 /**
  * Screen — Value Packs
- * Design: Refined Enterprise SaaS — wireframe-aligned layout
+ * Design: Refined Enterprise SaaS — production layout
  * Spec: Value Packs as first-class product objects — reusable domain-specific
  * packages combining ontology, value drivers, formulas, benchmarks, and workflows.
  *
@@ -97,7 +97,7 @@ function formatLastUpdated(dateStr: string | undefined): string {
   return date.toLocaleDateString();
 }
 
-// ── Pack Card (simplified per wireframe) ─────────────────────────────────────
+// ── Pack Card (simplified) ─────────────────────────────────────
 
 interface PackCardProps {
   pack: ValuePack;

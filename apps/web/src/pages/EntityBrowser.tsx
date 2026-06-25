@@ -1,6 +1,6 @@
 /**
  * Entity Browser — Unified Table + Detail Drawer
- * Design: Refined Enterprise SaaS (Wireframe-matching)
+ * Design: Refined Enterprise SaaS
  * Data Flow: React Query for server state, Zustand for UI state
  *
  * Features:

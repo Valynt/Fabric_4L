@@ -1,3 +1,6 @@
 
 # Generated SLO and test reports
 tmp/
+
+# TypeScript error output files (generated artifacts)
+tsc-errors.txt
