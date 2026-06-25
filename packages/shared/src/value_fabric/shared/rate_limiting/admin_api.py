@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+
 try:
     from neo4j import AsyncDriver
 except ImportError:  # pragma: no cover - optional dependency for test/runtime variants
@@ -28,16 +29,20 @@ from .tenant_rate_limiter import (
 )
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+
 class list_rate_limit_tiersResult(TypedDictModel):
     tiers: Any
+
 
 class set_custom_limitsResult(TypedDictModel):
     limits: dict[str, Any]
     message: str
 
+
 class reset_tenant_limitsResult(TypedDictModel):
     keys_deleted: Any
     message: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +53,15 @@ router = APIRouter(prefix="/v1/admin/rate-limits", tags=["Admin - Rate Limits"])
 # Request/Response Models
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class RateLimitConfigRequest(BaseModel):
     """Request to set custom rate limit."""
-    
+
     requests_per_minute: int = Field(..., gt=0, description="Requests per minute")
     requests_per_hour: int = Field(..., gt=0, description="Requests per hour")
     requests_per_day: int = Field(..., gt=0, description="Requests per day")
     burst_allowance: int = Field(0, ge=0, description="Burst allowance")
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -70,7 +76,7 @@ class RateLimitConfigRequest(BaseModel):
 
 class TenantQuotaResponse(BaseModel):
     """Response with tenant quota status."""
-    
+
     tenant_id: str
     tier: str
     limits: dict
@@ -80,7 +86,7 @@ class TenantQuotaResponse(BaseModel):
 
 class TenantUsageResponse(BaseModel):
     """Response with tenant usage statistics."""
-    
+
     tenant_id: str
     timestamp: str
     windows: dict
@@ -89,6 +95,7 @@ class TenantUsageResponse(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════
 # Dependency Injection
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 async def get_rate_limiter(request: Request) -> TenantRateLimiter:
     """Get configured rate limiter from FastAPI application state."""
@@ -112,6 +119,7 @@ async def get_rate_limiter(request: Request) -> TenantRateLimiter:
 # Helper Functions
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TenantMetadataProvider(Protocol):
     """Provider for authoritative tenant metadata lookups."""
 
@@ -129,6 +137,39 @@ class Neo4jTenantMetadataProvider:
 async def get_tenant_metadata_provider() -> TenantMetadataProvider:
     """Get tenant metadata provider dependency."""
     return Neo4jTenantMetadataProvider()
+
+
+_TIER_VALUE_MAP = {
+    "shared": TenantTier.SHARED,
+    "dedicated": TenantTier.DEDICATED,
+    "enterprise": TenantTier.ENTERPRISE,
+    "standard": TenantTier.SHARED,
+    "isolated": TenantTier.DEDICATED,
+}
+
+
+def _resolve_driver_factory(driver_factory: Any | None = None) -> Any | None:
+    """Return the provided factory or try to import the Layer 3 Neo4j driver.
+
+    Returns None when no factory is supplied and the optional db.driver module
+    is unavailable, allowing the caller to fall back safely.
+    """
+    if driver_factory is not None:
+        return driver_factory
+    try:
+        from db.driver import get_driver as _get_driver  # noqa: PLC0415
+
+        return _get_driver
+    except ImportError:
+        return None
+
+
+def _map_tier_value(tier_value: Any, tenant_id: UUID) -> TenantTier:
+    """Map a raw tier string to the canonical TenantTier enum."""
+    tier = _TIER_VALUE_MAP.get(str(tier_value).lower())
+    if tier is None:
+        raise ValueError(f"Unknown tenant tier value: {tier_value}")
+    return tier
 
 
 async def _get_tenant_tier_from_db(
@@ -150,14 +191,8 @@ async def _get_tenant_tier_from_db(
     Returns:
         TenantTier enum value from database, or None if tenant not found
     """
-    if driver_factory is None:
-        try:
-            from db.driver import get_driver as _get_driver  # noqa: PLC0415
-            driver_factory = _get_driver  # type: ignore[assignment]
-        except ImportError:
-            pass
-
-    if driver_factory is None:
+    resolved_factory = _resolve_driver_factory(driver_factory)
+    if resolved_factory is None:
         logger.warning(
             "Neo4j driver not available for tenant tier lookup, "
             "falling back to SHARED for tenant_id=%s",
@@ -166,7 +201,7 @@ async def _get_tenant_tier_from_db(
         return None
 
     try:
-        driver = await driver_factory()
+        driver = await resolved_factory()
         async with driver.session() as session:
             # Query Tenant node for tier - check both tier and isolation_tier properties
             result = await session.run(
@@ -195,26 +230,7 @@ async def _get_tenant_tier_from_db(
                 )
                 return None
 
-            # Normalize to lowercase and map to TenantTier
-            tier_str = str(tier_value).lower()
-            tier_mapping = {
-                "shared": TenantTier.SHARED,
-                "dedicated": TenantTier.DEDICATED,
-                "enterprise": TenantTier.ENTERPRISE,
-                # Also accept isolation tier values
-                "standard": TenantTier.SHARED,
-                "isolated": TenantTier.DEDICATED,
-            }
-
-            tier = tier_mapping.get(tier_str)
-            if tier is None:
-                logger.warning(
-                    "Unknown tier value '%s' for tenant %s, falling back to SHARED",
-                    tier_value,
-                    tenant_id,
-                )
-                raise ValueError(f"Unknown tenant tier value: {tier_value}")
-
+            tier = _map_tier_value(tier_value, tenant_id)
             logger.debug(
                 "Resolved tenant %s to tier %s from database",
                 tenant_id,
@@ -236,6 +252,7 @@ async def _get_tenant_tier_from_db(
 # Endpoints
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 @router.get(
     "/tenants/{tenant_id}/quota",
     response_model=TenantQuotaResponse,
@@ -253,15 +270,17 @@ async def get_tenant_quota(
     tenant_id: UUID,
     context: RequestContext = Depends(require_privileged_access()),
     rate_limiter: TenantRateLimiter = Depends(get_rate_limiter),
-    tenant_metadata_provider: TenantMetadataProvider = Depends(get_tenant_metadata_provider),
+    tenant_metadata_provider: TenantMetadataProvider = Depends(
+        get_tenant_metadata_provider
+    ),
 ) -> TenantQuotaResponse:
     """Get quota status for tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         context: Request context (super-admin required)
         rate_limiter: Rate limiter instance
-        
+
     Returns:
         TenantQuotaResponse with quota and usage
     """
@@ -289,7 +308,7 @@ async def get_tenant_quota(
         status_data["tier"] = tenant_tier.value
 
         return TenantQuotaResponse(**status_data)
-        
+
     except HTTPException:
         raise
     except ValueError as e:
@@ -323,13 +342,13 @@ async def get_tenant_usage(
     rate_limiter: TenantRateLimiter = Depends(get_rate_limiter),
 ) -> TenantUsageResponse:
     """Get usage statistics for tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         endpoint: Optional endpoint filter
         context: Request context (super-admin required)
         rate_limiter: Rate limiter instance
-        
+
     Returns:
         TenantUsageResponse with usage data
     """
@@ -338,9 +357,9 @@ async def get_tenant_usage(
             tenant_id=tenant_id,
             endpoint=endpoint,
         )
-        
+
         return TenantUsageResponse(**usage_data)
-        
+
     except Exception as e:
         logger.error(f"Failed to get tenant usage: {e}")
         raise HTTPException(
@@ -367,13 +386,13 @@ async def set_custom_limits(
     rate_limiter: TenantRateLimiter = Depends(get_rate_limiter),
 ) -> dict:
     """Set custom rate limits for tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         config: Custom rate limit configuration
         context: Request context (super-admin required)
         rate_limiter: Rate limiter instance
-        
+
     Returns:
         Success message
     """
@@ -384,28 +403,28 @@ async def set_custom_limits(
             requests_per_day=config.requests_per_day,
             burst_allowance=config.burst_allowance,
         )
-        
+
         await rate_limiter.set_custom_limit(
             tenant_id=tenant_id,
             config=rate_limit_config,
         )
-        
+
         logger.info(
             f"Super-admin {context.user_id} set custom rate limits for tenant {tenant_id}"
         )
-        
-        return set_custom_limitsResult.model_validate({
-            "message": f"Custom rate limits set for tenant {tenant_id}",
-            "limits": {
-                "requests_per_minute": config.requests_per_minute,
-                "requests_per_hour": config.requests_per_hour,
-                "requests_per_day": config.requests_per_day,
-                "burst_allowance": config.burst_allowance,
-            },
-        })
 
+        return set_custom_limitsResult.model_validate(
+            {
+                "message": f"Custom rate limits set for tenant {tenant_id}",
+                "limits": {
+                    "requests_per_minute": config.requests_per_minute,
+                    "requests_per_hour": config.requests_per_hour,
+                    "requests_per_day": config.requests_per_day,
+                    "burst_allowance": config.burst_allowance,
+                },
+            }
+        )
 
-        
     except Exception as e:
         logger.error(f"Failed to set custom limits: {e}")
         raise HTTPException(
@@ -431,30 +450,30 @@ async def reset_tenant_limits(
     rate_limiter: TenantRateLimiter = Depends(get_rate_limiter),
 ) -> dict:
     """Reset rate limits for tenant.
-    
+
     Args:
         tenant_id: Tenant UUID
         context: Request context (super-admin required)
         rate_limiter: Rate limiter instance
-        
+
     Returns:
         Number of keys deleted
     """
     try:
         deleted_count = await rate_limiter.reset_tenant_limits(tenant_id)
-        
+
         logger.warning(
             f"Super-admin {context.user_id} reset rate limits for tenant {tenant_id} "
             f"({deleted_count} keys deleted)"
         )
-        
-        return reset_tenant_limitsResult.model_validate({
-            "message": f"Rate limits reset for tenant {tenant_id}",
-            "keys_deleted": deleted_count,
-        })
 
+        return reset_tenant_limitsResult.model_validate(
+            {
+                "message": f"Rate limits reset for tenant {tenant_id}",
+                "keys_deleted": deleted_count,
+            }
+        )
 
-        
     except Exception as e:
         logger.error(f"Failed to reset tenant limits: {e}")
         raise HTTPException(
@@ -476,15 +495,15 @@ async def list_rate_limit_tiers(
     context: RequestContext = Depends(require_privileged_access()),
 ) -> dict:
     """List rate limit tiers and their quotas.
-    
+
     Args:
         context: Request context (super-admin required)
-        
+
     Returns:
         Dictionary of tiers and their limits
     """
     from .tenant_rate_limiter import DEFAULT_TENANT_LIMITS
-    
+
     tiers = {}
     for tier, config in DEFAULT_TENANT_LIMITS.items():
         tiers[tier.value] = {
@@ -493,5 +512,5 @@ async def list_rate_limit_tiers(
             "requests_per_day": config.requests_per_day,
             "burst_allowance": config.burst_allowance,
         }
-    
+
     return list_rate_limit_tiersResult.model_validate({"tiers": tiers})

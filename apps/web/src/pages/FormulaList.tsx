@@ -207,7 +207,7 @@ export default function FormulaList() {
           subtitle="Create and manage value calculation formulas"
         />
         <Btn variant="primary" onClick={() => navigateTo('formula-new')}>
-          <Plus size={14} /> New Formula
+          <Plus size={14} aria-hidden="true" /> New Formula
         </Btn>
       </div>
 
@@ -215,7 +215,7 @@ export default function FormulaList() {
       <div className="flex items-center gap-3 mb-6">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={16} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={16} aria-hidden="true" />
           <Input
             type="text"
             placeholder="Search formulas..."
@@ -282,7 +282,7 @@ export default function FormulaList() {
                 className="mt-4"
                 onClick={() => navigateTo('formula-new')}
               >
-                <Plus size={14} /> Create Formula
+                <Plus size={14} aria-hidden="true" /> Create Formula
               </Btn>
             )}
           </div>
