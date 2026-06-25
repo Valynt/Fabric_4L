@@ -43,8 +43,33 @@ MANIFEST_FILE="${ARTIFACT_DIR}/mandatory_security_manifest.txt"
 
 # Test mode for regression testing - skips expensive browser/frontend operations
 # while preserving required source-level and pytest fail-closed validation.
-# Enable by default for local dev environments lacking pnpm/frontend tooling.
-FABRIC_GATE_TEST_MODE="${FABRIC_GATE_TEST_MODE:-1}"
+#
+# RB-6 FIX: Default changed from 1 to 0. The E2E skip-valve guard, OpenAPI
+# contract drift check, and frontend contract tests are MANDATORY security
+# checks. They must run by default in CI. Setting FABRIC_GATE_TEST_MODE=1
+# requires explicit sign-off (see docs/ci/GATE_TEST_MODE.md) and MUST NOT
+# be set permanently in CI environment variables.
+#
+# To run in test mode (local dev without pnpm/frontend tooling):
+#   FABRIC_GATE_TEST_MODE=1 bash scripts/ci/mandatory_security_regression_gate.sh
+FABRIC_GATE_TEST_MODE="${FABRIC_GATE_TEST_MODE:-0}"
+
+# Pre-flight check: if test mode is disabled, verify node/pnpm are available.
+# Fail early with a clear error rather than silently skipping the E2E valve.
+if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then
+  if ! command -v node &>/dev/null; then
+    echo "ERROR: FABRIC_GATE_TEST_MODE=0 but 'node' is not available." >&2
+    echo "       Install Node.js or set FABRIC_GATE_TEST_MODE=1 with owner sign-off." >&2
+    echo "       See docs/ci/GATE_TEST_MODE.md for the sign-off process." >&2
+    exit 1
+  fi
+  if ! command -v pnpm &>/dev/null; then
+    echo "ERROR: FABRIC_GATE_TEST_MODE=0 but 'pnpm' is not available." >&2
+    echo "       Install pnpm or set FABRIC_GATE_TEST_MODE=1 with owner sign-off." >&2
+    echo "       See docs/ci/GATE_TEST_MODE.md for the sign-off process." >&2
+    exit 1
+  fi
+fi
 
 STANDALONE_API_TESTS=(
   services/api/app/tests/test_auth_enforcement.py
