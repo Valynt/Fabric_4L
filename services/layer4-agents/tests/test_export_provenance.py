@@ -5,8 +5,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from layer4_agents.services.export_provenance import build_export_provenance_manifest
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from layer4_agents.services.export_provenance import build_export_provenance_manifest
 
 
 class _frozen_workflow_resultResult(TypedDictModel):

@@ -4,16 +4,15 @@ from __future__ import annotations
 
 
 import json
-import os
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
-import pytest
-
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
+import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 from value_fabric.shared.audit.models import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
@@ -23,13 +22,11 @@ from value_fabric.shared.identity.feature_flags import (
     register_feature_flag_lookup,
 )
 from value_fabric.shared.identity.permissions import Role
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.api.main import app
 from layer4_agents.database import Base, get_db_from_context
 from layer4_agents.feature_flags.service import FeatureFlagService
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class lookupResult(TypedDictModel):

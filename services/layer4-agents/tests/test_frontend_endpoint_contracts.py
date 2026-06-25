@@ -6,14 +6,11 @@ Prevents drift between frontend API clients and backend endpoint contracts.
 """
 
 
-import pytest
 
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
 from fastapi.testclient import TestClient
 
 from layer4_agents.api.main import app
-
 
 client = TestClient(app)
 

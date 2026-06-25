@@ -9,12 +9,10 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from layer4_agents.engine.executor import (
-    CheckpointConflictError,
     OrchestrationController,
     WorkflowExecutionError,
 )
@@ -24,7 +22,6 @@ from layer4_agents.models.agent_state import (
     WorkflowType,
 )
 from layer4_agents.tools.registry import ToolRegistry
-
 
 # ---------------------------------------------------------------------------
 # Helpers

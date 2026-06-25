@@ -11,20 +11,15 @@ Verifies:
 """
 
 
-import pytest
-
-import email_validator  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (email-validator)
-
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-from fastapi import status
-from fastapi.testclient import TestClient
-
-from layer4_agents.api.tenants import router
-from layer4_agents.services.tenant_provisioning import TenantProvisionResult
+import email_validator  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (email-validator)
+import pytest
 from value_fabric.shared.identity.context import RequestContext
+
+from layer4_agents.services.tenant_provisioning import TenantProvisionResult
 
 
 @pytest.fixture

@@ -3,9 +3,9 @@ from __future__ import annotations
 """Deterministic replay normalization helpers for Layer 4 workflow tests."""
 
 
+import re
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-import re
 from typing import Any
 
 NON_DETERMINISTIC_KEY_PATTERNS = {

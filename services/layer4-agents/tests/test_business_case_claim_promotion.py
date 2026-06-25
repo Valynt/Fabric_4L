@@ -32,7 +32,7 @@ class _FakeLayer5Client_sync_validated_truthsResult(TypedDictModel):
 
 
 class _FakeLayer5Client:
-    last_instance: "_FakeLayer5Client | None" = None
+    last_instance: _FakeLayer5Client | None = None
 
     def __init__(self, *args, **kwargs):
         self.created_truths: list[dict] = []

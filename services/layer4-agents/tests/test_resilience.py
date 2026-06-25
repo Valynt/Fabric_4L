@@ -10,7 +10,7 @@ Covers:
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -23,7 +23,6 @@ from layer4_agents.resilience import (
     TenantRateLimiter,
     TokenBucket,
 )
-
 
 # ============================================================================
 # TokenBucket

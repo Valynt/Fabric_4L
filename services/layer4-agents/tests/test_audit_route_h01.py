@@ -8,7 +8,7 @@ closed instead of inventing data.
 """
 
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
@@ -16,9 +16,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
 
 from layer4_agents.api.routes import audit
-from value_fabric.shared.identity.context import RequestContext
 
 
 class _ScalarResult:
@@ -33,7 +33,7 @@ class _MappingRows:
     def __init__(self, rows: list[dict[str, object]]) -> None:
         self._rows = [SimpleNamespace(**row) for row in rows]
 
-    def mappings(self) -> "_MappingRows":
+    def mappings(self) -> _MappingRows:
         return self
 
     def all(self) -> list[SimpleNamespace]:
@@ -55,7 +55,7 @@ class _AuditDb:
             [
                 {
                     "id": uuid4(),
-                    "timestamp": datetime(2026, 5, 1, tzinfo=timezone.utc),
+                    "timestamp": datetime(2026, 5, 1, tzinfo=UTC),
                     "action": "tenant.updated",
                     "resource_id": "tenant-1",
                     "resource_type": "Tenant",

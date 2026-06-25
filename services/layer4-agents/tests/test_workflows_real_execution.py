@@ -19,9 +19,9 @@ from typing import Annotated, Any, TypedDict
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, StateGraph
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.workflows.base import DEFAULT_RECURSION_LIMIT
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class _mergeResult(TypedDictModel):

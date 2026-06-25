@@ -72,6 +72,14 @@ Layer 1 reasoning procedure for transforming raw company materials into structur
 Triggers: "source intelligence", "ingest company", "research prospect", "build corpus", "account intelligence", "licensing company intake", "prospect research", "ontology seed"
 Constraints: do not replace downstream layer logic, always preserve source provenance, emit events only after successful storage, never finalize strategic conclusions in Layer 1
 
+## code-quality-improvement
+Focused production-quality pass for functional code with concrete quality gaps.
+Triggers: "code quality improvement", "refine code", "quality gaps",
+"code health", "production-grade", "polish implementation", "maintainability"
+Constraints: fix P0 before P1; keep changes narrowly scoped; preserve contracts
+and tenant isolation; use Windows-safe searches that exclude cache directories;
+verify changed behavior.
+
 ## saas-product-design
 Core competencies for building scalable, high-retention multi-tenant SaaS products, focusing on architecture, onboarding, navigation, and modern UI design.
 Triggers: "SaaS", "multi-tenant", "onboarding", "navigation", "dashboard", "UI design", "accessibility", "AI integration", "tenant isolation", "Time-to-Value", "TTV", "command palette", "dark mode", "WCAG"

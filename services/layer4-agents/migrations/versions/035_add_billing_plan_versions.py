@@ -5,10 +5,9 @@ Revises: 034_add_harness_claim_validation_results
 Create Date: 2026-05-22
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "035_add_billing_plan_versions"
 down_revision = "034"

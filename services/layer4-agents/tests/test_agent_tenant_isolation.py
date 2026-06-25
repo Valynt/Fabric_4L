@@ -4,13 +4,17 @@ from __future__ import annotations
 
 
 from typing import Any
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
 
 from layer4_agents.api.routes import agent_stream
 from layer4_agents.services.conversation import (
@@ -18,10 +22,6 @@ from layer4_agents.services.conversation import (
     ConversationTenantValidationError,
 )
 from layer4_agents.tools.registry import TenantAwareTool, ToolResult
-from value_fabric.shared.identity.context import RequestContext, RequestContextManager
-from value_fabric.shared.identity.dependencies import require_authenticated
-from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import AsyncMock
 
 
 @pytest.fixture

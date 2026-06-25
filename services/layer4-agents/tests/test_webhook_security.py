@@ -12,11 +12,9 @@ Covers P0 security requirements:
 
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from layer4_agents.models.billing import (
@@ -25,9 +23,7 @@ from layer4_agents.models.billing import (
     BillingWebhookEvent,
     SubscriptionStatus,
 )
-
 from layer4_agents.services.billing_service import BillingService
-
 
 # =============================================================================
 # Fixtures
@@ -215,8 +211,9 @@ async def test_webhook_idempotency_uses_db_constraint_for_race_safe_event_claim(
     Risk: If DB constraint is missing or conflict target is wrong, concurrent
     webhook delivery could create duplicate inbox records or re-process events.
     """
-    import stripe
     from unittest.mock import AsyncMock
+
+    import stripe
 
     mock_event = {
         "id": "evt_idempotency_test",
@@ -399,8 +396,9 @@ async def test_webhook_database_failure_rolls_back(mock_db):
     Risk: Partial writes leave database in inconsistent state, causing
     duplicate billing state, stuck subscriptions, or incorrect entitlements.
     """
-    import stripe
     from unittest.mock import AsyncMock
+
+    import stripe
 
     mock_event = {
         "id": "evt_db_fail",
@@ -450,6 +448,7 @@ async def test_webhook_does_not_log_secrets(mock_db, caplog):
     Risk: Secrets in logs expose to anyone with log access.
     """
     import logging
+
     import stripe
     
     mock_event = {

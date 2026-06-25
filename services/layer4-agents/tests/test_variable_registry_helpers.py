@@ -9,7 +9,6 @@ Covers (no Neo4j required):
 """
 
 
-import json
 from datetime import datetime
 from decimal import Decimal
 
@@ -20,7 +19,6 @@ from layer4_agents.interfaces.variable_registry import (
     VariableValidationRule,
 )
 from layer4_agents.services.variable_registry_service import Neo4jVariableRegistry
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

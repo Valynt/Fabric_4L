@@ -5,12 +5,12 @@ from types import SimpleNamespace
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from value_fabric.shared.identity.context import RequestContext, RequestContextManager
+from value_fabric.shared.identity.permissions import Permission
 
 from layer4_agents.api.routes import tools
 from layer4_agents.services.agent_tools import AgentToolRegistry
 from layer4_agents.tools.registry import BaseTool, ToolCategory, ToolRegistry
-from value_fabric.shared.identity.context import RequestContext, RequestContextManager
-from value_fabric.shared.identity.permissions import Permission
 
 
 class _StubRegistry:

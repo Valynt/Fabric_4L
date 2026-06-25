@@ -64,6 +64,10 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 **Description:** Systematic code quality improvement workflow for transforming functional code into production-grade output through inspection, analysis, and targeted fixes
 **When to Use:** See workflow file for activation criteria
 
+### repowise-production-readiness
+**Description:** Systematic codebase transformation using repowise MCP intelligence to bring code from functional to production-ready through assessment, prioritization, and execution
+**When to Use:** See workflow file for activation criteria
+
 ---
 
 ## Architecture & Governance
@@ -156,10 +160,10 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Workflow Maintenance
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-25
 
-**Total Workflows:** 25
+**Total Workflows:** 26
 
-**Workflows with Frontmatter:** 25/25 (100%)
+**Workflows with Frontmatter:** 26/26 (100%)
 
 **Note:** This index is auto-generated. Run `python scripts/ci/generate_workflow_index.py` to regenerate.

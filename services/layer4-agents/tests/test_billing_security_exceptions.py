@@ -1,8 +1,8 @@
-from fastapi import Request
 import pytest
+from fastapi import Request
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from layer4_agents.services.billing_security import validate_webhook_request_security
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 
 @pytest.mark.unit

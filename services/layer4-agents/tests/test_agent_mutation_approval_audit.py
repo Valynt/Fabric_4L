@@ -10,14 +10,14 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
-import layer4_agents.services.conversation as conversation_module
-from layer4_agents.api.routes import analysis
-from layer4_agents.api.common.db import get_route_db
-from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
+
+import layer4_agents.services.conversation as conversation_module
+from layer4_agents.api.common.db import get_route_db
+from layer4_agents.api.routes import analysis
+from layer4_agents.services.conversation import ConversationService
 
 
 @pytest.fixture

@@ -15,15 +15,11 @@ Groups:
 """
 
 
-import os
 import types
-from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import yaml
-
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal stubs for heavy optional deps
@@ -895,7 +891,6 @@ class TestGovernedLLMClientSupplemental:
     def test_load_runtime_config_returns_empty_on_missing_file(self, tmp_path):
         """_load_runtime_config returns {} when the file does not exist."""
         from layer4_agents.services.governed_llm_client import GovernedLLMClient
-        from pathlib import Path
         assert GovernedLLMClient._load_runtime_config(tmp_path / "nonexistent.yaml") == {}
 
     def test_build_cost_calculator_returns_none_on_import_error(self):
@@ -1928,7 +1923,6 @@ class TestSignalDetectionHelpers:
 
     async def test_get_account_signals_returns_list(self):
         """get_account_signals returns a list of PainSignal objects."""
-        from layer4_agents.models.pain_signal import SignalCategory, TrendDirection
         agent = self._make_agent()
 
         l3_client = MagicMock()

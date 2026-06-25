@@ -80,6 +80,18 @@ class PrometheusMetrics:
             list(specs["layer6_dataset_comparisons_total"].labels),
             registry=self.config.registry,
         )
+        self._metrics["errors_total"] = Counter(
+            specs["layer6_errors_total"].name,
+            specs["layer6_errors_total"].description,
+            list(specs["layer6_errors_total"].labels),
+            registry=self.config.registry,
+        )
+        self._metrics["auth_failures_total"] = Counter(
+            specs["layer6_auth_failures_total"].name,
+            specs["layer6_auth_failures_total"].description,
+            list(specs["layer6_auth_failures_total"].labels),
+            registry=self.config.registry,
+        )
         self._metrics["health_status"] = Gauge(
             specs["layer6_health_status"].name,
             specs["layer6_health_status"].description,
@@ -155,6 +167,22 @@ class PrometheusMetrics:
             {"service": service, "version": version, "build_sha": build_sha}
         )
 
+    def increment_errors(self, *, error_type: str, component: str) -> None:
+        """Record an error by type and component."""
+        if not self.config.enabled:
+            return
+        self._metrics["errors_total"].labels(error_type=error_type, component=component).inc()
+
+    def increment_auth_failure(self, *, reason: str, component: str = "http") -> None:
+        """Record an authentication/authorization failure.
+
+        `reason` should be a bounded token such as "missing_token",
+        "invalid_token", "insufficient_role", "tenant_mismatch".
+        """
+        if not self.config.enabled:
+            return
+        self._metrics["auth_failures_total"].labels(reason=reason, component=component).inc()
+
     def get_metrics(self) -> str:
         if not self.config.enabled:
             return ""
@@ -215,6 +243,13 @@ class MetricsMiddleware:
                 route=route,
                 tenant_id=tenant_id,
             )
+            if status_code == 401:
+                self.metrics.increment_auth_failure(reason="missing_token", component="http")
+            elif status_code == 403:
+                self.metrics.increment_auth_failure(reason="insufficient_role", component="http")
+            elif status_code >= 400:
+                error_type = "client_error" if status_code < 500 else "server_error"
+                self.metrics.increment_errors(error_type=error_type, component="http")
         return response
 
     async def dispatch(self, request, call_next):

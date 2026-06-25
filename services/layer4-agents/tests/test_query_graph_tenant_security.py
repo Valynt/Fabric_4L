@@ -8,7 +8,6 @@ import pytest
 from layer4_agents.models.tool_schemas import QueryGraphInput
 from layer4_agents.tools.knowledge_tools import QueryGraphTool
 
-
 TENANT_A_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 

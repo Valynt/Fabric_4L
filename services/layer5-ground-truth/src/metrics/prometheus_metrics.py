@@ -1,5 +1,6 @@
 """Prometheus metrics collection for Layer 5 Ground Truth."""
 
+import hashlib
 import logging
 import time
 from typing import Any
@@ -24,6 +25,18 @@ except ImportError:  # pragma: no cover - shared package not on path in some tes
     PathNormalizer = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+
+def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
+    """Return a stable low-cardinality bucket label for a tenant_id.
+
+    Raw tenant IDs are high-cardinality and sensitive; we hash them into a
+    fixed set of buckets so Prometheus labels stay bounded.
+    """
+    if not tenant_id or tenant_id == "unknown":
+        return "unknown"
+    digest = hashlib.sha256(tenant_id.encode("utf-8")).digest()
+    return f"bucket_{digest[0] % count:02d}"
 
 
 class MetricsConfig:
@@ -66,18 +79,19 @@ class PrometheusMetrics:
         """Setup all Prometheus metrics."""
         prefix = self.config.prefix
 
-        # HTTP request metrics
+        # HTTP request metrics — endpoint is normalized via PathNormalizer
+        # in the middleware; tenant_id is hashed to a bucket to bound cardinality.
         self._metrics["requests_total"] = Counter(
             f"{prefix}http_requests_total",
             "Total HTTP requests",
-            ["method", "endpoint", "status_code", "tenant_id"],
+            ["method", "endpoint", "status_class", "tenant_bucket"],
             registry=self.config.registry,
         )
 
         self._metrics["request_duration"] = Histogram(
             f"{prefix}http_request_duration_seconds",
             "HTTP request duration",
-            ["method", "endpoint", "tenant_id"],
+            ["method", "endpoint", "tenant_bucket"],
             buckets=self.config.default_buckets,
             registry=self.config.registry,
         )
@@ -221,6 +235,16 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # ---------------------------------------------------------------------------
+        # Phase N: security / auth-failure metrics (bounded labels)
+        # ---------------------------------------------------------------------------
+        self._metrics["auth_failures_total"] = Counter(
+            f"{prefix}auth_failures_total",
+            "Total authentication/authorization failures",
+            ["reason", "component"],
+            registry=self.config.registry,
+        )
+
         # Build info
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry
@@ -228,6 +252,11 @@ class PrometheusMetrics:
         self._metrics["build_info"].info(
             {"version": __version__, "service": "layer5-ground-truth"}
         )
+
+    @staticmethod
+    def _status_class(status_code: int | str) -> str:
+        code = int(status_code)
+        return f"{code // 100}xx"
 
     def increment_requests_total(
         self,
@@ -240,8 +269,8 @@ class PrometheusMetrics:
             self._metrics["requests_total"].labels(
                 method=method,
                 endpoint=endpoint,
-                status_code=str(status_code),
-                tenant_id=tenant_id,
+                status_class=self._status_class(status_code),
+                tenant_bucket=_tenant_bucket(tenant_id),
             ).inc()
 
     def observe_request_duration(
@@ -255,7 +284,7 @@ class PrometheusMetrics:
             self._metrics["request_duration"].labels(
                 method=method,
                 endpoint=endpoint,
-                tenant_id=tenant_id,
+                tenant_bucket=_tenant_bucket(tenant_id),
             ).observe(duration)
 
     def increment_truth_objects(self, claim_type: str, status: str) -> None:
@@ -269,6 +298,7 @@ class PrometheusMetrics:
             self._metrics["validations_total"].labels(
                 from_status=from_status, to_status=to_status
             ).inc()
+
     def observe_validation_latency(self, transition: str, duration: float) -> None:
         if self.config.enabled:
             self._metrics["validation_latency_seconds"].labels(
@@ -304,6 +334,7 @@ class PrometheusMetrics:
             self._metrics["kg_sync_outcomes_total"].labels(
                 sync_status=sync_status, transition=transition
             ).inc()
+
     def set_db_pool_state(self, *, pool_size: int, active: int, idle: int) -> None:
         if self.config.enabled:
             self._metrics["db_pool_size"].set(pool_size)
@@ -355,6 +386,17 @@ class PrometheusMetrics:
         if self.config.enabled:
             self._metrics["audit_write_failures_total"].inc()
 
+    def increment_auth_failure(self, reason: str, component: str = "http") -> None:
+        """Record an authentication/authorization failure.
+
+        `reason` should be a bounded token such as "missing_token",
+        "invalid_token", "insufficient_role", "tenant_mismatch".
+        """
+        if self.config.enabled:
+            self._metrics["auth_failures_total"].labels(
+                reason=reason, component=component
+            ).inc()
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics output."""
         if not self.config.enabled:
@@ -404,7 +446,6 @@ class MetricsMiddleware:
         start_time = time.time()
         response = await call_next(request)
         duration = time.time() - start_time
-
         # Normalize the endpoint path for metrics
         endpoint = self._normalize_path(request.url.path)
         context = getattr(request.state, "governance_context", None)
@@ -423,7 +464,11 @@ class MetricsMiddleware:
             tenant_id=tenant_id,
         )
 
-        if response.status_code >= 400:
+        if response.status_code == 401:
+            self.metrics.increment_auth_failure(reason="missing_token", component="http")
+        elif response.status_code == 403:
+            self.metrics.increment_auth_failure(reason="insufficient_role", component="http")
+        elif response.status_code >= 400:
             error_type = "client_error" if response.status_code < 500 else "server_error"
             self.metrics.increment_errors(error_type=error_type, component="http")
 
@@ -442,4 +487,3 @@ def initialize_metrics(config: MetricsConfig | None = None) -> PrometheusMetrics
     _metrics = PrometheusMetrics(config)
     logger.info("Layer 5 Prometheus metrics initialized")
     return _metrics
-

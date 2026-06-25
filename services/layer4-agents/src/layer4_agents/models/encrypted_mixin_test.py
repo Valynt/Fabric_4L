@@ -16,7 +16,14 @@ import pytest
 from sqlalchemy import String, text
 from sqlalchemy import create_engine as _sync_engine
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, declared_attr, mapped_column, sessionmaker
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    declared_attr,
+    mapped_column,
+    sessionmaker,
+)
 
 # Ensure a deterministic master key for tests
 os.environ["CREDENTIALS_MASTER_KEY"] = "test-master-key-" + "A" * 32

@@ -6,11 +6,15 @@ from uuid import UUID
 
 import pytest
 from pydantic import BaseModel
+from value_fabric.shared.identity.context import (
+    RequestContext,
+    clear_current_context,
+    set_current_context,
+)
 
 import layer4_agents.tools.registry as registry_module
 from layer4_agents.models.tool_schemas import ToolCategory
 from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
-from value_fabric.shared.identity.context import RequestContext, clear_current_context, set_current_context
 
 
 class EchoInput(BaseModel):

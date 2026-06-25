@@ -4,21 +4,20 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-from value_fabric.shared.identity.models import (
-    Role,
-    UserAcceptInviteRequest,
-    UserInviteRequest,
-    UserStatus,
-)
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ConflictError,
     NotFoundError,
     ValidationError,
+)
+from value_fabric.shared.identity.models import (
+    Role,
+    UserAcceptInviteRequest,
+    UserInviteRequest,
+    UserStatus,
 )
 
 
@@ -46,8 +45,8 @@ class TestInviteUser:
     @pytest.mark.asyncio
     async def test_invite_user_generates_token(self):
         """invite_user should generate an invitation token when service is provided."""
-        from layer4_agents.tenants.service import invite_user
         from layer4_agents.tenants.invitations import InvitationService
+        from layer4_agents.tenants.service import invite_user
 
         db = AsyncMock()
         self._mock_db_with_flush(db)
@@ -150,8 +149,8 @@ class TestAcceptInvitation:
     @pytest.mark.asyncio
     async def test_accept_invitation_invalid_token(self):
         """accept_invitation should reject invalid tokens."""
-        from layer4_agents.tenants.service import accept_invitation
         from layer4_agents.tenants.invitations import InvitationService
+        from layer4_agents.tenants.service import accept_invitation
 
         db = AsyncMock()
         invitation_service = InvitationService(redis_client=None)
@@ -163,8 +162,8 @@ class TestAcceptInvitation:
     @pytest.mark.asyncio
     async def test_accept_invitation_user_not_found(self):
         """accept_invitation should reject if user not found."""
-        from layer4_agents.tenants.service import accept_invitation
         from layer4_agents.tenants.invitations import InvitationService
+        from layer4_agents.tenants.service import accept_invitation
 
         db = AsyncMock()
         invitation_service = InvitationService(redis_client=None)
@@ -187,8 +186,8 @@ class TestAcceptInvitation:
     @pytest.mark.asyncio
     async def test_accept_invitation_already_accepted(self):
         """accept_invitation should reject if already accepted."""
-        from layer4_agents.tenants.service import accept_invitation
         from layer4_agents.tenants.invitations import InvitationService
+        from layer4_agents.tenants.service import accept_invitation
 
         db = AsyncMock()
         invitation_service = InvitationService(redis_client=None)
@@ -212,8 +211,8 @@ class TestAcceptInvitation:
     @pytest.mark.asyncio
     async def test_accept_invitation_success(self):
         """accept_invitation should activate user and hash password on success."""
-        from layer4_agents.tenants.service import accept_invitation
         from layer4_agents.tenants.invitations import InvitationService
+        from layer4_agents.tenants.service import accept_invitation
 
         db = AsyncMock()
         db.flush = AsyncMock()
@@ -321,10 +320,10 @@ class TestPasswordHashing:
 
     def test_hash_password_rejects_too_long(self):
         """hash_password should reject passwords exceeding 72 bytes when bcrypt is active."""
-        from layer4_agents.tenants.passwords import hash_password, PasswordTooLongError
-
         # Only enforce the limit when bcrypt is the active scheme
         import os
+
+        from layer4_agents.tenants.passwords import PasswordTooLongError, hash_password
         use_bcrypt = os.getenv("USE_BCRYPT", "true").lower() == "true"
         long_password = "a" * 100
         if use_bcrypt:

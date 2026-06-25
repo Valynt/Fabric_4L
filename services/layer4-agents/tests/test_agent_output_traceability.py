@@ -14,11 +14,11 @@ Date: 2026-05-23
 """
 
 
-import pytest
 from uuid import uuid4
 
-from layer4_agents.agents.base import AgentResult
+import pytest
 
+from layer4_agents.agents.base import AgentResult
 
 pytestmark = [
     pytest.mark.security,

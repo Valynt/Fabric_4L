@@ -13,7 +13,7 @@ Covers:
 import asyncio
 import time
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 from value_fabric.shared.identity.middleware import (

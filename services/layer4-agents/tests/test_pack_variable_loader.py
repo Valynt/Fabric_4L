@@ -13,19 +13,18 @@ Tests cover:
 
 
 import json
-from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.services.pack_variable_loader import (
-    PackLoadResult,
-    PackVariableLoader,
     _PACK_VERSION_PATTERN,
     _TYPE_MAP,
+    PackLoadResult,
+    PackVariableLoader,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class sample_pack_variablesResult(TypedDictModel):

@@ -9,8 +9,8 @@ tenants table to support the enhanced lifecycle state machine with full audit
 trail (Phase 1, Task 1.4).
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "017"

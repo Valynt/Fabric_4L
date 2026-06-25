@@ -8,15 +8,14 @@ frontend-backend contract drift.
 
 
 import pytest
-from fastapi import HTTPException
 
 from layer4_agents.api.routes.workflows import (
     ESTIMATED_DURATION_SECONDS,
-    TERMINAL_STATUSES,
     PAUSABLE_STATUSES,
+    TERMINAL_STATUSES,
     WorkflowCreateRequest,
-    WorkflowStatusResponse,
     WorkflowInputs,
+    WorkflowStatusResponse,
     extract_status_value,
 )
 

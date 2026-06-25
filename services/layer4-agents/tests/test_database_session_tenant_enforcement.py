@@ -7,8 +7,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAAsyncSession
 
 from layer4_agents.database import (
-    TenantEnforcedAsyncSession,
     TenantContextError,
+    TenantEnforcedAsyncSession,
     _mark_session_tenant_context,
     get_engine,
 )
@@ -35,7 +35,6 @@ async def test_tenant_enforced_session_allows_statement_after_context_set() -> N
 
 
 def test_get_engine_rejects_rls_disabled_database_in_protected_environment(monkeypatch) -> None:
-    from layer4_agents.database import _engine
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("LAYER4_DATABASE_URL", "sqlite+aiosqlite:///tmp/layer4.db")
     monkeypatch.setattr("layer4_agents.database._engine", None)

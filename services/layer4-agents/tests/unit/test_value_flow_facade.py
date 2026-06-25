@@ -8,8 +8,9 @@ without requiring Redis or any external dependencies.
 """
 
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from layer4_agents.api.schemas.value_flow import ValueFlowStep
 from layer4_agents.services.value_flow_facade import ValueFlowFacadeService

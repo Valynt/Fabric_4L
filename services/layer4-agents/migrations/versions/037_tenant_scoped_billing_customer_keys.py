@@ -5,8 +5,8 @@ Revises: 036_add_billing_customer_sync_state
 Create Date: 2026-05-22
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "037_tenant_scoped_billing_customer_keys"
 down_revision = "036_add_billing_customer_sync_state"

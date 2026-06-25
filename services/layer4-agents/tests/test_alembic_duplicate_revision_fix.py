@@ -6,12 +6,8 @@ Verifies that the duplicate 035 revision has been resolved into a linear
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
-
-import pytest
-
 
 _MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations" / "versions"
 

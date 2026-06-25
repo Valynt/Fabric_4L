@@ -4,8 +4,8 @@ import hashlib
 import hmac
 import json
 import time
-from uuid import uuid4
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI

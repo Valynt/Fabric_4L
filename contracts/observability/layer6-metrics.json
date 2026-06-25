@@ -61,6 +61,34 @@
       "max_cardinality": {
         "service": 5
       }
+    },
+    {
+      "name": "layer6_errors_total",
+      "type": "counter",
+      "required": true,
+      "description": "Total errors by type and component.",
+      "labels": [
+        "error_type",
+        "component"
+      ],
+      "max_cardinality": {
+        "error_type": 10,
+        "component": 8
+      }
+    },
+    {
+      "name": "layer6_auth_failures_total",
+      "type": "counter",
+      "required": true,
+      "description": "Total authentication/authorization failures.",
+      "labels": [
+        "reason",
+        "component"
+      ],
+      "max_cardinality": {
+        "reason": 8,
+        "component": 5
+      }
     }
   ]
 }

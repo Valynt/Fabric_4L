@@ -7,10 +7,10 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
-
-from layer4_agents.tools import admin
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity.context import RequestContext
+
+from layer4_agents.tools import admin
 
 
 class _FakeDb:

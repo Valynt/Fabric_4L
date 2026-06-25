@@ -8,9 +8,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from layer4_agents.harness.human_gates import HumanGateManager
-from layer4_agents.harness.models import ActionClass, GateType, HarnessWorkflowType
+from layer4_agents.harness.models import ActionClass, GateType
 from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
-from layer4_agents.models.agent_state import WorkflowStatus
 
 
 class TestObservabilityGaps:

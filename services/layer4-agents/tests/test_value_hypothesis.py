@@ -13,10 +13,10 @@ Run with: pytest tests/test_value_hypothesis.py --noconftest -v
 
 import sys
 import types
-from pathlib import Path
 import uuid
+from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # ---------------------------------------------------------------------------
 # Pre-import mocking: patch broken imports in the L4 module chain
@@ -34,13 +34,12 @@ sys.modules.setdefault("src.models.pain_signal", _mock_pain_signal)
 import pytest
 
 from layer4_agents.services.value_hypothesis_engine import (
+    RANKING_WEIGHTS,
     HypothesisStatus,
     RankingStrategy,
-    RANKING_WEIGHTS,
     ValueHypothesis,
     ValueHypothesisEngine,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -7,6 +7,7 @@ from typing import Any, cast
 from layer4_agents.integration.layer1_client import Layer1IngestionClient
 from layer4_agents.integration.layer2_client import Layer2ExtractionClient
 from layer4_agents.integration.layer3_client import Layer3Client
+
 from ..interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 
 

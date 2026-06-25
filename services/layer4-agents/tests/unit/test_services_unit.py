@@ -8,10 +8,9 @@ Tests the pure-Python helpers that require no external dependencies.
 
 
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Neo4jValuePackService._increment_version
@@ -203,6 +202,7 @@ class TestEncryptionServiceEdgeCases:
     @pytest.fixture(autouse=True)
     def reset_encryption(self, monkeypatch):
         from collections import OrderedDict
+
         from layer4_agents.services.encryption_service import EncryptionService
 
         # Allow ephemeral key generation so tests that call encrypt/decrypt
@@ -246,6 +246,7 @@ class TestEncryptionServiceEdgeCases:
     async def test_invalid_master_key_length_raises(self):
         """A master key of invalid length raises ValueError."""
         import os
+
         from layer4_agents.services.encryption_service import EncryptionService
 
         with patch.dict(os.environ, {"CREDENTIALS_MASTER_KEY": "tooshort"}):
@@ -267,6 +268,7 @@ class TestEncryptionServiceEdgeCases:
     async def test_production_without_master_key_raises(self):
         """In production without a master key, ephemeral key generation must fail."""
         import os
+
         from layer4_agents.services.encryption_service import EncryptionService
 
         with patch.dict(os.environ, {"ENVIRONMENT": "production", "ALLOW_EPHEMERAL_ENCRYPTION": ""}):

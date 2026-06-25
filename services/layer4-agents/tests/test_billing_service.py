@@ -14,12 +14,9 @@ Covers:
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
-
-import pytest
 
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
-
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,10 +31,12 @@ from layer4_agents.models.billing import (
     BillingWebhookEvent,
     SubscriptionStatus,
 )
-
-from layer4_agents.services.billing_service import BillingService, WebhookErrorCode, WebhookValidationError
+from layer4_agents.services.billing_service import (
+    BillingService,
+    WebhookErrorCode,
+    WebhookValidationError,
+)
 from layer4_agents.services.stripe_client import StripeError
-
 
 # =============================================================================
 # Fixtures
@@ -59,9 +58,10 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
-    from layer4_agents.database import get_db_from_context
-    from value_fabric.shared.identity.dependencies import require_authenticated
     from value_fabric.shared.identity.context import RequestContext
+    from value_fabric.shared.identity.dependencies import require_authenticated
+
+    from layer4_agents.database import get_db_from_context
 
     async def _override_db():
         yield mock_db
@@ -85,8 +85,9 @@ def override_app_db_dependency(mock_db):
 def client():
     """FastAPI test client with GovernanceMiddleware bypassed."""
     from unittest.mock import patch
-    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
     from value_fabric.shared.identity.context import RequestContext
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
     async def _fake_resolve(self, request):
         return RequestContext(
@@ -667,7 +668,7 @@ def test_check_feature_endpoint(client):
 
 def test_plan_configuration():
     """Test that plan configuration is correctly defined."""
-    from layer4_agents.config.plans import PLANS, FEATURES, get_plan, check_entitlement
+    from layer4_agents.config.plans import FEATURES, check_entitlement, get_plan
 
     # Test plan existence
     assert get_plan("free") is not None
@@ -702,7 +703,7 @@ def test_plan_features_list():
 
 def test_invalid_plan_returns_no_features():
     """Test that invalid plan returns empty feature list."""
-    from layer4_agents.config.plans import get_plan_features, check_entitlement, get_plan
+    from layer4_agents.config.plans import check_entitlement, get_plan, get_plan_features
 
     assert get_plan_features("invalid") == []
     assert check_entitlement("invalid", "basic_extraction") is False

@@ -9,13 +9,10 @@ Tests the shared OIDC client with PKCE support and role mapping.
 import base64
 import hashlib
 import os
-import sys
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
+from unittest.mock import MagicMock, patch
 
-import pytest
 import httpx
+import pytest
 
 # Set required environment variable for shared imports
 os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
@@ -23,7 +20,6 @@ os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
 # Import from root shared module (canonical implementation)
 from value_fabric.shared.identity.oidc import OIDCClient, OIDCDiscoveryError, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
-from value_fabric.shared.identity.permissions import Role
 
 
 class TestRoleMapping:

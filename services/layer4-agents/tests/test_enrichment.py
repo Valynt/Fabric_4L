@@ -14,11 +14,9 @@ These tests use mock-based isolation to avoid the full import chain
 import sys
 import uuid
 from datetime import UTC, datetime
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Module-level setup: patch the import chain to avoid database.py issues
@@ -50,6 +48,7 @@ if "src.database" not in sys.modules:
 # and adding the missing name before models/__init__.py runs.
 import importlib
 import importlib.util
+
 _ps_path = str(__import__('pathlib').Path(__file__).parent.parent / 'src' / 'models' / 'pain_signal.py')
 _spec = importlib.util.spec_from_file_location('src.models.pain_signal', _ps_path)
 if _spec and _spec.loader:
@@ -144,7 +143,6 @@ class TestEnrichmentOrchestrator:
         """enrich_account re-enriches when force=True even if already enriched."""
         from layer4_agents.services.enrichment_orchestrator import (
             EnrichmentOrchestrator,
-            EnrichmentSource,
         )
 
         account = _make_mock_account(
