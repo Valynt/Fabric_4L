@@ -29,8 +29,7 @@ from layer4_agents.workflows.base import BaseWorkflow
 # controller_with_paused_state, completed_workflow_state, simple_test_workflow,
 # setup_workflow_metadata
 
-# Import helper from conftest
-from conftest import setup_workflow_metadata
+from tests.utils.workflow_helpers import setup_workflow_metadata
 
 # Test constants
 TEST_WORKFLOW_TYPE = "roi_calculator"

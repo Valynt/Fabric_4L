@@ -678,14 +678,4 @@ def simple_test_workflow(mock_tool_registry, mock_checkpoint_saver):
     return _make_workflow
 
 
-def setup_workflow_metadata(controller: OrchestrationController, workflow_id: str, workflow_type: str = TEST_WORKFLOW_TYPE):
-    """Helper to set up workflow metadata for testing.
-
-    This encapsulates the implementation detail of _workflow_metadata access,
-    making tests more maintainable if the internal structure changes.
-    """
-    from datetime import UTC, datetime
-    controller._workflow_metadata[workflow_id] = {
-        "workflow_type": workflow_type,
-        "started_at": datetime.now(UTC).isoformat()
-    }
+from tests.utils.workflow_helpers import setup_workflow_metadata  # noqa: F401
