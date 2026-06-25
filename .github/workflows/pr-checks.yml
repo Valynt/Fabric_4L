@@ -102,6 +102,9 @@ jobs:
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
 
+      - name: Check Layer 4 canonical paths
+        run: python scripts/ci/check_layer4_canonical_paths.py
+
       - name: Validate staging namespace consistency
         run: |
           bash scripts/ci/validate-staging-namespace.sh k8s/envs/staging

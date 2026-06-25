@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer4-strict typecheck-layer5 typecheck-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
-        test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection \
+        test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection check-layer4-canonical-paths \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
@@ -105,6 +105,9 @@ check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency vi
 
 check-layer4-collection: ## Check that all Layer 4 tests can be collected without import errors
 	cd services/layer4-agents && pytest --collect-only . -q
+
+check-layer4-canonical-paths: ## Enforce Layer 4 canonical path layout via AST checks
+	python scripts/ci/check_layer4_canonical_paths.py
 
 check-ui-duplicates: ## Block new duplicate UI component filenames between prototype and production trees
 	@$(PYTHON) scripts/check_ui_duplicate_filenames.py
