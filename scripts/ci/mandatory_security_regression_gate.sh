@@ -43,8 +43,33 @@ MANIFEST_FILE="${ARTIFACT_DIR}/mandatory_security_manifest.txt"
 
 # Test mode for regression testing - skips expensive browser/frontend operations
 # while preserving required source-level and pytest fail-closed validation.
-# Enable by default for local dev environments lacking pnpm/frontend tooling.
-FABRIC_GATE_TEST_MODE="${FABRIC_GATE_TEST_MODE:-1}"
+#
+# RB-6 FIX: Default changed from 1 to 0. The E2E skip-valve guard, OpenAPI
+# contract drift check, and frontend contract tests are MANDATORY security
+# checks. They must run by default in CI. Setting FABRIC_GATE_TEST_MODE=1
+# requires explicit sign-off (see docs/ci/GATE_TEST_MODE.md) and MUST NOT
+# be set permanently in CI environment variables.
+#
+# To run in test mode (local dev without pnpm/frontend tooling):
+#   FABRIC_GATE_TEST_MODE=1 bash scripts/ci/mandatory_security_regression_gate.sh
+FABRIC_GATE_TEST_MODE="${FABRIC_GATE_TEST_MODE:-0}"
+
+# Pre-flight check: if test mode is disabled, verify node/pnpm are available.
+# Fail early with a clear error rather than silently skipping the E2E valve.
+if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then
+  if ! command -v node &>/dev/null; then
+    echo "ERROR: FABRIC_GATE_TEST_MODE=0 but 'node' is not available." >&2
+    echo "       Install Node.js or set FABRIC_GATE_TEST_MODE=1 with owner sign-off." >&2
+    echo "       See docs/ci/GATE_TEST_MODE.md for the sign-off process." >&2
+    exit 1
+  fi
+  if ! command -v pnpm &>/dev/null; then
+    echo "ERROR: FABRIC_GATE_TEST_MODE=0 but 'pnpm' is not available." >&2
+    echo "       Install pnpm or set FABRIC_GATE_TEST_MODE=1 with owner sign-off." >&2
+    echo "       See docs/ci/GATE_TEST_MODE.md for the sign-off process." >&2
+    exit 1
+  fi
+fi
 
 STANDALONE_API_TESTS=(
   services/api/app/tests/test_auth_enforcement.py
@@ -107,7 +132,10 @@ FRONTEND_CRITICAL_E2E_GUARD="apps/web/scripts/security/assert-no-skipped-critica
 CROSS_LAYER_TENANT_MATRIX_ARTIFACT="${ARTIFACT_DIR}/cross_layer_tenant_isolation_matrix.json"
 
 write_summary() {
-  printf '%s\n' "$*" | tee -a "${SUMMARY_FILE}"
+  # Write directly to file — avoid printf|tee pipeline which can receive SIGPIPE
+  # under set -o pipefail when the filesystem is full or the fd is closed (RB-1).
+  printf '%s\n' "$*" >> "${SUMMARY_FILE}"
+  printf '%s\n' "$*"
 }
 
 assert_path_present() {
@@ -177,17 +205,50 @@ assert_no_skip_or_xfail_markers() {
   offenders=$(echo "$offenders" | grep -v "Recording rules file not found" || true)
   if [ -n "$offenders" ]; then
     write_summary "❌ Required mandatory security suites contain skip/xfail markers:"
-    printf '%s\n' "$offenders" | tee -a "${SUMMARY_FILE}"
+    # Write directly — avoid pipe that can SIGPIPE (RB-1)
+    printf '%s\n' "$offenders" >> "${SUMMARY_FILE}"
+    printf '%s\n' "$offenders"
     exit 1
   fi
 }
 
+# run_step: execute a gate stage and fail the gate if it exits non-zero.
+# Captures the exit code explicitly so log_suite_result can record the real
+# outcome rather than assuming PASS (RB-1 fix: remove hardcoded-PASS pattern).
 run_step() {
   local label="$1"
   shift
   write_summary "→ ${label}"
-  "$@"
+  local _step_exit=0
+  "$@" || _step_exit=$?
+  if [[ ${_step_exit} -ne 0 ]]; then
+    write_summary "❌ ${label} (exit ${_step_exit})"
+    return ${_step_exit}
+  fi
   write_summary "✅ ${label}"
+}
+
+# run_step_record: run_step wrapper that also records the result in the
+# evidence manifest. Pass the log_suite_result arguments after the step args.
+# Usage: run_step_record LABEL COMMAND [ARGS...] -- SUITE_NAME CMD_LABEL REQUIRED ARTIFACT
+run_step_record() {
+  local label="$1"
+  shift
+  # Collect suite-result args after '--' separator
+  local step_args=()
+  while [[ "$1" != '--' && $# -gt 0 ]]; do
+    step_args+=("$1")
+    shift
+  done
+  shift  # consume '--'
+  local suite_name="$1" cmd_label="$2" required="$3" artifact="$4"
+  local _exit=0
+  run_step "${label}" "${step_args[@]}" || _exit=$?
+  if [[ ${_exit} -ne 0 ]]; then
+    log_suite_result "${suite_name}" "${cmd_label}" "${required}" "FAIL" "${artifact}"
+    return ${_exit}
+  fi
+  log_suite_result "${suite_name}" "${cmd_label}" "${required}" "PASS" "${artifact}"
 }
 
 run_root_pytest() {
@@ -311,13 +372,32 @@ run_step "Required suite no-skip/no-xfail source guard" assert_no_skip_or_xfail_
 log_evidence_start
 trap 'log_evidence_complete $?' EXIT
 
-run_step "Standalone API production-safety, health, durable persistence, and fail-closed provider checks" \
-  bash -c "cd services/api && TESTING=true ENVIRONMENT=testing DEBUG=false SEED_DEMO_DATA=false DATABASE_URL='${DATABASE_URL:-postgresql://user:pass@localhost:5432/test}' python -m pytest --tb=short -q -n 0 --timeout=60 --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/standalone_api_security.xml' app/tests/test_auth_enforcement.py app/tests/test_health.py app/tests/test_production_safety.py app/tests/test_i03_durable_persistence_and_llm.py 2>&1 || (echo 'Note: API tests require PostgreSQL; skipping for local dev' && touch '${ROOT_DIR}/${ARTIFACT_DIR}/standalone_api_security.xml') && cd '${ROOT_DIR}' && [ -f '${ARTIFACT_DIR}/standalone_api_security.xml' ] && python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/standalone_api_security.xml' || true"
-log_suite_result "I-02/I-03 API Production Safety" "pytest app/tests/test_auth_enforcement.py test_health.py test_production_safety.py test_i03_durable_persistence_and_llm.py" "Yes" "PASS" "${ARTIFACT_DIR}/standalone_api_security.xml"
+# RB-1 fix: removed '|| true' and '|| (echo ... && touch ...)' escape hatches.
+# If PostgreSQL is unavailable the step now fails explicitly rather than silently
+# creating an empty XML artifact and recording PASS. The DATABASE_URL fallback
+# still allows the tests to run against a local Postgres when available.
+run_step_record "Standalone API production-safety, health, durable persistence, and fail-closed provider checks" \
+  bash -c "cd services/api && \
+    TESTING=true ENVIRONMENT=testing DEBUG=false SEED_DEMO_DATA=false \
+    DATABASE_URL='${DATABASE_URL:-postgresql://user:pass@localhost:5432/test}' \
+    python -m pytest --tb=short -q -n 0 --timeout=60 \
+      --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/standalone_api_security.xml' \
+      app/tests/test_auth_enforcement.py \
+      app/tests/test_health.py \
+      app/tests/test_production_safety.py \
+      app/tests/test_i03_durable_persistence_and_llm.py && \
+    cd '${ROOT_DIR}' && \
+    python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/standalone_api_security.xml'" \
+  -- \
+  "I-02/I-03 API Production Safety" \
+  "pytest app/tests/test_auth_enforcement.py test_health.py test_production_safety.py test_i03_durable_persistence_and_llm.py" \
+  "Yes" \
+  "${ARTIFACT_DIR}/standalone_api_security.xml"
 
-run_step "Tenant-boundary and auth/security regression checks" \
-  run_root_pytest "${ARTIFACT_DIR}/tenant_security.xml" "${ROOT_SECURITY_TESTS[@]}"
-log_suite_result "Tenant/Auth Security Regression" "pytest tests/security/*" "Yes" "PASS" "${ARTIFACT_DIR}/tenant_security.xml"
+run_step_record "Tenant-boundary and auth/security regression checks" \
+  run_root_pytest "${ARTIFACT_DIR}/tenant_security.xml" "${ROOT_SECURITY_TESTS[@]}" \
+  -- \
+  "Tenant/Auth Security Regression" "pytest tests/security/*" "Yes" "${ARTIFACT_DIR}/tenant_security.xml"
 
 if [ ${#CROSS_LAYER_TENANT_MATRIX_TESTS[@]} -gt 0 ]; then
   write_summary "→ Cross-layer tenant isolation matrix checks (best-effort — pre-existing import/assertion failures tracked)"
@@ -337,14 +417,20 @@ else
   log_suite_result "Cross-Layer Tenant Isolation Matrix" "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py" "Yes" "SKIPPED" "⊘"
 fi
 
-run_step "Layer 4 C-06 tenant rate-limit and security regression checks" \
-  run_root_pytest "${ARTIFACT_DIR}/layer4_c06_security.xml" "${LAYER4_C06_SECURITY_TESTS[@]}"
-log_suite_result "Layer 4 C-06 Security Regression" "pytest services/layer4-agents/tests/test_tenant_rate_limits.py services/layer4-agents/tests/test_security_fixes.py" "Yes" "PASS" "${ARTIFACT_DIR}/layer4_c06_security.xml"
+run_step_record "Layer 4 C-06 tenant rate-limit and security regression checks" \
+  run_root_pytest "${ARTIFACT_DIR}/layer4_c06_security.xml" "${LAYER4_C06_SECURITY_TESTS[@]}" \
+  -- \
+  "Layer 4 C-06 Security Regression" \
+  "pytest services/layer4-agents/tests/test_tenant_rate_limits.py services/layer4-agents/tests/test_security_fixes.py" \
+  "Yes" "${ARTIFACT_DIR}/layer4_c06_security.xml"
 
 if [ ${#CONTRACT_TESTS[@]} -gt 0 ]; then
-  run_step "Shared tenant context contract and import-boundary checks" \
-    run_root_pytest "${ARTIFACT_DIR}/shared_contracts.xml" "${CONTRACT_TESTS[@]}"
-  log_suite_result "Tenant Context Contract" "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" "Yes" "PASS" "${ARTIFACT_DIR}/shared_contracts.xml"
+  run_step_record "Shared tenant context contract and import-boundary checks" \
+    run_root_pytest "${ARTIFACT_DIR}/shared_contracts.xml" "${CONTRACT_TESTS[@]}" \
+    -- \
+    "Tenant Context Contract" \
+    "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" \
+    "Yes" "${ARTIFACT_DIR}/shared_contracts.xml"
 else
   write_summary "→ [SKIPPED] Shared tenant context contract and import-boundary checks (require live services)"
   log_suite_result "Tenant Context Contract" "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" "Yes" "SKIPPED" "⊘"
@@ -353,19 +439,21 @@ fi
 if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then
   run_step "OpenAPI contract drift check" \
     make --no-print-directory contract-drift
-  log_suite_result "OpenAPI Contract Drift" "make contract-drift" "Yes" "PASS" "✓"
+  run_step_record "OpenAPI contract drift check" \
+    make --no-print-directory contract-drift \
+    -- "OpenAPI Contract Drift" "make contract-drift" "Yes" "✓"
 
-  run_step "Deprecation marker standardization check" \
-    python scripts/ci/standardize_deprecation_markers.py --check
-  log_suite_result "Deprecation Marker Standardization" "standardize_deprecation_markers.py --check" "Yes" "PASS" "✓"
+  run_step_record "Deprecation marker standardization check" \
+    python scripts/ci/standardize_deprecation_markers.py --check \
+    -- "Deprecation Marker Standardization" "standardize_deprecation_markers.py --check" "Yes" "✓"
 
-  run_step "Frontend contract tests and placeholder guard" \
-    bash -c 'cd apps/web && pnpm exec vitest run src/api/__tests__/contract && node scripts/security/assert-no-placeholder-contract-tests.mjs'
-  log_suite_result "Frontend Contract Tests" "vitest + placeholder guard" "Yes" "PASS" "✓"
+  run_step_record "Frontend contract tests and placeholder guard" \
+    bash -c 'cd apps/web && pnpm exec vitest run src/api/__tests__/contract && node scripts/security/assert-no-placeholder-contract-tests.mjs' \
+    -- "Frontend Contract Tests" "vitest + placeholder guard" "Yes" "✓"
 
-  run_step "Critical E2E skip-valve guard" \
-    bash -c 'cd apps/web && node scripts/security/assert-no-skipped-critical-e2e.mjs'
-  log_suite_result "Critical E2E Skip-Valve" "assert-no-skipped-critical-e2e.mjs" "Yes" "PASS" "✓"
+  run_step_record "Critical E2E skip-valve guard" \
+    bash -c 'cd apps/web && node scripts/security/assert-no-skipped-critical-e2e.mjs' \
+    -- "Critical E2E Skip-Valve" "assert-no-skipped-critical-e2e.mjs" "Yes" "✓"
 else
   write_summary "→ [TEST MODE] Skipping OpenAPI contract drift check"
   write_summary "→ [TEST MODE] Skipping deprecation marker standardization check"
@@ -378,21 +466,37 @@ else
 fi
 
 if [ ${#K8S_TESTS[@]} -gt 0 ]; then
-  run_step "Kubernetes workload hardening checks" \
-    run_root_pytest "${ARTIFACT_DIR}/k8s_security.xml" "${K8S_TESTS[@]}"
-  log_suite_result "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "PASS" "${ARTIFACT_DIR}/k8s_security.xml"
+  run_step_record "Kubernetes workload hardening checks" \
+    run_root_pytest "${ARTIFACT_DIR}/k8s_security.xml" "${K8S_TESTS[@]}" \
+    -- "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "${ARTIFACT_DIR}/k8s_security.xml"
 else
   write_summary "→ [SKIPPED] Kubernetes workload hardening checks (require Linux/OPA tools)"
   log_suite_result "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "SKIPPED" "⊘"
 fi
 
-run_step "I-02 production fail-closed checks - Layer 2 (Extraction)" \
-  bash -c "cd services/layer2-extraction && python -m pytest --tb=short -q -n 0 --timeout=60 --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/layer2_fail_closed.xml' tests/test_production_fail_closed_i02.py && cd '${ROOT_DIR}' && python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/layer2_fail_closed.xml'"
-log_suite_result "I-02 Layer 2 Production Fail-Closed" "pytest tests/test_production_fail_closed_i02.py" "Yes" "PASS" "${ARTIFACT_DIR}/layer2_fail_closed.xml"
+run_step_record "I-02 production fail-closed checks - Layer 2 (Extraction)" \
+  bash -c "cd services/layer2-extraction && \
+    python -m pytest --tb=short -q -n 0 --timeout=60 \
+      --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/layer2_fail_closed.xml' \
+      tests/test_production_fail_closed_i02.py && \
+    cd '${ROOT_DIR}' && \
+    python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/layer2_fail_closed.xml'" \
+  -- \
+  "I-02 Layer 2 Production Fail-Closed" \
+  "pytest tests/test_production_fail_closed_i02.py" \
+  "Yes" "${ARTIFACT_DIR}/layer2_fail_closed.xml"
 
-run_step "I-02 production fail-closed checks - Layer 5 (Ground Truth)" \
-  bash -c "cd services/layer5-ground-truth && python -m pytest --tb=short -q -n 0 --timeout=60 --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/layer5_fail_closed.xml' tests/test_production_fail_closed_i02.py && cd '${ROOT_DIR}' && python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/layer5_fail_closed.xml'"
-log_suite_result "I-02 Layer 5 Production Fail-Closed" "pytest tests/test_production_fail_closed_i02.py" "Yes" "PASS" "${ARTIFACT_DIR}/layer5_fail_closed.xml"
+run_step_record "I-02 production fail-closed checks - Layer 5 (Ground Truth)" \
+  bash -c "cd services/layer5-ground-truth && \
+    python -m pytest --tb=short -q -n 0 --timeout=60 \
+      --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/layer5_fail_closed.xml' \
+      tests/test_production_fail_closed_i02.py && \
+    cd '${ROOT_DIR}' && \
+    python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/layer5_fail_closed.xml'" \
+  -- \
+  "I-02 Layer 5 Production Fail-Closed" \
+  "pytest tests/test_production_fail_closed_i02.py" \
+  "Yes" "${ARTIFACT_DIR}/layer5_fail_closed.xml"
 
 write_summary ""
 write_summary "✅ mandatory-security-regression gate passed"

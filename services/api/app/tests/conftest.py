@@ -10,6 +10,25 @@ Provides:
 from __future__ import annotations
 
 import os as _os
+
+# ---------------------------------------------------------------------------
+# RB-2 FIX: Override environment detection keys unconditionally.
+#
+# These assignments MUST appear before any app import because the app modules
+# call get_settings() at module-import time (e.g. accounts.py line 37 calls
+# get_redis_client() which calls get_settings()). If APP_ENV=production is
+# inherited from the CI shell and ENVIRONMENT is not set, _detect_environment()
+# returns "production" and validate_production_safety() raises RuntimeError
+# before any test body executes.
+#
+# Using direct assignment (not setdefault) ensures the override wins regardless
+# of what the CI shell has inherited. All three keys are set for belt-and-
+# suspenders coverage of the full detection loop in config._detect_environment.
+# ---------------------------------------------------------------------------
+_os.environ["ENVIRONMENT"] = "development"
+_os.environ["APP_ENV"] = "development"
+_os.environ["ENV"] = "development"
+
 import secrets
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -50,6 +69,8 @@ _os.environ.setdefault("JWT_AUDIENCE", TEST_AUDIENCE)
 _os.environ.setdefault("USE_BCRYPT", "false")
 # Allow unauthenticated access to /metrics in development test runs.
 # This flag is validated and rejected in production-like environments.
+# NOTE: test_tenant_isolation.py overrides this to "false" to ensure real
+# authorization enforcement is tested (not the dev bypass path).
 _os.environ.setdefault("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
 
 
