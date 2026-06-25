@@ -13,7 +13,7 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
-from sqlalchemy import Column, String, text
+from sqlalchemy import String, text
 from sqlalchemy import create_engine as _sync_engine
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, declared_attr, mapped_column, sessionmaker
@@ -36,11 +36,11 @@ class Base(DeclarativeBase):
 class _PIIMixinTest(PIIMixin):
     @declared_attr.directive
     @classmethod
-    def pii_key_version(cls) -> Mapped[str]:
-        return Column("pii_key_version", String(8), nullable=True, default="1")
+    def pii_key_version(cls) -> Mapped[str]:  # type: ignore[override]
+        return mapped_column(String(8), nullable=True, default="1")
 
 
-PIIMixin = _PIIMixinTest
+PIIMixin = _PIIMixinTest  # type: ignore[misc]
 
 
 class _TestPIIModel(Base, PIIMixin):

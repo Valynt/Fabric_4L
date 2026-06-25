@@ -1,0 +1,12 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/2025-06-18/server_configuration.json",
+  "mcpServers": {
+    "repowise": {
+      "description": "Repowise MCP server for Fabric_4L repository analysis and insights",
+      "serverUrl": "https://api.repowise.dev/mcp/bmsull560/fabric_4l",
+      "headers": {
+        "Authorization": "Bearer ${REPOWISE_API_KEY}"
+      }
+    }
+  }
+}
