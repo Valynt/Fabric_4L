@@ -146,11 +146,20 @@ check_untyped_defs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 plugins = ["sqlalchemy.ext.mypy.plugin"]
+# Resolve the value_fabric shared package from the monorepo layout.
+mypy_path = ["../../packages/shared/src"]
 # Note: Additional flags are passed via Makefile for CI consistency
 exclude = [
     "migrations/",
     "tests/",
 ]
+
+[[tool.mypy.overrides]]
+module = ["value_fabric.*"]
+# The shared package is type-checked in its own context; here we only need
+# mypy to discover it so that our handler imports resolve without importing
+# the shared package's internal typing debt into the Layer 1 baseline.
+follow_imports = "skip"
 
 # SQLAlchemy ORM files: Column[T] vs plain-type mismatches are expected patterns.
 # Suppressing arg-type/assignment/misc noise; genuine logic errors are caught elsewhere.
@@ -172,6 +181,11 @@ module = [
     "src.shared.maintenance",
     "src.metrics.prometheus_metrics",
     "src.layer1_ingestion.api.main",
+    "src.layer1_ingestion.api.content_handlers",
+    "src.layer1_ingestion.api.job_handlers",
+    "src.layer1_ingestion.api.skill_handlers",
+    "src.layer1_ingestion.api.target_config",
+    "src.layer1_ingestion.api.target_handlers",
     "src.layer1_ingestion.shared.tasks",
     "src.layer1_ingestion.crawler.decision_store",
     "src.layer1_ingestion.crawler.playwright_crawler",

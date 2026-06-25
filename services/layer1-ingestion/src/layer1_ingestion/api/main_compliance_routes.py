@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import main
+from . import compliance_handlers
+from .schemas.compliance_schemas import ComplianceSummaryResponse
 
 router = APIRouter()
-router.add_api_route("/compliance/logs", main.list_compliance_logs, methods=["GET"])
+router.add_api_route(
+    "/compliance/logs", compliance_handlers.list_compliance_logs, methods=["GET"]
+)
 router.add_api_route(
     "/compliance/summary",
-    main.get_compliance_summary,
+    compliance_handlers.get_compliance_summary,
     methods=["GET"],
-    response_model=main.ComplianceSummaryResponse,
+    response_model=ComplianceSummaryResponse,
 )

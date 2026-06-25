@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 L1_API_DIR = REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api"
 L1_MAIN = L1_API_DIR / "main.py"
 L1_ADMIN_ROUTES = L1_API_DIR / "main_admin_routes.py"
+L1_ADMIN_HANDLERS = L1_API_DIR / "admin_handlers.py"
 
 
 def _source(path: Path) -> str:
@@ -36,7 +37,7 @@ def test_l1_registered_metrics_paths_are_inventoried() -> None:
 
     assert 'router = APIRouter(prefix="/api/v1/ingestion")' in main_source
     assert '"/metrics"' in admin_source
-    assert "main.metrics_endpoint" in admin_source
+    assert "admin_handlers.metrics_endpoint" in admin_source
     assert "Depends(require_authenticated)" in admin_source
 
     registered_paths = {"/api/v1/ingestion/metrics"}
@@ -44,7 +45,7 @@ def test_l1_registered_metrics_paths_are_inventoried() -> None:
 
 
 @pytest.mark.security
-@pytest.mark.parametrize("path", [L1_MAIN])
+@pytest.mark.parametrize("path", [L1_ADMIN_HANDLERS])
 def test_l1_metrics_handler_verifies_metrics_access_before_reading_metrics(
     path: Path,
 ) -> None:
@@ -92,13 +93,13 @@ async def test_l1_metrics_handler_denies_external_requests_without_valid_token(
     monkeypatch: pytest.MonkeyPatch,
     headers: dict[str, str],
 ) -> None:
-    from layer1_ingestion.api import main
+    from layer1_ingestion.api import admin_handlers, main
 
     monkeypatch.setenv("METRICS_INTERNAL_SCRAPE_TOKEN", "expected-token")
-    monkeypatch.setattr(main, "get_metrics", lambda: _MetricsStub())
+    monkeypatch.setattr(admin_handlers, "get_metrics", lambda: _MetricsStub())
 
     with pytest.raises(main.AuthorizationError):
-        await main.metrics_endpoint(_external_metrics_request(headers))
+        await admin_handlers.metrics_endpoint(_external_metrics_request(headers))
 
 
 @pytest.mark.security
@@ -114,12 +115,12 @@ async def test_l1_metrics_handler_allows_external_requests_with_valid_token(
     monkeypatch: pytest.MonkeyPatch,
     headers: dict[str, str],
 ) -> None:
-    from layer1_ingestion.api import main
+    from layer1_ingestion.api import admin_handlers
 
     monkeypatch.setenv("METRICS_INTERNAL_SCRAPE_TOKEN", "expected-token")
-    monkeypatch.setattr(main, "get_metrics", lambda: _MetricsStub())
+    monkeypatch.setattr(admin_handlers, "get_metrics", lambda: _MetricsStub())
 
-    response = await main.metrics_endpoint(_external_metrics_request(headers))
+    response = await admin_handlers.metrics_endpoint(_external_metrics_request(headers))
 
     assert response.status_code == 200
     assert b"# l1 metrics" in response.body

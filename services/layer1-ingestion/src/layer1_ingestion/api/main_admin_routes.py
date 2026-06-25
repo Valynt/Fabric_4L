@@ -5,25 +5,28 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from . import main
+from . import admin_handlers
+from .schemas.admin_schemas import HealthCheckResponse, ProxyPoolResponse
 
 router = APIRouter()
 router.add_api_route(
     "/health",
-    main.health_check,
+    admin_handlers.health_check,
     methods=["GET"],
-    response_model=main.HealthCheckResponse,
+    response_model=HealthCheckResponse,
 )
 router.add_api_route(
     "/metrics",
-    main.metrics_endpoint,
+    admin_handlers.metrics_endpoint,
     methods=["GET"],
     dependencies=[Depends(require_authenticated)],
 )
-router.add_api_route("/admin/cleanup", main.trigger_cleanup, methods=["POST"])
+router.add_api_route(
+    "/admin/cleanup", admin_handlers.trigger_cleanup, methods=["POST"]
+)
 router.add_api_route(
     "/proxy-pools",
-    main.create_proxy_pool_endpoint,
+    admin_handlers.create_proxy_pool_endpoint,
     methods=["POST"],
-    response_model=main.ProxyPoolResponse,
+    response_model=ProxyPoolResponse,
 )

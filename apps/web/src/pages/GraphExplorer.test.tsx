@@ -144,12 +144,12 @@ describe('GraphExplorer', () => {
     expect(screen.getByRole('button', { name: /reset view/i })).toBeInTheDocument();
   });
 
-  it('renders search button', () => {
+  it('renders search input in control panel', () => {
     const wrapper = createWrapper();
     render(<GraphExplorer />, { wrapper });
 
-    // Search button should be present
-    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    // Search input is now the single entry point in the control panel
+    expect(screen.getByPlaceholderText('Search entities...')).toBeInTheDocument();
   });
 
   it('renders coherent graph with nodes and edges from subgraph endpoint', async () => {

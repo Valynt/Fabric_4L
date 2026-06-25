@@ -26,7 +26,7 @@ class TestValidateCronExpression:
 
     def _fn(self, expr: str) -> str:
         pytest.importorskip("croniter")
-        from layer1_ingestion.api.main import _validate_cron_expression
+        from layer1_ingestion.api.schemas.target_schemas import _validate_cron_expression
         return _validate_cron_expression(expr)
 
     # --- Valid expressions ---
@@ -146,7 +146,7 @@ class TestScheduleInputModel:
     """Integration tests for ScheduleInput field validators."""
 
     def _model(self, **kwargs):
-        from layer1_ingestion.api.main import ScheduleInput
+        from layer1_ingestion.api.schemas.target_schemas import ScheduleInput
         return ScheduleInput(**kwargs)
 
     # --- cron_expression ---

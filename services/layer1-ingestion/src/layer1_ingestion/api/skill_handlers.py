@@ -45,6 +45,7 @@ from .schemas.job_schemas import (
     CreateProspectResearchRequest,
     SkillJobResponse,
 )
+from .target_handlers import _calculate_queue_position
 
 logger = structlog.get_logger()
 
@@ -239,15 +240,7 @@ async def create_licensing_company_intake_job(
         override_config=request.override_config,
     )
 
-    queue_position = (
-        db.query(ScrapingJob)
-        .filter(
-            ScrapingJob.tenant_id == org_id,
-            ScrapingJob.status == JobStatus.QUEUED.value,
-            ScrapingJob.created_at <= job.created_at,
-        )
-        .count()
-    )
+    queue_position = _calculate_queue_position(db, org_id, job.created_at)
 
     return SkillJobResponse(
         job_id=job.id,
@@ -281,15 +274,7 @@ async def create_prospect_research_job(
         override_config=request.override_config,
     )
 
-    queue_position = (
-        db.query(ScrapingJob)
-        .filter(
-            ScrapingJob.tenant_id == org_id,
-            ScrapingJob.status == JobStatus.QUEUED.value,
-            ScrapingJob.created_at <= job.created_at,
-        )
-        .count()
-    )
+    queue_position = _calculate_queue_position(db, org_id, job.created_at)
 
     return SkillJobResponse(
         job_id=job.id,

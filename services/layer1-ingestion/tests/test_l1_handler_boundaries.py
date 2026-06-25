@@ -3,6 +3,7 @@
 These tests verify the security invariants of the API handlers in:
 - services/layer1-ingestion/src/layer1_ingestion/api/job_handlers.py
 - services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py
+- services/layer1-ingestion/src/layer1_ingestion/api/skill_handlers.py
 
 Invariants:
 - Tenant isolation: handlers filter every DB query by tenant_id.
@@ -16,13 +17,10 @@ Invariants:
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
-
 import pytest
 from fastapi.testclient import TestClient
 
 from layer1_ingestion.shared.models import JobStatus, ScrapingJob, ScrapingTarget
-
 
 BASE = "/api/v1/ingestion"
 
@@ -43,6 +41,13 @@ def _mock_celery_task(monkeypatch):
     )
     monkeypatch.setattr(
         "layer1_ingestion.api.target_handlers.build_celery_options", lambda: None
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.api.skill_handlers.process_scraping_job",
+        type("_MockTask", (), {"apply_async": lambda *a, **k: None})(),
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.api.skill_handlers.build_celery_options", lambda: None
     )
 
 
@@ -241,6 +246,86 @@ class TestTargetHandlerTenantIsolation:
         target_ids = {t["id"] for t in data["data"]}
         assert str(own_target.id) in target_ids
         assert str(other_target.id) not in target_ids
+
+
+# ---------------------------------------------------------------------------
+# Tenant isolation - Skill handlers
+# ---------------------------------------------------------------------------
+
+class TestSkillHandlerTenantIsolation:
+    def test_create_licensing_intake_job_cross_tenant_target_returns_404(
+        self, client: TestClient, db, make_target, other_org_id
+    ):
+        """Tenant A cannot create a licensing intake job for Tenant B's target."""
+        other_target = make_target(other_org_id, status="ACTIVE")
+        resp = client.post(
+            f"{BASE}/jobs/licensing-company-intake",
+            json={
+                "target_id": str(other_target.id),
+                "company_name": "Acme",
+                "priority": 5,
+            },
+        )
+        assert resp.status_code == 404
+
+    def test_create_prospect_research_job_cross_tenant_target_returns_404(
+        self, client: TestClient, db, make_target, other_org_id
+    ):
+        """Tenant A cannot create a prospect research job for Tenant B's target."""
+        other_target = make_target(other_org_id, status="ACTIVE")
+        resp = client.post(
+            f"{BASE}/jobs/prospect-research",
+            json={
+                "target_id": str(other_target.id),
+                "account_name": "Acme",
+                "priority": 5,
+            },
+        )
+        assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Positive cases - Skill handlers
+# ---------------------------------------------------------------------------
+
+class TestSkillHandlerPositive:
+    def test_create_licensing_intake_job_for_own_target_returns_202(
+        self, client: TestClient, db, make_target, org_id
+    ):
+        """Tenant can create a licensing intake job for their own active target."""
+        target = make_target(org_id, status="ACTIVE")
+        resp = client.post(
+            f"{BASE}/jobs/licensing-company-intake",
+            json={
+                "target_id": str(target.id),
+                "company_name": "Acme",
+                "priority": 5,
+            },
+        )
+        assert resp.status_code == 202
+        data = resp.json()
+        assert data["status"] == JobStatus.QUEUED.value
+        assert data["job_type"] == "licensing_company_intake"
+        assert data["skill_name"] == "licensing_company_intake"
+
+    def test_create_prospect_research_job_for_own_target_returns_202(
+        self, client: TestClient, db, make_target, org_id
+    ):
+        """Tenant can create a prospect research job for their own active target."""
+        target = make_target(org_id, status="ACTIVE")
+        resp = client.post(
+            f"{BASE}/jobs/prospect-research",
+            json={
+                "target_id": str(target.id),
+                "account_name": "Acme",
+                "priority": 5,
+            },
+        )
+        assert resp.status_code == 202
+        data = resp.json()
+        assert data["status"] == JobStatus.QUEUED.value
+        assert data["job_type"] == "prospect_research"
+        assert data["skill_name"] == "prospect_research"
 
 
 # ---------------------------------------------------------------------------

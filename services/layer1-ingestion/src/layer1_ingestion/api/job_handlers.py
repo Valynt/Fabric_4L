@@ -444,7 +444,6 @@ async def get_job_results(
     job_id: UUID,
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
-    format: str = Query(default="json", regex="^(json|csv|ndjson)$"),
     include_raw: bool = Query(default=False),
     fields: list[str] | None = Query(None),
     org_id: UUID = Depends(get_tenant_id),
@@ -471,7 +470,7 @@ async def get_job_results(
     return get_job_resultsResult.model_validate(
         {
             "job_id": str(job_id),
-            "format": format,
+            "format": "json",
             "total_records": total,
             "data": [
                 {

@@ -3,7 +3,7 @@
  * Refactored: ~180 lines (was 589)
  */
 import { useState, useCallback } from "react";
-import { Loader2, AlertCircle, RefreshCw, Search, Move } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Move } from "lucide-react";
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import { PageShell } from "@/components/layout/PageShell";
 import { GraphVisualization } from "@/components/graph/GraphVisualization";
@@ -97,14 +97,6 @@ export default function GraphExplorer() {
         breadcrumbs={[{ label: "Knowledge Graph" }, { label: "Graph Explorer" }]}
         title="Graph Explorer"
         subtitle="Visualize and navigate the knowledge graph"
-        actions={
-          <div className="flex items-center gap-2">
-            <Btn variant="ghost" onClick={handleSearch} disabled={!queryText.trim() || graphQuery.isPending}>
-              {graphQuery.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
-              Search
-            </Btn>
-          </div>
-        }
       />
 
       {/* 3-Panel Layout: Control | Canvas | Inspector */}

@@ -9,6 +9,20 @@ API_MAIN_PATH = (
     / "api"
     / "main.py"
 )
+TARGET_HANDLERS_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "layer1_ingestion"
+    / "api"
+    / "target_handlers.py"
+)
+SKILL_HANDLERS_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "layer1_ingestion"
+    / "api"
+    / "skill_handlers.py"
+)
 TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
 
 
@@ -30,7 +44,11 @@ def test_api_runtime_placeholders_not_hardcoded() -> None:
 
 def test_api_unknown_values_include_explanatory_metadata() -> None:
     """Any unknown API metric should include explicit explanatory metadata."""
-    source = API_MAIN_PATH.read_text(encoding="utf-8")
+    source = (
+        API_MAIN_PATH.read_text(encoding="utf-8")
+        + TARGET_HANDLERS_PATH.read_text(encoding="utf-8")
+        + SKILL_HANDLERS_PATH.read_text(encoding="utf-8")
+    )
 
     required_metadata_fields = [
         "queue_position_metadata",

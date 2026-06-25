@@ -334,7 +334,9 @@ class TenantScopedCypher:
     def _params(self, extra_params: Mapping[str, Any] | None = None) -> Dict[str, Any]:
         params: Dict[str, Any] = {"_tenant_id": self._tenant_id}
         if extra_params:
-            params.update(dict(extra_params))
+            for key, value in extra_params.items():
+                if key not in ("_tenant_id", "tenant_id"):
+                    params[key] = value
         return params
 
     def _tenant_predicate(self, alias: str) -> str:

@@ -459,6 +459,10 @@ async def execute_target(
             tenant_id=str(org_id),
             error=str(exc),
         )
+        # The job row was already committed before stage initialization; mark it
+        # failed so it is not left in an ambiguous default status.
+        job.status = JobStatus.FAILED.value
+        db.commit()
         # Remove the placeholder so the caller can retry; if we leave it, the
         # short TTL will still expire within 60 seconds, but explicit cleanup
         # gives a faster recovery path.

@@ -1,6 +1,6 @@
 # mypy: ignore-missing-imports, disable-error-code="import-not-found,import-untyped,type-arg,no-any-return,no-untyped-def,truthy-function,list-item,assignment,arg-type,call-overload,union-attr,var-annotated,misc,attr-defined"
 from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError,
+    AuthorizationError as AuthorizationError,
 )
 
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
@@ -21,14 +21,11 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NoReturn
-from uuid import UUID
 
-import redis
 import sqlalchemy.exc
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.responses import Response
-from sqlalchemy.orm import Session
 
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
@@ -49,8 +46,6 @@ try:
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
     from value_fabric.shared.identity.vault_check import is_vault_healthy
     from value_fabric.shared.models.typed_dict import TypedDictModel
-    from value_fabric.shared.observability.metrics_access import verify_metrics_access
-    from value_fabric.shared.probes import normalize_probe_payload
     from value_fabric.shared.security import (
         SecurityConfig,
         add_security_middleware,
@@ -68,18 +63,21 @@ from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import (
     engine,
-    get_db_from_context_sync,
     redis_client_async,
 )
-from ..shared.models import (
-    AccountIntelligencePacket,
-    ComplianceEventType,
-    ComplianceLog,
-    JobStatus,
-    ScrapingJob,
-    SourceCorpus,
-    create_proxy_pool,
+from ..shared.database import (
+    get_db_from_context_sync as get_db_from_context_sync,
 )
+from ..shared.models import AccountIntelligencePacket, SourceCorpus
+from .admin_handlers import (
+    create_proxy_pool_endpoint,
+    health_check,
+    legacy_health_check,
+    legacy_metrics,
+    metrics_endpoint,
+    trigger_cleanup,
+)
+from .compliance_handlers import get_compliance_summary, list_compliance_logs
 from .content_handlers import get_extracted_data, get_raw_content, list_content
 from .dependencies import get_current_user_id, get_tenant_id
 from .job_handlers import (
@@ -93,12 +91,17 @@ from .job_handlers import (
     retry_job,
 )
 from .schemas.admin_schemas import (
-    ComponentHealth,
-    CreateProxyPoolRequest,
-    HealthCheckResponse,
-    ProxyPoolResponse,
+    ComponentHealth as ComponentHealth,
 )
-from .schemas.compliance_schemas import ComplianceSummaryResponse
+from .schemas.admin_schemas import (
+    CreateProxyPoolRequest as CreateProxyPoolRequest,
+)
+from .schemas.admin_schemas import (
+    HealthCheckResponse as HealthCheckResponse,
+)
+from .schemas.admin_schemas import (
+    ProxyPoolResponse as ProxyPoolResponse,
+)
 from .schemas.target_schemas import (
     CreateTargetRequest,
     ExecuteTargetRequest,
@@ -146,22 +149,27 @@ __all__ = [
     "ValidationWarning",
     "AccountIntelligencePacket",
     "SourceCorpus",
+    "create_proxy_pool_endpoint",
     "create_target",
     "delete_target",
     "execute_target",
     "get_current_user_id",
+    "get_compliance_summary",
+    "get_db_from_context_sync",
     "get_domain_fallback_stats",
     "get_extracted_data",
     "get_job",
     "get_job_progress",
     "get_job_results",
     "get_job_router_report",
+    "health_check",
     "get_raw_content",
     "get_target",
     "get_target_decisions",
     "get_tenant_id",
     "list_jobs",
     "list_content",
+    "list_compliance_logs",
     "list_targets",
     "cancel_job",
     "create_licensing_company_intake_job",
@@ -174,6 +182,8 @@ __all__ = [
     "get_source_corpus_detail",
     "list_account_intelligence_packets",
     "list_source_corpora",
+    "metrics_endpoint",
+    "trigger_cleanup",
     "update_target",
     "validate_target",
 ]
@@ -458,27 +468,9 @@ except Exception as e:
         degraded_mode=True,
         message="Rate limiting disabled - Redis unavailable",
     )
-    metrics = get_metrics()
-    if metrics:
-        metrics.increment_errors(error_type="redis_init_failed", component="api")
-
-
-class list_compliance_logsResult(TypedDictModel):
-    items: Any
-    limit: Any
-    page: Any
-    total: Any
-
-
-class trigger_cleanupResult(TypedDictModel):
-    message: str
-    status: str
-
-
-class legacy_health_checkResult(TypedDictModel):
-    dependencies: Any
-    note: str
-    status: Any
+    metrics_instance = get_metrics()
+    if metrics_instance:
+        metrics_instance.increment_errors(error_type="redis_init_failed", component="api")
 
 
 app.add_middleware(
@@ -500,354 +492,6 @@ router = APIRouter(prefix="/api/v1/ingestion")
 # =============================================================================
 # API ENDPOINTS - ScrapingTarget
 # =============================================================================
-
-# =============================================================================
-# API ENDPOINTS - Compliance
-# =============================================================================
-
-
-async def list_compliance_logs(
-    event_type: list[ComplianceEventType] | None = Query(None),
-    severity: str | None = Query(None),
-    domain: str | None = Query(None),
-    date_from: datetime | None = Query(None),
-    date_to: datetime | None = Query(None),
-    job_id: UUID | None = Query(None),
-    page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, ge=1, le=100),
-    org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
-):
-    """Query compliance logs."""
-    query = db.query(ComplianceLog).filter(ComplianceLog.tenant_id == org_id)
-
-    if event_type:
-        types = [t.value for t in event_type]
-        query = query.filter(ComplianceLog.event_type.in_(types))
-
-    if severity:
-        query = query.filter(ComplianceLog.severity == severity)
-
-    if domain:
-        query = query.filter(ComplianceLog.request_url.contains(domain))
-
-    if date_from:
-        query = query.filter(ComplianceLog.created_at >= date_from)
-
-    if date_to:
-        query = query.filter(ComplianceLog.created_at <= date_to)
-
-    if job_id:
-        query = query.filter(ComplianceLog.job_id == job_id)
-
-    total = query.count()
-    offset = (page - 1) * limit
-    logs = (
-        query.order_by(ComplianceLog.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
-
-    return list_compliance_logsResult.model_validate(
-        {
-            "items": [
-                {
-                    "id": str(log.id),
-                    "event_type": log.event_type,
-                    "severity": log.severity,
-                    "request_url": log.request_url,
-                    "request_timestamp": log.request_timestamp.isoformat(),
-                    "response_action_taken": log.response_action_taken,
-                    "created_at": log.created_at.isoformat(),
-                }
-                for log in logs
-            ],
-            "total": total,
-            "page": page,
-            "limit": limit,
-        }
-    )
-
-
-async def get_compliance_summary(
-    period_start: datetime = Query(...),
-    period_end: datetime = Query(...),
-    org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
-):
-    """Get compliance summary for organization."""
-    query = db.query(ComplianceLog).filter(
-        ComplianceLog.tenant_id == org_id,
-        ComplianceLog.created_at >= period_start,
-        ComplianceLog.created_at <= period_end,
-    )
-
-    total_logs = query.count()
-
-    robots_checks = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.ROBOTS_TXT_CHECK.value
-    ).count()
-    allowed = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.ROBOTS_TXT_CHECK.value,
-        ComplianceLog.robots_txt_check.isnot(None),
-    ).count()  # Simplified
-
-    rate_limits = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.RATE_LIMIT_APPLIED.value
-    ).count()
-    pii_detections = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.PII_DETECTED.value
-    ).count()
-    domain_blocks = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.DOMAIN_BLOCKED.value
-    ).count()
-
-    robots_logs = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.ROBOTS_TXT_CHECK.value
-    ).all()
-    crawl_delays_respected = sum(
-        1
-        for log in robots_logs
-        if (log.robots_txt_check or {}).get("crawl_delay") not in (None, 0)
-    )
-
-    rate_limit_logs = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.RATE_LIMIT_APPLIED.value
-    ).all()
-    delay_values = [
-        (log.rate_limit_event or {}).get("delay_ms")
-        for log in rate_limit_logs
-        if isinstance((log.rate_limit_event or {}).get("delay_ms"), int)
-    ]
-    average_delay_ms = (
-        int(sum(delay_values) / len(delay_values)) if delay_values else None
-    )
-
-    allowlisted_count = query.filter(
-        ComplianceLog.event_type == ComplianceEventType.DOMAIN_ALLOWED.value
-    ).count()
-
-    return ComplianceSummaryResponse(
-        period={"start": period_start, "end": period_end},
-        robots_txt_compliance={
-            "total_checks": robots_checks,
-            "allowed": allowed,
-            "blocked": robots_checks - allowed,
-            "crawl_delays_respected": crawl_delays_respected,
-        },
-        rate_limiting={
-            "total_requests": total_logs,
-            "throttled_requests": rate_limits,
-            "average_delay_ms": average_delay_ms,
-            "average_delay_ms_metadata": {
-                "status": "unknown" if average_delay_ms is None else "measured",
-                "reason": (
-                    "No delay_ms values found in compliance rate_limit_event logs"
-                    if average_delay_ms is None
-                    else None
-                ),
-            },
-        },
-        pii_detection={
-            "scans_performed": total_logs,
-            "detections": pii_detections,
-            "redactions_applied": query.filter(
-                ComplianceLog.event_type == ComplianceEventType.PII_REDACTED.value
-            ).count(),
-        },
-        domain_policies={
-            "allowlisted": allowlisted_count,
-            "blocklisted": domain_blocks,
-            "blocked_requests": domain_blocks,
-        },
-    )
-
-
-# =============================================================================
-# API ENDPOINTS - Health & Admin
-# =============================================================================
-
-
-async def health_check(db: Session = Depends(get_db_from_context_sync)):
-    """Enhanced health check endpoint."""
-    components = {}
-    metrics = {}
-
-    # Database check
-    try:
-        from sqlalchemy import text
-
-        db.execute(text("SELECT 1"))
-        components["database"] = ComponentHealth(status="healthy", latency_ms=0)
-    except Exception as e:
-        logger.error(
-            "health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e)
-        )
-        components["database"] = ComponentHealth(
-            status="unhealthy", message="Database connection failed"
-        )
-
-    # Queue check (Redis)
-    try:
-        from ..shared.database import redis_client
-
-        redis_client.ping()
-        components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
-    except (redis.RedisError, ConnectionError) as e:
-        logger.warning("redis_ping_failed", error=str(e))
-        components["queue"] = ComponentHealth(
-            status="degraded", message="Redis not available"
-        )
-
-    # Active jobs metrics
-    active_jobs = (
-        db.query(ScrapingJob)
-        .filter(
-            ScrapingJob.status.in_(
-                [
-                    JobStatus.QUEUED.value,
-                    JobStatus.VALIDATING.value,
-                    JobStatus.BROWSER_ACQUIRING.value,
-                    JobStatus.NAVIGATING.value,
-                    JobStatus.EXTRACTING.value,
-                    JobStatus.TRANSFORMING.value,
-                    JobStatus.STORING.value,
-                ]
-            )
-        )
-        .count()
-    )
-
-    queued_jobs = (
-        db.query(ScrapingJob)
-        .filter(ScrapingJob.status == JobStatus.QUEUED.value)
-        .count()
-    )
-
-    started_jobs = db.query(ScrapingJob).all()
-    wait_times_ms = [
-        int((job.started_at - job.created_at).total_seconds() * 1000)
-        for job in started_jobs
-        if job.started_at and job.created_at
-    ]
-    average_wait_time_ms = (
-        int(sum(wait_times_ms) / len(wait_times_ms)) if wait_times_ms else None
-    )
-
-    metrics = {
-        "active_jobs": active_jobs,
-        "queued_jobs": queued_jobs,
-        "available_browsers": None,
-        "available_browsers_metadata": {
-            "status": "unknown",
-            "reason": "Browser pool telemetry is not yet wired in Layer 1",
-        },
-        "average_wait_time_ms": average_wait_time_ms,
-        "average_wait_time_ms_metadata": {
-            "status": "unknown" if average_wait_time_ms is None else "measured",
-            "reason": (
-                "No started jobs available to calculate queue wait time"
-                if average_wait_time_ms is None
-                else None
-            ),
-        },
-    }
-
-    # Determine overall status
-    if any(c.status == "unhealthy" for c in components.values()):
-        overall_status = "unhealthy"
-    elif any(c.status == "degraded" for c in components.values()):
-        overall_status = "degraded"
-    else:
-        overall_status = "healthy"
-
-    return HealthCheckResponse(
-        status=overall_status,
-        version=settings.app_version,
-        timestamp=datetime.now(UTC),
-        components={k: v.dict() for k, v in components.items()},
-        metrics=metrics,
-    )
-
-
-async def metrics_endpoint(request: Request):
-    """Prometheus-compatible metrics endpoint."""
-    if not verify_metrics_access(request):
-        raise AuthorizationError(message="Metrics endpoint requires internal access")
-
-    metrics = get_metrics()
-
-    if not metrics:
-        return Response(
-            content="Metrics collection is disabled",
-            status_code=503,
-            media_type="text/plain",
-        )
-
-    try:
-        metrics_data = metrics.get_metrics()
-        return Response(
-            content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8"
-        )
-    except Exception as e:
-        return Response(
-            content=f"Error generating metrics: {e}",
-            status_code=500,
-            media_type="text/plain",
-        )
-
-
-async def trigger_cleanup(
-    days: int = Query(default=30, ge=1, le=365),
-    org_id: UUID = Depends(get_tenant_id),
-):
-    """Trigger content cleanup for old data.
-
-    SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
-    """
-    cleanup_old_content.apply_async(
-        args=[days, str(org_id)],
-        **(build_celery_options() or {}),
-    )
-    return trigger_cleanupResult.model_validate(
-        {
-            "message": f"Cleanup initiated for content older than {days} days",
-            "status": "processing",
-        }
-    )
-
-
-# =============================================================================
-# API ENDPOINTS - Proxy Pools
-# =============================================================================
-
-
-async def create_proxy_pool_endpoint(
-    request: CreateProxyPoolRequest,
-    org_id: UUID = Depends(get_tenant_id),
-    db: Session = Depends(get_db_from_context_sync),
-):
-    """Create a proxy pool."""
-    pool = create_proxy_pool(
-        tenant_id=org_id,
-        name=request.name,
-        proxies=request.proxies,
-        rotation_strategy=request.rotation_strategy,
-    )
-
-    db.add(pool)
-    db.commit()
-    db.refresh(pool)
-
-    return ProxyPoolResponse(
-        id=pool.id,
-        name=pool.name,
-        proxy_count=len(pool.proxies) if pool.proxies else 0,
-        rotation_strategy=pool.rotation_strategy,
-        created_at=pool.created_at,
-    )
-
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -894,76 +538,9 @@ app.include_router(compatibility_routes.router)
 
 
 # Legacy compatibility routes (redirect to new endpoints)
-@app.get("/health")
-@app.get("/health/live", include_in_schema=False)
-async def legacy_health_check():
-    """Legacy-compatible health check with dependency status."""
-    from ..shared.database import SessionLocal, redis_client
-
-    dependencies = []
-    overall_status = "healthy"
-
-    # Database dependency
-    db = SessionLocal()
-    try:
-        from sqlalchemy import text
-
-        db.execute(text("SELECT 1"))
-        dependencies.append({"name": "database", "status": "healthy", "error": None})
-    except Exception as e:
-        logger.error(
-            "health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e)
-        )
-        dependencies.append(
-            {
-                "name": "database",
-                "status": "unhealthy",
-                "error": "Database connection failed",
-            }
-        )
-        overall_status = "degraded"
-    finally:
-        db.close()
-
-    # Redis dependency
-    try:
-        if redis_client is None:
-            dependencies.append(
-                {
-                    "name": "redis",
-                    "status": "degraded",
-                    "error": "Redis client not configured",
-                }
-            )
-            overall_status = "degraded"
-        else:
-            redis_client.ping()
-            dependencies.append({"name": "redis", "status": "healthy", "error": None})
-    except Exception as e:
-        logger.error(
-            "health_check_redis_failed", error_code="REDIS_HEALTH_ERROR", error=repr(e)
-        )
-        dependencies.append(
-            {"name": "redis", "status": "degraded", "error": "Redis connection failed"}
-        )
-        overall_status = "degraded"
-
-    payload = normalize_probe_payload(
-        status=overall_status,
-        service="layer1-ingestion",
-        dependencies=dependencies,
-        extra={
-            "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
-        },
-    )
-    return legacy_health_checkResult.model_validate(payload)
-
-
-@app.get("/metrics", include_in_schema=False)
-async def legacy_metrics():
-    """Legacy-compatible metrics endpoint."""
-    content = "# HELP layer1_ingestion_metrics_legacy placeholder\n# TYPE layer1_ingestion_metrics_legacy gauge\nlayer1_ingestion_metrics_legacy 0\n"
-    return Response(content=content, media_type="text/plain; version=0.0.4; charset=utf-8")
+app.get("/health")(legacy_health_check)
+app.get("/health/live", include_in_schema=False)(legacy_health_check)
+app.get("/metrics", include_in_schema=False)(legacy_metrics)
 
 
 if __name__ == "__main__":
