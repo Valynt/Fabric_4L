@@ -456,6 +456,9 @@
               }
             ],
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Peer Range"
@@ -901,6 +904,9 @@
               }
             ],
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Expected Range"

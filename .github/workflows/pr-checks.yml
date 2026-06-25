@@ -281,7 +281,7 @@ jobs:
 
       - name: OpenAPI linting with Spectral
         run: |
-          pnpm dlx @stoplight/spectral-cli spectral lint contracts/openapi/*.json --ruleset .spectral.yaml
+          pnpm dlx @stoplight/spectral-cli lint contracts/openapi/*.json --ruleset .spectral.yaml
 
       - name: Run error envelope consistency contract tests
         run: |

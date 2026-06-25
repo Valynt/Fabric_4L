@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,6 +64,12 @@ const WEB_LAYER_DIRS = {
   signals: 'signals',
 };
 
+function writeFileAtomic(filePath, content) {
+  const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  writeFileSync(tmpPath, content, { encoding: 'utf-8' });
+  renameSync(tmpPath, filePath);
+}
+
 /**
  * Replace the opaque `JsonValue: unknown;` that openapi-typescript emits for an
  * empty JSON schema with a stable, recursive JSON value type. This keeps the
@@ -89,14 +95,14 @@ for (const spec of SPECS) {
       stdio: 'pipe',
     });
     const content = fixJsonValue(readFileSync(out, 'utf8'));
-    writeFileSync(out, `// @generated from contracts/openapi/${spec}\n` + content);
+    writeFileAtomic(out, `// @generated from contracts/openapi/${spec}\n` + content);
 
     const webDir = WEB_LAYER_DIRS[key];
     if (webDir) {
       const webLayerDir = join(WEB_OUTPUT_DIR, webDir);
       if (!existsSync(webLayerDir)) mkdirSync(webLayerDir, { recursive: true });
       const webOut = join(webLayerDir, 'index.ts');
-      writeFileSync(webOut, [
+      writeFileAtomic(webOut, [
         '// @generated — This file is auto-generated from the OpenAPI spec.',
         '// Do not edit manually. Run `pnpm run generate:types` to regenerate.',
         `// Source: contracts/openapi/${spec}`,
