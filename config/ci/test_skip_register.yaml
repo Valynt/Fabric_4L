@@ -990,7 +990,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-069
     due_on: '2026-10-15'
@@ -1004,7 +1004,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-31'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-070
     due_on: '2026-10-31'
@@ -1018,7 +1018,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-11-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-071
     due_on: '2026-11-15'
@@ -1032,7 +1032,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-072
     due_on: '2026-10-15'
@@ -1046,7 +1046,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-31'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-073
     due_on: '2026-10-31'
@@ -1059,7 +1059,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-11-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-074
     due_on: '2026-11-15'
@@ -1073,7 +1073,7 @@ entries:
   reason: L3 package not importable in contract test environment; pre-existing blocker
   expires_on: '2026-10-15'
   severity: P2
-  launch_gate: non-blocking
+  launch_gate: optional
   remediation:
     ticket_id: VF-SKIP-075
     due_on: '2026-10-15'
