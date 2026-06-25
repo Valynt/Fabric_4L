@@ -487,42 +487,35 @@ export const useUserTierStore = create<UserTierState>()(
   )
 );
 
-// Helper function to check route access outside of components
-// SECURITY: Returns 'unknown' for unrecognized paths (fail-closed default)
-export function getRouteTier(path: string): UserTier {
-  // Normalize canonical tenant-scoped paths for pattern matching
-  // e.g. /t/acme/accounts/acc-123/intelligence → /t/:tenantSlug/accounts/:accountId/intelligence
-  const normalizedPath = path.replace(
-    /^\/t\/[^/]+\/accounts\/[^/]+/,
-    '/t/:tenantSlug/accounts/:accountId'
-  ).replace(
-    /^\/t\/[^/]+/,
-    '/t/:tenantSlug'
-  );
-
-  // Exact match (normalized first, then original)
-  if (ROUTE_TIER_MAP[normalizedPath]) {
-    return ROUTE_TIER_MAP[normalizedPath];
-  }
-  if (ROUTE_TIER_MAP[path]) {
-    return ROUTE_TIER_MAP[path];
-  }
+/**
+ * Look up the required tier for a single (already-normalized) path.
+ * Returns `undefined` when the path is not registered.
+ */
+export function matchRouteTier(path: string): UserTier | undefined {
+  const exact = ROUTE_TIER_MAP[path];
+  if (exact) return exact;
 
   // Check parent routes using pre-sorted array (longest match wins)
-  for (const [route, tier] of SORTED_ROUTES) {
-    if (normalizedPath.startsWith(route + '/')) {
-      return tier;
-    }
-  }
   for (const [route, tier] of SORTED_ROUTES) {
     if (path.startsWith(route + '/')) {
       return tier;
     }
   }
 
-  // SECURITY: Fail closed - unknown routes get 'unknown' tier which denies access
-  // This prevents authorization bypass via unregistered routes
-  return 'unknown';
+  return undefined;
+}
+
+// Helper function to check route access outside of components
+// SECURITY: Returns 'unknown' for unrecognized paths (fail-closed default)
+export function getRouteTier(path: string): UserTier {
+  // Normalize canonical tenant-scoped paths for pattern matching
+  // e.g. /t/acme/accounts/acc-123/intelligence → /t/:tenantSlug/accounts/:accountId/intelligence
+  const normalizedPath = path
+    .replace(/^\/t\/[^/]+\/accounts\/[^/]+/, '/t/:tenantSlug/accounts/:accountId')
+    .replace(/^\/t\/[^/]+/, '/t/:tenantSlug');
+
+  return matchRouteTier(normalizedPath) ?? matchRouteTier(path) ?? 'unknown';
 }
 
 export default useUserTierStore;
+

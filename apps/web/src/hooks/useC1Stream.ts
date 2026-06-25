@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamC1Response, type C1Message, type C1Component, evaluateWhatIf, saveScenario, getScenarios, isC1Enabled } from '@/api/thesysClient';
+import { applyWhatIfResult } from './useC1Stream.utils';
 
 export interface C1StreamState {
   isStreaming: boolean;
@@ -168,28 +169,10 @@ When sliders change, the system will recalculate metrics via the formula API.`,
       const result = await evaluateWhatIf(businessCaseId, [adjustment], businessCaseData);
 
       // Update components with new values based on label patterns
-      setState(prev => {
-        const updated = prev.components.map(comp => {
-          if (comp.type !== 'MetricCard') return comp;
-
-          const label = (comp.props.label as string)?.toLowerCase() || '';
-
-          // Update ROI-related cards
-          if (label.includes('roi') || label.includes('return')) {
-            return { ...comp, props: { ...comp.props, value: result.new_roi } };
-          }
-          // Update payback-related cards
-          if (label.includes('payback') || label.includes('timeline')) {
-            return { ...comp, props: { ...comp.props, value: result.new_payback_months } };
-          }
-          // Update value-related cards
-          if (label.includes('value') && !label.includes('original')) {
-            return { ...comp, props: { ...comp.props, value: result.adjusted_value } };
-          }
-          return comp;
-        });
-        return { ...prev, components: updated };
-      });
+      setState(prev => ({
+        ...prev,
+        components: applyWhatIfResult(prev.components, result),
+      }));
     } catch (error) {
       setState(prev => ({
         ...prev,

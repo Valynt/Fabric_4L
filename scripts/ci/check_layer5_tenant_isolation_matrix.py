@@ -10,10 +10,51 @@ ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "docs/governance/layer5-tenant-isolation-matrix.md"
 API_FILES = [
     ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/router.py",
-    ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/model_registry_routes.py",
+    ROOT
+    / "services/layer5-ground-truth/src/layer5_ground_truth/api/model_registry_routes.py",
 ]
 
-ROW = re.compile(r"^\|\s*(GET|POST|PUT|PATCH|DELETE)\s*\|\s*`([^`]+)`\s*\|.*\|\s*(covered|gap)\s*\|\s*$")
+ROW = re.compile(
+    r"^\|\s*(GET|POST|PUT|PATCH|DELETE)\s*\|\s*`([^`]+)`\s*\|.*\|\s*(covered|gap)\s*\|\s*$"
+)
+
+
+def _extract_route_from_decorator(dec: ast.AST) -> tuple[str, str] | None:
+    """Return (METHOD, route) for a FastAPI router decorator, or None."""
+    if (
+        isinstance(dec, ast.Call)
+        and isinstance(dec.func, ast.Attribute)
+        and isinstance(dec.func.value, ast.Name)
+        and dec.func.value.id == "router"
+    ):
+        method = dec.func.attr.upper()
+        if (
+            dec.args
+            and isinstance(dec.args[0], ast.Constant)
+            and isinstance(dec.args[0].value, str)
+        ):
+            route = "/api/v1" + dec.args[0].value
+            return method, route
+    return None
+
+
+def _has_caller_dependency(node: ast.AsyncFunctionDef) -> bool:
+    """Return True if the function has a `caller: ... = Depends(get_current_user)` default."""
+    for arg, default in zip(
+        node.args.args[-len(node.args.defaults) :], node.args.defaults
+    ):
+        if arg.arg != "caller":
+            continue
+        if (
+            isinstance(default, ast.Call)
+            and isinstance(default.func, ast.Name)
+            and default.func.id == "Depends"
+            and default.args
+            and isinstance(default.args[0], ast.Name)
+            and default.args[0].id == "get_current_user"
+        ):
+            return True
+    return False
 
 
 def tenant_routes(path: Path) -> set[tuple[str, str]]:
@@ -22,34 +63,17 @@ def tenant_routes(path: Path) -> set[tuple[str, str]]:
     for node in tree.body:
         if not isinstance(node, ast.AsyncFunctionDef):
             continue
-        method = route = None
+
+        extracted: tuple[str, str] | None = None
         for dec in node.decorator_list:
-            if (
-                isinstance(dec, ast.Call)
-                and isinstance(dec.func, ast.Attribute)
-                and isinstance(dec.func.value, ast.Name)
-                and dec.func.value.id == "router"
-            ):
-                method = dec.func.attr.upper()
-                if dec.args and isinstance(dec.args[0], ast.Constant) and isinstance(dec.args[0].value, str):
-                    route = "/api/v1" + dec.args[0].value
-        if not method or not route:
+            extracted = _extract_route_from_decorator(dec)
+            if extracted is not None:
+                break
+
+        if extracted is None or not _has_caller_dependency(node):
             continue
-        has_caller = False
-        for arg, default in zip(node.args.args[-len(node.args.defaults):], node.args.defaults):
-            if arg.arg != "caller":
-                continue
-            if (
-                isinstance(default, ast.Call)
-                and isinstance(default.func, ast.Name)
-                and default.func.id == "Depends"
-                and default.args
-                and isinstance(default.args[0], ast.Name)
-                and default.args[0].id == "get_current_user"
-            ):
-                has_caller = True
-        if has_caller:
-            out.add((method, route))
+
+        out.add(extracted)
     return out
 
 
@@ -89,7 +113,9 @@ def main() -> int:
                 print(f"  - {m} {p}", file=sys.stderr)
         return 1
 
-    print(f"Layer 5 tenant-isolation matrix check passed ({len(discovered)} routes mapped).")
+    print(
+        f"Layer 5 tenant-isolation matrix check passed ({len(discovered)} routes mapped)."
+    )
     return 0
 
 

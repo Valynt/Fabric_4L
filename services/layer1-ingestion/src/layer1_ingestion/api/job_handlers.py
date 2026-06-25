@@ -53,23 +53,23 @@ logger = structlog.get_logger()
 
 
 class cancel_jobResult(TypedDictModel):
-    job_id: Any
+    job_id: str
     status: str
 
 
 class get_job_resultsResult(TypedDictModel):
-    data: Any
-    format: Any
-    job_id: Any
-    limit: Any
-    page: Any
-    total_records: Any
+    data: list[dict[str, Any]]
+    format: str
+    job_id: str
+    limit: int
+    page: int
+    total_records: int
 
 
 class retry_jobResult(TypedDictModel):
-    new_job_id: Any
-    original_job_id: Any
-    status: Any
+    new_job_id: str
+    original_job_id: str
+    status: str
 
 
 def _build_task_unavailable_detail() -> dict[str, str]:

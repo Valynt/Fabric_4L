@@ -98,7 +98,7 @@ async def regular_user_client():
         return RequestContext(
             tenant_id=tenant_id,
             user_id=user_id,
-            roles=[Role.USER.value],
+            roles=[Role.ANALYST.value],
             source="jwt",
         )
 

@@ -315,14 +315,15 @@ async def delete_target(
 
     job_count = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).count()
 
-    if force and job_count == 0:
+    if job_count > 0:
+        target.status = TargetStatus.ARCHIVED.value
+        logger.info("Archived scraping target", target_id=str(target_id))
+    elif force:
         db.delete(target)
         logger.info("Hard deleted scraping target", target_id=str(target_id))
     else:
-        if job_count > 0:
-            target.status = TargetStatus.ARCHIVED.value
-        else:
-            db.delete(target)
+        # Soft-delete is default when no jobs exist and force is not set
+        target.status = TargetStatus.ARCHIVED.value
         logger.info("Archived scraping target", target_id=str(target_id))
 
     return None
@@ -420,7 +421,7 @@ async def execute_target(
     if target.status != TargetStatus.ACTIVE.value:
         raise ConflictError(message=f"Target is not active (status: {target.status})")
 
-    existing_response = await _check_idempotency_key(
+    existing_response, placeholder = await _check_idempotency_key(
         request.idempotency_key, org_id, target_id, db
     )
     if existing_response:
@@ -458,6 +459,11 @@ async def execute_target(
             tenant_id=str(org_id),
             error=str(exc),
         )
+        # Remove the placeholder so the caller can retry; if we leave it, the
+        # short TTL will still expire within 60 seconds, but explicit cleanup
+        # gives a faster recovery path.
+        if request.idempotency_key and placeholder:
+            _delete_idempotency_key(org_id, target_id, request.idempotency_key)
         raise HTTPException(
             status_code=503,
             detail={
@@ -490,21 +496,36 @@ async def _check_idempotency_key(
     org_id: UUID,
     target_id: UUID,
     db: Session,
-) -> ExecuteTargetResponse | None:
-    """Check idempotency key and return existing job response if found."""
+) -> tuple[ExecuteTargetResponse | None, str | None]:
+    """Check idempotency key and return existing job response if found.
+
+    Returns a tuple of (response, placeholder). If placeholder is not None,
+    the caller owns it and must either replace it with a real job_id via
+    _update_idempotency_key or delete it via _delete_idempotency_key on failure.
+    """
     if not idempotency_key:
-        return None
+        return None, None
 
     idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
     from ..shared.database import redis_client
 
     if not redis_client:
-        return None
+        return None, None
 
-    job_id_placeholder = f"placeholder:{uuid4()}"
-    set_result = redis_client.set(
-        idempotency_key_str, job_id_placeholder, nx=True, ex=86400
-    )
+    try:
+        job_id_placeholder = f"placeholder:{uuid4()}"
+        # Use a short TTL for the placeholder so an orphaned placeholder (e.g.
+        # request crash before the real job_id is written) expires quickly.
+        set_result = redis_client.set(
+            idempotency_key_str, job_id_placeholder, nx=True, ex=60
+        )
+    except Exception as exc:
+        logger.warning(
+            "idempotency_redis_set_failed",
+            idempotency_key=idempotency_key,
+            error=str(exc),
+        )
+        return None, None
 
     if set_result is not None:
         from ..metrics.prometheus_metrics import get_metrics
@@ -512,15 +533,34 @@ async def _check_idempotency_key(
         metrics = get_metrics()
         if metrics and metrics.config.enabled:
             metrics.increment_idempotency_key_miss()
-        return None
+        return None, job_id_placeholder
 
     for attempt in range(5):
-        existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
+        try:
+            existing_job_id = _decode_redis_value(
+                redis_client.get(idempotency_key_str)
+            )
+        except Exception as exc:
+            logger.warning(
+                "idempotency_redis_get_failed",
+                idempotency_key=idempotency_key,
+                error=str(exc),
+            )
+            break
         if not existing_job_id or not existing_job_id.startswith("placeholder:"):
             break
         await asyncio.sleep(0.05 * (2**attempt))
 
-    existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
+    try:
+        existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
+    except Exception as exc:
+        logger.warning(
+            "idempotency_redis_get_failed",
+            idempotency_key=idempotency_key,
+            error=str(exc),
+        )
+        existing_job_id = None
+
     if existing_job_id and not existing_job_id.startswith("placeholder:"):
         logger.info(
             "Idempotency key hit, returning existing job",
@@ -540,15 +580,42 @@ async def _check_idempotency_key(
                 estimated_start_time=existing_job.started_at,
                 queue_position=None,
                 queue_position_metadata=None,
+            ), None
+        try:
+            redis_client.delete(idempotency_key_str)
+        except Exception as exc:
+            logger.warning(
+                "idempotency_redis_delete_failed",
+                idempotency_key=idempotency_key,
+                error=str(exc),
             )
-        redis_client.delete(idempotency_key_str)
 
     if existing_job_id and existing_job_id.startswith("placeholder:"):
         raise ConflictError(
             message="A request with this idempotency key is already in progress"
         )
 
-    return None
+    return None, None
+
+
+def _delete_idempotency_key(
+    org_id: UUID, target_id: UUID, idempotency_key: str
+) -> None:
+    """Delete an idempotency key (used on failure before a real job_id exists)."""
+    idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
+    from ..shared.database import redis_client
+
+    if not redis_client:
+        return
+
+    try:
+        redis_client.delete(idempotency_key_str)
+    except Exception as exc:
+        logger.warning(
+            "idempotency_redis_delete_failed",
+            idempotency_key=idempotency_key,
+            error=str(exc),
+        )
 
 
 def _decode_redis_value(value: Any) -> str | None:
@@ -582,12 +649,22 @@ def _build_job_configuration(
 def _update_idempotency_key(
     org_id: UUID, target_id: UUID, idempotency_key: str, job_id: UUID
 ) -> None:
-    """Update idempotency key with actual job ID."""
+    """Update idempotency key with actual job ID (TTL 24h)."""
     idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
     from ..shared.database import redis_client
 
-    if redis_client:
+    if not redis_client:
+        return
+
+    try:
         redis_client.setex(idempotency_key_str, 86400, str(job_id))
+    except Exception as exc:
+        logger.warning(
+            "idempotency_redis_update_failed",
+            idempotency_key=idempotency_key,
+            job_id=str(job_id),
+            error=str(exc),
+        )
 
 
 def _initialize_pipeline_stages(job_id: UUID, org_id: UUID, db: Session) -> None:

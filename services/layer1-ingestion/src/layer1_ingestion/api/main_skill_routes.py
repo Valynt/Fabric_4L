@@ -4,59 +4,68 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import main
+from . import skill_handlers
+from .schemas.content_schemas import (
+    AccountIntelligencePacketListResponse,
+    AccountIntelligencePacketResponse,
+    SourceCorpusListResponse,
+    SourceCorpusResponse,
+)
+from .schemas.job_schemas import SkillJobResponse
 
 router = APIRouter()
 router.add_api_route(
     "/jobs/licensing-company-intake",
-    main.create_licensing_company_intake_job,
+    skill_handlers.create_licensing_company_intake_job,
     methods=["POST"],
-    response_model=main.SkillJobResponse,
+    response_model=SkillJobResponse,
     status_code=202,
 )
 router.add_api_route(
     "/jobs/prospect-research",
-    main.create_prospect_research_job,
+    skill_handlers.create_prospect_research_job,
     methods=["POST"],
-    response_model=main.SkillJobResponse,
+    response_model=SkillJobResponse,
     status_code=202,
 )
 router.add_api_route(
     "/corpuses/{corpus_id}",
-    main.get_source_corpus,
+    skill_handlers.get_source_corpus,
     methods=["GET"],
-    response_model=main.SourceCorpusResponse,
+    response_model=SourceCorpusResponse,
 )
 router.add_api_route(
     "/intelligence-packets/{packet_id}",
-    main.get_account_intelligence_packet,
+    skill_handlers.get_account_intelligence_packet,
     methods=["GET"],
-    response_model=main.AccountIntelligencePacketResponse,
+    response_model=AccountIntelligencePacketResponse,
 )
 router.add_api_route(
-    "/jobs/{job_id}/skill-output", main.get_job_skill_output, methods=["GET"]
+    "/jobs/{job_id}/skill-output",
+    skill_handlers.get_job_skill_output,
+    methods=["GET"],
 )
 router.add_api_route(
     "/source-corpora",
-    main.list_source_corpora,
+    skill_handlers.list_source_corpora,
     methods=["GET"],
-    response_model=main.SourceCorpusListResponse,
+    response_model=SourceCorpusListResponse,
 )
 router.add_api_route(
     "/source-corpora/{corpus_id}",
-    main.get_source_corpus_detail,
+    skill_handlers.get_source_corpus_detail,
     methods=["GET"],
-    response_model=main.SourceCorpusResponse,
+    response_model=SourceCorpusResponse,
 )
 router.add_api_route(
     "/account-intelligence-packets",
-    main.list_account_intelligence_packets,
+    skill_handlers.list_account_intelligence_packets,
     methods=["GET"],
-    response_model=main.AccountIntelligencePacketListResponse,
+    response_model=AccountIntelligencePacketListResponse,
 )
 router.add_api_route(
     "/account-intelligence-packets/{packet_id}",
-    main.get_account_intelligence_packet_detail,
+    skill_handlers.get_account_intelligence_packet_detail,
     methods=["GET"],
-    response_model=main.AccountIntelligencePacketResponse,
+    response_model=AccountIntelligencePacketResponse,
 )

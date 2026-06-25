@@ -6,20 +6,12 @@
 import { apiClient, buildApiFetchInit } from "./client";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { API_BASE, L4_PREFIX } from "@/lib/apiConfig";
+import {
+  parseSseDataLine,
+  parseFinalBufferedSseChunk,
+} from "./c1SseParser";
 
 const log = createFeatureLogger("thesysClient");
-
-/**
- * Validate if a string is valid JSON without throwing
- */
-function isValidJson(str: string): boolean {
-  try {
-    JSON.parse(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const ENABLE_C1 = import.meta.env.VITE_ENABLE_C1_REPORTS === "true";
 
@@ -39,7 +31,7 @@ export interface C1Component {
   props: Record<string, unknown>;
 }
 
-interface WhatIfResult {
+export interface WhatIfResult {
   original_value: number;
   adjusted_value: number;
   delta_percentage: number;
@@ -54,38 +46,6 @@ interface WhatIfResult {
  */
 export function isC1Enabled(): boolean {
   return ENABLE_C1;
-}
-
-function parseSseDataLine(line: string): C1StreamChunk | null {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith("data: ")) return null;
-
-  try {
-    return JSON.parse(trimmed.slice(6)) as C1StreamChunk;
-  } catch (err) {
-    log.warn("Malformed SSE chunk", { errorCode: String(err) });
-    return null;
-  }
-}
-
-function parseFinalBufferedSseChunk(buffer: string): C1StreamChunk | null {
-  const remaining = buffer.trim();
-  if (!remaining.startsWith("data: ")) return null;
-
-  const jsonPart = remaining.slice(6);
-  if (!(jsonPart.endsWith("}") || jsonPart.endsWith("]")) || !isValidJson(jsonPart)) {
-    log.warn("Discarding incomplete final chunk");
-    return null;
-  }
-
-  try {
-    return JSON.parse(jsonPart) as C1StreamChunk;
-  } catch (err) {
-    log.warn("Failed to parse final SSE chunk", {
-      errorCode: String(err),
-    });
-    return null;
-  }
 }
 
 /**

@@ -198,6 +198,7 @@ def _mock_process_scraping_job(monkeypatch, request):
     import layer1_ingestion.api._batch_and_stats as _batch_mod
     import layer1_ingestion.api.job_handlers as _job_handlers_mod
     import layer1_ingestion.api.main as _main_mod
+    import layer1_ingestion.api.skill_handlers as _skill_handlers_mod
     import layer1_ingestion.api.target_handlers as _target_handlers_mod
 
     mock_task = type("_MockTask", (), {
@@ -207,4 +208,5 @@ def _mock_process_scraping_job(monkeypatch, request):
     monkeypatch.setattr(_batch_mod, "process_scraping_job", mock_task())
     monkeypatch.setattr(_job_handlers_mod, "process_scraping_job", mock_task())
     monkeypatch.setattr(_main_mod, "process_scraping_job", mock_task())
+    monkeypatch.setattr(_skill_handlers_mod, "process_scraping_job", mock_task())
     monkeypatch.setattr(_target_handlers_mod, "process_scraping_job", mock_task())

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class JobSummary(BaseModel):
@@ -111,6 +111,16 @@ class RetryJobRequest(BaseModel):
     retry_strategy: str = "FULL"
     from_stage: str | None = None
     max_retries: int = 3
+
+    @field_validator("retry_strategy")
+    @classmethod
+    def validate_retry_strategy(cls, v: str) -> str:
+        allowed = {"FULL", "PARTIAL", "FROM_STAGE"}
+        if v not in allowed:
+            raise ValueError(
+                f"retry_strategy must be one of {sorted(allowed)}, got '{v}'"
+            )
+        return v
 
 
 class CreateLicensingCompanyIntakeRequest(BaseModel):

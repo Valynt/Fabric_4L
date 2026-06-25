@@ -5,19 +5,17 @@ from __future__ import annotations
 import inspect
 import json
 import os
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException, Request, Response
+from fastapi import BackgroundTasks, HTTPException, Request
 
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
-    NotFoundError,
     ValidationError,
 )
 from value_fabric.shared.identity.context import RequestContext
@@ -243,10 +241,12 @@ async def test_l1_write_cross_tenant_denied() -> None:
 
 
 def test_l1_query_filters_present() -> None:
-    main_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "main.py").read_text(encoding="utf-8")
+    target_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "target_handlers.py").read_text(encoding="utf-8")
+    job_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "job_handlers.py").read_text(encoding="utf-8")
     batch_content = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "layer1_ingestion" / "api" / "_batch_and_stats.py").read_text(encoding="utf-8")
     condition = (
-        "ScrapingTarget.tenant_id == org_id" in main_content
+        "ScrapingTarget.tenant_id == org_id" in target_content
+        and "ScrapingJob.tenant_id == org_id" in job_content
         and "ScrapingJob.tenant_id == org_id" in batch_content
     )
     _assert_control("L1", "QUERY-001", condition, "L1 canonical ingestion routes include tenant filters for targets and jobs")
