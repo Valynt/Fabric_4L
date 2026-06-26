@@ -67,6 +67,7 @@ export const journeyTest = base.extend<JourneyFixtures>({
       onUnhandledRequest: audit.recordUnhandledApiRequest,
     });
 
+    let testError: unknown;
     try {
       // 3. Seed auth state
       await seedAuthState(page, DEFAULT_TEST_USER);
@@ -79,14 +80,31 @@ export const journeyTest = base.extend<JourneyFixtures>({
 
       // 6. Provide the page to the test
       await use(page);
+    } catch (e) {
+      testError = e;
+    }
 
-      // 7. Fail closed on unexpected browser/network/test-environment errors.
+    // 7. Fail closed on unexpected browser/network/test-environment errors.
+    // Run the audit even when the test body failed so we don't swallow
+    // console/HTTP errors that may explain the failure, but preserve the
+    // original test error if an audit assertion would otherwise hide it.
+    try {
       await audit.assertClean();
+    } catch (auditError) {
+      if (testError) {
+        console.error('[journey-fixture] Unexpected errors observed during failing test:', auditError);
+      } else {
+        throw auditError;
+      }
     } finally {
       unexpectedErrorAudits.delete(page);
       audit.teardown();
       // Keep API routes installed until Playwright disposes the page. Removing
       // them here lets late React Query retries escape to Vite's backend proxy.
+    }
+
+    if (testError) {
+      throw testError;
     }
   },
 

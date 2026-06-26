@@ -8,6 +8,7 @@ from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
     ValidationError,
+    ValueFabricException,
 )
 
 """Analysis API routes for quick ROI and whitespace calculations."""
@@ -1277,6 +1278,32 @@ async def seed_business_case_lifecycle(
         "required_seed_rows_blocked": [],
     }
 
+async def _require_approved_case(
+    record: Any,
+    context: RequestContext,
+    account: Any,
+    format: str = "pdf",
+) -> None:
+    """Raise if the business case is not in an export-allowed status."""
+    if str(record.status).lower() not in {"approved", "exported", "delivered"}:
+        await emit_and_persist_audit(
+            action=AuditAction.EXPORT_REQUESTED,
+            context=context,
+            resource_type="BusinessCaseExport",
+            resource_id=str(record.case_id),
+            details={
+                "case_id": str(record.case_id),
+                "format": format,
+                "outcome": "denied",
+                "denied_reason": "approval_required",
+                "tenant_id": str(context.tenant_id),
+                "account_id": str(account.id),
+                "case_status": str(record.status),
+            },
+        )
+        raise ConflictError(message="Business case must be approved before export")
+
+
 @router.get("/cases/{case_id}/export")
 async def export_business_case(
     case_id: str,
@@ -1293,12 +1320,12 @@ async def export_business_case(
     """
     authorize_action("layer4.analysis.export_case", context)
     record = await db.get(BusinessCaseRecord, case_id)
-    if not record:
+    if not record or str(getattr(record, "tenant_id", None)) != str(context.tenant_id):
         raise NotFoundError(message = str(f"Business case {case_id} not found"))
 
     try:
         account = await _require_tenant_account(db, record.account_id, context)
-    except HTTPException as exc:
+    except ValueFabricException as exc:
         await emit_and_persist_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
@@ -1315,23 +1342,7 @@ async def export_business_case(
         )
         raise exc
 
-    if str(record.status).lower() not in {"approved", "exported", "delivered"}:
-        await emit_and_persist_audit(
-            action=AuditAction.EXPORT_REQUESTED,
-            context=context,
-            resource_type="BusinessCaseExport",
-            resource_id=case_id,
-            details={
-                "case_id": case_id,
-                "format": format,
-                "outcome": "denied",
-                "denied_reason": "approval_required",
-                "tenant_id": str(context.tenant_id),
-                "account_id": str(account.id),
-                "case_status": str(record.status),
-            },
-        )
-        raise ConflictError(message="Business case must be approved before export")
+    await _require_approved_case(record, context, account, format)
 
     result = await executor.get_result(case_id)
     if not result:
@@ -1353,6 +1364,22 @@ async def export_business_case(
     export_id = str(uuid4())
 
     if blocked:
+        await emit_and_persist_audit(
+            action=AuditAction.EXPORT_REQUESTED,
+            context=context,
+            resource_type="BusinessCaseExport",
+            resource_id=case_id,
+            details={
+                "case_id": case_id,
+                "format": format,
+                "outcome": "denied",
+                "denied_reason": "truth_gate_blocked",
+                "tenant_id": str(context.tenant_id),
+                "account_id": str(account.id),
+                "blocked": True,
+                "truth_gate_passed": truth_gate.get("passed", False),
+            },
+        )
         return export_business_caseResult.model_validate({
             "case_id": case_id,
             "export_id": export_id,

@@ -362,11 +362,29 @@ const ROUTE_TIER_MAP: Record<string, UserTier> = {
 
 // Pre-sorted routes for efficient lookup (longest first for proper prefix matching)
 const SORTED_ROUTES = Object.entries(ROUTE_TIER_MAP).sort((a, b) => b[0].length - a[0].length);
-const mockAuthDefaultsToAdmin =
-  import.meta.env.DEV &&
-  import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' &&
-  import.meta.env.VITE_AUTH_PROVIDER !== 'clerk';
-const INITIAL_TIER: UserTier = mockAuthDefaultsToAdmin ? 'admin' : 'standard';
+function readInitialTierFromStorage(): UserTier {
+  if (typeof window === 'undefined') {
+    return 'standard';
+  }
+
+  try {
+    const raw = window.localStorage.getItem('user-tier-storage');
+    if (!raw) {
+      return 'standard';
+    }
+    const parsed = JSON.parse(raw) as { state?: { currentTier?: unknown } };
+    const storedTier = typeof parsed.state?.currentTier === 'string'
+      ? validateTier(parsed.state.currentTier)
+      : null;
+    return storedTier ?? 'standard';
+  } catch {
+    return 'standard';
+  }
+}
+
+// Fail closed for missing or invalid state, but read an explicitly persisted
+// tier synchronously so route guards do not redirect before hydration completes.
+const INITIAL_TIER: UserTier = readInitialTierFromStorage();
 
 export const useUserTierStore = create<UserTierState>()(
   persist(
@@ -518,4 +536,3 @@ export function getRouteTier(path: string): UserTier {
 }
 
 export default useUserTierStore;
-

@@ -114,6 +114,56 @@
 6. Success states show layer-specific data without shape drift.
 7. Sidebar and horizontal tabs preserve route context.
 
+## P1 / Intelligence Workspace Enrichment
+
+1. User opens `/t/:tenantSlug/accounts/:accountId/intelligence/signals`.
+2. User reviews enrichment status and filters signal results.
+3. User opens the right rail for signal detail.
+4. User promotes a signal into the account workspace.
+5. User opens `/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders`.
+6. User verifies stakeholders, enrichment, and ontology-match context remain scoped to the selected account.
+7. Unsupported or stale intelligence remains visible as a recoverable state rather than being promoted silently.
+
+## P1 / Studio Workspace
+
+1. User opens `/t/:tenantSlug/accounts/:accountId/studio/action-plan`.
+2. User navigates across Action Plan, Value Model, Narrative, ROI, and Evidence tabs.
+3. User edits a value-model input.
+4. User generates or refreshes narrative output.
+5. User opens the evidence tab to inspect supporting proof.
+6. User follows any legacy studio redirect and remains in the same account context.
+7. Studio outputs remain consistent with the current selected account and model state.
+
+## P1 / Context Management
+
+1. User opens `/t/:tenantSlug/context/sources`.
+2. User configures or reviews source settings.
+3. User opens `/t/:tenantSlug/context/extraction` and starts or reviews extraction output.
+4. User opens `/t/:tenantSlug/context/ontology` to inspect ontology alignment.
+5. User opens `/t/:tenantSlug/context/packs` to manage value-pack state.
+6. Importer, CRUD, version, and deprecation states are visible.
+7. Source, extraction, ontology, and pack data remain tenant-scoped.
+
+## P1 / Stakeholder Mapping
+
+1. User opens `/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders`.
+2. User reviews stakeholder roles, influence, and evidence.
+3. User adds or edits stakeholder context where permitted.
+4. User asks for stakeholder-specific messaging from `/workflow/intelligence`.
+5. User verifies generated messaging reflects the stakeholder role.
+6. User verifies stakeholder evidence is linked to the active account.
+7. Missing relationship evidence produces a visible review state.
+
+## P1 / Narrative And Proposal
+
+1. User opens `/t/:tenantSlug/accounts/:accountId/studio/narrative`.
+2. User selects or adjusts the intended audience.
+3. User generates narrative or proposal content.
+4. User changes value-model context and regenerates the output.
+5. User opens `/t/:tenantSlug/accounts/:accountId/deliverables`.
+6. User verifies proposal content reflects the latest model and grounded claims.
+7. Unsupported claims remain blocked or clearly marked for review.
+
 ## P1 / Collaboration, Notifications, And Tasks
 
 1. User opens Accounts or a review surface.
@@ -124,6 +174,16 @@
 6. User reviews assigned tasks and status.
 7. Task and notification state persists across navigation.
 
+## P1 / Notification And Task Lifecycle
+
+1. User receives a workflow notification.
+2. User opens `/personal/notifications`.
+3. User reviews notification preference and event state.
+4. User creates or receives an assigned task from an account or workflow surface.
+5. User opens `/personal/tasks`.
+6. User filters, completes, or reviews the task.
+7. Badge counts and task status persist across navigation and reload.
+
 ## P1 / Admin Configuration And Settings
 
 1. Admin opens `/t/:tenantSlug/settings`.
@@ -133,6 +193,46 @@
 5. Admin configures governance policies, compliance, health, audit, and controls.
 6. Sensitive actions remain role-gated.
 7. Audit trail captures configuration changes.
+
+## P1 / Operational Resilience
+
+1. User opens an empty workflow or route under `/t/:tenantSlug/context/*`, `/workflow/*`, `/calculator/:accountId`, or `/deliverables`.
+2. Loading, empty, and success states render as distinct states.
+3. User triggers or encounters a retryable API failure.
+4. User sees recoverable error messaging and retry controls.
+5. User resumes a partial workflow after navigation or reload.
+6. Degraded API state does not corrupt account or tenant context.
+7. Failed jobs and partial states remain visible until resolved.
+
+## P1 / Adversarial Workflow
+
+1. User opens `/t/:tenantSlug/context/sources`.
+2. User imports or reviews noisy source material that includes weak evidence or prompt-injection content.
+3. User opens `/workflow/intelligence` and requests an unsupported claim.
+4. User attempts to reference cross-tenant or restricted evidence.
+5. User opens `/t/:tenantSlug/governance/evidence` or `/t/:tenantSlug/governance/traces`.
+6. Low-confidence warnings, refusal states, and review gates are visible.
+7. Unsafe instructions do not execute, and unsupported claims are not promoted.
+
+## P1 / Persona-Based Journeys
+
+1. Seller, value engineer, sales leader, CSM, admin, and executive buyer personas open their assigned starting routes.
+2. Each persona navigates through `/t/:tenantSlug/accounts`, `/workflow/*`, studio, realization, settings, or deliverable routes as allowed.
+3. Each persona sees controls appropriate to their role.
+4. Each persona attempts at least one denied action.
+5. Denied actions are blocked with role-appropriate messaging.
+6. Executive buyer views hide internal-only operational data.
+7. Persona permissions remain aligned with the shared role and tier model.
+
+## P1 / Tenant Settings
+
+1. Admin opens `/t/:tenantSlug/settings/*`.
+2. Admin reviews workspace, billing, governance, and data-source categories.
+3. Admin changes allowed tenant configuration.
+4. Admin attempts or reviews sensitive actions such as billing, retention, or API-key operations.
+5. Sensitive values remain masked.
+6. Restricted users remain blocked from admin-only settings.
+7. Tenant settings changes preserve audit and tenant context.
 
 ## P1 / Personal Settings
 

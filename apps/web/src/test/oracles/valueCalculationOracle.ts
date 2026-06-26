@@ -15,6 +15,12 @@ export type ValueCalculationResult = {
   roiPercent: number | null;
 };
 
+/**
+ * Normalize a rate that may be supplied as either a decimal (0.04) or a
+ * percentage (4). Values with magnitude greater than 1 are treated as
+ * percentages and divided by 100; values with magnitude 1 or less are treated
+ * as decimals. This means an input of exactly `1` is interpreted as 100%.
+ */
 export function normalizeRate(value: number): number {
   if (!Number.isFinite(value)) {
     throw new Error("rate must be finite");

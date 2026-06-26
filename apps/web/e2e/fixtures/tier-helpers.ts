@@ -33,8 +33,11 @@ export type BackendRole =
 async function ensureSameOrigin(page: Page): Promise<void> {
   const url = page.url();
   if (url === 'about:blank' || url === '' || url === 'chrome://newtab/') {
-    await page.goto('/sign-in', { waitUntil: 'commit' });
+    await page.goto('/sign-in', { waitUntil: 'domcontentloaded' });
   }
+  await page.waitForLoadState('domcontentloaded').catch(() => {
+    // The caller only needs a stable same-origin execution context.
+  });
 }
 
 /**
@@ -62,24 +65,6 @@ export async function setUserTier(
     },
     version: 0,
   };
-
-  await page.addInitScript(
-    ({ storeState, userTier, userRole }) => {
-      localStorage.setItem('user-tier-storage', JSON.stringify(storeState));
-      const userInfoRaw = localStorage.getItem('userInfo');
-      if (userInfoRaw) {
-        try {
-          const userInfo = JSON.parse(userInfoRaw);
-          userInfo.role = userRole;
-          localStorage.setItem('userInfo', JSON.stringify(userInfo));
-        } catch {
-          // ignore parse errors
-        }
-      }
-      localStorage.setItem('test-user-tier', userTier);
-    },
-    { storeState: seededTierState, userTier: tier, userRole: role },
-  );
 
   await page.evaluate((params: { userTier: UserTier; role: string; storeState: typeof seededTierState }) => {
     // 1. Set the zustand tier store
@@ -201,9 +186,8 @@ export async function getCurrentTier(page: Page): Promise<UserTier | null> {
  *   /deliver/cases          → /deliverables/cases
  *   /deliver/agents         → /context/agents
  *   /evidence/traces        → /governance/traces
- *   /admin/content/formulas → /settings/content/formulas
- *   /admin/content/benchmarks → /governance/benchmarks
- *   /admin/data/variables   → /settings/data/variables
+ *   /admin/content/benchmarks → /t/demo/governance/benchmarks
+ *   /admin/data/integrations  → /t/demo/context/integrations
  */
 export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted: string[] }> = {
   standard: {
@@ -221,7 +205,7 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/context/ontology',
       '/context/value-trees/explorer',
       '/context/formulas',
-      '/settings/content/formulas',
+      '/t/demo/governance/benchmarks',
     ],
   },
   advanced: {
@@ -240,9 +224,9 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/governance/traces',
     ],
     restricted: [
-      '/settings/content/formulas',
-      '/governance/benchmarks',
-      '/settings/data/variables',
+      '/t/demo/governance/benchmarks',
+      '/t/demo/settings',
+      '/t/demo/context/integrations',
     ],
   },
   admin: {
@@ -257,9 +241,9 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/deliverables/cases',
       '/context/agents',
       '/governance/traces',
-      '/settings/content/formulas',
-      '/governance/benchmarks',
-      '/settings/data/variables',
+      '/t/demo/governance/benchmarks',
+      '/t/demo/settings',
+      '/t/demo/context/integrations',
     ],
     restricted: [],
   },

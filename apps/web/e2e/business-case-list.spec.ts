@@ -71,8 +71,9 @@ test.describe('Business Case List', () => {
     
     // Search for a term
     await listPage.search('Test');
-    
-    // Results should update (either show matches or empty)
+    await expect(listPage.searchInput).toHaveValue('Test');
+
+    // Results should update and remain non-negative (filtering cannot increase count).
     const count = await expect
       .poll(() => listPage.getCaseCount(), { timeout: 5000 })
       .toBeGreaterThanOrEqual(0)
@@ -85,7 +86,8 @@ test.describe('Business Case List', () => {
     
     // Filter by active status
     await listPage.filterByStatus('active');
-    
+    await expect(listPage.statusFilter).toContainText('Active');
+
     // Verify filtered results
     const count = await expect
       .poll(() => listPage.getCaseCount(), { timeout: 5000 })
@@ -99,7 +101,8 @@ test.describe('Business Case List', () => {
     
     // Sort by name
     await listPage.sortBy('name');
-    
+    await expect(listPage.sortBySelect).toContainText('Name');
+
     // Verify cases still displayed
     const count = await expect
       .poll(() => listPage.getCaseCount(), { timeout: 5000 })

@@ -75,11 +75,13 @@ const EMPTY_ACCOUNT = {
   created_at: '2025-01-01T00:00:00Z',
 };
 
-const EMPTY_WORKSPACE_TAB = {
-  content: null,
-  generated_at: null,
-  status: 'empty',
-};
+/**
+ * Build the canonical backend empty shape for a workspace tab.
+ * The backend returns `{ <tab>: [] }`, not a wrapper with `status: 'empty'`.
+ */
+function emptyWorkspaceTab(tabName: string): Record<string, unknown[]> {
+  return { [tabName]: [] };
+}
 
 const DEFAULT_MOCKS: MockEndpoint[] = [
   // Account list — GET /api/v1/agents/accounts?...
@@ -98,38 +100,38 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+$/,
     body: EMPTY_ACCOUNT,
   },
-  // Workspace tab data — canonical path: /api/v1/agents/cases/:caseId/workspace/:tab
+  // Workspace tab data — canonical backend shape is `{ <tab>: [] }`.
   {
     pattern: '**/api/v1/agents/cases/*/workspace/signals',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('signals'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/drivers',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('drivers'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/evidence',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('evidence'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/stakeholders',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('stakeholders'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/action-plan',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('action-plan'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/value-model',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('value-model'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/narrative',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('narrative'),
   },
   {
     pattern: '**/api/v1/agents/cases/*/workspace/evidence-links',
-    body: EMPTY_WORKSPACE_TAB,
+    body: emptyWorkspaceTab('evidence-links'),
   },
   // Case ID resolution — GET /api/v1/agents/cases?account_id=... returns items list
   {
@@ -158,10 +160,16 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: '**/api/v1/agents/health/**',
     body: { status: 'healthy', components: {} },
   },
-  // Ingestion jobs
+  // Ingestion jobs — backend returns a paginated envelope.
   {
     pattern: '**/api/v1/ingest/jobs**',
-    body: [],
+    body: {
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 100,
+      has_more: false,
+    },
   },
   // Settings
   {
@@ -199,6 +207,35 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: '**/api/v1/value-trees**',
     body: { trees: [], total: 0 },
   },
+  {
+    pattern: '**/api/v1/graph/subgraph**',
+    body: {
+      nodes: [],
+      edges: [],
+      stats: { total_nodes: 0, total_edges: 0, density: 0 },
+    },
+  },
+  {
+    pattern: '**/api/v1/graph/packs**',
+    body: [],
+  },
+  {
+    pattern: '**/api/v1/graph/valuepacks',
+    body: { items: [], total: 0 },
+  },
+  {
+    pattern: '**/api/v1/graph/valuepacks/composable-templates',
+    body: { templates: [], template_usage: {} },
+  },
+  {
+    pattern: '**/api/v1/graph/valuepacks/ontology-map',
+    body: {
+      shared_drivers: [],
+      shared_model_types: [],
+      shared_proof_patterns: [],
+      cross_reference_matrix: {},
+    },
+  },
   // Harness runs — default empty list so pages that incidentally hit this
   // endpoint don't break existing tests. Harness-specific tests override
   // this via page.route() before the harness installs its catch-all.
@@ -225,6 +262,8 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
  */
 function globToRegExp(glob: string): RegExp {
   let regex = glob
+    // Escape regex metacharacters other than `*`, which we expand ourselves.
+    .replace(/[.+^${}()|[\]\\?]/g, '\\$&')
     .replace(/\*\*/g, '<<<DOUBLESTAR>>>')
     .replace(/\*/g, '[^/]*')
     .replace(/<<<DOUBLESTAR>>>/g, '.*');
@@ -261,7 +300,8 @@ export async function installApiHarness(
    * catch-all fires before a specific mock, we use a SINGLE route
    * handler and do our own pattern matching.
    */
-  await page.route(/.*\/(?:api\/)?v1\/.*/, async (route: Route) => {
+  const harnessRoute = /.*\/(?:api\/)?v1\/.*/;
+  const harnessHandler = async (route: Route) => {
     const url = route.request().url();
     const canonicalUrl = canonicalizeApiUrl(url);
     const method = route.request().method();
@@ -304,11 +344,14 @@ export async function installApiHarness(
         body: JSON.stringify({}),
       });
     }
-  });
+  };
 
-  // Return teardown function
+  await page.route(harnessRoute, harnessHandler);
+
+  // Return teardown function that removes only this harness handler,
+  // leaving other test-registered routes intact.
   return async () => {
-    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await page.unroute(harnessRoute, harnessHandler);
   };
 }
 
@@ -357,7 +400,8 @@ export function mockAccountData(
     if (tabData && typeof tabData === 'object') {
       mocks.push({
         pattern: `**/api/v1/agents/workspace/${accountId}/${tabName}`,
-        body: { content: tabData, generated_at: new Date().toISOString(), status: 'ready' },
+        // Match backend tab shape: `{ <tab>: [...] }`.
+        body: { [tabName]: tabData, generated_at: new Date().toISOString() },
       });
     }
   }
@@ -377,7 +421,13 @@ export function mockIngestionJobs(jobs: Array<{
   const mocks: MockEndpoint[] = [
     {
       pattern: '**/api/v1/ingest/jobs',
-      body: jobs,
+      body: {
+        items: jobs,
+        total: jobs.length,
+        page: 1,
+        page_size: 100,
+        has_more: false,
+      },
     },
   ];
 

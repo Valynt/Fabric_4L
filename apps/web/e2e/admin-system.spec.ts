@@ -128,19 +128,19 @@ test.describe('Admin System Routes', () => {
     test('should redirect standard tier from settings', async ({ page }) => {
       await setUserTier(page, 'standard');
       await page.goto('/admin/system/settings');
-      await expect(page).not.toHaveURL('/admin/system/settings');
+      await expect(page).not.toHaveURL(/\/admin\/system/);
     });
 
     test('should redirect standard tier from health', async ({ page }) => {
       await setUserTier(page, 'standard');
       await page.goto('/admin/system/health');
-      await expect(page).not.toHaveURL('/admin/system/health');
+      await expect(page).not.toHaveURL(/\/admin\/system/);
     });
 
     test('should redirect advanced tier from settings', async ({ page }) => {
       await setUserTier(page, 'advanced');
       await page.goto('/admin/system/settings');
-      await expect(page).not.toHaveURL('/admin/system/settings');
+      await expect(page).not.toHaveURL(/\/admin\/system/);
     });
 
     test('should allow admin access to settings', async ({ page }) => {

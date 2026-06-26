@@ -69,7 +69,7 @@ export class BusinessCaseListPage {
     // Case list
     this.caseCards = page.locator('.bg-white.border.border-neutral-200.rounded-xl');
     this.emptyState = page.getByText(/no business cases found/i);
-    this.emptyStateCreateButton = page.locator('text=/no business cases found/i').locator('..').getByRole('button', { name: /create case/i });
+    this.emptyStateCreateButton = page.getByRole('button', { name: /create case/i }).first();
 
     // Loading / error
     this.loadingSkeleton = page.locator('[class*="skeleton"]').first();

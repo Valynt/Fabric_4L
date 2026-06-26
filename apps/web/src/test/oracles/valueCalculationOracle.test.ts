@@ -34,6 +34,10 @@ describe("P0 calculation oracle", () => {
     expect(normalizeRate(0.04)).toBe(0.04);
   });
 
+  it("treats an input of exactly 1 as a decimal (100%)", () => {
+    expect(normalizeRate(1)).toBe(1);
+  });
+
   it("returns an explicit null ROI for zero total cost instead of dividing by zero", () => {
     expect(
       calculateValueOracle({

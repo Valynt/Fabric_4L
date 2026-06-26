@@ -58,7 +58,7 @@ async function ensureSameOrigin(page: Page): Promise<void> {
 }
 
 /**
- * Set the selected account in the zustand store via localStorage.
+ * Set the selected account in the zustand store via sessionStorage.
  * Must be called before navigating to account-scoped routes.
  */
 export async function setSelectedAccount(page: Page, account: TestAccount): Promise<void> {

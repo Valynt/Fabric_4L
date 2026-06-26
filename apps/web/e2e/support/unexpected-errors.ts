@@ -16,7 +16,7 @@ type UnexpectedErrorAudit = {
 const IGNORED_CONSOLE_ERRORS = [
   /favicon\.ico/i,
   /ResizeObserver loop/i,
-  /Failed to load resource: the server responded with a status of 40[134] /i,
+  /Failed to load resource: the server responded with a status of 40[14] /i,
 ];
 
 const FAILED_JOB_STATUS_PATTERN = /\b(failed|error|cancelled)\b/i;

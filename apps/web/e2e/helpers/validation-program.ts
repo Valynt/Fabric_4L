@@ -1,6 +1,7 @@
 import type { Page, Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { expectNoErrors, navigateAndWait } from './journey-fixture';
+import { isLiveMode } from './api-harness';
 
 export type ValidationTraceability = {
   id: string;
@@ -345,6 +346,12 @@ export async function expectSeededBusinessCaseWorkflowResults(
   page: Page,
   caseIds: string[],
 ): Promise<void> {
+  if (!isLiveMode()) {
+    // In contract mode, `page.request` bypasses page.route() mocks and there is no
+    // seeded backend state. Journey-specific mocks are responsible for case data.
+    return;
+  }
+
   const missing: string[] = [];
 
   for (const caseId of caseIds) {
@@ -391,6 +398,7 @@ type ObservedIngestionJob = {
 };
 
 const TERMINAL_INGESTION_STATUSES = new Set(['COMPLETED', 'PARTIAL_SUCCESS', 'FAILED', 'CANCELLED']);
+const FAILED_INGESTION_STATUSES = new Set(['FAILED', 'CANCELLED', 'ERROR', 'TIMEOUT']);
 
 function normalizeDomain(value: string): string {
   return value
@@ -400,9 +408,9 @@ function normalizeDomain(value: string): string {
 }
 
 function extractIngestionJobs(payload: unknown): ObservedIngestionJob[] {
-  const data = payload && typeof payload === 'object' && 'data' in payload
-    ? (payload as { data?: unknown }).data
-    : undefined;
+  const envelope = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+  // Support both the paginated envelope (`items`) and the legacy `data` array.
+  const data = envelope.data ?? envelope.items;
   if (!Array.isArray(data)) return [];
 
   return data.map((item): ObservedIngestionJob => {
@@ -415,7 +423,7 @@ function extractIngestionJobs(payload: unknown): ObservedIngestionJob[] {
       id: String(record.id ?? ''),
       domain,
       status: String(record.status ?? '').toUpperCase(),
-      progress: Number(record.progress_percent_complete ?? 0),
+      progress: Number(record.progress_percent_complete ?? record.progress ?? 0),
     };
   }).filter((job) => job.id);
 }
@@ -454,6 +462,9 @@ export async function expectIngestionJobReady(
       : jobs.slice(0, 5).map((job) => `${job.id}:${job.status}:${job.progress}%:${job.domain}`).join(', ');
 
     const ready = candidates.find((job) => {
+      if (FAILED_INGESTION_STATUSES.has(job.status)) {
+        return false;
+      }
       if (!terminal) {
         return job.status.length > 0;
       }

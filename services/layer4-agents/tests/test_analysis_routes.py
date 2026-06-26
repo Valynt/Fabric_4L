@@ -270,7 +270,7 @@ async def test_export_route_uses_get_result_dependency(analysis_app: FastAPI, mo
                 case_id=key,
                 account_id=_UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                 tenant_id=str(tenant_uuid),
-                status="approved",
+                status="completed",
                 document_url=None,
             )
 
@@ -297,6 +297,11 @@ async def test_export_route_uses_get_result_dependency(analysis_app: FastAPI, mo
     monkeypatch.setattr(analysis, "AccountService", lambda db: SimpleNamespace(
         get_account=_fake_get_account
     ))
+    # Bypass approval gate so this test isolates the get_result dependency path
+    async def _fake_require_approved_case(record: Any, context: Any, account: Any, format: str = "pdf") -> None:
+        pass
+
+    monkeypatch.setattr(analysis, "_require_approved_case", _fake_require_approved_case)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.get("/v1/cases/case-export/export")
@@ -661,44 +666,3 @@ async def test_update_workspace_tab_persists_payload(analysis_app: FastAPI) -> N
         assert fake_db.added[0].data == {"signals": test_signals}
 
 
-@pytest.mark.skip(reason="Route now uses Neo4j directly (not sample data); test was written against an unimplemented stub")
-@pytest.mark.asyncio
-async def test_generate_workspace_intelligence_fails_closed_without_production_workflow(
-    analysis_app: FastAPI,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """POST /workspace/generate must not return fabricated sample intelligence."""
-
-    tenant_id = UUID("12345678-1234-1234-1234-123456789abc")
-
-    async def mock_require_authenticated():
-        from value_fabric.shared.identity.context import RequestContext
-
-        return RequestContext(tenant_id=tenant_id, user_id="analyst-user",
-            roles=["tenant_admin"],
-            permissions=frozenset(["read:agents", "write:agents"]),
-        )
-
-    class FakeDb:
-        async def get(self, model: Any, key: str) -> Any:
-            return SimpleNamespace(id=key, account_id="account-1")
-
-    class FakeAccountService:
-        def __init__(self, db: Any) -> None:
-            self.db = db
-
-        async def get_account(self, account_id: str, tenant_id: str | None = None) -> Any:
-            return SimpleNamespace(id=account_id, name="Acme")
-
-    analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: FakeExecutor(execute_response=None)
-    monkeypatch.setattr(analysis, "AccountService", FakeAccountService)
-
-    async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
-        response = await client.post("/v1/cases/case-501/workspace/generate")
-
-    assert response.status_code == 501
-    detail = response.json()["detail"]
-    assert "production AI workflow" in detail
-    assert "sample" in detail
