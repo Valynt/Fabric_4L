@@ -37,6 +37,7 @@ const requiredEvidence = [
   ['P1-ADVERSARIAL', /P1-ADVERSARIAL/, 'adversarial workflow row'],
   ['P1-PERSONAS', /P1-PERSONAS/, 'persona workflow row'],
   ['master inventory', /docs\/validation\/product_workflow_validation_inventory\.md/, 'master workflow inventory reference'],
+  ['step-by-step workflow inventory', /docs\/frontend-user-workflows\.md/, 'step-by-step frontend workflow inventory reference'],
   ['workflow contracts', /docs\/frontend-workflow-contracts\.json/, 'executable workflow contracts reference'],
   ['workflow contracts command', /test:workflow-contracts/, 'workflow contracts validation command reference'],
   ['route inventory command', /test:route-inventory/, 'route inventory validation command reference'],

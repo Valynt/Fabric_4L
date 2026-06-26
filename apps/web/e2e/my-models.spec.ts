@@ -87,35 +87,34 @@ test.describe("My Models E2E", () => {
   });
 
   test("should show empty state when no models", async ({ page }) => {
-    // Wait for content to load
-    await page.waitForTimeout(1000);
-    
-    // Check if either models are shown or empty state is shown
-    const hasModels = await page.locator("text=drivers").first().isVisible().catch(() => false);
-    const hasEmptyState = await page.locator("text=No models yet").first().isVisible().catch(() => false);
-    
-    // One of these should be true
-    expect(hasModels || hasEmptyState).toBeTruthy();
+    const state = await expect
+      .poll(async () => {
+        const hasModels = await page.locator("text=drivers").first().isVisible().catch(() => false);
+        const hasEmptyState = await page.locator("text=No models yet").first().isVisible().catch(() => false);
+        return hasModels ? "models" : hasEmptyState ? "empty" : "pending";
+      }, { timeout: 5000 })
+      .not.toBe("pending")
+      .then(async () => {
+        const hasEmptyState = await page.locator("text=No models yet").first().isVisible().catch(() => false);
+        return hasEmptyState ? "empty" : "models";
+      });
     
     // If empty state, verify CTA button
-    if (hasEmptyState) {
+    if (state === "empty") {
       await expect(page.getByRole("button", { name: /Create First Model/i })).toBeVisible();
     }
   });
 
   test("should search for models", async ({ page }) => {
-    // Wait for page to be fully loaded
-    await page.waitForTimeout(1000);
-    
     // Type in search box
     const searchInput = page.getByPlaceholder("Search models...");
     await searchInput.fill("test");
     
     // Verify search input has value
     await expect(searchInput).toHaveValue("test");
-    
-    // Wait for potential search results or empty state
-    await page.waitForTimeout(500);
+    await expect
+      .poll(async () => page.locator("text=No models yet").first().isVisible().catch(() => false), { timeout: 3000 })
+      .toBeDefined();
   });
 
   test("should switch between folders", async ({ page }) => {

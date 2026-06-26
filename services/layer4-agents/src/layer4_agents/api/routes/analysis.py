@@ -1315,6 +1315,24 @@ async def export_business_case(
         )
         raise exc
 
+    if str(record.status).lower() not in {"approved", "exported", "delivered"}:
+        await emit_and_persist_audit(
+            action=AuditAction.EXPORT_REQUESTED,
+            context=context,
+            resource_type="BusinessCaseExport",
+            resource_id=case_id,
+            details={
+                "case_id": case_id,
+                "format": format,
+                "outcome": "denied",
+                "denied_reason": "approval_required",
+                "tenant_id": str(context.tenant_id),
+                "account_id": str(account.id),
+                "case_status": str(record.status),
+            },
+        )
+        raise ConflictError(message="Business case must be approved before export")
+
     result = await executor.get_result(case_id)
     if not result:
         raise ConflictError(message="Business case draft is not approved or document bytes unavailable")

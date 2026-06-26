@@ -75,7 +75,9 @@ export async function expectWorkflowStep(
 
   for (const action of actions) {
     if (action.wait) {
-      await page.waitForTimeout(action.wait);
+      await page.waitForLoadState('networkidle', { timeout: action.wait }).catch(async () => {
+        await page.waitForLoadState('domcontentloaded', { timeout: action.wait });
+      });
     }
     if (action.click) {
       const target = page.getByRole('button', { name: action.click })
@@ -236,8 +238,21 @@ export async function switchToReadOnlyUser(page: Page): Promise<void> {
     console.debug(`URL changed from ${currentUrl} to ${page.url()} during role switch: ${err.message}`);
   });
 
-  // Additional wait for role state to take effect in UI
-  await page.waitForTimeout(1000);
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const userInfoRaw = localStorage.getItem('userInfo');
+          if (!userInfoRaw) return null;
+          try {
+            return JSON.parse(userInfoRaw).role;
+          } catch {
+            return null;
+          }
+        }),
+      { timeout: 5000 },
+    )
+    .toBe('read_only');
 }
 
 export async function expectAnyVisible(
@@ -273,10 +288,9 @@ export async function expectAnyVisible(
     // .first() resolved to a hidden element but the content IS on screen.
     const patSource = typeof candidate === 'string' ? candidate : candidate.source;
     const patFlags = typeof candidate === 'string' ? 'i' : candidate.flags;
-    const deadline = Date.now() + timeout;
-    let domFound = false;
-    while (Date.now() < deadline) {
-      domFound = await page.evaluate(
+    const domFound = await expect
+      .poll(
+        async () => page.evaluate(
         ([src, flags]) => {
           const re = new RegExp(src, flags);
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
@@ -290,10 +304,12 @@ export async function expectAnyVisible(
           return false;
         },
         [patSource, patFlags] as [string, string],
-      );
-      if (domFound) break;
-      await page.waitForTimeout(150);
-    }
+        ),
+        { timeout, intervals: [100, 150, 250] },
+      )
+      .toBe(true)
+      .then(() => true)
+      .catch(() => false);
     if (domFound) return;
 
     failures.push(`${candidate}: no visible element with non-zero bounding box found within ${timeout}ms`);

@@ -46,6 +46,8 @@ interface ApiHarnessOptions {
   mocks?: MockEndpoint[];
   /** If true, unmatched API requests will be aborted instead of passed through */
   strictMocking?: boolean;
+  /** Called when relaxed contract mode fulfills an unmatched API request. */
+  onUnhandledRequest?: (request: { url: string; method: string }) => void;
 }
 
 // ── Layer URL Prefixes (mirrors frontend/client/src/api/client.ts) ──────────
@@ -158,7 +160,7 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   },
   // Ingestion jobs
   {
-    pattern: '**/api/v1/ingest/jobs',
+    pattern: '**/api/v1/ingest/jobs**',
     body: [],
   },
   // Settings
@@ -259,8 +261,9 @@ export async function installApiHarness(
    * catch-all fires before a specific mock, we use a SINGLE route
    * handler and do our own pattern matching.
    */
-  await page.route('**/api/v1/**', async (route: Route) => {
+  await page.route(/.*\/(?:api\/)?v1\/.*/, async (route: Route) => {
     const url = route.request().url();
+    const canonicalUrl = canonicalizeApiUrl(url);
     const method = route.request().method();
 
     const mock = allMocks.find((m) => {
@@ -272,9 +275,10 @@ export async function installApiHarness(
         // by falling back; this route only fires when the glob already
         // matched '**/api/v1/**', so we need to do more precise matching.
         // For simplicity, convert common glob patterns to RegExp.
-        return globToRegExp(m.pattern).test(url);
+        const pattern = globToRegExp(m.pattern);
+        return pattern.test(url) || pattern.test(canonicalUrl);
       }
-      return m.pattern.test(url);
+      return m.pattern.test(url) || m.pattern.test(canonicalUrl);
     });
 
     if (mock) {
@@ -293,6 +297,7 @@ export async function installApiHarness(
       console.warn(`[API Harness] Unmatched request aborted: ${url}`);
       await route.abort('connectionrefused');
     } else {
+      options.onUnhandledRequest?.({ url, method });
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -305,6 +310,10 @@ export async function installApiHarness(
   return async () => {
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   };
+}
+
+function canonicalizeApiUrl(url: string): string {
+  return url.replace(/\/v1\//, '/api/v1/');
 }
 
 /**

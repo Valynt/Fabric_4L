@@ -21,14 +21,20 @@ FRONTEND_SPEC = REPO_ROOT / "apps/web/e2e/security/hostile-tenant-enforcement-ma
 
 
 REQUIRED_ROUTE_PATTERNS = [
+    "**/api/v1/sources/list**",  # list
     "**/api/v1/sources/**",  # L1
+    "**/api/v1/sources/create**",  # create
     "**/api/v1/extraction/**",  # L2
     "**/api/v1/entities/**",  # L3
+    "**/api/v1/search**",  # search
     "**/api/v1/workflows/**",  # L4
+    "**/api/v1/agents/retrieve**",  # agent retrieval
     "**/api/v1/truth/**",  # L5
+    "**/api/v1/evidence/**",  # file download
     "**/api/v1/benchmarks/**",  # L6
     "**/api/v1/billing/**",  # L7
     "**/api/v1/accounts/**",  # API gateway
+    "**/api/v1/cases/**/export",  # export
 ]
 
 REQUIRED_BEHAVIORS = [
@@ -37,7 +43,23 @@ REQUIRED_BEHAVIORS = [
     "AUTH_EXPIRED",
     "AUTH_TAMPERED",
     "RBAC_DENIED",
+    "TENANT_CONTEXT_MISMATCH",
+    "RETRIEVAL_TENANT_FORBIDDEN",
+    "EXPORT_TENANT_FORBIDDEN",
     "auditEventExpected: true",
+]
+
+REQUIRED_OPERATIONS = [
+    "operation: 'list'",
+    "operation: 'read'",
+    "operation: 'create'",
+    "operation: 'update'",
+    "operation: 'delete'",
+    "operation: 'search'",
+    "operation: 'export'",
+    "operation: 'background-job lookup'",
+    "operation: 'file download'",
+    "operation: 'agent retrieval'",
 ]
 
 FORBIDDEN_LEAK_TERMS = ["traceback", "sqlalchemy", "password", "secret", "api_key"]
@@ -57,6 +79,13 @@ def test_matrix_covers_idor_rbac_and_token_abuse_paths() -> None:
     src = FRONTEND_SPEC.read_text(encoding="utf-8")
     for marker in REQUIRED_BEHAVIORS:
         assert marker in src, f"Missing hostile matrix behavior marker: {marker}"
+
+
+def test_matrix_covers_required_tenant_owned_operation_families() -> None:
+    src = FRONTEND_SPEC.read_text(encoding="utf-8")
+    for marker in REQUIRED_OPERATIONS:
+        assert marker in src, f"Missing hostile matrix operation marker: {marker}"
+    assert "deniedActionsObserved" in src
 
 
 def test_matrix_asserts_error_contract_and_observability() -> None:

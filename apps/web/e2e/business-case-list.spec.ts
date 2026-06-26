@@ -1,11 +1,12 @@
 import { test, expect } from './fixtures/contract-test';
 import { BusinessCaseListPage } from './pages';
 import { setUserTier, clearUserTier } from './fixtures';
+import { setSelectedAccount, clearSelectedAccount } from './fixtures/account-helpers';
 
 /**
  * Business Case List E2E Tests
  *
- * Route: /deliver/cases
+ * Route: /t/:tenantSlug/accounts/:accountId/deliverables/business-cases
  * Tier: standard+
  *
  * Covers:
@@ -22,11 +23,23 @@ test.describe('Business Case List', () => {
 
   test.beforeEach(async ({ page }) => {
     await setUserTier(page, 'standard');
+    await setSelectedAccount(page, { id: 'acc_demo', name: 'Demo Account' });
+    await page.route('**/authz/accounts/acc_demo/access**', async (route) => {
+      await route.fulfill({
+        json: {
+          account_exists: true,
+          tenant_bound: true,
+          principal_allowed: true,
+          reason: 'allowed',
+        },
+      });
+    });
     listPage = new BusinessCaseListPage(page);
     await listPage.goto();
   });
 
   test.afterEach(async ({ page }) => {
+    await clearSelectedAccount(page);
     await clearUserTier(page);
   });
 
@@ -59,11 +72,11 @@ test.describe('Business Case List', () => {
     // Search for a term
     await listPage.search('Test');
     
-    // Wait for filtered results
-    await page.waitForTimeout(300);
-    
     // Results should update (either show matches or empty)
-    const count = await listPage.getCaseCount();
+    const count = await expect
+      .poll(() => listPage.getCaseCount(), { timeout: 5000 })
+      .toBeGreaterThanOrEqual(0)
+      .then(() => listPage.getCaseCount());
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
@@ -73,11 +86,11 @@ test.describe('Business Case List', () => {
     // Filter by active status
     await listPage.filterByStatus('active');
     
-    // Wait for filter to apply
-    await page.waitForTimeout(300);
-    
     // Verify filtered results
-    const count = await listPage.getCaseCount();
+    const count = await expect
+      .poll(() => listPage.getCaseCount(), { timeout: 5000 })
+      .toBeGreaterThanOrEqual(0)
+      .then(() => listPage.getCaseCount());
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
@@ -87,11 +100,11 @@ test.describe('Business Case List', () => {
     // Sort by name
     await listPage.sortBy('name');
     
-    // Wait for sort to apply
-    await page.waitForTimeout(300);
-    
     // Verify cases still displayed
-    const count = await listPage.getCaseCount();
+    const count = await expect
+      .poll(() => listPage.getCaseCount(), { timeout: 5000 })
+      .toBeGreaterThanOrEqual(0)
+      .then(() => listPage.getCaseCount());
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
@@ -101,11 +114,11 @@ test.describe('Business Case List', () => {
     // Toggle direction
     await listPage.toggleSortDirection();
     
-    // Wait for sort to apply
-    await page.waitForTimeout(300);
-    
     // Verify cases still displayed
-    const count = await listPage.getCaseCount();
+    const count = await expect
+      .poll(() => listPage.getCaseCount(), { timeout: 5000 })
+      .toBeGreaterThanOrEqual(0)
+      .then(() => listPage.getCaseCount());
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
@@ -157,11 +170,11 @@ test.describe('Business Case List', () => {
     // Search for something that won't match
     await listPage.search('ZZZ_NONEXISTENT_CASE_999');
     
-    // Wait for filter to apply
-    await page.waitForTimeout(500);
-    
     // Check for empty state or zero results
-    const caseCount = await listPage.getCaseCount();
+    const caseCount = await expect
+      .poll(() => listPage.getCaseCount(), { timeout: 5000 })
+      .toBeGreaterThanOrEqual(0)
+      .then(() => listPage.getCaseCount());
     if (caseCount === 0) {
       await expect(listPage.emptyState).toBeVisible().catch(() => {
         // Empty state might not be visible if there are cases
@@ -172,9 +185,9 @@ test.describe('Business Case List', () => {
   // ── Access Control ────────────────────────────────────────────────
 
   test.describe('Access Control', () => {
-    test('should be accessible to standard tier', async () => {
+    test('should be accessible to standard tier', async ({ page }) => {
       await listPage.assertPageLoaded();
-      await expect(page).toHaveURL('/deliver/cases');
+      await expect(page).toHaveURL('/t/demo/accounts/acc_demo/deliverables/business-cases');
     });
 
     test('should be accessible to advanced tier', async ({ page }) => {
@@ -185,7 +198,7 @@ test.describe('Business Case List', () => {
       await advancedPage.goto();
       
       await advancedPage.assertPageLoaded();
-      await expect(page).toHaveURL('/deliver/cases');
+      await expect(page).toHaveURL('/t/demo/accounts/acc_demo/deliverables/business-cases');
     });
   });
 });

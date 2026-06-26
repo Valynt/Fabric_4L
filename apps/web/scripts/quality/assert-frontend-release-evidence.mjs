@@ -34,6 +34,36 @@ try {
 }
 
 const failures = [];
+const requiredP0Journeys = [
+  "P0-ACCOUNT-LIFECYCLE",
+  "P0-CALC-EVIDENCE",
+  "P0-APPROVAL-EXPORT",
+  "P0-AGENT-GOVERNANCE",
+  "P0-LAYER-VALIDATION",
+];
+const requiredAuthorizationActors = [
+  "tenant-a-standard",
+  "tenant-a-admin",
+  "tenant-a-reviewer",
+  "tenant-b-standard",
+];
+const requiredLiveProviders = [
+  "llm",
+  "crm",
+  "email",
+  "clerk",
+  "pdf-processing",
+  "export-rendering",
+];
+const requiredSyntheticChecks = [
+  "sign-in",
+  "home",
+  "search-known-object",
+  "submit-ingestion-job",
+  "observe-job-completion",
+  "trace-and-audit",
+  "no-browser-errors-or-http-5xx",
+];
 
 requireValue(evidence.schemaVersion, "schemaVersion", 1);
 requireIsoTimestamp(evidence.generatedAt, "generatedAt");
@@ -61,6 +91,9 @@ const p0 = evidence.p0BrowserJourneys;
 requirePassed(p0?.status, "p0BrowserJourneys.status");
 requireCommand(p0?.command, "p0BrowserJourneys.command");
 requireValue(p0?.environment, "p0BrowserJourneys.environment", "production-build-real-internal-infra");
+requireInfrastructure(p0?.infrastructure, "p0BrowserJourneys.infrastructure");
+requirePassedEvidenceItems(p0?.journeys, "p0BrowserJourneys.journeys");
+requireNamedItems(p0?.journeys, requiredP0Journeys, "p0BrowserJourneys.journeys");
 requireEmptyArray(p0?.unexpectedSkippedP0, "p0BrowserJourneys.unexpectedSkippedP0");
 requireTrue(p0?.noUnexpectedBrowserErrors, "p0BrowserJourneys.noUnexpectedBrowserErrors");
 requireTrue(p0?.noHttp5xx, "p0BrowserJourneys.noHttp5xx");
@@ -79,6 +112,7 @@ requirePositiveCoverage(
   auth?.authorizationMatrix?.casesTotal,
   "securityAndAuthorization.authorizationMatrix"
 );
+requireStringSet(auth?.authorizationMatrix?.actors, requiredAuthorizationActors, "securityAndAuthorization.authorizationMatrix.actors");
 requirePassed(auth?.tenantIsolationApi?.status, "securityAndAuthorization.tenantIsolationApi.status");
 requireCommand(auth?.tenantIsolationApi?.command, "securityAndAuthorization.tenantIsolationApi.command");
 requirePassed(auth?.tenantIsolationRetrieval?.status, "securityAndAuthorization.tenantIsolationRetrieval.status");
@@ -93,10 +127,12 @@ requireCommand(governance?.auditTrail?.command, "governanceAndAudit.auditTrail.c
 requirePassed(evidence.liveProviderSmoke?.status, "liveProviderSmoke.status");
 requireCommand(evidence.liveProviderSmoke?.command, "liveProviderSmoke.command");
 requirePassedEvidenceItems(evidence.liveProviderSmoke?.providers, "liveProviderSmoke.providers");
+requireNamedItems(evidence.liveProviderSmoke?.providers, requiredLiveProviders, "liveProviderSmoke.providers");
 
 requirePassed(evidence.postDeploySynthetics?.status, "postDeploySynthetics.status");
 requireCommand(evidence.postDeploySynthetics?.command, "postDeploySynthetics.command");
 requirePassedEvidenceItems(evidence.postDeploySynthetics?.checks, "postDeploySynthetics.checks");
+requireNamedItems(evidence.postDeploySynthetics?.checks, requiredSyntheticChecks, "postDeploySynthetics.checks");
 
 requireValue(
   evidence.canonicalEvidencePacket?.path,
@@ -169,6 +205,51 @@ function requirePositiveCoverage(passed, total, path) {
   }
 }
 
+function requireInfrastructure(actual, path) {
+  const expected = {
+    frontendBuild: "production",
+    api: "real",
+    postgresMigrations: "real",
+    redis: "real",
+    workersAndQueues: "real",
+    objectStorage: "real-or-production-compatible",
+    clerk: "development-instance",
+    externalProviders: "deterministic-stand-ins",
+  };
+  if (!actual || typeof actual !== "object" || Array.isArray(actual)) {
+    failures.push(`${path} must describe the production-build real-internal-infra components`);
+    return;
+  }
+  for (const [key, value] of Object.entries(expected)) {
+    requireValue(actual[key], `${path}.${key}`, value);
+  }
+}
+
+function requireStringSet(actual, required, path) {
+  if (!Array.isArray(actual)) {
+    failures.push(`${path} must be an array`);
+    return;
+  }
+  for (const item of required) {
+    if (!actual.includes(item)) {
+      failures.push(`${path} must include ${item}`);
+    }
+  }
+}
+
+function requireNamedItems(items, requiredNames, path) {
+  if (!Array.isArray(items)) {
+    failures.push(`${path} must be an array`);
+    return;
+  }
+  const names = new Set(items.map((item) => item?.name ?? item?.id));
+  for (const name of requiredNames) {
+    if (!names.has(name)) {
+      failures.push(`${path} must include ${name}`);
+    }
+  }
+}
+
 function requirePassedEvidenceItems(items, path) {
   if (!Array.isArray(items) || items.length === 0) {
     failures.push(`${path} must include at least one evidence item`);
@@ -179,8 +260,9 @@ function requirePassedEvidenceItems(items, path) {
       failures.push(`${path}[${index}] must be an object`);
       continue;
     }
-    if (typeof item.name !== "string" || item.name.trim() === "" || /REPLACE_WITH/.test(item.name)) {
-      failures.push(`${path}[${index}].name must name the checked item`);
+    const itemName = item.name ?? item.id;
+    if (typeof itemName !== "string" || itemName.trim() === "" || /REPLACE_WITH/.test(itemName)) {
+      failures.push(`${path}[${index}] must name the checked item with name or id`);
     }
     requirePassed(item.status, `${path}[${index}].status`);
     if (typeof item.redactedEvidence !== "string" || item.redactedEvidence.trim() === "" || /REPLACE_WITH/.test(item.redactedEvidence)) {

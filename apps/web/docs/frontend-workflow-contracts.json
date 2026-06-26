@@ -7,339 +7,1631 @@
       "id": "J0-AUTH-SESSION",
       "priority": "P0",
       "actor": "standard user",
-      "primaryRoutes": ["/", "/sign-in", "/workspaces", "/home"],
-      "actions": ["open app root", "sign in", "select workspace", "reload protected route", "expire session"],
-      "expectedUi": ["unauthenticated users reach sign-in", "authenticated users reach /home", "expired sessions fail closed"],
-      "expectedBackend": ["protected API calls require authenticated context", "workspace selection binds tenant context"],
-      "securityInvariants": ["direct protected route access redirects unauthenticated users", "expired tokens cannot access protected API calls"],
-      "auditInvariants": ["authentication-sensitive actions carry actor and tenant context where audited"],
-      "failureCases": ["expired session", "missing workspace", "unauthenticated deep link"],
-      "evidence": ["e2e/journeys/j0-auth-session.spec.ts", "e2e/auth/session-refresh-edge-cases.spec.ts", "src/components/routing/RequireClerkAuth.test.tsx"]
+      "primaryRoutes": [
+        "/",
+        "/sign-in",
+        "/workspaces",
+        "/home"
+      ],
+      "actions": [
+        "open app root",
+        "sign in",
+        "select workspace",
+        "reload protected route",
+        "expire session"
+      ],
+      "expectedUi": [
+        "unauthenticated users reach sign-in",
+        "authenticated users reach /home",
+        "expired sessions fail closed"
+      ],
+      "expectedBackend": [
+        "protected API calls require authenticated context",
+        "workspace selection binds tenant context"
+      ],
+      "securityInvariants": [
+        "direct protected route access redirects unauthenticated users",
+        "expired tokens cannot access protected API calls"
+      ],
+      "auditInvariants": [
+        "authentication-sensitive actions carry actor and tenant context where audited"
+      ],
+      "failureCases": [
+        "expired session",
+        "missing workspace",
+        "unauthenticated deep link"
+      ],
+      "evidence": [
+        "e2e/journeys/j0-auth-session.spec.ts",
+        "e2e/auth/session-refresh-edge-cases.spec.ts",
+        "src/components/routing/RequireClerkAuth.test.tsx"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j0-auth-session.spec.ts",
+          "e2e/auth/session-refresh-edge-cases.spec.ts",
+          "src/components/routing/RequireClerkAuth.test.tsx"
+        ],
+        "backend": [
+          "e2e/journeys/j0-auth-session.spec.ts",
+          "e2e/auth/session-refresh-edge-cases.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j0-auth-session.spec.ts",
+          "e2e/auth/session-refresh-edge-cases.spec.ts",
+          "src/components/routing/RequireClerkAuth.test.tsx"
+        ],
+        "audit": [
+          "e2e/journeys/j0-auth-session.spec.ts"
+        ]
+      }
     },
     {
       "id": "J1-DOMAIN-INGESTION",
       "priority": "P1",
       "actor": "standard user",
-      "primaryRoutes": ["/home", "/t/:tenantSlug/context/ingestion/jobs", "/t/:tenantSlug/context/value-trees/explorer"],
-      "actions": ["submit domain", "observe ingestion job", "open value tree", "inspect generated nodes"],
-      "expectedUi": ["job progresses through visible states", "completed output appears in value tree", "confidence and provenance are rendered"],
-      "expectedBackend": ["one ingestion job is created", "graph records are scoped to the actor tenant", "duplicate submission follows idempotency contract"],
-      "securityInvariants": ["foreign tenants cannot read jobs or graph records", "changing tenantSlug does not bypass authorization"],
-      "auditInvariants": ["domain ingestion records actor, tenant, action, object, and outcome"],
-      "failureCases": ["invalid domain", "worker failure", "provider timeout", "retry exhaustion"],
-      "evidence": ["e2e/journeys/j1-ingestion-to-value-tree.spec.ts", "e2e/behaviors/j1-ingestion.behavior.spec.ts", "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"]
+      "primaryRoutes": [
+        "/home",
+        "/t/:tenantSlug/context/ingestion/jobs",
+        "/t/:tenantSlug/context/value-trees/explorer"
+      ],
+      "actions": [
+        "submit domain",
+        "observe ingestion job",
+        "open value tree",
+        "inspect generated nodes"
+      ],
+      "expectedUi": [
+        "job progresses through visible states",
+        "completed output appears in value tree",
+        "confidence and provenance are rendered"
+      ],
+      "expectedBackend": [
+        "one ingestion job is created",
+        "graph records are scoped to the actor tenant",
+        "duplicate submission follows idempotency contract"
+      ],
+      "securityInvariants": [
+        "foreign tenants cannot read jobs or graph records",
+        "changing tenantSlug does not bypass authorization"
+      ],
+      "auditInvariants": [
+        "domain ingestion records actor, tenant, action, object, and outcome"
+      ],
+      "failureCases": [
+        "invalid domain",
+        "worker failure",
+        "provider timeout",
+        "retry exhaustion"
+      ],
+      "evidence": [
+        "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+        "e2e/behaviors/j1-ingestion.behavior.spec.ts",
+        "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/behaviors/j1-ingestion.behavior.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/behaviors/j1-ingestion.behavior.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/behaviors/j1-ingestion.behavior.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ]
+      }
     },
     {
       "id": "J2-INTELLIGENCE",
       "priority": "P1",
       "actor": "seller",
-      "primaryRoutes": ["/t/:tenantSlug/accounts", "/t/:tenantSlug/accounts/:accountId/intelligence/signals", "/t/:tenantSlug/accounts/:accountId/intelligence/evidence"],
-      "actions": ["select account", "review signals", "trigger agent synthesis", "ask follow-up", "move across intelligence tabs"],
-      "expectedUi": ["account context is stable", "stream lifecycle is visible", "signals, drivers, evidence, and stakeholders persist across tabs"],
-      "expectedBackend": ["generated intelligence persists for the selected account", "citations resolve to accessible evidence"],
-      "securityInvariants": ["cross-account and cross-tenant intelligence is not visible", "unsupported claims are not promoted as facts"],
-      "auditInvariants": ["agent synthesis and accepted recommendations are traceable"],
-      "failureCases": ["unsupported claim", "low-confidence signal", "interrupted stream", "stale account context"],
-      "evidence": ["e2e/journeys/j2-intelligence-workspace.spec.ts", "e2e/behaviors/j2-intelligence.behavior.spec.ts", "e2e/contracts/account-scoped-workspaces.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts",
+        "/t/:tenantSlug/accounts/:accountId/intelligence/signals",
+        "/t/:tenantSlug/accounts/:accountId/intelligence/evidence"
+      ],
+      "actions": [
+        "select account",
+        "review signals",
+        "trigger agent synthesis",
+        "ask follow-up",
+        "move across intelligence tabs"
+      ],
+      "expectedUi": [
+        "account context is stable",
+        "stream lifecycle is visible",
+        "signals, drivers, evidence, and stakeholders persist across tabs"
+      ],
+      "expectedBackend": [
+        "generated intelligence persists for the selected account",
+        "citations resolve to accessible evidence"
+      ],
+      "securityInvariants": [
+        "cross-account and cross-tenant intelligence is not visible",
+        "unsupported claims are not promoted as facts"
+      ],
+      "auditInvariants": [
+        "agent synthesis and accepted recommendations are traceable"
+      ],
+      "failureCases": [
+        "unsupported claim",
+        "low-confidence signal",
+        "interrupted stream",
+        "stale account context"
+      ],
+      "evidence": [
+        "e2e/journeys/j2-intelligence-workspace.spec.ts",
+        "e2e/behaviors/j2-intelligence.behavior.spec.ts",
+        "e2e/contracts/account-scoped-workspaces.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/behaviors/j2-intelligence.behavior.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/behaviors/j2-intelligence.behavior.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "security": [
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ]
+      }
     },
     {
       "id": "J3-VALUE-STUDIO",
       "priority": "P1",
       "actor": "value engineer",
-      "primaryRoutes": ["/t/:tenantSlug/accounts/:accountId/studio/action-plan", "/t/:tenantSlug/accounts/:accountId/studio/value-model", "/t/:tenantSlug/accounts/:accountId/studio/narrative"],
-      "actions": ["review action plan", "adjust value-model variable", "recalculate formula", "generate narrative", "open deliverable"],
-      "expectedUi": ["formula changes update value output", "narrative reflects current model", "deliverable affordances match approval state"],
-      "expectedBackend": ["calculation state persists", "generated narrative uses structured model data"],
-      "securityInvariants": ["unauthorized users cannot mutate account value models", "draft exports remain blocked server-side"],
-      "auditInvariants": ["model edits and narrative generation are traceable"],
-      "failureCases": ["invalid formula", "missing input", "export before approval", "unauthenticated access"],
-      "evidence": ["e2e/journeys/j3-value-studio-deliverable.spec.ts", "e2e/behaviors/j3-value-studio.behavior.spec.ts", "e2e/journeys/j7-value-realization-and-calculation.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts/:accountId/studio/action-plan",
+        "/t/:tenantSlug/accounts/:accountId/studio/value-model",
+        "/t/:tenantSlug/accounts/:accountId/studio/narrative"
+      ],
+      "actions": [
+        "review action plan",
+        "adjust value-model variable",
+        "recalculate formula",
+        "generate narrative",
+        "open deliverable"
+      ],
+      "expectedUi": [
+        "formula changes update value output",
+        "narrative reflects current model",
+        "deliverable affordances match approval state"
+      ],
+      "expectedBackend": [
+        "calculation state persists",
+        "generated narrative uses structured model data"
+      ],
+      "securityInvariants": [
+        "unauthorized users cannot mutate account value models",
+        "draft exports remain blocked server-side"
+      ],
+      "auditInvariants": [
+        "model edits and narrative generation are traceable"
+      ],
+      "failureCases": [
+        "invalid formula",
+        "missing input",
+        "export before approval",
+        "unauthenticated access"
+      ],
+      "evidence": [
+        "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+        "e2e/behaviors/j3-value-studio.behavior.spec.ts",
+        "e2e/journeys/j7-value-realization-and-calculation.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/behaviors/j3-value-studio.behavior.spec.ts",
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/behaviors/j3-value-studio.behavior.spec.ts",
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/behaviors/j3-value-studio.behavior.spec.ts",
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts"
+        ]
+      }
     },
     {
       "id": "J4-GOVERNANCE-TRUST",
       "priority": "P1",
       "actor": "reviewer",
-      "primaryRoutes": ["/t/:tenantSlug/governance/traces", "/t/:tenantSlug/governance/evidence", "/t/:tenantSlug/governance/audit-log"],
-      "actions": ["open decision trace", "inspect provenance", "open evidence", "verify audit log"],
-      "expectedUi": ["trace details show source lineage", "evidence links are visible", "audit entries show recent actions"],
-      "expectedBackend": ["decision trace links back to source evidence", "audit records include actor, tenant, object, and outcome"],
-      "securityInvariants": ["cross-tenant audit entries are inaccessible", "missing provenance is flagged instead of hidden"],
-      "auditInvariants": ["AI-generated outputs have provenance and audit context"],
-      "failureCases": ["missing provenance", "degraded governance health", "unauthorized audit access"],
-      "evidence": ["e2e/journeys/j4-governance-trust.spec.ts", "e2e/behaviors/j4-governance.behavior.spec.ts", "e2e/contracts/settings-governance.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/governance/traces",
+        "/t/:tenantSlug/governance/evidence",
+        "/t/:tenantSlug/governance/audit-log"
+      ],
+      "actions": [
+        "open decision trace",
+        "inspect provenance",
+        "open evidence",
+        "verify audit log"
+      ],
+      "expectedUi": [
+        "trace details show source lineage",
+        "evidence links are visible",
+        "audit entries show recent actions"
+      ],
+      "expectedBackend": [
+        "decision trace links back to source evidence",
+        "audit records include actor, tenant, object, and outcome"
+      ],
+      "securityInvariants": [
+        "cross-tenant audit entries are inaccessible",
+        "missing provenance is flagged instead of hidden"
+      ],
+      "auditInvariants": [
+        "AI-generated outputs have provenance and audit context"
+      ],
+      "failureCases": [
+        "missing provenance",
+        "degraded governance health",
+        "unauthorized audit access"
+      ],
+      "evidence": [
+        "e2e/journeys/j4-governance-trust.spec.ts",
+        "e2e/behaviors/j4-governance.behavior.spec.ts",
+        "e2e/contracts/settings-governance.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j4-governance-trust.spec.ts",
+          "e2e/behaviors/j4-governance.behavior.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j4-governance-trust.spec.ts",
+          "e2e/behaviors/j4-governance.behavior.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j4-governance-trust.spec.ts",
+          "e2e/behaviors/j4-governance.behavior.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j4-governance-trust.spec.ts",
+          "e2e/behaviors/j4-governance.behavior.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ]
+      }
     },
     {
       "id": "J5-TIER-SECURITY",
       "priority": "P0",
       "actor": "standard user and admin user",
-      "primaryRoutes": ["/home", "/t/:tenantSlug/context/ontology", "/t/:tenantSlug/settings"],
-      "actions": ["view navigation by tier", "directly open restricted URL", "switch to admin context"],
-      "expectedUi": ["restricted navigation is hidden", "direct URL access is denied", "admin routes are visible only to admin users"],
-      "expectedBackend": ["restricted API calls deny insufficient tier or role", "tenant-scoped authorization is enforced independently of UI visibility"],
-      "securityInvariants": ["UI hiding is not the only authorization control for restricted routes", "direct API denial has an exact unauthorized or role-denied failure mode"],
-      "auditInvariants": ["sensitive denied actions are auditable where policy requires"],
-      "failureCases": ["restricted direct URL", "read-only write attempt", "foreign tenant route"],
-      "evidence": ["e2e/journeys/j5-tier-gated-security.spec.ts", "e2e/security/tenant-isolation-validation.spec.ts", "e2e/navigation.spec.ts", "scripts/quality/assert-route-inventory.mjs"]
+      "primaryRoutes": [
+        "/home",
+        "/t/:tenantSlug/context/ontology",
+        "/t/:tenantSlug/settings"
+      ],
+      "actions": [
+        "view navigation by tier",
+        "directly open restricted URL",
+        "switch to admin context"
+      ],
+      "expectedUi": [
+        "restricted navigation is hidden",
+        "direct URL access is denied",
+        "admin routes are visible only to admin users"
+      ],
+      "expectedBackend": [
+        "restricted API calls deny insufficient tier or role",
+        "tenant-scoped authorization is enforced independently of UI visibility"
+      ],
+      "securityInvariants": [
+        "UI hiding is not the only authorization control for restricted routes",
+        "direct API denial has an exact unauthorized or role-denied failure mode"
+      ],
+      "auditInvariants": [
+        "sensitive denied actions are auditable where policy requires"
+      ],
+      "failureCases": [
+        "restricted direct URL",
+        "read-only write attempt",
+        "foreign tenant route"
+      ],
+      "evidence": [
+        "e2e/journeys/j5-tier-gated-security.spec.ts",
+        "e2e/security/tenant-isolation-validation.spec.ts",
+        "tests/security/test_hostile_tenant_e2e_matrix.py",
+        "e2e/navigation.spec.ts",
+        "scripts/quality/assert-route-inventory.mjs"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j5-tier-gated-security.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "e2e/navigation.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j5-tier-gated-security.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py",
+          "e2e/navigation.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j5-tier-gated-security.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py"
+        ],
+        "audit": [
+          "e2e/journeys/j5-tier-gated-security.spec.ts"
+        ]
+      }
     },
     {
       "id": "P0-ACCOUNT-LIFECYCLE",
       "priority": "P0",
       "actor": "seller and reviewer",
-      "primaryRoutes": ["/t/:tenantSlug/accounts", "/workflow/prospect", "/workflow/value-case", "/t/:tenantSlug/accounts/:accountId/deliverables"],
-      "actions": ["create account", "ingest discovery data", "build value case", "submit for review", "approve case", "open deliverable"],
-      "expectedUi": ["account context survives reload", "review status is visible", "approved deliverable is reachable"],
-      "expectedBackend": ["state machine allows only legal transitions", "reviewer approval persists", "export is available only after approval"],
-      "securityInvariants": ["creator cannot bypass required approval", "foreign tenant cannot read account or case"],
-      "auditInvariants": ["creator, reviewer, approval, and export are recorded"],
-      "failureCases": ["duplicate account", "invalid account", "same-user approval where disallowed", "cross-tenant case access"],
-      "evidence": ["e2e/journeys/j6-account-prospect-lifecycle.spec.ts", "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts", "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts",
+        "/workflow/prospect",
+        "/workflow/value-case",
+        "/t/:tenantSlug/accounts/:accountId/deliverables"
+      ],
+      "actions": [
+        "create account",
+        "ingest discovery data",
+        "build value case",
+        "submit for review",
+        "approve case",
+        "open deliverable"
+      ],
+      "expectedUi": [
+        "account context survives reload",
+        "review status is visible",
+        "approved deliverable is reachable"
+      ],
+      "expectedBackend": [
+        "state machine allows only legal transitions",
+        "reviewer approval persists",
+        "export is available only after approval"
+      ],
+      "securityInvariants": [
+        "creator cannot bypass required approval",
+        "foreign tenant cannot read account or case"
+      ],
+      "auditInvariants": [
+        "creator, reviewer, approval, and export are recorded"
+      ],
+      "failureCases": [
+        "duplicate account",
+        "invalid account",
+        "same-user approval where disallowed",
+        "cross-tenant case access"
+      ],
+      "evidence": [
+        "e2e/journeys/j6-account-prospect-lifecycle.spec.ts",
+        "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
+        "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j6-account-prospect-lifecycle.spec.ts",
+          "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j6-account-prospect-lifecycle.spec.ts",
+          "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j6-account-prospect-lifecycle.spec.ts",
+          "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j6-account-prospect-lifecycle.spec.ts",
+          "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
+          "e2e/journeys/j1-golden-path-backend-integrated.spec.ts"
+        ]
+      }
     },
     {
       "id": "P0-CALC-EVIDENCE",
       "priority": "P0",
       "actor": "value engineer",
-      "primaryRoutes": ["/calculator/:accountId", "/workflow/calculator", "/workflow/evidence"],
-      "actions": ["edit assumptions", "run calculation", "attach evidence", "compare scenario output"],
-      "expectedUi": ["validation errors are visible", "calculation output is reproducible", "evidence links appear beside claims"],
-      "expectedBackend": ["formulas handle units, currency, rounding, and invalid inputs", "unsupported claims are blocked server-side"],
-      "securityInvariants": ["formula inputs cannot reference foreign-tenant evidence", "unauthorized users cannot mutate approved assumptions"],
-      "auditInvariants": ["assumption changes and calculation changes are traceable"],
-      "failureCases": ["zero denominator", "negative values", "missing units", "formula cycle", "unsupported formula"],
-      "evidence": ["e2e/journeys/j7-value-realization-and-calculation.spec.ts", "e2e/journeys/j7-calculation-evidence-deep.spec.ts", "src/pages/workspaceForwardActions.test.tsx"]
+      "primaryRoutes": [
+        "/calculator/:accountId",
+        "/workflow/calculator",
+        "/workflow/evidence"
+      ],
+      "actions": [
+        "edit assumptions",
+        "run calculation",
+        "attach evidence",
+        "compare scenario output"
+      ],
+      "expectedUi": [
+        "validation errors are visible",
+        "calculation output is reproducible",
+        "evidence links appear beside claims"
+      ],
+      "expectedBackend": [
+        "formulas handle units, currency, rounding, and invalid inputs",
+        "unsupported claims are blocked server-side"
+      ],
+      "securityInvariants": [
+        "formula inputs cannot reference foreign-tenant evidence",
+        "unauthorized users cannot mutate approved assumptions"
+      ],
+      "auditInvariants": [
+        "assumption changes and calculation changes are traceable"
+      ],
+      "failureCases": [
+        "zero denominator",
+        "negative values",
+        "missing units",
+        "formula cycle",
+        "unsupported formula"
+      ],
+      "evidence": [
+        "e2e/journeys/j7-value-realization-and-calculation.spec.ts",
+        "e2e/journeys/j7-calculation-evidence-deep.spec.ts",
+        "src/test/oracles/valueCalculationOracle.test.ts",
+        "src/pages/workspaceForwardActions.test.tsx"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts",
+          "e2e/journeys/j7-calculation-evidence-deep.spec.ts",
+          "src/pages/workspaceForwardActions.test.tsx"
+        ],
+        "backend": [
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts",
+          "e2e/journeys/j7-calculation-evidence-deep.spec.ts",
+          "src/test/oracles/valueCalculationOracle.test.ts"
+        ],
+        "security": [
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts",
+          "e2e/journeys/j7-calculation-evidence-deep.spec.ts",
+          "src/pages/workspaceForwardActions.test.tsx"
+        ],
+        "audit": [
+          "e2e/journeys/j7-value-realization-and-calculation.spec.ts",
+          "e2e/journeys/j7-calculation-evidence-deep.spec.ts"
+        ]
+      }
     },
     {
       "id": "P0-APPROVAL-EXPORT",
       "priority": "P0",
       "actor": "creator and reviewer",
-      "primaryRoutes": ["/t/:tenantSlug/governance", "/t/:tenantSlug/accounts/:accountId/deliverables", "/deliverables/cases/:caseId"],
-      "actions": ["attempt draft export", "approve case as reviewer", "export approved artifact", "review export audit"],
-      "expectedUi": ["draft export is disabled", "approval unlocks export", "shared views show buyer-safe content"],
-      "expectedBackend": ["draft export endpoint rejects", "approved export succeeds", "artifact belongs to correct account and tenant"],
-      "securityInvariants": ["read-only users cannot export", "cross-tenant case IDs cannot be exported"],
-      "auditInvariants": ["approval and export create governance audit events"],
-      "failureCases": ["draft export", "rejected case", "read-only export", "foreign case export"],
-      "evidence": ["e2e/journeys/j8-approval-review-gates.spec.ts", "e2e/export-workflows.spec.ts", "e2e/export/export-workflows-deep.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/governance",
+        "/t/:tenantSlug/accounts/:accountId/deliverables",
+        "/deliverables/cases/:caseId"
+      ],
+      "actions": [
+        "attempt draft export",
+        "approve case as reviewer",
+        "export approved artifact",
+        "review export audit"
+      ],
+      "expectedUi": [
+        "draft export is disabled",
+        "approval unlocks export",
+        "shared views show buyer-safe content"
+      ],
+      "expectedBackend": [
+        "draft export endpoint rejects",
+        "approved export succeeds",
+        "artifact belongs to correct account and tenant"
+      ],
+      "securityInvariants": [
+        "read-only users cannot export",
+        "cross-tenant case IDs cannot be exported"
+      ],
+      "auditInvariants": [
+        "approval and export create governance audit events"
+      ],
+      "failureCases": [
+        "draft export",
+        "rejected case",
+        "read-only export",
+        "foreign case export"
+      ],
+      "evidence": [
+        "e2e/journeys/j8-approval-review-gates.spec.ts",
+        "e2e/export-workflows.spec.ts",
+        "e2e/export/export-workflows-deep.spec.ts",
+        "services/layer4-agents/tests/test_analysis_routes.py"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j8-approval-review-gates.spec.ts",
+          "e2e/export-workflows.spec.ts",
+          "e2e/export/export-workflows-deep.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j8-approval-review-gates.spec.ts",
+          "e2e/export-workflows.spec.ts",
+          "e2e/export/export-workflows-deep.spec.ts",
+          "services/layer4-agents/tests/test_analysis_routes.py"
+        ],
+        "security": [
+          "e2e/journeys/j8-approval-review-gates.spec.ts",
+          "e2e/export-workflows.spec.ts",
+          "e2e/export/export-workflows-deep.spec.ts",
+          "services/layer4-agents/tests/test_analysis_routes.py"
+        ],
+        "audit": [
+          "e2e/journeys/j8-approval-review-gates.spec.ts",
+          "e2e/export-workflows.spec.ts",
+          "e2e/export/export-workflows-deep.spec.ts",
+          "services/layer4-agents/tests/test_analysis_routes.py"
+        ]
+      }
     },
     {
       "id": "P0-AGENT-GOVERNANCE",
       "priority": "P0",
       "actor": "seller and restricted user",
-      "primaryRoutes": ["/workflow/intelligence", "/t/:tenantSlug/context/agents", "/t/:tenantSlug/governance/evidence", "/t/:tenantSlug/governance/traces"],
-      "actions": ["ask grounded question", "submit prompt injection", "request unsupported claim", "inspect citations"],
-      "expectedUi": ["supported answers show citations", "unsupported requests are refused", "safe error states hide internals"],
-      "expectedBackend": ["citation IDs resolve to accessible evidence", "unauthorized tool calls do not execute", "retrieved chunks carry tenant metadata"],
-      "securityInvariants": ["prompt injection cannot override governance policy", "cross-tenant document references are rejected"],
-      "auditInvariants": ["agent decisions, refusals, and tool attempts are traceable"],
-      "failureCases": ["prompt injection", "malformed citation", "provider timeout", "unauthorized tool call"],
-      "evidence": ["e2e/journeys/j9-agent-grounding-governance.spec.ts", "e2e/journeys/j9-agent-grounding-deep.spec.ts", "e2e/security/tenant-isolation-validation.spec.ts"]
+      "primaryRoutes": [
+        "/workflow/intelligence",
+        "/t/:tenantSlug/context/agents",
+        "/t/:tenantSlug/governance/evidence",
+        "/t/:tenantSlug/governance/traces"
+      ],
+      "actions": [
+        "ask grounded question",
+        "submit prompt injection",
+        "request unsupported claim",
+        "inspect citations"
+      ],
+      "expectedUi": [
+        "supported answers show citations",
+        "unsupported requests are refused",
+        "safe error states hide internals"
+      ],
+      "expectedBackend": [
+        "citation IDs resolve to accessible evidence",
+        "unauthorized tool calls do not execute",
+        "retrieved chunks carry tenant metadata"
+      ],
+      "securityInvariants": [
+        "prompt injection cannot override governance policy",
+        "cross-tenant document references are rejected"
+      ],
+      "auditInvariants": [
+        "agent decisions, refusals, and tool attempts are traceable"
+      ],
+      "failureCases": [
+        "prompt injection",
+        "malformed citation",
+        "provider timeout",
+        "unauthorized tool call"
+      ],
+      "evidence": [
+        "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+        "e2e/journeys/j9-agent-grounding-deep.spec.ts",
+        "e2e/security/tenant-isolation-validation.spec.ts",
+        "tests/security/test_hostile_tenant_e2e_matrix.py",
+        "services/layer4-agents/tests/test_agent_grounding_and_refusal.py"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/journeys/j9-agent-grounding-deep.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/journeys/j9-agent-grounding-deep.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py",
+          "services/layer4-agents/tests/test_agent_grounding_and_refusal.py"
+        ],
+        "security": [
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/journeys/j9-agent-grounding-deep.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py",
+          "services/layer4-agents/tests/test_agent_grounding_and_refusal.py"
+        ],
+        "audit": [
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/journeys/j9-agent-grounding-deep.spec.ts",
+          "services/layer4-agents/tests/test_agent_grounding_and_refusal.py"
+        ]
+      }
     },
     {
       "id": "P0-LAYER-VALIDATION",
       "priority": "P0",
       "actor": "admin, seller, and restricted user",
-      "primaryRoutes": ["/t/:tenantSlug/context/*", "/workflow/*", "/t/:tenantSlug/accounts/:accountId/studio/*", "/command-center"],
-      "actions": ["navigate every layer family", "trigger loading, empty, error, unauthorized, and success states", "verify route context"],
-      "expectedUi": ["each route family exposes stable state surfaces", "tabs and sidebar preserve context", "PII and unsafe errors are redacted"],
-      "expectedBackend": ["UI data shapes align to layer contracts", "route fallbacks match access policy metadata"],
-      "securityInvariants": ["unauthorized layer routes fail closed", "sensitive fields are not rendered in error states"],
-      "auditInvariants": ["production-impacting layer actions retain request or audit context"],
-      "failureCases": ["missing route", "contract shape drift", "HTTP 5xx", "unauthorized state"],
-      "evidence": ["e2e/journeys/j10-layer-ui-validation.spec.ts", "e2e/journeys/j10-layer-ui-validation-deep.spec.ts", "e2e/navigation.spec.ts", "scripts/quality/assert-route-inventory.mjs"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/context/*",
+        "/workflow/*",
+        "/t/:tenantSlug/accounts/:accountId/studio/*",
+        "/command-center"
+      ],
+      "actions": [
+        "navigate every layer family",
+        "trigger loading, empty, error, unauthorized, and success states",
+        "verify route context"
+      ],
+      "expectedUi": [
+        "each route family exposes stable state surfaces",
+        "tabs and sidebar preserve context",
+        "PII and unsafe errors are redacted"
+      ],
+      "expectedBackend": [
+        "UI data shapes align to layer contracts",
+        "route fallbacks match access policy metadata"
+      ],
+      "securityInvariants": [
+        "unauthorized layer routes fail closed",
+        "sensitive fields are not rendered in error states"
+      ],
+      "auditInvariants": [
+        "production-impacting layer actions retain request or audit context"
+      ],
+      "failureCases": [
+        "missing route",
+        "contract shape drift",
+        "HTTP 5xx",
+        "unauthorized state"
+      ],
+      "evidence": [
+        "e2e/journeys/j10-layer-ui-validation.spec.ts",
+        "e2e/journeys/j10-layer-ui-validation-deep.spec.ts",
+        "e2e/navigation.spec.ts",
+        "scripts/quality/assert-route-inventory.mjs"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j10-layer-ui-validation.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation-deep.spec.ts",
+          "e2e/navigation.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j10-layer-ui-validation.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation-deep.spec.ts",
+          "e2e/navigation.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j10-layer-ui-validation.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation-deep.spec.ts",
+          "e2e/navigation.spec.ts",
+          "scripts/quality/assert-route-inventory.mjs"
+        ],
+        "audit": [
+          "e2e/journeys/j10-layer-ui-validation.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation-deep.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-INTELLIGENCE",
       "priority": "P1",
       "actor": "seller",
-      "primaryRoutes": ["/t/:tenantSlug/accounts/:accountId/intelligence/signals", "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders"],
-      "actions": ["review enrichment", "filter signals", "open right rail", "promote signal"],
-      "expectedUi": ["signals, stakeholders, enrichment, and ontology match render under account context"],
-      "expectedBackend": ["promoted intelligence persists and remains account-scoped"],
-      "securityInvariants": ["foreign account intelligence is absent", "low-confidence intelligence is not silently promoted"],
-      "auditInvariants": ["promotions and rejections are traceable"],
-      "failureCases": ["stale enrichment", "low-confidence promotion", "cross-tenant signal"],
-      "evidence": ["e2e/journeys/j2-intelligence-workspace.spec.ts", "e2e/contracts/account-scoped-workspaces.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts/:accountId/intelligence/signals",
+        "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders"
+      ],
+      "actions": [
+        "review enrichment",
+        "filter signals",
+        "open right rail",
+        "promote signal"
+      ],
+      "expectedUi": [
+        "signals, stakeholders, enrichment, and ontology match render under account context"
+      ],
+      "expectedBackend": [
+        "promoted intelligence persists and remains account-scoped"
+      ],
+      "securityInvariants": [
+        "foreign account intelligence is absent",
+        "low-confidence intelligence is not silently promoted"
+      ],
+      "auditInvariants": [
+        "promotions and rejections are traceable"
+      ],
+      "failureCases": [
+        "stale enrichment",
+        "low-confidence promotion",
+        "cross-tenant signal"
+      ],
+      "evidence": [
+        "e2e/journeys/j2-intelligence-workspace.spec.ts",
+        "e2e/contracts/account-scoped-workspaces.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "security": [
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j2-intelligence-workspace.spec.ts",
+          "e2e/contracts/account-scoped-workspaces.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-STUDIO",
       "priority": "P1",
       "actor": "value engineer",
-      "primaryRoutes": ["/t/:tenantSlug/accounts/:accountId/studio/action-plan", "/t/:tenantSlug/accounts/:accountId/studio/value-model", "/t/:tenantSlug/accounts/:accountId/studio/narrative"],
-      "actions": ["navigate studio tabs", "edit model", "generate narrative", "open evidence tab"],
-      "expectedUi": ["modern studio tabs remain account-scoped", "legacy route redirects do not lose account context"],
-      "expectedBackend": ["model and narrative data persist and remain synchronized for the account"],
-      "securityInvariants": ["unauthorized account studio access is denied"],
-      "auditInvariants": ["model and narrative edits preserve change history"],
-      "failureCases": ["legacy route drift", "missing account", "invalid formula"],
-      "evidence": ["e2e/journeys/j3-value-studio-deliverable.spec.ts", "e2e/value-tree-explorer.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts/:accountId/studio/action-plan",
+        "/t/:tenantSlug/accounts/:accountId/studio/value-model",
+        "/t/:tenantSlug/accounts/:accountId/studio/narrative"
+      ],
+      "actions": [
+        "navigate studio tabs",
+        "edit model",
+        "generate narrative",
+        "open evidence tab"
+      ],
+      "expectedUi": [
+        "modern studio tabs remain account-scoped",
+        "legacy route redirects do not lose account context"
+      ],
+      "expectedBackend": [
+        "model and narrative data persist and remain synchronized for the account"
+      ],
+      "securityInvariants": [
+        "unauthorized account studio access is denied"
+      ],
+      "auditInvariants": [
+        "model and narrative edits preserve change history"
+      ],
+      "failureCases": [
+        "legacy route drift",
+        "missing account",
+        "invalid formula"
+      ],
+      "evidence": [
+        "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+        "e2e/value-tree-explorer.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/value-tree-explorer.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/value-tree-explorer.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts",
+          "e2e/value-tree-explorer.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j3-value-studio-deliverable.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-CONTEXT",
       "priority": "P1",
       "actor": "admin and advanced user",
-      "primaryRoutes": ["/t/:tenantSlug/context/sources", "/t/:tenantSlug/context/extraction", "/t/:tenantSlug/context/ontology", "/t/:tenantSlug/context/packs"],
-      "actions": ["configure sources", "run extraction", "inspect ontology", "manage value packs"],
-      "expectedUi": ["context CRUD and importer states are visible", "value-pack version and deprecation states render"],
-      "expectedBackend": ["source, extraction, ontology, and pack contracts remain aligned"],
-      "securityInvariants": ["admin-only source and target controls are gated", "tenant-scoped source data is isolated"],
-      "auditInvariants": ["source and pack governance changes are auditable"],
-      "failureCases": ["unsupported importer", "stale schema fixture", "deprecated pack", "admin denial"],
-      "evidence": ["e2e/journeys/j1-ingestion-to-value-tree.spec.ts", "e2e/journeys/j14-value-pack-governance.spec.ts", "src/pages/ExtractionEngine.test.tsx"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/context/sources",
+        "/t/:tenantSlug/context/extraction",
+        "/t/:tenantSlug/context/ontology",
+        "/t/:tenantSlug/context/packs"
+      ],
+      "actions": [
+        "configure sources",
+        "run extraction",
+        "inspect ontology",
+        "manage value packs"
+      ],
+      "expectedUi": [
+        "context CRUD and importer states are visible",
+        "value-pack version and deprecation states render"
+      ],
+      "expectedBackend": [
+        "source, extraction, ontology, and pack contracts remain aligned"
+      ],
+      "securityInvariants": [
+        "admin-only source and target controls are gated",
+        "tenant-scoped source data is isolated"
+      ],
+      "auditInvariants": [
+        "source and pack governance changes are auditable"
+      ],
+      "failureCases": [
+        "unsupported importer",
+        "stale schema fixture",
+        "deprecated pack",
+        "admin denial"
+      ],
+      "evidence": [
+        "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+        "e2e/journeys/j14-value-pack-governance.spec.ts",
+        "src/pages/ExtractionEngine.test.tsx"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/journeys/j14-value-pack-governance.spec.ts",
+          "src/pages/ExtractionEngine.test.tsx"
+        ],
+        "backend": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/journeys/j14-value-pack-governance.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j14-value-pack-governance.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j1-ingestion-to-value-tree.spec.ts",
+          "e2e/journeys/j14-value-pack-governance.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-STAKEHOLDERS",
       "priority": "P1",
       "actor": "seller",
-      "primaryRoutes": ["/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", "/workflow/intelligence"],
-      "actions": ["view stakeholders", "add or edit stakeholder", "ask for stakeholder messaging"],
-      "expectedUi": ["stakeholder roles, influence, and evidence render", "agent messaging is role-aware"],
-      "expectedBackend": ["stakeholder relationships persist and remain linked to account evidence records"],
-      "securityInvariants": ["restricted users cannot see confidential stakeholders"],
-      "auditInvariants": ["stakeholder changes and agent recommendations are traceable"],
-      "failureCases": ["missing evidence", "role-specific message unavailable", "foreign account stakeholder"],
-      "evidence": ["e2e/journeys/j13-stakeholder-mapping.spec.ts", "e2e/journeys/j2-intelligence-workspace.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders",
+        "/workflow/intelligence"
+      ],
+      "actions": [
+        "view stakeholders",
+        "add or edit stakeholder",
+        "ask for stakeholder messaging"
+      ],
+      "expectedUi": [
+        "stakeholder roles, influence, and evidence render",
+        "agent messaging is role-aware"
+      ],
+      "expectedBackend": [
+        "stakeholder relationships persist and remain linked to account evidence records"
+      ],
+      "securityInvariants": [
+        "restricted users cannot see confidential stakeholders"
+      ],
+      "auditInvariants": [
+        "stakeholder changes and agent recommendations are traceable"
+      ],
+      "failureCases": [
+        "missing evidence",
+        "role-specific message unavailable",
+        "foreign account stakeholder"
+      ],
+      "evidence": [
+        "e2e/journeys/j13-stakeholder-mapping.spec.ts",
+        "e2e/journeys/j2-intelligence-workspace.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j13-stakeholder-mapping.spec.ts",
+          "e2e/journeys/j2-intelligence-workspace.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j13-stakeholder-mapping.spec.ts",
+          "e2e/journeys/j2-intelligence-workspace.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j13-stakeholder-mapping.spec.ts",
+          "e2e/journeys/j2-intelligence-workspace.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j13-stakeholder-mapping.spec.ts",
+          "e2e/journeys/j2-intelligence-workspace.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-NARRATIVE-PROPOSAL",
       "priority": "P1",
       "actor": "seller",
-      "primaryRoutes": ["/t/:tenantSlug/accounts/:accountId/studio/narrative", "/t/:tenantSlug/accounts/:accountId/deliverables", "/workflow/value-case"],
-      "actions": ["generate narrative", "adjust audience", "regenerate after model change", "open deliverable list"],
-      "expectedUi": ["narrative and proposal outputs show grounded claims", "regeneration reflects current model"],
-      "expectedBackend": ["unsupported claims are excluded or labeled", "versioned narrative output persists"],
-      "securityInvariants": ["buyer-facing shared views omit internal restricted data"],
-      "auditInvariants": ["generation, regeneration, and export attempts are traceable"],
-      "failureCases": ["unsupported claim", "stale model", "export parity drift"],
-      "evidence": ["e2e/journeys/j15-narrative-proposal.spec.ts", "e2e/business-case.spec.ts", "e2e/business-case-list.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts/:accountId/studio/narrative",
+        "/t/:tenantSlug/accounts/:accountId/deliverables",
+        "/workflow/value-case"
+      ],
+      "actions": [
+        "generate narrative",
+        "adjust audience",
+        "regenerate after model change",
+        "open deliverable list"
+      ],
+      "expectedUi": [
+        "narrative and proposal outputs show grounded claims",
+        "regeneration reflects current model"
+      ],
+      "expectedBackend": [
+        "unsupported claims are excluded or labeled",
+        "versioned narrative output persists"
+      ],
+      "securityInvariants": [
+        "buyer-facing shared views omit internal restricted data"
+      ],
+      "auditInvariants": [
+        "generation, regeneration, and export attempts are traceable"
+      ],
+      "failureCases": [
+        "unsupported claim",
+        "stale model",
+        "export parity drift"
+      ],
+      "evidence": [
+        "e2e/journeys/j15-narrative-proposal.spec.ts",
+        "e2e/business-case.spec.ts",
+        "e2e/business-case-list.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j15-narrative-proposal.spec.ts",
+          "e2e/business-case.spec.ts",
+          "e2e/business-case-list.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j15-narrative-proposal.spec.ts",
+          "e2e/business-case.spec.ts",
+          "e2e/business-case-list.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j15-narrative-proposal.spec.ts",
+          "e2e/business-case.spec.ts",
+          "e2e/business-case-list.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j15-narrative-proposal.spec.ts",
+          "e2e/business-case.spec.ts",
+          "e2e/business-case-list.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-COLLABORATION",
       "priority": "P1",
       "actor": "seller and reviewer",
-      "primaryRoutes": ["/t/:tenantSlug/accounts", "/personal/notifications", "/personal/tasks", "/t/:tenantSlug/settings/users"],
-      "actions": ["invite teammate", "assign reviewer", "comment on evidence", "receive notification", "complete task"],
-      "expectedUi": ["comments, mentions, tasks, and notification channels render", "edit conflicts are recoverable"],
-      "expectedBackend": ["assignments and notifications persist", "restricted accounts do not leak through collaboration surfaces"],
-      "securityInvariants": ["restricted-account comments are not visible to unauthorized users"],
-      "auditInvariants": ["reviewer assignment and comment lifecycle are auditable"],
-      "failureCases": ["missed notification", "stale badge count", "edit conflict", "restricted account leakage"],
-      "evidence": ["e2e/journeys/j16-collaboration.spec.ts", "e2e/collaboration/collaboration-notifications-tasks.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts",
+        "/personal/notifications",
+        "/personal/tasks",
+        "/t/:tenantSlug/settings/users"
+      ],
+      "actions": [
+        "invite teammate",
+        "assign reviewer",
+        "comment on evidence",
+        "receive notification",
+        "complete task"
+      ],
+      "expectedUi": [
+        "comments, mentions, tasks, and notification channels render",
+        "edit conflicts are recoverable"
+      ],
+      "expectedBackend": [
+        "assignments and notifications persist",
+        "restricted accounts do not leak through collaboration surfaces"
+      ],
+      "securityInvariants": [
+        "restricted-account comments are not visible to unauthorized users"
+      ],
+      "auditInvariants": [
+        "reviewer assignment and comment lifecycle are auditable"
+      ],
+      "failureCases": [
+        "missed notification",
+        "stale badge count",
+        "edit conflict",
+        "restricted account leakage"
+      ],
+      "evidence": [
+        "e2e/journeys/j16-collaboration.spec.ts",
+        "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j16-collaboration.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j16-collaboration.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j16-collaboration.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j16-collaboration.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-SEARCH-SECURITY",
       "priority": "P1",
       "actor": "seller and restricted user",
-      "primaryRoutes": ["/command-center", "/t/:tenantSlug/context/*", "/t/:tenantSlug/governance/evidence", "/t/:tenantSlug/governance/traces"],
-      "actions": ["search accounts", "filter results", "open result", "repeat with foreign tenant IDs"],
-      "expectedUi": ["results route to the correct context", "empty and error states are recoverable"],
-      "expectedBackend": ["search API filters by tenant and role before returning results"],
-      "securityInvariants": ["same search terms in two tenants never leak data", "restricted objects stay absent"],
-      "auditInvariants": ["sensitive search or retrieval actions retain request context"],
-      "failureCases": ["cross-tenant leakage", "role-filter bypass", "result-to-context route drift"],
-      "evidence": ["e2e/journeys/j18-search-retrieval.spec.ts", "e2e/security/tenant-isolation-validation.spec.ts", "e2e/security/tenant-isolation-deep.spec.ts"]
+      "primaryRoutes": [
+        "/command-center",
+        "/t/:tenantSlug/context/*",
+        "/t/:tenantSlug/governance/evidence",
+        "/t/:tenantSlug/governance/traces"
+      ],
+      "actions": [
+        "search accounts",
+        "filter results",
+        "open result",
+        "repeat with foreign tenant IDs"
+      ],
+      "expectedUi": [
+        "results route to the correct context",
+        "empty and error states are recoverable"
+      ],
+      "expectedBackend": [
+        "search API filters by tenant and role before returning results"
+      ],
+      "securityInvariants": [
+        "same search terms in two tenants never leak data",
+        "restricted objects stay absent"
+      ],
+      "auditInvariants": [
+        "sensitive search or retrieval actions retain request context"
+      ],
+      "failureCases": [
+        "cross-tenant leakage",
+        "role-filter bypass",
+        "result-to-context route drift"
+      ],
+      "evidence": [
+        "e2e/journeys/j18-search-retrieval.spec.ts",
+        "e2e/security/tenant-isolation-validation.spec.ts",
+        "e2e/security/tenant-isolation-deep.spec.ts",
+        "tests/security/test_hostile_tenant_e2e_matrix.py"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j18-search-retrieval.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j18-search-retrieval.spec.ts",
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py"
+        ],
+        "security": [
+          "e2e/security/tenant-isolation-validation.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts",
+          "tests/security/test_hostile_tenant_e2e_matrix.py"
+        ],
+        "audit": [
+          "e2e/journeys/j18-search-retrieval.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-NOTIFICATIONS-TASKS",
       "priority": "P1",
       "actor": "seller and reviewer",
-      "primaryRoutes": ["/personal/notifications", "/personal/tasks", "/t/:tenantSlug/accounts", "/workflow/*"],
-      "actions": ["receive workflow notification", "create task", "assign task", "complete task", "filter tasks"],
-      "expectedUi": ["notification preferences and task lifecycle are visible", "badge counts update"],
-      "expectedBackend": ["notifications and tasks persist across reload and user sessions"],
-      "securityInvariants": ["task assignment does not expose restricted account data"],
-      "auditInvariants": ["task and notification lifecycle events are traceable"],
-      "failureCases": ["missed completion", "stale badge", "overdue filter gap"],
-      "evidence": ["e2e/journeys/j19-notifications-tasks.spec.ts", "e2e/collaboration/collaboration-notifications-tasks.spec.ts"]
+      "primaryRoutes": [
+        "/personal/notifications",
+        "/personal/tasks",
+        "/t/:tenantSlug/accounts",
+        "/workflow/*"
+      ],
+      "actions": [
+        "receive workflow notification",
+        "create task",
+        "assign task",
+        "complete task",
+        "filter tasks"
+      ],
+      "expectedUi": [
+        "notification preferences and task lifecycle are visible",
+        "badge counts update"
+      ],
+      "expectedBackend": [
+        "notifications and tasks persist across reload and user sessions"
+      ],
+      "securityInvariants": [
+        "task assignment does not expose restricted account data"
+      ],
+      "auditInvariants": [
+        "task and notification lifecycle events are traceable"
+      ],
+      "failureCases": [
+        "missed completion",
+        "stale badge",
+        "overdue filter gap"
+      ],
+      "evidence": [
+        "e2e/journeys/j19-notifications-tasks.spec.ts",
+        "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j19-notifications-tasks.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j19-notifications-tasks.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j19-notifications-tasks.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j19-notifications-tasks.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-ADMIN-CONFIG",
       "priority": "P1",
       "actor": "admin",
-      "primaryRoutes": ["/t/:tenantSlug/settings/*", "/t/:tenantSlug/settings/governance/*", "/t/:tenantSlug/context/packs"],
-      "actions": ["manage users", "manage roles", "configure integrations", "configure governance", "review tenant health"],
-      "expectedUi": ["admin configuration screens render sensitive actions with masked secrets", "rollback and health states are visible"],
-      "expectedBackend": ["sensitive operations are server-gated", "policy and integration changes persist"],
-      "securityInvariants": ["non-admin users cannot access admin configuration", "secrets never render in cleartext"],
-      "auditInvariants": ["every sensitive configuration change is audited"],
-      "failureCases": ["role leakage", "secret exposure", "policy rollback gap", "audit export drift"],
-      "evidence": ["e2e/journeys/j20-admin-configuration.spec.ts", "e2e/admin.spec.ts", "e2e/admin-system.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/settings/*",
+        "/t/:tenantSlug/settings/governance/*",
+        "/t/:tenantSlug/context/packs"
+      ],
+      "actions": [
+        "manage users",
+        "manage roles",
+        "configure integrations",
+        "configure governance",
+        "review tenant health"
+      ],
+      "expectedUi": [
+        "admin configuration screens render sensitive actions with masked secrets",
+        "rollback and health states are visible"
+      ],
+      "expectedBackend": [
+        "sensitive operations are server-gated",
+        "policy and integration changes persist"
+      ],
+      "securityInvariants": [
+        "non-admin users cannot access admin configuration",
+        "secrets never render in cleartext"
+      ],
+      "auditInvariants": [
+        "every sensitive configuration change is audited"
+      ],
+      "failureCases": [
+        "role leakage",
+        "secret exposure",
+        "policy rollback gap",
+        "audit export drift"
+      ],
+      "evidence": [
+        "e2e/journeys/j20-admin-configuration.spec.ts",
+        "e2e/admin.spec.ts",
+        "e2e/admin-system.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j20-admin-configuration.spec.ts",
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j20-admin-configuration.spec.ts",
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j20-admin-configuration.spec.ts",
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j20-admin-configuration.spec.ts",
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-RESILIENCE",
       "priority": "P1",
       "actor": "standard user",
-      "primaryRoutes": ["/t/:tenantSlug/context/*", "/workflow/*", "/calculator/:accountId", "/deliverables"],
-      "actions": ["open empty workflow", "trigger retryable failure", "resume partial workflow", "recover from degraded API"],
-      "expectedUi": ["loading, empty, error, retry, partial-state, and success states are distinct"],
-      "expectedBackend": ["failed jobs expose recoverable status", "partial workflows preserve state"],
-      "securityInvariants": ["error states do not expose stack traces, secrets, or sensitive content"],
-      "auditInvariants": ["failed production-impacting operations record outcome where applicable"],
-      "failureCases": ["L1 unavailable", "L2 extraction fails", "L3 graph query fails", "L4 agent fails", "benchmark service unavailable"],
-      "evidence": ["e2e/journeys/j12-resilience-error-recovery.spec.ts", "e2e/resilience/operational-resilience.spec.ts", "e2e/journeys/j10-layer-ui-validation.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/context/*",
+        "/workflow/*",
+        "/calculator/:accountId",
+        "/deliverables"
+      ],
+      "actions": [
+        "open empty workflow",
+        "trigger retryable failure",
+        "resume partial workflow",
+        "recover from degraded API"
+      ],
+      "expectedUi": [
+        "loading, empty, error, retry, partial-state, and success states are distinct"
+      ],
+      "expectedBackend": [
+        "failed jobs expose recoverable status",
+        "partial workflows preserve state"
+      ],
+      "securityInvariants": [
+        "error states do not expose stack traces, secrets, or sensitive content"
+      ],
+      "auditInvariants": [
+        "failed production-impacting operations record outcome where applicable"
+      ],
+      "failureCases": [
+        "L1 unavailable",
+        "L2 extraction fails",
+        "L3 graph query fails",
+        "L4 agent fails",
+        "benchmark service unavailable"
+      ],
+      "evidence": [
+        "e2e/journeys/j12-resilience-error-recovery.spec.ts",
+        "e2e/resilience/operational-resilience.spec.ts",
+        "e2e/journeys/j10-layer-ui-validation.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j12-resilience-error-recovery.spec.ts",
+          "e2e/resilience/operational-resilience.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j12-resilience-error-recovery.spec.ts",
+          "e2e/resilience/operational-resilience.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j12-resilience-error-recovery.spec.ts",
+          "e2e/resilience/operational-resilience.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j12-resilience-error-recovery.spec.ts",
+          "e2e/journeys/j10-layer-ui-validation.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-ADVERSARIAL",
       "priority": "P1",
       "actor": "restricted user and adversarial input",
-      "primaryRoutes": ["/t/:tenantSlug/context/sources", "/workflow/intelligence", "/t/:tenantSlug/governance/evidence", "/t/:tenantSlug/governance/traces", "/deliverables"],
-      "actions": ["upload noisy document", "include prompt injection", "request unsupported claim", "attempt cross-tenant access"],
-      "expectedUi": ["low-confidence warnings render", "unsupported claims are refused", "review gate flags weak evidence"],
-      "expectedBackend": ["source content instructions are isolated from system behavior", "cross-tenant retrieval API calls are blocked"],
-      "securityInvariants": ["no cross-tenant data appears in search, graph, agent, export, or logs"],
-      "auditInvariants": ["adversarial refusals and governance decisions are recorded"],
-      "failureCases": ["prompt injection", "contradictory evidence", "invalid assumptions", "weak evidence"],
-      "evidence": ["e2e/journeys/j22-adversarial-e2e.spec.ts", "e2e/journeys/j9-agent-grounding-governance.spec.ts", "e2e/security/tenant-isolation-deep.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/context/sources",
+        "/workflow/intelligence",
+        "/t/:tenantSlug/governance/evidence",
+        "/t/:tenantSlug/governance/traces",
+        "/deliverables"
+      ],
+      "actions": [
+        "upload noisy document",
+        "include prompt injection",
+        "request unsupported claim",
+        "attempt cross-tenant access"
+      ],
+      "expectedUi": [
+        "low-confidence warnings render",
+        "unsupported claims are refused",
+        "review gate flags weak evidence"
+      ],
+      "expectedBackend": [
+        "source content instructions are isolated from system behavior",
+        "cross-tenant retrieval API calls are blocked"
+      ],
+      "securityInvariants": [
+        "no cross-tenant data appears in search, graph, agent, export, or logs"
+      ],
+      "auditInvariants": [
+        "adversarial refusals and governance decisions are recorded"
+      ],
+      "failureCases": [
+        "prompt injection",
+        "contradictory evidence",
+        "invalid assumptions",
+        "weak evidence"
+      ],
+      "evidence": [
+        "e2e/journeys/j22-adversarial-e2e.spec.ts",
+        "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+        "e2e/security/tenant-isolation-deep.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j22-adversarial-e2e.spec.ts",
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j22-adversarial-e2e.spec.ts",
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j22-adversarial-e2e.spec.ts",
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts",
+          "e2e/security/tenant-isolation-deep.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j22-adversarial-e2e.spec.ts",
+          "e2e/journeys/j9-agent-grounding-governance.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-PERSONAS",
       "priority": "P1",
       "actor": "seller, value engineer, sales leader, CSM, admin, executive buyer",
-      "primaryRoutes": ["/t/:tenantSlug/accounts", "/workflow/*", "/t/:tenantSlug/accounts/:accountId/studio/*", "/realization/:accountId", "/t/:tenantSlug/settings/*", "/deliverables/cases/:caseId"],
-      "actions": ["execute role-specific journey", "verify allowed actions", "verify denied actions"],
-      "expectedUi": ["persona-specific controls render and messages match role", "executive buyer view hides internal data"],
-      "expectedBackend": ["role permissions align with server authorization"],
-      "securityInvariants": ["persona UI does not drift from actual RBAC role access"],
-      "auditInvariants": ["sensitive persona actions are attributed to the actor"],
-      "failureCases": ["role drift", "buyer data leakage", "missing persona state"],
-      "evidence": ["e2e/journeys/j21-persona-journeys.spec.ts", "e2e/personas/persona-journeys.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/accounts",
+        "/workflow/*",
+        "/t/:tenantSlug/accounts/:accountId/studio/*",
+        "/realization/:accountId",
+        "/t/:tenantSlug/settings/*",
+        "/deliverables/cases/:caseId"
+      ],
+      "actions": [
+        "execute role-specific journey",
+        "verify allowed actions",
+        "verify denied actions"
+      ],
+      "expectedUi": [
+        "persona-specific controls render and messages match role",
+        "executive buyer view hides internal data"
+      ],
+      "expectedBackend": [
+        "role permissions align with server authorization"
+      ],
+      "securityInvariants": [
+        "persona UI does not drift from actual RBAC role access"
+      ],
+      "auditInvariants": [
+        "sensitive persona actions are attributed to the actor"
+      ],
+      "failureCases": [
+        "role drift",
+        "buyer data leakage",
+        "missing persona state"
+      ],
+      "evidence": [
+        "e2e/journeys/j21-persona-journeys.spec.ts",
+        "e2e/personas/persona-journeys.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j21-persona-journeys.spec.ts",
+          "e2e/personas/persona-journeys.spec.ts"
+        ],
+        "backend": [
+          "e2e/journeys/j21-persona-journeys.spec.ts",
+          "e2e/personas/persona-journeys.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j21-persona-journeys.spec.ts",
+          "e2e/personas/persona-journeys.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j21-persona-journeys.spec.ts",
+          "e2e/personas/persona-journeys.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-SETTINGS",
       "priority": "P1",
       "actor": "admin",
-      "primaryRoutes": ["/t/:tenantSlug/settings/*", "/t/:tenantSlug/settings/billing/*", "/t/:tenantSlug/settings/governance/*", "/t/:tenantSlug/settings/data-sources"],
-      "actions": ["configure workspace", "manage billing", "manage data", "manage governance"],
-      "expectedUi": ["tenant settings pages render proper categories and sensitive action states"],
-      "expectedBackend": ["settings mutations persist and remain tenant-scoped"],
-      "securityInvariants": ["admin-only settings are inaccessible to non-admins", "secrets are masked"],
-      "auditInvariants": ["settings changes appear in audit trail"],
-      "failureCases": ["role leakage", "sensitive action exposure", "audit gap"],
-      "evidence": ["e2e/admin.spec.ts", "e2e/admin-system.spec.ts", "e2e/contracts/settings-governance.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/settings/*",
+        "/t/:tenantSlug/settings/billing/*",
+        "/t/:tenantSlug/settings/governance/*",
+        "/t/:tenantSlug/settings/data-sources"
+      ],
+      "actions": [
+        "configure workspace",
+        "manage billing",
+        "manage data",
+        "manage governance"
+      ],
+      "expectedUi": [
+        "tenant settings pages render proper categories and sensitive action states"
+      ],
+      "expectedBackend": [
+        "settings mutations persist and remain tenant-scoped"
+      ],
+      "securityInvariants": [
+        "admin-only settings are inaccessible to non-admins",
+        "secrets are masked"
+      ],
+      "auditInvariants": [
+        "settings changes appear in audit trail"
+      ],
+      "failureCases": [
+        "role leakage",
+        "sensitive action exposure",
+        "audit gap"
+      ],
+      "evidence": [
+        "e2e/admin.spec.ts",
+        "e2e/admin-system.spec.ts",
+        "e2e/contracts/settings-governance.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "backend": [
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "security": [
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ],
+        "audit": [
+          "e2e/admin.spec.ts",
+          "e2e/admin-system.spec.ts",
+          "e2e/contracts/settings-governance.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-PERSONAL",
       "priority": "P1",
       "actor": "authenticated user",
-      "primaryRoutes": ["/personal/profile", "/personal/security", "/personal/preferences", "/personal/notifications", "/personal/sessions", "/personal/activity"],
-      "actions": ["edit profile", "review sessions", "update preferences", "review personal audit activity"],
-      "expectedUi": ["personal routes render directly", "session and notification controls are visible"],
-      "expectedBackend": ["personal settings changes apply only to the actor", "activity feed is scoped to actor and tenant context"],
-      "securityInvariants": ["user cannot mutate another user's profile or sessions without unauthorized denial"],
-      "auditInvariants": ["security-sensitive personal actions appear in personal activity audit history"],
-      "failureCases": ["session-state drift", "stale audit activity", "notification preference regression"],
-      "evidence": ["e2e/journeys/j23-personal-settings.spec.ts", "e2e/collaboration/collaboration-notifications-tasks.spec.ts", "src/components/layout/GlobalLayout.test.tsx"]
+      "primaryRoutes": [
+        "/personal/profile",
+        "/personal/security",
+        "/personal/preferences",
+        "/personal/notifications",
+        "/personal/sessions",
+        "/personal/activity"
+      ],
+      "actions": [
+        "edit profile",
+        "review sessions",
+        "update preferences",
+        "review personal audit activity"
+      ],
+      "expectedUi": [
+        "personal routes render directly",
+        "session and notification controls are visible"
+      ],
+      "expectedBackend": [
+        "personal settings changes apply only to the actor",
+        "activity feed is scoped to actor and tenant context"
+      ],
+      "securityInvariants": [
+        "user cannot mutate another user's profile or sessions without unauthorized denial"
+      ],
+      "auditInvariants": [
+        "security-sensitive personal actions appear in personal activity audit history"
+      ],
+      "failureCases": [
+        "session-state drift",
+        "stale audit activity",
+        "notification preference regression"
+      ],
+      "evidence": [
+        "e2e/journeys/j23-personal-settings.spec.ts",
+        "e2e/collaboration/collaboration-notifications-tasks.spec.ts",
+        "src/components/layout/GlobalLayout.test.tsx"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/journeys/j23-personal-settings.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts",
+          "src/components/layout/GlobalLayout.test.tsx"
+        ],
+        "backend": [
+          "e2e/journeys/j23-personal-settings.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ],
+        "security": [
+          "e2e/journeys/j23-personal-settings.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts",
+          "src/components/layout/GlobalLayout.test.tsx"
+        ],
+        "audit": [
+          "e2e/journeys/j23-personal-settings.spec.ts",
+          "e2e/collaboration/collaboration-notifications-tasks.spec.ts"
+        ]
+      }
     },
     {
       "id": "P1-INTEGRATIONS",
       "priority": "P1",
       "actor": "admin",
-      "primaryRoutes": ["/t/:tenantSlug/settings/integrations", "/t/:tenantSlug/context/integrations", "/dev/integration"],
-      "actions": ["connect CRM", "import account", "push value summary", "retry failed sync", "review sync log"],
-      "expectedUi": ["OAuth, reconnect, retry, and sync-log states are visible", "secret values are masked"],
-      "expectedBackend": ["provider payload contracts and idempotency are enforced", "webhook verification handles external events"],
-      "securityInvariants": ["integration secrets are never exposed", "foreign tenant CRM objects are inaccessible"],
-      "auditInvariants": ["connect, disconnect, import, push, and retry are audited"],
-      "failureCases": ["OAuth failure", "permission failure", "field mapping failure", "retry exhaustion", "webhook verification failure"],
-      "evidence": ["e2e/integrations/crm-external-integrations.spec.ts", "e2e/journeys/j17-crm-integration.spec.ts"]
+      "primaryRoutes": [
+        "/t/:tenantSlug/settings/integrations",
+        "/t/:tenantSlug/context/integrations",
+        "/dev/integration"
+      ],
+      "actions": [
+        "connect CRM",
+        "import account",
+        "push value summary",
+        "retry failed sync",
+        "review sync log"
+      ],
+      "expectedUi": [
+        "OAuth, reconnect, retry, and sync-log states are visible",
+        "secret values are masked"
+      ],
+      "expectedBackend": [
+        "provider payload contracts and idempotency are enforced",
+        "webhook verification handles external events"
+      ],
+      "securityInvariants": [
+        "integration secrets are never exposed",
+        "foreign tenant CRM objects are inaccessible"
+      ],
+      "auditInvariants": [
+        "connect, disconnect, import, push, and retry are audited"
+      ],
+      "failureCases": [
+        "OAuth failure",
+        "permission failure",
+        "field mapping failure",
+        "retry exhaustion",
+        "webhook verification failure"
+      ],
+      "evidence": [
+        "e2e/integrations/crm-external-integrations.spec.ts",
+        "e2e/journeys/j17-crm-integration.spec.ts"
+      ],
+      "evidenceByPlane": {
+        "ui": [
+          "e2e/integrations/crm-external-integrations.spec.ts",
+          "e2e/journeys/j17-crm-integration.spec.ts"
+        ],
+        "backend": [
+          "e2e/integrations/crm-external-integrations.spec.ts",
+          "e2e/journeys/j17-crm-integration.spec.ts"
+        ],
+        "security": [
+          "e2e/integrations/crm-external-integrations.spec.ts",
+          "e2e/journeys/j17-crm-integration.spec.ts"
+        ],
+        "audit": [
+          "e2e/journeys/j17-crm-integration.spec.ts"
+        ]
+      }
     }
   ]
 }

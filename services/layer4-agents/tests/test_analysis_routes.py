@@ -270,7 +270,7 @@ async def test_export_route_uses_get_result_dependency(analysis_app: FastAPI, mo
                 case_id=key,
                 account_id=_UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                 tenant_id=str(tenant_uuid),
-                status="completed",
+                status="approved",
                 document_url=None,
             )
 
@@ -306,6 +306,189 @@ async def test_export_route_uses_get_result_dependency(analysis_app: FastAPI, mo
     assert payload["case_id"] == "case-export"
     assert payload["blocked"] is True
     assert fake_executor.get_result_calls == ["case-export"]
+
+
+@pytest.mark.asyncio
+async def test_export_route_rejects_draft_case_before_document_generation(
+    analysis_app: FastAPI,
+    monkeypatch,
+) -> None:
+    """Draft cases must fail closed at the export endpoint, not only in the UI."""
+
+    from uuid import UUID as _UUID
+
+    tenant_uuid = _UUID("12345678-1234-1234-1234-123456789abc")
+    account_uuid = _UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    fake_executor = FakeExecutor(execute_response=None)
+    fake_executor.results_by_id["case-draft"] = {
+        "workflow_id": "case-draft",
+        "status": "completed",
+        "output": {
+            "assemble_document": {
+                "document_bytes": b"%PDF-1.4 draft bytes",
+                "blocked": False,
+            },
+            "verify_truth_requirements": {"passed": True},
+        },
+    }
+    audit_events: list[dict[str, Any]] = []
+
+    class FakeDb:
+        async def get(self, model: Any, key: str) -> Any:
+            return SimpleNamespace(
+                case_id=key,
+                account_id=account_uuid,
+                tenant_id=str(tenant_uuid),
+                status="draft",
+                document_url=None,
+            )
+
+    async def mock_context() -> Any:
+        from value_fabric.shared.identity.context import RequestContext
+
+        return RequestContext(
+            tenant_id=tenant_uuid,
+            user_id="creator-user",
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
+        )
+
+    async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:
+        return SimpleNamespace(id=account_id, name="Acme")
+
+    async def capture_audit(**kwargs: Any) -> None:
+        audit_events.append(kwargs)
+
+    async def fail_upload(**kwargs: Any) -> None:
+        raise AssertionError("draft export must not upload artifacts")
+
+    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.require_authenticated] = mock_context
+    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    monkeypatch.setattr(analysis, "AccountService", lambda db: SimpleNamespace(get_account=fake_get_account))
+    monkeypatch.setattr(analysis, "emit_and_persist_audit", capture_audit)
+    monkeypatch.setattr(analysis, "upload_bytes", fail_upload)
+
+    async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
+        response = await client.get("/v1/cases/case-draft/export")
+
+    assert response.status_code == 409, response.text
+    assert "Business case must be approved before export" in response.text
+    assert fake_executor.get_result_calls == []
+    assert len(audit_events) == 1
+    audit = audit_events[0]
+    assert audit["action"] == analysis.AuditAction.EXPORT_REQUESTED
+    assert audit["resource_type"] == "BusinessCaseExport"
+    assert audit["resource_id"] == "case-draft"
+    assert audit["details"] == {
+        "case_id": "case-draft",
+        "format": "pdf",
+        "outcome": "denied",
+        "denied_reason": "approval_required",
+        "tenant_id": str(tenant_uuid),
+        "account_id": str(account_uuid),
+        "case_status": "draft",
+    }
+
+
+@pytest.mark.asyncio
+async def test_export_route_approved_case_uploads_tenant_scoped_artifacts_and_audits(
+    analysis_app: FastAPI,
+    monkeypatch,
+) -> None:
+    """Approved case export must create tenant-scoped artifacts and audit export events."""
+
+    from uuid import UUID as _UUID
+
+    tenant_uuid = _UUID("12345678-1234-1234-1234-123456789abc")
+    account_uuid = _UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    fake_executor = FakeExecutor(execute_response=None)
+    fake_executor.results_by_id["case-approved"] = {
+        "workflow_id": "workflow-approved",
+        "status": "completed",
+        "output": {
+            "assemble_document": {
+                "document_bytes": b"%PDF-1.4 approved bytes",
+                "blocked": False,
+                "truth_references": [{"truth_object_id": "truth-1"}],
+            },
+            "verify_truth_requirements": {
+                "passed": True,
+                "truth_references": [{"truth_object_id": "truth-1"}],
+            },
+        },
+    }
+    uploads: list[dict[str, Any]] = []
+    audit_events: list[dict[str, Any]] = []
+
+    class FakeDb:
+        async def get(self, model: Any, key: str) -> Any:
+            return SimpleNamespace(
+                case_id=key,
+                account_id=account_uuid,
+                tenant_id=str(tenant_uuid),
+                status="approved",
+                document_url=None,
+            )
+
+    async def mock_context() -> Any:
+        from value_fabric.shared.identity.context import RequestContext
+
+        return RequestContext(
+            tenant_id=tenant_uuid,
+            user_id="reviewer-user",
+            roles=["tenant_admin"],
+            permissions=frozenset(["read:agents", "write:agents"]),
+        )
+
+    async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:
+        return SimpleNamespace(id=account_id, name="Acme")
+
+    async def capture_upload(**kwargs: Any) -> Any:
+        uploads.append(kwargs)
+        return SimpleNamespace(bucket="exports", key=f"{kwargs['tenant_id']}/{kwargs['object_key']}", etag="etag")
+
+    async def fake_download_url(*, tenant_id: str, object_key: str, expires_in_seconds: int | None = None) -> str:
+        return f"https://storage.local/{tenant_id}/{object_key}?signed=1"
+
+    async def capture_audit(**kwargs: Any) -> None:
+        audit_events.append(kwargs)
+
+    monkeypatch.setattr(analysis, "get_settings", lambda: SimpleNamespace(export_storage_endpoint="http://storage.local", export_signed_url_ttl_seconds=900))
+    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.require_authenticated] = mock_context
+    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    monkeypatch.setattr(analysis, "AccountService", lambda db: SimpleNamespace(get_account=fake_get_account))
+    monkeypatch.setattr(analysis, "upload_bytes", capture_upload)
+    monkeypatch.setattr(analysis, "generate_download_url", fake_download_url)
+    monkeypatch.setattr(analysis, "emit_and_persist_audit", capture_audit)
+
+    async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
+        response = await client.get("/v1/cases/case-approved/export")
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["case_id"] == "case-approved"
+    assert payload["download_ready"] is True
+    assert payload["blocked"] is False
+    assert payload["document_url"].startswith(f"https://storage.local/{tenant_uuid}/case-approved/")
+    assert payload["manifest_url"].startswith(f"https://storage.local/{tenant_uuid}/case-approved/")
+    assert fake_executor.get_result_calls == ["case-approved"]
+
+    assert len(uploads) == 2
+    assert all(upload["tenant_id"] == str(tenant_uuid) for upload in uploads)
+    assert uploads[0]["object_key"].startswith("case-approved/")
+    assert uploads[0]["metadata"]["tenant_id"] == str(tenant_uuid)
+    assert uploads[0]["metadata"]["account-id"] == str(account_uuid)
+    assert uploads[1]["object_key"].endswith("business_case_case-approved.provenance.json")
+
+    assert [event["action"] for event in audit_events] == [
+        analysis.AuditAction.EXPORT_REQUESTED,
+        analysis.AuditAction.EXPORT_PACKAGE_GENERATED,
+        analysis.AuditAction.EXPORT_DOWNLOAD_ACCESSED,
+    ]
+    assert all(event["resource_id"] == "case-approved" for event in audit_events)
+    assert all(event["details"]["account_id"] == str(account_uuid) for event in audit_events)
 
 
 @pytest.mark.asyncio

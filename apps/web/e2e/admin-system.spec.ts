@@ -72,7 +72,9 @@ test.describe('Admin System Routes', () => {
       
       // Toggle on/off (idempotent - reverts to original state)
       await settingsPage.toggleAdvancedAnalytics();
-      await page.waitForTimeout(100); // Brief pause for UI update
+      await expect
+        .poll(() => settingsPage.isAdvancedAnalyticsChecked(), { timeout: 3000 })
+        .toBe(!initialState);
       await settingsPage.toggleAdvancedAnalytics();
       
       // Verify back to original state
@@ -126,21 +128,18 @@ test.describe('Admin System Routes', () => {
     test('should redirect standard tier from settings', async ({ page }) => {
       await setUserTier(page, 'standard');
       await page.goto('/admin/system/settings');
-      await page.waitForTimeout(1000);
       await expect(page).not.toHaveURL('/admin/system/settings');
     });
 
     test('should redirect standard tier from health', async ({ page }) => {
       await setUserTier(page, 'standard');
       await page.goto('/admin/system/health');
-      await page.waitForTimeout(1000);
       await expect(page).not.toHaveURL('/admin/system/health');
     });
 
     test('should redirect advanced tier from settings', async ({ page }) => {
       await setUserTier(page, 'advanced');
       await page.goto('/admin/system/settings');
-      await page.waitForTimeout(1000);
       await expect(page).not.toHaveURL('/admin/system/settings');
     });
 

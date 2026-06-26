@@ -25,6 +25,43 @@
     "command": "corepack pnpm --dir apps/web run test:e2e:live:p0",
     "status": "passed",
     "environment": "production-build-real-internal-infra",
+    "infrastructure": {
+      "frontendBuild": "production",
+      "api": "real",
+      "postgresMigrations": "real",
+      "redis": "real",
+      "workersAndQueues": "real",
+      "objectStorage": "real-or-production-compatible",
+      "clerk": "development-instance",
+      "externalProviders": "deterministic-stand-ins"
+    },
+    "journeys": [
+      {
+        "id": "P0-ACCOUNT-LIFECYCLE",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "id": "P0-CALC-EVIDENCE",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "id": "P0-APPROVAL-EXPORT",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "id": "P0-AGENT-GOVERNANCE",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "id": "P0-LAYER-VALIDATION",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      }
+    ],
     "unexpectedSkippedP0": [],
     "noUnexpectedBrowserErrors": true,
     "noHttp5xx": true,
@@ -42,7 +79,13 @@
       "command": "REPLACE_WITH_AUTHORIZATION_MATRIX_COMMAND",
       "status": "passed",
       "casesPassed": 0,
-      "casesTotal": 0
+      "casesTotal": 0,
+      "actors": [
+        "tenant-a-standard",
+        "tenant-a-admin",
+        "tenant-a-reviewer",
+        "tenant-b-standard"
+      ]
     },
     "tenantIsolationApi": {
       "command": "REPLACE_WITH_API_TENANT_ISOLATION_COMMAND",
@@ -68,7 +111,32 @@
     "status": "passed",
     "providers": [
       {
-        "name": "REPLACE_WITH_PROVIDER_NAME",
+        "name": "llm",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "crm",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "email",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "clerk",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "pdf-processing",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "export-rendering",
         "status": "passed",
         "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
       }
@@ -79,7 +147,37 @@
     "status": "passed",
     "checks": [
       {
-        "name": "REPLACE_WITH_SYNTHETIC_CHECK_NAME",
+        "name": "sign-in",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "home",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "search-known-object",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "submit-ingestion-job",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "observe-job-completion",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "trace-and-audit",
+        "status": "passed",
+        "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
+      },
+      {
+        "name": "no-browser-errors-or-http-5xx",
         "status": "passed",
         "redactedEvidence": "REPLACE_WITH_EVIDENCE_LOCATION"
       }

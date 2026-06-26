@@ -7,9 +7,9 @@
  * the workspace tabs become accessible.
  *
  * Contract: The accountContextStore is a zustand store persisted
- *           to localStorage under the key 'fabric-account-context'.
+ *           to sessionStorage under the key 'fabric-account-context'.
  *
- * IMPORTANT: All localStorage operations require the page to be on a
+ * IMPORTANT: All storage operations require the page to be on a
  * same-origin URL first. These helpers ensure that.
  */
 import { Page } from '@playwright/test';
@@ -69,10 +69,11 @@ export async function setSelectedAccount(page: Page, account: TestAccount): Prom
     const storeState = {
       state: {
         selectedAccountId: acct.id,
+        _persistedTenantId: null,
       },
       version: 0,
     };
-    localStorage.setItem('fabric-account-context', JSON.stringify(storeState));
+    sessionStorage.setItem('fabric-account-context', JSON.stringify(storeState));
   }, account);
 }
 
@@ -82,7 +83,7 @@ export async function setSelectedAccount(page: Page, account: TestAccount): Prom
 export async function clearSelectedAccount(page: Page): Promise<void> {
   try {
     await page.evaluate(() => {
-      localStorage.removeItem('fabric-account-context');
+      sessionStorage.removeItem('fabric-account-context');
     });
   } catch {
     // Page may already be closed — safe to ignore
@@ -94,7 +95,7 @@ export async function clearSelectedAccount(page: Page): Promise<void> {
  */
 export async function getSelectedAccountId(page: Page): Promise<string | null> {
   return page.evaluate(() => {
-    const raw = localStorage.getItem('fabric-account-context');
+    const raw = sessionStorage.getItem('fabric-account-context');
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw);
@@ -116,10 +117,11 @@ export async function switchAccount(page: Page, fromAccount: TestAccount, toAcco
     const storeState = {
       state: {
         selectedAccountId: acct.id,
+        _persistedTenantId: null,
       },
       version: 0,
     };
-    localStorage.setItem('fabric-account-context', JSON.stringify(storeState));
+    sessionStorage.setItem('fabric-account-context', JSON.stringify(storeState));
   }, toAccount);
 
   // Trigger a page reload to simulate the context switch
@@ -142,7 +144,7 @@ export async function verifyAccountContext(page: Page, expectedAccount: TestAcco
 export async function clearAccountData(page: Page): Promise<void> {
   try {
     await page.evaluate(() => {
-      localStorage.removeItem('fabric-account-context');
+      sessionStorage.removeItem('fabric-account-context');
       // Clear any cached account-specific data
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('account-') || key.startsWith('acct-')) {

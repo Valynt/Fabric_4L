@@ -358,6 +358,5 @@ def build_export_provenance_manifest(
                 "workflow_completed_at": workflow_result.get("completed_at"),
             },
         },
-    })
-
+    }).model_dump()
 

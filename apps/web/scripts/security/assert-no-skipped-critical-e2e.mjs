@@ -18,6 +18,9 @@ const criticalFiles = [
   'e2e/global-setup.ts',
   'package.json',
   'e2e/helpers/validation-program.ts',
+  'e2e/helpers/journey-fixture.ts',
+  'e2e/helpers/api-harness.ts',
+  'e2e/support/unexpected-errors.ts',
   'e2e/journeys/j1-ingestion-to-value-tree.spec.ts',
   'e2e/journeys/j2-intelligence-workspace.spec.ts',
   'e2e/journeys/j3-value-studio-deliverable.spec.ts',
@@ -42,6 +45,8 @@ const criticalFiles = [
   'e2e/journeys/j23-personal-settings.spec.ts',
   'e2e/security/tenant-isolation-validation.spec.ts',
   'e2e/security/deep-link-tenant-isolation-deep.spec.ts',
+  'e2e/security/hostile-tenant-journey.spec.ts',
+  'e2e/security/hostile-tenant-enforcement-matrix.spec.ts',
   'e2e/resilience/operational-resilience.spec.ts',
   'e2e/collaboration/collaboration-notifications-tasks.spec.ts',
   'e2e/export-workflows.spec.ts',
@@ -64,12 +69,18 @@ const criticalFiles = [
   'e2e/business-case.spec.ts',
   'e2e/business-case-list.spec.ts',
   'docs/frontend-workflow-coverage-matrix.md',
+  'docs/frontend-user-workflows.md',
   'docs/frontend-workflow-contracts.json',
   'docs/frontend-release-evidence.template.json',
+  'src/test/oracles/valueCalculationOracle.test.ts',
+  '../../tests/security/test_hostile_tenant_e2e_matrix.py',
+  '../../services/layer4-agents/tests/test_analysis_routes.py',
+  '../../services/layer4-agents/tests/test_agent_grounding_and_refusal.py',
   'scripts/quality/assert-frontend-workflow-matrix.mjs',
   'scripts/quality/assert-frontend-workflow-contracts.mjs',
   'scripts/quality/assert-route-inventory.mjs',
   'scripts/quality/assert-frontend-release-evidence.mjs',
+  'scripts/quality/test-frontend-release-evidence-validator.mjs',
   'scripts/quality/verify-frontend.mjs',
 ];
 
@@ -79,6 +90,9 @@ const forbidden = [
   { pattern: /\btest\.fixme\s*\(/, label: 'test.fixme' },
   { pattern: /\bjourneyTest\.skip\s*\(/, label: 'journeyTest.skip' },
   { pattern: /\bSKIP_BACKEND_TESTS\b/, label: 'SKIP_BACKEND_TESTS backend skip valve' },
+  { pattern: /\bwaitForTimeout\s*\(/, label: 'arbitrary Playwright timeout' },
+  { pattern: /\[401,\s*403,\s*404\]/, label: 'loose security status bucket' },
+  { pattern: /403\s+or\s+404|401\s+or\s+403\s+or\s+404/i, label: 'loose security status wording' },
   { pattern: /Mobile navigation.*skipped|not yet implemented in AppShell/i, label: 'stale mobile-navigation skipped claim' },
 ];
 
@@ -107,6 +121,21 @@ const requiredEvidence = [
     file: 'e2e/global-setup.ts',
     pattern: /seed-e2e-data/,
     label: 'deterministic backend seed execution',
+  },
+  {
+    file: 'e2e/helpers/journey-fixture.ts',
+    pattern: /attachUnexpectedErrorAudit[\s\S]*onUnhandledRequest[\s\S]*audit\.assertClean/,
+    label: 'journey fixture unexpected browser and network error audit',
+  },
+  {
+    file: 'e2e/support/unexpected-errors.ts',
+    pattern: /pageErrors[\s\S]*consoleErrors[\s\S]*http5xx[\s\S]*failedJobs[\s\S]*unhandledApiRequests[\s\S]*page\.on\('pageerror'[\s\S]*page\.on\('console'[\s\S]*page\.on\('response'/,
+    label: 'unexpected page, console, HTTP 5xx, failed-job, and unhandled-mock detection',
+  },
+  {
+    file: 'e2e/helpers/api-harness.ts',
+    pattern: /onUnhandledRequest[\s\S]*Unmatched request aborted[\s\S]*onUnhandledRequest\?\./,
+    label: 'API harness unhandled request reporting',
   },
   {
     file: 'package.json',
@@ -144,9 +173,34 @@ const requiredEvidence = [
     label: 'tenant isolation validation coverage',
   },
   {
+    file: 'e2e/security/hostile-tenant-enforcement-matrix.spec.ts',
+    pattern: /status === vector\.status && denied\.code === vector\.errorCode[\s\S]*expected exact denial/,
+    label: 'exact hostile-tenant status and error-code assertions',
+  },
+  {
+    file: 'e2e/security/hostile-tenant-enforcement-matrix.spec.ts',
+    pattern: /(?=[\s\S]*operation:\s*'list')(?=[\s\S]*operation:\s*'read')(?=[\s\S]*operation:\s*'create')(?=[\s\S]*operation:\s*'update')(?=[\s\S]*operation:\s*'delete')(?=[\s\S]*operation:\s*'search')(?=[\s\S]*operation:\s*'export')(?=[\s\S]*operation:\s*'background-job lookup')(?=[\s\S]*operation:\s*'file download')(?=[\s\S]*operation:\s*'agent retrieval')(?=[\s\S]*deniedActionsObserved)/,
+    label: 'hostile-tenant tenant-owned operation family matrix',
+  },
+  {
+    file: '../../tests/security/test_hostile_tenant_e2e_matrix.py',
+    pattern: /REQUIRED_OPERATIONS[\s\S]*operation: 'list'[\s\S]*operation: 'read'[\s\S]*operation: 'create'[\s\S]*operation: 'update'[\s\S]*operation: 'delete'[\s\S]*operation: 'search'[\s\S]*operation: 'export'[\s\S]*operation: 'background-job lookup'[\s\S]*operation: 'file download'[\s\S]*operation: 'agent retrieval'/,
+    label: 'root hostile-tenant operation family static guard',
+  },
+  {
     file: 'e2e/export-workflows.spec.ts',
     pattern: /EXPORT-GATE-001/,
     label: 'approval-gated export validation coverage',
+  },
+  {
+    file: '../../services/layer4-agents/tests/test_analysis_routes.py',
+    pattern: /test_export_route_rejects_draft_case_before_document_generation(?=[\s\S]*status_code == 409)(?=[\s\S]*fake_executor\.get_result_calls == \[\])(?=[\s\S]*denied_reason": "approval_required")/,
+    label: 'endpoint-level draft export denial before document generation',
+  },
+  {
+    file: '../../services/layer4-agents/tests/test_analysis_routes.py',
+    pattern: /test_export_route_approved_case_uploads_tenant_scoped_artifacts_and_audits[\s\S]*download_ready[\s\S]*tenant_id[\s\S]*EXPORT_PACKAGE_GENERATED[\s\S]*EXPORT_DOWNLOAD_ACCESSED/,
+    label: 'endpoint-level approved export, tenant-scoped artifact, and audit proof',
   },
   {
     file: 'e2e/journeys/j11-golden-path-business-lifecycle.spec.ts',
@@ -174,9 +228,39 @@ const requiredEvidence = [
     label: 'deep agent grounding validation coverage',
   },
   {
+    file: '../../services/layer4-agents/tests/test_agent_grounding_and_refusal.py',
+    pattern: /AgentGovernanceCorpusCase[\s\S]*valid grounded question[\s\S]*question without supporting evidence[\s\S]*cross-tenant document reference[\s\S]*indirect prompt injection in ingested document[\s\S]*system prompt or credential exposure[\s\S]*unauthorized tool invocation[\s\S]*malformed citation[\s\S]*provider timeout fallback/,
+    label: 'deterministic agent governance adversarial corpus',
+  },
+  {
+    file: '../../services/layer4-agents/tests/test_agent_grounding_and_refusal.py',
+    pattern: /(?=[\s\S]*expected_refusal_reason)(?=[\s\S]*POLICY_DECISION)(?=[\s\S]*AGENT_EXECUTION)(?=[\s\S]*forbidden_content)(?=[\s\S]*stack trace)(?=[\s\S]*traceback)/,
+    label: 'agent governance audit and safe-error assertions',
+  },
+  {
+    file: 'package.json',
+    pattern: /test:calculation-oracle/,
+    label: 'calculation oracle validation command',
+  },
+  {
+    file: 'src/test/oracles/valueCalculationOracle.test.ts',
+    pattern: /canonical one-year ROI case[\s\S]*grossValue:\s*400_000[\s\S]*realizedValue:\s*300_000[\s\S]*netValue:\s*150_000[\s\S]*roiPercent:\s*100/,
+    label: 'independently reviewed canonical calculation oracle case',
+  },
+  {
+    file: 'src/test/oracles/valueCalculationOracle.test.ts',
+    pattern: /zero total cost[\s\S]*roiPercent:\s*null[\s\S]*negative values[\s\S]*periodYears must be > 0[\s\S]*higher implementation cost cannot increase ROI/,
+    label: 'calculation oracle boundary and invariant coverage',
+  },
+  {
     file: 'docs/frontend-workflow-coverage-matrix.md',
-    pattern: /P0-ACCOUNT-LIFECYCLE[\s\S]*P0-CALC-EVIDENCE[\s\S]*P0-APPROVAL-EXPORT[\s\S]*P0-AGENT-GOVERNANCE[\s\S]*P0-LAYER-VALIDATION/,
+    pattern: /P0-ACCOUNT-LIFECYCLE[\s\S]*P0-CALC-EVIDENCE[\s\S]*valueCalculationOracle\.test\.ts[\s\S]*P0-APPROVAL-EXPORT[\s\S]*P0-AGENT-GOVERNANCE[\s\S]*P0-LAYER-VALIDATION/,
     label: 'P0 workflow coverage matrix rows',
+  },
+  {
+    file: 'docs/frontend-user-workflows.md',
+    pattern: /J0 \/ Auth Session[\s\S]*J1 \/ Domain Ingestion To Value Tree[\s\S]*P0 \/ Approval-Gated Export[\s\S]*P1 \/ Integrations/,
+    label: 'step-by-step frontend workflow inventory',
   },
   {
     file: 'docs/frontend-workflow-coverage-matrix.md',
@@ -204,6 +288,11 @@ const requiredEvidence = [
     label: 'P0 business contract planes',
   },
   {
+    file: 'docs/frontend-workflow-contracts.json',
+    pattern: /evidenceByPlane[\s\S]*"ui"[\s\S]*"backend"[\s\S]*"security"[\s\S]*"audit"/,
+    label: 'per-plane workflow evidence ownership',
+  },
+  {
     file: 'package.json',
     pattern: /test:route-inventory/,
     label: 'route inventory validation command',
@@ -212,6 +301,11 @@ const requiredEvidence = [
     file: 'package.json',
     pattern: /test:frontend-release-evidence/,
     label: 'frontend release evidence validation command',
+  },
+  {
+    file: 'package.json',
+    pattern: /test:frontend-release-evidence:validator/,
+    label: 'frontend release evidence validator self-test command',
   },
   {
     file: 'package.json',
@@ -225,8 +319,18 @@ const requiredEvidence = [
   },
   {
     file: 'scripts/quality/assert-frontend-release-evidence.mjs',
-    pattern: /commitSha[\s\S]*imageDigest[\s\S]*noUnexpectedBrowserErrors[\s\S]*noHttp5xx[\s\S]*tenantIsolationRetrieval[\s\S]*liveProviderSmoke[\s\S]*postDeploySynthetics/,
+    pattern: /requiredP0Journeys[\s\S]*requireInfrastructure[\s\S]*requiredAuthorizationActors[\s\S]*requiredLiveProviders[\s\S]*requiredSyntheticChecks/,
     label: 'frontend release evidence validator coverage',
+  },
+  {
+    file: 'scripts/quality/test-frontend-release-evidence-validator.mjs',
+    pattern: /buildEvidence[\s\S]*runValidator[\s\S]*missingProvider[\s\S]*liveProviderSmoke\.providers must include crm/,
+    label: 'frontend release evidence validator positive and negative self-test',
+  },
+  {
+    file: 'docs/frontend-release-evidence.template.json',
+    pattern: /"infrastructure"[\s\S]*"P0-ACCOUNT-LIFECYCLE"[\s\S]*"P0-CALC-EVIDENCE"[\s\S]*"P0-APPROVAL-EXPORT"[\s\S]*"P0-AGENT-GOVERNANCE"[\s\S]*"P0-LAYER-VALIDATION"[\s\S]*"llm"[\s\S]*"crm"[\s\S]*"email"[\s\S]*"clerk"[\s\S]*"pdf-processing"[\s\S]*"export-rendering"[\s\S]*"sign-in"[\s\S]*"trace-and-audit"/,
+    label: 'frontend release evidence template named live proof fields',
   },
   {
     file: 'docs/frontend-workflow-coverage-matrix.md',

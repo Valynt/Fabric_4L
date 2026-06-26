@@ -1,6 +1,12 @@
 import { journeyTest, expect } from '../helpers/journey-fixture';
 
 journeyTest.describe('Security Suite: Hostile Tenant Journey', () => {
+  const expectedDenials = [
+    { status: 403, code: 'TENANT_FORBIDDEN' },
+    { status: 404, code: 'RESOURCE_NOT_FOUND' },
+    { status: 401, code: 'AUTH_INVALID_TOKEN' },
+  ];
+
   journeyTest.beforeEach(async ({ addMocks }) => {
     await addMocks([
       {
@@ -28,31 +34,38 @@ journeyTest.describe('Security Suite: Hostile Tenant Journey', () => {
   });
 
   journeyTest('hostile tenant journey blocks UI request -> backend enforcement with safe error contract', async ({ authedPage }) => {
-    const deniedResponses: Array<{ status: number; body: string }> = [];
-
-    authedPage.on('response', async (response) => {
-      if (response.status() === 401 || response.status() === 403 || response.status() === 404) {
-        const body = await response.text();
-        deniedResponses.push({ status: response.status(), body });
-      }
-    });
-
-    await authedPage.goto('/intelligence/acct-foreign-tenant/signals?resourceId=resource-tenant-b', {
+    await authedPage.goto('/home', {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(
-      authedPage.getByText(/forbidden|access denied|not authorized|not found|could not be loaded/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authedPage).toHaveURL(/\/home/);
 
-    await authedPage.goto('/settings/team/permissions', { waitUntil: 'domcontentloaded' });
-    await expect(authedPage.getByText(/permissions|team|role|access/i).first()).toBeVisible();
+    const deniedResponses = await authedPage.evaluate(async () => {
+      const urls = [
+        '/api/v1/agents/accounts/acct-foreign-tenant',
+        '/api/v1/documents/resource-tenant-b',
+        '/api/v1/auth/session',
+      ];
+      return Promise.all(urls.map(async (url) => {
+        const response = await fetch(url);
+        const body = await response.text();
+        let code = '';
+        try {
+          const payload = JSON.parse(body) as { error?: { code?: string } };
+          code = payload.error?.code ?? '';
+        } catch {
+          code = '';
+        }
+        return { status: response.status, body, code };
+      }));
+    });
 
-    await authedPage.goto('/accounts', { waitUntil: 'domcontentloaded' });
-    await authedPage.evaluate(() => localStorage.setItem('authToken', 'tampered.jwt.token'));
-    await authedPage.reload({ waitUntil: 'domcontentloaded' });
-
-    expect(deniedResponses.length).toBeGreaterThan(0);
+    for (const expected of expectedDenials) {
+      expect(
+        deniedResponses.some((denied) => denied.status === expected.status && denied.code === expected.code),
+        `expected exact denial ${expected.status} ${expected.code}`,
+      ).toBe(true);
+    }
     for (const denied of deniedResponses) {
       expect(denied.body.toLowerCase()).not.toContain('traceback');
       expect(denied.body.toLowerCase()).not.toContain('sqlalchemy');

@@ -3,7 +3,7 @@ import { Page, Locator, expect } from '@playwright/test';
 /**
  * Page Object for BusinessCaseList
  *
- * Route: /deliver/cases
+ * Route: /t/:tenantSlug/accounts/:accountId/deliverables/business-cases
  * Tier: standard+
  *
  * Covers list view with filtering, sorting, and case creation
@@ -49,21 +49,22 @@ export class BusinessCaseListPage {
     this.page = page;
 
     // Header
-    this.header = page.getByRole('heading', { name: /business cases/i });
+    this.header = page.getByRole('heading', { name: 'Business Cases', exact: true });
     this.subtitle = page.locator('text=/\\d+ cases/');
     this.newCaseButton = page.getByRole('button', { name: /new case/i });
 
     // Stats cards
-    this.totalValueCard = page.locator('text=/Total Value/i').locator('..');
-    this.activeCountCard = page.locator('text=/Active/i').locator('..');
-    this.draftCountCard = page.locator('text=/Drafts/i').locator('..');
-    this.companiesCountCard = page.locator('text=/Companies/i').locator('..');
+    const statsCards = page.locator('.grid.grid-cols-4').first().locator(':scope > div');
+    this.totalValueCard = statsCards.filter({ hasText: /Total Value/i });
+    this.activeCountCard = statsCards.filter({ hasText: /^Active/i });
+    this.draftCountCard = statsCards.filter({ hasText: /^Drafts/i });
+    this.companiesCountCard = statsCards.filter({ hasText: /^Companies/i });
 
     // Filters
     this.searchInput = page.getByPlaceholder(/search cases/i);
-    this.statusFilter = page.locator('select').filter({ hasText: /all status|active|draft/i }).first();
-    this.sortBySelect = page.locator('select').filter({ hasText: /last updated|name|company|value/i }).first();
-    this.sortDirectionButton = page.locator('button').filter({ hasText: /↑|↓/ });
+    this.statusFilter = page.getByRole('combobox').filter({ hasText: /all status|active|approved|draft|archived/i }).first();
+    this.sortBySelect = page.getByRole('combobox').filter({ hasText: /last updated|name|company|value|confidence/i }).last();
+    this.sortDirectionButton = page.getByRole('button', { name: /sort (ascending|descending)/i });
 
     // Case list
     this.caseCards = page.locator('.bg-white.border.border-neutral-200.rounded-xl');
@@ -76,13 +77,9 @@ export class BusinessCaseListPage {
     this.retryButton = page.getByRole('button', { name: /try again/i });
 
     // Modal
-    this.newCaseModal = page.locator('.fixed.inset-0').filter({ has: page.getByText(/create new business case/i) });
-    this.modalCaseNameInput = page.locator('input[placeholder*="Q2 Expansion"]').or(
-      page.locator('label:has-text("Case Name") + input')
-    );
-    this.modalCompanyInput = page.locator('input[placeholder*="Acme Corporation"]').or(
-      page.locator('label:has-text("Company") + input')
-    );
+    this.newCaseModal = page.getByRole('dialog', { name: /create new business case/i });
+    this.modalCaseNameInput = page.getByLabel(/case name/i);
+    this.modalCompanyInput = page.getByLabel(/company/i);
     this.modalCancelButton = page.getByRole('button', { name: /cancel/i });
     this.modalCreateButton = page.getByRole('button', { name: /create$/i });
   }
@@ -93,7 +90,7 @@ export class BusinessCaseListPage {
    * Navigate to Business Case List
    */
   async goto(): Promise<void> {
-    await this.page.goto('/deliver/cases');
+    await this.page.goto('/t/demo/accounts/acc_demo/deliverables/business-cases');
     await this.waitForPageLoad();
   }
 
@@ -127,14 +124,24 @@ export class BusinessCaseListPage {
    * Filter by status
    */
   async filterByStatus(status: 'all' | 'active' | 'draft' | 'archived'): Promise<void> {
-    await this.statusFilter.selectOption(status);
+    const label = status === 'all' ? 'All Status' : status[0].toUpperCase() + status.slice(1);
+    await this.statusFilter.click();
+    await this.page.getByRole('option', { name: label, exact: true }).click();
   }
 
   /**
    * Sort by field
    */
   async sortBy(field: 'updatedAt' | 'name' | 'company' | 'totalValue' | 'confidence'): Promise<void> {
-    await this.sortBySelect.selectOption(field);
+    const labelByField: Record<typeof field, string> = {
+      updatedAt: 'Last Updated',
+      name: 'Name',
+      company: 'Company',
+      totalValue: 'Value',
+      confidence: 'Confidence',
+    };
+    await this.sortBySelect.click();
+    await this.page.getByRole('option', { name: labelByField[field], exact: true }).click();
   }
 
   /**

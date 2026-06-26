@@ -119,10 +119,12 @@ journeyTest.describe('Journey 1: Domain Ingestion → Value Tree Exploration', (
     await expect(submitButton.first()).toBeEnabled();
     await submitButton.first().click();
 
-    // After submission, the job should appear in the jobs list or a confirmation should show
-    // In live mode, we wait for the actual job to be created
-    // In contract mode, our mock returns immediately
-    await authedPage.waitForTimeout(500);
+    await expect(
+      authedPage
+        .getByText(/submitted|created|pending|processing|job/i)
+        .or(authedPage.getByText(TEST_DOMAIN))
+        .first(),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   journeyTest('Step 3: Ingestion job appears in the jobs list', async ({ authedPage }) => {

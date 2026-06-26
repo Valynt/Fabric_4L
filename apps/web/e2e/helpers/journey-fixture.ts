@@ -29,6 +29,7 @@ import { seedAuthState, DEFAULT_TEST_USER, type TestUserInfo } from '../fixtures
 import { setSelectedAccount, TEST_ACCOUNTS, type TestAccount } from '../fixtures/account-helpers';
 import { setUserTier, type UserTier } from '../fixtures/tier-helpers';
 import { installApiHarness, isLiveMode, type MockEndpoint } from './api-harness';
+import { attachUnexpectedErrorAudit } from '../support/unexpected-errors';
 
 // Re-export for convenience
 export { expect } from '@playwright/test';
@@ -49,29 +50,44 @@ interface JourneyFixtures {
   isLive: boolean;
 }
 
+const unexpectedErrorAudits = new WeakMap<Page, ReturnType<typeof attachUnexpectedErrorAudit>>();
+
 // ── Journey Test Definition ─────────────────────────────────────────────────
 
 export const journeyTest = base.extend<JourneyFixtures>({
   testAccount: [TEST_ACCOUNTS.meridian, { option: true }],
 
   authedPage: async ({ page, testAccount }, use) => {
-    // 1. Seed auth state
-    await seedAuthState(page, DEFAULT_TEST_USER);
+    // 1. Attach fail-closed browser/network error audit before any navigation.
+    const audit = attachUnexpectedErrorAudit(page);
+    unexpectedErrorAudits.set(page, audit);
 
-    // 2. Set admin tier (journey tests need full access by default)
-    await setUserTier(page, 'admin', 'admin');
+    // 2. Install API harness before auth/tier/account helpers boot the app.
+    await installApiHarness(page, {
+      onUnhandledRequest: audit.recordUnhandledApiRequest,
+    });
 
-    // 3. Set account context
-    await setSelectedAccount(page, testAccount);
+    try {
+      // 3. Seed auth state
+      await seedAuthState(page, DEFAULT_TEST_USER);
 
-    // 4. Install API harness (registers DEFAULT_MOCKS)
-    const teardown = await installApiHarness(page);
+      // 4. Set admin tier (journey tests need full access by default)
+      await setUserTier(page, 'admin', 'admin');
 
-    // 5. Provide the page to the test
-    await use(page);
+      // 5. Set account context
+      await setSelectedAccount(page, testAccount);
 
-    // 6. Cleanup
-    await teardown();
+      // 6. Provide the page to the test
+      await use(page);
+
+      // 7. Fail closed on unexpected browser/network/test-environment errors.
+      await audit.assertClean();
+    } finally {
+      unexpectedErrorAudits.delete(page);
+      audit.teardown();
+      // Keep API routes installed until Playwright disposes the page. Removing
+      // them here lets late React Query retries escape to Vite's backend proxy.
+    }
   },
 
   switchTier: async ({ page }, use) => {
@@ -88,7 +104,11 @@ export const journeyTest = base.extend<JourneyFixtures>({
   // are registered LAST and therefore take priority (Playwright last-registered-first).
   addMocks: async ({ authedPage }, use) => {
     const fn = async (mocks: MockEndpoint[]) => {
+      const audit = unexpectedErrorAudits.get(authedPage);
       for (const mock of mocks) {
+        if ((mock.status ?? 200) >= 500) {
+          audit?.recordExpectedHttp5xxPattern(mock.pattern);
+        }
         await authedPage.route(mock.pattern, async (route) => {
           if (mock.delay) {
             await new Promise((resolve) => setTimeout(resolve, mock.delay));
