@@ -27,6 +27,7 @@ except ImportError:
     _ASYNC_ENGINE_AVAILABLE = False
 
 from app.core.config import get_settings
+from app.models.api_key import APIKeyRecord
 from app.models.schemas import (
     Account,
     AccountVersionSnapshot,
@@ -698,6 +699,7 @@ class PostgreSQLDatabase:
         self.tenants = PostgreSQLTable("tenants", pool, tenant_field="id")
         self.dsar_requests = AsyncPostgreSQLTable("dsar_requests", pool, tenant_field="tenant_id")
         self.dsar_packages = AsyncPostgreSQLTable("dsar_packages", pool, tenant_field="tenant_id")
+        self.api_keys = PostgreSQLTable("api_keys", pool, model_cls=APIKeyRecord, tenant_field="key_id")
 
 
 class InMemoryDatabase:
@@ -729,6 +731,7 @@ class InMemoryDatabase:
         self.tenants = InMemoryTable("tenants", "id")
         self.dsar_requests = AsyncInMemoryTable("dsar_requests", "tenant_id")
         self.dsar_packages = AsyncInMemoryTable("dsar_packages", "tenant_id")
+        self.api_keys = InMemoryTable("api_keys", tenant_field="key_id")
 
 
 class AsyncInMemoryTable(InMemoryTable[T]):
