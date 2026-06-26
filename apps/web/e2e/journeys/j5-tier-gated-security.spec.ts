@@ -17,7 +17,7 @@
  *   - Tier switch mid-session correctly updates access controls
  */
 import { journeyTest, expect, expectNoErrors, navigateAndWait } from '../helpers/journey-fixture';
-import { setUserTier, ROUTES_BY_TIER, TIER_REDIRECTS } from '../fixtures/tier-helpers';
+import { setUserTier, ROUTES_BY_TIER, TIER_REDIRECTS, tenantRoute } from '../fixtures/tier-helpers';
 import type { Page } from '@playwright/test';
 
 async function expectRedirectedToTierHome(page: Page, redirectTarget: string): Promise<void> {
@@ -108,19 +108,20 @@ journeyTest.describe('Journey 5: Tier-Gated Access & Security', () => {
   journeyTest('Step 6: Tier switch mid-session updates access controls', async ({ authedPage, switchTier }) => {
     // Start as admin — should access admin route
     await switchTier('admin');
-    await navigateAndWait(authedPage, '/t/demo/governance/benchmarks');
+    const adminRoute = tenantRoute('/governance/benchmarks');
+    await navigateAndWait(authedPage, adminRoute);
     await expectNoErrors(authedPage);
-    await expect(authedPage).toHaveURL(/\/t\/demo\/governance\/benchmarks/);
+    await expect(authedPage).toHaveURL(new RegExp(adminRoute.replace(/\//g, '\\/')));
 
     // Switch to standard — same route should now redirect
     await switchTier('standard');
-    await authedPage.goto('/t/demo/governance/benchmarks', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(adminRoute, { waitUntil: 'domcontentloaded' });
     await expectRedirectedToTierHome(authedPage, TIER_REDIRECTS.standard);
 
     // Switch back to admin — should regain access
     await switchTier('admin');
-    await navigateAndWait(authedPage, '/t/demo/governance/benchmarks');
-    await expect(authedPage).toHaveURL(/\/t\/demo\/governance\/benchmarks/);
+    await navigateAndWait(authedPage, adminRoute);
+    await expect(authedPage).toHaveURL(new RegExp(adminRoute.replace(/\//g, '\\/')));
   });
 
   // ── Deep-Link Security ───────────────────────────────────────────────────

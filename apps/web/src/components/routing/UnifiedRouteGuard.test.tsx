@@ -2,6 +2,10 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
+const mockUserTierStore = vi.hoisted(() => ({
+  canAccessRoute: vi.fn(() => true),
+  isRehydrated: true,
+}));
 const mockUseParams = vi.fn(() => ({ tenantSlug: "tenant-a", accountId: "acc-1" }));
 const mockUseMatches = vi.fn(() => [{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
 const mockClerkAuth = {
@@ -21,7 +25,7 @@ vi.mock("@/hooks/useAccountAccess", () => ({ useAccountAccess: () => ({ hasAccou
 vi.mock("@/hooks/useUserPermissions", () => ({ useUserPermissions: () => ({ hasPermissions: true, isLoading: false }) }));
 vi.mock("@/hooks/useFeatureFlags", () => ({ useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }) }));
 vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ entitlementsMet: false, isLoading: false, isError: false }) }));
-vi.mock("@/stores", () => ({ useUserTierStore: () => ({ canAccessRoute: () => true }) }));
+vi.mock("@/stores", () => ({ useUserTierStore: () => mockUserTierStore }));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -51,12 +55,26 @@ describe("UnifiedRouteGuard deny behavior", () => {
     setAuthProvider("legacy");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = true;
+    mockUserTierStore.canAccessRoute.mockReturnValue(true);
+    mockUserTierStore.isRehydrated = true;
     mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
   });
 
   it("redirects when account acl denies", () => {
     renderGuard();
     expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
+  });
+
+  it("waits for tier-store rehydration before evaluating protected route access", () => {
+    mockUserTierStore.isRehydrated = false;
+    mockUserTierStore.canAccessRoute.mockReturnValue(false);
+    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
+
+    renderGuard();
+
+    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
+    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 
   it("uses Clerk signed-in state in Clerk mode instead of stale legacy-compatible context", () => {

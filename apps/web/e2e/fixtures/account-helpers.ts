@@ -167,9 +167,24 @@ export async function setTenantContext(page: Page, tenantId: string, tenantSlug:
   await page.evaluate((ctx: { tenantId: string; tenantSlug: string }) => {
     localStorage.setItem('tenantId', ctx.tenantId);
     localStorage.setItem('tenantSlug', ctx.tenantSlug);
+
+    const userInfoRaw = localStorage.getItem('userInfo');
+    let userInfo: Record<string, unknown> | null = null;
+    if (userInfoRaw) {
+      try {
+        userInfo = JSON.parse(userInfoRaw) as Record<string, unknown>;
+        userInfo.tenantId = ctx.tenantId;
+        userInfo.tenantSlug = ctx.tenantSlug;
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      } catch {
+        userInfo = null;
+      }
+    }
+
     sessionStorage.setItem('vf.auth.session.meta', JSON.stringify({
       tenantId: ctx.tenantId,
       tenantSlug: ctx.tenantSlug,
+      ...(userInfo ? { user: userInfo } : {}),
     }));
   }, { tenantId, tenantSlug });
 }

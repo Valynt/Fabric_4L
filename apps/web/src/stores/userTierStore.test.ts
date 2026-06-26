@@ -41,6 +41,7 @@ function resetStore() {
     isAdvancedModeEnabled: false,
     userRole: null,
     permissions: { ...standardPermissions },
+    isRehydrated: true,
   });
 }
 
@@ -283,6 +284,12 @@ describe("getRouteTier", () => {
   it("normalizes tenant-scoped paths", () => {
     expect(getRouteTier("/t/acme/accounts/acc-123/intelligence")).toBe("standard");
     expect(getRouteTier("/t/acme/accounts/acc-123/studio")).toBe("advanced");
+  });
+
+  it("matches canonical tenant-scoped admin routes", () => {
+    expect(getRouteTier("/t/demo/governance/benchmarks")).toBe("admin");
+    expect(getRouteTier("/t/demo/context/integrations")).toBe("admin");
+    expect(getRouteTier("/t/demo/settings")).toBe("admin");
   });
 
   it("falls back to parent prefix matching for unknown sub-routes", () => {

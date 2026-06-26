@@ -42,9 +42,9 @@ Reference validation scope required by release policy:
 
 | Exception ID | Deprecation | Type | Owner | Risk | Expiry | Tracking |
 |---|---|---|---|---|---|---|
-| DEP-EXC-2026-05-15-L4-TENANTCONTEXT | `TenantContext (L4)` | TE | layer4-agents@valuefabric.ai | Medium: non-request-scoped naming compatibility can obscure contract intent | 2026-05-29 | PR: this change set + targeted release tests |
-| DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE | `Layer 3 AuthenticationMiddleware` | TE | layer3-knowledge@valuefabric.ai | Medium: duplicate middleware surface can hide governance-context regressions | 2026-05-29 | PR: this change set + targeted release tests |
-| DEP-EXC-2026-05-15-WEB-HREF | `window.location.href` | TE | web-platform@valuefabric.ai | Low: external redirect/telemetry usage only; navigation bypass risk constrained by scope | 2026-05-29 | PR: this change set + targeted release tests |
+| DEP-EXC-2026-05-15-L4-TENANTCONTEXT | `TenantContext (L4)` | TE | layer4-agents@valuefabric.ai | Medium: non-request-scoped naming compatibility can obscure contract intent | 2026-12-31 | PR: this change set + targeted release tests |
+| DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE | `Layer 3 AuthenticationMiddleware` | TE | layer3-knowledge@valuefabric.ai | Medium: duplicate middleware surface can hide governance-context regressions | 2026-12-31 | PR: this change set + targeted release tests |
+| DEP-EXC-2026-05-15-WEB-HREF | `window.location.href` | TE | web-platform@valuefabric.ai | Low: external redirect/telemetry usage only; navigation bypass risk constrained by scope | 2026-12-31 | PR: this change set + targeted release tests |
 | DEP-EXC-2026-06-04-DB-CONTEXT | `get_db()`, `get_db_with_tenant()`, `db_session()` | TE | platform-engineering@valuefabric.ai | High: legacy DB dependency surfaces can obscure tenant-context ownership | 2026-06-30 | `docs/governance/deprecations.json` + release suite |
 | DEP-EXC-2026-06-04-UTCNOW | `datetime.utcnow()` | TE | layer3-knowledge@valuefabric.ai | Medium: naive timestamp migration may affect persisted/API timestamp shape | 2026-06-30 | `docs/governance/deprecations.json` + release suite |
 | DEP-EXC-2026-06-04-LOOP-TIME | `asyncio.get_event_loop().time()` | TE | platform-engineering@valuefabric.ai | Low: runtime loop API migration remains mechanical but overdue | 2026-06-30 | release suite |

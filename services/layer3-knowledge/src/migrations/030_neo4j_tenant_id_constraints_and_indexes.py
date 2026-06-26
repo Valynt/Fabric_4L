@@ -26,6 +26,8 @@ For each label this migration creates:
 All statements use IF NOT EXISTS so the migration is fully idempotent.
 
 Usage:
+    # Run from services/layer3-knowledge/src so the migrations package resolves.
+
     # Dry run (prints Cypher, makes no changes)
     python -m migrations.030_neo4j_tenant_id_constraints_and_indexes --dry-run
 

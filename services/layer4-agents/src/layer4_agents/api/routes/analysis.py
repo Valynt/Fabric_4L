@@ -27,7 +27,6 @@ from fastapi import (
     BackgroundTasks,
     Body,
     Depends,
-    HTTPException,
     Request,
     Response,
     status,

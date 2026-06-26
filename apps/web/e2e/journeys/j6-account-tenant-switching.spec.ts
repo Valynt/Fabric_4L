@@ -21,6 +21,7 @@ import { switchAccount, verifyAccountContext, setTenantContext, clearAccountData
 import { TEST_ACCOUNTS } from '../fixtures/account-helpers';
 import { seedAuthState, clearAuthState } from '../fixtures/auth-helpers';
 import { clearUserTier } from '../fixtures/tier-helpers';
+import type { Request } from '@playwright/test';
 
 journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
   journeyTest.afterEach(async ({ authedPage }) => {
@@ -89,42 +90,49 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
 
   // ── API Requests Use New Tenant Context ───────────────────────────────────
 
-  journeyTest('SWITCH-005: API requests use new tenant context after switch', async ({ authedPage, addMocks }) => {
-    // Mock API to verify tenant context
-    let capturedTenantId: string | null = null;
+  journeyTest('SWITCH-005: API requests use new tenant route context after switch without client tenant headers', async ({ authedPage, addMocks }) => {
+    const authzRequests: Array<{ url: string; headers: Record<string, string> }> = [];
+    const captureAuthzRequest = (request: Request) => {
+      const url = request.url();
+      if (url.includes('/api/v1/agents/v1/authz/accounts/acct-meridian-001/access')) {
+        authzRequests.push({ url, headers: request.headers() });
+      }
+    };
+    authedPage.on('request', captureAuthzRequest);
+
     await addMocks([
       {
-        pattern: '**/api/v1/intelligence/**',
-        handler: async (route) => {
-          const headers = route.request().headers();
-          capturedTenantId = headers['x-tenant-id'] as string;
-          await route.fulfill({
-            status: 200,
-            body: JSON.stringify({ signals: [] }),
-          });
+        pattern: /.*\/api\/v1\/agents\/v1\/authz\/accounts\/acct-meridian-001\/access.*/,
+        body: {
+          account_exists: true,
+          tenant_bound: true,
+          principal_allowed: true,
+          reason: 'allowed',
         },
       },
     ]);
 
-    // Set initial tenant context
-    await setTenantContext(authedPage, 'tenant-001', 'tenant-a');
-    await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.meridian);
+    try {
+      await setTenantContext(authedPage, 'tenant-001', 'tenant-a');
+      await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.meridian);
+      await authedPage.goto('/t/tenant-a/accounts/acct-meridian-001/intelligence/signals', { waitUntil: 'domcontentloaded' });
 
-    // Make API request
-    await authedPage.goto('/intelligence/acct-meridian-001/signals', { waitUntil: 'domcontentloaded' });
+      await expect.poll(() => authzRequests.length, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
+      expect(authzRequests.at(-1)?.url).toContain('tenant_slug=tenant-a');
+      expect(authzRequests.at(-1)?.headers['x-tenant-id']).toBeUndefined();
 
-    // Verify tenant context was used
-    expect(capturedTenantId).toBe('tenant-001');
+      await setTenantContext(authedPage, 'tenant-002', 'tenant-b');
+      await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.meridian);
+      await authedPage.goto('/t/tenant-b/accounts/acct-meridian-001/intelligence/signals', { waitUntil: 'domcontentloaded' });
 
-    // Switch tenant context
-    capturedTenantId = null;
-    await setTenantContext(authedPage, 'tenant-002', 'tenant-b');
-
-    // Make another API request
-    await authedPage.reload({ waitUntil: 'domcontentloaded' });
-
-    // Verify new tenant context was used
-    expect(capturedTenantId).toBe('tenant-002');
+      await expect.poll(
+        () => authzRequests.some((request) => request.url.includes('tenant_slug=tenant-b')),
+        { timeout: 10000 },
+      ).toBe(true);
+      expect(authzRequests.at(-1)?.headers['x-tenant-id']).toBeUndefined();
+    } finally {
+      authedPage.off('request', captureAuthzRequest);
+    }
   });
 
   // ── Session Remains Valid Across Switch ───────────────────────────────────
@@ -195,8 +203,8 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     // Navigate to deep link
     await authedPage.goto('/intelligence/acct-meridian-001/signals', { waitUntil: 'domcontentloaded' });
 
-    // Should use new tenant context
-    // (This would be verified by API mock capturing tenant-id header)
+    // Should use new tenant context from route/session state; browser code
+    // must not synthesize X-Tenant-ID.
   });
 
   // ── No Stale Data from Previous Context ───────────────────────────────────

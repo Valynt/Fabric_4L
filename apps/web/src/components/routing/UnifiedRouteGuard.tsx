@@ -55,7 +55,7 @@ function UnifiedRouteGuardInner({
   // ALL hooks must be called before any conditional return (Rules of Hooks).
   // Use optional chaining so hooks are unconditionally invoked even when policy
   // is undefined; the conditional guard logic below still short-circuits safely.
-  const { canAccessRoute } = useUserTierStore();
+  const { canAccessRoute, isRehydrated } = useUserTierStore();
 
   const tenantSlug = params.tenantSlug;
   const { isMemberOfTenant, isLoading: tenantLoading } =
@@ -78,6 +78,13 @@ function UnifiedRouteGuardInner({
   );
 
   if (isLoading) {
+    return <RouteGuardSkeleton />;
+  }
+
+  // Wait for persisted tier to be restored before making access decisions.
+  // This prevents a one-render flash where a stored admin/advanced user is
+  // evaluated as the default 'standard' tier and redirected incorrectly.
+  if (!isRehydrated) {
     return <RouteGuardSkeleton />;
   }
 

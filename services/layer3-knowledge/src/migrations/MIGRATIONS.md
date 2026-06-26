@@ -26,7 +26,12 @@ This file tracks all Neo4j schema and data migrations for the Layer 3 Knowledge 
 
 ## Running Migrations
 
+All `python -m migrations.<name>` commands must be run from the Layer 3 service
+source root so the `migrations` package is on `sys.path`:
+
 ```bash
+cd services/layer3-knowledge/src
+
 # Dry run (prints Cypher, no changes)
 python -m migrations.030_neo4j_tenant_id_constraints_and_indexes --dry-run
 

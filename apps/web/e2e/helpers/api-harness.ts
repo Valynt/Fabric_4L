@@ -398,8 +398,11 @@ export function mockAccountData(
   for (const [key, tabName] of Object.entries(tabMap)) {
     const tabData = data[key as keyof typeof data];
     if (tabData && typeof tabData === 'object') {
+      // Canonical backend path is `/agents/cases/{case_id}/workspace/{tab}`.
+      // Tests do not know the generated case id, so match any case id; the
+      // account-specific endpoint above is the stable fixture anchor.
       mocks.push({
-        pattern: `**/api/v1/agents/workspace/${accountId}/${tabName}`,
+        pattern: `**/api/v1/agents/cases/*/workspace/${tabName}`,
         // Match backend tab shape: `{ <tab>: [...] }`.
         body: { [tabName]: tabData, generated_at: new Date().toISOString() },
       });

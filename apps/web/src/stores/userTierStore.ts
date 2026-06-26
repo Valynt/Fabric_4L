@@ -49,7 +49,10 @@ export interface UserTierState {
   
   // Feature flags based on tier
   permissions: UserPermissions;
-  
+
+  // Persist rehydration state (used by route guards to avoid deciding before storage is read)
+  isRehydrated: boolean;
+
   // Actions
   setTier: (tier: UserTier) => void;
   setUserRole: (role: string) => void;
@@ -329,7 +332,10 @@ const ROUTE_TIER_MAP: Record<string, UserTier> = {
   '/t/:tenantSlug/accounts/:accountId/studio': 'advanced',
   '/t/:tenantSlug/accounts/:accountId/deliverables': 'standard',
   '/t/:tenantSlug/context': 'standard',
+  '/t/:tenantSlug/context/integrations': 'admin',
   '/t/:tenantSlug/governance': 'standard',
+  '/t/:tenantSlug/governance/benchmarks': 'admin',
+  '/t/:tenantSlug/settings': 'admin',
 
   // ═══════════════════════════════════════════════════════════════
   // LEGACY REDIRECTS (maintain for backward compatibility)
@@ -362,38 +368,22 @@ const ROUTE_TIER_MAP: Record<string, UserTier> = {
 
 // Pre-sorted routes for efficient lookup (longest first for proper prefix matching)
 const SORTED_ROUTES = Object.entries(ROUTE_TIER_MAP).sort((a, b) => b[0].length - a[0].length);
-function readInitialTierFromStorage(): UserTier {
-  if (typeof window === 'undefined') {
-    return 'standard';
-  }
 
-  try {
-    const raw = window.localStorage.getItem('user-tier-storage');
-    if (!raw) {
-      return 'standard';
-    }
-    const parsed = JSON.parse(raw) as { state?: { currentTier?: unknown } };
-    const storedTier = typeof parsed.state?.currentTier === 'string'
-      ? validateTier(parsed.state.currentTier)
-      : null;
-    return storedTier ?? 'standard';
-  } catch {
-    return 'standard';
-  }
-}
-
-// Fail closed for missing or invalid state, but read an explicitly persisted
-// tier synchronously so route guards do not redirect before hydration completes.
-const INITIAL_TIER: UserTier = readInitialTierFromStorage();
+// Deterministic fail-closed default tier. The actual persisted tier is applied
+// synchronously by the persist middleware, and permissions are recomputed in
+// onRehydrateStorage. This avoids a server/client hydration mismatch caused by
+// reading localStorage at module evaluation time.
+const DEFAULT_INITIAL_TIER: UserTier = 'standard';
 
 export const useUserTierStore = create<UserTierState>()(
   persist(
     (set, get) => ({
-      // Initial state
-      currentTier: INITIAL_TIER,
-      isAdvancedModeEnabled: INITIAL_TIER !== 'standard',
+      // Initial state (deterministic; persisted values are merged during rehydration)
+      currentTier: DEFAULT_INITIAL_TIER,
+      isAdvancedModeEnabled: false,
       userRole: null,
-      permissions: getDefaultPermissions(INITIAL_TIER),
+      permissions: getDefaultPermissions(DEFAULT_INITIAL_TIER),
+      isRehydrated: false,
 
       // Actions
       setTier: (tier) => {
@@ -501,6 +491,24 @@ export const useUserTierStore = create<UserTierState>()(
         isAdvancedModeEnabled: state.isAdvancedModeEnabled,
         userRole: state.userRole,
       }),
+      merge: (persistedState, currentState) => {
+        const typedState = persistedState as Partial<UserTierState> | undefined;
+        const storedTier = validateTier(typedState?.currentTier ?? 'standard') ?? 'standard';
+        return {
+          ...currentState,
+          currentTier: storedTier,
+          isAdvancedModeEnabled:
+            typedState?.isAdvancedModeEnabled ?? storedTier !== 'standard',
+          userRole: typedState?.userRole ?? null,
+          permissions: getDefaultPermissions(storedTier),
+          isRehydrated: true,
+        };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isRehydrated = true;
+        }
+      },
     }
   )
 );

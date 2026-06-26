@@ -186,9 +186,22 @@ export async function getCurrentTier(page: Page): Promise<UserTier | null> {
  *   /deliver/cases          → /deliverables/cases
  *   /deliver/agents         → /context/agents
  *   /evidence/traces        → /governance/traces
- *   /admin/content/benchmarks → /t/demo/governance/benchmarks
- *   /admin/data/integrations  → /t/demo/context/integrations
+ *   /admin/content/benchmarks → /t/{tenant}/governance/benchmarks
+ *   /admin/data/integrations  → /t/{tenant}/context/integrations
  */
+/**
+ * Tenant slug used for tier-gated route tests. Keep this in sync with the
+ * tenant seeded by the test harness (auth-helpers / global setup).
+ */
+export const TEST_TENANT_SLUG = 'demo';
+
+/**
+ * Build a tenant-scoped route under the canonical test tenant.
+ */
+export function tenantRoute(path: string): string {
+  return `/t/${TEST_TENANT_SLUG}${path}`;
+}
+
 export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted: string[] }> = {
   standard: {
     accessible: [
@@ -205,7 +218,7 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/context/ontology',
       '/context/value-trees/explorer',
       '/context/formulas',
-      '/t/demo/governance/benchmarks',
+      tenantRoute('/governance/benchmarks'),
     ],
   },
   advanced: {
@@ -224,9 +237,9 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/governance/traces',
     ],
     restricted: [
-      '/t/demo/governance/benchmarks',
-      '/t/demo/settings',
-      '/t/demo/context/integrations',
+      tenantRoute('/governance/benchmarks'),
+      tenantRoute('/settings'),
+      tenantRoute('/context/integrations'),
     ],
   },
   admin: {
@@ -241,9 +254,9 @@ export const ROUTES_BY_TIER: Record<UserTier, { accessible: string[]; restricted
       '/deliverables/cases',
       '/context/agents',
       '/governance/traces',
-      '/t/demo/governance/benchmarks',
-      '/t/demo/settings',
-      '/t/demo/context/integrations',
+      tenantRoute('/governance/benchmarks'),
+      tenantRoute('/settings'),
+      tenantRoute('/context/integrations'),
     ],
     restricted: [],
   },
