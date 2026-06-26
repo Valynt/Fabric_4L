@@ -77,11 +77,32 @@ export async function setUserTier(
     //    This is critical: the app reads userInfo.role on boot and calls
     //    setUserRole(role) which normalizes to a tier and overwrites the store.
     const userInfoRaw = localStorage.getItem('userInfo');
+    let updatedUserInfo: Record<string, unknown> | null = null;
     if (userInfoRaw) {
       try {
-        const userInfo = JSON.parse(userInfoRaw);
+        const userInfo = JSON.parse(userInfoRaw) as Record<string, unknown>;
         userInfo.role = params.role;
+        updatedUserInfo = userInfo;
         localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    const sessionMetaRaw = sessionStorage.getItem('vf.auth.session.meta');
+    if (sessionMetaRaw) {
+      try {
+        const sessionMeta = JSON.parse(sessionMetaRaw) as Record<string, unknown>;
+        const sessionUser = (
+          typeof sessionMeta.user === 'object' && sessionMeta.user !== null
+            ? { ...(sessionMeta.user as Record<string, unknown>) }
+            : updatedUserInfo
+        );
+        if (sessionUser) {
+          sessionUser.role = params.role;
+          sessionMeta.user = sessionUser;
+          sessionStorage.setItem('vf.auth.session.meta', JSON.stringify(sessionMeta));
+        }
       } catch {
         // ignore parse errors
       }

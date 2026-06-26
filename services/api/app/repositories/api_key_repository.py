@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class APIKeyRepository:
     """Persistence operations for tenant-scoped API keys."""
 
-    def __init__(self, database: "InMemoryDatabase | PostgreSQLDatabase" = db):
+    def __init__(self, database: InMemoryDatabase | PostgreSQLDatabase = db):
         self._db = database
 
     def create_key(

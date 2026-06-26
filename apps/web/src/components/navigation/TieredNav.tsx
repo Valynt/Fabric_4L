@@ -60,6 +60,7 @@ export interface TieredNavProps {
   userRole?: string;
   isAdvancedModeEnabled?: boolean;
   onAdvancedModeToggle?: (enabled: boolean) => void;
+  headerSlot?: React.ReactNode;
 }
 
 // â”€â”€ Navigation Spine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -475,6 +476,7 @@ export function TieredNav({
   onTierChange,
   isAdvancedModeEnabled = false,
   onAdvancedModeToggle = () => {},
+  headerSlot,
 }: TieredNavProps) {
   const effectiveTier = useMemo<UserTier>(
     () =>
@@ -491,6 +493,11 @@ export function TieredNav({
 
   return (
     <aside className="w-[240px] shrink-0 bg-card border-r border-border overflow-y-auto z-20 flex flex-col h-full">
+      {headerSlot && (
+        <div className="shrink-0 border-b border-border p-3">
+          {headerSlot}
+        </div>
+      )}
       <div className="flex-1 py-4 px-2 space-y-1">
         {visibleNavItems.map(item => (
           <SidebarItem key={item.id} item={item} currentTier={currentTier} />

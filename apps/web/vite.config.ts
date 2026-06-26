@@ -258,6 +258,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
+      "@fabric/platform-contract/clerk-defaults": path.resolve(__dirname, "../../packages/platform-contract/src/typescript/clerkDefaults.ts"),
     },
   },
   envDir: __dirname,
@@ -319,6 +320,12 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+      allow: [
+        __dirname,
+        path.resolve(__dirname, "../.."),
+        path.resolve(__dirname, "../../packages/platform-contract/src"),
+        path.resolve(__dirname, "../../packages/platform-contract/src/typescript"),
+      ],
     },
     // Proxy configuration for multi-layer API routing.
     // Canonical rule: browser calls only /api/v1/*, which terminates at the API

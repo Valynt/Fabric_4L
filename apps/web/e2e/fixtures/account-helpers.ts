@@ -113,6 +113,11 @@ export async function getSelectedAccountId(page: Page): Promise<string | null> {
 export async function switchAccount(page: Page, fromAccount: TestAccount, toAccount: TestAccount): Promise<void> {
   await ensureSameOrigin(page);
 
+  const currentUrl = page.url();
+  const nextUrl = currentUrl.includes(encodeURIComponent(fromAccount.id)) || currentUrl.includes(fromAccount.id)
+    ? currentUrl.replaceAll(encodeURIComponent(fromAccount.id), encodeURIComponent(toAccount.id)).replaceAll(fromAccount.id, toAccount.id)
+    : null;
+
   await page.evaluate((acct: TestAccount) => {
     const storeState = {
       state: {
@@ -124,8 +129,14 @@ export async function switchAccount(page: Page, fromAccount: TestAccount, toAcco
     sessionStorage.setItem('fabric-account-context', JSON.stringify(storeState));
   }, toAccount);
 
-  // Trigger a page reload to simulate the context switch
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  // Trigger navigation/reload to simulate the context switch. When already on
+  // an account-scoped route, keep the same workspace tab but replace the
+  // account id so the route, guard query, and selected context move together.
+  if (nextUrl) {
+    await page.goto(nextUrl, { waitUntil: 'domcontentloaded' });
+  } else {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+  }
 }
 
 /**

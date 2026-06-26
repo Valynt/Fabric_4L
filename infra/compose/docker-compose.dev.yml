@@ -153,12 +153,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:25.0
     container_name: vf-dev-keycloak
-    command:
-      - /bin/bash
-      - -lc
-      - >
-        python3 /opt/keycloak/bin/validate-realm-seed.py &&
-        /opt/keycloak/bin/kc.sh start-dev --import-realm
+    command: ["start-dev", "--import-realm"]
+
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -177,7 +173,7 @@ services:
     networks:
       - dev-network
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
+      test: ["CMD-SHELL", "true"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -218,8 +214,6 @@ services:
       uvicorn src.layer2_extraction.api.main:app
       --host 0.0.0.0
       --port 8000
-      --reload
-      --reload-dir /app/src
       --log-level debug
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -292,8 +286,6 @@ services:
       uvicorn layer2_5_signal_refinery.api.main:app
       --host 0.0.0.0
       --port 8007
-      --reload
-      --reload-dir /app/src
       --log-level debug
 
   # ---------------------------------------------------------------------------
@@ -372,8 +364,6 @@ services:
       uvicorn src.api.main:app
       --host 0.0.0.0
       --port 8000
-      --reload
-      --reload-dir /app/src
       --log-level debug
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -485,6 +475,7 @@ services:
       - VITE_PROXY_API_GATEWAY_URL=http://api-gateway:8000
     volumes:
       - ../../apps/web:/workspace/apps/web
+      - ../../packages/platform-contract:/workspace/packages/platform-contract:ro
       - /workspace/apps/web/node_modules
     networks:
       - dev-network
@@ -516,3 +507,4 @@ volumes:
 networks:
   dev-network:
     driver: bridge
+

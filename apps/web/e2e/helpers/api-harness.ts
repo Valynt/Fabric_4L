@@ -75,6 +75,34 @@ const EMPTY_ACCOUNT = {
   created_at: '2025-01-01T00:00:00Z',
 };
 
+const JOURNEY_ACCOUNTS = [
+  {
+    id: 'acct-meridian-001',
+    name: 'Meridian Automotive',
+    industry: 'Manufacturing',
+    website: 'https://meridian.example',
+    tier: 'enterprise',
+    created_at: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'acct-acme-002',
+    name: 'Acme Corp',
+    industry: 'Technology',
+    website: 'https://acme.example',
+    tier: 'mid-market',
+    created_at: '2025-01-02T00:00:00Z',
+  },
+  {
+    id: 'acct-gf-003',
+    name: 'Global Finance Inc',
+    industry: 'Financial Services',
+    website: 'https://global-finance.example',
+    tier: 'enterprise',
+    created_at: '2025-01-03T00:00:00Z',
+  },
+  EMPTY_ACCOUNT,
+];
+
 /**
  * Build the canonical backend empty shape for a workspace tab.
  * The backend returns `{ <tab>: [] }`, not a wrapper with `status: 'empty'`.
@@ -88,13 +116,27 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   {
     pattern: /.*\/api\/v1\/agents\/accounts\?.*/,
     body: {
-      items: [EMPTY_ACCOUNT],
-      total: 1,
+      items: JOURNEY_ACCOUNTS,
+      total: JOURNEY_ACCOUNTS.length,
       page: 1,
       page_size: 100,
       has_more: false,
     },
   },
+  // Account ACL checks used by tenant/account-scoped route guards.
+  {
+    pattern: /.*\/api\/v1\/agents\/v1\/authz\/accounts\/[^/]+\/access\?.*/,
+    body: {
+      account_exists: true,
+      tenant_bound: true,
+      principal_allowed: true,
+      reason: 'allowed',
+    },
+  },
+  ...JOURNEY_ACCOUNTS.map((account) => ({
+    pattern: `**/api/v1/agents/accounts/${account.id}`,
+    body: account,
+  })),
   // Account single fetch — GET /api/v1/agents/accounts/:id (no query string)
   {
     pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+$/,
@@ -106,7 +148,15 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     body: emptyWorkspaceTab('signals'),
   },
   {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/signals',
+    body: emptyWorkspaceTab('signals'),
+  },
+  {
     pattern: '**/api/v1/agents/cases/*/workspace/drivers',
+    body: emptyWorkspaceTab('drivers'),
+  },
+  {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/drivers',
     body: emptyWorkspaceTab('drivers'),
   },
   {
@@ -114,7 +164,15 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     body: emptyWorkspaceTab('evidence'),
   },
   {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/evidence',
+    body: emptyWorkspaceTab('evidence'),
+  },
+  {
     pattern: '**/api/v1/agents/cases/*/workspace/stakeholders',
+    body: emptyWorkspaceTab('stakeholders'),
+  },
+  {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/stakeholders',
     body: emptyWorkspaceTab('stakeholders'),
   },
   {
@@ -122,7 +180,15 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     body: emptyWorkspaceTab('action-plan'),
   },
   {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/action-plan',
+    body: emptyWorkspaceTab('action-plan'),
+  },
+  {
     pattern: '**/api/v1/agents/cases/*/workspace/value-model',
+    body: emptyWorkspaceTab('value-model'),
+  },
+  {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/value-model',
     body: emptyWorkspaceTab('value-model'),
   },
   {
@@ -130,7 +196,15 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     body: emptyWorkspaceTab('narrative'),
   },
   {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/narrative',
+    body: emptyWorkspaceTab('narrative'),
+  },
+  {
     pattern: '**/api/v1/agents/cases/*/workspace/evidence-links',
+    body: emptyWorkspaceTab('evidence-links'),
+  },
+  {
+    pattern: '**/api/v1/agents/analysis/cases/*/workspace/evidence-links',
     body: emptyWorkspaceTab('evidence-links'),
   },
   // Case ID resolution — GET /api/v1/agents/cases?account_id=... returns items list
@@ -138,10 +212,22 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: /.*\/api\/v1\/agents\/cases\?account_id=.*/,
     body: { items: [{ case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' }], total: 1 },
   },
+  // Current analysis case resolution path used by account workspaces.
+  {
+    pattern: /.*\/api\/v1\/agents\/analysis\/cases\?account_id=.*/,
+    body: { items: [{ case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' }], total: 1 },
+  },
   // Case create — POST /api/v1/agents/cases
   {
     method: 'POST',
     pattern: /.*\/api\/v1\/agents\/cases$/,
+    body: { case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' },
+    status: 201,
+  },
+  // Current analysis case create path used by account workspaces.
+  {
+    method: 'POST',
+    pattern: /.*\/api\/v1\/agents\/analysis\/cases$/,
     body: { case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' },
     status: 201,
   },

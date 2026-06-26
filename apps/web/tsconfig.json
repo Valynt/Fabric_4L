@@ -21,7 +21,11 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"],
-      "@contract/*": ["../packages/platform-contract/src/*"]
+      "@contract/*": ["../packages/platform-contract/src/*"],
+      "@fabric/platform-contract/*": [
+        "../packages/platform-contract/src/*",
+        "../packages/platform-contract/src/typescript/*"
+      ]
     }
   }
 }

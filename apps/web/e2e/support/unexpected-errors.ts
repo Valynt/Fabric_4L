@@ -1,4 +1,4 @@
-import type { ConsoleMessage, Page, Response } from '@playwright/test';
+import type { ConsoleMessage, Page, Request, Response } from '@playwright/test';
 
 type UnexpectedErrorAuditOptions = {
   allowConsoleErrorPatterns?: RegExp[];
@@ -21,6 +21,7 @@ const IGNORED_CONSOLE_ERRORS = [
 
 const FAILED_JOB_STATUS_PATTERN = /\b(failed|error|cancelled)\b/i;
 const JOB_URL_PATTERN = /\/api\/v1\/(?:ingest\/jobs|agents\/workflows|agents\/harness\/runs)/i;
+const FAILING_RESOURCE_ERROR_PATTERN = /ERR_NAME_NOT_RESOLVED/i;
 
 export function attachUnexpectedErrorAudit(
   page: Page,
@@ -30,6 +31,7 @@ export function attachUnexpectedErrorAudit(
   const consoleErrors: string[] = [];
   const http5xx: string[] = [];
   const failedJobs: string[] = [];
+  const failedResourceRequests: string[] = [];
   const unhandledApiRequests: string[] = [];
   const expectedHttp5xxPatterns = [...(options.allowHttp5xxPatterns ?? [])];
 
@@ -57,9 +59,19 @@ export function attachUnexpectedErrorAudit(
     }
   };
 
+  const onRequestFailed = (request: Request) => {
+    const failure = request.failure();
+    const errorText = failure?.errorText ?? '';
+    if (!FAILING_RESOURCE_ERROR_PATTERN.test(errorText)) return;
+    const url = request.url();
+    if (IGNORED_CONSOLE_ERRORS.some((pattern) => pattern.test(url))) return;
+    failedResourceRequests.push(`${request.method()} ${url} ${errorText}`);
+  };
+
   page.on('pageerror', onPageError);
   page.on('console', onConsole);
   page.on('response', onResponse);
+  page.on('requestfailed', onRequestFailed);
 
   return {
     recordExpectedHttp5xxPattern: (pattern: string | RegExp) => {
@@ -74,6 +86,7 @@ export function attachUnexpectedErrorAudit(
       const failures = [
         ...pageErrors.map((error) => `unexpected page error: ${error}`),
         ...consoleErrors.map((error) => `unexpected console error: ${error}`),
+        ...failedResourceRequests.map((error) => `unexpected failed resource request: ${error}`),
         ...http5xx.map((error) => `unexpected HTTP 5xx response: ${error}`),
         ...failedJobs.map((error) => `unexpected failed background job: ${error}`),
         ...unhandledApiRequests.map((error) => `unhandled mocked API request: ${error}`),
@@ -86,6 +99,7 @@ export function attachUnexpectedErrorAudit(
       page.off('pageerror', onPageError);
       page.off('console', onConsole);
       page.off('response', onResponse);
+      page.off('requestfailed', onRequestFailed);
     },
   };
 }

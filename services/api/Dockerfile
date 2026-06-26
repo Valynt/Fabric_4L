@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir uv==0.11.6
 WORKDIR /app
 
 COPY services/api/pyproject.toml .
+COPY services/api/uv.lock .
 RUN uv sync --frozen --no-install-project
 
 COPY services/api/app/ ./app/

@@ -27,6 +27,7 @@ class Permission(str, Enum):
     READ_SCHEMA = "read:schema"
     READ_SEARCH = "read:search"
     READ_GRAPHRAG = "read:graphrag"
+    READ_BENCHMARKS = "read:benchmarks"
     READ_ANALYTICS = "read:analytics"
     READ_INGESTION = "read:ingestion"
     READ_AGENTS = "read:agents"
@@ -122,6 +123,7 @@ ROLE_PERMISSIONS: dict[Role, RolePermissions] = {
                 Permission.READ_SCHEMA,
                 Permission.READ_SEARCH,
                 Permission.READ_GRAPHRAG,
+                Permission.READ_BENCHMARKS,
                 Permission.READ_ANALYTICS,
                 Permission.READ_INGESTION,
                 Permission.READ_AGENTS,

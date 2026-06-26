@@ -10,8 +10,14 @@ dependencies = [
     "pydantic-settings>=2.2.0",
     "python-multipart>=0.0.28",  # 0.0.27 has no known CVEs but 0.0.28 is the current clean release; tighten lower bound
     "PyJWT>=2.8.0",
+    "cryptography>=43.0.0",
+    "email-validator>=2.1.0.post1",
+    "limits>=4.0.0",
     "passlib[bcrypt]>=1.7.4",
+    "structlog>=24.4.0",
+    "sqlalchemy>=2.0.0",
     "httpx>=0.27.0",
+    "psycopg[binary]>=3.1.0",
     "openai>=1.30.0",
     "prometheus-client>=0.19.0",
     "sentry-sdk>=2.0.0",
@@ -80,3 +86,5 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests may use message-bearing raises for test assertions
 "app/tests/*.py" = ["EM101", "EM102", "TRY003"]
+
+

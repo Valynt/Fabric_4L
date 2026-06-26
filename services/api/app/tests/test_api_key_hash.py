@@ -35,7 +35,7 @@ def test_generate_api_key_has_expected_shape():
 
 
 def test_api_key_models_import():
-    from app.models.api_key import APIKeyCreateRequest, APIKeyRecord
+    from app.models.api_key import APIKeyRecord
 
     record = APIKeyRecord(
         key_id="vf_key_abc",

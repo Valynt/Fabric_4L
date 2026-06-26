@@ -5,19 +5,18 @@ tests exercise the real authorization enforcement path, not the insecure
 bypass path that the shared conftest enables for unit tests.
 """
 
-import os as _os
-
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 from .conftest import TENANT_ALPHA, TENANT_BETA, auth_headers
 
-# Disable the dev auth bypass for all tests in this module.
-# The shared conftest sets ALLOW_INSECURE_DEV_AUTH_BYPASS=true to allow
-# /metrics access in unit tests. Tenant isolation tests must run with real
-# authorization enforcement to be meaningful security gates.
-_os.environ["ALLOW_INSECURE_DEV_AUTH_BYPASS"] = "false"
+
+@pytest.fixture(autouse=True)
+def _disable_dev_bypass(monkeypatch):
+    """Disable the dev auth bypass for tests in this module only."""
+    monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
 
 
 def test_cross_tenant_access_blocked():

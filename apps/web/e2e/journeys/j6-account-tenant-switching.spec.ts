@@ -38,7 +38,7 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     await authedPage.goto('/intelligence/acct-meridian-001/signals', { waitUntil: 'domcontentloaded' });
 
     // Verify Meridian data is loaded
-    await expect(authedPage.getByText(/meridian/i)).toBeVisible({ timeout: 10000 });
+    await expectAnyVisible(authedPage, [/meridian/i], 'Meridian account data', 10000);
 
     // Switch to Acme account
     await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.acme);
@@ -47,8 +47,8 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     await authedPage.goto('/intelligence/acct-acme-002/signals', { waitUntil: 'domcontentloaded' });
 
     // Verify Acme data is loaded
-    await expect(authedPage.getByText(/acme/i)).toBeVisible({ timeout: 10000 });
-    await expect(authedPage.getByText(/meridian/i)).not.toBeVisible({ timeout: 5000 });
+    await expectAnyVisible(authedPage, [/acme/i], 'Acme account data', 10000);
+    await expect(authedPage.locator('#main-content').getByText(/meridian/i).first()).not.toBeVisible({ timeout: 5000 });
   });
 
   journeyTest('SWITCH-002: account context is verified after switch', async ({ authedPage }) => {
@@ -177,20 +177,31 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
 
   // ── Deep Links After Switch Respect New Context ────────────────────────────
 
-  journeyTest('SWITCH-008: deep links after account switch respect new context', async ({ authedPage }) => {
+  journeyTest('SWITCH-008: deep links after account switch respect new context', async ({ authedPage, addMocks }) => {
     // Start with Meridian
     await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.meridian);
 
     // Switch to Acme
     await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.acme);
 
+    await addMocks([
+      {
+        pattern: /.*\/api\/v1\/agents\/v1\/authz\/accounts\/acct-meridian-001\/access.*/,
+        body: {
+          account_exists: true,
+          tenant_bound: true,
+          principal_allowed: false,
+          reason: 'account_context_mismatch',
+        },
+      },
+    ]);
+
     // Navigate to Meridian deep link (should not show Meridian data)
     await authedPage.goto('/intelligence/acct-meridian-001/signals', { waitUntil: 'domcontentloaded' });
 
-    // Should show error or redirect, not Meridian data
-    await expect(
-      authedPage.getByText(/forbidden|not authorized|access denied|could not be loaded|no signals yet/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    // Should redirect to the account list, not render the mismatched account.
+    await expect(authedPage).toHaveURL(/\/t\/demo\/accounts(?:$|[?#])/, { timeout: 10000 });
+    await expect(authedPage.locator('#main-content').getByText(/meridian/i).first()).not.toBeVisible({ timeout: 5000 });
   });
 
   journeyTest('SWITCH-009: deep links after tenant switch respect new context', async ({ authedPage }) => {
@@ -213,7 +224,7 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     // Load Meridian data
     await switchAccount(authedPage, TEST_ACCOUNTS.meridian, TEST_ACCOUNTS.meridian);
     await authedPage.goto('/intelligence/acct-meridian-001/signals', { waitUntil: 'domcontentloaded' });
-    await expect(authedPage.getByText(/meridian/i)).toBeVisible({ timeout: 10000 });
+    await expectAnyVisible(authedPage, [/meridian/i], 'Meridian account data', 10000);
 
     // Clear cache and switch
     await clearAccountData(authedPage);
@@ -223,7 +234,7 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     await authedPage.goto('/intelligence/acct-acme-002/signals', { waitUntil: 'domcontentloaded' });
 
     // Should not show Meridian data
-    await expect(authedPage.getByText(/meridian/i)).not.toBeVisible({ timeout: 5000 });
+    await expect(authedPage.locator('#main-content').getByText(/meridian/i).first()).not.toBeVisible({ timeout: 5000 });
   });
 
   journeyTest('SWITCH-011: stale data from previous tenant does not appear after switch', async ({ authedPage }) => {
@@ -262,9 +273,7 @@ journeyTest.describe('Journey 6: Account and Tenant Switching', () => {
     await authedPage.goto('/home', { waitUntil: 'domcontentloaded' });
 
     // Click on account switcher
-    const accountSwitcher = authedPage.getByRole('button', { name: /account|meridian/i }).or(
-      authedPage.getByText(/meridian/i)
-    ).first();
+    const accountSwitcher = authedPage.locator('button[aria-label*="Current account"]').first();
     await accountSwitcher.click();
 
     // Should show account list

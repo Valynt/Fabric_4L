@@ -54,6 +54,7 @@ export interface UserTierState {
   isRehydrated: boolean;
 
   // Actions
+  setRehydrated: (isRehydrated: boolean) => void;
   setTier: (tier: UserTier) => void;
   setUserRole: (role: string) => void;
   toggleAdvancedMode: () => void;
@@ -386,6 +387,10 @@ export const useUserTierStore = create<UserTierState>()(
       isRehydrated: false,
 
       // Actions
+      setRehydrated: (isRehydrated) => {
+        set({ isRehydrated });
+      },
+
       setTier: (tier) => {
         set({ 
           currentTier: tier, 
@@ -505,9 +510,7 @@ export const useUserTierStore = create<UserTierState>()(
         };
       },
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.isRehydrated = true;
-        }
+        state?.setRehydrated(true);
       },
     }
   )

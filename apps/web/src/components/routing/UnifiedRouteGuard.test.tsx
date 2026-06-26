@@ -5,6 +5,9 @@ import { setAuthProvider } from "@/test/utils/withAuthProvider";
 const mockUserTierStore = vi.hoisted(() => ({
   canAccessRoute: vi.fn(() => true),
   isRehydrated: true,
+  persist: {
+    hasHydrated: vi.fn(() => true),
+  },
 }));
 const mockUseParams = vi.fn(() => ({ tenantSlug: "tenant-a", accountId: "acc-1" }));
 const mockUseMatches = vi.fn(() => [{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
@@ -25,7 +28,11 @@ vi.mock("@/hooks/useAccountAccess", () => ({ useAccountAccess: () => ({ hasAccou
 vi.mock("@/hooks/useUserPermissions", () => ({ useUserPermissions: () => ({ hasPermissions: true, isLoading: false }) }));
 vi.mock("@/hooks/useFeatureFlags", () => ({ useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }) }));
 vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ entitlementsMet: false, isLoading: false, isError: false }) }));
-vi.mock("@/stores", () => ({ useUserTierStore: () => mockUserTierStore }));
+vi.mock("@/stores", () => ({
+  useUserTierStore: Object.assign(() => mockUserTierStore, {
+    persist: mockUserTierStore.persist,
+  }),
+}));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -52,11 +59,13 @@ function renderGuard() {
 
 describe("UnifiedRouteGuard deny behavior", () => {
   afterEach(() => {
+    window.localStorage.clear();
     setAuthProvider("legacy");
     mockClerkAuth.isLoaded = true;
     mockClerkAuth.isSignedIn = true;
     mockUserTierStore.canAccessRoute.mockReturnValue(true);
     mockUserTierStore.isRehydrated = true;
+    mockUserTierStore.persist.hasHydrated.mockReturnValue(true);
     mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
   });
 
@@ -66,7 +75,12 @@ describe("UnifiedRouteGuard deny behavior", () => {
   });
 
   it("waits for tier-store rehydration before evaluating protected route access", () => {
+    window.localStorage.setItem(
+      "user-tier-storage",
+      JSON.stringify({ state: { currentTier: "admin" }, version: 0 }),
+    );
     mockUserTierStore.isRehydrated = false;
+    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
     mockUserTierStore.canAccessRoute.mockReturnValue(false);
     mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
 
@@ -75,6 +89,39 @@ describe("UnifiedRouteGuard deny behavior", () => {
     expect(screen.getByText("Verifying access...")).toBeInTheDocument();
     expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
+  });
+
+  it("does not wait for advanced-tier rehydration when an admin route will remain denied", () => {
+    window.localStorage.setItem(
+      "user-tier-storage",
+      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
+    );
+    mockUserTierStore.isRehydrated = false;
+    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
+    mockUserTierStore.canAccessRoute.mockReturnValue(false);
+    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
+
+    renderGuard();
+
+    expect(screen.getByText("redirect:/home")).toBeInTheDocument();
+    expect(screen.queryByText("Verifying access...")).not.toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+  });
+
+  it("waits for advanced-tier rehydration before evaluating advanced routes", () => {
+    window.localStorage.setItem(
+      "user-tier-storage",
+      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
+    );
+    mockUserTierStore.isRehydrated = false;
+    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
+    mockUserTierStore.canAccessRoute.mockReturnValue(false);
+    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "advanced" } } }]);
+
+    renderGuard();
+
+    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
+    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
   });
 
   it("uses Clerk signed-in state in Clerk mode instead of stale legacy-compatible context", () => {

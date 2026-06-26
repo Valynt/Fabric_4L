@@ -5,7 +5,6 @@ import structlog
 from fastapi import FastAPI, Request
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult
-from value_fabric.shared.fastapi_framework.middleware import add_governance_middleware
 from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.observability.sentry_init import init_sentry
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
@@ -13,12 +12,16 @@ from value_fabric.shared.startup import reject_insecure_bypass_in_production
 from app.core.audit import AuditMiddleware
 from app.core.clerk_config import AUTH_PROVIDER_CLERK
 from app.core.config import get_settings
+from app.core.governance import add_gateway_governance_middleware
 from app.core.metrics import metrics_middleware, render_metrics
+from app.core.sla_middleware import ContractVersionMiddleware
 from app.logging_config import configure_structured_logging
 from app.routers import (
     accounts,
     agents,
+    api_keys,
     auth,
+    benchmarks,
     calculator,
     clerk_auth,
     clerk_webhooks,
@@ -29,8 +32,10 @@ from app.routers import (
     hypotheses,
     intelligence,
     privacy,
+    product_endpoints,
     realization,
     reviews,
+    usage,
     value_cases,
     versioning,
 )
@@ -205,10 +210,14 @@ app = create_fabric_app(
 # Primary auth + tenant-context gate. create_fabric_app installs the tenant
 # enforcement rollout control, but the canonical GovernanceMiddleware must be
 # present for route dependencies to establish tenant context.
-add_governance_middleware(app, rate_limiter=None)
+add_gateway_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
+app.include_router(api_keys.router, prefix="/v1")
+app.include_router(benchmarks.router, prefix="/v1")
+app.include_router(usage.router, prefix="/v1")
+app.include_router(product_endpoints.router, prefix="/v1")
 
 # Clerk routes are exposed only when the gateway is configured for Clerk auth.
 # This prevents 500 responses from the Clerk dependency when AUTH_PROVIDER is set
@@ -238,6 +247,9 @@ app.include_router(clerk_webhooks.router)
 
 # Audit logging for all state-changing requests
 app.add_middleware(AuditMiddleware)
+
+# Contract/SLA version enforcement
+app.add_middleware(ContractVersionMiddleware)
 
 app.middleware("http")(metrics_middleware)
 register_health_endpoint(app, service_name="fabric-4l-api")

@@ -103,6 +103,8 @@ class Settings(BaseSettings):
     allow_mock_llm: bool = False
     layer4_api_base_url: str = "http://localhost:8004"
     layer4_timeout_seconds: float = 10.0
+    layer6_api_base_url: str = "http://localhost:8006"
+    layer6_timeout_seconds: float = 10.0
     seed_demo_data: bool = False
     # Empty list = no cross-origin requests allowed by default (fail-closed).
     # Development get_settings() supplies localhost defaults only after warning.

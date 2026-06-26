@@ -700,6 +700,7 @@ class PostgreSQLDatabase:
         self.dsar_requests = AsyncPostgreSQLTable("dsar_requests", pool, tenant_field="tenant_id")
         self.dsar_packages = AsyncPostgreSQLTable("dsar_packages", pool, tenant_field="tenant_id")
         self.api_keys = PostgreSQLTable("api_keys", pool, model_cls=APIKeyRecord, tenant_field="key_id")
+        self.usage_events = AppendOnlyPostgreSQLTable("usage_events", pool, tenant_field="tenant_id")
 
 
 class InMemoryDatabase:
@@ -732,6 +733,7 @@ class InMemoryDatabase:
         self.dsar_requests = AsyncInMemoryTable("dsar_requests", "tenant_id")
         self.dsar_packages = AsyncInMemoryTable("dsar_packages", "tenant_id")
         self.api_keys = InMemoryTable("api_keys", tenant_field="key_id")
+        self.usage_events = AppendOnlyInMemoryTable("usage_events", tenant_field="tenant_id")
 
 
 class AsyncInMemoryTable(InMemoryTable[T]):

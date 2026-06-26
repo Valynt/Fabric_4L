@@ -14,6 +14,7 @@ import { memo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { TieredNav, type UserTier, NAV_SPINE } from "./navigation/TieredNav";
 import { MobilePersistentSidebar } from "./navigation/MobilePersistentSidebar";
+import { AccountPicker } from "./navigation/AccountPicker";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { useAccounts } from "@/hooks";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -133,6 +134,16 @@ const AppShell = memo(function AppShell({
             onTierChange={handleTierChange}
             isAdvancedModeEnabled={isAdvancedMode}
             onAdvancedModeToggle={handleAdvancedModeToggle}
+            headerSlot={
+              <AccountPicker
+                accounts={accounts}
+                selectedAccountId={selectedAccountId}
+                onSelectAccount={setSelectedAccountId}
+                isLoading={accountsLoading}
+                error={accountsError}
+                variant="full"
+              />
+            }
           />
         </div>
 
@@ -179,4 +190,3 @@ const AppShell = memo(function AppShell({
 });
 
 export default AppShell;
-
