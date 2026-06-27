@@ -1,4 +1,4 @@
-# =============================================================================
+2456t4rd# =============================================================================
 # Value Fabric — Local Development Stack (PARTIAL)
 # =============================================================================
 # ⚠️  CRITICAL SECURITY WARNING ⚠️
@@ -402,7 +402,7 @@ services:
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - CLERK_WEBHOOK_SECRET=${CLERK_WEBHOOK_SECRET}
       - CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE=${CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE}
-      - FABRIC_AUTH_SIGNING_KEY=${FABRIC_AUTH_SIGNING_KEY}}
+      - FABRIC_AUTH_SIGNING_KEY=${FABRIC_AUTH_SIGNING_KEY}
       - FABRIC_AUTH_SIGNING_KID=${FABRIC_AUTH_SIGNING_KID}
       - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS}
       - FABRIC_AUTH_VERIFYING_PUBLIC_KEY=${FABRIC_AUTH_VERIFYING_PUBLIC_KEY}

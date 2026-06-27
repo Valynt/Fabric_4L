@@ -455,12 +455,38 @@ def has_unguarded_required_env_reference(value: str, required_key: str) -> bool:
 
 
 def has_malformed_env_interpolation(value: str) -> bool:
-    """Catch common compose typos that leave literal brace characters in env values."""
+    """Catch common compose typos that leave literal brace characters in env values.
+
+    Handles nested interpolation such as ${VAR:-${DEFAULT}} by counting balanced
+    braces rather than using a flat regex that cannot see past the first closing
+    brace of an inner reference.
+    """
     stripped = value.strip()
     if not stripped:
         return False
-    without_refs = re.sub(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-?]?[^}]*)?\}", "", stripped)
-    return "}" in without_refs or "${" in without_refs
+    cleaned_chars: list[str] = []
+    i = 0
+    n = len(stripped)
+    while i < n:
+        if stripped[i] == "$" and i + 1 < n and stripped[i + 1] == "{":
+            j = i + 2
+            depth = 1
+            while j < n and depth > 0:
+                if stripped[j] == "{":
+                    depth += 1
+                elif stripped[j] == "}":
+                    depth -= 1
+                j += 1
+            if depth == 0:
+                content = stripped[i + 2 : j - 1]
+                # Valid reference: identifier optionally followed by a modifier.
+                if re.match(r"^[A-Za-z_][A-Za-z0-9_]*([:?$#=+-].*)?$", content, re.DOTALL):
+                    i = j
+                    continue
+        cleaned_chars.append(stripped[i])
+        i += 1
+    cleaned = "".join(cleaned_chars)
+    return "}" in cleaned or "${" in cleaned
 
 
 def contains_placeholder_secret(value: str) -> bool:
