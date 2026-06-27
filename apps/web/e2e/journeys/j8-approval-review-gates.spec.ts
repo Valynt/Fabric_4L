@@ -16,6 +16,8 @@ import {
 
 const ACCOUNT_ID = 'acct-meridian';
 const CASE_ID = E2E_SEED_APPROVED_CASE_ID;
+const tenantRoute = (path: string) => `/t/${E2E_SEED_TENANT_SLUG}${path}`;
+const accountRoute = (path: string) => tenantRoute(`/accounts/${ACCOUNT_ID}${path}`);
 
 journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest.beforeEach(async ({ addMocks }) => {
@@ -29,14 +31,25 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
       {
         pattern: `**/api/v1/agents/cases/${CASE_ID}`,
         body: {
+          case_id: CASE_ID,
           id: CASE_ID,
           title: 'Meridian Automation Business Case',
+          summary: 'Draft case pending evidence approval.',
           status: 'draft',
           document_url: null,
+          total_value: 2400000,
+          implementation_cost: 1000000,
           roi_ratio: 2.4,
           payback_months: 9,
+          confidence_score: 0.72,
           executive_summary: 'Draft case pending evidence approval.',
           recommendations: ['Approve only after supporting evidence is verified.'],
+          page_count: 0,
+          file_size_bytes: 0,
+          case_metadata: {
+            account_id: ACCOUNT_ID,
+            account_name: 'Meridian Health Group',
+          },
         },
       },
       {
@@ -75,7 +88,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 1 [REVIEW-001]: hypothesis review surface supports approve, edit, and assumptions review', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      `/hypothesis/${ACCOUNT_ID}/hypothesis`,
+      accountRoute('/intelligence/hypotheses'),
       [/hypoth/i, /generate/i, /approve/i, /edit/i, /assumption/i],
       'hypothesis generation, edit, and approval workflow',
     );
@@ -84,7 +97,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 2 [REVIEW-002]: assumptions route exposes validation status before model approval', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      `/hypothesis/${ACCOUNT_ID}/assumptions`,
+      accountRoute('/intelligence/assumptions'),
       [/assumption/i, /validation/i, /approved/i, /rejected/i, /source/i],
       'assumption validation status and source-of-truth review workflow',
     );
@@ -93,7 +106,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 3 [REVIEW-003]: formula and benchmark governance expose approval queue controls', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/settings/governance/policies',
+      tenantRoute('/settings/governance/policies'),
       [/policies/i, /governance/i, /approval/i, /review/i, /enforce/i],
       'governance policy and approval gate configuration workflow',
     );
@@ -102,7 +115,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 4 [EXPORT-GATE-001]: draft business case does not expose an enabled final export path before approval', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      `/deliverables/cases/${CASE_ID}`,
+      accountRoute(`/deliverables/business-cases/${CASE_ID}`),
       [/business case/i, /status: draft/i, /executive summary/i, /recommendations/i, /export pdf/i],
       'draft business case review and export-gate workflow',
     );
@@ -116,7 +129,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 5 [GOVERNANCE-APPROVAL-001]: reviewer can access approval and audit history surfaces', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/governance/audit/changes',
+      tenantRoute('/governance/audit-log'),
       [/change/i, /history/i, /audit/i, /approval/i, /review/i],
       'approval history and reviewer decision trail workflow',
     );
@@ -125,7 +138,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('Step 6 [CRM-GATE-001]: CRM push remains governed by approval status', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/context/integrations',
+      tenantRoute('/context/integrations'),
       [/integrations/i, /crm/i, /salesforce/i, /sync/i],
       'CRM sync workflow gated by approval state',
     );
@@ -139,7 +152,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest('test_export_is_available_only_after_required_approval', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      `/deliverables/cases/${CASE_ID}`,
+      accountRoute(`/deliverables/business-cases/${CASE_ID}`),
       [/business case/i, /draft/i, /executive summary/i, /export pdf/i],
       'export gate before approval',
     );

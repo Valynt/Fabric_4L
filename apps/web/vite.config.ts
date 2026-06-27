@@ -308,6 +308,13 @@ export default defineConfig({
     port: 3001,
     strictPort: true, // Fail fast if port busy - ensures Playwright can connect
     host: true,
+    watch: {
+      ignored: [
+        "**/e2e-results/**",
+        "**/test-results/**",
+        "**/playwright-report/**",
+      ],
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
