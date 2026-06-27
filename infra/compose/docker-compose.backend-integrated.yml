@@ -186,7 +186,7 @@ services:
       LAYER1_S3_ENDPOINT: http://host.docker.internal:9000
       LAYER1_S3_ACCESS_KEY: ${LAYER1_S3_ACCESS_KEY:-minioadmin}
       LAYER1_S3_SECRET_KEY: ${LAYER1_S3_SECRET_KEY:-minioadmin}
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/value_fabric/layer4:/app/canonical
     volumes:
       - ../../services/layer1-ingestion/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
@@ -230,9 +230,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer2_extraction
+      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/canonical
     volumes:
       - ../../services/layer2-extraction/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -319,11 +322,12 @@ services:
       LAYER3_API_URL: http://host.docker.internal:8003
       LAYER5_GROUND_TRUTH_URL: http://host.docker.internal:8005
       LAYER6_BENCHMARKS_URL: http://host.docker.internal:8006
+      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -344,6 +348,7 @@ services:
     volumes:
       - ../../services/layer4-agents/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -397,7 +402,7 @@ services:
     networks:
       - dev-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -443,8 +448,17 @@ services:
       LOG_LEVEL: info
       NEO4J_URI: bolt://host.docker.internal:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: devpassword123
       REDIS_URL: redis://host.docker.internal:6379/0
+      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/value_fabric/layer6
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ground_truth
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
+      LAYER6_DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      API_KEY_HMAC_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
+      LAYER3_API_KEY: dev-local-layer3-key-minimum-16chars
+      LAYER5_API_KEY: dev-local-layer5-key-minimum-16chars
     depends_on:
       neo4j:
         condition: service_healthy
@@ -454,10 +468,13 @@ services:
       - ../../services/layer6-benchmarks/src:/app/src:ro
       - ../../value_fabric/layer6:/app/value_fabric/layer6:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../contracts/observability:/contracts/observability:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - dev-network
+    command: >
+      python -m uvicorn layer6_benchmarks.api.main:app --host 0.0.0.0 --port 8006
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
       interval: 15s

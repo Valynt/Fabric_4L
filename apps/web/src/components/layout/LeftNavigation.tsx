@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 import { NAV_SCHEMA } from "@/navigation/navSchema";
+import { AccountPicker } from "@/components/navigation/AccountPicker";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useAccounts } from "@/hooks";
+import { useAccountContextStore } from "@/stores/accountContextStore";
 import type { UserTier } from "@/hooks";
 
 interface LeftNavigationProps {
@@ -68,9 +72,18 @@ export function LeftNavigation({
 }: LeftNavigationProps) {
   const { pathname } = useLocation();
   const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
+  const selectedAccountId = useAccountContextStore(state => state.selectedAccountId);
+  const setSelectedAccountId = useAccountContextStore(state => state.setSelectedAccountId);
+  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
 
   const accountId = urlAccountId ?? null;
   const resolvedTenantSlug = tenantSlug ?? currentTenantSlug ?? undefined;
+  const shouldLoadAccounts = !authLoading && isAuthenticated && Boolean(resolvedTenantSlug);
+  const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts(
+    { page_size: 100 },
+    { enabled: shouldLoadAccounts, suppressAuthRedirect: true }
+  );
+  const accounts = accountsData?.items ?? [];
 
   const navItems = NAV_SCHEMA
     .filter((item) => isItemVisible(item.tier, currentTier))
@@ -112,6 +125,19 @@ export function LeftNavigation({
       </div>
 
       <nav aria-label="Primary navigation" className="flex-1 space-y-1 overflow-y-auto p-2">
+        {!collapsed && (
+          <div className="mb-2 border-b pb-2">
+            <AccountPicker
+              accounts={accounts}
+              selectedAccountId={selectedAccountId}
+              onSelectAccount={setSelectedAccountId}
+              isLoading={accountsLoading}
+              error={accountsError}
+              variant="full"
+            />
+          </div>
+        )}
+
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.id] ?? Radar;
 

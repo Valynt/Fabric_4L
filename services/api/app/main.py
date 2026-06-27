@@ -31,6 +31,7 @@ from app.routers import (
     governance,
     hypotheses,
     intelligence,
+    jobs,
     privacy,
     product_endpoints,
     realization,
@@ -218,6 +219,7 @@ app.include_router(api_keys.router, prefix="/v1")
 app.include_router(benchmarks.router, prefix="/v1")
 app.include_router(usage.router, prefix="/v1")
 app.include_router(product_endpoints.router, prefix="/v1")
+app.include_router(jobs.router, prefix="/v1")
 
 # Clerk routes are exposed only when the gateway is configured for Clerk auth.
 # This prevents 500 responses from the Clerk dependency when AUTH_PROVIDER is set

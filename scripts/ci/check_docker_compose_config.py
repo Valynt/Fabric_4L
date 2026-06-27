@@ -454,6 +454,15 @@ def has_unguarded_required_env_reference(value: str, required_key: str) -> bool:
     return False
 
 
+def has_malformed_env_interpolation(value: str) -> bool:
+    """Catch common compose typos that leave literal brace characters in env values."""
+    stripped = value.strip()
+    if not stripped:
+        return False
+    without_refs = re.sub(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-?]?[^}]*)?\}", "", stripped)
+    return "}" in without_refs or "${" in without_refs
+
+
 def contains_placeholder_secret(value: str) -> bool:
     normalized = value.lower()
     return any(pattern in normalized for pattern in PLACEHOLDER_SECRET_PATTERNS)
@@ -635,6 +644,23 @@ def validate_auth_env_defaults(compose_file: Path, services: dict[str, Any]) -> 
     return failures
 
 
+def validate_env_interpolation_syntax(compose_file: Path, services: dict[str, Any]) -> list[ComposeFailure]:
+    failures: list[ComposeFailure] = []
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        for key, value in iter_environment_entries(service):
+            if has_malformed_env_interpolation(value):
+                failures.append(
+                    ComposeFailure(
+                        compose_file.name,
+                        service_name,
+                        f"{key} has malformed env interpolation syntax",
+                    )
+                )
+    return failures
+
+
 def validate_pythonpath_mounts(
     compose_file: Path,
     services: dict[str, Any],
@@ -708,6 +734,7 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
     failures.extend(validate_full_compose_hardening(compose_file, services))
     failures.extend(validate_live_compose_security(compose_file))
     failures.extend(validate_auth_env_defaults(compose_file, services))
+    failures.extend(validate_env_interpolation_syntax(compose_file, services))
     failures.extend(validate_pythonpath_mounts(compose_file, services))
     failures.extend(validate_frontend_env_completeness(compose_file, services))
     for service_name, service in services.items():

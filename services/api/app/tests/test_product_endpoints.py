@@ -8,6 +8,7 @@ from app.core.api_key_hash import generate_api_key
 from app.main import app
 from app.models.api_key import APIKeyCreateRequest
 from app.repositories.api_key_repository import APIKeyRepository
+from app.services.product_orchestrator import ProductOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +22,27 @@ def _noop_billing_publisher(monkeypatch):
         return {"forwarded": True}
 
     monkeypatch.setattr(BillingEventPublisher, "publish", _noop_publish)
+
+
+@pytest.fixture(autouse=True)
+def _stub_orchestrator(monkeypatch):
+    async def _stub_map(self, tenant_id, payload):
+        return {"job_id": "wf-123", "product_code": "value_drivers", "status": "accepted", "result": None}
+
+    async def _stub_sync(self, tenant_id, payload):
+        return {"job_id": "job_abc", "product_code": "sync", "status": "completed", "result": {"ok": True}}
+
+    async def _stub_qa(self, tenant_id, payload):
+        return {"job_id": "wf-qa-123", "product_code": "value_models", "status": "accepted", "result": None}
+
+    monkeypatch.setattr(ProductOrchestrator, "map_value_drivers", _stub_map)
+    monkeypatch.setattr(ProductOrchestrator, "generate_value_model", _stub_sync)
+    monkeypatch.setattr(ProductOrchestrator, "validate_value_model", _stub_sync)
+    monkeypatch.setattr(ProductOrchestrator, "qa_value_model", _stub_qa)
+    monkeypatch.setattr(ProductOrchestrator, "score_assumption", _stub_sync)
+    monkeypatch.setattr(ProductOrchestrator, "extract_value_signals", _stub_sync)
+    monkeypatch.setattr(ProductOrchestrator, "generate_cfo_narrative", _stub_sync)
+    monkeypatch.setattr(ProductOrchestrator, "compare_realization", _stub_sync)
 
 
 @pytest.fixture
@@ -62,7 +84,7 @@ def test_product_endpoint_accepts_request(path, payload, api_key):
     assert response.status_code == 200
     body = response.json()
     assert body["product_code"]
-    assert body["job_id"].startswith("job_")
+    assert body["status"] in {"accepted", "completed"}
 
 
 def test_product_endpoints_require_auth():

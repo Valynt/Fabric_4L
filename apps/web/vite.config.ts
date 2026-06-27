@@ -23,6 +23,7 @@ import { assertFrontendApiEnv } from "./scripts/frontend-api-env.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = __dirname;
+const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, "../..");
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024; // 1MB per log file
 const TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6); // Trim to 60% to avoid constant re-trimming
@@ -322,7 +323,15 @@ export default defineConfig({
       deny: ["**/.*"],
       allow: [
         __dirname,
-        path.resolve(__dirname, "../.."),
+        WORKSPACE_ROOT,
+        path.resolve(WORKSPACE_ROOT, "app"),
+        path.resolve(WORKSPACE_ROOT, "apps/web"),
+        "/workspace",
+        "/workspace/apps/web",
+        path.resolve(WORKSPACE_ROOT, "apps/web"),
+        path.join(WORKSPACE_ROOT, "apps/web"),
+        path.join(WORKSPACE_ROOT, "packages/platform-contract"),
+        "/workspace/packages/platform-contract",
         path.resolve(__dirname, "../../packages/platform-contract/src"),
         path.resolve(__dirname, "../../packages/platform-contract/src/typescript"),
       ],

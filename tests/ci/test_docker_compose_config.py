@@ -160,7 +160,16 @@ def test_required_env_defaults_are_safe_and_do_not_use_real_env(monkeypatch):
 
     for key, expected in module.SAFE_REQUIRED_ENV_DEFAULTS.items():
         assert env[key] == expected
-        assert expected.startswith(("compose-contract", "compose_contract", "composecontract"))
+        assert expected.startswith(
+            (
+                "compose-contract",
+                "compose_contract",
+                "composecontract",
+                "http://localhost",
+                "https://compose-contract.",
+                "postgresql+asyncpg://compose_contract_",
+            )
+        )
         assert expected != os.environ.get(key)
 
 
@@ -498,3 +507,28 @@ services:
     messages = [failure.message for failure in failures]
 
     assert not any("frontend env variable" in m for m in messages)
+
+
+def test_malformed_env_interpolation_fails():
+    module = load_module()
+    tmp_path = repo_tmp_path("malformed-env-interpolation")
+    compose = write_file(
+        tmp_path / "docker-compose.dev.yml",
+        """
+services:
+  frontend-list:
+    image: node:22-alpine
+    environment:
+      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}}
+  frontend-map:
+    image: node:22-alpine
+    environment:
+      VITE_AUTH_PROVIDER: ${VITE_AUTH_PROVIDER}}
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+    messages = [failure.message for failure in failures]
+
+    assert "VITE_CLERK_PUBLISHABLE_KEY has malformed env interpolation syntax" in messages
+    assert "VITE_AUTH_PROVIDER has malformed env interpolation syntax" in messages

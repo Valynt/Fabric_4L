@@ -8,6 +8,7 @@ from app.core.api_key_hash import generate_api_key
 from app.main import app
 from app.models.api_key import APIKeyCreateRequest
 from app.repositories.api_key_repository import APIKeyRepository
+from app.services.product_orchestrator import ProductOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +22,19 @@ def _noop_billing_publisher(monkeypatch):
         return {"forwarded": True}
 
     monkeypatch.setattr(BillingEventPublisher, "publish", _noop_publish)
+
+
+@pytest.fixture(autouse=True)
+def _stub_orchestrator(monkeypatch):
+    async def _noop(self, tenant_id, payload):
+        return {
+            "job_id": "job_test",
+            "product_code": "value_drivers",
+            "status": "completed",
+            "result": {},
+        }
+
+    monkeypatch.setattr(ProductOrchestrator, "map_value_drivers", _noop)
 
 
 def _create_key(tenant_id: str, name: str):
