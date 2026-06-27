@@ -7,6 +7,8 @@ import { E2E_SEED_APPROVED_CASE_ID, E2E_SEED_TENANT_SLUG } from '../fixtures/see
  * closed when approvals, evidence, or reviewer roles are missing.
  */
 import { journeyTest, expect } from '../helpers/journey-fixture';
+import { TEST_ACCOUNTS } from '../fixtures/account-helpers';
+import { DEFAULT_TEST_USER } from '../fixtures/auth-helpers';
 import {
   attemptOptionalAction,
   expectAnyVisible,
@@ -14,9 +16,9 @@ import {
   expectRouteSupportsWorkflow,
 } from '../helpers/validation-program';
 
-const ACCOUNT_ID = 'acct-meridian';
+const ACCOUNT_ID = TEST_ACCOUNTS.meridian.id;
 const CASE_ID = E2E_SEED_APPROVED_CASE_ID;
-const tenantRoute = (path: string) => `/t/${E2E_SEED_TENANT_SLUG}${path}`;
+const tenantRoute = (path: string) => `/t/${DEFAULT_TEST_USER.tenantSlug}${path}`;
 const accountRoute = (path: string) => tenantRoute(`/accounts/${ACCOUNT_ID}${path}`);
 
 journeyTest.describe('Journey 8: Approval and Review Gates', () => {

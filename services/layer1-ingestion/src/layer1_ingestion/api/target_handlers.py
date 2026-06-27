@@ -32,7 +32,7 @@ from ..shared.models import (
     create_scraping_job,
     create_scraping_target,
 )
-from .dependencies import get_current_user_id, get_tenant_id
+from .dependencies import get_current_user_id, get_current_user_roles, get_tenant_id
 from .schemas.content_schemas import CrawlDecisionSummary
 from .schemas.target_schemas import (
     CreateTargetRequest,
@@ -49,6 +49,26 @@ from .schemas.target_schemas import (
 from .target_config import apply_target_config_updates, build_create_target_configs
 
 logger = structlog.get_logger()
+
+
+# Roles that may bypass per-user ownership checks within a tenant.
+_ADMIN_ROLES = frozenset({"admin", "tenant_admin", "super_admin"})
+
+
+def _require_target_ownership(
+    target: ScrapingTarget,
+    user_id: UUID,
+    roles: list[str],
+) -> None:
+    """Verify the requesting user owns the target or is a tenant admin.
+
+    Raises NotFoundError (not Forbidden) to avoid leaking target existence.
+    """
+    if any(role in _ADMIN_ROLES for role in roles):
+        return
+    if str(target.created_by) == str(user_id):
+        return
+    raise NotFoundError(message="Target not found")
 
 
 def _build_task_unavailable_detail() -> dict[str, str]:
@@ -220,6 +240,8 @@ async def create_target(
 async def get_target(
     target_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
+    user_id: UUID = Depends(get_current_user_id),
+    roles: list[str] = Depends(get_current_user_roles),
     db: Session = Depends(get_db_from_context_sync),
 ):
     """Get detailed information about a specific target."""
@@ -232,6 +254,8 @@ async def get_target(
     if not target:
         raise NotFoundError(message="Target not found")
 
+    _require_target_ownership(target, user_id, roles)
+
     return _target_to_detail(target)
 
 
@@ -239,6 +263,8 @@ async def update_target(
     target_id: UUID,
     request: UpdateTargetRequest,
     org_id: UUID = Depends(get_tenant_id),
+    user_id: UUID = Depends(get_current_user_id),
+    roles: list[str] = Depends(get_current_user_roles),
     db: Session = Depends(get_db_from_context_sync),
 ):
     """Update a scraping target."""
@@ -250,6 +276,8 @@ async def update_target(
 
     if not target:
         raise NotFoundError(message="Target not found")
+
+    _require_target_ownership(target, user_id, roles)
 
     active_jobs = (
         db.query(ScrapingJob)
@@ -301,6 +329,8 @@ async def delete_target(
     target_id: UUID,
     force: bool = Query(default=False, description="Hard delete if no jobs exist"),
     org_id: UUID = Depends(get_tenant_id),
+    user_id: UUID = Depends(get_current_user_id),
+    roles: list[str] = Depends(get_current_user_roles),
     db: Session = Depends(get_db_from_context_sync),
 ):
     """Archive a scraping target (soft delete)."""
@@ -312,6 +342,8 @@ async def delete_target(
 
     if not target:
         raise NotFoundError(message="Target not found")
+
+    _require_target_ownership(target, user_id, roles)
 
     job_count = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).count()
 

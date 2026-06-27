@@ -203,7 +203,7 @@ def db(request, engine) -> Generator[Session, None, None]:
     else:
         connection = engine.connect()
     transaction = connection.begin()
-    testing_session = sessionmaker(bind=connection)
+    testing_session = sessionmaker(bind=connection, expire_on_commit=False)
     session = testing_session()
     yield session
     session.close()

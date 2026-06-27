@@ -40,3 +40,11 @@ def get_current_user_id(request: Request) -> UUID:
                 metrics.increment_errors(error_type="invalid_uuid", component="auth")
             raise AuthenticationError(message="Invalid user ID format") from None
     raise AuthenticationError(message="Authentication required")
+
+
+def get_current_user_roles(request: Request) -> list[str]:
+    """Extract user roles from the GovernanceMiddleware context."""
+    ctx = getattr(request.state, "governance_context", None)
+    if ctx is not None:
+        return list(ctx.roles or [])
+    raise AuthenticationError(message="Authentication required")
