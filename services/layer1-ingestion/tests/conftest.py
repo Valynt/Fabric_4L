@@ -110,7 +110,11 @@ def _get_app():
     async def _mock_check_rate_limit(self, request, ctx):
         mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
         return mock_result()
+
+    async def _mock_enforce_tenant_status(self, ctx):
+        return None
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
+    GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
 
     from layer1_ingestion.api.main import app

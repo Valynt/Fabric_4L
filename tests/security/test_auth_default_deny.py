@@ -68,10 +68,17 @@ def test_non_public_routes_with_tenant_context_reach_handler(monkeypatch: pytest
     async def _resolve_with_tenant(self: GovernanceMiddleware, request):
         return RequestContext(tenant_id="11111111-1111-4111-8111-111111111111", user_id="user-1", roles=["viewer"], source="jwt")
 
+    async def _resolve_active_tenant_status(tenant_id: str) -> str:
+        return "active"
+
     monkeypatch.setattr(GovernanceMiddleware, "_resolve_identity", _resolve_with_tenant)
 
     app = FastAPI()
-    add_governance_middleware(app)
+    app.add_middleware(
+        GovernanceMiddleware,
+        tenant_status_resolver=_resolve_active_tenant_status,
+        rate_limiter=None,
+    )
 
     @app.get("/private")
     async def private() -> dict[str, str]:

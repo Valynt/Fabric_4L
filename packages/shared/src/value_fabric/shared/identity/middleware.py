@@ -538,10 +538,13 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             try:
                 ctx = await self._handle_authentication(request)
             except HTTPException as exc:
+                error = "authentication_required"
+                if isinstance(exc.detail, dict):
+                    error = str(exc.detail.get("error") or error)
                 return JSONResponse(
                     status_code=exc.status_code,
                     headers=exc.headers or {"WWW-Authenticate": "Bearer"},
-                    content={"detail": exc.detail, "error": "authentication_required"},
+                    content={"detail": exc.detail, "error": error},
                 )
 
             if ctx is not None:
@@ -750,6 +753,11 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         "tenant_id": str(ctx.tenant_id),
                     },
                 )
+
+        if tenant_status is None and ctx.raw:
+            raw_tenant_status = ctx.raw.get("tenant_status")
+            if raw_tenant_status in {"suspended", "pending", "deleted"}:
+                tenant_status = raw_tenant_status
 
         if tenant_status is None:
             # RB-4 FIX: Use check_status() (tri-state) instead of is_suspended()

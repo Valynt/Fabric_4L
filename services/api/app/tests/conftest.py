@@ -28,6 +28,7 @@ import os as _os
 _os.environ["ENVIRONMENT"] = "development"
 _os.environ["APP_ENV"] = "development"
 _os.environ["ENV"] = "development"
+_os.environ["DEBUG"] = "false"
 
 import secrets
 from collections.abc import Iterator

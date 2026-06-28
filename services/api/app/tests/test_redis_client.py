@@ -35,8 +35,9 @@ def test_get_redis_client_returns_singleton():
 
 def test_get_redis_client_returns_none_when_unconfigured(monkeypatch: pytest.MonkeyPatch):
     """Without REDIS_URL, the factory returns None."""
-    monkeypatch.delenv("REDIS_URL", raising=False)
-    # Some test runners may already have a cached settings object with the URL.
+    # Override any repository-local .env value so this test remains hermetic in
+    # developer environments that have Redis configured.
+    monkeypatch.setenv("REDIS_URL", "")
     get_settings.cache_clear()
 
     client = _redis_client_mod.get_redis_client()

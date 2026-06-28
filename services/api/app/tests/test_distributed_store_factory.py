@@ -54,7 +54,9 @@ def test_get_distributed_store_fails_when_redis_not_configured(
 ):
     """Without MOCK_PERSISTENCE and without REDIS_URL, the factory fails fast."""
     monkeypatch.delenv("MOCK_PERSISTENCE", raising=False)
-    monkeypatch.delenv("REDIS_URL", raising=False)
+    # Override any repository-local .env value so this test remains hermetic in
+    # developer environments that have Redis configured.
+    monkeypatch.setenv("REDIS_URL", "")
 
     with pytest.raises(_store_mod.StoreUnavailableError):
         _store_mod.get_distributed_store()
