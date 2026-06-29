@@ -48,7 +48,7 @@ function buildSafeRedirectPath(pathname: string, search: string): string {
       keysToDelete.push(key);
     }
   });
-  keysToDelete.forEach((key) => params.delete(key));
+  keysToDelete.forEach(key => params.delete(key));
 
   const normalized = params.toString();
   return normalized ? `${pathname}?${normalized}` : pathname;
@@ -62,6 +62,7 @@ function RequireClerkAuthOrgCheck({
   requireOrganization: boolean;
 }) {
   const { navigateTo } = useNavigation();
+  const location = useLocation();
   const urls = getClerkUrls();
   // This component is only rendered behind the <RequireClerkAuth> gate, which
   // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
@@ -74,11 +75,22 @@ function RequireClerkAuthOrgCheck({
   // redirect effect is registered before the loading/redirect short-circuits
   // below (orgLoaded transitions false→true as Clerk loads).
   useLayoutEffect(() => {
-    if (requireOrganization && orgLoaded && !organization && !hasNavigated.current) {
+    if (
+      requireOrganization &&
+      orgLoaded &&
+      !organization &&
+      !hasNavigated.current
+    ) {
       hasNavigated.current = true;
       navigateTo(urls.selectOrgUrl, { replace: true });
     }
-  }, [requireOrganization, orgLoaded, organization, navigateTo, urls.selectOrgUrl]);
+  }, [
+    requireOrganization,
+    orgLoaded,
+    organization,
+    navigateTo,
+    urls.selectOrgUrl,
+  ]);
 
   useLayoutEffect(() => {
     if (!tenantError || hasNavigated.current) {
@@ -87,12 +99,25 @@ function RequireClerkAuthOrgCheck({
     const status = (tenantError as { status?: number }).status;
     if (status === 401) {
       hasNavigated.current = true;
-      navigateTo(urls.signInUrl, { replace: true });
+      const safeCurrentPath = buildSafeRedirectPath(
+        location.pathname,
+        location.search
+      );
+      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+        safeCurrentPath
+      )}`;
+      navigateTo(redirectTo, { replace: true });
     } else if (status === 403) {
       hasNavigated.current = true;
       navigateTo("/forbidden?wfStep=0", { replace: true });
     }
-  }, [tenantError, navigateTo, urls.signInUrl]);
+  }, [
+    tenantError,
+    navigateTo,
+    urls.signInUrl,
+    location.pathname,
+    location.search,
+  ]);
 
   if (requireOrganization && !orgLoaded) {
     // Render nothing while org state loads to prevent UI flash
@@ -136,13 +161,23 @@ function RequireClerkAuthInner({
   useLayoutEffect(() => {
     if (authLoaded && !isSignedIn && !hasNavigated.current) {
       hasNavigated.current = true;
-      const safeCurrentPath = buildSafeRedirectPath(location.pathname, location.search);
+      const safeCurrentPath = buildSafeRedirectPath(
+        location.pathname,
+        location.search
+      );
       const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-        safeCurrentPath,
+        safeCurrentPath
       )}`;
       navigateTo(redirectTo, { replace: true });
     }
-  }, [authLoaded, isSignedIn, navigateTo, urls.signInUrl, location.pathname, location.search]);
+  }, [
+    authLoaded,
+    isSignedIn,
+    navigateTo,
+    urls.signInUrl,
+    location.pathname,
+    location.search,
+  ]);
 
   // While Clerk is still loading OR the user is not signed in (redirect pending),
   // render absolutely nothing. This guarantees zero UI flash.

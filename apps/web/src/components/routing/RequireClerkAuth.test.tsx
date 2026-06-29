@@ -27,7 +27,7 @@ const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
-    ...actual as object,
+    ...(actual as object),
     useNavigate: () => mockNavigate,
   };
 });
@@ -70,29 +70,22 @@ const PROTECTED_CONTENT = "PROTECTED_CONTENT_MARKER";
 const SIGN_IN_LANDING = "SIGN_IN_PAGE_MARKER";
 const SELECT_ORG_LANDING = "SELECT_ORG_PAGE_MARKER";
 
-function renderAt(
-  path: string,
-  options?: { requireOrganization?: boolean },
-) {
+function renderAt(path: string, options?: { requireOrganization?: boolean }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route
-          path="/sign-in"
-          element={<div>{SIGN_IN_LANDING}</div>}
-        />
+        <Route path="/sign-in" element={<div>{SIGN_IN_LANDING}</div>} />
         <Route
           path="/select-organization"
           element={<div>{SELECT_ORG_LANDING}</div>}
         />
-        <Route
-          path="/workspaces"
-          element={<div>{SELECT_ORG_LANDING}</div>}
-        />
+        <Route path="/workspaces" element={<div>{SELECT_ORG_LANDING}</div>} />
         <Route
           path="/protected"
           element={
-            <RequireClerkAuth requireOrganization={options?.requireOrganization}>
+            <RequireClerkAuth
+              requireOrganization={options?.requireOrganization}
+            >
               <div>{PROTECTED_CONTENT}</div>
             </RequireClerkAuth>
           }
@@ -100,13 +93,15 @@ function renderAt(
         <Route
           path="/protected/nested"
           element={
-            <RequireClerkAuth requireOrganization={options?.requireOrganization}>
+            <RequireClerkAuth
+              requireOrganization={options?.requireOrganization}
+            >
               <div>{PROTECTED_CONTENT}</div>
             </RequireClerkAuth>
           }
         />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
 }
 
@@ -159,7 +154,7 @@ describe("<RequireClerkAuth />", () => {
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
       "/sign-in?redirect_url=%2Fprotected%2Fnested",
-      { replace: true },
+      { replace: true }
     );
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
@@ -205,7 +200,7 @@ describe("<RequireClerkAuth />", () => {
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
       "/sign-in?redirect_url=%2Fprotected%2Fnested",
-      { replace: true },
+      { replace: true }
     );
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
@@ -215,7 +210,11 @@ describe("<RequireClerkAuth />", () => {
     mockClerkState.isSignedIn = false;
 
     render(
-      <MemoryRouter initialEntries={["/protected?__clerk_handshake=abc&tab=mine&__clerk_status=ready"]}>
+      <MemoryRouter
+        initialEntries={[
+          "/protected?__clerk_handshake=abc&tab=mine&__clerk_status=ready",
+        ]}
+      >
         <Routes>
           <Route path="/sign-in" element={<div>{SIGN_IN_LANDING}</div>} />
           <Route
@@ -227,13 +226,13 @@ describe("<RequireClerkAuth />", () => {
             }
           />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith(
       "/sign-in?redirect_url=%2Fprotected%3Ftab%3Dmine",
-      { replace: true },
+      { replace: true }
     );
   });
 
@@ -305,7 +304,9 @@ describe("<RequireClerkAuth />", () => {
     renderAt("/protected");
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith("/forbidden?wfStep=0", { replace: true });
+    expect(mockNavigate).toHaveBeenCalledWith("/forbidden?wfStep=0", {
+      replace: true,
+    });
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
@@ -318,7 +319,10 @@ describe("<RequireClerkAuth />", () => {
     renderAt("/protected");
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith("/sign-in", { replace: true });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/sign-in?redirect_url=%2Fprotected",
+      { replace: true }
+    );
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
@@ -345,7 +349,7 @@ describe("<RequireClerkAuth />", () => {
             }
           />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getByText(SIGN_IN_LANDING)).toBeInTheDocument();

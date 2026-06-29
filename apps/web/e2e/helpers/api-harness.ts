@@ -14,11 +14,11 @@
  * Journey tests MUST use this harness instead of raw page.route() calls
  * so that the same test code works in both modes.
  */
-import { Page, Route } from '@playwright/test';
+import { Page, Route } from "@playwright/test";
 
 // ── Environment Detection ───────────────────────────────────────────────────
 
-const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL || '';
+const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL || "";
 
 export function isLiveMode(): boolean {
   return BACKEND_URL.length > 0;
@@ -26,7 +26,7 @@ export function isLiveMode(): boolean {
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-type LayerKey = 'l1' | 'l2' | 'l3' | 'l4' | 'l5' | 'l6';
+type LayerKey = "l1" | "l2" | "l3" | "l4" | "l5" | "l6";
 
 export interface MockEndpoint {
   /** HTTP method (GET, POST, etc.) */
@@ -53,12 +53,12 @@ interface ApiHarnessOptions {
 // ── Layer URL Prefixes (mirrors frontend/client/src/api/client.ts) ──────────
 
 const LAYER_PREFIXES: Record<LayerKey, string> = {
-  l1: '/ingest',
-  l2: '/extract',
-  l3: '',
-  l4: '/agents',
-  l5: '/truths',
-  l6: '/benchmarks',
+  l1: "/ingest",
+  l2: "/extract",
+  l3: "",
+  l4: "/agents",
+  l5: "/truths",
+  l6: "/benchmarks",
 };
 
 // ── Default Mock Data ───────────────────────────────────────────────────────
@@ -67,38 +67,38 @@ const LAYER_PREFIXES: Record<LayerKey, string> = {
 // via the `mocks` option when testing specific workflows.
 
 const EMPTY_ACCOUNT = {
-  id: 'acct-test-001',
-  name: 'Test Account',
-  industry: 'Technology',
-  website: 'https://example.com',
-  tier: 'enterprise',
-  created_at: '2025-01-01T00:00:00Z',
+  id: "acct-test-001",
+  name: "Test Account",
+  industry: "Technology",
+  website: "https://example.com",
+  tier: "enterprise",
+  created_at: "2025-01-01T00:00:00Z",
 };
 
 const JOURNEY_ACCOUNTS = [
   {
-    id: 'acct-meridian-001',
-    name: 'Meridian Automotive',
-    industry: 'Manufacturing',
-    website: 'https://meridian.example',
-    tier: 'enterprise',
-    created_at: '2025-01-01T00:00:00Z',
+    id: "acct-meridian-001",
+    name: "Meridian Automotive",
+    industry: "Manufacturing",
+    website: "https://meridian.example",
+    tier: "enterprise",
+    created_at: "2025-01-01T00:00:00Z",
   },
   {
-    id: 'acct-acme-002',
-    name: 'Acme Corp',
-    industry: 'Technology',
-    website: 'https://acme.example',
-    tier: 'mid-market',
-    created_at: '2025-01-02T00:00:00Z',
+    id: "acct-acme-002",
+    name: "Acme Corp",
+    industry: "Technology",
+    website: "https://acme.example",
+    tier: "mid-market",
+    created_at: "2025-01-02T00:00:00Z",
   },
   {
-    id: 'acct-gf-003',
-    name: 'Global Finance Inc',
-    industry: 'Financial Services',
-    website: 'https://global-finance.example',
-    tier: 'enterprise',
-    created_at: '2025-01-03T00:00:00Z',
+    id: "acct-gf-003",
+    name: "Global Finance Inc",
+    industry: "Financial Services",
+    website: "https://global-finance.example",
+    tier: "enterprise",
+    created_at: "2025-01-03T00:00:00Z",
   },
   EMPTY_ACCOUNT,
 ];
@@ -130,10 +130,27 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
       account_exists: true,
       tenant_bound: true,
       principal_allowed: true,
-      reason: 'allowed',
+      reason: "allowed",
     },
   },
-  ...JOURNEY_ACCOUNTS.map((account) => ({
+  {
+    pattern: /.*\/api\/v1\/agents\/me\/permissions$/,
+    body: {
+      capabilities: {
+        personal: { allowed: true, reasons: [], source: "server" },
+        billing: { allowed: true, reasons: [], source: "server" },
+        team: { allowed: true, reasons: [], source: "server" },
+        integrations: { allowed: true, reasons: [], source: "server" },
+        governance: { allowed: true, reasons: [], source: "server" },
+        super_admin: {
+          allowed: false,
+          reasons: ["super_admin_only"],
+          source: "server",
+        },
+      },
+    },
+  },
+  ...JOURNEY_ACCOUNTS.map(account => ({
     pattern: `**/api/v1/agents/accounts/${account.id}`,
     body: account,
   })),
@@ -144,111 +161,141 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   },
   // Workspace tab data — canonical backend shape is `{ <tab>: [] }`.
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/signals',
-    body: emptyWorkspaceTab('signals'),
+    pattern: "**/api/v1/agents/cases/*/workspace/signals",
+    body: emptyWorkspaceTab("signals"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/signals',
-    body: emptyWorkspaceTab('signals'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/signals",
+    body: emptyWorkspaceTab("signals"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/drivers',
-    body: emptyWorkspaceTab('drivers'),
+    pattern: "**/api/v1/agents/cases/*/workspace/drivers",
+    body: emptyWorkspaceTab("drivers"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/drivers',
-    body: emptyWorkspaceTab('drivers'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/drivers",
+    body: emptyWorkspaceTab("drivers"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/evidence',
-    body: emptyWorkspaceTab('evidence'),
+    pattern: "**/api/v1/agents/cases/*/workspace/evidence",
+    body: emptyWorkspaceTab("evidence"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/evidence',
-    body: emptyWorkspaceTab('evidence'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/evidence",
+    body: emptyWorkspaceTab("evidence"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/stakeholders',
-    body: emptyWorkspaceTab('stakeholders'),
+    pattern: "**/api/v1/agents/cases/*/workspace/stakeholders",
+    body: emptyWorkspaceTab("stakeholders"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/stakeholders',
-    body: emptyWorkspaceTab('stakeholders'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/stakeholders",
+    body: emptyWorkspaceTab("stakeholders"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/action-plan',
-    body: emptyWorkspaceTab('action-plan'),
+    pattern: "**/api/v1/agents/cases/*/workspace/action-plan",
+    body: emptyWorkspaceTab("action-plan"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/action-plan',
-    body: emptyWorkspaceTab('action-plan'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/action-plan",
+    body: emptyWorkspaceTab("action-plan"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/value-model',
-    body: emptyWorkspaceTab('value-model'),
+    pattern: "**/api/v1/agents/cases/*/workspace/value-model",
+    body: emptyWorkspaceTab("value-model"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/value-model',
-    body: emptyWorkspaceTab('value-model'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/value-model",
+    body: emptyWorkspaceTab("value-model"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/narrative',
-    body: emptyWorkspaceTab('narrative'),
+    pattern: "**/api/v1/agents/cases/*/workspace/narrative",
+    body: emptyWorkspaceTab("narrative"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/narrative',
-    body: emptyWorkspaceTab('narrative'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/narrative",
+    body: emptyWorkspaceTab("narrative"),
   },
   {
-    pattern: '**/api/v1/agents/cases/*/workspace/evidence-links',
-    body: emptyWorkspaceTab('evidence-links'),
+    pattern: "**/api/v1/agents/cases/*/workspace/evidence-links",
+    body: emptyWorkspaceTab("evidence-links"),
   },
   {
-    pattern: '**/api/v1/agents/analysis/cases/*/workspace/evidence-links',
-    body: emptyWorkspaceTab('evidence-links'),
+    pattern: "**/api/v1/agents/analysis/cases/*/workspace/evidence-links",
+    body: emptyWorkspaceTab("evidence-links"),
   },
   // Case ID resolution — GET /api/v1/agents/cases?account_id=... returns items list
   {
     pattern: /.*\/api\/v1\/agents\/cases\?account_id=.*/,
-    body: { items: [{ case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' }], total: 1 },
+    body: {
+      items: [
+        {
+          case_id: "case-test-001",
+          account_id: "acct-test-001",
+          title: "Test workspace",
+          status: "active",
+        },
+      ],
+      total: 1,
+    },
   },
   // Current analysis case resolution path used by account workspaces.
   {
     pattern: /.*\/api\/v1\/agents\/analysis\/cases\?account_id=.*/,
-    body: { items: [{ case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' }], total: 1 },
+    body: {
+      items: [
+        {
+          case_id: "case-test-001",
+          account_id: "acct-test-001",
+          title: "Test workspace",
+          status: "active",
+        },
+      ],
+      total: 1,
+    },
   },
   // Case create — POST /api/v1/agents/cases
   {
-    method: 'POST',
+    method: "POST",
     pattern: /.*\/api\/v1\/agents\/cases$/,
-    body: { case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' },
+    body: {
+      case_id: "case-test-001",
+      account_id: "acct-test-001",
+      title: "Test workspace",
+      status: "active",
+    },
     status: 201,
   },
   // Current analysis case create path used by account workspaces.
   {
-    method: 'POST',
+    method: "POST",
     pattern: /.*\/api\/v1\/agents\/analysis\/cases$/,
-    body: { case_id: 'case-test-001', account_id: 'acct-test-001', title: 'Test workspace', status: 'active' },
+    body: {
+      case_id: "case-test-001",
+      account_id: "acct-test-001",
+      title: "Test workspace",
+      status: "active",
+    },
     status: 201,
   },
   // Legacy canonical path (kept for backward compat)
   {
-    pattern: '**/api/v1/agents/cases/canonical/*',
-    body: { case_id: 'case-test-001' },
+    pattern: "**/api/v1/agents/cases/canonical/*",
+    body: { case_id: "case-test-001" },
   },
   // Feature flags
   {
-    pattern: '**/api/v1/agents/feature-flags',
+    pattern: "**/api/v1/agents/feature-flags",
     body: [],
   },
   // Health
   {
-    pattern: '**/api/v1/agents/health/**',
-    body: { status: 'healthy', components: {} },
+    pattern: "**/api/v1/agents/health/**",
+    body: { status: "healthy", components: {} },
   },
   // Ingestion jobs — backend returns a paginated envelope.
   {
-    pattern: '**/api/v1/ingest/jobs**',
+    pattern: "**/api/v1/ingest/jobs**",
     body: {
       items: [],
       total: 0,
@@ -259,42 +306,42 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   },
   // Settings
   {
-    pattern: '**/api/v1/agents/settings',
+    pattern: "**/api/v1/agents/settings",
     body: {
       features: {},
       notifications: { email: true, slack: false },
-      branding: { primaryColor: '#3B82F6', logoUrl: '' },
+      branding: { primaryColor: "#3B82F6", logoUrl: "" },
     },
   },
   // Users, roles, teams, api-keys
   {
-    pattern: '**/api/v1/agents/users',
+    pattern: "**/api/v1/agents/users",
     body: [],
   },
   {
-    pattern: '**/api/v1/agents/api-keys',
+    pattern: "**/api/v1/agents/api-keys",
     body: [],
   },
   // Workflows
   {
-    pattern: '**/api/v1/agents/workflows',
+    pattern: "**/api/v1/agents/workflows",
     body: [],
   },
   {
-    pattern: '**/api/v1/agents/workflows/types',
+    pattern: "**/api/v1/agents/workflows/types",
     body: [],
   },
   // Graph / Knowledge
   {
-    pattern: '**/api/v1/entities**',
+    pattern: "**/api/v1/entities**",
     body: { entities: [], total: 0 },
   },
   {
-    pattern: '**/api/v1/value-trees**',
+    pattern: "**/api/v1/value-trees**",
     body: { trees: [], total: 0 },
   },
   {
-    pattern: '**/api/v1/graph/subgraph**',
+    pattern: "**/api/v1/graph/subgraph**",
     body: {
       nodes: [],
       edges: [],
@@ -302,19 +349,19 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     },
   },
   {
-    pattern: '**/api/v1/graph/packs**',
+    pattern: "**/api/v1/graph/packs**",
     body: [],
   },
   {
-    pattern: '**/api/v1/graph/valuepacks',
+    pattern: "**/api/v1/graph/valuepacks",
     body: { items: [], total: 0 },
   },
   {
-    pattern: '**/api/v1/graph/valuepacks/composable-templates',
+    pattern: "**/api/v1/graph/valuepacks/composable-templates",
     body: { templates: [], template_usage: {} },
   },
   {
-    pattern: '**/api/v1/graph/valuepacks/ontology-map',
+    pattern: "**/api/v1/graph/valuepacks/ontology-map",
     body: {
       shared_drivers: [],
       shared_model_types: [],
@@ -327,16 +374,19 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   // this via page.route() before the harness installs its catch-all.
   {
     // Trailing ** matches optional query strings (e.g. ?tenant_id=...)
-    pattern: '**/api/v1/agents/harness/runs**',
+    pattern: "**/api/v1/agents/harness/runs**",
     body: { items: [], total: 0, has_more: false },
   },
   // Wildcard fallback for run sub-resources (checkpoints, gates, etc.).
   // Returns 404 rather than {} so that tests which forget to mock a
   // sub-resource fail loudly instead of silently receiving empty data.
   {
-    pattern: '**/api/v1/agents/harness/runs/**',
+    pattern: "**/api/v1/agents/harness/runs/**",
     status: 404,
-    body: { detail: 'Not found — add an explicit mock for this harness sub-resource in your test' },
+    body: {
+      detail:
+        "Not found — add an explicit mock for this harness sub-resource in your test",
+    },
   },
 ];
 
@@ -349,12 +399,12 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
 function globToRegExp(glob: string): RegExp {
   let regex = glob
     // Escape regex metacharacters other than `*`, which we expand ourselves.
-    .replace(/[.+^${}()|[\]\\?]/g, '\\$&')
-    .replace(/\*\*/g, '<<<DOUBLESTAR>>>')
-    .replace(/\*/g, '[^/]*')
-    .replace(/<<<DOUBLESTAR>>>/g, '.*');
+    .replace(/[.+^${}()|[\]\\?]/g, "\\$&")
+    .replace(/\*\*/g, "<<<DOUBLESTAR>>>")
+    .replace(/\*/g, "[^/]*")
+    .replace(/<<<DOUBLESTAR>>>/g, ".*");
   // Anchor to full URL
-  regex = '^' + regex + '$';
+  regex = "^" + regex + "$";
   return new RegExp(regex);
 }
 
@@ -370,7 +420,7 @@ function globToRegExp(glob: string): RegExp {
  */
 export async function installApiHarness(
   page: Page,
-  options: ApiHarnessOptions = {},
+  options: ApiHarnessOptions = {}
 ): Promise<() => Promise<void>> {
   if (isLiveMode()) {
     // In live mode, no mocking needed — requests go to real backend
@@ -392,11 +442,11 @@ export async function installApiHarness(
     const canonicalUrl = canonicalizeApiUrl(url);
     const method = route.request().method();
 
-    const mock = allMocks.find((m) => {
+    const mock = allMocks.find(m => {
       const matchesMethod = !m.method || method === m.method.toUpperCase();
       if (!matchesMethod) return false;
 
-      if (typeof m.pattern === 'string') {
+      if (typeof m.pattern === "string") {
         // Playwright glob — delegate to Playwright's internal matching
         // by falling back; this route only fires when the glob already
         // matched '**/api/v1/**', so we need to do more precise matching.
@@ -409,11 +459,11 @@ export async function installApiHarness(
 
     if (mock) {
       if (mock.delay) {
-        await new Promise((resolve) => setTimeout(resolve, mock.delay));
+        await new Promise(resolve => setTimeout(resolve, mock.delay));
       }
       await route.fulfill({
         status: mock.status ?? 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify(mock.body),
       });
       return;
@@ -421,12 +471,12 @@ export async function installApiHarness(
 
     if (options.strictMocking) {
       console.warn(`[API Harness] Unmatched request aborted: ${url}`);
-      await route.abort('connectionrefused');
+      await route.abort("connectionrefused");
     } else {
       options.onUnhandledRequest?.({ url, method });
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({}),
       });
     }
@@ -442,7 +492,7 @@ export async function installApiHarness(
 }
 
 function canonicalizeApiUrl(url: string): string {
-  return url.replace(/\/v1\//, '/api/v1/');
+  return url.replace(/\/v1\//, "/api/v1/");
 }
 
 /**
@@ -460,7 +510,7 @@ export function mockAccountData(
     actionPlan?: Record<string, unknown>;
     valueModel?: Record<string, unknown>;
     narrative?: Record<string, unknown>;
-  },
+  }
 ): MockEndpoint[] {
   const mocks: MockEndpoint[] = [];
 
@@ -472,18 +522,18 @@ export function mockAccountData(
   }
 
   const tabMap: Record<string, string> = {
-    signals: 'signals',
-    drivers: 'drivers',
-    evidence: 'evidence',
-    stakeholders: 'stakeholders',
-    actionPlan: 'action-plan',
-    valueModel: 'value-model',
-    narrative: 'narrative',
+    signals: "signals",
+    drivers: "drivers",
+    evidence: "evidence",
+    stakeholders: "stakeholders",
+    actionPlan: "action-plan",
+    valueModel: "value-model",
+    narrative: "narrative",
   };
 
   for (const [key, tabName] of Object.entries(tabMap)) {
     const tabData = data[key as keyof typeof data];
-    if (tabData && typeof tabData === 'object') {
+    if (tabData && typeof tabData === "object") {
       // Canonical backend path is `/agents/cases/{case_id}/workspace/{tab}`.
       // Tests do not know the generated case id, so match any case id; the
       // account-specific endpoint above is the stable fixture anchor.
@@ -501,15 +551,17 @@ export function mockAccountData(
 /**
  * Create mock endpoint definitions for ingestion jobs.
  */
-export function mockIngestionJobs(jobs: Array<{
-  id: string;
-  domain: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress: number;
-}>): MockEndpoint[] {
+export function mockIngestionJobs(
+  jobs: Array<{
+    id: string;
+    domain: string;
+    status: "pending" | "processing" | "completed" | "failed";
+    progress: number;
+  }>
+): MockEndpoint[] {
   const mocks: MockEndpoint[] = [
     {
-      pattern: '**/api/v1/ingest/jobs',
+      pattern: "**/api/v1/ingest/jobs",
       body: {
         items: jobs,
         total: jobs.length,
@@ -543,8 +595,8 @@ export function mockAgentStream(response: {
 }): MockEndpoint[] {
   return [
     {
-      pattern: '**/agent-stream/chat',
-      method: 'POST',
+      pattern: "**/agent-stream/chat",
+      method: "POST",
       body: response,
       delay: 100, // Simulate minimal latency
     },
@@ -557,7 +609,7 @@ export function mockAgentStream(response: {
 export function mockWorkflow(workflow: {
   id: string;
   type: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   progress: number;
 }): MockEndpoint[] {
   return [
@@ -567,17 +619,18 @@ export function mockWorkflow(workflow: {
         workflow_instance_id: workflow.id,
         workflow_type: workflow.type,
         status: workflow.status,
-        current_state: workflow.status === 'running' ? 'processing' : null,
+        current_state: workflow.status === "running" ? "processing" : null,
         current_node: null,
         progress_percentage: workflow.progress,
       },
     },
     {
       pattern: `**/api/v1/agents/workflows/${workflow.id}/result`,
-      body: workflow.status === 'completed'
-        ? { result: 'Workflow completed successfully', artifacts: [] }
-        : { error: 'Workflow not yet complete' },
-      status: workflow.status === 'completed' ? 200 : 404,
+      body:
+        workflow.status === "completed"
+          ? { result: "Workflow completed successfully", artifacts: [] }
+          : { error: "Workflow not yet complete" },
+      status: workflow.status === "completed" ? 200 : 404,
     },
   ];
 }

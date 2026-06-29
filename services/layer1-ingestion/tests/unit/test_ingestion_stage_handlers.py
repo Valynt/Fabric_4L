@@ -16,21 +16,36 @@ from layer1_ingestion.orchestrator.connector_resolution import (
     CustodyMode,
     FetchStrategy,
 )
-from layer1_ingestion.orchestrator.stage_handlers.applying_policy import (
-    ApplyingPolicyHandler,
-)
-from layer1_ingestion.orchestrator.stage_handlers.fetching_source import (
-    FetchingSourceHandler,
+from layer1_ingestion.orchestrator.stage_handlers.applying_policy import ApplyingPolicyHandler
+from layer1_ingestion.orchestrator.stage_handlers.fetching_source import FetchingSourceHandler
+from layer1_ingestion.orchestrator.stage_handlers.resolving_connector import (
+    ResolvingConnectorHandler,
 )
 
 
 class MockStageContext:
     """Lightweight in-memory context for testing handler logic."""
 
-    def __init__(self, source: Any, source_version: Any, step_artifacts: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        source: Any,
+        source_version: Any,
+        step_artifacts: dict[str, Any],
+        run: Any | None = None,
+    ) -> None:
         self.source = source
         self.source_version = source_version
         self.artifacts = step_artifacts
+        self.run = (
+            run
+            if run is not None
+            else SimpleNamespace(
+                connector_name=None,
+                connector_config_hash=None,
+                policy_version=None,
+                source_snapshot_hash=None,
+            )
+        )
         self.scratchpad: dict[str, Any] = {}
         self.failed_permanent = False
         self.failed_transient = False
@@ -135,7 +150,9 @@ async def test_fetching_source_local_payload_success() -> None:
         metadata={"source_version_id": "sv-1", "source_type": "note"},
     )
 
-    ctx = MockStageContext(source, source_version, {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        source, source_version, {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -150,10 +167,16 @@ async def test_fetching_source_object_storage_success() -> None:
         fetch_strategy=FetchStrategy.OBJECT_STORAGE,
         connector_kind=ConnectorKind.FILE,
         connector_name="file",
-        metadata={"storage_ref": "s3://prod-bucket/file.txt", "source_version_id": "sv-2", "source_type": "pdf"},
+        metadata={
+            "storage_ref": "s3://prod-bucket/file.txt",
+            "source_version_id": "sv-2",
+            "source_type": "pdf",
+        },
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -167,10 +190,16 @@ async def test_fetching_source_transient_failure_on_generic_storage_error() -> N
         fetch_strategy=FetchStrategy.OBJECT_STORAGE,
         connector_kind=ConnectorKind.FILE,
         connector_name="file",
-        metadata={"storage_ref": "s3://invalid-bucket/file.txt", "source_version_id": "sv-2", "source_type": "pdf"},
+        metadata={
+            "storage_ref": "s3://invalid-bucket/file.txt",
+            "source_version_id": "sv-2",
+            "source_type": "pdf",
+        },
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -183,10 +212,16 @@ async def test_fetching_source_permanent_failure_on_file_not_found() -> None:
         fetch_strategy=FetchStrategy.OBJECT_STORAGE,
         connector_kind=ConnectorKind.FILE,
         connector_name="file",
-        metadata={"storage_ref": "local://not-found", "source_version_id": "sv-2", "source_type": "pdf"},
+        metadata={
+            "storage_ref": "local://not-found",
+            "source_version_id": "sv-2",
+            "source_type": "pdf",
+        },
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -199,10 +234,16 @@ async def test_fetching_source_permanent_failure_on_permission_error() -> None:
         fetch_strategy=FetchStrategy.OBJECT_STORAGE,
         connector_kind=ConnectorKind.FILE,
         connector_name="file",
-        metadata={"storage_ref": "local://forbidden", "source_version_id": "sv-2", "source_type": "pdf"},
+        metadata={
+            "storage_ref": "local://forbidden",
+            "source_version_id": "sv-2",
+            "source_type": "pdf",
+        },
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -215,10 +256,16 @@ async def test_fetching_source_permanent_failure_on_invalid_storage_uri() -> Non
         fetch_strategy=FetchStrategy.OBJECT_STORAGE,
         connector_kind=ConnectorKind.FILE,
         connector_name="file",
-        metadata={"storage_ref": "local://invalid-uri", "source_version_id": "sv-2", "source_type": "pdf"},
+        metadata={
+            "storage_ref": "local://invalid-uri",
+            "source_version_id": "sv-2",
+            "source_type": "pdf",
+        },
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -241,7 +288,9 @@ async def test_fetching_source_external_connector_fails_permanent() -> None:
         metadata={"source_version_id": "sv-3", "source_type": "crm_record"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler(secret_manager=MockSecretManager())
 
     result = await handler.handle(ctx)
@@ -263,7 +312,9 @@ async def test_fetching_source_customer_hosted_metadata_only_success() -> None:
         metadata={"metadata_url": "https://customer.example/metadata"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -294,7 +345,9 @@ async def test_fetching_source_customer_hosted_missing_metadata_url_fails_perman
         metadata={},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler()
 
     result = await handler.handle(ctx)
@@ -314,7 +367,9 @@ async def test_fetching_source_customer_hosted_never_stores_raw_payload() -> Non
         metadata={"metadata_url": "https://customer.example/metadata"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -344,7 +399,11 @@ async def test_fetching_source_local_payload_empty_fails_permanent() -> None:
         requires_fetch=False,
         metadata={"source_version_id": "sv-1", "source_type": "note"},
     )
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(raw_storage_uri=None), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(),
+        SimpleNamespace(raw_storage_uri=None),
+        {"connector_resolution": resolution.to_artifact()},
+    )
     handler = FetchingSourceHandler(storage_client=MockStorageClient())
 
     result = await handler.handle(ctx)
@@ -358,7 +417,9 @@ async def test_fetching_source_web_fetch_success() -> None:
         metadata={"url": "https://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -382,7 +443,9 @@ async def test_fetching_source_web_fetch_uses_resolution_headers() -> None:
         headers={"X-Custom-Header": "custom-value"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -405,7 +468,9 @@ async def test_fetching_source_web_fetch_timeout_is_retryable() -> None:
         metadata={"url": "https://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -424,7 +489,9 @@ async def test_fetching_source_web_fetch_503_is_retryable() -> None:
         metadata={"url": "https://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -443,7 +510,9 @@ async def test_fetching_source_web_fetch_429_is_retryable() -> None:
         metadata={"url": "https://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -462,7 +531,9 @@ async def test_fetching_source_web_fetch_404_is_permanent() -> None:
         metadata={"url": "https://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     client = httpx.AsyncClient()
     handler = FetchingSourceHandler(http_client=client)
 
@@ -481,12 +552,95 @@ async def test_fetching_source_web_fetch_invalid_protocol_is_permanent() -> None
         metadata={"url": "ftp://example.com/page"},
     )
 
-    ctx = MockStageContext(SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()})
+    ctx = MockStageContext(
+        SimpleNamespace(), SimpleNamespace(), {"connector_resolution": resolution.to_artifact()}
+    )
     handler = FetchingSourceHandler()
 
     result = await handler.handle(ctx)
     assert result == "FAILED_PERMANENT"
     assert ctx.error_code == "INSECURE_OR_INVALID_PROTOCOL"
+
+
+# ---------------------------------------------------------------------------
+# RESOLVING_CONNECTOR
+# ---------------------------------------------------------------------------
+
+
+def test_resolving_connector_builds_strategy_for_supported_source() -> None:
+    source = SimpleNamespace(
+        source_type="audio",
+        custody_mode="B",
+        meta={"storage_ref": "s3://audio/record.txt"},
+    )
+    source_version = SimpleNamespace()
+    handler = ResolvingConnectorHandler()
+    ctx = MockStageContext(source=source, source_version=source_version, step_artifacts={})
+
+    result = handler.handle(ctx)
+
+    assert result == "ADVANCED"
+    assert handler is not None
+    assert ctx.advanced_to == IngestionStage.FETCHING_SOURCE
+    assert (
+        ctx.artifacts["connector_resolution"]["fetch_strategy"]
+        == FetchStrategy.OBJECT_STORAGE.value
+    )
+
+
+def test_resolving_connector_persists_run_connector_metadata() -> None:
+    source = SimpleNamespace(
+        id="00000000-0000-0000-0000-000000000101",
+        source_type="audio",
+        custody_mode="B",
+        meta={"storage_ref": "s3://audio/record.txt"},
+        field_scope_id="scope-1",
+    )
+    source_version = SimpleNamespace(
+        id="00000000-0000-0000-0000-000000000202",
+        content_hash="abc123",
+        raw_storage_uri="s3://audio/record.txt",
+        meta={"storage_ref": "s3://audio/record.txt"},
+    )
+    run = SimpleNamespace(
+        connector_name=None,
+        connector_config_hash=None,
+        policy_version=None,
+        source_snapshot_hash=None,
+    )
+    handler = ResolvingConnectorHandler()
+
+    ctx = MockStageContext(
+        source=source,
+        source_version=source_version,
+        step_artifacts={},
+        run=run,
+    )
+    result = handler.handle(ctx)
+
+    assert result == "ADVANCED"
+    assert run.connector_name == "s3_reference"
+    assert run.policy_version == "v3.0"
+    assert isinstance(run.connector_config_hash, str)
+    assert len(run.connector_config_hash) == 64
+    assert isinstance(run.source_snapshot_hash, str)
+    assert len(run.source_snapshot_hash) == 64
+
+
+def test_resolving_connector_url_without_source_url_fails() -> None:
+    source = SimpleNamespace(
+        source_type="url",
+        custody_mode="A",
+        meta={},
+    )
+    source_version = SimpleNamespace(raw_storage_uri="raw://url")
+    handler = ResolvingConnectorHandler()
+
+    ctx = MockStageContext(source=source, source_version=source_version, step_artifacts={})
+    result = handler.handle(ctx)
+
+    assert result == "FAILED_PERMANENT"
+    assert ctx.error_code == "UNSUPPORTED_CONNECTOR_CONFIG"
 
 
 # ---------------------------------------------------------------------------
@@ -507,7 +661,10 @@ def test_applying_policy_reference_extract_scrub() -> None:
 
     assert result == "ADVANCED"
     assert ctx.advanced_to == IngestionStage.NORMALIZING_DOCUMENT
-    assert ctx.get_scratchpad("transient_clean_text") == "Contact John Doe at [REDACTED_EMAIL] or [REDACTED_PHONE]."
+    assert (
+        ctx.get_scratchpad("transient_clean_text")
+        == "Contact John Doe at [REDACTED_EMAIL] or [REDACTED_PHONE]."
+    )
     assert ctx.permanent_store is None
     assert ctx.get_scratchpad("fetched_raw_data") is None
 
@@ -539,7 +696,10 @@ def test_applying_policy_customer_hosted_zero_retention() -> None:
     assert ctx.advanced_to == IngestionStage.NORMALIZING_DOCUMENT
     assert ctx.scratchpad == {}
     assert ctx.permanent_store is None
-    assert ctx.artifacts["policy_scrubbed_payload"]["custody_status"] == "customer_hosted_zero_retention"
+    assert (
+        ctx.artifacts["policy_scrubbed_payload"]["custody_status"]
+        == "customer_hosted_zero_retention"
+    )
 
 
 def test_applying_policy_missing_raw_data_fails_permanent() -> None:

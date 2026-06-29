@@ -1,16 +1,17 @@
-import * as React from "react"
-import { useContext } from "react"
-import { useNavigation } from "@/hooks/useNavigation"
-import { AuthContext } from "@/contexts/AuthContext"
-import { ProspectPromptBuilder } from "@/components/workspace/ProspectPromptBuilder"
+import * as React from "react";
+import { useContext } from "react";
+import { useNavigation } from "@/hooks/useNavigation";
+import { AuthContext } from "@/contexts/AuthContext";
+import { ProspectPromptBuilder } from "@/components/workspace/ProspectPromptBuilder";
+import { useProspectSetupAccountCreate } from "@/hooks/useProspectSetupAccount";
 import type {
   ProspectPromptBuilderProps,
   ProspectSetupPromptPayload,
-} from "@/components/workspace/ProspectPromptBuilder"
+} from "@/components/workspace/ProspectPromptBuilder";
 
 function useTenantSlug(): string | null {
-  const ctx = useContext(AuthContext)
-  return ctx?.currentTenantSlug ?? null
+  const ctx = useContext(AuthContext);
+  return ctx?.currentTenantSlug ?? null;
 }
 
 /**
@@ -18,31 +19,36 @@ function useTenantSlug(): string | null {
  * Route: /accounts/new
  * After creation, navigates to /t/:tenantSlug/accounts/:accountId/intelligence/signals
  */
-export default function ProspectSetupPage({ ...props }: ProspectPromptBuilderProps) {
-  const { navigateTo } = useNavigation()
-  const tenantSlug = useTenantSlug() ?? "default"
+export default function ProspectSetupPage({
+  ...props
+}: ProspectPromptBuilderProps) {
+  const { navigateTo } = useNavigation();
+  const tenantSlug = useTenantSlug() ?? "default";
+  const prospectSetup = useProspectSetupAccountCreate();
 
   const handleCreateSetup = React.useCallback(
     async (payload: ProspectSetupPromptPayload) => {
-      return props.onCreateSetup ? await props.onCreateSetup(payload) : undefined
+      return props.onCreateSetup
+        ? await props.onCreateSetup(payload)
+        : await prospectSetup.createSetup(payload);
     },
-    [props.onCreateSetup]
-  )
+    [props.onCreateSetup, prospectSetup]
+  );
 
   const handleNavigateToWorkspace = React.useCallback(
     (path: string, accountId: string) => {
       if (props.onNavigateToWorkspace) {
-        props.onNavigateToWorkspace(path, accountId)
-        return
+        props.onNavigateToWorkspace(path, accountId);
+        return;
       }
-      navigateTo(path)
+      navigateTo(path);
     },
     [props.onNavigateToWorkspace, navigateTo]
-  )
+  );
 
   const handleFallbackNavigation = React.useCallback(() => {
-    navigateTo("home")
-  }, [navigateTo])
+    navigateTo("home");
+  }, [navigateTo]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
@@ -51,11 +57,11 @@ export default function ProspectSetupPage({ ...props }: ProspectPromptBuilderPro
         onCreateSetup={handleCreateSetup}
         onNavigateToWorkspace={handleNavigateToWorkspace}
         onFallbackNavigation={handleFallbackNavigation}
-        getWorkspacePath={(accountId) =>
+        isSubmitting={props.isSubmitting ?? prospectSetup.isSubmitting}
+        getWorkspacePath={accountId =>
           `/t/${tenantSlug}/accounts/${accountId}/intelligence/signals`
         }
       />
     </main>
-  )
+  );
 }
-

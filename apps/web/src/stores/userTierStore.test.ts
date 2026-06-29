@@ -6,6 +6,7 @@ import {
   isDenied,
   validateTier,
   normalizeRoleToTier,
+  getPersistedTierSnapshot,
   type UserTier,
 } from "./userTierStore";
 
@@ -157,6 +158,23 @@ describe("useUserTierStore", () => {
     });
   });
 
+  describe("persistence", () => {
+    it("normalizes the Zustand storage envelope used by E2E fixtures", () => {
+      const snapshot = getPersistedTierSnapshot({
+        state: {
+          currentTier: "admin",
+          isAdvancedModeEnabled: true,
+          userRole: "admin",
+        },
+        version: 0,
+      });
+
+      expect(snapshot.currentTier).toBe("admin");
+      expect(snapshot.isAdvancedModeEnabled).toBe(true);
+      expect(snapshot.userRole).toBe("admin");
+    });
+  });
+
   describe("canAccessRoute", () => {
     it("admin can access all route tiers", () => {
       useUserTierStore.getState().setTier("admin");
@@ -197,12 +215,16 @@ describe("useUserTierStore", () => {
   describe("canAccessRouteWithReason", () => {
     it("returns allowed for admin", () => {
       useUserTierStore.getState().setTier("admin");
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("admin");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("admin");
       expect(decision).toEqual({ allowed: true });
     });
 
     it("returns denied for invalid tier parameter", () => {
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("invalid");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("invalid");
       expect(isDenied(decision)).toBe(true);
       if (isDenied(decision)) {
         expect(decision.reason).toBe("INVALID_TIER_PARAMETER");
@@ -210,7 +232,9 @@ describe("useUserTierStore", () => {
     });
 
     it("denies admin route for standard user", () => {
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("admin");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("admin");
       expect(isDenied(decision)).toBe(true);
       if (isDenied(decision)) {
         expect(decision.reason).toBe("ADMIN_ROUTE_REQUIRES_ADMIN_TIER");
@@ -218,7 +242,9 @@ describe("useUserTierStore", () => {
     });
 
     it("denies advanced route for standard user without advanced mode", () => {
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("advanced");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("advanced");
       expect(isDenied(decision)).toBe(true);
       if (isDenied(decision)) {
         expect(decision.reason).toBe("ADVANCED_ROUTE_REQUIRES_ADVANCED_MODE");
@@ -227,13 +253,17 @@ describe("useUserTierStore", () => {
 
     it("allows advanced route for standard user with advanced mode", () => {
       useUserTierStore.getState().enableAdvancedMode();
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("advanced");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("advanced");
       expect(decision).toEqual({ allowed: true });
     });
 
     it("fails closed for invalid user tier state", () => {
       useUserTierStore.setState({ currentTier: "unknown" as UserTier });
-      const decision = useUserTierStore.getState().canAccessRouteWithReason("standard");
+      const decision = useUserTierStore
+        .getState()
+        .canAccessRouteWithReason("standard");
       expect(isDenied(decision)).toBe(true);
       if (isDenied(decision)) {
         expect(decision.reason).toBe("INVALID_USER_TIER_STATE");
@@ -244,13 +274,23 @@ describe("useUserTierStore", () => {
   describe("canAccessFeature", () => {
     it("reflects tier-based permissions", () => {
       useUserTierStore.getState().setTier("admin");
-      expect(useUserTierStore.getState().canAccessFeature("canManageUsers")).toBe(true);
-      expect(useUserTierStore.getState().canAccessFeature("canEditFormulas")).toBe(true);
+      expect(
+        useUserTierStore.getState().canAccessFeature("canManageUsers")
+      ).toBe(true);
+      expect(
+        useUserTierStore.getState().canAccessFeature("canEditFormulas")
+      ).toBe(true);
       useUserTierStore.getState().setTier("advanced");
-      expect(useUserTierStore.getState().canAccessFeature("canEditFormulas")).toBe(true);
-      expect(useUserTierStore.getState().canAccessFeature("canManageUsers")).toBe(false);
+      expect(
+        useUserTierStore.getState().canAccessFeature("canEditFormulas")
+      ).toBe(true);
+      expect(
+        useUserTierStore.getState().canAccessFeature("canManageUsers")
+      ).toBe(false);
       useUserTierStore.getState().setTier("standard");
-      expect(useUserTierStore.getState().canAccessFeature("canAccessAdvanced")).toBe(false);
+      expect(
+        useUserTierStore.getState().canAccessFeature("canAccessAdvanced")
+      ).toBe(false);
     });
   });
 
@@ -282,7 +322,9 @@ describe("getRouteTier", () => {
   });
 
   it("normalizes tenant-scoped paths", () => {
-    expect(getRouteTier("/t/acme/accounts/acc-123/intelligence")).toBe("standard");
+    expect(getRouteTier("/t/acme/accounts/acc-123/intelligence")).toBe(
+      "standard"
+    );
     expect(getRouteTier("/t/acme/accounts/acc-123/studio")).toBe("advanced");
   });
 

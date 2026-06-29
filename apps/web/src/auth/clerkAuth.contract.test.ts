@@ -20,6 +20,8 @@ describe("Clerk auth failure semantics", () => {
     Object.defineProperty(window, "location", {
       value: {
         pathname: "/home",
+        search: "",
+        hash: "",
         replace: replaceSpy,
       },
       writable: true,
@@ -38,7 +40,7 @@ describe("Clerk auth failure semantics", () => {
 
   it("redirects to sign-in on 401", () => {
     sessionService.handleUnauthorized({ route: "/home", traceId: "trace-401" });
-    expect(replaceSpy).toHaveBeenCalledWith("/sign-in");
+    expect(replaceSpy).toHaveBeenCalledWith("/sign-in?redirect_url=%2Fhome");
   });
 
   it("redirects to /forbidden on 403", () => {
@@ -50,12 +52,17 @@ describe("Clerk auth failure semantics", () => {
     Object.defineProperty(window, "location", {
       value: {
         pathname: "/forbidden",
+        search: "",
+        hash: "",
         replace: replaceSpy,
       },
       writable: true,
       configurable: true,
     });
-    sessionService.handleForbidden({ route: "/forbidden", traceId: "trace-403" });
+    sessionService.handleForbidden({
+      route: "/forbidden",
+      traceId: "trace-403",
+    });
     expect(replaceSpy).not.toHaveBeenCalled();
   });
 });

@@ -14,11 +14,12 @@ from .base import StageHandler
 # Import concrete handlers here as they are implemented.
 from .fetching_source import FetchingSourceHandler
 from .noop import NoopStageHandler
+from .resolving_connector import ResolvingConnectorHandler
 from .validating_access import ValidatingAccessHandler
 
 _STAGE_HANDLER_REGISTRY: dict[str, type[StageHandler]] = {
     IngestionRunStatus.VALIDATING_ACCESS.value: ValidatingAccessHandler,
-    IngestionRunStatus.RESOLVING_CONNECTOR.value: NoopStageHandler,
+    IngestionRunStatus.RESOLVING_CONNECTOR.value: ResolvingConnectorHandler,
     IngestionRunStatus.FETCHING_SOURCE.value: FetchingSourceHandler,
     IngestionRunStatus.APPLYING_POLICY.value: ApplyingPolicyHandler,
     IngestionRunStatus.NORMALIZING.value: NoopStageHandler,
@@ -49,6 +50,7 @@ __all__ = [
     "StageHandler",
     "NoopStageHandler",
     "ValidatingAccessHandler",
+    "ResolvingConnectorHandler",
     "FetchingSourceHandler",
     "ApplyingPolicyHandler",
     "get_stage_handler",
