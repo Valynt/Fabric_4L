@@ -35,16 +35,16 @@ import pytest
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _L4_ROUTES_DIR = (
-    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes"
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes"
 )
 _L4_TENANT_ROUTES_DIR = (
-    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "api" / "routes"
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "tenants" / "api" / "routes"
 )
 _L4_FEATURE_FLAGS_DIR = (
-    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "feature_flags" / "api"
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "feature_flags" / "api"
 )
 _L4_REGISTRY_DIR = (
-    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "registry" / "api"
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "registry" / "api"
 )
 
 _ALL_ROUTE_DIRS = [
@@ -262,7 +262,7 @@ class TestNoDeprecatedGetDb:
         This is a unit test of the dependency function itself.
         """
         # Read the source to verify the guard clause exists
-        db_module = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "database.py"
+        db_module = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "database.py"
         source = db_module.read_text(encoding="utf-8")
 
         # The function must check for missing context/tenant_id
