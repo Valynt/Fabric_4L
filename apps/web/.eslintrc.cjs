@@ -41,7 +41,6 @@ const wfPrimitivesAllowlist = [
   "client/src/pages/admin/BenchmarkPolicies.tsx",
   "client/src/pages/admin/HealthMonitor.tsx",
   "client/src/pages/admin/PermissionsAdmin.tsx",
-  "client/src/pages/admin/PlatformSettings.tsx",
   "client/src/pages/calculator/ROITab.tsx",
   "client/src/pages/calculator/ValueModelTab.tsx",
   "client/src/pages/deliverables/CFOView.tsx",

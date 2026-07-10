@@ -97,7 +97,6 @@ const ReviewQueuePage = lazy(() => import("@/pages/ReviewQueuePage"));
 const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage"));
 const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies"));
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
-const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole"));
 const BillingAdminPage = lazy(() => import("@/pages/admin/BillingAdmin"));
 
 // ── Dev Tools ──

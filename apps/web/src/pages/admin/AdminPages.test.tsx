@@ -4,9 +4,8 @@
  * Covers all admin governance pages with smoke + behavior tests:
  * - BenchmarkPolicies
  * - PermissionsAdmin
- * - PlatformSettings
  * - HealthMonitor
- * - SuperAdminConsole
+ * - BillingAdmin
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -23,9 +22,7 @@ import { copyToClipboard } from '@/lib/clipboard';
 // Static imports avoid per-test dynamic import overhead
 import BenchmarkPolicies from './BenchmarkPolicies';
 import PermissionsAdmin from './PermissionsAdmin';
-import PlatformSettings from './PlatformSettings';
 import HealthMonitor from './HealthMonitor';
-import SuperAdminConsole from './SuperAdminConsole';
 
 // ── Mock factories ───────────────────────────────────────────────────────────
 
@@ -37,11 +34,8 @@ import {
   makeUseCreateApiKey,
   makeUseRevokeApiKey,
   makeUseInviteUser,
-  makeUsePlatformSettings,
-  makeUseUpdatePlatformSettings,
   makeUseSystemHealth,
   makeUseHealthAlerts,
-  makeUseSuperAdminOverview,
 } from './__mocks__/adminMocks';
 
 let mockUseBenchmarks = makeUseBenchmarks();
@@ -51,11 +45,8 @@ let mockUseApiKeys = makeUseApiKeys();
 let mockUseCreateApiKey = makeUseCreateApiKey();
 let mockUseRevokeApiKey = makeUseRevokeApiKey();
 let mockUseInviteUser = makeUseInviteUser();
-let mockUsePlatformSettings = makeUsePlatformSettings();
-let mockUseUpdatePlatformSettings = makeUseUpdatePlatformSettings();
 let mockUseSystemHealth = makeUseSystemHealth();
 let mockUseHealthAlerts = makeUseHealthAlerts();
-let mockUseSuperAdminOverview = makeUseSuperAdminOverview();
 import BillingAdmin from './BillingAdmin';
 
 vi.mock('@/hooks/useBenchmarks', () => ({
@@ -69,11 +60,6 @@ vi.mock('@/hooks/useGovernance', () => ({
   useCreateApiKey: () => mockUseCreateApiKey(),
   useRevokeApiKey: () => mockUseRevokeApiKey(),
   useInviteUser: () => mockUseInviteUser(),
-}));
-
-vi.mock('@/hooks/usePlatformSettings', () => ({
-  usePlatformSettings: () => mockUsePlatformSettings(),
-  useUpdatePlatformSettings: () => mockUseUpdatePlatformSettings(),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -95,10 +81,6 @@ vi.mock('@/hooks/useHealthMonitor', () => ({
   useHealthAlerts: () => mockUseHealthAlerts(),
 }));
 
-vi.mock('@/hooks/useSuperAdminOverview', () => ({
-  useSuperAdminOverview: (...a: unknown[]) => mockUseSuperAdminOverview(...a),
-}));
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockUseBenchmarks = makeUseBenchmarks();
@@ -108,11 +90,8 @@ beforeEach(() => {
   mockUseCreateApiKey = makeUseCreateApiKey();
   mockUseRevokeApiKey = makeUseRevokeApiKey();
   mockUseInviteUser = makeUseInviteUser();
-  mockUsePlatformSettings = makeUsePlatformSettings();
-  mockUseUpdatePlatformSettings = makeUseUpdatePlatformSettings();
   mockUseSystemHealth = makeUseSystemHealth();
   mockUseHealthAlerts = makeUseHealthAlerts();
-  mockUseSuperAdminOverview = makeUseSuperAdminOverview();
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -422,33 +401,6 @@ describe('PermissionsAdmin', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PlatformSettings
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe('PlatformSettings', () => {
-  it('renders without crashing', async () => {
-    const wrapper = createWrapper();
-    render(<PlatformSettings />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText('Platform Settings')).toBeInTheDocument();
-    });
-  }, 10_000);
-
-  it('switches between feature tabs', async () => {
-    const user = userEvent.setup();
-    const wrapper = createWrapper();
-    render(<PlatformSettings />, { wrapper });
-
-    await waitFor(() => screen.getByRole('tab', { name: /^Notifications/i }));
-    await user.click(screen.getByRole('tab', { name: /^Notifications/i }));
-    await waitFor(() => expect(screen.getByText('Email Alerts')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('tab', { name: /^Security/i }));
-    await waitFor(() => expect(screen.getByText('Require Two-Factor Auth')).toBeInTheDocument());
-  }, 10_000);
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
 // HealthMonitor
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -494,38 +446,6 @@ describe('HealthMonitor', () => {
 
     // After refresh, the page should still render normally
     await waitFor(() => expect(screen.getByText('System Health')).toBeInTheDocument());
-  }, 10_000);
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// SuperAdminConsole
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe('SuperAdminConsole', () => {
-  it('renders without crashing', async () => {
-    const wrapper = createWrapper();
-    render(<SuperAdminConsole />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText('Super Admin Console')).toBeInTheDocument();
-    });
-  }, 10_000);
-
-  it('renders tenant stats row', async () => {
-    const wrapper = createWrapper();
-    render(<SuperAdminConsole />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText('Total Tenants')).toBeInTheDocument();
-      expect(screen.getByText('2')).toBeInTheDocument();
-    });
-  }, 10_000);
-
-  it('renders tenant table rows', async () => {
-    const wrapper = createWrapper();
-    render(<SuperAdminConsole />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-      expect(screen.getByText('Beta Inc')).toBeInTheDocument();
-    });
   }, 10_000);
 });
 

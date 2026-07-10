@@ -150,57 +150,6 @@ export const makeUseInviteUser = (overrides = {}) =>
     ...overrides,
   }));
 
-// ── usePlatformSettings ──────────────────────────────────────────────────────
-
-export const DEFAULT_PLATFORM_SETTINGS = {
-  tenant_id: 't-1',
-  tenant_name: 'Test Tenant',
-  features: {
-    advanced_analytics: true,
-    custom_integrations: false,
-    ai_assistant: true,
-    audit_trail: false,
-  },
-  limits: {
-    max_users: 100,
-    max_api_calls_per_day: 50000,
-    storage_gb: 500,
-  },
-  notifications: {
-    email_alerts: true,
-    webhook_url: '',
-    slack_webhook: '',
-  },
-  security: {
-    require_2fa: false,
-    session_timeout_minutes: 60,
-    ip_allowlist: [],
-  },
-  branding: {
-    logo_url: '',
-    primary_color: '#2563eb',
-    favicon_url: '',
-  },
-  updated_at: '2026-01-01T00:00:00Z',
-};
-
-export const makeUsePlatformSettings = (overrides = {}) =>
-  vi.fn(() => ({
-    data: DEFAULT_PLATFORM_SETTINGS,
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-    ...overrides,
-  }));
-
-export const makeUseUpdatePlatformSettings = (overrides = {}) =>
-  vi.fn(() => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue({}),
-    isPending: false,
-    ...overrides,
-  }));
-
 // ── useHealthMonitor ─────────────────────────────────────────────────────────
 
 export const DEFAULT_SYSTEM_HEALTH = {
@@ -265,39 +214,4 @@ export const makeUseHealthAlerts = (overrides = {}) =>
     ...overrides,
   }));
 
-// ── useSuperAdminOverview ────────────────────────────────────────────────────
 
-export const DEFAULT_TENANT_OVERVIEW = {
-  items: [
-    {
-      id: 'tenant-1',
-      name: 'Acme Corp',
-      slug: 'acme',
-      status: 'active',
-      tier_id: 'enterprise',
-      user_count: 42,
-      active_workflow_count: 5,
-      created_at: '2026-01-01T00:00:00Z',
-    },
-    {
-      id: 'tenant-2',
-      name: 'Beta Inc',
-      slug: 'beta',
-      status: 'pending',
-      tier_id: 'team',
-      user_count: 8,
-      active_workflow_count: 1,
-      created_at: '2026-01-01T00:00:00Z',
-    },
-  ],
-  total: 2,
-};
-
-export const makeUseSuperAdminOverview = (overrides = {}) =>
-  vi.fn(() => ({
-    data: DEFAULT_TENANT_OVERVIEW,
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-    ...overrides,
-  }));
