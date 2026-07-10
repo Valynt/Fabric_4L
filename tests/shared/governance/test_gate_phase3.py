@@ -169,6 +169,7 @@ class TestReplayRecorder:
             r.record_tool_invocations([{"tool": "a"}])
             return r.build_snapshot()["snapshot_hash"]
 
+        # DECISION(dc68d9e7d123447998238299b7541cac): ACCEPTED
         # Note: timestamps differ between calls, so hashes will differ.
         # This test only validates the hash format, not determinism.
         h = _build()
