@@ -46,8 +46,9 @@ class TestWebhookReplayAttackPrevention:
 
     def test_duplicate_webhook_event_rejected(self):
         """Duplicate webhook events with same ID must be rejected or idempotently handled."""
-        # This test verifies that the webhook endpoint has idempotency
-        # to prevent double-processing of the same event
+        # Placeholder: webhook idempotency is a required P0 behavior, but the
+        # endpoint implementation is not yet present. This test documents the
+        # expected invariant; it does not currently verify it.
         
         event_id = "evt_test_duplicate_123"
         payload = f'{{"id": "{event_id}", "type": "payment.created"}}'.encode()
