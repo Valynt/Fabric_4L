@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from _pytest.config import Config, Parser
     from _pytest.nodes import Item
 
+# DECISION(2af9a3c65e21480c8dbc4335ead71624): ACCEPTED
 # Load the volatile policy lists from config/ci/pytest_policy.yaml so that
 # routine additions (new tenant targets, new markers, new deps) do not churn
 # this file.  The constants below retain the same names and types as before.
