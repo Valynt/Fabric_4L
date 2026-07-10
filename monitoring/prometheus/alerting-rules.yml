@@ -1,0 +1,448 @@
+# Alerting Rules — Fabric_4L v1.2.0
+# Prometheus alert rules with linked runbooks.
+#
+# Author: SRE Team (Staff+)
+# Apply with: promtool check rules alerting-rules.yml
+# Dependencies: recording-rules.yml must be loaded first.
+
+groups:
+  # =========================================================================
+  # CRITICAL: Service Availability & Error Rate
+  # =========================================================================
+  - name: fabric4l-critical
+    interval: 15s
+    rules:
+      # --- High Error Rate ------------------------------------------------
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum by (service, layer) (rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum by (service, layer) (rate(http_requests_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+          slo: api-availability
+        annotations:
+          summary: "High error rate on {{ $labels.service }} ({{ $labels.layer }})"
+          description: |
+            Error rate is {{ $value | humanizePercentage }} for {{ $labels.service }}
+            in {{ $labels.layer }} over the last 5 minutes.
+            SLO threshold: 0.1% (99.9% availability).
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/HIGH_ERROR_RATE.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+      # --- Service Down ---------------------------------------------------
+      - alert: ServiceDown
+        expr: up{job=~"l[1-6]-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Service {{ $labels.job }} is DOWN"
+          description: |
+            Service {{ $labels.job }} has been down for more than 1 minute.
+            Instance: {{ $labels.instance }}
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/SERVICE_UNAVAILABLE.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+      # --- Tenant Isolation Breached --------------------------------------
+      - alert: TenantIsolationBreached
+        expr: increase(cross_tenant_access_attempts_total[1m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          team: security
+          slo: tenant-isolation
+        annotations:
+          summary: "TENANT ISOLATION BREACH DETECTED"
+          description: |
+            CRITICAL SECURITY ALERT: Cross-tenant access attempt detected.
+            Source tenant: {{ $labels.source_tenant }}
+            Target tenant: {{ $labels.target_tenant }}
+            Layer: {{ $labels.layer }}
+            This is a P0 incident requiring immediate response.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/TENANT_ISOLATION_BREACH.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-tenant-isolation"
+
+      # --- SLO Fast Burn Rate ---------------------------------------------
+      - alert: SLOBurnRateFast
+        expr: slo_error_budget_burn_rate > 14.4
+        for: 2m
+        labels:
+          severity: critical
+          team: sre
+          slo: multi-slo
+        annotations:
+          summary: "SLO fast burn detected ({{ $value | humanize }}x)"
+          description: |
+            Error budget is being consumed at {{ $value | humanize }}x the
+            sustainable rate. Budget will exhaust in ~{{ 24/$value | humanizeDuration }}
+            if this continues.
+            SLO: {{ $labels.slo_name }}
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/SLO_BURN_RATE.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+  # =========================================================================
+  # WARNING: Performance Degradation
+  # =========================================================================
+  - name: fabric4l-warning
+    interval: 30s
+    rules:
+      # --- High Latency (p95) ---------------------------------------------
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, service, layer) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+          slo: api-latency
+        annotations:
+          summary: "High p95 latency on {{ $labels.service }}"
+          description: |
+            p95 latency is {{ $value | humanizeDuration }} for {{ $labels.service }}
+            in {{ $labels.layer }}.
+            SLO threshold: 200ms.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/HIGH_LATENCY.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+      # --- Database Connections High --------------------------------------
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: dba
+        annotations:
+          summary: "PostgreSQL connection count high ({{ $value }})"
+          description: |
+            PostgreSQL has {{ $value }} active connections.
+            Threshold: 80 (max_connections: 100).
+            Risk of connection exhaustion.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/DATABASE_FAILOVER.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+      # --- Workflow Failure Rate High -------------------------------------
+      - alert: WorkflowFailureRateHigh
+        expr: |
+          (
+            sum(rate(agent_workflow_failed_total[5m]))
+            /
+            sum(rate(agent_workflow_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: agents
+          slo: agent-workflow
+        annotations:
+          summary: "Agent workflow failure rate is {{ $value | humanizePercentage }}"
+          description: |
+            More than 5% of agent workflows are failing.
+            Failure rate: {{ $value | humanizePercentage }}
+            SLO: 99.5% success rate (0.5% failure).
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/AGENT_WORKFLOW_FAILURE.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-agent-workflows"
+
+      # --- LLM Cost Spike ------------------------------------------------
+      - alert: LLMCostSpike
+        expr: increase(llm_api_cost_total[1h]) > 100
+        for: 15m
+        labels:
+          severity: warning
+          team: cost
+        annotations:
+          summary: "LLM API cost spike: ${{ $value | humanize }} in 1h"
+          description: |
+            LLM API spending is ${{ $value | humanize }} in the last hour.
+            Typical: ~$50/hr. Threshold: $100/hr.
+            Tenant: {{ $labels.tenant_id }}
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/LLM_RATE_LIMITING.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-cost-efficiency"
+
+      # --- SLO Slow Burn Rate --------------------------------------------
+      - alert: SLOBurnRateSlow
+        expr: slo_error_budget_burn_rate > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+          slo: multi-slo
+        annotations:
+          summary: "SLO slow burn detected ({{ $value | humanize }}x)"
+          description: |
+            Error budget is being consumed at {{ $value | humanize }}x the
+            sustainable rate. Budget will exhaust before the compliance window
+            ends at this rate.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/SLO_BURN_RATE.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-platform-overview"
+
+  # =========================================================================
+  # Database & Storage
+  # =========================================================================
+  - name: fabric4l-database
+    interval: 30s
+    rules:
+      # --- PostgreSQL Primary Down ----------------------------------------
+      - alert: PostgreSQLPrimaryDown
+        expr: pg_up{role="primary"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: dba
+        annotations:
+          summary: "PostgreSQL primary is DOWN"
+          description: |
+            PostgreSQL primary instance {{ $labels.instance }} is unreachable.
+            Immediate failover may be required.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/DATABASE_FAILOVER.md"
+
+      # --- PostgreSQL Replication Lag -------------------------------------
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 2m
+        labels:
+          severity: warning
+          team: dba
+        annotations:
+          summary: "PostgreSQL replication lag: {{ $value }}s"
+          description: |
+            Replication lag on {{ $labels.instance }} is {{ $value }} seconds.
+            Risk of data loss during failover.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/DATABASE_FAILOVER.md"
+
+      # --- Neo4j Cluster Partition ----------------------------------------
+      - alert: Neo4jClusterPartition
+        expr: neo4j_cluster_core_databases_status{status!="online"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: dba
+        annotations:
+          summary: "Neo4j cluster partition detected"
+          description: |
+            Neo4j database {{ $labels.database }} is in {{ $labels.status }} state.
+            Cluster may be partitioned.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/NEO4J_PARTITION.md"
+
+      # --- Redis Unavailable ----------------------------------------------
+      - alert: RedisUnavailable
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Redis instance {{ $labels.instance }} is DOWN"
+          description: |
+            Redis cache is unreachable. Session management and rate limiting
+            will be affected. Fallback to database mode activated.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/REDIS_CACHE_OUTAGE.md"
+
+      # --- Redis Memory High ----------------------------------------------
+      - alert: RedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Redis memory usage: {{ $value | humanizePercentage }}"
+          description: |
+            Redis is using {{ $value | humanizePercentage }} of max memory.
+            Eviction may begin affecting cache hit rate.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/REDIS_CACHE_OUTAGE.md"
+
+  # =========================================================================
+  # Infrastructure & Platform
+  # =========================================================================
+  - name: fabric4l-infrastructure
+    interval: 30s
+    rules:
+      # --- High CPU Usage -------------------------------------------------
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}: {{ $value }}%"
+          description: |
+            CPU usage on {{ $labels.instance }} is {{ $value }}%.
+            Threshold: 85%.
+
+      # --- High Memory Usage ----------------------------------------------
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          )
+          /
+          node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}: {{ $value }}%"
+          description: |
+            Memory usage on {{ $labels.instance }} is {{ $value }}%.
+            Threshold: 90%. Risk of OOM kills.
+
+      # --- Disk Space Low -------------------------------------------------
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            /
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}: {{ $value | humanizePercentage }} free"
+          description: |
+            Root filesystem on {{ $labels.instance }} has only
+            {{ $value | humanizePercentage }} space remaining.
+
+      # --- Certificate Expiry ---------------------------------------------
+      - alert: CertificateExpiringSoon
+        expr: |
+          (
+            ssl_certificate_expiry_seconds - time()
+          ) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "TLS certificate expires in {{ $value }} days"
+          description: |
+            TLS certificate for {{ $labels.instance }} expires in
+            {{ $value }} days. Renew before expiry.
+
+  # =========================================================================
+  # Rate Limiting & External APIs
+  # =========================================================================
+  - name: fabric4l-rate-limiting
+    interval: 30s
+    rules:
+      # --- LLM API Rate Limit Hit -----------------------------------------
+      - alert: LLMAPIRateLimit
+        expr: increase(llm_rate_limit_hits_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: agents
+        annotations:
+          summary: "LLM API rate limit hit on {{ $labels.provider }}"
+          description: |
+            Rate limit was hit {{ $value }} times on {{ $labels.provider }}
+            in the last 5 minutes. Workflows may be delayed.
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/ops/runbooks/LLM_RATE_LIMITING.md"
+          dashboard_url: "https://grafana.fabric4l.io/d/fabric4l-agent-workflows"
+
+      # --- LLM API Errors -------------------------------------------------
+      - alert: LLMAPIErrorRate
+        expr: |
+          (
+            sum(rate(llm_api_errors_total[5m]))
+            /
+            sum(rate(llm_api_requests_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: agents
+        annotations:
+          summary: "LLM API error rate: {{ $value | humanizePercentage }}"
+          description: |
+            LLM API error rate is {{ $value | humanizePercentage }}.
+            Provider: {{ $labels.provider }}
+            Error type: {{ $labels.error_type }}
+
+  # =========================================================================
+  # Ingestion Pipeline
+  # =========================================================================
+  - name: fabric4l-ingestion
+    interval: 60s
+    rules:
+      # --- Ingestion Throughput Below Target ------------------------------
+      - alert: IngestionThroughputLow
+        expr: sum(rate(documents_ingested_total[1h])) * 3600 < 5000
+        for: 15m
+        labels:
+          severity: warning
+          team: ingestion
+          slo: ingestion-throughput
+        annotations:
+          summary: "Ingestion throughput below target: {{ $value }} docs/hr"
+          description: |
+            Document ingestion rate is {{ $value }} docs/hour.
+            SLO target: 10,000 docs/hour.
+            SLA minimum: 5,000 docs/hour.
+
+      # --- Document Processing Backlog ------------------------------------
+      - alert: DocumentProcessingBacklog
+        expr: ingestion_queue_depth > 1000
+        for: 10m
+        labels:
+          severity: warning
+          team: ingestion
+        annotations:
+          summary: "Document processing backlog: {{ $value }} documents"
+          description: |
+            {{ $value }} documents are waiting in the ingestion queue.
+            Scale up L1 workers or investigate downstream bottlenecks.
+
+  # =========================================================================
+  # Frontend Performance
+  # =========================================================================
+  - name: fabric4l-frontend
+    interval: 60s
+    rules:
+      # --- Frontend LCP Degraded ------------------------------------------
+      - alert: FrontendLCPDegraded
+        expr: |
+          histogram_quantile(0.75,
+            sum(rate(frontend_web_vitals_lcp_bucket[1h])) by (le)
+          ) > 2.5
+        for: 15m
+        labels:
+          severity: warning
+          team: frontend
+          slo: frontend-lcp
+        annotations:
+          summary: "Frontend LCP degraded: {{ $value }}s"
+          description: |
+            75th percentile LCP is {{ $value }} seconds.
+            SLO target: < 2.5s.
+            Core Web Vitals rating: Needs Improvement.
+
+      # --- Frontend Error Rate --------------------------------------------
+      - alert: FrontendErrorRate
+        expr: |
+          (
+            sum(rate(frontend_errors_total[5m]))
+            /
+            sum(rate(frontend_page_loads_total[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: frontend
+        annotations:
+          summary: "Frontend error rate: {{ $value | humanizePercentage }}"
+          description: |
+            Frontend JS error rate is {{ $value | humanizePercentage }}.
+            Check browser console and Sentry for details.

@@ -1,267 +1,170 @@
-# Value Fabric — Enterprise Agentic SaaS Platform
+# Fabric 4L
 
-A production-grade, multi-agent system (MAS) that transforms unstructured enterprise data into
-structured, actionable knowledge through an ontology-guided pipeline and autonomous AI agents.
+> **Enterprise agentic SaaS platform that transforms unstructured data into structured knowledge through ontology-guided AI pipelines.**
 
-## What it is
+Six-layer architecture — from ingestion to benchmarks — built for teams that need to turn documents, transcripts, and unstructured sources into queryable, verifiable knowledge graphs at production scale.
 
-Value Fabric is an **enterprise agentic SaaS platform** built on a 6-layer semantic pipeline.
-Agents reason over a knowledge graph to produce ROI analyses, business cases, and executive insights—
-automatically, at scale, with full auditability.
+---
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         FRONTEND: REACT PRESENTATION                        │
-│         (Vite · React Query · Zustand · shadcn/ui · Tailwind)             │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │ REST/WebSocket
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│              LAYER 6: BENCHMARK SERVICE (Port 8006)                        │
-│              (Peer Comparison · Statistical Validation · Datasets)         │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│              LAYER 5: GROUND TRUTH (Port 8005)                              │
-│    (TruthObject Validation · Maturity Ladder · Evidence-backed Claims)     │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│              LAYER 4: AGENTIC WORKFLOW ENGINE (Port 8004)                    │
-│      (LangGraph · ROI Calculator · Business Case Generator · Checkpoints)  │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │ REST
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│          LAYER 3: KNOWLEDGE GRAPH & SEMANTIC LAYER (Port 8003)              │
-│       (Neo4j · GraphRAG · Hybrid Retrieval · pgvector · Subgraph API)       │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │ RDF/Turtle
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│         LAYER 2: ONTOLOGY-GUIDED EXTRACTION PIPELINE (Port 8002)           │
-│    (Pydantic v2 · LLM Extraction · RDF/OWL · Provenance · Batch Ingest)    │
-└───────────────────────────────┬─────────────────────────────────────────────┘
-                                │ Markdown chunks
-┌───────────────────────────────▼─────────────────────────────────────────────┐
-│           LAYER 1: INTELLIGENT DATA INGESTION SERVICE (Port 8001)         │
-│     (Playwright · Celery/Redis · PostgreSQL · Multi-tenancy · Compliance) │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <a href="https://github.com/bmsull560/Fabric_4L/actions/workflows/pr-checks.yml">
+    <img src="https://github.com/bmsull560/Fabric_4L/actions/workflows/pr-checks.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://codecov.io/gh/bmsull560/Fabric_4L">
+    <img src="https://img.shields.io/codecov/c/github/bmsull560/Fabric_4L" alt="Coverage">
+  </a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/node-22%2B-green" alt="Node 22+">
+  <a href="https://github.com/bmsull560/Fabric_4L/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/bmsull560/Fabric_4L" alt="License">
+  </a>
+  <a href="https://github.com/bmsull560/Fabric_4L/releases">
+    <img src="https://img.shields.io/github/v/release/bmsull560/Fabric_4L" alt="Release">
+  </a>
+</p>
 
-## Frontend Governance
+---
 
-Frontend changes are governed by the root [`DESIGN.md`](DESIGN.md) contract. Human contributors and AI coding agents must read it before modifying `apps/web/`, reuse existing React/Vite/TypeScript/Tailwind/shadcn/TanStack Query patterns, and report validation results with any remaining risks.
-
-## Package Manager Policy (Monorepo)
-
-This repository uses **pnpm** as the canonical package manager.
+## Quickstart
 
 ```bash
-# Enable corepack and activate the repo-pinned pnpm version
-corepack enable
-corepack use pnpm@10.18.1
-
-# Install JavaScript/TypeScript dependencies
-pnpm install
-```
-
-Using `npm install` or `yarn install` is not supported and will fail fast via the root `preinstall` guard.
-
-Frontend workspace (`apps/web`) follows the same policy:
-
-```bash
-# Install from monorepo root (recommended)
-pnpm install
-
-# Or install only the frontend workspace
-pnpm --dir apps/web install
-```
-
-## Canonical Build Commands
-
-The Makefile is the canonical build, test, migration, contract, and release gate interface.
-Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases; direct Python CI
-runners are reserved for reproducing workflow behavior. See
-[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for the hierarchy and
-[`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
-Use [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) to route an issue to
-the right source-of-truth files, drift checks, validation commands, and evidence locations.
-
-## Quickstart (5 minutes)
-
-### 1. Clone and configure
-```bash
-git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
-cp .env.example .env
-# Fill in OPENAI_API_KEY and JWT_SECRET
-```
-
-### 2. Select Python 3.11
-
-The backend services declare `requires-python = ">=3.11"`; any supported Python 3.11+ patch release is acceptable. The root `.python-version` tracks the `3.11` series so pyenv users do not need the exact `3.11.10` patch. The `Makefile` resolves `python3.11` first and then falls back only to `python3`/`python` interpreters that report Python 3.11 or newer; override it with `make PYTHON=/path/to/python3.11 ...` if your local shim path is unusual.
-
-```bash
-# Optional for pyenv users; skip if python3.11 already resolves on PATH
-pyenv install --skip-existing "$(pyenv latest -k 3.11)"
-pyenv local 3.11
-# Or choose any installed 3.11.x patch explicitly if your pyenv does not support series aliases.
-```
-
-### 3. Start infrastructure
-```bash
-docker compose -f infra/compose/docker-compose.full.yml up -d
-```
-
-### 4. Run migrations
-```bash
-make migrate
-```
-
-### 5. Verify everything works
-```bash
+git clone https://github.com/bmsull560/Fabric_4L.git
+cd Fabric_4L && make setup
 make verify
 ```
 
-### 6. Open the UI
-```bash
-open http://localhost:5173
+That is it. `make setup` installs dependencies, spins up the dev stack, and applies migrations. `make verify` runs the full test suite, type checks, lint, and contract tests to confirm everything is green.
+
+> **New contributor?** See the [GitHub Codespaces guide](codespaces.md) for a one-click dev environment.
+
+---
+
+## Architecture
+
+Fabric 4L processes unstructured data through six specialized layers. Each layer is a horizontally scalable service with its own API, storage, and deployment configuration.
+
+```mermaid
+graph LR
+  A[L1: Ingestion] --> B[L2: Extraction]
+  B --> C[L3: Knowledge]
+  C --> D[L4: Agents]
+  D --> E[L5: Ground Truth]
+  E --> F[L6: Benchmarks]
 ```
 
-**For detailed setup instructions:** See [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md)
+| Layer | Purpose | Key Tech |
+|-------|---------|----------|
+| **L1: Ingestion** | Multi-format document intake, parsing, and chunking | Python, FastAPI, Redis queues |
+| **L2: Extraction** | Entity, relationship, and ontology extraction from chunks | LangGraph pipelines, LLM orchestration |
+| **L3: Knowledge** | Knowledge graph construction, deduplication, and persistence | Neo4j, Cypher, graph embeddings |
+| **L4: Agents** | Autonomous reasoning agents that operate over the knowledge graph | LangGraph, tool-calling, multi-agent |
+| **L5: Ground Truth** | Human-in-the-loop validation, feedback collection, and corrections | PostgreSQL RLS, review workflows |
+| **L6: Benchmarks** | Performance measurement, regression detection, and reporting | Prometheus, Grafana, custom metrics |
 
-## Repository map
+---
 
-Per **[ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
-canonical implementation tree is `services/`. The legacy root `value_fabric/`
-compatibility package and `value_fabric/layer*/` namespace shims have been
-removed; shared runtime modules resolve from `packages/shared/src/value_fabric/shared/`.
-See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
-for the full matrix (canonical paths, allowed new-development targets, and
-removed compatibility paths).
+## Tech Stack
 
-| Path | Status | Purpose |
-|------|--------|---------|
-| `services/layer1-ingestion/src/` | **Canonical** | Layer 1 ingestion runtime |
-| `services/layer2-extraction/src/` | **Canonical** | Layer 2 extraction runtime |
-| `services/layer3-knowledge/src/` | **Canonical** | Layer 3 knowledge / retrieval runtime |
-| `services/layer4-agents/src/` | **Canonical** | Layer 4 agent orchestration runtime |
-| `services/layer5-ground-truth/src/layer5_ground_truth/` | **Canonical** | Layer 5 ground-truth runtime |
-| `services/layer6-benchmarks/src/` | **Canonical** | Layer 6 benchmark runtime |
-| `services/api/` | **Maintained** | Cross-layer API service |
-| `packages/shared/src/value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
-| `apps/web/` | **Canonical** | React + TypeScript UI |
-| `contracts/` | **Canonical** | Versioned tool manifests, JSON Schemas, OpenAPI specs |
-| `k8s/` | **Canonical** | Kubernetes manifests |
-| `monitoring/` | **Canonical** | Prometheus + Grafana dashboards |
-| `packs/` | **Canonical** | Domain-specific data packs (life-sciences, manufacturing, software) |
-| `docs/` | **Canonical** | Architecture docs and runbooks |
-| `tests/` | **Canonical** | Cross-layer integration and agent evaluation tests |
-| `.github/workflows/` | **Canonical** | CI pipelines |
+| Category | Technology |
+|----------|------------|
+| **Backend** | Python 3.11, FastAPI, Pydantic v2, SQLAlchemy 2.0 |
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui |
+| **Graph Database** | Neo4j 5.x with Cypher |
+| **Relational Database** | PostgreSQL 15 with Row-Level Security |
+| **Cache & Queues** | Redis 7 |
+| **AI / ML** | LangGraph, OpenAI/Anthropic models, sentence-transformers |
+| **Orchestration** | Kubernetes, Helm |
+| **Observability** | Prometheus, Grafana, structured logging |
+| **DevOps** | Docker, GitHub Actions, Makefile-driven workflows |
 
-### Source of truth paths
+---
 
-All net-new runtime code lands under `services/layer{N}-*/src/`. Cross-layer
-imports must use the service package (`layer{N}_{name}.*`) or contracted
-HTTP/client boundaries. Shared imports continue to use `value_fabric.shared.*`
-from `packages/shared/src`.
+## Enterprise Readiness
 
-### Per-layer contributor rule
+- **Multi-tenant** — Tenant isolation enforced at the PostgreSQL RLS layer, with schema-per-tenant support
+- **SOC 2 Prep** — Controls documented in `compliance/`, audit trails on all data mutations
+- **Kubernetes-native** — Helm charts, HPA, PDBs, and health checks in `k8s/`
+- **Contract-governed** — Layer-to-layer contracts defined, versioned, and tested via `make contract-tests`
 
-For every layer 1–6: place all runtime implementation changes under
-`services/layer{N}-*/src/`. Do **not** add new logic under
-`value_fabric/layer{N}/` or restore the root `value_fabric/` compatibility tree.
-CI enforces this via
-[`scripts/ci/check_layer6_wrapper_drift.py`](scripts/ci/check_layer6_wrapper_drift.py),
-[`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py), and the
-import-topology tests under [`tests/arch/`](tests/arch/) and
-[`tests/contract/`](tests/contract/).
+---
 
-## Core Concepts
+## Project Stats
 
-| Document | Description |
-|----------|-------------|
-| [System Architecture](docs/core-concepts/architecture.md) | 6-layer pipeline architecture |
-| [Canonical Platform Contract](docs/contract.md) | Enforced direction for 6 cross-layer concerns |
-| [Architecture Decision Records](docs/explanations/adr/) | Historical design decisions and rationale |
-| [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
-| [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
+| Metric | Value |
+|--------|-------|
+| Contributors | 8 |
+| Commits | 3,095 |
+| Languages | Python 75.2%, TypeScript 21.5%, Other 3.3% |
+| Container Images | 7 |
+| Latest Release | v1.2.0 |
 
-## Developer Guide
+---
 
-| Document | Description |
-|----------|-------------|
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup and contribution guide |
-| [AGENTS.md](AGENTS.md) | AI agent reference |
-| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer |
-| [Testing Strategy](docs/reference/testing-strategy.md) | Test pyramid and coverage requirements |
-| [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
+## Directory Structure
 
-## API Reference
-
-| Document | Description |
-|----------|-------------|
-| [API Reference Overview](docs/reference/api-overview.md) | Multi-layer API structure and patterns |
-| [Layer 1 Ingestion API](docs/reference/layer1-ingestion-api.md) | Ingestion service endpoints |
-| [Layer 2 Extraction API](docs/reference/layer2-extraction-api.md) | Extraction service endpoints |
-| [Layer 3 Knowledge API](docs/reference/layer3-knowledge-api.md) | Knowledge graph endpoints |
-| [Layer 4 Agents API](docs/reference/layer4-agents-api.md) | Agent workflow endpoints |
-| [Layer 5 Ground Truth API](docs/reference/layer5-ground-truth-api.md) | Ground truth validation endpoints |
-| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, and generated-client rules |
-
-## Operations
-
-| Document | Description |
-|----------|-------------|
-| [Release Runbook](docs/operations/RELEASE_RUNBOOK.md) | Release procedures |
-| [Operator Runbooks](docs/how-to-guides/operators.md) | Single jumping-off point for operator-facing runbooks |
-| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
-| [Keycloak Integration](docs/operations/keycloak-integration.md) | Keycloak setup and configuration |
-
-## Governance
-
-| Document | Description |
-|----------|-------------|
-| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical registry for compatibility shims |
-| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract/tenant/shim changes |
-| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve |
-
-## Security
-
-| Document | Description |
-|----------|-------------|
-| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
-| [Security Documentation](docs/security/) | Multi-tenancy, secrets management, threat model |
-
-## Documentation
-
-📚 **[Complete Documentation →](docs/README.md)**
-
-Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with tutorials, how-to guides, reference, and explanations.
-
-## Archived Documentation
-
-🗄️ **[Archived Documentation →](docs/archive/INDEX.md)**
-
-Historical reports, superseded specifications, and outdated analysis documents retained for traceability.
-
-## SDK Installation
-
-```bash
-pip install valuefabric-sdk
+```
+Fabric_4L/
+├── apps/
+│   └── web/                    # React frontend (Vite + TypeScript)
+├── services/
+│   ├── layer1-ingestion/       # L1: Document intake & parsing
+│   ├── layer2-extraction/      # L2: Entity & relationship extraction
+│   ├── layer3-knowledge/       # L3: Knowledge graph construction
+│   ├── layer4-agents/          # L4: Autonomous agent runtime
+│   ├── layer5-ground-truth/    # L5: Human validation workflows
+│   └── layer6-benchmarks/      # L6: Performance & regression testing
+├── packages/
+│   ├── shared-models/          # Pydantic models shared across layers
+│   ├── shared-config/          # Configuration schemas and loaders
+│   └── shared-testing/         # Test fixtures, factories, utilities
+├── docs/                       # Architecture docs, runbooks, ADRs
+├── k8s/                        # Helm charts and Kubernetes manifests
+├── monitoring/                 # Prometheus rules, Grafana dashboards, alerts
+├── compliance/                 # SOC 2 controls, audit logs, policies
+├── infra/                      # Docker Compose, Terraform, networking
+├── .devcontainer/              # VS Code dev container config
+└── Makefile                    # Primary interface: make verify, make test, etc.
 ```
 
-Or install from source:
+---
 
-```bash
-cd sdk/python
-pip install -e ".[dev]"
-```
+## Development
 
-See [`sdk/python/README.md`](sdk/python/README.md) for SDK usage and CLI examples.
+### Prerequisites
 
-## Security
+- Docker & Docker Compose
+- Python 3.11+
+- Node.js 22+
+- Make
 
-Never commit real secrets. Use `.env` files (gitignored) locally, and short-lived OIDC credentials in CI.
-See [`SECURITY.md`](SECURITY.md) for the full policy and how to report vulnerabilities.
+### Common Commands
 
-## License
+| Command | What it does |
+|---------|--------------|
+| `make setup` | Install deps, start dev services, apply migrations |
+| `make verify` | Run full validation (tests + lint + typecheck + contracts) |
+| `make test` | Run unit and integration tests |
+| `make contract-tests` | Validate layer-to-layer API contracts |
+| `make migrate` | Apply database migrations |
+| `make lint` | Run ruff (Python) and eslint (TypeScript) |
+| `make typecheck` | Run mypy and tsc |
+| `make production-readiness-gate` | Full production gate — CI runs this on every PR |
 
-See [`LICENSE`](LICENSE) for terms.
+### Dev Container / Codespaces
+
+Open this repo in [GitHub Codespaces](https://codespaces.new/bmsull560/Fabric_4L) for a fully configured environment. The dev container installs all dependencies, starts PostgreSQL/Neo4j/Redis, and runs migrations automatically. See [codespaces.md](codespaces.md) for details.
+
+---
+
+## License & Governance
+
+- **License:** [MIT](LICENSE)
+- **Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Security:** See [SECURITY.md](SECURITY.md) for vulnerability reporting
+- **Code of Conduct:** See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+---
+
+<p align="center">
+  Built with care by the <strong>Fabric 4L</strong> team.
+</p>

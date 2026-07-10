@@ -1,276 +1,438 @@
-# Prometheus Recording Rules for Business KPIs and Pre-aggregated Metrics
-# These rules compute expensive queries once and store results for dashboard queries
+# Recording Rules — SLOs for Fabric_4L v1.2.0
+# These rules pre-compute SLO SLIs to improve dashboard performance
+# and simplify alert rule expressions.
+#
+# Author: SRE Team (Staff+)
+# Dependencies: Prometheus >= 2.53.0
+#
+# Apply with: promtool check rules recording-rules.yml
 
 groups:
-  # ============================================
-  # Business KPI Recording Rules
-  # ============================================
-  - name: business_kpis
-    interval: 1m
+  # =========================================================================
+  # SLO-1: API Availability (99.9% over 30d)
+  # =========================================================================
+  - name: slo_api_availability
+    interval: 60s
     rules:
-      # Formula evaluations per minute
-      - record: business:formula_evaluations_per_minute
-        expr: rate(value_fabric_formula_evaluations_total[5m]) * 60
-        labels:
-          metric_type: business
-          team: product
-
-      # Formula success rate (rolling 1h)
-      - record: business:formula_success_rate_1h
-        expr: |
-          sum(rate(value_fabric_formula_evaluations_total{status="success"}[1h]))
-          /
-          sum(rate(value_fabric_formula_evaluations_total[1h]))
-        labels:
-          metric_type: business
-          team: product
-
-      # Agent workflow runs per hour
-      - record: business:agent_workflows_per_hour
-        expr: rate(value_fabric_agent_workflow_runs_total[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Agent workflow success rate (rolling 1h)
-      - record: business:agent_workflow_success_rate_1h
-        expr: |
-          sum(rate(value_fabric_agent_workflow_runs_total{status="success"}[1h]))
-          /
-          sum(rate(value_fabric_agent_workflow_runs_total[1h]))
-        labels:
-          metric_type: business
-          team: product
-
-      # Skill executions per hour
-      - record: business:skill_executions_per_hour
-        expr: rate(value_fabric_skill_executions_total[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Documents ingested per hour
-      - record: business:documents_ingested_per_hour
-        expr: rate(value_fabric_ingestion_operations_total{status="success"}[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Entities extracted per hour
-      - record: business:entities_extracted_per_hour
-        expr: rate(value_fabric_entities_extracted_total[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Semantic searches per hour
-      - record: business:semantic_searches_per_hour
-        expr: rate(value_fabric_semantic_search_requests_total[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Value narratives generated per hour
-      - record: business:value_narratives_per_hour
-        expr: rate(value_fabric_value_narratives_generated_total[5m]) * 3600
-        labels:
-          metric_type: business
-          team: product
-
-      # Total API requests per minute
-      - record: business:api_requests_per_minute
-        expr: sum(rate(value_fabric_http_requests_total[5m])) * 60
-        labels:
-          metric_type: business
-          team: platform
-
-  # ============================================
-  # Layer Aggregated Metrics
-  # ============================================
-  - name: layer_aggregations
-    interval: 30s
-    rules:
-      # Layer 1 aggregated request rate
-      - record: layer1:request_rate
-        expr: rate(layer1_http_requests_total[5m])
-        labels:
-          aggregated: "true"
-
-      # Layer 1 aggregated error rate
-      - record: layer1:error_rate
-        expr: |
-          rate(layer1_http_requests_total{status_code=~"4..|5.."}[5m])
-          /
-          rate(layer1_http_requests_total[5m])
-        labels:
-          aggregated: "true"
-
-      # Layer 1 p95 latency
-      - record: layer1:latency_p95
-        expr: histogram_quantile(0.95, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le))
-        labels:
-          percentile: "95"
-
-      # Layer 1 p99 latency
-      - record: layer1:latency_p99
-        expr: histogram_quantile(0.99, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le))
-        labels:
-          percentile: "99"
-
-      # Layer 2 aggregated error rate
-      - record: layer2:error_rate
-        expr: |
-          rate(layer2_http_requests_total{status_code=~"4..|5.."}[5m])
-          /
-          rate(layer2_http_requests_total[5m])
-        labels:
-          aggregated: "true"
-
-      # Layer 4 aggregated error rate
-      - record: layer4:error_rate
-        expr: |
-          rate(layer4_http_requests_total{status_code=~"4..|5.."}[5m])
-          /
-          rate(layer4_http_requests_total[5m])
-        labels:
-          aggregated: "true"
-
-  # ============================================
-  # SLO Recording Rules
-  # ============================================
-  - name: slo_metrics
-    interval: 30s
-    rules:
-      # Availability ratio per service (30d window)
-      - record: slo:availability_ratio_30d
-        expr: |
-          avg_over_time(
-            (
-              sum(rate(value_fabric_http_requests_total{status_code!~"5.."}[5m])) by (service))
-              /
-              sum(rate(value_fabric_http_requests_total[5m])) by (service)
-            )[30d:]
-          )
-        labels:
-          slo_type: availability
-          window: 30d
-
-      # Error budget consumption rate
-      - record: slo:error_budget_consumption_rate_1h
+      # 30-day availability ratio (primary SLO)
+      - record: slo:api_availability:ratio_30d
         expr: |
           (
-            sum(rate(value_fabric_http_requests_total{status_code=~"5.."}[1h])) by (service)
+            sum(rate(http_requests_total{status!~"5.."}[30d]))
             /
-            sum(rate(value_fabric_http_requests_total[1h])) by (service)
+            sum(rate(http_requests_total[30d]))
           )
-          /
-          (1 - 0.999)  # Error budget burn rate
-        labels:
-          slo_type: error_budget
-          window: 1h
 
-      # SLO compliance status (1 = compliant, 0 = violated)
-      - record: slo:compliance_status
+      # 1-hour availability ratio (for fast burn alerts)
+      - record: slo:api_availability:ratio_1h
         expr: |
           (
-            sum(rate(value_fabric_http_requests_total{status_code!~"5.."}[30d])) by (service))
+            sum(rate(http_requests_total{status!~"5.."}[1h]))
             /
-            sum(rate(value_fabric_http_requests_total[30d])) by (service)
-          ) >= bool 0.999
-        labels:
-          slo_type: availability
+            sum(rate(http_requests_total[1h]))
+          )
 
-  # ============================================
-  # Resource Utilization Rules
-  # ============================================
-  - name: resource_utilization
-    interval: 30s
-    rules:
-      # CPU utilization percentage by service
-      - record: resource:cpu_utilization_percent
-        expr: rate(process_cpu_seconds_total[5m]) * 100
-        labels:
-          resource_type: cpu
-
-      # Memory utilization percentage by service
-      - record: resource:memory_utilization_percent
+      # 5-minute availability ratio (for immediate burn detection)
+      - record: slo:api_availability:ratio_5m
         expr: |
-          process_resident_memory_bytes
-          /
-          container_spec_memory_limit_bytes * 100
-        labels:
-          resource_type: memory
+          (
+            sum(rate(http_requests_total{status!~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          )
 
-  # ============================================
-  # Ingestion Pipeline Rules
-  # ============================================
-  - name: ingestion_metrics
-    interval: 1m
-    rules:
-      # Ingestion success rate (1h)
-      - record: ingestion:success_rate_1h
+      # 6-hour availability ratio (for slow burn alerts)
+      - record: slo:api_availability:ratio_6h
         expr: |
-          sum(rate(value_fabric_ingestion_operations_total{status="success"}[1h]))
-          /
-          sum(rate(value_fabric_ingestion_operations_total[1h]))
-        labels:
-          metric_type: pipeline
+          (
+            sum(rate(http_requests_total{status!~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total[6h]))
+          )
 
-      # Ingestion throughput (bytes/sec)
-      - record: ingestion:throughput_bytes_per_sec
-        expr: rate(value_fabric_ingestion_bytes_total[5m])
-        labels:
-          metric_type: pipeline
-
-      # Crawler pages per minute
-      - record: ingestion:crawler_pages_per_minute
-        expr: rate(value_fabric_crawler_pages_fetched_total[5m]) * 60
-        labels:
-          metric_type: crawler
-
-  # ============================================
-  # Knowledge Graph Rules
-  # ============================================
-  - name: knowledge_metrics
-    interval: 1m
-    rules:
-      # Graph query p95 latency
-      - record: knowledge:graph_query_latency_p95
-        expr: histogram_quantile(0.95, sum(rate(value_fabric_graph_query_duration_seconds_bucket[5m])) by (le))
-        labels:
-          query_type: graph
-          percentile: "95"
-
-      # Semantic search p95 latency
-      - record: knowledge:semantic_search_latency_p95
-        expr: histogram_quantile(0.95, sum(rate(value_fabric_semantic_search_duration_seconds_bucket[5m])) by (le))
-        labels:
-          query_type: semantic
-          percentile: "95"
-
-      # Average search relevance score
-      - record: knowledge:avg_relevance_score
-        expr: avg(value_fabric_search_result_relevance_score)
-        labels:
-          metric_type: quality
-
-  - name: journey_slo_metrics
-    interval: 30s
-    rules:
-      - record: journey:sli_success_rate_5m
+      # 3-day availability ratio (for slow burn alerts)
+      - record: slo:api_availability:ratio_3d
         expr: |
-          sum(rate(value_fabric_journey_checks_total{status="success"}[5m])) by (journey)
-          /
-          sum(rate(value_fabric_journey_checks_total[5m])) by (journey)
+          (
+            sum(rate(http_requests_total{status!~"5.."}[3d]))
+            /
+            sum(rate(http_requests_total[3d]))
+          )
 
-      - record: journey:sli_p95_latency_seconds_5m
+      # Error budget remaining (0 to 1)
+      - record: slo:api_availability:error_budget_remaining
+        expr: |
+          1 - (
+            sum(rate(http_requests_total{status=~"5.."}[30d]))
+            /
+            (0.001 * sum(rate(http_requests_total[30d])))
+          )
+
+      # Burn rate (1x = budget consumed linearly over window)
+      - record: slo:api_availability:burn_rate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total[1h]))
+          ) / 0.001
+
+  # =========================================================================
+  # SLO-2: API Latency p95 (< 200ms over 7d)
+  # =========================================================================
+  - name: slo_api_latency
+    interval: 60s
+    rules:
+      # 7-day p95 latency in seconds
+      - record: slo:api_latency:p95_7d
         expr: |
           histogram_quantile(0.95,
-            sum(rate(value_fabric_journey_check_duration_seconds_bucket[5m])) by (journey, le)
+            sum(rate(http_request_duration_seconds_bucket[7d])) by (le)
           )
 
-      - record: journey:sli_non_empty_ratio_5m
+      # 1-hour p95 latency
+      - record: slo:api_latency:p95_1h
         expr: |
-          sum(rate(value_fabric_journey_response_non_empty_total[5m])) by (journey)
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[1h])) by (le)
+          )
+
+      # 5-minute p95 latency
+      - record: slo:api_latency:p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          )
+
+      # 6-hour p95 latency
+      - record: slo:api_latency:p95_6h
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[6h])) by (le)
+          )
+
+      # Fraction of requests under 200ms (good/total) over 7d
+      - record: slo:api_latency:good_ratio_7d
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{le="0.2"}[7d]))
           /
-          sum(rate(value_fabric_journey_checks_total[5m])) by (journey)
+          sum(rate(http_request_duration_seconds_count[7d]))
+
+      # Fraction of requests under 200ms over 1h (for burn rate)
+      - record: slo:api_latency:good_ratio_1h
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{le="0.2"}[1h]))
+          /
+          sum(rate(http_request_duration_seconds_count[1h]))
+
+      # Fraction of requests under 200ms over 6h
+      - record: slo:api_latency:good_ratio_6h
+        expr: |
+          sum(rate(http_request_duration_seconds_bucket{le="0.2"}[6h]))
+          /
+          sum(rate(http_request_duration_seconds_count[6h]))
+
+      # Latency burn rate
+      - record: slo:api_latency:burn_rate
+        expr: |
+          (
+            1 - (
+              sum(rate(http_request_duration_seconds_bucket{le="0.2"}[1h]))
+              /
+              sum(rate(http_request_duration_seconds_count[1h]))
+            )
+          ) / 0.05
+
+  # =========================================================================
+  # SLO-3: Agent Workflow Success Rate (99.5% over 7d)
+  # =========================================================================
+  - name: slo_agent_workflow
+    interval: 60s
+    rules:
+      # 7-day workflow success ratio
+      - record: slo:agent_workflow_success:ratio_7d
+        expr: |
+          (
+            sum(rate(agent_workflow_completed_total{status="success"}[7d]))
+            /
+            sum(rate(agent_workflow_total[7d]))
+          )
+
+      # 1-hour workflow success ratio
+      - record: slo:agent_workflow_success:ratio_1h
+        expr: |
+          (
+            sum(rate(agent_workflow_completed_total{status="success"}[1h]))
+            /
+            sum(rate(agent_workflow_total[1h]))
+          )
+
+      # 5-minute workflow success ratio
+      - record: slo:agent_workflow_success:ratio_5m
+        expr: |
+          (
+            sum(rate(agent_workflow_completed_total{status="success"}[5m]))
+            /
+            sum(rate(agent_workflow_total[5m]))
+          )
+
+      # 6-hour workflow success ratio
+      - record: slo:agent_workflow_success:ratio_6h
+        expr: |
+          (
+            sum(rate(agent_workflow_completed_total{status="success"}[6h]))
+            /
+            sum(rate(agent_workflow_total[6h]))
+          )
+
+      # Error budget remaining
+      - record: slo:agent_workflow_success:error_budget_remaining
+        expr: |
+          1 - (
+            sum(rate(agent_workflow_failed_total[7d]))
+            /
+            (0.005 * sum(rate(agent_workflow_total[7d])))
+          )
+
+      # Workflow burn rate
+      - record: slo:agent_workflow_success:burn_rate
+        expr: |
+          (
+            sum(rate(agent_workflow_failed_total[1h]))
+            /
+            sum(rate(agent_workflow_total[1h]))
+          ) / 0.005
+
+      # Workflow failure rate by type
+      - record: slo:agent_workflow:failure_rate_by_type
+        expr: |
+          sum by (workflow_type) (
+            rate(agent_workflow_failed_total[1h])
+          )
+          /
+          sum by (workflow_type) (
+            rate(agent_workflow_total[1h])
+          )
+
+  # =========================================================================
+  # SLO-4: Tenant Isolation (100% — real-time)
+  # =========================================================================
+  - name: slo_tenant_isolation
+    interval: 15s
+    rules:
+      # 1-minute cross-tenant access attempt rate
+      - record: slo:tenant_isolation:breach_rate_1m
+        expr: |
+          sum(increase(cross_tenant_access_attempts_total[1m]))
+
+      # 5-minute cross-tenant access attempt rate
+      - record: slo:tenant_isolation:breach_rate_5m
+        expr: |
+          sum(increase(cross_tenant_access_attempts_total[5m]))
+
+      # Per-layer cross-tenant attempts
+      - record: slo:tenant_isolation:breaches_by_layer
+        expr: |
+          sum by (layer) (
+            increase(cross_tenant_access_attempts_total[1m])
+          )
+
+      # Per-source-tenant attempts (for forensics)
+      - record: slo:tenant_isolation:breaches_by_source
+        expr: |
+          sum by (source_tenant) (
+            increase(cross_tenant_access_attempts_total[1m])
+          )
+
+  # =========================================================================
+  # SLO-5: Data Ingestion Throughput (10,000 docs/hour)
+  # =========================================================================
+  - name: slo_ingestion_throughput
+    interval: 60s
+    rules:
+      # Documents ingested per hour (instant rate × 3600)
+      - record: slo:ingestion_throughput:docs_per_hour_1d
+        expr: |
+          sum(rate(documents_ingested_total[1h])) * 3600
+
+      # Documents ingested per hour over 24h average
+      - record: slo:ingestion_throughput:docs_per_hour_avg_24h
+        expr: |
+          avg_over_time(
+            (sum(rate(documents_ingested_total[1h])) * 3600)[24h:1h]
+          )
+
+      # Hours below target over 24h
+      - record: slo:ingestion_throughput:hours_below_target_24h
+        expr: |
+          count_over_time(
+            (sum(rate(documents_ingested_total[1h])) * 3600 < 10000)[24h:1h]
+          )
+
+      # Throughput burn rate
+      - record: slo:ingestion_throughput:burn_rate
+        expr: |
+          (
+            count_over_time(
+              (sum(rate(documents_ingested_total[1h])) * 3600 < 10000)[6h:1h]
+            )
+            /
+            (0.01 * 6)
+          )
+
+      # Per-document-type ingestion rate
+      - record: slo:ingestion_throughput:by_doc_type
+        expr: |
+          sum by (doc_type) (rate(documents_ingested_total[1h])) * 3600
+
+  # =========================================================================
+  # SLO-6: Frontend LCP (< 2.5s p75 over 7d)
+  # =========================================================================
+  - name: slo_frontend_lcp
+    interval: 60s
+    rules:
+      # 7-day p75 LCP in seconds
+      - record: slo:frontend_lcp:p75_7d
+        expr: |
+          histogram_quantile(0.75,
+            sum(rate(frontend_web_vitals_lcp_bucket[7d])) by (le)
+          )
+
+      # 1-hour p75 LCP
+      - record: slo:frontend_lcp:p75_1h
+        expr: |
+          histogram_quantile(0.75,
+            sum(rate(frontend_web_vitals_lcp_bucket[1h])) by (le)
+          )
+
+      # 1-day p75 LCP
+      - record: slo:frontend_lcp:p75_1d
+        expr: |
+          histogram_quantile(0.75,
+            sum(rate(frontend_web_vitals_lcp_bucket[1d])) by (le)
+          )
+
+      # Fraction of "good" LCP (< 2.5s) over 7d
+      - record: slo:frontend_lcp:good_ratio_7d
+        expr: |
+          sum(rate(frontend_web_vitals_lcp_bucket{le="2.5"}[7d]))
+          /
+          sum(rate(frontend_web_vitals_lcp_count[7d]))
+
+      # Fraction of "good" LCP over 1h
+      - record: slo:frontend_lcp:good_ratio_1h
+        expr: |
+          sum(rate(frontend_web_vitals_lcp_bucket{le="2.5"}[1h]))
+          /
+          sum(rate(frontend_web_vitals_lcp_count[1h]))
+
+      # LCP burn rate
+      - record: slo:frontend_lcp:burn_rate
+        expr: |
+          (
+            1 - (
+              sum(rate(frontend_web_vitals_lcp_bucket{le="2.5"}[1h]))
+              /
+              sum(rate(frontend_web_vitals_lcp_count[1h]))
+            )
+          ) / 0.25
+
+  # =========================================================================
+  # RED Method: Pre-computed per-layer metrics
+  # =========================================================================
+  - name: red_method_by_layer
+    interval: 30s
+    rules:
+      # Request rate per layer (requests/second)
+      - record: red:request_rate:layer
+        expr: |
+          sum by (layer, service) (rate(http_requests_total[5m]))
+
+      # Error rate per layer (errors/second)
+      - record: red:error_rate:layer
+        expr: |
+          sum by (layer, service) (
+            rate(http_requests_total{status=~"5.."}[5m])
+          )
+
+      # Error ratio per layer (percentage)
+      - record: red:error_ratio:layer
+        expr: |
+          (
+            sum by (layer, service) (
+              rate(http_requests_total{status=~"5.."}[5m])
+            )
+            /
+            sum by (layer, service) (
+              rate(http_requests_total[5m])
+            )
+          )
+
+      # p50 latency per layer
+      - record: red:latency_p50:layer
+        expr: |
+          histogram_quantile(0.50,
+            sum by (layer, service, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      # p95 latency per layer
+      - record: red:latency_p95:layer
+        expr: |
+          histogram_quantile(0.95,
+            sum by (layer, service, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          )
+
+      # p99 latency per layer
+      - record: red:latency_p99:layer
+        expr: |
+          histogram_quantile(0.99,
+            sum by (layer, service, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          )
+
+  # =========================================================================
+  # Business Metrics: Pre-computed
+  # =========================================================================
+  - name: business_metrics
+    interval: 60s
+    rules:
+      # Active tenants (unique tenant IDs seen in last hour)
+      - record: business:active_tenants_1h
+        expr: |
+          count(
+            count by (tenant_id) (
+              rate(http_requests_total[1h])
+            )
+          )
+
+      # Active agent workflows
+      - record: business:active_workflows_1h
+        expr: |
+          sum(rate(agent_workflow_total[1h]))
+
+      # Queue depth (average over 5m)
+      - record: business:queue_depth_avg_5m
+        expr: |
+          avg_over_time(queue_depth[5m])
+
+      # LLM API cost per hour
+      - record: business:llm_cost_per_hour
+        expr: |
+          sum(increase(llm_api_cost_total[1h]))
+
+      # Total insights generated per hour
+      - record: business:insights_generated_per_hour
+        expr: |
+          sum(increase(insights_generated_total[1h]))
+
+      # Documents processed per tenant per hour
+      - record: business:docs_per_tenant_per_hour
+        expr: |
+          sum by (tenant_id) (
+            rate(documents_ingested_total[1h])
+          ) * 3600

@@ -1,0 +1,391 @@
+{
+  "uid": "fabric4l-cost-efficiency",
+  "title": "Fabric_4L — Cost Efficiency & Optimization",
+  "tags": ["fabric4l", "cost", "llm", "efficiency", "optimization", "finops"],
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "timezone": "utc",
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "query": "label_values(llm_api_cost_total, tenant_id)",
+        "multi": true,
+        "includeAll": true,
+        "current": {"text": ["All"], "value": ["$__all"]}
+      },
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Cost Alerts",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "expr": "increase(llm_api_cost_total[1h]) > 50",
+        "textFormat": "High spend: ${{ tenant_id }} — ${{ value }}$",
+        "iconColor": "yellow"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Cost Overview",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "panels": []
+    },
+    {
+      "id": 11,
+      "title": "Total LLM Spend Today",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(increase(llm_api_cost_total[24h]))",
+          "legendFormat": "Total ($)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 500},
+              {"color": "red", "value": 1000}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1}
+    },
+    {
+      "id": 12,
+      "title": "Avg Cost per Insight",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(increase(llm_api_cost_total[1h])) / sum(increase(insights_generated_total[1h]))",
+          "legendFormat": "$/insight",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.5},
+              {"color": "red", "value": 2}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1}
+    },
+    {
+      "id": 13,
+      "title": "Token Utilization Efficiency",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(rate(llm_tokens_used_total[1h])) / sum(rate(llm_tokens_allocated_total[1h]))",
+          "legendFormat": "Efficiency",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.6},
+              {"color": "green", "value": 0.8}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1}
+    },
+    {
+      "id": 14,
+      "title": "Projected Monthly Cost",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(increase(llm_api_cost_total[24h])) * 30",
+          "legendFormat": "Projected ($)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10000},
+              {"color": "red", "value": 20000}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1}
+    },
+    {
+      "id": 2,
+      "title": "Spend Analysis",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "panels": []
+    },
+    {
+      "id": 21,
+      "title": "LLM API Spend per Tenant (Pie)",
+      "type": "piechart",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum by (tenant_id) (increase(llm_api_cost_total[24h])) > 0",
+          "legendFormat": "{{ tenant_id }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        }
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]},
+        "tooltip": {"mode": "single"}
+      },
+      "gridPos": {"h": 10, "w": 8, "x": 0, "y": 6}
+    },
+    {
+      "id": 22,
+      "title": "Compute Cost per Layer (Stacked Area)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum by (layer) (rate(compute_cost_dollars_total[5m]))",
+          "legendFormat": "{{ layer }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "opacity",
+            "drawStyle": "line",
+            "stacking": {"mode": "normal", "group": "A"},
+            "spanNulls": true,
+            "axisLabel": "Cost ($/sec)"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 10, "w": 16, "x": 8, "y": 6}
+    },
+    {
+      "id": 3,
+      "title": "Efficiency Metrics",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 16},
+      "panels": []
+    },
+    {
+      "id": 31,
+      "title": "Cost per Insight Generated (Trend)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(increase(llm_api_cost_total[1h])) / sum(increase(insights_generated_total[1h]))",
+          "legendFormat": "$/insight (hourly)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(llm_api_cost_total[24h])) / sum(increase(insights_generated_total[24h]))",
+          "legendFormat": "$/insight (24h avg)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": true,
+            "axisLabel": "Cost per Insight ($)"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 17}
+    },
+    {
+      "id": 32,
+      "title": "Token Utilization Efficiency Over Time",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(rate(llm_tokens_used_total[5m])) / sum(rate(llm_tokens_allocated_total[5m]))",
+          "legendFormat": "Utilization",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.6},
+              {"color": "green", "value": 0.8}
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "hue",
+            "spanNulls": true,
+            "axisLabel": "Utilization %"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 17}
+    },
+    {
+      "id": 4,
+      "title": "Period Comparison",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 25},
+      "panels": []
+    },
+    {
+      "id": 41,
+      "title": "Daily / Weekly / Monthly Cost Comparison",
+      "type": "barchart",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(increase(llm_api_cost_total[24h]))",
+          "legendFormat": "Daily",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(llm_api_cost_total[7d])) / 7",
+          "legendFormat": "Weekly Avg",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(llm_api_cost_total[30d])) / 30",
+          "legendFormat": "Monthly Avg",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "axisLabel": "Average Cost ($)"
+          }
+        }
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 26}
+    },
+    {
+      "id": 42,
+      "title": "Cost by Provider & Model",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum by (provider, model) (rate(llm_api_cost_total[5m]))",
+          "legendFormat": "{{ provider }} / {{ model }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": true,
+            "axisLabel": "Cost ($/sec)"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26}
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+# ---------------------------------------------------------------------------
+# Chaos Mesh NetworkPartition: Layer 4 Agent Isolation
+# ---------------------------------------------------------------------------
+# Simulates network partition between Layer 3 (Knowledge) and Layer 4 (Agents).
+# When applied, L3 cannot reach L4, triggering circuit breaker and fallback.
+#
+# Usage:
+#   kubectl apply -f k8s/chaos-mesh/network-partition.yaml -n fabric4l
+#   kubectl delete -f k8s/chaos-mesh/network-partition.yaml -n fabric4l
+#
+# Verification:
+#   kubectl get networkchaos -n fabric4l
+#   kubectl describe networkchaos partition-l4-agent -n fabric4l
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: partition-l4-agent
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: layer4-partition
+  annotations:
+    description: "Isolate Layer 4 Agent pods from Layer 3 Knowledge pods"
+    owner: "sre-team@fabric4l.io"
+    runbook_url: "https://wiki.fabric4l.io/runbooks/chaos/L4_PARTITION"
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: l4-agent
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - fabric4l
+      labelSelectors:
+        app.kubernetes.io/component: knowledge
+  duration: "10m"
+  scheduler:
+    cron: "@every 30d"
+  duration: "5m"
+  # Grace period for connections to drain before partition takes effect
+  gracePeriod: 30
+  # Correlation ensures all selected pods experience the partition together
+  correlation: "100"
+  # External targets (outside cluster) - none for this experiment
+  externalTargets: []
+  # Network configuration during partition
+  networkParams:
+    # 100% packet loss = full partition
+    loss:
+      loss: "100"
+      correlation: "100"
+    # Also add high latency to simulate degraded (not fully dead) network
+    latency:
+      latency: "500ms"
+      correlation: "100"
+    # Reorder packets to simulate network instability
+    reorder:
+      reorder: "50"
+      correlation: "50"
+  # Pod patterns to exclude from partition (observability, monitoring)
+  excludedPods:
+    - l4-agent-metrics-exporter
+---
+# ---------------------------------------------------------------------------
+# Network Partition: Neo4j Core Isolation
+# ---------------------------------------------------------------------------
+# Simulates network partition of Neo4j cluster core servers.
+# Used by TestDatabaseFailure.test_neo4j_partition_layer3_switches_to_pgvector
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: partition-neo4j-core
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: neo4j-partition
+  annotations:
+    description: "Isolate Neo4j core servers from Layer 3 Knowledge service"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: neo4j-core
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - fabric4l
+      labelSelectors:
+        app.kubernetes.io/component: knowledge
+  duration: "10m"
+  gracePeriod: 10
+  networkParams:
+    loss:
+      loss: "100"
+      correlation: "100"
+---
+# ---------------------------------------------------------------------------
+# Network Partition: Redis Master Isolation
+# ---------------------------------------------------------------------------
+# Simulates Redis master being unreachable from application pods.
+# Used by TestRedisFailure.test_redis_down_services_degrade_gracefully
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: partition-redis-master
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: redis-partition
+  annotations:
+    description: "Isolate Redis master from all application layers"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: redis-master
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - fabric4l
+      labelSelectors:
+        "fabric4l.io/uses-cache": "true"
+  duration: "10m"
+  gracePeriod: 5
+  networkParams:
+    loss:
+      loss: "100"
+      correlation: "100"

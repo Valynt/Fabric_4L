@@ -1,0 +1,65 @@
+# Storybook Makefile — Fabric_4L Frontend
+# =========================================
+#
+# Include this in the main Makefile or run standalone:
+#   make -f Makefile.storybook storybook
+#
+# DESIGN.md § Dev Infrastructure: "Playwright smoke tests for critical user flows"
+# DESIGN.md § Quality: "Storybook stories must cover all component variants"
+
+PNPM ?= corepack pnpm
+STORYBOOK_DIR := apps/web
+STORYBOOK_PORT := 6006
+STORYBOOK_BUILD_DIR := $(STORYBOOK_DIR)/storybook-static
+
+# ---------------------------------------------------------------------------
+# Development
+# ---------------------------------------------------------------------------
+
+.PHONY: storybook storybook-build storybook-test storybook-clean storybook-deploy
+
+storybook: ## Start Storybook dev server on port 6006
+	@echo "→ Starting Storybook dev server..."
+	cd $(STORYBOOK_DIR) && $(PNPM) exec storybook dev -p $(STORYBOOK_PORT) --no-open
+
+storybook-build: ## Build static Storybook for CI / hosting
+	@echo "→ Building Storybook..."
+	cd $(STORYBOOK_DIR) && $(PNPM) exec storybook build --output-dir $(STORYBOOK_BUILD_DIR)
+	@echo "✅ Storybook built to $(STORYBOOK_BUILD_DIR)"
+
+storybook-test: storybook-build ## Run test-runner against built Storybook
+	@echo "→ Starting Storybook server for test-runner..."
+	@cd $(STORYBOOK_DIR) && $(PNPM) exec concurrently --kill-others --success first \
+		"npx http-server $(STORYBOOK_BUILD_DIR) --port $(STORYBOOK_PORT) --silent" \
+		"npx wait-on http://localhost:$(STORYBOOK_PORT) && npx test-storybook --url http://localhost:$(STORYBOOK_PORT) --coverage"
+
+storybook-test-ci: ## Run test-runner in CI (Storybook already running)
+	@echo "→ Running test-runner against Storybook..."
+	cd $(STORYBOOK_DIR) && $(PNPM) exec test-storybook --url http://localhost:$(STORYBOOK_PORT) --coverage --reporters=default,junit
+
+storybook-clean: ## Remove built Storybook artifacts
+	@echo "→ Cleaning Storybook build artifacts..."
+	rm -rf $(STORYBOOK_BUILD_DIR)
+	@echo "✅ Clean complete"
+
+storybook-deploy: storybook-build ## Deploy Storybook to static hosting (preview)
+	@echo "→ Storybook ready for deployment at $(STORYBOOK_BUILD_DIR)"
+	@echo "   Upload $(STORYBOOK_BUILD_DIR) to your static hosting provider."
+
+# ---------------------------------------------------------------------------
+# Chromatic (visual regression for Storybook)
+# ---------------------------------------------------------------------------
+
+storybook-chromatic: storybook-build ## Publish to Chromatic for visual review
+	@echo "→ Publishing to Chromatic..."
+	cd $(STORYBOOK_DIR) && npx chromatic --storybook-build-dir $(STORYBOOK_BUILD_DIR) --exit-zero-on-changes
+
+# ---------------------------------------------------------------------------
+# Accessibility audit via Storybook
+# ---------------------------------------------------------------------------
+
+storybook-a11y: storybook-build ## Run accessibility audit on all stories
+	@echo "→ Running accessibility audit..."
+	cd $(STORYBOOK_DIR) && $(PNPM) exec concurrently --kill-others --success first \
+		"npx http-server $(STORYBOOK_BUILD_DIR) --port $(STORYBOOK_PORT) --silent" \
+		"npx wait-on http://localhost:$(STORYBOOK_PORT) && npx test-storybook --url http://localhost:$(STORYBOOK_PORT) --include-tags=a11y"
