@@ -130,7 +130,7 @@ module.exports = {
         paths: [
           {
             name: "@/api/legacy",
-            message: "Legacy API shim is banned. Use '@/api/workflows', generated clients, or '@/hooks/useWorkflows'.",
+            message: "Legacy API shim is banned. Use generated clients or '@/hooks/useWorkflows'.",
           },
         ],
         patterns: [
