@@ -114,21 +114,32 @@ class TestWrongTenantReturns404:
     """Wrong tenant in JWT must yield 404 on resource lookup, not 200."""
 
     def test_harness_get_run_raises_404_on_key_error(self) -> None:
-        """harness.py translates KeyError from registry.get_run to HTTP 404."""
+        """harness.py translates KeyError from registry.get_run to HTTP 404.
+
+        The logic is centralized in ``_require_run``; ``get_run`` delegates to it.
+        """
         source = pathlib.Path(
             LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         tree = ast.parse(source)
 
+        helper_ok = False
+        route_ok = False
         for node in ast.walk(tree):
-            if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_run":
-                fn_src = ast.get_source_segment(source, node) or ""
-                assert "404" in fn_src or "HTTP_404_NOT_FOUND" in fn_src or "NotFoundError" in fn_src, (
-                    "get_run must return 404 when run is not found for the tenant"
-                )
-                return
+            if isinstance(node, ast.AsyncFunctionDef):
+                if node.name == "_require_run":
+                    fn_src = ast.get_source_segment(source, node) or ""
+                    helper_ok = (
+                        "NotFoundError" in fn_src
+                        or "404" in fn_src
+                        or "HTTP_404_NOT_FOUND" in fn_src
+                    )
+                if node.name == "get_run":
+                    fn_src = ast.get_source_segment(source, node) or ""
+                    route_ok = "_require_run" in fn_src
 
-        pytest.fail("get_run not found in harness.py")
+        assert helper_ok, "_require_run must raise NotFoundError (HTTP 404) when run is not found"
+        assert route_ok, "get_run must delegate to _require_run"
 
     def test_harness_get_gate_raises_404_on_key_error(self) -> None:
         """harness.py translates KeyError from registry.get_gate to HTTP 404."""
