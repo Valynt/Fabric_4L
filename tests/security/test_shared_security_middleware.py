@@ -224,6 +224,7 @@ class TestSecurityMiddlewareIntegration:
 
     def test_sql_injection_in_query_detected(self, client):
         """SQL injection in query params is detected (may block or log depending on strict mode)."""
+        # DECISION(392c260e619740d4af589cc93ade5a4e): ACCEPTED
         # Note: In strict_mode=True, this returns 400; in strict_mode=False, it logs but returns 200
         response = client.get("/api/search?q=' OR 1=1")
         # The response should not crash the app; status could be 200 (logged) or 400 (blocked)
