@@ -161,62 +161,19 @@ class TestComputeValidate:
         assert severity == "error"
 
     def test_moderate_deviation_yields_warning_severity(self) -> None:
-        """Build a synthetic out-of-range but moderate deviation case."""
+        """A value outside the tolerance range with 25–50 % deviation yields warning severity.
+
+        Metric configuration: p10=80, p50=100, p90=110, tolerance=0 %.
+        - range_min = 80 * 1.0 = 80
+        - range_max = 110 * 1.0 = 110
+        - value=135: out of range, deviation = (135-100)/100 * 100 = 35 % → warning
+        """
         from layer6_benchmarks.models.benchmark_dataset import (
             BenchmarkMetric,
             StatisticalProfile,
         )
 
-        # p10=10, p50=100, p90=200 — choose value=140 which is valid (≤200*1.1),
-        # so test an invalid value with ~35% deviation: value=135 with tighter tolerance.
         metric = BenchmarkMetric(
-            name="m",
-            unit="u",
-            description="",
-            profile=StatisticalProfile(
-                p10=Decimal("10"),
-                p25=Decimal("50"),
-                p50=Decimal("100"),
-                p75=Decimal("150"),
-                p90=Decimal("200"),
-                mean=Decimal("100"),
-                std_dev=Decimal("40"),
-                sample_size=500,
-            ),
-        )
-        # tolerance 0% makes upper bound = 200, lower bound = 10
-        # value = 135 is within range → info
-        # use tolerance 0: range 10 to 200 — need a value outside
-        # value=201 → deviation from p50=100 is 101%, severity=error
-        # For warning we need deviation 25-50 %: e.g. value = 130 out of range
-        # with tolerance_percent=0: range = [10, 200]. value=130 is inside.
-        # Use tight tolerance=1: range = [10*0.99=9.9, 200*1.01=202].
-        # Still inside. Let's use a metric where p90 is very low.
-        metric2 = BenchmarkMetric(
-            name="m2",
-            unit="u",
-            description="",
-            profile=StatisticalProfile(
-                p10=Decimal("10"),
-                p25=Decimal("15"),
-                p50=Decimal("20"),
-                p75=Decimal("25"),
-                p90=Decimal("30"),
-                mean=Decimal("20"),
-                std_dev=Decimal("5"),
-                sample_size=500,
-            ),
-        )
-        # p10*(1-0) = 10, p90*(1+0) = 30 with tolerance=0
-        # value=26 (30%  deviation from p50=20): is_valid → 10<=26<=30 → True, info
-        # value=32 (60% deviation): out of range, severity error
-        # For warning: deviation 25-50 %, e.g. value=35 → dev=75% → error
-        # value=27: dev=35% but is 10<=27<=30 → valid
-        # Adjusted: use tolerance=0, value=32 → out of range, dev=60% → error
-        # To get warning: need ~35% deviation from p50 but value outside range
-        # E.g. p50=100, p90=110, tolerance=0: range=[p10*(1-0), 110], 
-        # value=135 → dev=35% → warning
-        metric3 = BenchmarkMetric(
             name="m3",
             unit="u",
             description="",
@@ -231,8 +188,7 @@ class TestComputeValidate:
                 sample_size=500,
             ),
         )
-        # range with tol=0: [80, 110]. value=135: dev=(135-100)/100*100=35% → warning
-        is_valid, severity = _compute_validate(Decimal("135"), metric3, tolerance_percent=0)
+        is_valid, severity = _compute_validate(Decimal("135"), metric, tolerance_percent=0)
         assert is_valid is False
         assert severity == "warning"
 
@@ -405,13 +361,62 @@ class TestVMRTRunner:
             mock_log.info = MagicMock()
             mock_log.debug = MagicMock()
             mock_log.warning = MagicMock()
-            runner.run_all()
+            runner.run_all(previous_score=0.95)
             warning_events = [
                 call.args[0]
                 for call in mock_log.warning.call_args_list
                 if call.args
             ]
         assert "benchmark.regression_detected" in warning_events
+
+    def test_regression_warning_includes_previous_score_when_provided(self) -> None:
+        """previous_score parameter is forwarded to the regression log event."""
+        cases = [
+            VMRTCase(
+                id="fail",
+                kind=VMRTCaseKind.COMPARE,
+                dataset_id="manufacturing-efficiency-2024",
+                metric="oee_overall_equipment_effectiveness",
+                company_value=Decimal("40"),
+                expected_percentile=99,
+            )
+        ]
+        runner = VMRTRunner(cases=cases)
+        with patch("layer6_benchmarks.vmrt.runner.logger") as mock_log:
+            mock_log.info = MagicMock()
+            mock_log.debug = MagicMock()
+            mock_log.warning = MagicMock()
+            runner.run_all(previous_score=0.85)
+            kwargs_list = [
+                call.kwargs for call in mock_log.warning.call_args_list
+            ]
+        regression_kwargs = next(
+            (kw for kw in kwargs_list if "previous_score" in kw), None
+        )
+        assert regression_kwargs is not None
+        assert regression_kwargs["previous_score"] == 0.85
+
+    def test_regression_warning_omits_previous_score_when_none(self) -> None:
+        """previous_score is absent from the log event when not provided."""
+        cases = [
+            VMRTCase(
+                id="fail",
+                kind=VMRTCaseKind.COMPARE,
+                dataset_id="manufacturing-efficiency-2024",
+                metric="oee_overall_equipment_effectiveness",
+                company_value=Decimal("40"),
+                expected_percentile=99,
+            )
+        ]
+        runner = VMRTRunner(cases=cases)
+        with patch("layer6_benchmarks.vmrt.runner.logger") as mock_log:
+            mock_log.info = MagicMock()
+            mock_log.debug = MagicMock()
+            mock_log.warning = MagicMock()
+            runner.run_all()  # no previous_score
+            kwargs_list = [call.kwargs for call in mock_log.warning.call_args_list]
+        for kw in kwargs_list:
+            assert "previous_score" not in kw
 
     def test_log_summary_called_on_summary(self) -> None:
         """log_summary does not raise."""
