@@ -40,6 +40,7 @@ _TEST_AUDIENCE = os.environ["JWT_AUDIENCE"]
 
 
 # ---------------------------------------------------------------------------
+# DECISION(6833087cf5684cc19eac194dc9bc7966): ACCEPTED
 # Module-level fixtures — override the shared conftest equivalents so these
 # tests exercise the real GovernanceMiddleware rather than the L1 app.
 # Pattern mirrors test_adversarial_auth.py and test_cross_tenant_jwt.py.
