@@ -304,8 +304,17 @@ class VMRTRunner:
     # Public API
     # ------------------------------------------------------------------
 
-    def run_all(self) -> VMRTRunSummary:
-        """Run every registered golden case and return a summary."""
+    def run_all(self, previous_score: float | None = None) -> VMRTRunSummary:
+        """Run every registered golden case and return a summary.
+
+        Parameters
+        ----------
+        previous_score:
+            Pass-rate from the previous run (0.0–1.0) to enable meaningful
+            regression drift reporting in the ``benchmark.regression_detected``
+            log event.  When *None* the event omits the ``previous_score``
+            field and the log consumer must treat it as unavailable.
+        """
         run_start = time.monotonic()
 
         logger.info(
@@ -345,15 +354,15 @@ class VMRTRunner:
         )
 
         if summary.regression_detected:
-            previous_score = 1.0  # assume prior run was clean
-            logger.warning(
-                "benchmark.regression_detected",
-                benchmark_name=self._name,
-                score=round(summary.pass_rate, 4),
-                threshold=1.0,
-                previous_score=previous_score,
-                failed_cases=[r.case.id for r in summary.failed_results()],
-            )
+            regression_event: dict = {
+                "benchmark_name": self._name,
+                "score": round(summary.pass_rate, 4),
+                "threshold": 1.0,
+                "failed_cases": [r.case.id for r in summary.failed_results()],
+            }
+            if previous_score is not None:
+                regression_event["previous_score"] = round(previous_score, 4)
+            logger.warning("benchmark.regression_detected", **regression_event)
 
         return summary
 
