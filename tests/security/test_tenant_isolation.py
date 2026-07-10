@@ -78,6 +78,7 @@ class TestTenantIsolation:
                 "X-Tenant-ID": "malicious-tenant",
             },
         )
+        # DECISION(64a1820696f1426c90e526a685acfe05): ACCEPTED
         # If endpoint is not mounted, skip rather than silently pass
         if response.status_code == 404:
             pytest.skip("Endpoint /api/v1/user/profile not mounted in test app")
@@ -226,6 +227,7 @@ class TestConcurrentTenantIsolation:
                 elif entity_tenant == "tenant-b":
                     tenant_b_entities.append(data)
 
+        # DECISION(db54af3ff58248a3aa2b4a8d8d377c0f): ACCEPTED
         # If no requests succeeded (all 404 or exceptions), the endpoint isn't
         # mounted — skip rather than fake-pass.
         if success_count == 0:

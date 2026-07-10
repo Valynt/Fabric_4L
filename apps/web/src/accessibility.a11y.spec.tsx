@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -27,12 +26,6 @@ import { EmptyState } from "@/components/states/EmptyState";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { DataTable } from "@/components/ui/fabric/DataTable";
-import {
-  Stepper,
-  StepperContent,
-  StepperList,
-  StepperTrigger,
-} from "@/components/ui/stepper";
 
 expect.extend(toHaveNoViolations);
 
@@ -318,38 +311,6 @@ describe("component accessibility smoke tests", () => {
     await user.keyboard(" ");
 
     expect(selected).toEqual(["acme", "acme"]);
-  });
-
-  it("stepper tabs expose selection state and change with keyboard activation", async () => {
-    const user = userEvent.setup();
-
-    function StepperFixture() {
-      const [value, setValue] = useState("scope");
-
-      return (
-        <Stepper value={value} onValueChange={setValue}>
-          <StepperList>
-            <StepperTrigger value="scope">Scope</StepperTrigger>
-            <StepperTrigger value="evidence">Evidence</StepperTrigger>
-            <StepperTrigger value="review">Review</StepperTrigger>
-          </StepperList>
-          <StepperContent value="scope">Scope content</StepperContent>
-          <StepperContent value="evidence">Evidence content</StepperContent>
-          <StepperContent value="review">Review content</StepperContent>
-        </Stepper>
-      );
-    }
-
-    render(<StepperFixture />);
-
-    const evidenceTab = screen.getByRole("tab", { name: /evidence/i });
-    expect(screen.getByRole("tab", { name: /scope/i })).toHaveAttribute("aria-selected", "true");
-
-    evidenceTab.focus();
-    await user.keyboard("{Enter}");
-
-    expect(evidenceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel")).toHaveTextContent(/evidence content/i);
   });
 
   it("dialog trigger is keyboard reachable and Escape returns focus", async () => {

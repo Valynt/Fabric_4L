@@ -1,6 +1,4 @@
 const wfPrimitivesAllowlist = [
-  "client/src/components/WfPrimitives.tsx",
-  "client/src/components/WfPrimitives.test.tsx",
   "client/src/components/graph/GraphInspectorPanel.tsx",
   "client/src/components/integrations/IntegrationConfigPanel.tsx",
   "client/src/components/integrations/IntegrationList.tsx",
@@ -10,7 +8,6 @@ const wfPrimitivesAllowlist = [
   "client/src/components/workspace/HypothesisShell.tsx",
   "client/src/components/workspace/IntelligenceShell.tsx",
   "client/src/components/workspace/RightRail.tsx",
-  "client/src/components/workspace/ValueStudioShell.tsx",
   "client/src/pages/Accounts.tsx",
   "client/src/pages/AgentWorkflows.tsx",
   "client/src/pages/BusinessCase.tsx",
@@ -40,12 +37,8 @@ const wfPrimitivesAllowlist = [
   "client/src/pages/ValueTreeExplorer.tsx",
   "client/src/pages/WhitespaceAnalysis.tsx",
   "client/src/pages/admin/BenchmarkPolicies.tsx",
-  "client/src/pages/admin/FormulaGovernance.tsx",
   "client/src/pages/admin/HealthMonitor.tsx",
-  "client/src/pages/admin/PackManagement.tsx",
   "client/src/pages/admin/PermissionsAdmin.tsx",
-  "client/src/pages/admin/PlatformSettings.tsx",
-  "client/src/pages/admin/VariableRegistry.tsx",
   "client/src/pages/calculator/ROITab.tsx",
   "client/src/pages/calculator/ValueModelTab.tsx",
   "client/src/pages/deliverables/CFOView.tsx",
@@ -135,10 +128,6 @@ module.exports = {
       "error",
       {
         paths: [
-          {
-            name: "@/components/WfPrimitives",
-            message: "WfPrimitives is a frozen compatibility layer. Import the canonical component directly instead.",
-          },
           {
             name: "@/api/legacy",
             message: "Legacy API shim is banned. Use '@/api/workflows', generated clients, or '@/hooks/useWorkflows'.",

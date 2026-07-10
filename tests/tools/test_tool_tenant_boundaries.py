@@ -230,6 +230,7 @@ class TestToolParameterValidation:
         )
         malicious_entity_id = "' OR '1'='1"
 
+        # DECISION(e1e07f4b84ac4829a33157b5108fe5cd): ACCEPTED
         # get_entity silently rejects injection attempts by returning None
         # rather than raising, to avoid leaking validation details to callers.
         mock_driver = MagicMock()
@@ -287,6 +288,7 @@ class TestToolParameterValidation:
         )
         huge_query = "A" * 100000  # 100KB query
 
+        # DECISION(b2601407c46d4966b6e7b4e313d9b251): ACCEPTED
         # search_entities silently rejects oversized queries by returning []
         # rather than raising, to avoid leaking size limits to callers.
         mock_driver = AsyncMock()

@@ -36,6 +36,7 @@ class TestActiveTenantAccess:
             headers={"Authorization": f"Bearer {tenant_a_token}"}
         )
         
+        # DECISION(a47becbf35954a03bad2eac6c6a4c9be): ACCEPTED
         # Active tenant should have normal access
         # Note: May be 200 or 404 depending on data, but NOT 401/403
         assert response.status_code not in [401, 403], (
@@ -163,6 +164,7 @@ class TestDeletedTenantRejection:
             headers={"Authorization": f"Bearer {deleted_tenant_token}"}
         )
         
+        # DECISION(063048c9b6604c2fbf8b2c223c67f420): ACCEPTED
         # Use 404 not 403 to avoid revealing tenant existed
         assert response.status_code == 404, (
             f"Deleted tenant should get 404 (not 403), got {response.status_code}. "
