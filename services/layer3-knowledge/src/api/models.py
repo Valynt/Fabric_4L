@@ -5,6 +5,7 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
@@ -24,8 +25,11 @@ from value_fabric.shared.contracts.layer3_statuses import (
 )
 
 from ..services import compat_policy
-from ..services.compat_metrics import record_deprecated_field_usage
-from ..services.compat_policy import include_legacy_graph_aliases
+from ..services.compat_metrics import get_deprecated_field_usage_counters
+from .compat_aliases import (
+    normalize_legacy_aliases,
+    serialize_with_aliases,
+)
 
 GRAPH_FIELD_ALIAS_REMOVAL_VERSION = compat_policy.GRAPH_FIELD_ALIAS_REMOVAL_VERSION
 
@@ -1031,17 +1035,11 @@ class GraphNode(BaseModel):
     @classmethod
     def normalize_and_validate_legacy_aliases(cls, data: Any) -> Any:
         """Allow legacy aliases only when canonical fields are absent or equal."""
-        if not isinstance(data, dict):
-            return data
-        for alias, canonical in GraphNodeAliasMap.items():
-            if canonical in data and alias in data and data[canonical] != data[alias]:
-                raise ValueError(
-                    f"Conflicting GraphNode fields: '{canonical}' and deprecated '{alias}' must match"
-                )
-            if canonical not in data and alias in data:
-                record_deprecated_field_usage("graph_node_request_legacy_fields")
-                data[canonical] = data[alias]
-        return data
+        return normalize_legacy_aliases(
+            data,
+            GraphNodeAliasMap,
+            request_counter_name="graph_node_request_legacy_fields",
+        )
 
     # ═════════════════════════════════════════════════════════════════════════
     # Backward-compatible alias fields for frontend contract alignment
@@ -1069,13 +1067,23 @@ class GraphNode(BaseModel):
         """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)
-        if include_legacy_graph_aliases(api_version):
-            for _ in GraphNodeAliasMap:
-                record_deprecated_field_usage("graph_node_response_legacy_fields")
-            return data
-        for alias in GraphNodeAliasMap:
-            data.pop(alias, None)
-        return data
+        return serialize_with_aliases(
+            data,
+            GraphNodeAliasMap,
+            api_version,
+            response_counter_name="graph_node_response_legacy_fields",
+        )
+
+    def model_dump_json(self, *, api_version: str = "v2.3", **kwargs: Any) -> str:
+        """Override to keep JSON output in parity with ``model_dump``."""
+        data = json.loads(super().model_dump_json(**kwargs))
+        aliased = serialize_with_aliases(
+            data,
+            GraphNodeAliasMap,
+            api_version,
+            response_counter_name="graph_node_response_legacy_fields",
+        )
+        return json.dumps(aliased)
 
 
 class GraphNodeWithLayout(GraphNode):
@@ -1118,17 +1126,11 @@ class GraphEdge(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_and_validate_legacy_aliases(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-        for alias, canonical in GraphEdgeAliasMap.items():
-            if canonical in data and alias in data and data[canonical] != data[alias]:
-                raise ValueError(
-                    f"Conflicting GraphEdge fields: '{canonical}' and deprecated '{alias}' must match"
-                )
-            if canonical not in data and alias in data:
-                record_deprecated_field_usage("graph_edge_request_legacy_fields")
-                data[canonical] = data[alias]
-        return data
+        return normalize_legacy_aliases(
+            data,
+            GraphEdgeAliasMap,
+            request_counter_name="graph_edge_request_legacy_fields",
+        )
 
     @computed_field
     @property
@@ -1140,13 +1142,23 @@ class GraphEdge(BaseModel):
         """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)
-        if include_legacy_graph_aliases(api_version):
-            for _ in GraphEdgeAliasMap:
-                record_deprecated_field_usage("graph_edge_response_legacy_fields")
-            return data
-        for alias in GraphEdgeAliasMap:
-            data.pop(alias, None)
-        return data
+        return serialize_with_aliases(
+            data,
+            GraphEdgeAliasMap,
+            api_version,
+            response_counter_name="graph_edge_response_legacy_fields",
+        )
+
+    def model_dump_json(self, *, api_version: str = "v2.3", **kwargs: Any) -> str:
+        """Override to keep JSON output in parity with ``model_dump``."""
+        data = json.loads(super().model_dump_json(**kwargs))
+        aliased = serialize_with_aliases(
+            data,
+            GraphEdgeAliasMap,
+            api_version,
+            response_counter_name="graph_edge_response_legacy_fields",
+        )
+        return json.dumps(aliased)
 
 
 class GraphStats(BaseModel):
@@ -1182,7 +1194,7 @@ class SubgraphResponse(BaseModel):
 
 
 # Private alias for test compatibility
-_include_legacy_graph_aliases = include_legacy_graph_aliases
+_include_legacy_graph_aliases = compat_policy.include_legacy_graph_aliases
 
 def _serialize_entity(entity, api_version='v2.3'):
     """Serialize an entity dict with versioned alias policy."""
