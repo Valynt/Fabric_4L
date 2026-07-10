@@ -1,6 +1,4 @@
 const wfPrimitivesAllowlist = [
-  "client/src/components/WfPrimitives.tsx",
-  "client/src/components/WfPrimitives.test.tsx",
   "client/src/components/graph/GraphInspectorPanel.tsx",
   "client/src/components/integrations/IntegrationConfigPanel.tsx",
   "client/src/components/integrations/IntegrationList.tsx",
@@ -130,10 +128,6 @@ module.exports = {
       "error",
       {
         paths: [
-          {
-            name: "@/components/WfPrimitives",
-            message: "WfPrimitives is a frozen compatibility layer. Import the canonical component directly instead.",
-          },
           {
             name: "@/api/legacy",
             message: "Legacy API shim is banned. Use '@/api/workflows', generated clients, or '@/hooks/useWorkflows'.",
