@@ -21,6 +21,7 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 
 
 # ---------------------------------------------------------------------------
+# DECISION(8fb087961b504eaea8264588b9a38812): ACCEPTED
 # Test constants — extracted to avoid magic strings and aid maintainability
 # ---------------------------------------------------------------------------
 TENANT_A_UUID = "12345678-1234-1234-1234-123456789abc"
