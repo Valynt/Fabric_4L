@@ -1,0 +1,255 @@
+# =============================================================================
+# Fabric_4L Chaos Engineering Makefile
+# =============================================================================
+# Provides targets for running chaos experiments, managing Chaos Mesh resources,
+# and validating system resilience.
+#
+# Usage:
+#   make -f Makefile.chaos chaos-test          # Run full chaos test suite
+#   make -f Makefile.chaos chaos-test-fast     # Run quick chaos tests only
+#   make -f Makefile.chaos install-chaos-mesh  # Install Chaos Mesh in cluster
+#   make -f Makefile.chaos apply-experiments   # Apply all experiment CRDs
+#   make -f Makefile.chaos status              # Show experiment status
+#   make -f Makefile.chaos cleanup             # Remove all chaos resources
+#
+# Prerequisites:
+#   - kubectl configured with cluster access
+#   - Chaos Mesh installed (v2.6+)
+#   - pytest with asyncio support
+#   - Python dependencies: aiohttp, pytest-asyncio
+# =============================================================================
+
+# Configuration
+NAMESPACE         ?= fabric4l
+CHAOS_MESH_VERSION ?= 2.6.3
+PYTEST_ARGS       ?= -v --tb=short
+CHAOS_NAMESPACE   ?= $(NAMESPACE)
+SKIP_DB_FAILOVER  ?= 0
+LATENCY_MS        ?= 100
+KUBECONFIG        ?= $(HOME)/.kube/config
+
+# Directories
+CHAOS_DIR         := k8s/chaos-mesh
+TESTS_DIR         := tests/chaos
+REPORTS_DIR       := reports/chaos
+
+# Experiment manifests
+NETWORK_PARTITION := $(CHAOS_DIR)/network-partition.yaml
+POD_KILL          := $(CHAOS_DIR)/pod-kill.yaml
+IO_LATENCY        := $(CHAOS_DIR)/io-latency.yaml
+
+# Colors for output
+BLUE              := \033[36m
+GREEN             := \033[32m
+YELLOW            := \033[33m
+RED               := \033[31m
+RESET             := \033[0m
+
+.PHONY: help chaos-test chaos-test-fast install-chaos-mesh verify-chaos-mesh \
+        apply-experiments apply-network-partition apply-pod-kill apply-io-latency \
+        delete-experiments status cleanup report prerequisites \
+        steady-state-check validate-dashboards game-day
+
+# ---------------------------------------------------------------------------
+# Default target
+# ---------------------------------------------------------------------------
+help: ## Show this help message
+	@echo "$(BLUE)Fabric_4L Chaos Engineering Framework$(RESET)"
+	@echo "========================================"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-30s$(RESET) %s\n", $$1, $$2}'
+
+# ---------------------------------------------------------------------------
+# Prerequisites
+# ---------------------------------------------------------------------------
+prerequisites: ## Verify all prerequisites are installed
+	@echo "$(BLUE)Checking prerequisites...$(RESET)"
+	@which kubectl > /dev/null || (echo "$(RED)ERROR: kubectl not found$(RESET)" && exit 1)
+	@which python3 > /dev/null || (echo "$(RED)ERROR: python3 not found$(RESET)" && exit 1)
+	@which pip3 > /dev/null || (echo "$(RED)ERROR: pip3 not found$(RESET)" && exit 1)
+	@python3 -c "import aiohttp" 2>/dev/null || (echo "$(YELLOW)WARNING: aiohttp not installed. Run: pip3 install aiohttp pytest-asyncio$(RESET)")
+	@python3 -c "import pytest" 2>/dev/null || (echo "$(YELLOW)WARNING: pytest not installed. Run: pip3 install pytest pytest-asyncio$(RESET)")
+	@echo "$(GREEN)All prerequisites satisfied$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Chaos Mesh Installation
+# ---------------------------------------------------------------------------
+install-chaos-mesh: ## Install Chaos Mesh in the cluster
+	@echo "$(BLUE)Installing Chaos Mesh v$(CHAOS_MESH_VERSION)...$(RESET)"
+	@kubectl apply -f https://mirrors.chaos-mesh.org/v$(CHAOS_MESH_VERSION)/install.yaml --wait
+	@echo "$(GREEN)Chaos Mesh installed$(RESET)"
+	@echo "$(YELLOW)Waiting for pods to be ready...$(RESET)"
+	@kubectl wait --for=condition=Ready pods --all -n chaos-mesh --timeout=120s
+	@echo "$(GREEN)Chaos Mesh is ready$(RESET)"
+
+verify-chaos-mesh: ## Verify Chaos Mesh is running
+	@echo "$(BLUE)Verifying Chaos Mesh...$(RESET)"
+	@kubectl get pods -n chaos-mesh -l app.kubernetes.io/instance=chaos-mesh
+	@kubectl get customresourcedefinitions | grep chaos-mesh.org | wc -l | xargs -I {} echo "CRDs installed: {}"
+	@echo "$(GREEN)Chaos Mesh verified$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Experiment Lifecycle
+# ---------------------------------------------------------------------------
+apply-experiments: apply-network-partition apply-pod-kill apply-io-latency ## Apply all chaos experiment CRDs
+	@echo "$(GREEN)All chaos experiments applied$(RESET)"
+
+apply-network-partition: ## Apply network partition experiments
+	@echo "$(BLUE)Applying network partition experiments...$(RESET)"
+	@kubectl apply -f $(NETWORK_PARTITION) -n $(CHAOS_NAMESPACE)
+	@echo "$(GREEN)Network partition experiments applied$(RESET)"
+
+apply-pod-kill: ## Apply pod kill experiments
+	@echo "$(BLUE)Applying pod kill experiments...$(RESET)"
+	@kubectl apply -f $(POD_KILL) -n $(CHAOS_NAMESPACE)
+	@echo "$(GREEN)Pod kill experiments applied$(RESET)"
+
+apply-io-latency: ## Apply I/O latency experiments
+	@echo "$(BLUE)Applying I/O latency experiments...$(RESET)"
+	@export LATENCY_MS=$(LATENCY_MS) && envsubst < $(IO_LATENCY) | kubectl apply -n $(CHAOS_NAMESPACE) -f -
+	@echo "$(GREEN)I/O latency experiments applied with $(LATENCY_MS)ms latency$(RESET)"
+
+delete-experiments: ## Remove all chaos experiment CRDs
+	@echo "$(BLUE)Removing all chaos experiments...$(RESET)"
+	@kubectl delete -f $(NETWORK_PARTITION) -n $(CHAOS_NAMESPACE) --ignore-not-found=true
+	@kubectl delete -f $(POD_KILL) -n $(CHAOS_NAMESPACE) --ignore-not-found=true
+	@kubectl delete -f $(IO_LATENCY) -n $(CHAOS_NAMESPACE) --ignore-not-found=true
+	@echo "$(GREEN)All chaos experiments removed$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Status & Monitoring
+# ---------------------------------------------------------------------------
+status: ## Show current chaos experiment status
+	@echo "$(BLUE)Chaos Experiment Status$(RESET)"
+	@echo "========================"
+	@echo ""
+	@echo "$(YELLOW)NetworkChaos:$(RESET)"
+	@kubectl get networkchaos -n $(CHAOS_NAMESPACE) -o wide 2>/dev/null || echo "  (none)"
+	@echo ""
+	@echo "$(YELLOW)PodChaos:$(RESET)"
+	@kubectl get podchaos -n $(CHAOS_NAMESPACE) -o wide 2>/dev/null || echo "  (none)"
+	@echo ""
+	@echo "$(YELLOW)IOChaos:$(RESET)"
+	@kubectl get iochaos -n $(CHAOS_NAMESPACE) -o wide 2>/dev/null || echo "  (none)"
+	@echo ""
+	@echo "$(YELLOW)Affected Pods:$(RESET)"
+	@kubectl get pods -n $(CHAOS_NAMESPACE) --show-labels | grep -E "l[1-6]|postgres|neo4j|redis" || true
+
+# ---------------------------------------------------------------------------
+# Test Execution
+# ---------------------------------------------------------------------------
+chaos-test: prerequisites steady-state-check ## Run full chaos test suite
+	@echo "$(BLUE)Running full chaos test suite...$(RESET)"
+	@mkdir -p $(REPORTS_DIR)
+	@CHAOS_NAMESPACE=$(CHAOS_NAMESPACE) \
+	 SKIP_DB_FAILOVER=$(SKIP_DB_FAILOVER) \
+	 pytest $(TESTS_DIR) \
+	   -m chaos \
+	   $(PYTEST_ARGS) \
+	   --junitxml=$(REPORTS_DIR)/chaos-test-results.xml \
+	   --html=$(REPORTS_DIR)/chaos-test-report.html \
+	   --self-contained-html \
+	   2>&1 | tee $(REPORTS_DIR)/chaos-test-output.log
+	@echo "$(GREEN)Chaos tests complete. Reports in $(REPORTS_DIR)/$(RESET)"
+
+chaos-test-fast: prerequisites ## Run quick chaos tests (no DB failover)
+	@echo "$(BLUE)Running fast chaos tests (no DB failover)...$(RESET)"
+	@mkdir -p $(REPORTS_DIR)
+	@CHAOS_NAMESPACE=$(CHAOS_NAMESPACE) \
+	 SKIP_DB_FAILOVER=1 \
+	 pytest $(TESTS_DIR) \
+	   -m "chaos and not slow" \
+	   $(PYTEST_ARGS) \
+	   --junitxml=$(REPORTS_DIR)/chaos-fast-results.xml \
+	   2>&1 | tee $(REPORTS_DIR)/chaos-fast-output.log
+	@echo "$(GREEN)Fast chaos tests complete$(RESET)"
+
+chaos-test-l4: prerequisites ## Run only Layer 4 chaos tests
+	@echo "$(BLUE)Running Layer 4 chaos tests...$(RESET)"
+	@CHAOS_NAMESPACE=$(CHAOS_NAMESPACE) \
+	 pytest $(TESTS_DIR)/test_service_failure.py::TestLayer4AgentFailure \
+	   $(PYTEST_ARGS)
+
+chaos-test-db: prerequisites ## Run only database chaos tests
+	@echo "$(BLUE)Running database chaos tests...$(RESET)"
+	@CHAOS_NAMESPACE=$(CHAOS_NAMESPACE) \
+	 pytest $(TESTS_DIR)/test_service_failure.py::TestDatabaseFailure \
+	   $(PYTEST_ARGS)
+
+chaos-test-redis: prerequisites ## Run only Redis chaos tests
+	@echo "$(BLUE)Running Redis chaos tests...$(RESET)"
+	@CHAOS_NAMESPACE=$(CHAOS_NAMESPACE) \
+	 pytest $(TESTS_DIR)/test_service_failure.py::TestRedisFailure \
+	   $(PYTEST_ARGS)
+
+# ---------------------------------------------------------------------------
+# Steady State Validation
+# ---------------------------------------------------------------------------
+steady-state-check: ## Verify steady-state before running experiments
+	@echo "$(BLUE)Verifying steady-state...$(RESET)"
+	@echo "  Checking L1 Ingestion..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l1-ingestion -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L1 healthy$(RESET)" || echo "$(RED)  ✗ L1 unhealthy$(RESET)"
+	@echo "  Checking L2 Extraction..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l2-extraction -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L2 healthy$(RESET)" || echo "$(RED)  ✗ L2 unhealthy$(RESET)"
+	@echo "  Checking L3 Knowledge..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l3-knowledge -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L3 healthy$(RESET)" || echo "$(RED)  ✗ L3 unhealthy$(RESET)"
+	@echo "  Checking L4 Agent..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l4-agent -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L4 healthy$(RESET)" || echo "$(RED)  ✗ L4 unhealthy$(RESET)"
+	@echo "  Checking L5 Ground Truth..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l5-ground-truth -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L5 healthy$(RESET)" || echo "$(RED)  ✗ L5 unhealthy$(RESET)"
+	@echo "  Checking L6 Benchmark..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/l6-benchmark -- wget -qO- http://localhost:8080/health > /dev/null 2>&1 && echo "$(GREEN)  ✓ L6 healthy$(RESET)" || echo "$(RED)  ✗ L6 unhealthy$(RESET)"
+	@echo "  Checking PostgreSQL..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/postgres-primary -- pg_isready > /dev/null 2>&1 && echo "$(GREEN)  ✓ PostgreSQL ready$(RESET)" || echo "$(RED)  ✗ PostgreSQL not ready$(RESET)"
+	@echo "  Checking Neo4j..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/neo4j-core -- wget -qO- http://localhost:7474/db/manage/server/jmx/domain/org.neo4j/instance%3Dkernel%230%2Cname%3Diagnostics > /dev/null 2>&1 && echo "$(GREEN)  ✓ Neo4j ready$(RESET)" || echo "$(RED)  ✗ Neo4j not ready$(RESET)"
+	@echo "  Checking Redis..."
+	@kubectl exec -n $(CHAOS_NAMESPACE) deploy/redis-master -- redis-cli ping > /dev/null 2>&1 && echo "$(GREEN)  ✓ Redis ready$(RESET)" || echo "$(RED)  ✗ Redis not ready$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+report: ## Generate chaos test report
+	@echo "$(BLUE)Generating chaos test report...$(RESET)"
+	@mkdir -p $(REPORTS_DIR)
+	@echo "Reports available in $(REPORTS_DIR):"
+	@ls -la $(REPORTS_DIR)/ 2>/dev/null || echo "  (no reports yet)"
+
+# ---------------------------------------------------------------------------
+# Dashboard Validation
+# ---------------------------------------------------------------------------
+validate-dashboards: ## Validate Grafana dashboards for chaos metrics
+	@echo "$(BLUE)Validating chaos monitoring dashboards...$(RESET)"
+	@echo "  Checking circuit breaker metrics..."
+	@curl -sf http://prometheus:9090/api/v1/query?query=circuit_breaker_state > /dev/null 2>&1 && echo "$(GREEN)  ✓ circuit_breaker_state available$(RESET)" || echo "$(RED)  ✗ circuit_breaker_state missing$(RESET)"
+	@echo "  Checking chaos experiment metrics..."
+	@curl -sf http://prometheus:9090/api/v1/query?query=chaos_experiments_total > /dev/null 2>&1 && echo "$(GREEN)  ✓ chaos_experiments_total available$(RESET)" || echo "$(RED)  ✗ chaos_experiments_total missing$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Game Day
+# ---------------------------------------------------------------------------
+game-day: prerequisites ## Run a full game day scenario (steady-state + chaos + validation)
+	@echo "$(BLUE)========================================$(RESET)"
+	@echo "$(BLUE)  Fabric_4L Game Day - Starting$(RESET)"
+	@echo "$(BLUE)========================================$(RESET)"
+	@echo ""
+	@echo "$(YELLOW)Phase 1: Steady-State Validation$(RESET)"
+	@$(MAKE) -f Makefile.chaos steady-state-check
+	@echo ""
+	@echo "$(YELLOW)Phase 2: Chaos Experiments$(RESET)"
+	@$(MAKE) -f Makefile.chaos chaos-test
+	@echo ""
+	@echo "$(YELLOW)Phase 3: Post-Experiment Validation$(RESET)"
+	@$(MAKE) -f Makefile.chaos steady-state-check
+	@echo ""
+	@echo "$(GREEN)========================================$(RESET)"
+	@echo "$(GREEN)  Game Day Complete$(RESET)"
+	@echo "$(GREEN)========================================$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Cleanup
+# ---------------------------------------------------------------------------
+cleanup: delete-experiments ## Remove all chaos resources and reports
+	@echo "$(BLUE)Cleaning up chaos resources...$(RESET)"
+	@rm -rf $(REPORTS_DIR)
+	@echo "$(GREEN)Cleanup complete$(RESET)"

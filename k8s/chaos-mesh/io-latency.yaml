@@ -1,0 +1,198 @@
+# ---------------------------------------------------------------------------
+# Chaos Mesh IOChaos: PostgreSQL Read Latency Injection
+# ---------------------------------------------------------------------------
+# Injects disk I/O latency into PostgreSQL primary to simulate slow storage.
+# This tests query timeout handling, connection pool management, and
+# circuit breaker activation.
+#
+# Usage:
+#   LATENCY_MS=100 envsubst < k8s/chaos-mesh/io-latency.yaml | kubectl apply -n fabric4l -f -
+#   kubectl delete iochaos postgres-read-latency -n fabric4l
+#
+# Parameters:
+#   LATENCY_MS: I/O latency to inject (default: 100ms)
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: postgres-read-latency
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: postgres-io-latency
+  annotations:
+    description: "Inject {{LATENCY_MS}}ms read latency into PostgreSQL primary"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: latency
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: postgres
+      role: primary
+  # Target volume mount path for PostgreSQL data
+  volumePath: /var/lib/postgresql/data
+  path: ""
+  # I/O latency parameters
+  delay: "${LATENCY_MS}ms"
+  percent: 100
+  # Affects read operations
+  methods:
+    - READ
+    - READV
+    - PREAD
+    - PREADV
+  # Duration of the experiment
+  duration: "10m"
+  scheduler:
+    cron: "0 3 * * 1"  # Every Monday at 3 AM
+---
+# ---------------------------------------------------------------------------
+# IOChaos: PostgreSQL Write Latency
+# ---------------------------------------------------------------------------
+# Injects write latency to test write path resilience.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: postgres-write-latency
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: postgres-write-io-latency
+  annotations:
+    description: "Inject {{LATENCY_MS}}ms write latency into PostgreSQL primary"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: latency
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: postgres
+      role: primary
+  volumePath: /var/lib/postgresql/data
+  path: ""
+  delay: "${LATENCY_MS}ms"
+  percent: 100
+  methods:
+    - WRITE
+    - WRITEV
+    - PWRITE
+    - PWRITEV
+    - FSYNC
+    - FDATASYNC
+  duration: "10m"
+---
+# ---------------------------------------------------------------------------
+# IOChaos: PostgreSQL I/O Error Injection
+# ---------------------------------------------------------------------------
+# Simulates disk errors (not just slowness) to test error handling.
+# STAGING ONLY - can cause data corruption if run on production.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: postgres-io-error
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: postgres-io-error
+    chaos-mesh.org/environment: staging-only
+  annotations:
+    description: "Inject I/O errors into PostgreSQL (STAGING ONLY)"
+    owner: "sre-team@fabric4l.io"
+    severity: "critical"
+    production_safe: "no"
+spec:
+  action: fault
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: postgres
+      role: primary
+  volumePath: /var/lib/postgresql/data
+  path: ""
+  # Inject EIO (I/O error) on 5% of operations
+  errno: 5  # EIO
+  percent: 5
+  methods:
+    - READ
+    - WRITE
+  duration: "2m"
+---
+# ---------------------------------------------------------------------------
+# IOChaos: Redis Read Latency
+# ---------------------------------------------------------------------------
+# Injects latency into Redis to test cache circuit breaker.
+# Used by TestRedisFailure.test_redis_slow_rejected_by_circuit_breaker.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: redis-read-latency
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: redis-io-latency
+  annotations:
+    description: "Inject {{LATENCY_MS}}ms read latency into Redis"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: latency
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: redis
+      role: master
+  volumePath: /data
+  path: ""
+  delay: "${LATENCY_MS}ms"
+  percent: 100
+  methods:
+    - READ
+    - READV
+    - PREAD
+  duration: "10m"
+---
+# ---------------------------------------------------------------------------
+# IOChaos: Layer 4 Agent Disk Pressure
+# ---------------------------------------------------------------------------
+# Simulates slow disk I/O on LangGraph agent pods.
+# Used by TestLayer4AgentFailure.test_layer4_slow_layer2_queues_work.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: l4-agent-io-latency
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: l4-io-latency
+  annotations:
+    description: "Inject {{LATENCY_MS}}ms I/O latency into L4 Agent"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: latency
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: l4-agent
+  volumePath: /tmp
+  path: ""
+  delay: "${LATENCY_MS}ms"
+  percent: 100
+  methods:
+    - READ
+    - WRITE
+    - OPEN
+  duration: "10m"

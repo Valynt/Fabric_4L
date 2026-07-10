@@ -1,0 +1,742 @@
+{
+  "uid": "fabric4l-platform-overview",
+  "title": "Fabric_4L — Platform Overview (RED Method)",
+  "tags": ["fabric4l", "red-method", "platform", "overview", "slo"],
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "timezone": "utc",
+  "templating": {
+    "list": [
+      {
+        "name": "layer",
+        "type": "custom",
+        "query": "L1-Ingestion,L2-Extraction,L3-Knowledge,L4-Agents,L5-GroundTruth,L6-Benchmarks",
+        "multi": true,
+        "includeAll": true,
+        "current": {"text": ["All"], "value": ["$__all"]}
+      },
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "expr": "changes(deployment_timestamp[1h]) > 0",
+        "tagKeys": "service",
+        "textFormat": "Deployment: {{ service }}",
+        "iconColor": "blue"
+      },
+      {
+        "name": "Alerts",
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "expr": "ALERTS{alertstate=\"firing\"}",
+        "tagKeys": "alertname,severity",
+        "textFormat": "ALERT: {{ alertname }}",
+        "iconColor": "red"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Layer Health",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "panels": []
+    },
+    {
+      "id": 11,
+      "title": "L1: Ingestion",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l1-ingestion\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1}
+    },
+    {
+      "id": 12,
+      "title": "L2: Extraction",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l2-extraction\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1}
+    },
+    {
+      "id": 13,
+      "title": "L3: Knowledge",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l3-knowledge\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1}
+    },
+    {
+      "id": 14,
+      "title": "L4: Agents",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l4-agents\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1}
+    },
+    {
+      "id": 15,
+      "title": "L5: Ground Truth",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l5-groundtruth\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1}
+    },
+    {
+      "id": 16,
+      "title": "L6: Benchmarks",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "up{job=\"l6-benchmarks\"}",
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+            {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "none", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1}
+    },
+    {
+      "id": 2,
+      "title": "Request Rate (R - RED Method)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "panels": []
+    },
+    {
+      "id": 21,
+      "title": "Request Rate by Layer (req/s)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "red:request_rate:layer",
+          "legendFormat": "{{ layer }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "min": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "spanNulls": true,
+            "axisLabel": "Requests/sec"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6}
+    },
+    {
+      "id": 3,
+      "title": "Error Rate (E - RED Method)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "panels": []
+    },
+    {
+      "id": 31,
+      "title": "Error Rate by Layer (%)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "red:error_ratio:layer * 100",
+          "legendFormat": "{{ layer }} — {{ service }}",
+          "refId": "A"
+        },
+        {
+          "expr": "0.1",
+          "legendFormat": "SLO Threshold (0.1%)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.1},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "spanNulls": true,
+            "axisLabel": "Error %"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 15}
+    },
+    {
+      "id": 4,
+      "title": "Latency (D - RED Method)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "panels": []
+    },
+    {
+      "id": 41,
+      "title": "Latency Heatmap — All Layers",
+      "type": "heatmap",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_bucket[5m])) by (le)",
+          "format": "heatmap",
+          "legendFormat": "{{ le }}",
+          "refId": "A"
+        }
+      ],
+      "heatmap": {},
+      "dataFormat": "tsbuckets",
+      "yAxis": {
+        "format": "s",
+        "logBase": 10,
+        "show": true,
+        "max": 10
+      },
+      "tooltip": {"show": true, "showHistogram": true},
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 24}
+    },
+    {
+      "id": 42,
+      "title": "Latency Percentiles — All Layers (ms)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, layer)) * 1000",
+          "legendFormat": "{{ layer }} — p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, layer)) * 1000",
+          "legendFormat": "{{ layer }} — p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, layer)) * 1000",
+          "legendFormat": "{{ layer }} — p99",
+          "refId": "C"
+        },
+        {
+          "expr": "200",
+          "legendFormat": "SLO Threshold (200ms)",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 2000,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 200},
+              {"color": "red", "value": 500}
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": true,
+            "axisLabel": "Latency (ms)"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"]},
+        "tooltip": {"mode": "multi"}
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 24}
+    },
+    {
+      "id": 5,
+      "title": "SLO Compliance",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 34},
+      "panels": []
+    },
+    {
+      "id": 51,
+      "title": "SLO-1: API Availability (30d)",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:api_availability:ratio_30d",
+          "legendFormat": "Availability",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.995,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.995},
+              {"color": "green", "value": 0.999}
+            ]
+          }
+        }
+      },
+      "options": {
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 35}
+    },
+    {
+      "id": 52,
+      "title": "SLO-2: Latency p95 (7d)",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:api_latency:p95_7d * 1000",
+          "legendFormat": "p95 (ms)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 1000,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 200},
+              {"color": "red", "value": 500}
+            ]
+          }
+        }
+      },
+      "options": {
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 35}
+    },
+    {
+      "id": 53,
+      "title": "SLO-3: Agent Workflow Success (7d)",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:agent_workflow_success:ratio_7d",
+          "legendFormat": "Success Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.98,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.99},
+              {"color": "green", "value": 0.995}
+            ]
+          }
+        }
+      },
+      "options": {
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 35}
+    },
+    {
+      "id": 54,
+      "title": "SLO-4: Tenant Isolation",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:tenant_isolation:breach_rate_1m",
+          "legendFormat": "Breach Attempts",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "background", "justifyMode": "center"},
+      "gridPos": {"h": 6, "w": 4, "x": 12, "y": 35}
+    },
+    {
+      "id": 55,
+      "title": "SLO-5: Ingestion Throughput (1h)",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:ingestion_throughput:docs_per_hour_1d",
+          "legendFormat": "Docs/hour",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "docs",
+          "min": 0,
+          "max": 20000,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 5000},
+              {"color": "green", "value": 10000}
+            ]
+          }
+        }
+      },
+      "options": {
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 16, "y": 35}
+    },
+    {
+      "id": 56,
+      "title": "SLO-6: Frontend LCP p75 (7d)",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "slo:frontend_lcp:p75_7d",
+          "legendFormat": "LCP (s)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "max": 5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 2.5},
+              {"color": "red", "value": 4}
+            ]
+          }
+        }
+      },
+      "options": {
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true,
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 20, "y": 35}
+    },
+    {
+      "id": 6,
+      "title": "Business Metrics",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 41},
+      "panels": []
+    },
+    {
+      "id": 61,
+      "title": "Active Tenants (1h)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "business:active_tenants_1h",
+          "legendFormat": "Tenants",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 42}
+    },
+    {
+      "id": 62,
+      "title": "Active Agent Workflows (1h)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "business:active_workflows_1h",
+          "legendFormat": "Workflows/sec",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 42}
+    },
+    {
+      "id": 63,
+      "title": "Queue Depth (avg 5m)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "business:queue_depth_avg_5m",
+          "legendFormat": "Items",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "red", "value": 500}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 42}
+    },
+    {
+      "id": 64,
+      "title": "LLM API Cost ($/hr)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "expr": "business:llm_cost_per_hour",
+          "legendFormat": "$/hour",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 50},
+              {"color": "red", "value": 100}
+            ]
+          }
+        }
+      },
+      "options": {"graphMode": "area", "colorMode": "value", "justifyMode": "center"},
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 42}
+    }
+  ]
+}

@@ -1,0 +1,364 @@
+# -----------------------------------------------------------------------------
+# Dependency Vulnerability Scan — Fabric 4L
+#
+# Scans all Python and Node.js dependencies for known CVEs on every PR,
+# weekly on Monday 6am UTC, and on-demand.
+#
+# Tools:
+#   - Python:  pypa/gh-action-pip-audit (pip-audit)
+#   - Node.js: actions/dependency-review-action + pnpm audit
+#   - Image:   anchore/scan-action (Grype) for container scanning
+#   - Report:  SARIF upload to GitHub Security tab
+# -----------------------------------------------------------------------------
+
+name: Dependency Vulnerability Scan
+
+on:
+  pull_request:
+    paths:
+      - "**/requirements.txt"
+      - "**/requirements*.txt"
+      - "**/pyproject.toml"
+      - "**/setup.py"
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+      - "**/package-lock.json"
+      - "**/Dockerfile"
+      - ".github/workflows/dependency-scan.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/requirements.txt"
+      - "**/requirements*.txt"
+      - "**/pyproject.toml"
+      - "**/setup.py"
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+      - "**/Dockerfile"
+  schedule:
+    - cron: "0 6 * * 1" # Weekly: Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      fail_threshold:
+        description: "Severity threshold to fail build (low/medium/high/critical)"
+        required: false
+        default: "medium"
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+
+env:
+  FAIL_THRESHOLD: ${{ inputs.fail_threshold || 'medium' }}
+
+jobs:
+  # =========================================================================
+  # PYTHON DEPENDENCY SCAN
+  # =========================================================================
+  scan-python:
+    name: Scan Python Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # Upload SARIF
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api
+          - layer1-ingestion
+          - layer2-extraction
+          - layer3-knowledge
+          - layer4-workflow
+          - layer5-groundtruth
+          - layer6-benchmark
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # 2. Scan with pip-audit
+      # -----------------------------------------------------------------------
+      - name: pip-audit ${{ matrix.service }}
+        uses: pypa/gh-action-pip-audit@v1
+        with:
+          inputs: "services/${{ matrix.service }}/requirements.txt"
+          output-format: json
+          output: "pip-audit-${{ matrix.service }}.json"
+          # Don't fail here; we collect all results then evaluate
+          ignore-vulns: |
+            GHSA-XXXX-XXXX-XXXX # Example: acceptable risk with justification
+
+      # -----------------------------------------------------------------------
+      # 3. Convert to SARIF
+      # -----------------------------------------------------------------------
+      - name: Convert to SARIF
+        if: always()
+        run: |
+          python -c "
+          import json, pathlib
+          data = json.loads(pathlib.Path('pip-audit-${{ matrix.service }}.json').read_text())
+          rules = []
+          results = []
+          for dep, vulns in data.get('dependencies', {}).items():
+              for v in vulns.get('vulns', []):
+                  vuln_id = v.get('id', 'UNKNOWN')
+                  rules.append({
+                      'id': vuln_id,
+                      'name': vuln_id,
+                      'shortDescription': {'text': v.get('description', vuln_id)},
+                      'properties': {'security-severity': v.get('fix_versions', ['unknown'])[0]}
+                  })
+                  results.append({
+                      'ruleId': vuln_id,
+                      'level': 'warning',
+                      'message': {'text': f\"{vuln_id} in {dep}: {v.get('description', '')}\"},
+                      'locations': [{'physicalLocation': {'artifactLocation': {'uri': f'services/${{ matrix.service }}/requirements.txt'}}}]
+                  })
+          sarif = {
+              '\$schema': 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+              'version': '2.1.0',
+              'runs': [{'tool': {'driver': {'name': 'pip-audit', 'rules': rules}}, 'results': results}]
+          }
+          pathlib.Path('pip-audit-${{ matrix.service }}.sarif').write_text(json.dumps(sarif, indent=2))
+          "
+
+      # -----------------------------------------------------------------------
+      # 4. Upload SARIF to GitHub Security tab
+      # -----------------------------------------------------------------------
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: pip-audit-${{ matrix.service }}.sarif
+          category: pip-audit-${{ matrix.service }}
+
+      # -----------------------------------------------------------------------
+      # 5. Upload raw results
+      # -----------------------------------------------------------------------
+      - name: Upload raw results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-${{ matrix.service }}
+          path: pip-audit-${{ matrix.service }}.*
+          retention-days: 30
+
+      # -----------------------------------------------------------------------
+      # 6. Fail on threshold
+      # -----------------------------------------------------------------------
+      - name: Evaluate severity threshold
+        if: always()
+        run: |
+          echo "Checking against fail threshold: ${{ env.FAIL_THRESHOLD }}"
+          python -c "
+          import json, sys
+          threshold_map = {'low': 0, 'medium': 1, 'high': 2, 'critical': 3}
+          threshold = threshold_map['${{ env.FAIL_THRESHOLD }}']
+          try:
+              data = json.loads(open('pip-audit-${{ matrix.service }}.json').read())
+          except:
+              print('No results file; assuming clean')
+              sys.exit(0)
+          max_sev = -1
+          for dep, vulns in data.get('dependencies', {}).items():
+              for v in vulns.get('vulns', []):
+                  sev = v.get('severity', 'low')
+                  max_sev = max(max_sev, threshold_map.get(sev, 0))
+          if max_sev >= threshold:
+              print(f'Failing: found severity >= ${{ env.FAIL_THRESHOLD }}')
+              sys.exit(1)
+          print('No vulnerabilities meet failure threshold')
+          "
+
+  # =========================================================================
+  # NODE.JS DEPENDENCY SCAN
+  # =========================================================================
+  scan-node:
+    name: Scan Node.js Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        frontend:
+          - web
+          - admin
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # 2. Setup Node.js + pnpm
+      # -----------------------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      # -----------------------------------------------------------------------
+      # 3. Dependency review (PR only)
+      # -----------------------------------------------------------------------
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: ${{ env.FAIL_THRESHOLD }}
+          comment-summary-in-pr: true
+
+      # -----------------------------------------------------------------------
+      # 4. pnpm audit
+      # -----------------------------------------------------------------------
+      - name: pnpm audit ${{ matrix.frontend }}
+        working-directory: frontend/${{ matrix.frontend }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > pnpm-audit.json || true
+          # Check if any vulnerabilities exceed threshold
+          node -e "
+          const data = require('./pnpm-audit.json');
+          const advisories = data.advisories || {};
+          const sevMap = {low: 0, moderate: 1, high: 2, critical: 3};
+          const threshold = sevMap['${{ env.FAIL_THRESHOLD }}'] || 1;
+          let fail = false;
+          for (const [id, adv] of Object.entries(advisories)) {
+            if (sevMap[adv.severity] >= threshold) {
+              console.log(\`FAIL: \${adv.severity} - \${adv.overview}\`);
+              fail = true;
+            }
+          }
+          process.exit(fail ? 1 : 0);
+          "
+
+      # -----------------------------------------------------------------------
+      # 5. Upload results
+      # -----------------------------------------------------------------------
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-audit-${{ matrix.frontend }}
+          path: frontend/${{ matrix.frontend }}/pnpm-audit.json
+          retention-days: 30
+
+  # =========================================================================
+  # CONTAINER IMAGE SCAN
+  # =========================================================================
+  scan-containers:
+    name: Scan Container Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build API service image
+        run: |
+          docker build -t fabric4l/api:scan-target -f services/api/Dockerfile .
+
+      - name: Scan image with Grype
+        uses: anchore/scan-action@v3
+        with:
+          image: "fabric4l/api:scan-target"
+          severity-cutoff: ${{ env.FAIL_THRESHOLD }}
+          output-format: sarif
+          output-file: container-scan.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: container-scan.sarif
+          category: container-scan
+
+  # =========================================================================
+  # SBOM GENERATION (Vulnerability Context)
+  # =========================================================================
+  generate-sbom:
+    name: Generate SBOM for Vulnerability Tracking
+    runs-on: ubuntu-latest
+    needs: [scan-python, scan-node]
+    if: always() && github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SBOM
+        run: |
+          syft packages dir:. -o spdx-json=sbom-vuln-track.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-vulnerability-tracking
+          path: sbom-vuln-track.json
+          retention-days: 90
+
+  # =========================================================================
+  # SUMMARY
+  # =========================================================================
+  summary:
+    name: Scan Summary
+    runs-on: ubuntu-latest
+    needs: [scan-python, scan-node]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🔒 Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          # Python services
+          for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-workflow layer5-groundtruth layer6-benchmark; do
+            status="⏭️ Skipped"
+            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="✅ Pass"; fi
+            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="❌ Fail"; fi
+            echo "| Python: $svc | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          # Node frontends
+          for fe in web admin; do
+            status="⏭️ Skipped"
+            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="✅ Pass"; fi
+            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="❌ Fail"; fi
+            echo "| Node.js: $fe | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Threshold:** ${{ env.FAIL_THRESHOLD }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"

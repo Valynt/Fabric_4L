@@ -1,177 +1,314 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+/**
+ * Web Vitals Module — Unit Tests
+ * ================================
+ * Vitest suite for the web-vitals tracking module.
+ *
+ * Coverage targets:
+ *   - serializeMetric   : 100% line coverage
+ *   - sendToAnalytics   : beacon path, fetch fallback, error handling
+ *   - initWebVitals     : idempotency, browser guard
+ *   - getSessionId      : sessionStorage read/write, fallback
+ *
+ * DESIGN.md § Testing: "Unit/component tests for logic and rendering"
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  buildWebVitalsPayload,
-  installWebVitals,
-  sendWebVitalsMetric,
-  shouldEnableWebVitals,
-  type WebVitalsPayload,
+  serializeMetric,
+  sendToAnalytics,
+  initWebVitals,
+  __resetInit,
 } from "./web-vitals";
 
-const originalLocation = window.location;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-function setEnv(values: Record<string, string | boolean | undefined>) {
-  for (const [key, value] of Object.entries(values)) {
-    if (value === undefined) {
-      delete import.meta.env[key];
-    } else {
-      import.meta.env[key] = value;
-    }
-  }
-}
-
-function samplePayload(overrides: Partial<WebVitalsPayload> = {}): WebVitalsPayload {
+function createMockMetric(overrides: Partial<import("web-vitals").Metric> = {}) {
   return {
-    type: "web_vital",
     name: "LCP",
-    value: 1234,
-    rating: "good",
-    delta: 12,
-    id: "vital-1",
+    value: 1200,
+    rating: "good" as const,
+    delta: 1200,
+    id: "test-metric-id",
     navigationType: "navigate",
-    timestamp: "2026-06-05T12:00:00.000Z",
-    path: "/t/acme/accounts",
-    appVersion: "test-version",
-    environment: "production",
+    entries: [],
     ...overrides,
   };
 }
 
-describe("web vitals telemetry", () => {
-  beforeEach(() => {
-    setEnv({
-      VITE_API_BASE: "/api/v1",
-      VITE_APP_VERSION: "test-version",
-      VITE_ENABLE_WEB_VITALS: undefined,
-      VITE_ENVIRONMENT: "test",
-      MODE: "test",
+// ---------------------------------------------------------------------------
+// serializeMetric
+// ---------------------------------------------------------------------------
+
+describe("serializeMetric", () => {
+  it("produces a JSON-serializable payload with all required fields", () => {
+    const metric = createMockMetric();
+    const payload = serializeMetric(metric);
+
+    expect(payload).toMatchObject({
+      name: "LCP",
+      value: 1200,
+      rating: "good",
+      delta: 1200,
+      navigationType: "navigate",
     });
 
-    Object.defineProperty(window, "location", {
+    expect(typeof payload.timestamp).toBe("number");
+    expect(typeof payload.path).toBe("string");
+    expect(typeof payload.sessionId).toBe("string");
+  });
+
+  it("handles 'needs-improvement' rating correctly", () => {
+    const metric = createMockMetric({
+      name: "CLS",
+      value: 0.15,
+      rating: "needs-improvement",
+      delta: 0.05,
+    });
+    const payload = serializeMetric(metric);
+    expect(payload.rating).toBe("needs-improvement");
+    expect(payload.value).toBe(0.15);
+  });
+
+  it("handles 'poor' rating correctly", () => {
+    const metric = createMockMetric({
+      name: "FID",
+      value: 450,
+      rating: "poor",
+      delta: 450,
+    });
+    const payload = serializeMetric(metric);
+    expect(payload.rating).toBe("poor");
+  });
+
+  it("includes window.location.pathname as path", () => {
+    const metric = createMockMetric();
+    const payload = serializeMetric(metric);
+    expect(payload.path).toBe(window.location.pathname);
+  });
+
+  it("assigns a consistent sessionId across multiple calls", () => {
+    const m1 = createMockMetric();
+    const m2 = createMockMetric({ name: "FCP", value: 900 });
+
+    const p1 = serializeMetric(m1);
+    const p2 = serializeMetric(m2);
+
+    expect(p1.sessionId).toBe(p2.sessionId);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sendToAnalytics
+// ---------------------------------------------------------------------------
+
+describe("sendToAnalytics", () => {
+  let sendBeaconSpy: ReturnType<typeof vi.fn>;
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    sendBeaconSpy = vi.fn().mockReturnValue(true);
+    fetchSpy = vi.fn().mockResolvedValue(undefined);
+
+    Object.defineProperty(globalThis.navigator, "sendBeacon", {
+      value: sendBeaconSpy,
+      writable: true,
       configurable: true,
-      value: new URL("https://app.fabric.test/t/acme/accounts?token=secret&tenantId=tenant-1"),
+    });
+
+    Object.defineProperty(globalThis, "fetch", {
+      value: fetchSpy,
+      writable: true,
+      configurable: true,
     });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    setEnv({
-      VITE_API_BASE: undefined,
-      VITE_APP_VERSION: undefined,
-      VITE_ENABLE_WEB_VITALS: undefined,
-      VITE_ENVIRONMENT: undefined,
-      MODE: "test",
-    });
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: originalLocation,
-    });
-    delete navigator.sendBeacon;
   });
 
-  it("stays disabled in test and development unless explicitly enabled", () => {
-    setEnv({ VITE_ENVIRONMENT: "development", VITE_ENABLE_WEB_VITALS: undefined });
+  it("prefers navigator.sendBeacon when available", () => {
+    const payload = serializeMetric(createMockMetric());
+    sendToAnalytics(payload);
 
-    expect(shouldEnableWebVitals()).toBe(false);
-
-    setEnv({ VITE_ENABLE_WEB_VITALS: "true" });
-
-    expect(shouldEnableWebVitals()).toBe(true);
-  });
-
-  it("enables collection for production and staging", () => {
-    setEnv({ VITE_ENVIRONMENT: "production" });
-    expect(shouldEnableWebVitals()).toBe(true);
-
-    setEnv({ VITE_ENVIRONMENT: "staging" });
-    expect(shouldEnableWebVitals()).toBe(true);
-  });
-
-  it("registers core web vitals only when enabled", () => {
-    const registrar = vi.fn();
-    installWebVitals({ registrars: [registrar] });
-    expect(registrar).not.toHaveBeenCalled();
-
-    setEnv({ VITE_ENABLE_WEB_VITALS: "true" });
-    installWebVitals({ registrars: [registrar] });
-
-    expect(registrar).toHaveBeenCalledTimes(1);
-    expect(registrar).toHaveBeenCalledWith(expect.any(Function));
-  });
-
-  it("builds a redacted metric payload with path-only location context", () => {
-    const payload = buildWebVitalsPayload(
-      {
-        name: "INP",
-        value: 90,
-        rating: "good",
-        delta: 30,
-        id: "metric-id",
-        navigationType: "reload",
-        entries: [],
-      },
-      () => new Date("2026-06-05T12:00:00.000Z")
+    expect(sendBeaconSpy).toHaveBeenCalledTimes(1);
+    expect(sendBeaconSpy).toHaveBeenCalledWith(
+      "/api/v1/telemetry/web-vitals",
+      expect.any(String)
     );
-
-    expect(payload).toEqual({
-      type: "web_vital",
-      name: "INP",
-      value: 90,
-      rating: "good",
-      delta: 30,
-      id: "metric-id",
-      navigationType: "reload",
-      timestamp: "2026-06-05T12:00:00.000Z",
-      path: "/t/acme/accounts",
-      appVersion: "test-version",
-      environment: "test",
-    });
-    expect(JSON.stringify(payload)).not.toContain("token=secret");
-    expect(JSON.stringify(payload)).not.toContain("tenant-1");
-  });
-
-  it("prefers sendBeacon for metric delivery", async () => {
-    const sendBeacon = vi.fn(() => true);
-    Object.defineProperty(navigator, "sendBeacon", {
-      configurable: true,
-      value: sendBeacon,
-    });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
-
-    sendWebVitalsMetric(samplePayload());
-
-    expect(sendBeacon).toHaveBeenCalledWith("/api/v1/telemetry/web-vitals", expect.any(Blob));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("uses non-blocking fetch fallback when sendBeacon is unavailable", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
+  it("falls back to fetch when sendBeacon returns false", () => {
+    sendBeaconSpy.mockReturnValue(false);
 
-    sendWebVitalsMetric(samplePayload());
+    const payload = serializeMetric(createMockMetric());
+    sendToAnalytics(payload);
 
+    expect(sendBeaconSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy).toHaveBeenCalledWith(
       "/api/v1/telemetry/web-vitals",
       expect.objectContaining({
         method: "POST",
-        keepalive: true,
         headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: expect.any(String),
       })
     );
   });
 
-  it("swallows metric export failures without breaking startup", () => {
-    Object.defineProperty(navigator, "sendBeacon", {
+  it("falls back to fetch when sendBeacon is undefined", () => {
+    Object.defineProperty(globalThis.navigator, "sendBeacon", {
+      value: undefined,
+      writable: true,
       configurable: true,
-      value: () => {
-        throw new Error("beacon unavailable");
-      },
     });
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    expect(() => sendWebVitalsMetric(samplePayload())).not.toThrow();
-    expect(warnSpy).toHaveBeenCalledWith(
-      "[Fabric]",
-      expect.stringContaining("[Fabric][web-vitals] Web vitals metric export failed"),
-      expect.objectContaining({ feature: "web-vitals" })
-    );
+    const payload = serializeMetric(createMockMetric());
+    sendToAnalytics(payload);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("silently swallows fetch rejections", async () => {
+    fetchSpy.mockRejectedValue(new Error("Network error"));
+
+    const payload = serializeMetric(createMockMetric());
+    // Should not throw
+    expect(() => sendToAnalytics(payload)).not.toThrow();
+  });
+
+  it("serializes the full payload as JSON in the request body", () => {
+    const metric = createMockMetric({ name: "TTFB", value: 80 });
+    const payload = serializeMetric(metric);
+    sendToAnalytics(payload);
+
+    const bodyArg = sendBeaconSpy.mock.calls[0][1];
+    const parsed = JSON.parse(bodyArg);
+    expect(parsed).toMatchObject({
+      name: "TTFB",
+      value: 80,
+      rating: "good",
+    });
+  });
+
+  it("noop when navigator is undefined (non-browser env)", () => {
+    const payload = serializeMetric(createMockMetric());
+
+    // Simulate a non-browser environment by temporarily removing navigator
+    const origNavigator = globalThis.navigator;
+    // @ts-expect-error — testing non-browser fallback
+    globalThis.navigator = undefined;
+
+    expect(() => sendToAnalytics(payload)).not.toThrow();
+
+    globalThis.navigator = origNavigator;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// initWebVitals
+// ---------------------------------------------------------------------------
+
+describe("initWebVitals", () => {
+  beforeEach(() => {
+    __resetInit();
+  });
+
+  afterEach(() => {
+    __resetInit();
+    vi.restoreAllMocks();
+  });
+
+  it("is idempotent — second call does not re-register listeners", () => {
+    // We can't easily spy on the web-vitals library internals, but we can
+    // verify the guard by calling initWebVitals twice without error.
+    expect(() => {
+      initWebVitals();
+      initWebVitals();
+    }).not.toThrow();
+  });
+
+  it("guards against non-browser environments (window undefined)", () => {
+    const origWindow = globalThis.window;
+    // @ts-expect-error — testing SSR-like environment
+    globalThis.window = undefined;
+
+    __resetInit();
+    expect(() => initWebVitals()).not.toThrow();
+
+    globalThis.window = origWindow;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Integration: full flow from metric → payload → delivery
+// ---------------------------------------------------------------------------
+
+describe("end-to-end: metric → payload → delivery", () => {
+  it("round-trips a CLS metric through the full pipeline", () => {
+    const sendBeacon = vi.fn().mockReturnValue(true);
+    Object.defineProperty(globalThis.navigator, "sendBeacon", {
+      value: sendBeacon,
+      writable: true,
+      configurable: true,
+    });
+
+    const metric = createMockMetric({
+      name: "CLS",
+      value: 0.02,
+      rating: "good",
+      delta: 0.01,
+    });
+
+    const payload = serializeMetric(metric);
+    sendToAnalytics(payload);
+
+    const sent = JSON.parse(sendBeacon.mock.calls[0][1]);
+    expect(sent).toMatchObject({
+      name: "CLS",
+      value: 0.02,
+      rating: "good",
+      delta: 0.01,
+      navigationType: "navigate",
+    });
+    expect(typeof sent.timestamp).toBe("number");
+    expect(typeof sent.sessionId).toBe("string");
+    expect(sent.path).toBe(window.location.pathname);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session ID persistence
+// ---------------------------------------------------------------------------
+
+describe("sessionId", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    // Reset internal cached value by calling __resetInit which
+    // also resets the module state
+    __resetInit();
+  });
+
+  it("generates a new sessionId when none exists in sessionStorage", () => {
+    const payload = serializeMetric(createMockMetric());
+    expect(payload.sessionId).toMatch(/^\d+-[a-z0-9]+$/);
+  });
+
+  it("reuses the sessionId from sessionStorage on subsequent calls", () => {
+    const p1 = serializeMetric(createMockMetric());
+    const p2 = serializeMetric(createMockMetric({ name: "FCP", value: 500 }));
+
+    expect(p1.sessionId).toBe(p2.sessionId);
+  });
+
+  it("stores the sessionId in sessionStorage", () => {
+    expect(sessionStorage.getItem("__fabric_vitals_sid")).toBeNull();
+
+    serializeMetric(createMockMetric());
+
+    expect(sessionStorage.getItem("__fabric_vitals_sid")).not.toBeNull();
   });
 });

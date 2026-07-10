@@ -1,107 +1,153 @@
-import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
-import { createFeatureLogger } from "./telemetry";
+/**
+ * Web Vitals Tracking Module
+ * ===========================
+ * Initializes Core Web Vitals (CWV) collection using the `web-vitals` library.
+ *
+ * Sends metrics to the telemetry endpoint as a beacon (or fetch fallback)
+ * for every CWV event.  Data is sampled and batched server-side; this
+ * module is intentionally thin and dependency-free beyond `web-vitals`.
+ *
+ * DESIGN.md references:
+ *   - Observability: client-side telemetry must use typed schemas
+ *   - Performance: CWV budgets are enforced in CI (performance-budget.json)
+ *
+ * @module lib/web-vitals
+ */
 
-type WebVitalName = "CLS" | "FCP" | "INP" | "LCP" | "TTFB";
+import { onCLS, onFID, onFCP, onLCP, onTTFB, type Metric } from "web-vitals";
 
-export interface WebVitalsPayload {
-  type: "web_vital";
-  name: WebVitalName;
+/** Telemetry ingestion endpoint — relative so it works behind any reverse proxy. */
+const VITALS_ENDPOINT = "/api/v1/telemetry/web-vitals";
+
+/** Fields we ship to the telemetry API.  Kept explicit so the schema is greppable. */
+interface VitalsPayload {
+  name: string;
   value: number;
-  rating: Metric["rating"];
+  rating: "good" | "needs-improvement" | "poor";
   delta: number;
-  id: string;
-  navigationType: Metric["navigationType"];
-  timestamp: string;
+  navigationType: string;
+  timestamp: number;
+  /** URL path at capture time (not full href to avoid leaking PII). */
   path: string;
-  appVersion: string;
-  environment: string;
+  /** Session-scoped anonymous ID for grouping events without cookies. */
+  sessionId: string;
 }
 
-type MetricRegistrar = (callback: (metric: Metric) => void) => void;
+let _sessionId: string | null = null;
 
-export interface WebVitalsOptions {
-  registrars?: MetricRegistrar[];
-  now?: () => Date;
-}
+function getSessionId(): string {
+  if (_sessionId) return _sessionId;
 
-const DEFAULT_API_BASE = "/api/v1";
-const DEFAULT_APP_VERSION = "unknown";
-const DEFAULT_ENVIRONMENT = "development";
-const ENABLED_ENVIRONMENTS = new Set(["production", "staging"]);
-const logger = createFeatureLogger("web-vitals");
-
-function getEnvironment(): string {
-  return import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || DEFAULT_ENVIRONMENT;
-}
-
-export function shouldEnableWebVitals(): boolean {
-  if (import.meta.env.VITE_ENABLE_WEB_VITALS === "true") {
-    return true;
+  // Use sessionStorage so the ID persists across page navigations
+  // but is scoped to the browser tab session.
+  try {
+    const stored = sessionStorage.getItem("__fabric_vitals_sid");
+    if (stored) {
+      _sessionId = stored;
+      return stored;
+    }
+  } catch {
+    // sessionStorage may be unavailable in private mode or sandboxed iframes
   }
 
-  return ENABLED_ENVIRONMENTS.has(getEnvironment());
-}
-
-function getPath(): string {
-  if (typeof window === "undefined") {
-    return "/";
+  const sid = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  _sessionId = sid;
+  try {
+    sessionStorage.setItem("__fabric_vitals_sid", sid);
+  } catch {
+    // Best-effort
   }
-
-  return window.location.pathname || "/";
+  return sid;
 }
 
-export function buildWebVitalsPayload(metric: Metric, now: () => Date = () => new Date()): WebVitalsPayload {
+/**
+ * Serialize a web-vitals Metric into our telemetry payload.
+ *
+ * @param metric — Raw metric from the web-vitals library
+ * @returns JSON-serializable payload
+ */
+export function serializeMetric(metric: Metric): VitalsPayload {
   return {
-    type: "web_vital",
-    name: metric.name as WebVitalName,
+    name: metric.name,
     value: metric.value,
     rating: metric.rating,
     delta: metric.delta,
-    id: metric.id,
     navigationType: metric.navigationType,
-    timestamp: now().toISOString(),
-    path: getPath(),
-    appVersion: import.meta.env.VITE_APP_VERSION || DEFAULT_APP_VERSION,
-    environment: getEnvironment(),
+    timestamp: Date.now(),
+    path: window.location.pathname,
+    sessionId: getSessionId(),
   };
 }
 
-export function sendWebVitalsMetric(payload: WebVitalsPayload): void {
-  try {
-    const apiBase = import.meta.env.VITE_API_BASE || DEFAULT_API_BASE;
-    const endpoint = `${apiBase}/telemetry/web-vitals`;
-    const data = JSON.stringify(payload);
+/**
+ * Deliver a payload to the telemetry endpoint.
+ *
+ * Prefers `navigator.sendBeacon` for reliability during page unload;
+ * falls back to `fetch(..., keepalive: true)`.
+ *
+ * @param payload — JSON-serializable vitals payload
+ */
+export function sendToAnalytics(payload: VitalsPayload): void {
+  const body = JSON.stringify(payload);
 
-    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-      navigator.sendBeacon(endpoint, new Blob([data], { type: "application/json" }));
-      return;
-    }
+  // In test environments or when navigator is unavailable, noop.
+  if (typeof navigator === "undefined") return;
 
-    if (typeof fetch === "function") {
-      void fetch(endpoint, {
-        method: "POST",
-        body: data,
-        keepalive: true,
-        headers: { "Content-Type": "application/json" },
-      }).catch(() => undefined);
-    }
-  } catch (error) {
-    logger.warn("Web vitals metric export failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
+  if (navigator.sendBeacon) {
+    const ok = navigator.sendBeacon(VITALS_ENDPOINT, body);
+    if (ok) return;
+    // sendBeacon returns false when the beacon queue is full;
+    // fall through to fetch.
   }
+
+  fetch(VITALS_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch((err) => {
+    // Silently drop telemetry failures so we never break user experience.
+    // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) {
+      console.warn("[web-vitals] Telemetry delivery failed:", err);
+    }
+  });
 }
 
-export function installWebVitals(options: WebVitalsOptions = {}): void {
-  if (!shouldEnableWebVitals()) {
-    return;
-  }
+/**
+ * Handler compatible with the `web-vitals` library callback signature.
+ * Wraps the metric, serializes it, and ships it.
+ */
+function onMetric(metric: Metric): void {
+  const payload = serializeMetric(metric);
+  sendToAnalytics(payload);
+}
 
-  const registrars = options.registrars ?? [onCLS, onFCP, onINP, onLCP, onTTFB];
-  const now = options.now ?? (() => new Date());
-  const report = (metric: Metric) => sendWebVitalsMetric(buildWebVitalsPayload(metric, now));
+/**
+ * Initialize Core Web Vitals collection.
+ *
+ * Call this once at app boot (e.g. in `main.tsx` after React root creation).
+ * Idempotent — safe to call multiple times; subsequent calls are no-ops.
+ */
+let _initialized = false;
 
-  for (const registerMetric of registrars) {
-    registerMetric(report);
-  }
+export function initWebVitals(): void {
+  if (_initialized) return;
+  _initialized = true;
+
+  // Only collect in browser environments
+  if (typeof window === "undefined") return;
+
+  // Register each CWV listener.  `web-vitals` handles its own feature
+  // detection and browser compatibility.
+  onCLS(onMetric);
+  onFID(onMetric);
+  onFCP(onMetric);
+  onLCP(onMetric);
+  onTTFB(onMetric);
+}
+
+/** Reset the initialization guard.  Exposed for testing only. */
+export function __resetInit(): void {
+  _initialized = false;
 }

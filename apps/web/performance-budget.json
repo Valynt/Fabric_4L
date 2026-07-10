@@ -1,0 +1,118 @@
+{
+  "$schema": "./performance-budget.schema.json",
+  "version": "1.2.0",
+  "description": "Performance budgets for Fabric_4L web application. CI enforces these thresholds via Lighthouse CI.",
+  "budgets": [
+    {
+      "resourceType": "script",
+      "budget": 300,
+      "unit": "kilobyte",
+      "description": "Total JavaScript transferred (excluding cache headers)"
+    },
+    {
+      "resourceType": "stylesheet",
+      "budget": 50,
+      "unit": "kilobyte",
+      "description": "Total CSS transferred"
+    },
+    {
+      "resourceType": "image",
+      "budget": 500,
+      "unit": "kilobyte",
+      "description": "Total image assets transferred"
+    },
+    {
+      "resourceType": "total",
+      "budget": 2000,
+      "unit": "kilobyte",
+      "description": "Total page weight (all resources combined)"
+    },
+    {
+      "resourceType": "document",
+      "budget": 50,
+      "unit": "kilobyte",
+      "description": "Initial HTML document size"
+    },
+    {
+      "resourceType": "font",
+      "budget": 200,
+      "unit": "kilobyte",
+      "description": "Total font files transferred"
+    },
+    {
+      "resourceType": "media",
+      "budget": 100,
+      "unit": "kilobyte",
+      "description": "Video/audio assets"
+    },
+    {
+      "resourceType": "third-party",
+      "budget": 150,
+      "unit": "kilobyte",
+      "description": "Third-party scripts and assets"
+    }
+  ],
+  "timings": [
+    {
+      "metric": "first-contentful-paint",
+      "budget": 1800,
+      "unit": "millisecond",
+      "description": "Time until first text or image is painted"
+    },
+    {
+      "metric": "largest-contentful-paint",
+      "budget": 2500,
+      "unit": "millisecond",
+      "description": "Time until largest above-fold element is painted"
+    },
+    {
+      "metric": "time-to-interactive",
+      "budget": 3500,
+      "unit": "millisecond",
+      "description": "Time until page is fully interactive"
+    },
+    {
+      "metric": "total-blocking-time",
+      "budget": 200,
+      "unit": "millisecond",
+      "description": "Sum of all long tasks between FCP and TTI"
+    },
+    {
+      "metric": "cumulative-layout-shift",
+      "budget": 0.1,
+      "unit": "unitless",
+      "description": "Visual stability score (lower is better)"
+    },
+    {
+      "metric": "speed-index",
+      "budget": 3000,
+      "unit": "millisecond",
+      "description": "How quickly page contents are visually populated"
+    },
+    {
+      "metric": "first-meaningful-paint",
+      "budget": 2000,
+      "unit": "millisecond",
+      "description": "Time until primary content is visible"
+    }
+  ],
+  "thresholds": {
+    "error": 1.0,
+    "warning": 0.9,
+    "description": "At 100% of budget = error; at 90% of budget = warning"
+  },
+  "environments": {
+    "ci": {
+      "device": "desktop",
+      "network": "wired",
+      "cpu": "4x",
+      "description": "Simulated fast 4G on mid-tier mobile"
+    },
+    "production": {
+      "device": "mobile",
+      "network": "fast4G",
+      "cpu": "4x",
+      "description": "Mobile-first performance monitoring"
+    }
+  }
+}

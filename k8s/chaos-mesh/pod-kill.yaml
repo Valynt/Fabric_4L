@@ -1,0 +1,165 @@
+# ---------------------------------------------------------------------------
+# Chaos Mesh PodChaos: Random Pod Kills (Chaos Monkey)
+# ---------------------------------------------------------------------------
+# Simulates random pod failures across all 6 layers to verify Kubernetes
+# self-healing, readiness probes, and graceful termination.
+#
+# Usage:
+#   kubectl apply -f k8s/chaos-mesh/pod-kill.yaml -n fabric4l
+#   kubectl delete -f k8s/chaos-mesh/pod-kill.yaml -n fabric4l
+#
+# This is the "Chaos Monkey" baseline experiment. It should be safe to run
+# in production during low-traffic periods because:
+# - All deployments have minReplicas >= 2
+# - PDBs (Pod Disruption Budgets) prevent full outages
+# - Graceful termination handles in-flight requests
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: random-pod-kill-all-layers
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: chaos-monkey
+  annotations:
+    description: "Randomly kill one pod across all 6 layers every 10 minutes"
+    owner: "sre-team@fabric4l.io"
+    severity: "low"
+    production_safe: "yes-with-pdb"
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      "fabric4l.io/chaos-enabled": "true"
+  # Random delay between kills (5-15 minutes)
+  duration: "1m"
+  scheduler:
+    cron: "*/10 * * * *"
+  # Grace period allows in-flight requests to complete
+  gracePeriod: 30
+---
+# ---------------------------------------------------------------------------
+# PodChaos: Layer 4 Agent Specific Kill
+# ---------------------------------------------------------------------------
+# Targets only Layer 4 (LangGraph agent) pods.
+# Used by TestLayer4AgentFailure tests.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-l4-agent
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: l4-agent-kill
+  annotations:
+    description: "Kill all Layer 4 Agent pods simultaneously"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: l4-agent
+  duration: "2m"
+  gracePeriod: 15
+---
+# ---------------------------------------------------------------------------
+# PodChaos: PostgreSQL Primary Kill
+# ---------------------------------------------------------------------------
+# Simulates PostgreSQL primary database crash.
+# Used by TestDatabaseFailure.test_postgres_failover_to_replica.
+# Requires: Patroni or similar auto-failover mechanism running.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-postgres-primary
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: postgres-primary-kill
+  annotations:
+    description: "Kill PostgreSQL primary to test replica failover"
+    owner: "sre-team@fabric4l.io"
+    warning: "Ensure Patroni is configured before running this experiment"
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: postgres
+      role: primary
+  duration: "30s"
+  gracePeriod: 10
+---
+# ---------------------------------------------------------------------------
+# PodChaos: Redis Master Kill
+# ---------------------------------------------------------------------------
+# Simulates Redis master crash to test Sentinel failover.
+# Used by TestRedisFailure.test_redis_down_services_degrade_gracefully.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-redis-master
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: redis-master-kill
+  annotations:
+    description: "Kill Redis master to test Sentinel failover"
+    owner: "sre-team@fabric4l.io"
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      app: redis
+      role: master
+  duration: "30s"
+  gracePeriod: 5
+---
+# ---------------------------------------------------------------------------
+# PodChaos: Rolling Kill (Cascading Scenario)
+# ---------------------------------------------------------------------------
+# Sequentially kills one pod per layer to simulate cascading failure.
+# This is a STRESS experiment - run only in staging or during game days.
+# ---------------------------------------------------------------------------
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: cascading-layer-kill
+  namespace: fabric4l
+  labels:
+    app.kubernetes.io/part-of: fabric4l-chaos
+    chaos-mesh.org/experiment: cascading-kill
+    chaos-mesh.org/environment: staging-only
+  annotations:
+    description: "Sequentially kill one pod per layer (staging only)"
+    owner: "sre-team@fabric4l.io"
+    severity: "high"
+    production_safe: "no"
+spec:
+  action: pod-kill
+  mode: fixed-percent
+  value: "20"
+  selector:
+    namespaces:
+      - fabric4l
+    labelSelectors:
+      "fabric4l.io/chaos-enabled": "true"
+  duration: "30s"
+  scheduler:
+    cron: "0 2 * * 0"  # Every Sunday at 2 AM (staging)
+  gracePeriod: 20

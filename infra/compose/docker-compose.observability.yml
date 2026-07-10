@@ -1,0 +1,295 @@
+# Docker Compose — Observability Stack for Fabric_4L v1.2.0
+# Extends the main dev compose with OpenTelemetry Collector, Jaeger,
+# Prometheus, Grafana, and Loki.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.observability.yml up
+# Author: SRE Team (Staff+)
+
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # OpenTelemetry Collector — Central ingest for traces and OTLP metrics.
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    container_name: fabric4l-otel-collector
+    hostname: otel-collector
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "13133:13133" # Health check
+      - "8888:8888"   # Collector metrics
+      - "55679:55679" # zpages
+    networks:
+      - fabric4l_net
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=otel-collector,service.namespace=fabric4l
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:13133"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    depends_on:
+      - prometheus
+      - jaeger
+
+  # ---------------------------------------------------------------------------
+  # Jaeger — Distributed trace storage and UI.
+  # ---------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/jaeger:1.58
+    container_name: fabric4l-jaeger
+    hostname: jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "14250:14250"   # gRPC model
+      - "14268:14268"   # HTTP thrift
+      - "9411:9411"     # Zipkin compatible
+    networks:
+      - fabric4l_net
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_OTLP_GRPC_HOST_PORT=0.0.0.0:4317
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:16686"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — Time-series metrics database.
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: fabric4l-prometheus
+    hostname: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
+      - ./monitoring/alerting-rules.yml:/etc/prometheus/alerting-rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - fabric4l_net
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+      - "--rules.alert.for-outage-tolerance=1h"
+      - "--rules.alert.resend-delay=5m"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Grafana — Visualization and dashboards.
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: fabric4l-grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - fabric4l_net
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/platform-overview.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Loki — Log aggregation.
+  # ---------------------------------------------------------------------------
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: fabric4l-loki
+    hostname: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - fabric4l_net
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Promtail — Log shipper to Loki.
+  # ---------------------------------------------------------------------------
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: fabric4l-promtail
+    hostname: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+    networks:
+      - fabric4l_net
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    depends_on:
+      - loki
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
+  # Alertmanager — Alert routing and notification.
+  # ---------------------------------------------------------------------------
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: fabric4l-alertmanager
+    hostname: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - fabric4l_net
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.external-url=http://localhost:9093"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter — Host-level metrics for all services.
+  # ---------------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: fabric4l-node-exporter
+    hostname: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    ports:
+      - "9100:9100"
+    networks:
+      - fabric4l_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+
+networks:
+  fabric4l_net:
+    driver: bridge
+    name: fabric4l_net

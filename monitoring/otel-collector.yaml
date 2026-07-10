@@ -1,0 +1,103 @@
+# OpenTelemetry Collector Configuration for Fabric_4L v1.2.0
+# Receives OTLP traces and metrics; exports to Jaeger and Prometheus.
+# Author: SRE Team (Staff+)
+
+---
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 64
+        keepalive:
+          server_parameters:
+            max_connection_idle: 60s
+            max_connection_age: 120s
+            max_connection_age_grace: 30s
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins: ["*"]
+          allowed_headers: ["traceparent", "tracestate", "x-tenant-id"]
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  resource/fabric4l:
+    attributes:
+      - key: service.namespace
+        value: fabric4l
+        action: upsert
+      - key: deployment.environment
+        from_attribute: env
+        action: upsert
+      - key: host.name
+        from_attribute: host.name
+        action: upsert
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100000
+    expected_new_traces_per_sec: 1000
+    policies:
+      - name: errors
+        type: status_code
+        status_code: {status_codes: [ERROR]}
+      - name: latency
+        type: latency
+        latency: {threshold_ms: 500}
+      - name: probabilistic
+        type: probabilistic
+        probabilistic: {sampling_percentage: 10.0}
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    target_info:
+      enabled: true
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+  logging:
+    verbosity: detailed
+    sampling_initial: 2
+    sampling_thereafter: 500
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
+      level: detailed
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, tail_sampling, batch, resource/fabric4l]
+      exporters: [otlp/jaeger, logging]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource/fabric4l]
+      exporters: [prometheusremotewrite, logging]
