@@ -593,7 +593,11 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
 
     @model_validator(mode="after")
     def validate_prod_neo4j_aura(self) -> Settings:
-        """Production/staging must use managed Aura, not in-cluster Neo4j."""
+        """Production/staging must use managed Aura, not in-cluster Neo4j.
+
+        Kept on Settings because it depends on both runtime (environment,
+        oidc_state_store_backend) and Neo4j (neo4j_uri, neo4j_password) fields.
+        """
         validate_neo4j_aura_config(
             uri=self.neo4j_uri,
             password=self.neo4j_password,
@@ -604,7 +608,6 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
                 "FATAL: OIDC state store backend must be 'redis' in production/staging."
             )
         return self
-
 
 # ==========================================================================
 # Lazy Settings Accessor (P2-002)

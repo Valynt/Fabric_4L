@@ -33,7 +33,7 @@ class RuntimeSettingsMixin:
 
         Returns explicit origins when configured. Falls back to wildcard only
         in development; all other environments return an empty list (the
-        validator above will have already raised for production).
+        CORS validator on Settings will have already raised for production).
         """
         if not self.cors_origins:
             return ["*"] if self.is_development else []
