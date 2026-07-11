@@ -8,14 +8,26 @@ TIMEOUT_SECONDS="1200"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Missing value for --target" >&2
+        exit 2
+      fi
       TARGET_URL="${2:-}"
       shift 2
       ;;
     --output)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Missing value for --output" >&2
+        exit 2
+      fi
       OUTPUT_DIR="${2:-}"
       shift 2
       ;;
     --timeout)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Missing value for --timeout" >&2
+        exit 2
+      fi
       TIMEOUT_SECONDS="${2:-}"
       shift 2
       ;;
@@ -32,18 +44,29 @@ EOF
   esac
 done
 
-mkdir -p "$OUTPUT_DIR"
+if [[ -z "$TARGET_URL" || -z "$OUTPUT_DIR" || -z "$TIMEOUT_SECONDS" ]]; then
+  echo "Target, output, and timeout must be non-empty" >&2
+  exit 2
+fi
 
-REPORT_TXT="$OUTPUT_DIR/nikto-report.txt"
-SUMMARY_JSON="$OUTPUT_DIR/summary.json"
-RAW_LOG="$OUTPUT_DIR/nikto.log"
+if [[ "$OUTPUT_DIR" = /* ]]; then
+  OUTPUT_ABS_PATH="$OUTPUT_DIR"
+else
+  OUTPUT_ABS_PATH="$(pwd)/$OUTPUT_DIR"
+fi
+
+mkdir -p "$OUTPUT_ABS_PATH"
+
+REPORT_TXT="$OUTPUT_ABS_PATH/nikto-report.txt"
+SUMMARY_JSON="$OUTPUT_ABS_PATH/summary.json"
+RAW_LOG="$OUTPUT_ABS_PATH/nikto.log"
 
 SCAN_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 if command -v docker >/dev/null 2>&1; then
   docker run --rm \
     --network host \
-    -v "$(pwd)/$OUTPUT_DIR:/tmp/nikto-results:rw" \
+    -v "$OUTPUT_ABS_PATH:/tmp/nikto-results:rw" \
     sullo/nikto:latest \
     -h "$TARGET_URL" \
     -o /tmp/nikto-results/nikto-report.txt \
