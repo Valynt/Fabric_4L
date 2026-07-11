@@ -26,9 +26,11 @@ def test_nikto_script_referenced_and_executable() -> None:
 def test_nikto_workflow_has_missing_script_fallback() -> None:
     workflow = yaml.safe_load(PEN_TEST_WORKFLOW.read_text(encoding="utf-8"))
     nikto_steps = workflow["jobs"]["nikto-scan"]["steps"]
-    run_sections = [step.get("run", "") for step in nikto_steps if isinstance(step, dict)]
-    assert any("else" in run for run in run_sections)
-    assert any("mkdir -p nikto-results" in run for run in run_sections)
-    assert any("nikto-results/nikto.log" in run for run in run_sections)
-    assert any("nikto-results/nikto-report.txt" in run for run in run_sections)
-    assert any("nikto-results/summary.json" in run for run in run_sections)
+    nikto_run_step = next(step for step in nikto_steps if step.get("name") == "Run Nikto Scan")
+    run_section = nikto_run_step["run"]
+    assert "if [ -f tests/penetration/nikto-scan.sh ]; then" in run_section
+    assert "else" in run_section
+    assert "mkdir -p nikto-results" in run_section
+    assert "nikto-results/nikto.log" in run_section
+    assert "nikto-results/nikto-report.txt" in run_section
+    assert "nikto-results/summary.json" in run_section
