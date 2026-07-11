@@ -33,11 +33,15 @@ def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> tuple[TestClient, _S
 
     app = FastAPI()
     limiter = _StubRateLimiter()
+    async def _active_tenant_status_resolver(tenant_id: str) -> str:
+        return "active"
+
     app.add_middleware(
         GovernanceMiddleware,
         api_key_resolver=reject_api_key_unsupported,
         rate_limiter=limiter,
         enforce_authentication=True,
+        tenant_status_resolver=_active_tenant_status_resolver,
     )
 
     @app.get("/v1/protected")
