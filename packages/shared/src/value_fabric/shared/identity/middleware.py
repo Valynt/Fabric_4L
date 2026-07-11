@@ -831,6 +831,15 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         if isinstance(prepopulated_context, RequestContext):
             return prepopulated_context
 
+        # Reject malformed tenant identifiers early, before any resolver runs.
+        raw_tenant_header = request.headers.get(TENANT_ID_HEADER)
+        if raw_tenant_header is not None:
+            try:
+                UUID(raw_tenant_header)
+            except ValueError:
+                logger.debug("Invalid X-Tenant-ID header: %r", raw_tenant_header)
+                return None
+
         # 1. Bearer JWT
         ctx = await self._resolve_bearer_jwt(request)
         if ctx is not None:
