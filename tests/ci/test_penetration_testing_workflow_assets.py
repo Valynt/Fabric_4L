@@ -17,6 +17,11 @@ def test_nikto_script_referenced_and_executable() -> None:
     assert any("chmod +x tests/penetration/nikto-scan.sh" in run for run in run_sections)
     assert any("./tests/penetration/nikto-scan.sh" in run for run in run_sections)
     assert any("nikto-results/summary.json" in run for run in run_sections)
+    assert any(
+        "Nikto script not found at tests/penetration/nikto-scan.sh; generating fallback results" in run
+        for run in run_sections
+    )
+    assert any("Nikto script unavailable for this revision" in run for run in run_sections)
     assert NIKTO_SCRIPT.exists()
     assert NIKTO_SCRIPT.stat().st_mode & 0o111
     assert NIKTO_SCRIPT.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash")
