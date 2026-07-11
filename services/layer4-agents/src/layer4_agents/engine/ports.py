@@ -9,7 +9,7 @@ execution pilots without binding application code to the legacy scheduler.
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
 
-from .scheduler import ScheduledTask
+from .types import ScheduledTask
 
 
 @runtime_checkable
