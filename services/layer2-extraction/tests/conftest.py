@@ -102,3 +102,20 @@ except ModuleNotFoundError as exc:  # pragma: no cover - fail-fast bootstrap pat
 
 if not hasattr(_typed_dict_module, "TypedDictModel"):
     _typed_dict_module.TypedDictModel = type("TypedDictModel", (), {})
+
+
+# ---------------------------------------------------------------------------
+# Test-only tenant kill-switch bypass so route tests run without Redis.
+# ---------------------------------------------------------------------------
+import pytest  # noqa: E402
+from layer2_extraction.api.main import app as _layer2_app  # noqa: E402
+from value_fabric.shared.testing.governance import (  # noqa: E402
+    patch_governance_middleware_for_tests,
+)
+
+
+@pytest.fixture(autouse=True)
+def _patch_governance_middleware_for_tests():
+    """Ensure GovernanceMiddleware does not 503 when Redis is unavailable."""
+    patch_governance_middleware_for_tests(_layer2_app)
+    yield
