@@ -74,7 +74,10 @@ class HTTPBenchmarkClient(IBenchmarkClient):
         )
         response.raise_for_status()
         data = response.json()
-        return [BenchmarkDataset(**item) for item in data["datasets"]]
+        # The L6 /v1/benchmarks/datasets endpoint returns a plain JSON array,
+        # not a {"datasets": [...]} envelope.
+        items = data if isinstance(data, list) else data.get("datasets", data)
+        return [BenchmarkDataset(**item) for item in items]
 
     async def compare(self, request: ComparisonRequest) -> ComparisonResult:
         """Execute peer comparison."""
