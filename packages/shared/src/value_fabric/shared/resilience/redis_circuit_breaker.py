@@ -6,10 +6,12 @@ in-memory circuit breaker state. This Redis store ensures all workers share
 the same breaker state, preventing thundering herd against struggling services.
 
 Usage:
-    from value_fabric.shared.resilience import RedisCircuitBreakerStore
+    from value_fabric.shared.resilience.redis_circuit_breaker import (
+        RedisCircuitBreakerStore,
+    )
 
     store = RedisCircuitBreakerStore(redis_client)
-    breaker = CircuitBreaker("openai", store=store, failure_threshold=5, ...)
+    state = await store.get_state("downstream-service")
 """
 from __future__ import annotations
 
