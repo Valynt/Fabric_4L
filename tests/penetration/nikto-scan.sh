@@ -57,7 +57,20 @@ if [[ ! -f "$REPORT_TXT" ]]; then
   echo "Nikto report unavailable for target $TARGET_URL" >"$REPORT_TXT"
 fi
 
-FINDING_COUNT="$(grep -Ec '^\+ ' "$REPORT_TXT" || true)"
+if grep -qE '^\+ ' "$REPORT_TXT"; then
+  FINDING_COUNT="$(grep -Ec '^\+ ' "$REPORT_TXT")"
+  HIGH_COUNT="$(grep -Eic '^\+ .*(remote code execution|command injection|sql injection|directory traversal|default credentials?)' "$REPORT_TXT" || true)"
+  MEDIUM_COUNT="$(grep -Eic '^\+ .*(xss|csrf|session|cookie|tls|ssl|header|information disclosure)' "$REPORT_TXT" || true)"
+  LOW_COUNT=$((FINDING_COUNT - HIGH_COUNT - MEDIUM_COUNT))
+  if [[ "$LOW_COUNT" -lt 0 ]]; then
+    LOW_COUNT=0
+  fi
+else
+  FINDING_COUNT=0
+  HIGH_COUNT=0
+  MEDIUM_COUNT=0
+  LOW_COUNT=0
+fi
 
 cat >"$SUMMARY_JSON" <<EOF
 {
@@ -65,9 +78,9 @@ cat >"$SUMMARY_JSON" <<EOF
   "scan_timestamp": "$SCAN_TIMESTAMP",
   "findings_total": $FINDING_COUNT,
   "vulnerabilities": {
-    "high": 0,
-    "medium": 0,
-    "low": 0
+    "high": $HIGH_COUNT,
+    "medium": $MEDIUM_COUNT,
+    "low": $LOW_COUNT
   }
 }
 EOF
