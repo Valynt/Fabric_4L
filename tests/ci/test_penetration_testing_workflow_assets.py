@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 import yaml
 
@@ -16,3 +17,5 @@ def test_nikto_script_referenced_and_executable() -> None:
     assert any("./tests/penetration/nikto-scan.sh" in run for run in run_sections)
     assert NIKTO_SCRIPT.exists()
     assert NIKTO_SCRIPT.stat().st_mode & 0o111
+    assert NIKTO_SCRIPT.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash")
+    subprocess.run(["bash", "-n", str(NIKTO_SCRIPT)], check=True)
