@@ -251,3 +251,4 @@ skip_debug.txt
 /tmp_compare_exports_output.txt
 /_tmp_working_diff.txt
 
+.worktrees/
