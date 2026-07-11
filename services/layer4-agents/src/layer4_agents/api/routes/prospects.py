@@ -439,7 +439,7 @@ async def start_prospect_analysis(
         # -------------------------------------------------------------------
         if executor:
             try:
-                from ...engine.scheduler import TaskPriority
+                from ...engine.types import TaskPriority
 
                 # Map priority string to enum
                 priority_map = {

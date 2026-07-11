@@ -18,7 +18,7 @@ from typing import Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from .types import ScheduledTask, TaskPriority, TaskStatus
+from .types import ScheduledTask, TaskStatus
 
 
 class TaskScheduler__run_task_handlerResult(TypedDictModel):
@@ -67,7 +67,7 @@ class TaskScheduler:
         scheduler = TaskScheduler(max_concurrent_tasks=100)
 
         task = ScheduledTask(
-            priority=TaskPriority.HIGH.value,
+            priority=2,  # TaskPriority.HIGH.value
             scheduled_time=datetime.now(timezone.utc),
             task_id="task-1",
             workflow_instance_id="wf-1",
