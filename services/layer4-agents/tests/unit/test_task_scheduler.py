@@ -11,10 +11,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from layer4_agents.engine.scheduler import (
+from layer4_agents.engine.scheduler import TaskScheduler
+from layer4_agents.engine.types import (
     ScheduledTask,
     TaskPriority,
-    TaskScheduler,
     TaskStatus,
 )
 

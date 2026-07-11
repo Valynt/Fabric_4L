@@ -102,7 +102,7 @@ async def test_workflow_executor_blocks_suspended_tenant(runtime_controller):
     from datetime import datetime
     from unittest.mock import AsyncMock, patch
 
-    from layer4_agents.engine.scheduler import ScheduledTask
+    from layer4_agents.engine.types import ScheduledTask
     from layer4_agents.models.agent_state import ROIAgentState
 
     tenant_id = "suspended-tenant"
@@ -146,7 +146,7 @@ async def test_run_workflow_task_blocks_when_kill_switch_check_fails(runtime_con
     from unittest.mock import AsyncMock, patch
 
     from layer4_agents.engine.executor import WorkflowExecutionError
-    from layer4_agents.engine.scheduler import ScheduledTask
+    from layer4_agents.engine.types import ScheduledTask
     from layer4_agents.models.agent_state import ROIAgentState
 
     tenant_id = "kill-switch-err-tenant"
