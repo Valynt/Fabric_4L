@@ -147,7 +147,8 @@ export function initWebVitals(): void {
   onTTFB(onMetric);
 }
 
-/** Reset the initialization guard.  Exposed for testing only. */
+/** Reset the initialization guard and session cache.  Exposed for testing only. */
 export function __resetInit(): void {
   _initialized = false;
+  _sessionId = null;
 }
