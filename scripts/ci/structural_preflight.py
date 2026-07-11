@@ -342,7 +342,7 @@ def check_tool_manifest_alignment(repo_root: Path) -> list[Finding]:
     findings = []
 
     # Count registered tools
-    tools_init = repo_root / "services" / "layer4-agents" / "src" / "tools" / "__init__.py"
+    tools_init = repo_root / "services" / "layer4-agents" / "src" / "layer4_agents" / "tools" / "__init__.py"
     skill_manifests_dir = repo_root / "services" / "layer4-agents" / "skills"
 
     if not tools_init.exists():

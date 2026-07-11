@@ -1,7 +1,7 @@
 {
   "max_total_skips": 3,
   "max_category_skips": {
-    "infrastructure": 1,
+    "infrastructure": 0,
     "allowlisted": 3,
     "code_health": 0,
     "unclassified": 3

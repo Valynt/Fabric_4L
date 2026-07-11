@@ -7,3 +7,7 @@ allowlist:
     owner: "@platform-architecture"
     expires_on: "2026-08-31"
     note: "Layer 3 contract tests that import src.api.main encounter a src namespace package collision when multiple service src/ directories are on sys.path. These tests validate OpenAPI schema shapes and route aliases; equivalent coverage exists in services/layer3-knowledge/tests and contracts/openapi/*.json. Tracked in architecture backlog."
+  - pattern: "PostgreSQL not reachable"
+    owner: "@platform-architecture"
+    expires_on: "2026-09-30"
+    note: "tests/contract/test_billing_contracts.py requires a live Layer 7 billing PostgreSQL instance to exercise entitlement and usage-event contracts. This is an infrastructure-gated contract test; run with the Docker Compose dev stack or in CI to execute. Equivalent billing repository coverage exists in services/layer7-billing/tests."
