@@ -38,13 +38,14 @@ class TestTenantSessionBehavioral:
         """Tenant session should reject queries without explicit tenant predicates."""
         # Import only the tenant session wrapper to avoid full app import chain
         try:
-            from api.dependencies_tenant import Neo4jTenantSession
+            from src.api.dependencies_tenant import Neo4jTenantSession
+            from src.security import UnscopedQueryError
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
 
-        tenant_session = Neo4jTenantSession(fake_session, tenant_id=ISOLATED_TENANT_ID)
+        tenant_session = Neo4jTenantSession(None, ISOLATED_TENANT_ID, session=fake_session)
 
-        with pytest.raises(ValueError, match="explicit tenant predicates"):
+        with pytest.raises(UnscopedQueryError, match="unscoped_query|tenant isolation validation"):
             await tenant_session.run("MATCH (a:Account) RETURN a")
 
         # Verify the unsafe query was not executed
@@ -54,12 +55,12 @@ class TestTenantSessionBehavioral:
     async def test_tenant_session_executes_scoped_query(self, fake_session):
         """Tenant session should execute queries with explicit tenant predicates."""
         try:
-            from api.dependencies_tenant import Neo4jTenantSession
+            from src.api.dependencies_tenant import Neo4jTenantSession
             from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
 
-        tenant_session = Neo4jTenantSession(fake_session, tenant_id=ISOLATED_TENANT_ID)
+        tenant_session = Neo4jTenantSession(None, ISOLATED_TENANT_ID, session=fake_session)
         scoped_query = ScopedQuery(
             cypher="MATCH (a:Account {tenant_id: $tenant_id}) WHERE a.id = $id RETURN a",
             params={"id": "shared-id"},
@@ -82,13 +83,14 @@ class TestTenantSessionBehavioral:
     async def test_tenant_session_denies_broad_match(self, fake_session):
         """Tenant session should deny broad MATCH traversals without tenant constraint."""
         try:
-            from api.dependencies_tenant import Neo4jTenantSession
+            from src.api.dependencies_tenant import Neo4jTenantSession
+            from src.security import UnscopedQueryError
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
 
-        tenant_session = Neo4jTenantSession(fake_session, tenant_id=ISOLATED_TENANT_ID)
+        tenant_session = Neo4jTenantSession(None, ISOLATED_TENANT_ID, session=fake_session)
 
-        with pytest.raises(ValueError, match="Denied broad MATCH traversal"):
+        with pytest.raises(UnscopedQueryError, match="Denied broad MATCH traversal"):
             await tenant_session.run("MATCH (n) RETURN n LIMIT 1")
 
         # Verify the unsafe query was not executed

@@ -43,26 +43,4 @@ benign_skip_patterns:
 #   reason:           why the skip is temporarily tolerated
 #   ticket:           tracking issue id
 #   expires_on:       YYYY-MM-DD; after this date the waiver fails closed (RED)
-waivers:
-  - id: waiver-l2-import-infra
-    message_pattern: "L2 import infrastructure has pre-existing issues"
-    owner: "@value-fabric/backend-leads"
-    reason: >-
-      Layer 2 extraction service has pre-existing conftest/import infrastructure
-      issues that prevent the runtime hostile behavioral tests from executing.
-      The same behavior is covered by static contract tests and by
-      test_tenant_isolation.py. This waiver is time-boxed pending resolution
-      of the import chain.
-    ticket: "BEHAVIOR-DEBT-L2-001"
-    expires_on: "2026-09-07"
-
-  - id: waiver-l3-import-infra
-    message_pattern: "L3 import infrastructure has pre-existing issues"
-    owner: "@value-fabric/backend-leads"
-    reason: >-
-      Layer 3 knowledge service has pre-existing conftest/import infrastructure
-      issues that prevent the runtime hostile behavioral tests from executing.
-      The same behavior is covered by test_tenant_isolation.py. This waiver is
-      time-boxed pending resolution of the import chain.
-    ticket: "BEHAVIOR-DEBT-L3-001"
-    expires_on: "2026-09-07"
+waivers: []
