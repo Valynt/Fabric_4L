@@ -22,7 +22,8 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..database import _clear_local_tenant_context, db_session_for_context, get_session_factory
-from ..engine.scheduler import ScheduledTask, TaskPriority, TaskScheduler
+from ..engine.scheduler import TaskScheduler
+from ..engine.types import ScheduledTask, TaskPriority
 from ..models.account import CRMProvider
 from ..models.integration import Integration
 from .crm_sync_service import CRMSyncService

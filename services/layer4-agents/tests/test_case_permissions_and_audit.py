@@ -172,7 +172,7 @@ async def test_audit_lifecycle_reconstructable(client: AsyncClient, monkeypatch:
 
     class _DbWithCase(_FakeDb):
         async def get(self, model, key):
-            return SimpleNamespace(case_id=key, account_id=account_id, status="approved")
+            return SimpleNamespace(case_id=key, account_id=account_id, status="approved", tenant_id=str(tenant))
 
     class _AccountService:
         def __init__(self, _db):

@@ -18,3 +18,5 @@ from layer4_agents.database import (  # noqa: F401
     _emit_tenant_context_set_audit,
     get_session_factory,
 )
+
+INTENTIONAL_DB_ADAPTER_BYPASS = True
