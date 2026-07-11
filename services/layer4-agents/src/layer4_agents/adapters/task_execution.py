@@ -9,7 +9,7 @@ from layer4_agents.engine.ports import (
     TaskExecutionRequest,
     TaskSchedulerPort,
 )
-from layer4_agents.engine.scheduler import ScheduledTask
+from layer4_agents.engine.types import ScheduledTask
 
 
 class LegacyTaskExecutionAdapter:

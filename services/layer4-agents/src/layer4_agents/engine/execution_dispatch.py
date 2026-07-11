@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from .scheduler import ScheduledTask
+from .types import ScheduledTask
 
 
 def build_workflow_task(*, priority: int, workflow_id: str, tenant_id: str | None, user_id: str | None, workflow_type: str, workflow: Any, initial_state: Any, checkpoint_interval: int, handler: Any) -> ScheduledTask:

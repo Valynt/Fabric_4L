@@ -32,7 +32,8 @@ from value_fabric.shared.identity.context import (
 
 from ..models.agent_state import AgentState, WorkflowStatus
 from .ports import TaskSchedulerPort
-from .scheduler import ScheduledTask, TaskPriority, TaskScheduler
+from .scheduler import TaskScheduler
+from .types import ScheduledTask, TaskPriority
 
 
 class WorkflowExecutionError(Exception):

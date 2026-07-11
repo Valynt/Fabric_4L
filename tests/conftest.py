@@ -227,9 +227,16 @@ def _install_legacy_collection_import_aliases() -> None:
     setattr(src_module, "config", layer3_config)
 
     if "value_fabric.shared.testing" not in sys.modules:
-        testing_module = types.ModuleType("value_fabric.shared.testing")
-        testing_module.mark = pytest.mark
-        sys.modules["value_fabric.shared.testing"] = testing_module
+        try:
+            import value_fabric.shared.testing.governance as _testing_governance  # noqa: F401
+        except Exception:
+            pass
+        testing_module = sys.modules.setdefault(
+            "value_fabric.shared.testing",
+            types.ModuleType("value_fabric.shared.testing"),
+        )
+        if not hasattr(testing_module, "mark"):
+            testing_module.mark = pytest.mark
 
 
 _install_legacy_collection_import_aliases()

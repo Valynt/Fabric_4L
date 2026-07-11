@@ -12,7 +12,8 @@ from layer4_agents.adapters.task_execution import (
     as_task_execution_port,
 )
 from layer4_agents.engine.ports import TaskExecutionPort
-from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskScheduler
+from layer4_agents.engine.scheduler import TaskScheduler
+from layer4_agents.engine.types import ScheduledTask, TaskPriority
 from layer4_agents.resilience import CircuitBreaker, TenantRateLimiter
 from layer4_agents.resilience_ports import (
     DependencyCircuitBreakerPort,

@@ -176,6 +176,7 @@ class TestGovernanceMiddlewareClaims:
         _app.add_middleware(
             GovernanceMiddleware,
             enforce_authentication=True,
+            tenant_status_resolver=AsyncMock(return_value="active"),
         )
 
         @_app.get("/ctx")
@@ -311,6 +312,7 @@ class TestGovernanceMiddlewareClaims:
             GovernanceMiddleware,
             enforce_authentication=True,
             api_key_resolver=AsyncMock(return_value=mock_key_data),
+            tenant_status_resolver=AsyncMock(return_value="active"),
         )
 
         @_app.get("/ctx")
