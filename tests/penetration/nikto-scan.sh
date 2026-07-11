@@ -87,15 +87,26 @@ else
   LOW_COUNT=0
 fi
 
-cat >"$SUMMARY_JSON" <<EOF
-{
-  "target": "$TARGET_URL",
-  "scan_timestamp": "$SCAN_TIMESTAMP",
-  "findings_total": $FINDING_COUNT,
-  "vulnerabilities": {
-    "high": $HIGH_COUNT,
-    "medium": $MEDIUM_COUNT,
-    "low": $LOW_COUNT
-  }
+TARGET_URL_VALUE="$TARGET_URL" \
+SCAN_TIMESTAMP_VALUE="$SCAN_TIMESTAMP" \
+FINDING_COUNT_VALUE="$FINDING_COUNT" \
+HIGH_COUNT_VALUE="$HIGH_COUNT" \
+MEDIUM_COUNT_VALUE="$MEDIUM_COUNT" \
+LOW_COUNT_VALUE="$LOW_COUNT" \
+python3 - <<'PY' >"$SUMMARY_JSON"
+import json
+import os
+
+payload = {
+    "target": os.environ["TARGET_URL_VALUE"],
+    "scan_timestamp": os.environ["SCAN_TIMESTAMP_VALUE"],
+    "findings_total": int(os.environ["FINDING_COUNT_VALUE"]),
+    "vulnerabilities": {
+        "high": int(os.environ["HIGH_COUNT_VALUE"]),
+        "medium": int(os.environ["MEDIUM_COUNT_VALUE"]),
+        "low": int(os.environ["LOW_COUNT_VALUE"]),
+    },
 }
-EOF
+
+print(json.dumps(payload, indent=2))
+PY
