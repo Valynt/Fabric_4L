@@ -1,5 +1,6 @@
 ---
 name: clerk
+has-sub-skill: true
 description: Clerk authentication router. Use when user asks about Clerk CLI operations,
   adding authentication, setting up Clerk, custom sign-in flows, Swift or native iOS
   auth, native Android auth, Next.js patterns, React patterns, Vue patterns, Nuxt
