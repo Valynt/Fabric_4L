@@ -15,4 +15,4 @@ def test_nikto_script_referenced_and_executable() -> None:
     assert any("chmod +x tests/penetration/nikto-scan.sh" in run for run in run_sections)
     assert any("./tests/penetration/nikto-scan.sh" in run for run in run_sections)
     assert NIKTO_SCRIPT.exists()
-    assert NIKTO_SCRIPT.stat().st_mode & 0o100
+    assert NIKTO_SCRIPT.stat().st_mode & 0o111

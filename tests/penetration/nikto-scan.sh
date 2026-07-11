@@ -12,7 +12,7 @@ while [[ $# -gt 0 ]]; do
         echo "Missing value for --target" >&2
         exit 2
       fi
-      TARGET_URL="${2:-}"
+      TARGET_URL="$2"
       shift 2
       ;;
     --output)
@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
         echo "Missing value for --output" >&2
         exit 2
       fi
-      OUTPUT_DIR="${2:-}"
+      OUTPUT_DIR="$2"
       shift 2
       ;;
     --timeout)
@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
         echo "Missing value for --timeout" >&2
         exit 2
       fi
-      TIMEOUT_SECONDS="${2:-}"
+      TIMEOUT_SECONDS="$2"
       shift 2
       ;;
     --help|-h)
@@ -43,11 +43,6 @@ EOF
       ;;
   esac
 done
-
-if [[ -z "$TARGET_URL" || -z "$OUTPUT_DIR" || -z "$TIMEOUT_SECONDS" ]]; then
-  echo "Target, output, and timeout must be non-empty" >&2
-  exit 2
-fi
 
 if [[ "$OUTPUT_DIR" = /* ]]; then
   OUTPUT_ABS_PATH="$OUTPUT_DIR"
