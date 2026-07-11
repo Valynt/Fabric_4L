@@ -15,7 +15,7 @@ contracts/
 
 1. **Tool manifests are authoritative.** The JSON Schema in `tool-manifests/` defines the accepted
    input and output shape for every agent skill. The implementation in
-   `services/layer4-agents/src/tools/` must conform to these schemas.
+   `services/layer4-agents/src/layer4_agents/tools/` must conform to these schemas.
 
 2. **OpenAPI specs are generated.** Run `make contracts` to regenerate them from the live FastAPI
    apps. Do not edit files in `openapi/` by hand.
