@@ -642,19 +642,6 @@ class Settings(BaseSettings):
             )
         return origins
 
-    @property
-    def database_url_safe(self) -> str:
-        """Get database URL with password masked for logging."""
-        url = self.database_url
-        # Simple masking - replace password with ***
-        if "://" in url:
-            parts = url.split("@")
-            if len(parts) == 2:
-                auth_part = parts[0].split(":")
-                if len(auth_part) >= 3:
-                    # postgresql://user:pass@host -> postgresql://user:***@host
-                    return f"{auth_part[0]}:***@{parts[1]}"
-        return url
 
 
 # ==========================================================================
