@@ -62,6 +62,9 @@ os.environ["JWT_SECRET"] = "layer5-local-suite-jwt-signing-secret-32chars"
 from layer5_ground_truth import database as db_module  # noqa: E402
 from layer5_ground_truth.api.main import create_app  # noqa: E402
 from layer5_ground_truth.models import Base  # noqa: E402
+from value_fabric.shared.testing.governance import (  # noqa: E402
+    patch_governance_middleware_for_tests,
+)
 # ---------------------------------------------------------------------------
 # Shared test organization ID
 # ---------------------------------------------------------------------------
@@ -170,6 +173,7 @@ async def client(db) -> AsyncGenerator[AsyncClient, None]:
     from layer5_ground_truth.database import get_db, get_db_from_context
 
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     async def override_get_db():
         yield db
@@ -240,6 +244,7 @@ async def client_no_permissions(db) -> AsyncGenerator[AsyncClient, None]:
     from layer5_ground_truth.database import get_db, get_db_from_context
 
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     async def override_get_db():
         yield db
@@ -279,6 +284,7 @@ async def client_full_permissions(db) -> AsyncGenerator[AsyncClient, None]:
     from layer5_ground_truth.database import get_db, get_db_from_context
 
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     async def override_get_db():
         yield db
@@ -383,6 +389,7 @@ async def tenant_aware_client(db) -> AsyncGenerator[AsyncClient, None]:
     from layer5_ground_truth.database import get_db_from_context
 
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     async def override_get_db_from_context():
         yield db
