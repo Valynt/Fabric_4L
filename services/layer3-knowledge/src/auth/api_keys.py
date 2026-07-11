@@ -21,6 +21,12 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from src.auth._api_key_mixins import (
+    APIKeyExpirationMixin,
+    APIKeyIPValidationMixin,
+    APIKeyPermissionMixin,
+    APIKeyUsageMixin,
+)
 from src.logging_config import get_logger
 
 
@@ -137,7 +143,13 @@ ROLE_PERMISSIONS = {
 }
 
 
-class APIKey(BaseModel):
+class APIKey(
+    APIKeyExpirationMixin,
+    APIKeyIPValidationMixin,
+    APIKeyPermissionMixin,
+    APIKeyUsageMixin,
+    BaseModel,
+):
     """API key model."""
 
     key_id: str = Field(..., description="Unique key identifier")
@@ -171,27 +183,6 @@ class APIKey(BaseModel):
             role = info.data["role"]
             return ROLE_PERMISSIONS[role].permissions
         return set(v) if v else set()
-
-    def is_expired(self) -> bool:
-        """Check if API key is expired."""
-        if self.expires_at is None:
-            return False
-        return datetime.utcnow() > self.expires_at
-
-    def is_valid_ip(self, ip_address: str) -> bool:
-        """Check if IP address is allowed."""
-        if not self.allowed_ips:
-            return True
-        return ip_address in self.allowed_ips
-
-    def has_permission(self, permission: Permission) -> bool:
-        """Check if key has specific permission."""
-        return permission in self.permissions
-
-    def update_usage(self) -> None:
-        """Update usage statistics."""
-        self.last_used_at = datetime.utcnow()
-        self.usage_count += 1
 
 
 class APIKeyCreateRequest(BaseModel):
