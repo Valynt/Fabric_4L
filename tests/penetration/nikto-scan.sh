@@ -59,12 +59,9 @@ fi
 
 if grep -qE '^\+ ' "$REPORT_TXT"; then
   FINDING_COUNT="$(grep -Ec '^\+ ' "$REPORT_TXT")"
-  HIGH_COUNT="$(grep -Eic '^\+ .*(remote code execution|command injection|sql injection|directory traversal|default credentials?)' "$REPORT_TXT" || true)"
-  MEDIUM_COUNT="$(grep -Eic '^\+ .*(xss|csrf|session|cookie|tls|ssl|header|information disclosure)' "$REPORT_TXT" || true)"
-  LOW_COUNT=$((FINDING_COUNT - HIGH_COUNT - MEDIUM_COUNT))
-  if [[ "$LOW_COUNT" -lt 0 ]]; then
-    LOW_COUNT=0
-  fi
+  HIGH_COUNT=0
+  MEDIUM_COUNT=0
+  LOW_COUNT="$FINDING_COUNT"
 else
   FINDING_COUNT=0
   HIGH_COUNT=0

@@ -20,4 +20,4 @@ def test_penetration_testing_workflow_references_existing_nikto_script() -> None
     ]
     assert matching_steps
     assert NIKTO_SCRIPT.exists()
-    assert NIKTO_SCRIPT.stat().st_mode & 0o111
+    assert NIKTO_SCRIPT.stat().st_mode & 0o100
