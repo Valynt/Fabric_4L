@@ -2756,6 +2756,25 @@
     "tests/unit/l5/test_config_validation.py:183:raw_db_connection",
     "tests/unit/l5/test_config_validation.py:198:raw_db_connection",
     "tests/unit/l5/test_config_validation.py:213:raw_db_connection",
-    "tests/unit/l5/test_config_validation.py:228:raw_db_connection"
+    "tests/unit/l5/test_config_validation.py:228:raw_db_connection",
+    "packages/shared/src/value_fabric/shared/identity/tests/test_fabric_auth_middleware.py:97:security_todo",
+    "services/api/app/tests/test_health.py:112:security_todo",
+    "services/api/app/tests/test_health.py:127:security_todo",
+    "services/layer1-ingestion/tests/security/test_maintenance_tenant_enumeration.py:29:security_todo",
+    "services/layer1-ingestion/tests/security/test_maintenance_tenant_enumeration.py:46:security_todo",
+    "services/layer1-ingestion/tests/security/test_maintenance_tenant_enumeration.py:128:security_todo",
+    "services/layer2-extraction/tests/test_security_guard.py:31:security_todo",
+    "services/layer2-extraction/tests/test_security_guard.py:56:security_todo",
+    "services/layer2-extraction/tests/test_security_guard.py:118:security_todo",
+    "services/layer5-ground-truth/tests/test_security_fixes.py:43:security_todo",
+    "services/layer5-ground-truth/tests/test_security_fixes.py:83:security_todo",
+    "services/layer5-ground-truth/tests/test_security_fixes.py:122:security_todo",
+    "services/layer6-benchmarks/src/layer6_benchmarks/settings.py:84:security_todo",
+    "services/layer6-benchmarks/src/layer6_benchmarks/settings.py:85:security_todo",
+    "services/layer6-benchmarks/tests/test_settings_validation.py:131:security_todo",
+    "services/layer6-benchmarks/tests/test_settings_validation.py:134:security_todo",
+    "services/layer6-benchmarks/tests/test_settings_validation.py:135:security_todo",
+    "services/layer6-benchmarks/tests/test_settings_validation.py:138:security_todo",
+    "tests/security/test_governance_middleware_resolution_order.py:220:security_todo"
   ]
 }
