@@ -18,6 +18,7 @@ from layer5_ground_truth.integration.layer3_client import (
     Layer3PolicyDeniedError,
     Layer3TenantMismatchError,
 )
+from value_fabric.shared.testing.governance import patch_governance_middleware_for_tests
 from tests.conftest import TEST_ORG_ID
 
 
@@ -173,6 +174,7 @@ async def test_layer3_tenant_mismatch_propagates_as_security_failure(
 @pytest.mark.asyncio
 async def test_main_returns_explicit_response_for_layer3_security_failures() -> None:
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     @app.get("/api/v1/test-layer3-policy-denial")
     async def _raise_policy_denial():
@@ -260,6 +262,7 @@ async def test_layer3_entity_context_tenant_mismatch_returns_none(monkeypatch) -
 
 def test_security_http_exception_uses_explicit_security_error_payload() -> None:
     app = create_app()
+    patch_governance_middleware_for_tests(app)
 
     @app.get("/test/security-error")
     async def _route() -> None:
