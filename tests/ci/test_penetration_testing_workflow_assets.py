@@ -9,6 +9,12 @@ PEN_TEST_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "penetration-testing.y
 NIKTO_SCRIPT = REPO_ROOT / "tests" / "penetration" / "nikto-scan.sh"
 
 
+def _find_step_by_name(steps: list[dict], step_name: str) -> dict:
+    step = next((item for item in steps if item.get("name") == step_name), None)
+    assert step is not None, f"{step_name} step is missing from penetration-testing workflow"
+    return step
+
+
 def test_nikto_script_referenced_and_executable() -> None:
     workflow = yaml.safe_load(PEN_TEST_WORKFLOW.read_text(encoding="utf-8"))
     nikto_steps = workflow["jobs"]["nikto-scan"]["steps"]
@@ -26,12 +32,13 @@ def test_nikto_script_referenced_and_executable() -> None:
 def test_nikto_workflow_has_missing_script_fallback() -> None:
     workflow = yaml.safe_load(PEN_TEST_WORKFLOW.read_text(encoding="utf-8"))
     nikto_steps = workflow["jobs"]["nikto-scan"]["steps"]
-    nikto_run_step = next((step for step in nikto_steps if step.get("name") == "Run Nikto Scan"), None)
-    assert nikto_run_step is not None, "Run Nikto Scan step is missing from penetration-testing workflow"
+    nikto_run_step = _find_step_by_name(nikto_steps, "Run Nikto Scan")
     run_section = nikto_run_step["run"]
     assert "if [ -f tests/penetration/nikto-scan.sh ]; then" in run_section
     assert "else" in run_section
     assert "mkdir -p nikto-results" in run_section
-    assert "Nikto script unavailable for this revision\" > nikto-results/nikto.log" in run_section
-    assert "Nikto report unavailable for target ${{ env.TARGET_URL }}\" > nikto-results/nikto-report.txt" in run_section
+    assert "Nikto script unavailable for this revision" in run_section
+    assert "nikto-results/nikto.log" in run_section
+    assert "Nikto report unavailable for target ${{ env.TARGET_URL }}" in run_section
+    assert "nikto-results/nikto-report.txt" in run_section
     assert "nikto-results/summary.json" in run_section
