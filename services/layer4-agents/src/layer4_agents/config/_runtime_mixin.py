@@ -10,6 +10,14 @@ from typing import Protocol
 
 
 class _RuntimeSettingsProtocol(Protocol):
+    """Surface expected from any class that composes RuntimeSettingsMixin.
+
+    The protocol declares both the fields defined on Settings and the helper
+    properties provided by the mixin itself. The latter lets mypy resolve
+    `self.is_development` / `self.is_production` inside `cors_origins_list`
+    without creating a circular import to the concrete Settings class.
+    """
+
     environment: str
     cors_origins: str
 
