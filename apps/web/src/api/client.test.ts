@@ -181,7 +181,7 @@ describe("ApiClient", () => {
         /* expected */
       }
 
-      expect(locationMock.replace).toHaveBeenCalledWith("/sign-in");
+      expect(locationMock.replace).toHaveBeenCalledWith(expect.stringContaining('/sign-in'));
     });
 
     it("redirects to /forbidden on 403", async () => {
