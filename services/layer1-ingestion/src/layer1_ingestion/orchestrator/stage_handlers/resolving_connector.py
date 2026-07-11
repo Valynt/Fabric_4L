@@ -5,14 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 
+from sqlalchemy.orm import Session
+
 from layer1_ingestion.domain.stages import IngestionStage
 from layer1_ingestion.orchestrator.connector_resolution import (
     ConnectorResolution,
     ConnectorResolutionError,
     resolve_connector_for_source,
 )
+from layer1_ingestion.orchestrator.coordinator import PipelineCoordinator
 from layer1_ingestion.orchestrator.stage_handlers.base import StageHandler
 from layer1_ingestion.orchestrator.stage_handlers.context import StageContext, _flatten_artifact_ids
+from layer1_ingestion.shared.models import IngestionRunStep, SourceIngestionRun
 
 
 def _snapshot_hash(source: object, source_version: object, resolution: ConnectorResolution) -> str:
@@ -75,10 +79,10 @@ class ResolvingConnectorHandler(StageHandler):
 
     def execute(
         self,
-        db: object,
-        coordinator: object,
-        run: object,
-        step: object,
+        db: Session,
+        coordinator: PipelineCoordinator,
+        run: SourceIngestionRun,
+        step: IngestionRunStep,
     ) -> None:
         """Pipeline entry point: execute in a stage context."""
         coordinator.mark_step_running(step)
