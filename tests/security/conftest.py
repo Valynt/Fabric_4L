@@ -1,7 +1,6 @@
 """Shared fixtures for security tests."""
 
 import os
-import sys
 from pathlib import Path
 from typing import Callable, Generator
 
@@ -91,6 +90,37 @@ try:
         return await call_next(request)
 
     TenantRateLimitMiddleware.dispatch = _patched_tenant_rl_dispatch
+except Exception:
+    pass
+
+# SECURITY: Auth boundary tests assert RBAC decisions, not tenant kill-switch
+# Redis availability. When Redis is unavailable the kill switch returns UNKNOWN,
+# which the middleware maps to HTTP 503 and masks the intended 401/403/404
+try:
+    from value_fabric.shared.tenant_kill_switch import TenantKillSwitch, TenantSuspensionStatus
+
+    _orig_kill_switch_check_status = TenantKillSwitch.check_status
+
+    async def _patched_kill_switch_check_status(self, tenant_id):
+        # If a real Redis client is wired, exercise the real implementation.
+        if getattr(self, "_redis", None) is not None:
+            try:
+                result = await _orig_kill_switch_check_status(self, tenant_id)
+            except Exception:
+                # Redis present but failing in lightweight test env; fall through
+                # to ACTIVE so auth/RBAC test outcomes remain visible.
+                pass
+            else:
+                # The real implementation returns UNKNOWN when Redis fails closed.
+                # In lightweight security tests we want auth/RBAC outcomes, not a
+                # 503 from a missing Redis instance, so treat UNKNOWN as ACTIVE.
+                if result is not TenantSuspensionStatus.UNKNOWN:
+                    return result
+        # Without Redis, treat tenants as active so auth/RBAC outcomes remain
+        # visible in lightweight security smoke tests.
+        return TenantSuspensionStatus.ACTIVE
+
+    TenantKillSwitch.check_status = _patched_kill_switch_check_status
 except Exception:
     pass
 
@@ -419,7 +449,6 @@ def websocket_client(monkeypatch):
     
     # Also patch at the websocket routes import location
     try:
-        import layer4_agents.api.websocket.routes as _ws_mod
         # The websocket routes import get_executor locally, so we need to patch
         # the workflows module it imports from
         import layer4_agents.api.routes.workflows as _wf_mod2
