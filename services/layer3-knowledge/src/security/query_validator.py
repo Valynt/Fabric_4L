@@ -115,52 +115,46 @@ class ValidationFinding:
 _DOMAIN_LABELS = "|".join(re.escape(label) for label in sorted(TENANT_OWNED_LABELS))
 
 
-class QueryValidator:
+class StructuralTenantScopeValidator:
     """Validate Cypher queries for tenant isolation compliance.
-    
-    .. deprecated::
-        Delegate static checks to ``validate_tenant_scoped_cypher()`` and
-        execution to ``TenantQueryExecutor``. This class is retained only for
-        backward-compatible ``ValidatedNeo4jSession`` wiring.
-    
-    Scans queries for:
-    1. Unscoped Entity MATCH clauses (missing tenant_id)
-    2. Unsafe patterns (DELETE without tenant filter)
-    3. Required patterns (tenant_id in all entity predicates)
-    
+
+    Focused responsibility: detect unscoped reads, unsafe DELETE patterns, and
+    missing tenant_id predicates on tenant-owned labels. This class contains the
+    structural/query scoping logic previously mixed into ``QueryValidator``.
+
     Example:
-        >>> validator = QueryValidator()
-        >>> 
+        >>> validator = StructuralTenantScopeValidator()
+        >>>
         >>> # This query is safe - has tenant_id
         >>> validator.validate('MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) RETURN e')
         []
-        
+
         >>> # This query is unsafe - missing tenant_id
         >>> try:
         ...     validator.validate('MATCH (e:Entity {id: $id}) RETURN e')
         ... except UnscopedQueryError:
         ...     print("Query rejected - missing tenant_id")
     """
-    
+
     # Pattern to match MATCH clauses for domain nodes
     # Captures: MATCH (e:NodeType ...) -> groups: (node_var, node_type, properties)
     _ENTITY_MATCH_PATTERN = re.compile(
         r'MATCH\s*\(\s*(\w+)\s*:\s*(' + _DOMAIN_LABELS + r')\s*(?:\{([^}]*)\})?\s*\)',
         re.IGNORECASE | re.DOTALL
     )
-    
+
     # Pattern to find tenant_id in property map
     _TENANT_ID_PATTERN = re.compile(
         r'tenant_id\s*:\s*(\$tenant_id|"[^"]*"|\'[^\']*\')',
         re.IGNORECASE
     )
-    
+
     # Pattern to detect DETACH DELETE
     _DETACH_DELETE_PATTERN = re.compile(
         r'DETACH\s+DELETE',
         re.IGNORECASE
     )
-    
+
     # Pattern to detect unscoped MATCH with WHERE
     _UNSCOPED_WHERE_PATTERN = re.compile(
         r'MATCH\s*\(\s*\w+\s*:\s*(' + _DOMAIN_LABELS + r')\s*\)\s*WHERE',
@@ -169,45 +163,43 @@ class QueryValidator:
 
     _NODE_TOKEN_PATTERN = re.compile(r"\(\s*(\w+)\s*:\s*(" + _DOMAIN_LABELS + r")(?:\s*:[^)]+)?\s*(?:\{([^}]*)\})?\s*\)", re.IGNORECASE | re.DOTALL)
     _WHERE_TENANT_PATTERN = re.compile(r"\b(\w+)\.tenant_id\s*=\s*(?:\$tenant_id|\"[^\"]*\"|'[^']*')", re.IGNORECASE)
-    _ADMIN_PATTERN = re.compile(r"\b(CREATE|DROP)\s+(CONSTRAINT|INDEX|DATABASE|USER|ROLE)\b|\bCALL\s+db\.", re.IGNORECASE)
-    _WRITE_PATTERN = re.compile(r"\b(CREATE|MERGE|SET|DELETE|DETACH\s+DELETE|REMOVE)\b", re.IGNORECASE)
-    
+
     def __init__(self, fail_closed: bool = True):
         """Initialize validator.
-        
+
         Args:
             fail_closed: If True (default), unscoped queries raise exceptions.
                         If False, log warnings but don't block.
         """
         self.fail_closed = fail_closed
         self._findings: list[ValidationFinding] = []
-    
+
     def validate(self, query: str, query_name: str | None = None) -> list[ValidationFinding]:
         """Validate a Cypher query for tenant isolation.
-        
+
         Args:
             query: Cypher query string
             query_name: Optional name for error messages (e.g., "get_entity_by_id")
-            
+
         Returns:
             List of validation findings (empty if query is valid)
-            
+
         Raises:
             UnscopedQueryError: If query has unscoped Entity MATCH and fail_closed=True
             UnsafePatternError: If query has unsafe patterns and fail_closed=True
         """
         self._findings = []
         name = query_name or "query"
-        
+
         # Check 1: All Entity MATCH clauses must have tenant_id
         self._check_entity_tenant_scoping(query, name)
-        
+
         # Check 2: DETACH DELETE must have tenant verification
         self._check_delete_safety(query, name)
-        
+
         # Check 3: Unscoped WHERE patterns
         self._check_where_clause_scoping(query, name)
-        
+
         # If fail_closed and we have errors, raise
         if self.fail_closed:
             errors = [f for f in self._findings if f.severity == ValidationSeverity.ERROR]
@@ -216,16 +208,8 @@ class QueryValidator:
                     f"Query '{name}' failed tenant isolation validation: " +
                     "; ".join(e.message for e in errors)
                 )
-        
-        return self._findings
 
-    @classmethod
-    def classify_risk(cls, query: str) -> QueryRisk:
-        if cls._ADMIN_PATTERN.search(query):
-            return QueryRisk.ADMIN
-        if cls._WRITE_PATTERN.search(query):
-            return QueryRisk.WRITE
-        return QueryRisk.READ
+        return self._findings
 
     def validate_structural_tenant_scope(self, query: str, query_name: str | None = None) -> list[ValidationFinding]:
         """AST-like structural validation supporting multiline/aliases/subqueries.
@@ -249,10 +233,10 @@ class QueryValidator:
             if self.fail_closed:
                 raise UnscopedQueryError("unscoped_query") from exc
             return [finding]
-    
+
     def _check_entity_tenant_scoping(self, query: str, query_name: str) -> None:
         """Check that all domain MATCH clauses include tenant_id.
-        
+
         .. deprecated::
             Delegates to the canonical ``validate_tenant_scoped_cypher``.
         """
@@ -268,10 +252,10 @@ class QueryValidator:
                 pattern=None,
                 suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
             ))
-    
+
     def _check_delete_safety(self, query: str, query_name: str) -> None:
         """Check that DELETE operations have tenant verification.
-        
+
         Args:
             query: Cypher query
             query_name: Query identifier for messages
@@ -288,10 +272,10 @@ class QueryValidator:
                     pattern="DETACH DELETE",
                     suggestion="Add MATCH with {tenant_id: $tenant_id} before DELETE"
                 ))
-    
+
     def _check_where_clause_scoping(self, query: str, query_name: str) -> None:
         """Check WHERE clauses for tenant scoping.
-        
+
         Args:
             query: Cypher query
             query_name: Query identifier for messages
@@ -311,7 +295,7 @@ class QueryValidator:
                 where_clause = query[where_start:where_start + next_clause_match.start()]
             else:
                 where_clause = query[where_start:]
-            
+
             if 'tenant_id' not in where_clause.lower():
                 self._findings.append(ValidationFinding(
                     severity=ValidationSeverity.WARNING,
@@ -320,14 +304,14 @@ class QueryValidator:
                     pattern="MATCH (n:NodeType) WHERE ...",
                     suggestion="Add AND n.tenant_id = $tenant_id to WHERE clause"
                 ))
-    
+
     def _estimate_line(self, query: str, pattern: str) -> int | None:
         """Estimate line number for a pattern in query.
-        
+
         Args:
             query: Full query string
             pattern: Pattern to find
-            
+
         Returns:
             Estimated line number or None
         """
@@ -336,13 +320,13 @@ class QueryValidator:
             return query[:idx].count('\n') + 1
         except ValueError:
             return None
-    
+
     def is_valid(self, query: str) -> bool:
         """Quick check if query passes validation.
-        
+
         Args:
             query: Cypher query
-            
+
         Returns:
             True if no errors found
         """
@@ -352,6 +336,81 @@ class QueryValidator:
             return len(errors) == 0
         except ValidationError:
             return False
+
+
+class QueryRiskClassifier:
+    """Classify Cypher queries by risk level (read/write/admin).
+
+    This is a separate, stateless responsibility: inspecting a query string to
+    decide whether it reads data, mutates data, or performs administrative
+    schema operations.
+    """
+
+    _ADMIN_PATTERN = re.compile(r"\b(CREATE|DROP)\s+(CONSTRAINT|INDEX|DATABASE|USER|ROLE)\b|\bCALL\s+db\.", re.IGNORECASE)
+    _WRITE_PATTERN = re.compile(r"\b(CREATE|MERGE|SET|DELETE|DETACH\s+DELETE|REMOVE)\b", re.IGNORECASE)
+
+    @classmethod
+    def classify_risk(cls, query: str) -> QueryRisk:
+        if cls._ADMIN_PATTERN.search(query):
+            return QueryRisk.ADMIN
+        if cls._WRITE_PATTERN.search(query):
+            return QueryRisk.WRITE
+        return QueryRisk.READ
+
+
+class QueryValidator:
+    """Backward-compatible facade for Cypher query validation and risk classification.
+
+    .. deprecated::
+        Delegate static checks to ``validate_tenant_scoped_cypher()`` and
+        execution to ``TenantQueryExecutor``. This class is retained only for
+        backward-compatible ``ValidatedNeo4jSession`` wiring.
+
+    Scans queries for:
+    1. Unscoped Entity MATCH clauses (missing tenant_id)
+    2. Unsafe patterns (DELETE without tenant filter)
+    3. Required patterns (tenant_id in all entity predicates)
+
+    Example:
+        >>> validator = QueryValidator()
+        >>>
+        >>> # This query is safe - has tenant_id
+        >>> validator.validate('MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) RETURN e')
+        []
+
+        >>> # This query is unsafe - missing tenant_id
+        >>> try:
+        ...     validator.validate('MATCH (e:Entity {id: $id}) RETURN e')
+        ... except UnscopedQueryError:
+        ...     print("Query rejected - missing tenant_id")
+    """
+
+    def __init__(self, fail_closed: bool = True):
+        """Initialize validator.
+
+        Args:
+            fail_closed: If True (default), unscoped queries raise exceptions.
+                        If False, log warnings but don't block.
+        """
+        self._scope_validator = StructuralTenantScopeValidator(fail_closed=fail_closed)
+        self._risk_classifier = QueryRiskClassifier()
+
+    def validate(self, query: str, query_name: str | None = None) -> list[ValidationFinding]:
+        """Validate a Cypher query for tenant isolation."""
+        return self._scope_validator.validate(query, query_name)
+
+    def validate_structural_tenant_scope(self, query: str, query_name: str | None = None) -> list[ValidationFinding]:
+        """AST-like structural validation supporting multiline/aliases/subqueries."""
+        return self._scope_validator.validate_structural_tenant_scope(query, query_name)
+
+    def is_valid(self, query: str) -> bool:
+        """Quick check if query passes validation."""
+        return self._scope_validator.is_valid(query)
+
+    @classmethod
+    def classify_risk(cls, query: str) -> QueryRisk:
+        """Classify the query by risk level."""
+        return QueryRiskClassifier.classify_risk(query)
 
 
 class ValidatedNeo4jSession:
