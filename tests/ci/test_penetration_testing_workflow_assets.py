@@ -34,11 +34,11 @@ def test_nikto_workflow_has_missing_script_fallback() -> None:
     nikto_steps = workflow["jobs"]["nikto-scan"]["steps"]
     nikto_run_step = _find_step_by_name(nikto_steps, "Run Nikto Scan")
     run_section = nikto_run_step["run"]
-    assert "if [ -f tests/penetration/nikto-scan.sh ]; then" in run_section
-    assert "else" in run_section
-    assert "mkdir -p nikto-results" in run_section
-    assert "Nikto script unavailable for this revision" in run_section
-    assert "nikto-results/nikto.log" in run_section
-    assert "Nikto report unavailable for target ${{ env.TARGET_URL }}" in run_section
-    assert "nikto-results/nikto-report.txt" in run_section
-    assert "nikto-results/summary.json" in run_section
+    assert "if [ -f tests/penetration/nikto-scan.sh ]; then" in run_section, "Missing script existence guard"
+    assert "else" in run_section, "Missing fallback branch for absent nikto script"
+    assert "mkdir -p nikto-results" in run_section, "Missing fallback artifact directory creation"
+    assert "Nikto script unavailable for this revision" in run_section, "Missing fallback nikto.log message"
+    assert "nikto-results/nikto.log" in run_section, "Missing fallback nikto.log output"
+    assert "Nikto report unavailable for target ${{ env.TARGET_URL }}" in run_section, "Missing fallback report message"
+    assert "nikto-results/nikto-report.txt" in run_section, "Missing fallback nikto-report output"
+    assert "nikto-results/summary.json" in run_section, "Missing fallback summary.json generation"
