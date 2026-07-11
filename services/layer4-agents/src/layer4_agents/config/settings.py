@@ -63,8 +63,10 @@ from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from value_fabric.shared.security.neo4j import validate_neo4j_aura_config
 
+from ._billing_mixin import BillingSettingsMixin
 
-class Settings(BaseSettings):
+
+class Settings(BillingSettingsMixin, BaseSettings):
     """Layer 4 Agents service settings with strict validation.
 
     All secrets must be provided via environment variables.
@@ -373,11 +375,6 @@ class Settings(BaseSettings):
         default=900,
         description="Signed URL TTL for export downloads in seconds"
     )
-
-    @property
-    def is_billing_configured(self) -> bool:
-        """Check if Stripe billing is properly configured."""
-        return self.billing_enabled and self.stripe_secret_key is not None
 
     # ==========================================================================
     # Validators (P0-29: Fail fast on invalid config)
