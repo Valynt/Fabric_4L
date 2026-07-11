@@ -110,3 +110,23 @@ class TestRuntimeSettingsMixin:
         )
         with pytest.raises(ValueError, match="cannot contain '\\*' outside of development"):
             settings.cors_origins_list
+
+    def test_cors_origins_list_strips_whitespace(self):
+        settings = Settings(
+            environment="production",
+            jwt_secret="x" * 32,
+            api_key_hmac_secret="x" * 32,
+            cors_origins=" https://a.example.com , https://b.example.com ",
+        )
+        assert settings.cors_origins_list == [
+            "https://a.example.com",
+            "https://b.example.com",
+        ]
+
+    def test_cors_origins_list_returns_empty_in_non_development(self):
+        settings = Settings(
+            environment="staging",
+            jwt_secret="x" * 32,
+            api_key_hmac_secret="x" * 32,
+        )
+        assert settings.cors_origins_list == []
