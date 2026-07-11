@@ -257,10 +257,10 @@ def resolve_connector_for_source(
     )
     try:
         custody_mode = CustodyMode(custody_mode_value)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         raise ConnectorResolutionError(
             "UNSUPPORTED_CUSTODY_MODE",
-            f"Custody mode '{custody_mode_value}' is not supported.",
+            f"Custody mode {custody_mode_value!r} is not supported.",
         ) from exc
 
     customer_hosted = _as_bool(metadata.get("customer_hosted", False)) or (
