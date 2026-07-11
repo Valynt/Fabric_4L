@@ -13,6 +13,12 @@ class _RuntimeSettingsProtocol(Protocol):
     environment: str
     cors_origins: str
 
+    @property
+    def is_development(self) -> bool: ...
+
+    @property
+    def is_production(self) -> bool: ...
+
 
 class RuntimeSettingsMixin:
     """Mixin exposing runtime and environment helpers."""
