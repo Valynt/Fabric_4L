@@ -12,7 +12,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, NoReturn
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 from pydantic import BaseModel, Field
@@ -100,6 +100,26 @@ async def _emit_billing_audit(
         raise
     except Exception as exc:
         logger.warning("Billing audit emission failed (non-critical): %s", exc)
+
+
+def _raise_billing_bad_request(exc: ValueError, message: str = "Invalid billing request.") -> NoReturn:
+    """Translate a ValueError into a structured, client-safe BadRequestError.
+
+    The original exception text is logged server-side for debugging but is
+    never returned to the client (ban_str_e).
+
+    Args:
+        exc: The validation exception raised by a billing service.
+        message: A safe, human-readable message to return to the client.
+
+    Raises:
+        BadRequestError: A sanitized error with a stable code and safe message.
+    """
+    logger.info("Billing validation failed: %s", exc)
+    raise BadRequestError(
+        message=message,
+        details={"code": "BILLING_VALIDATION_ERROR"},
+    ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -211,10 +231,14 @@ def _serialize_invoice(
 def _serialize_usage_event(event: BillingUsageEvent) -> dict[str, Any]:
     return {
         "id": event.id,
+        "event_id": event.event_id,
+        "customer_id": event.customer_id,
+        "tenant_id": event.tenant_id,
         "event_name": event.event_name,
         "metric_name": event.metric_name,
         "quantity": event.quantity,
         "timestamp": _dt_iso(event.timestamp),
+        "created_at": _dt_iso(event.created_at),
         "status": event.status,
         "unit": event.unit,
     }
@@ -531,7 +555,7 @@ async def create_checkout(
         )
         return {"session_id": result["session_id"], "url": result["url"]}
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.post("/portal")
@@ -557,7 +581,7 @@ async def create_portal(
         )
         return {"url": result["url"]}
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -596,7 +620,7 @@ async def cancel_subscription(
             "subscription_id": result.get("subscription_id"),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.post("/subscription/update-plan")
@@ -629,7 +653,7 @@ async def update_subscription_plan(
             "subscription_id": result.get("subscription_id"),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.post("/subscription/reactivate")
@@ -658,7 +682,7 @@ async def reactivate_subscription(
             "subscription_id": result.get("subscription_id"),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -744,7 +768,7 @@ async def sync_customer(
         )
         return _serialize_customer(customer)
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -809,19 +833,22 @@ async def stripe_webhook(
         )
         return {"received": True}
     except ValueError as exc:
-        raise BadRequestError(message="Invalid webhook payload") from exc
+        _raise_billing_bad_request(exc, message="Invalid webhook payload")
     except ValueFabricException:
         raise
     except asyncio.CancelledError:
         raise
     except Exception as exc:
-        logger.error("Webhook processing failed", extra={"error": str(exc)})
+        logger.error(
+            "Webhook processing failed",
+            extra={"error_code": "BILLING_WEBHOOK_PROCESSING_ERROR", "exception_type": type(exc).__name__},
+        )
         await _emit_billing_audit(
             action=AuditAction.BILLING_WEBHOOK_RECEIVED,
             context=RequestContext(),
             resource_type="billing_webhook",
             outcome=AuditOutcome.FAILURE,
-            details={"client_ip": client_ip, "error": str(exc)},
+            details={"client_ip": client_ip, "error_code": "BILLING_WEBHOOK_PROCESSING_ERROR"},
         )
         # Return 200 to Stripe so it doesn't retry indefinitely for unrecoverable errors
         return {"received": True}
@@ -878,7 +905,7 @@ async def ingest_usage_event(
         )
         return _serialize_usage_event(event)
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 async def ingest_usage_batch(
@@ -946,7 +973,7 @@ async def ingest_usage_batch(
             "error_details": result.get("error_details", []),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 async def get_usage_summary(
@@ -1016,7 +1043,7 @@ async def sync_usage_to_stripe(
             "customer_id": customer_id,
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -1078,9 +1105,16 @@ async def get_plan_limits(
     plan_id: str,
 ) -> dict[str, Any]:
     """Get the configured usage limits for a plan."""
+    from ...config.plans import get_plan as get_plan_config
+
     # OverageService does not need DB for plan limits (reads from config)
     overage_svc = OverageService(db=None, tenant_id=None)  # type: ignore[arg-type]
-    return overage_svc.get_plan_limits(plan_id)
+    plan_config = get_plan_config(plan_id)
+    return {
+        "plan_id": plan_id,
+        "plan_name": getattr(plan_config, "name", plan_id) if plan_config else plan_id,
+        "limits": overage_svc.get_plan_limits(plan_id),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1150,7 +1184,7 @@ async def create_invoice(
             "created_at": _dt_iso(inv.created_at),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.get("/invoices/{invoice_id}", response_model=get_invoiceResult)
@@ -1205,7 +1239,7 @@ async def add_invoice_item(
             "amount_dollars": item.amount_dollars,
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.post("/invoices/{invoice_id}/finalize", response_model=finalize_invoiceResult)
@@ -1234,7 +1268,7 @@ async def finalize_invoice(
             "amount_due_dollars": inv.amount_due_dollars,
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 @router.post("/invoices/{invoice_id}/void", response_model=void_invoiceResult)
@@ -1261,7 +1295,7 @@ async def void_invoice(
             "voided_at": _dt_iso(inv.voided_at),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -1333,7 +1367,7 @@ async def record_charge(
             "created_at": _dt_iso(charge.created_at),
         }
     except ValueError as exc:
-        raise BadRequestError(message=str(exc)) from exc
+        _raise_billing_bad_request(exc)
 
 
 # ---------------------------------------------------------------------------

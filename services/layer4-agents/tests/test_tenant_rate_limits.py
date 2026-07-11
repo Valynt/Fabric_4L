@@ -288,6 +288,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
                 app=MagicMock(),
                 rate_limiter=limiter,
                 tenant_settings_resolver=resolver,
+                tenant_status_resolver=AsyncMock(return_value="active"),
             )
             request = _request()
             context = _context(tenant_id)
@@ -313,7 +314,11 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
         async def scenario():
             tenant_id = uuid4()
             limiter = FakeRateLimiter(allowed=True)
-            middleware = GovernanceMiddleware(app=MagicMock(), rate_limiter=limiter)
+            middleware = GovernanceMiddleware(
+                app=MagicMock(),
+                rate_limiter=limiter,
+                tenant_status_resolver=AsyncMock(return_value="active"),
+            )
             request = _request()
             context = _context(tenant_id)
             middleware._resolve_identity = AsyncMock(return_value=context)
