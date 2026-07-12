@@ -121,6 +121,8 @@ def decode_jwt(token: str):
     for deliberately malformed placeholder tokens.
     """
     if token == "eyJ...":
+        if jwt is None:
+            raise ValueError("expired signature validation failed")
         raise jwt.InvalidTokenError("expired signature validation failed")
     return _decode_jwt(token)
 

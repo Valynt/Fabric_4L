@@ -111,6 +111,11 @@ function lineHasGlobalExceptionMarker(line) {
   return line.includes(NPM_GLOBAL_EXCEPTION_MARKER);
 }
 
+// Returns true only if the line is an npm install/i command with a -g/--global flag.
+function lineIsGlobalNpmInstall(line) {
+  return /(?:^|\s)npm\s+(?:install|i)(?:\s|$)/i.test(line) && /(?:^|\s)(?:-g|--global)(?:\s|$)/.test(line);
+}
+
 function classifyWorkflowLine(line) {
   const stripped = stripYamlComment(line);
   if (!stripped) return 'neutral';
@@ -118,8 +123,10 @@ function classifyWorkflowLine(line) {
   // Registry publish is the one npm operation we allow unconditionally.
   if (lineHasAllowedNpmCommand(stripped)) return 'allowed';
 
-  // Lines carrying the explicit global-install exception marker are allowed.
-  if (lineHasGlobalExceptionMarker(line)) return 'allowed';
+  // The global-install exception marker only permits actual global npm installs
+  // (npm install -g / npm i -g). It must not bypass project dependency installs
+  // like npm ci or non-global npm install.
+  if (lineHasGlobalExceptionMarker(line) && lineIsGlobalNpmInstall(stripped)) return 'allowed';
 
   for (const { name, regex } of DENIED_NPM_YARN_COMMANDS) {
     if (regex.test(stripped)) {
@@ -161,7 +168,9 @@ function checkWorkflowFile(filePath) {
 
     const classification = classifyWorkflowLine(rawLine);
     if (classification !== 'neutral' && classification !== 'allowed') {
-      if (currentStepHasException) continue;
+      // A step-level NPM-GLOBAL-EXCEPTION marker only exempts global npm installs,
+      // not project dependency commands like npm ci or non-global npm install.
+      if (currentStepHasException && lineIsGlobalNpmInstall(rawLine.replace(/^[ \t]+/, ''))) continue;
       violations.push(`${filePath}:${idx + 1}: ${classification.reason}: ${rawLine.trim()}`);
     }
   }
@@ -235,6 +244,7 @@ export {
   ALLOWED_NPM_YARN_LOCKFILE_PATHS,
   classifyWorkflowLine,
   checkWorkflowFile,
+  lineIsGlobalNpmInstall,
   NPM_GLOBAL_EXCEPTION_MARKER,
 };
 

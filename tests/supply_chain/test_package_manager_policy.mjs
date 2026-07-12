@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   classifyWorkflowLine,
   checkWorkflowFile,
+  lineIsGlobalNpmInstall,
   ALLOWED_LOCKFILE_PATHS,
   ALLOWED_NPM_YARN_LOCKFILE_PATHS,
   NPM_GLOBAL_EXCEPTION_MARKER,
@@ -75,6 +76,31 @@ function testGlobalInstallWithMarkerIsAllowed() {
   assert.strictEqual(result, 'allowed', `Expected allowed with exception marker: ${line}`);
 }
 
+// Regression: NPM-GLOBAL-EXCEPTION must NOT permit forbidden project installs.
+// Appending the marker to npm ci, npm install (without -g), or yarn commands
+// must still be denied.
+function testGlobalExceptionMarkerDoesNotBypassProjectInstalls() {
+  const forbiddenWithMarker = [
+    `npm ci # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+    `npm install # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+    `npm install --legacy-peer-deps # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+    `npm i # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+    `yarn install # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+    `yarn add lodash # ${NPM_GLOBAL_EXCEPTION_MARKER}`,
+  ];
+  for (const line of forbiddenWithMarker) {
+    const result = classifyWorkflowLine(line);
+    assert.notStrictEqual(result, 'neutral', `Expected non-neutral for: ${line}`);
+    assert.notStrictEqual(result, 'allowed', `NPM-GLOBAL-EXCEPTION must not bypass project install: ${line}`);
+  }
+
+  // Also verify lineIsGlobalNpmInstall distinguishes global from non-global.
+  assert.ok(lineIsGlobalNpmInstall('npm install -g foo'), 'npm install -g should be global');
+  assert.ok(lineIsGlobalNpmInstall('npm i -g foo'), 'npm i -g should be global');
+  assert.ok(!lineIsGlobalNpmInstall('npm install foo'), 'npm install without -g is not global');
+  assert.ok(!lineIsGlobalNpmInstall('npm ci'), 'npm ci is not a global install');
+}
+
 function testFixtures() {
   const allowedFile = path.join(__dirname, 'fixtures', 'allowed-npm-usage.yml');
   const allowedViolations = checkWorkflowFile(allowedFile);
@@ -117,6 +143,7 @@ function run() {
   testPnpmCommandsAreNeutral();
   testGlobalInstallWithoutMarkerIsDenied();
   testGlobalInstallWithMarkerIsAllowed();
+  testGlobalExceptionMarkerDoesNotBypassProjectInstalls();
   testFixtures();
   testLockfileAllowlists();
   console.log('✅ Package manager policy checker tests passed');

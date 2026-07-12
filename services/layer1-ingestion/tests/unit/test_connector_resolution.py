@@ -152,7 +152,7 @@ def test_resolve_connector_for_url_uses_source_external_reference() -> None:
     assert resolution.metadata["url"] == "https://example.com/page"
 
 
-def test_resolve_connector_for_audio_requires_storage_ref() -> None:
+def test_resolve_connector_for_audio_fails_without_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.AUDIO, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri=None, meta={})
 
@@ -160,9 +160,27 @@ def test_resolve_connector_for_audio_requires_storage_ref() -> None:
         resolve_connector_for_source(source, source_version)
 
 
-def test_resolve_connector_for_meeting_requires_storage_ref() -> None:
+def test_resolve_connector_for_audio_fails_with_only_raw_storage_uri() -> None:
+    """AUDIO sources must not fall back to raw_storage_uri — sensitive recordings."""
+    source = SimpleNamespace(source_type=SourceType.AUDIO, custody_mode="B", meta={})
+    source_version = SimpleNamespace(raw_storage_uri="raw://s3/audio/recording.mp3", meta={})
+
+    with pytest.raises(Exception):
+        resolve_connector_for_source(source, source_version)
+
+
+def test_resolve_connector_for_meeting_fails_without_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.MEETING, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri=None, meta={})
+
+    with pytest.raises(Exception):
+        resolve_connector_for_source(source, source_version)
+
+
+def test_resolve_connector_for_meeting_fails_with_only_raw_storage_uri() -> None:
+    """MEETING sources must not fall back to raw_storage_uri — sensitive recordings."""
+    source = SimpleNamespace(source_type=SourceType.MEETING, custody_mode="B", meta={})
+    source_version = SimpleNamespace(raw_storage_uri="raw://s3/meetings/recording.mp4", meta={})
 
     with pytest.raises(Exception):
         resolve_connector_for_source(source, source_version)

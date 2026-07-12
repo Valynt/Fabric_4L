@@ -310,12 +310,13 @@ def resolve_connector_for_source(
         )
 
     if source_type in (SourceType.AUDIO, SourceType.MEETING):
-        storage_ref = _pick_storage_ref(metadata, source_version)
-        if not storage_ref:
+        storage_ref = metadata.get("storage_ref")
+        if not (isinstance(storage_ref, str) and storage_ref.strip()):
             raise ConnectorResolutionError(
                 "UNSUPPORTED_CONNECTOR_CONFIG",
-                f"{source_type.value} source requires storage_ref or source_version.raw_storage_uri.",
+                f"{source_type.value} source requires metadata.storage_ref.",
             )
+        storage_ref = storage_ref.strip()
         return ConnectorResolution(
             connector_kind=ConnectorKind.FILE,
             connector_name=connector_name,
