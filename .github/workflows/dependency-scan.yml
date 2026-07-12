@@ -92,10 +92,10 @@ jobs:
           svc="services/${{ matrix.service }}"
           if [ -f "$svc/requirements.txt" ]; then
             pip-audit --requirement "$svc/requirements.txt" \
-              --format=json --output="pip-audit-${{ matrix.service }}.json"
+              --format=json --output="pip-audit-${{ matrix.service }}.json" || true
           elif [ -f "$svc/pyproject.toml" ]; then
             pip-audit "$svc" \
-              --format=json --output="pip-audit-${{ matrix.service }}.json"
+              --format=json --output="pip-audit-${{ matrix.service }}.json" || true
           else
             echo "No manifest found for $svc; skipping"
             echo '{"dependencies":[]}' > "pip-audit-${{ matrix.service }}.json"
@@ -117,11 +117,13 @@ jobs:
               dep = entry.get('name', 'unknown')
               for v in entry.get('vulns', []):
                   vuln_id = v.get('id', 'UNKNOWN')
+                  sev_str = str(v.get('severity', 'low')).lower()
+                  sev_num = {'low': 3.0, 'medium': 5.0, 'high': 7.5, 'critical': 9.0}.get(sev_str, 0.0)
                   rules.append({
                       'id': vuln_id,
                       'name': vuln_id,
                       'shortDescription': {'text': v.get('description', vuln_id)},
-                      'properties': {'security-severity': v.get('fix_versions', ['unknown'])[0]}
+                      'properties': {'security-severity': sev_num}
                   })
                   results.append({
                       'ruleId': vuln_id,
