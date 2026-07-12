@@ -1,4 +1,7 @@
-from scripts.ci.check_pr_overlap_guard import REQUIRED_SECTION, _has_required_section, evaluate
+import subprocess
+from unittest.mock import patch
+
+from scripts.ci.check_pr_overlap_guard import REQUIRED_SECTION, _has_required_section, _merged_prs, evaluate
 
 
 def test_evaluate_ignores_allowlisted_only_overlap() -> None:
@@ -41,3 +44,29 @@ def test_required_section_must_have_content() -> None:
 
     assert _has_required_section(empty) is False
     assert _has_required_section(filled) is True
+
+
+def test_merged_prs_excludes_current_and_limits_lookback() -> None:
+    raw = [
+        {"number": 939, "title": "nine-three-nine"},
+        {"number": 938, "title": "current pr"},
+        {"number": 937, "title": "nine-three-seven"},
+        {"number": 936, "title": "nine-three-six"},
+    ]
+
+    with patch("scripts.ci.check_pr_overlap_guard._run_json", return_value=raw):
+        result = _merged_prs("owner/repo", "main", lookback=2, exclude=938)
+
+    assert result == [
+        {"number": 939, "title": "nine-three-nine"},
+        {"number": 937, "title": "nine-three-seven"},
+    ]
+
+
+def test_merged_prs_gracefully_degrades_on_gh_failure() -> None:
+    error = subprocess.CalledProcessError(1, ["gh", "pr", "list"])
+
+    with patch("scripts.ci.check_pr_overlap_guard._run_json", side_effect=error):
+        result = _merged_prs("owner/repo", "main", lookback=5, exclude=1)
+
+    assert result == []
