@@ -102,6 +102,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -150,6 +155,16 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Install openapi-generator-cli
         run: |
           pnpm add -g @openapitools/openapi-generator-cli
@@ -186,6 +201,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -275,6 +295,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm for testing
+        if: needs.generate-typescript.result == 'success'
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
 
       - name: Test TypeScript SDK compilation
         if: needs.generate-typescript.result == 'success'
@@ -405,6 +431,16 @@ jobs:
           name: sdk-typescript
           path: sdk/typescript/
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Publish Python SDKs to PyPI
         env:
           PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
@@ -426,6 +462,6 @@ jobs:
           for pkg_dir in sdk/typescript/fabric4l-*/; do
             echo "Publishing: $pkg_dir"
             cd "$pkg_dir"
-            pnpm publish --access public || echo "Skipped: $pkg_dir"
+            pnpm publish --access public --no-git-checks || echo "Skipped: $pkg_dir"
             cd "$GITHUB_WORKSPACE"
           done
