@@ -19,6 +19,8 @@ const ALLOWED_NPM_YARN_LOCKFILE_PATHS = new Set([
   'prototypes/ui-prototype/app/package-lock.json',
 ]);
 const WORKFLOW_FORBIDDEN_PM_PATTERN = /(^|[^a-z])(?:npm|yarn)(?:\s|$)/i;
+const UNSUPPORTED_PNPM_ACTION_PATTERN = /pnpm\/action-setup@v2(?:\.\d+)?\b/;
+const COREPACK_PNPM_PATTERN = /\bcorepack\s+pnpm\b/;
 
 function fail(message) {
   console.error(`❌ ${message}`);
@@ -73,6 +75,39 @@ function checkWorkflowPackageManagerPolicy() {
   }
 }
 
+function checkPnpmActionSetupVersions() {
+  const violations = [];
+  for (const file of walkFiles('.github/workflows')) {
+    if (!file.endsWith('.yml') && !file.endsWith('.yaml')) continue;
+    const text = readFileSync(file, 'utf8');
+    for (const [idx, line] of text.split(/\r?\n/).entries()) {
+      if (UNSUPPORTED_PNPM_ACTION_PATTERN.test(line)) {
+        violations.push(`${file}:${idx + 1}: ${line.trim()}`);
+      }
+    }
+  }
+  if (violations.length > 0) {
+    fail(`Unsupported pnpm/action-setup version found in workflow YAML (use v3+ or the setup-pnpm composite): ${violations.join(' | ')}`);
+  }
+}
+
+function checkCorepackPnpmInScripts() {
+  const violations = [];
+  for (const file of walkFiles('.')) {
+    if (!file.endsWith('package.json')) continue;
+    const pkg = loadJson(file);
+    if (!pkg.scripts) continue;
+    for (const [name, script] of Object.entries(pkg.scripts)) {
+      if (typeof script === 'string' && COREPACK_PNPM_PATTERN.test(script)) {
+        violations.push(`${file} script "${name}": ${script}`);
+      }
+    }
+  }
+  if (violations.length > 0) {
+    fail(`Use plain pnpm in package.json scripts; do not invoke pnpm through corepack: ${violations.join(' | ')}`);
+  }
+}
+
 if (existsSync('package-lock.json')) {
   fail('Root package-lock.json is not allowed. Use pnpm-lock.yaml as the canonical lockfile.');
 }
@@ -109,5 +144,7 @@ if (unauthorizedLockfiles.length > 0) {
 }
 
 checkWorkflowPackageManagerPolicy();
+checkPnpmActionSetupVersions();
+checkCorepackPnpmInScripts();
 
-console.log('✅ Package manager policy checks passed (pnpm policy + lockfile path guard + workflow YAML enforcement).');
+console.log('✅ Package manager policy checks passed (pnpm policy + lockfile path guard + workflow YAML enforcement + pnpm setup patterns).');
