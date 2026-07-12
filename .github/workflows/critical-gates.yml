@@ -199,10 +199,16 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt alembic
+          python -m pip install -r tests/requirements-test.txt alembic uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
 
       - name: Run gate
         id: run_gate
