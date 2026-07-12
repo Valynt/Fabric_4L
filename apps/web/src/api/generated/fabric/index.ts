@@ -256,6 +256,262 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Api Keys */
+        get: operations["list_api_keys_v1_auth_api_keys_get"];
+        put?: never;
+        /** Create Api Key */
+        post: operations["create_api_key_v1_auth_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Api Key */
+        delete: operations["revoke_api_key_v1_auth_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Benchmarks */
+        get: operations["list_benchmarks_v1_benchmarks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/benchmarks/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compare Benchmarks */
+        post: operations["compare_benchmarks_v1_benchmarks_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Usage */
+        get: operations["get_usage_v1_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/usage/quotas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quotas */
+        get: operations["get_quotas_v1_usage_quotas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/value-drivers/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Map Value Drivers */
+        post: operations["map_value_drivers_v1_value_drivers_map_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/value-models/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Value Model */
+        post: operations["generate_value_model_v1_value_models_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/value-models/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Value Model */
+        post: operations["validate_value_model_v1_value_models_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/value-models/qa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Qa Value Model */
+        post: operations["qa_value_model_v1_value_models_qa_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/assumptions/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score Assumption */
+        post: operations["score_assumption_v1_assumptions_score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/evidence/extract-value-signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Extract Value Signals */
+        post: operations["extract_value_signals_v1_evidence_extract_value_signals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cfo-narratives/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate Cfo Narrative */
+        post: operations["generate_cfo_narrative_v1_cfo_narratives_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/realization/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compare Realization */
+        post: operations["compare_realization_v1_realization_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job Status */
+        get: operations["get_job_status_v1_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/clerk/tenant": {
         parameters: {
             query?: never;
@@ -1498,6 +1754,62 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** APIKeyCreateRequest */
+        APIKeyCreateRequest: {
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @default analyst
+             * @enum {string}
+             */
+            role: "read_only" | "analyst" | "content_admin" | "tenant_admin";
+            /** Permissions */
+            permissions?: string[];
+        };
+        /** APIKeyCreateResponse */
+        APIKeyCreateResponse: {
+            /** Key Id */
+            key_id: string;
+            /** Name */
+            name: string;
+            /** Api Key */
+            api_key: string;
+            /** Prefix */
+            prefix: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Role */
+            role: string;
+            /** Permissions */
+            permissions: string[];
+            /** Created At */
+            created_at: string;
+        };
+        /** APIKeyListItem */
+        APIKeyListItem: {
+            /** Key Id */
+            key_id: string;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Role */
+            role: string;
+            /** Permissions */
+            permissions: string[];
+            /** Enabled */
+            enabled: boolean;
+            /** Created At */
+            created_at: string;
+            /** Last Used At */
+            last_used_at: string | null;
+        };
+        /** APIKeyListResponse */
+        APIKeyListResponse: {
+            /** Items */
+            items: components["schemas"]["APIKeyListItem"][];
+        };
         /** AcceptInviteRequest */
         AcceptInviteRequest: {
             /**
@@ -1667,6 +1979,24 @@ export interface components {
             /** Updated At */
             updated_at?: string;
         };
+        /** AssumptionScoreRequest */
+        AssumptionScoreRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Assumption
+             * @description Assumption text
+             */
+            assumption: string;
+            /**
+             * Evidence
+             * @description Supporting evidence
+             */
+            evidence?: string[];
+        };
         /** AuditLogEvent */
         AuditLogEvent: {
             /** Id */
@@ -1760,6 +2090,27 @@ export interface components {
             status: "draft" | "review" | "approved" | "published" | "archived";
             value_case?: components["schemas"]["ValueCaseContent"] | null;
             audit?: components["schemas"]["AuditMeta"];
+        };
+        /** CFONarrativeGenerateRequest */
+        CFONarrativeGenerateRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Value Model
+             * @description Value model to narrate
+             */
+            value_model: {
+                [key: string]: unknown;
+            };
+            /**
+             * Audience
+             * @description Target audience
+             * @default cfo
+             */
+            audience: string;
         };
         /**
          * ClerkTenantResponse
@@ -1945,6 +2296,19 @@ export interface components {
             /** Supports Claim Ids */
             supports_claim_ids?: string[];
             audit?: components["schemas"]["AuditMeta"];
+        };
+        /** EvidenceExtractRequest */
+        EvidenceExtractRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Source Text
+             * @description Text to extract value signals from
+             */
+            source_text: string;
         };
         /** FirmographicsResponse */
         FirmographicsResponse: {
@@ -2334,6 +2698,35 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** PaginatedResponse[dict[str, Any]] */
+        PaginatedResponse_dict_str__Any__: {
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** ProductJobResponse */
+        ProductJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Product Code */
+            product_code: string;
+            /**
+             * Status
+             * @default accepted
+             */
+            status: string;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** ROICalculation */
         ROICalculation: {
             /** Id */
@@ -2393,6 +2786,26 @@ export interface components {
             /** Assumption Ids */
             assumption_ids?: string[];
             audit?: components["schemas"]["AuditMeta"];
+        };
+        /** RealizationCompareRequest */
+        RealizationCompareRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Plan Id
+             * @description Realization plan identifier
+             */
+            plan_id?: string | null;
+            /**
+             * Actuals
+             * @description Actual outcome data
+             */
+            actuals?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** RealizationPlanActualsPatchRequest */
         RealizationPlanActualsPatchRequest: {
@@ -2864,6 +3277,24 @@ export interface components {
             confidence: number;
             audit?: components["schemas"]["AuditMeta"];
         };
+        /** ValueDriversMapRequest */
+        ValueDriversMapRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Context
+             * @description Business context to map drivers from
+             */
+            context: string;
+            /**
+             * Industry
+             * @description Industry segment
+             */
+            industry?: string | null;
+        };
         /** ValueHypothesis */
         ValueHypothesis: {
             /** Id */
@@ -2926,6 +3357,61 @@ export interface components {
              * @default 0.7
              */
             confidence: number;
+        };
+        /** ValueModelGenerateRequest */
+        ValueModelGenerateRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Drivers
+             * @description Value drivers to model
+             */
+            drivers?: string[];
+            /**
+             * Assumptions
+             * @description Key assumptions
+             */
+            assumptions?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ValueModelQARequest */
+        ValueModelQARequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Value Model
+             * @description Value model to question/answer
+             */
+            value_model: {
+                [key: string]: unknown;
+            };
+            /**
+             * Question
+             * @description Question about the model
+             */
+            question: string;
+        };
+        /** ValueModelValidateRequest */
+        ValueModelValidateRequest: {
+            /**
+             * Account Id
+             * @description Optional account context
+             */
+            account_id?: string | null;
+            /**
+             * Value Model
+             * @description Value model to validate
+             */
+            value_model: {
+                [key: string]: unknown;
+            };
         };
         /** ValuePack */
         ValuePack: {
@@ -3578,6 +4064,489 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_api_keys_v1_auth_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyListResponse"];
+                };
+            };
+        };
+    };
+    create_api_key_v1_auth_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_key_v1_auth_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_benchmarks_v1_benchmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_dict_str__Any__"];
+                };
+            };
+        };
+    };
+    compare_benchmarks_v1_benchmarks_compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_v1_usage_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quotas_v1_usage_quotas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    map_value_drivers_v1_value_drivers_map_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueDriversMapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_value_model_v1_value_models_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueModelGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_value_model_v1_value_models_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueModelValidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    qa_value_model_v1_value_models_qa_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueModelQARequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_assumption_v1_assumptions_score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssumptionScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extract_value_signals_v1_evidence_extract_value_signals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceExtractRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_cfo_narrative_v1_cfo_narratives_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CFONarrativeGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_realization_v1_realization_compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RealizationCompareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_status_v1_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductJobResponse"];
                 };
             };
             /** @description Validation Error */
