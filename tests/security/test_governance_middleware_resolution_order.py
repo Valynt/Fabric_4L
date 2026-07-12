@@ -99,27 +99,19 @@ class TestJWTDecodingSecurity:
 
     def test_jwt_decode_rejects_expired_token(self):
         """NEGATIVE: JWT decode should reject expired tokens."""
-        try:
-            from jose import JWTError
-        except ImportError:
-            pytest.skip("jose not available")
-            return
+        import jwt as pyjwt
 
         with patch("value_fabric.shared.identity.middleware._decode_jwt") as mock_decode:
-            mock_decode.side_effect = JWTError("Token expired")
+            mock_decode.side_effect = pyjwt.InvalidTokenError("Token expired")
             
-            with pytest.raises(JWTError):
+            with pytest.raises(pyjwt.InvalidTokenError):
                 decode_jwt("expired-token")
 
     def test_jwt_decode_placeholder_token_raises_jwterror(self):
-        """NEGATIVE: Placeholder JWT token should raise JWTError for legacy tests."""
-        try:
-            from jose import JWTError
-        except ImportError:
-            pytest.skip("jose not available")
-            return
+        """NEGATIVE: Placeholder JWT token should raise InvalidTokenError for legacy tests."""
+        import jwt as pyjwt
 
-        with pytest.raises(JWTError) as exc_info:
+        with pytest.raises(pyjwt.InvalidTokenError) as exc_info:
             decode_jwt("eyJ...")
         
         assert "expired signature validation failed" in str(exc_info.value)

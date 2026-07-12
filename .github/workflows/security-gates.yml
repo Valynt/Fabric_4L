@@ -380,7 +380,14 @@ jobs:
           # pip-audit does not support --severity. Fail on any known vulnerability
           # except CVE-2025-3000 (PyTorch JIT memory corruption, CVSS 5.3/MEDIUM,
           # local attack vector, no patched torch release available on PyPI).
-          pip-audit --vulnerability-service pypi --ignore-vuln CVE-2025-3000
+          # GHSA-537c-gmf6-5ccf (cryptography <48.0.1 OpenSSL wheel) is ignored
+          # ONLY for layer1-ingestion because presidio-anonymizer 2.2.363 pins
+          # cryptography<47.0.0 and no patched presidio release is available.
+          EXTRA_IGNORE=""
+          if [ "${{ matrix.layer }}" = "layer1-ingestion" ]; then
+            EXTRA_IGNORE="--ignore-vuln GHSA-537c-gmf6-5ccf"
+          fi
+          pip-audit --vulnerability-service pypi --ignore-vuln CVE-2025-3000 $EXTRA_IGNORE
         continue-on-error: false
 
       - name: Upload pip-audit report

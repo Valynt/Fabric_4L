@@ -484,11 +484,11 @@ class TestNegativePathContextScenarios:
         Rationale: Expired tokens should not grant access.
         """
         from value_fabric.shared.identity.middleware import decode_jwt
-        from jose import JWTError
+        import jwt as pyjwt
         
         expired_token = "eyJ..."  # Mock expired token
         
-        with pytest.raises(JWTError, match="expired"):
+        with pytest.raises(pyjwt.InvalidTokenError, match="expired"):
             decode_jwt(expired_token)
     
     @pytest.mark.asyncio
@@ -498,11 +498,11 @@ class TestNegativePathContextScenarios:
         Attack scenario: Attacker modifies token payload.
         """
         from value_fabric.shared.identity.middleware import decode_jwt
-        from jose import JWTError
+        import jwt as pyjwt
         
         tampered_token = "eyJ..."  # Mock tampered token
         
-        with pytest.raises(JWTError, match="signature"):
+        with pytest.raises(pyjwt.InvalidTokenError, match="signature"):
             decode_jwt(tampered_token)
     
     @pytest.mark.asyncio

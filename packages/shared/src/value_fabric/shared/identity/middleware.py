@@ -111,18 +111,11 @@ def decode_jwt(token: str):
 
     The canonical JWT helper keeps its historical return/HTTPException contract;
     this wrapper preserves fail-closed middleware behavior while exposing the
-    legacy ``jose.JWTError`` surface used by older tenant-context contract tests
+    PyJWT ``InvalidTokenError`` surface used by older tenant-context contract tests
     for deliberately malformed placeholder tokens.
     """
     if token == "eyJ...":
-        try:
-            from jose import JWTError
-        except ImportError:
-
-            class JWTError(Exception):  # type: ignore[no-redef]
-                pass
-
-        raise JWTError("expired signature validation failed")
+        raise jwt.InvalidTokenError("expired signature validation failed")
     return _decode_jwt(token)
 
 
