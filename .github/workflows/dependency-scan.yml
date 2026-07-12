@@ -118,7 +118,8 @@ jobs:
               for v in entry.get('vulns', []):
                   vuln_id = v.get('id', 'UNKNOWN')
                   sev_str = str(v.get('severity', 'low')).lower()
-                  sev_num = {'low': 3.0, 'medium': 5.0, 'high': 7.5, 'critical': 9.0}.get(sev_str, 0.0)
+                  # GitHub SARIF upload expects security-severity as a string-ified number.
+                  sev_num = {'low': '3.0', 'medium': '5.0', 'high': '7.5', 'critical': '9.0'}.get(sev_str, '0.0')
                   rules.append({
                       'id': vuln_id,
                       'name': vuln_id,

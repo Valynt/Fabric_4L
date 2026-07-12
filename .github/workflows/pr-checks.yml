@@ -642,11 +642,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/  # Errors, warnings, imports, naming, docstrings
-          uv run ruff check --select B src/  # Bugbear (likely bugs)
-          uv run ruff check --select C4 src/  # Comprehensions
-          uv run ruff check --select SIM src/  # Simplifications
-          uv run ruff check --select UP src/  # Pyupgrade
+          uv run ruff check src/
 
       - name: Type check - typed core
         run: |
@@ -793,11 +789,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -866,11 +858,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -978,11 +966,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1046,11 +1030,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1224,11 +1204,7 @@ jobs:
 
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1572,6 +1548,22 @@ jobs:
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
+
+      - name: Create target namespace
+        run: |
+          kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install cert-manager CRDs
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.crds.yaml
+
+      - name: Install External Secrets Operator CRDs
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/v0.9.15/deploy/crds/bundle.yaml
+
+      - name: Install Kyverno (CRDs only)
+        run: |
+          kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
 
       - name: Create required StorageClasses for dry-run
         run: |

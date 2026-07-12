@@ -164,9 +164,8 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
+        ".bundle-stats/stats.json",
         "apps/web/dist",
-        "apps/web/dist/stats.html",
-        "apps/web/dist/stats.json",
         "artifacts/bundle-comment.md"
       ],
       "runtime_budget_minutes": 30,
@@ -311,7 +310,7 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
-        "frontend/${{ matrix.frontend }}/pnpm-audit.json",
+        "apps/web/pnpm-audit.json",
         "pip-audit-${{ matrix.service }}.*",
         "sbom-vuln-track.json"
       ],
