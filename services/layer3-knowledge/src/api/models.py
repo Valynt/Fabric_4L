@@ -25,7 +25,6 @@ from value_fabric.shared.contracts.layer3_statuses import (
 )
 
 from ..services import compat_policy
-from ..services.compat_metrics import get_deprecated_field_usage_counters
 from .compat_aliases import (
     normalize_legacy_aliases,
     serialize_with_aliases,
