@@ -26,9 +26,33 @@ export REPOWISE_API_KEY=<your key>
 |---|---|---|
 | Claude Code | `.mcp.json` (repo root) | Project-scoped `http` server; expands `${REPOWISE_API_KEY}` from the environment |
 | Roo Code | `.roo/mcp.json` | `streamable-http` transport |
-| Gemini CLI | `.gemini/settings.json` | `httpUrl` transport; expands `$REPOWISE_API_KEY` |
-| VS Code / Copilot | `.vscode/mcp.json` (not committed — `.vscode/` is gitignored) | Create locally with a `http` server entry pointing at the URL above |
+| Gemini CLI | `.gemini/settings.json` | `httpUrl` transport; expands `${REPOWISE_API_KEY}` |
+| VS Code / Copilot | `.vscode/mcp.json` (not committed — `.vscode/` is gitignored) | Create locally; example below |
 | Copilot coding agent | Repository **Settings → Copilot → Coding agent → MCP configuration** | Store the key as the `COPILOT_MCP_REPOWISE_API_KEY` Actions secret |
+
+### Example `.vscode/mcp.json` (create locally, not committed)
+
+```json
+{
+  "servers": {
+    "repowise": {
+      "type": "http",
+      "url": "https://api.repowise.dev/mcp/bmsull560/fabric_4l",
+      "headers": {
+        "Authorization": "Bearer ${input:repowise-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "repowise-api-key",
+      "type": "promptString",
+      "description": "Repowise API key",
+      "password": true
+    }
+  ]
+}
+```
 
 ## Tools exposed
 
