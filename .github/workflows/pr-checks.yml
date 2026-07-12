@@ -2271,7 +2271,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2.4.0
+        uses: pnpm/action-setup@v3
 
       - name: Get pnpm store directory
         id: pnpm-cache

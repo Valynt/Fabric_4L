@@ -271,7 +271,7 @@ jobs:
         with:
           node-version: "22.18.0"
       - name: Install pnpm
-        uses: pnpm/action-setup@v2.4.0
+        uses: pnpm/action-setup@v3
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check canonical gate artifact paths
