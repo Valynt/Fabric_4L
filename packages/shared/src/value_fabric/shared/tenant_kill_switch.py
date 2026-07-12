@@ -45,6 +45,11 @@ SUSPENDED_TENANTS_SET = "tenant_kill_switch:suspended"
 # TTL for individual entries (seconds) — auto-expire to avoid stale blocks
 SUSPENDED_ENTRY_TTL_SECONDS = 300  # 5 minutes
 
+try:
+    from redis.asyncio.client import Redis as _AsyncRedis
+except Exception:  # pragma: no cover - optional runtime dependency
+    _AsyncRedis = type(None)
+
 
 class TenantSuspensionStatus(enum.Enum):
     """Tri-state result of a kill-switch lookup.
@@ -128,16 +133,24 @@ class TenantKillSwitch:
             )
             return TenantSuspensionStatus.UNKNOWN
         try:
-            # Support both sync and async Redis clients. Sync clients are run in
-            # a thread so they do not block the asyncio event loop; async clients
-            # are awaited directly. This keeps the kill-switch usable across
-            # event-loop boundaries (e.g., multiple TestClient instances in tests).
-            if asyncio.iscoroutinefunction(self._redis.sismember):
+            # redis.asyncio.Redis command methods are not coroutine functions, but
+            # the objects they return are awaitable. Sync redis.Redis methods block
+            # on I/O, so run them in a thread to avoid blocking the event loop.
+            # Test stubs and custom adapters may expose sismember as a true
+            # coroutine function, so detect that case directly.
+            if isinstance(self._redis, _AsyncRedis) or inspect.iscoroutinefunction(
+                self._redis.sismember
+            ):
                 result = await self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
             else:
                 result = await asyncio.to_thread(
                     self._redis.sismember, SUSPENDED_TENANTS_SET, str(tenant_id)
                 )
+            # If a sync-compatible method still returned a coroutine (e.g. a
+            # callable that is not marked as a coroutine function but returns one),
+            # await it before interpreting the boolean value.
+            if inspect.isawaitable(result):
+                result = await result
             return (
                 TenantSuspensionStatus.SUSPENDED
                 if bool(result)

@@ -762,10 +762,8 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 if self._rate_limiter is not None
                 else self._redis_client
             )
-            print(f"DEBUG _enforce_tenant_status rate_limiter={self._rate_limiter} redis_client={redis_client}")
             kill_switch = TenantKillSwitch(redis_client)
             ks_status = await kill_switch.check_status(str(ctx.tenant_id))
-            print(f"DEBUG _enforce_tenant_status ks_status={ks_status}")
             if ks_status == TenantSuspensionStatus.SUSPENDED:
                 tenant_status = "suspended"
             elif ks_status == TenantSuspensionStatus.UNKNOWN:
