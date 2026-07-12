@@ -48,6 +48,14 @@ try:
 except ImportError:
     jwt = None  # type: ignore
 
+
+class _FallbackInvalidTokenError(ValueError):
+    """Fallback InvalidTokenError-compatible exception when PyJWT is unavailable."""
+
+
+def _invalid_token_error_cls():
+    return jwt.InvalidTokenError if jwt is not None else _FallbackInvalidTokenError
+
 try:
     import redis.asyncio as redis_async
 
@@ -121,9 +129,7 @@ def decode_jwt(token: str):
     for deliberately malformed placeholder tokens.
     """
     if token == "eyJ...":
-        if jwt is None:
-            raise ValueError("expired signature validation failed")
-        raise jwt.InvalidTokenError("expired signature validation failed")
+        raise _invalid_token_error_cls()("expired signature validation failed")
     return _decode_jwt(token)
 
 

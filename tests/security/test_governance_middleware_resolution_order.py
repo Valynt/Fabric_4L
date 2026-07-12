@@ -116,6 +116,14 @@ class TestJWTDecodingSecurity:
 
         assert "expired signature validation failed" in str(exc_info.value)
 
+    def test_jwt_decode_placeholder_token_raises_compatible_error_without_pyjwt(self):
+        """NEGATIVE: Placeholder token should still raise InvalidTokenError-compatible error when jwt is unavailable."""
+        from value_fabric.shared.identity import middleware
+
+        with patch("value_fabric.shared.identity.middleware.jwt", None):
+            with pytest.raises(middleware._FallbackInvalidTokenError, match="expired signature validation failed"):
+                decode_jwt("eyJ...")
+
     def test_extract_context_from_jwt_validates_tenant_id(self):
         """POSITIVE: extract_context_from_jwt should validate tenant_id presence."""
         with pytest.raises(ValueError) as exc_info:
