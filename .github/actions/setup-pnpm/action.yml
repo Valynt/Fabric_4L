@@ -1,15 +1,11 @@
 name: 'Setup Node.js + pnpm'
-description: 'Install the canonical Node.js and pnpm versions used across Fabric 4L workflows.'
+description: 'Install the canonical Node.js and pnpm versions used across Fabric 4L workflows, deriving the pnpm version from packageManager.'
 
 inputs:
   node-version:
     description: 'Node.js version to install'
     required: false
     default: '22.13.0'
-  pnpm-version:
-    description: 'pnpm version to install'
-    required: false
-    default: '10.34.5'
   cache:
     description: 'Package manager to cache (npm, yarn, pnpm) or empty'
     required: false
@@ -25,7 +21,6 @@ runs:
     - name: Setup pnpm
       uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       with:
-        version: ${{ inputs.pnpm-version }}
         run_install: false
 
     - name: Setup Node.js

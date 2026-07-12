@@ -275,7 +275,6 @@ jobs:
         uses: ./.github/actions/setup-pnpm
         with:
           node-version: '22.13.0'
-          pnpm-version: '10.34.5'
 
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile
