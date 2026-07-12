@@ -110,6 +110,7 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     strategy:
+      fail-fast: false
       matrix:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 

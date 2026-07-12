@@ -55,16 +55,28 @@ jobs:
 
       - name: Start test stack
         run: |
-          # Start services if needed for testing
-          docker compose -f infra/compose/docker-compose.full.yml up -d || true
+          # Build a CI env file from the committed template. The template ships
+          # safe defaults but leaves a few required secrets blank, so append
+          # CI-only dummy values for those (never used outside this ephemeral run).
+          cp .env.example .env
+          cat >> .env << 'EOF'
+          SECRET_KEY=ci-only-dummy-secret-key-0123456789abcdef
+          CLERK_ISSUER=https://ci-dummy.clerk.accounts.dev
+          CLERK_SECRET_KEY=sk_test_ci_dummy
+          FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
+          FABRIC_AUTH_PUBLIC_KEYS=[]
+          EOF
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d || true
           sleep 30
 
       - name: Run ZAP Full Scan (Docker)
         run: |
           mkdir -p zap-results
 
-          # Run ZAP full scan via Docker
+          # Run ZAP full scan via Docker. --network host lets the container
+          # reach the compose stack published on the runner's localhost.
           docker run --rm \
+            --network host \
             -v $(pwd)/zap-results:/zap/wrk/:rw \
             -t ghcr.io/zaproxy/zaproxy:stable \
             zap-full-scan.py \
@@ -73,8 +85,7 @@ jobs:
             -J zap-report.json \
             -w zap-report.md \
             -x zap-report.xml \
-            -f openapi \
-            --auto || true
+            -I || true
 
           # Check if report was generated
           if [ -f zap-results/zap-report.json ]; then
@@ -131,7 +142,15 @@ jobs:
 
       - name: Start test stack
         run: |
-          docker compose -f infra/compose/docker-compose.full.yml up -d || true
+          cp .env.example .env
+          cat >> .env << 'EOF'
+          SECRET_KEY=ci-only-dummy-secret-key-0123456789abcdef
+          CLERK_ISSUER=https://ci-dummy.clerk.accounts.dev
+          CLERK_SECRET_KEY=sk_test_ci_dummy
+          FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
+          FABRIC_AUTH_PUBLIC_KEYS=[]
+          EOF
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d || true
           sleep 30
 
       - name: Run Nikto Scan

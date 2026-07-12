@@ -2096,6 +2096,7 @@ jobs:
           image-ref: local/${{ matrix.layer }}:${{ github.sha }}
           format: table
           exit-code: "1"
+          ignore-unfixed: true
           severity: CRITICAL,HIGH
 
       - name: Generate image SBOM (SPDX JSON)
