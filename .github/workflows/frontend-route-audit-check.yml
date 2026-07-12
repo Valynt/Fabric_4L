@@ -34,10 +34,12 @@ jobs:
           python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
       - name: Enable pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-      - name: Run router contract gate
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate      - name: Run router contract gate
         run: pnpm test:router
       - name: Upload route audit artifact
         if: always()

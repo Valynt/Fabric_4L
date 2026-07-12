@@ -274,13 +274,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
 
       - name: Enable pnpm
         run: |
+          npm install -g corepack@latest
           corepack enable
           corepack prepare pnpm@10.18.1 --activate
-
       - name: Generate evidence bundle
         run: pnpm evidence:bundle -- --release-sha "${{ github.sha }}"
 

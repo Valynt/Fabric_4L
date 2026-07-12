@@ -109,13 +109,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -164,13 +166,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -225,13 +229,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
       - name: Install frontend dependencies
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
@@ -274,13 +280,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
       - name: Install plugin
         working-directory: packages/eslint-plugin-fabric-contracts
         run: pnpm install --frozen-lockfile && pnpm run build
@@ -318,13 +326,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
       - name: Install Python contract test dependencies
         run: pip install -r packages/platform-contract/requirements-test.txt
 
@@ -685,7 +695,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
 
       - name: Validate deprecations.json schema
         run: |
