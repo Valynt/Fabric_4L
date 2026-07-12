@@ -10,15 +10,15 @@ Note: Query param fallback was removed in P0 fix (self._allow_query_param = Fals
 Tests focus on actual middleware implementation patterns.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from fastapi import Request, HTTPException
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException, Request
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
-    decode_jwt,
     _is_external_auth_bootstrap_path,
+    decode_jwt,
     extract_context_from_jwt,
 )
 
@@ -92,7 +92,7 @@ class TestJWTDecodingSecurity:
         """POSITIVE: JWT decode should verify signature."""
         with patch("value_fabric.shared.identity.middleware._decode_jwt") as mock_decode:
             mock_decode.return_value = {"tenant_id": str(uuid4())}
-            
+
             result = decode_jwt("valid-token")
             mock_decode.assert_called_once_with("valid-token")
             assert result is not None
@@ -103,7 +103,7 @@ class TestJWTDecodingSecurity:
 
         with patch("value_fabric.shared.identity.middleware._decode_jwt") as mock_decode:
             mock_decode.side_effect = pyjwt.InvalidTokenError("Token expired")
-            
+
             with pytest.raises(pyjwt.InvalidTokenError):
                 decode_jwt("expired-token")
 
@@ -113,14 +113,14 @@ class TestJWTDecodingSecurity:
 
         with pytest.raises(pyjwt.InvalidTokenError) as exc_info:
             decode_jwt("eyJ...")
-        
+
         assert "expired signature validation failed" in str(exc_info.value)
 
     def test_extract_context_from_jwt_validates_tenant_id(self):
         """POSITIVE: extract_context_from_jwt should validate tenant_id presence."""
         with pytest.raises(ValueError) as exc_info:
             extract_context_from_jwt({})
-        
+
         assert "tenant_id is required" in str(exc_info.value)
 
     def test_extract_context_from_jwt_validates_user_id_format(self):
@@ -129,10 +129,10 @@ class TestJWTDecodingSecurity:
             "tenant_id": str(uuid4()),
             "sub": "invalid-uuid-format",
         }
-        
+
         with pytest.raises(ValueError) as exc_info:
             extract_context_from_jwt(payload)
-        
+
         assert "Invalid user_id" in str(exc_info.value)
 
     def test_extract_context_from_jwt_limits_permissions_count(self):
@@ -141,10 +141,10 @@ class TestJWTDecodingSecurity:
             "tenant_id": str(uuid4()),
             "permissions": ["perm" + str(i) for i in range(1025)],  # Exceeds limit
         }
-        
+
         with pytest.raises(ValueError) as exc_info:
             extract_context_from_jwt(payload)
-        
+
         assert "Too many permissions" in str(exc_info.value)
 
 class TestGovernanceMiddlewareFailureModes:
@@ -209,9 +209,10 @@ class TestGovernanceMiddlewareDispatch:
         return app
 
     @pytest.mark.asyncio
-    async def test_public_path_bypasses_auth(self):
+    async def test_public_path_skips_authentication(self):
         """POSITIVE: /health bypasses authentication via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         async def mock_app(scope, receive, send):
@@ -235,6 +236,7 @@ class TestGovernanceMiddlewareDispatch:
     async def test_missing_credentials_returns_401(self):
         """NEGATIVE: Missing auth header on protected path → 401 via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
@@ -256,6 +258,7 @@ class TestGovernanceMiddlewareDispatch:
     async def test_invalid_jwt_returns_401(self):
         """NEGATIVE: Invalid JWT token → 401 via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)

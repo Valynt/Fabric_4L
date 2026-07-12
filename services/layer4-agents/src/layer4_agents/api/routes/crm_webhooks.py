@@ -1,22 +1,12 @@
-from __future__ import annotations
-
-import asyncio
-
-from value_fabric.shared.error_handling.exceptions import (
-    AuthenticationError,
-    AuthorizationError,
-    NotFoundError,
-    ValidationError,
-)
-
-"""
-CRM Webhook handlers for real-time updates from Salesforce and HubSpot.
+"""CRM Webhook handlers for real-time updates from Salesforce and HubSpot.
 
 Handles push notifications when accounts are created/updated in CRM,
 triggering immediate sync to keep Account records fresh.
 """
 
+from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -38,6 +28,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.error_handling import sanitize_log_error
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.probes import normalize_probe_payload
 
@@ -520,8 +516,10 @@ async def salesforce_webhook(
     except asyncio.CancelledError:
         raise
     except Exception as e:
-        logger.warning("Salesforce webhook received invalid payload", extra={"error_code": "WEBHOOK_PARSE_ERROR", "error": sanitize_log_error(e), "body_preview": body[:200].decode(errors='replace')})
-        data = {"raw_body": body.decode(errors='replace'), "parse_error": "Webhook payload parse failed"}
+        from value_fabric.shared.security.redaction import redact_credentials
+        body_preview = redact_credentials(body[:200].decode(errors='replace'))
+        logger.warning("Salesforce webhook received invalid payload", extra={"error_code": "WEBHOOK_PARSE_ERROR", "error": sanitize_log_error(e), "body_preview": body_preview})
+        data = {"raw_body": redact_credentials(body.decode(errors='replace')), "parse_error": "Webhook payload parse failed"}
 
     # Extract record info from Salesforce payload
     # Platform events: {"data": {"payload": {"RecordId": "...", "ChangeEventHeader": {...}}}}
@@ -789,7 +787,7 @@ async def hubspot_webhook(
     except asyncio.CancelledError:
         raise
     except Exception as e:
-        logger.warning(f"HubSpot webhook received invalid payload: {e}")
+        logger.warning("HubSpot webhook received invalid payload: %s", sanitize_log_error(e))
         raise ValidationError(message = "Invalid JSON payload") from e
     _validate_webhook_metadata(
         provider=CRMProvider.HUBSPOT,

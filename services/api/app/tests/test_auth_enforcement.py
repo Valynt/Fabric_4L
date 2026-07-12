@@ -18,15 +18,21 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
 from fastapi.testclient import TestClient
-import jwt
 
 from app.core.config import get_settings
 from app.core.security import decode_token, revoke_token
 from app.main import app
 
-from .conftest import TENANT_ALPHA, TENANT_BETA, TEST_AUDIENCE, TEST_ISSUER, auth_headers, mint_token
+from .conftest import (
+    TENANT_ALPHA,
+    TENANT_BETA,
+    TEST_AUDIENCE,
+    TEST_ISSUER,
+    mint_token,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -244,7 +250,7 @@ class TestMetricsAccess:
             f"got {response.status_code}."
         )
 
-    def test_metrics_dev_bypass_allows_unauthenticated(
+    def test_metrics_dev_mode_allows_unauthenticated_access(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Explicitly enabling the dev bypass permits unauthenticated /metrics access."""
@@ -256,7 +262,7 @@ class TestMetricsAccess:
         with TestClient(app) as client:
             response = client.get("/metrics")
         assert response.status_code == 200, (
-            f"Dev bypass should allow unauthenticated /metrics access, "
+            f"Dev mode should allow unauthenticated /metrics access, "
             f"got {response.status_code}"
         )
 
@@ -365,8 +371,9 @@ class TestTenantClaimRequired:
 
 
 def test_revoked_token_returns_401() -> None:
-    from app.core.security import decode_token
     import hashlib
+
+    from app.core.security import decode_token
 
     token = mint_token(tenant_id=TENANT_ALPHA)
     payload = decode_token(token)
@@ -389,7 +396,7 @@ def test_revoked_token_returns_401() -> None:
 
 def test_cross_tenant_token_header_misuse_blocked() -> None:
     """Verify that X-Tenant-ID header must match JWT tenant claim.
-    
+
     When a JWT contains tenant=ALPHA but the X-Tenant-ID header says BETA,
     the request should be rejected with 403 to prevent tenant isolation bypass.
     This ensures that header spoofing cannot be used to access other tenants' data.

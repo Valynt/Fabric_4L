@@ -15,9 +15,7 @@ The tests are now split into:
     path still works in development mode (regression guard)
 """
 
-import os
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -109,7 +107,7 @@ def test_metrics_with_x_prometheus_scrape_token_returns_200(monkeypatch):
         assert response.status_code == 200
 
 
-def test_metrics_dev_bypass_allows_unauthenticated(monkeypatch):
+def test_metrics_dev_mode_allows_unauthenticated_access(monkeypatch):
     """In development mode with ALLOW_INSECURE_DEV_AUTH_BYPASS set to true,
     unauthenticated /metrics access must succeed (regression guard for the dev
     bypass path).
@@ -125,6 +123,6 @@ def test_metrics_dev_bypass_allows_unauthenticated(monkeypatch):
         client.get("/health")
         response = client.get("/metrics")
         assert response.status_code == 200, (
-            f"Dev bypass should allow unauthenticated /metrics access, "
+            f"Dev mode should allow unauthenticated /metrics access, "
             f"got {response.status_code}"
         )

@@ -6,16 +6,16 @@ import os
 import re
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 import httpx
 import jwt
 from fastapi import HTTPException, status
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from .models import TokenClaims
 from .permissions import normalize_role_claims
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class get_jwksResult(TypedDictModel):
@@ -90,7 +90,7 @@ def _configured_clerk_authorized_parties() -> set[str]:
     }
 
 
-def _clerk_authorized_party_allowed(payload: Dict[str, Any]) -> bool:
+def _clerk_authorized_party_allowed(payload: dict[str, Any]) -> bool:
     allowed_parties = _configured_clerk_authorized_parties()
     if not allowed_parties:
         return True
@@ -164,7 +164,7 @@ def _get_revoked_kids() -> set[str]:
     return {kid.strip() for kid in os.getenv("JWT_REVOKED_KIDS", "").split(",") if kid.strip()}
 
 
-def _build_keyset() -> Dict[str, Any]:
+def _build_keyset() -> dict[str, Any]:
     algorithm = _get_jwt_algorithm()
     active_kid = os.getenv("JWT_ACTIVE_KID", "active").strip() or "active"
     previous_kid = os.getenv("JWT_PREVIOUS_KID", "").strip()
@@ -193,7 +193,7 @@ def _build_keyset() -> Dict[str, Any]:
     raise RuntimeError(f"Unsupported JWT_ALGORITHM: {algorithm}")
 
 
-def get_jwks() -> Dict[str, Any]:
+def get_jwks() -> dict[str, Any]:
     keyset = _build_keyset()
     alg = keyset["algorithm"]
     if alg not in {"RS256", "ES256"}:
@@ -209,13 +209,13 @@ def get_jwks() -> Dict[str, Any]:
     return get_jwksResult.model_validate({"keys": keys})
 
 
-_JWKS_URL_CACHE: Dict[str, Any] = {}
-_JWKS_URL_CACHE_EXPIRY: Dict[str, float] = {}
+_JWKS_URL_CACHE: dict[str, Any] = {}
+_JWKS_URL_CACHE_EXPIRY: dict[str, float] = {}
 _JWKS_URL_CACHE_TTL_SECONDS = 300  # 5 minutes
 _JWKS_URL_CACHE_LOCK = threading.Lock()
 
 
-def _fetch_jwks_from_url(url: str) -> Optional[Dict[str, Any]]:
+def _fetch_jwks_from_url(url: str) -> dict[str, Any] | None:
     """Fetch JWKS from a URL with thread-safe in-memory caching."""
     now = time.time()
     with _JWKS_URL_CACHE_LOCK:
@@ -238,7 +238,7 @@ def _fetch_jwks_from_url(url: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _build_keycloak_jwks_url() -> Optional[str]:
+def _build_keycloak_jwks_url() -> str | None:
     """Build Keycloak JWKS URL from KEYCLOAK_URL and KEYCLOAK_REALM."""
     keycloak_url = os.getenv("KEYCLOAK_URL", "").strip().rstrip("/")
     realm = os.getenv("KEYCLOAK_REALM", _DEFAULT_KEYCLOAK_REALM).strip()
@@ -247,7 +247,7 @@ def _build_keycloak_jwks_url() -> Optional[str]:
     return None
 
 
-def _find_key_in_jwks(jwks: Dict[str, Any], kid: str) -> Optional[Any]:
+def _find_key_in_jwks(jwks: dict[str, Any], kid: str) -> Any | None:
     """Return the PyJWT algorithm key object for the given kid, or None.
 
     Returns None (rather than raising) for unknown algorithms, malformed key
@@ -269,14 +269,14 @@ def _find_key_in_jwks(jwks: Dict[str, Any], kid: str) -> Optional[Any]:
     return None
 
 
-def _resolve_external_key(header: Dict[str, Any], issuer: str) -> Optional[Any]:
+def _resolve_external_key(header: dict[str, Any], issuer: str) -> Any | None:
     kid = header.get("kid")
     if not kid:
         return None
     if kid in _get_revoked_kids():
         return None
 
-    jwks: Optional[Dict[str, Any]] = None
+    jwks: dict[str, Any] | None = None
 
     # Try static JWKS JSON first (no network, no cache invalidation needed).
     # If OIDC_JWKS_JSON is set but invalid, fail closed immediately — do NOT
@@ -355,7 +355,7 @@ def _resolve_external_key(header: Dict[str, Any], issuer: str) -> Optional[Any]:
     return None
 
 
-def decode_jwt(token: str) -> Optional[TokenClaims]:
+def decode_jwt(token: str) -> TokenClaims | None:
     tenant_claim = os.getenv("JWT_TENANT_CLAIM", _DEFAULT_TENANT_CLAIM)
     user_claim = os.getenv("JWT_USER_CLAIM", _DEFAULT_USER_CLAIM)
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
@@ -388,37 +388,28 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                 "verify_nbf": False,
             },
         )
-        print(f"DEBUG decode_jwt header={header} unverified={unverified}")
         header_alg = str(header.get("alg", "")).strip().upper()
         if not header_alg:
-            print("DEBUG decode_jwt return: no header_alg")
             return None
         issuer = unverified.get("iss")
         if any(unverified.get(claim) in (None, "") for claim in _REQUIRED_REGISTERED_CLAIMS):
-            print(f"DEBUG decode_jwt return: missing required claim")
             return None
         audience = oidc_audience if oidc_issuer and issuer == oidc_issuer else internal_audience
         expected_issuer = oidc_issuer if oidc_issuer and issuer == oidc_issuer else internal_issuer
-        print(f"DEBUG decode_jwt audience={audience} expected_issuer={expected_issuer}")
 
         if expected_issuer is not None and issuer != expected_issuer:
-            print(f"DEBUG decode_jwt return: issuer mismatch")
             return None
 
         kid = header.get("kid")
         if kid and kid in _get_revoked_kids():
-            print(f"DEBUG decode_jwt return: kid revoked")
             return None
 
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
         if expected_issuer == oidc_issuer:
-            print(f"DEBUG decode_jwt: OIDC path")
             if header_alg not in _ALLOWED_EXTERNAL_ALGORITHMS:
-                print(f"DEBUG decode_jwt return: external alg not allowed")
                 return None
             verify_key = _resolve_external_key(header, issuer)
             if verify_key is None:
-                print(f"DEBUG decode_jwt return: no external key")
                 return None
             payload = jwt.decode(
                 token,
@@ -436,17 +427,13 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                 },
             )
             if _is_clerk_issuer(expected_issuer) and not _clerk_authorized_party_allowed(payload):
-                print(f"DEBUG decode_jwt return: clerk azp rejected")
                 return None
         else:
-            print(f"DEBUG decode_jwt: internal path")
             keyset = _build_keyset()
             algorithm = keyset["algorithm"]
-            print(f"DEBUG decode_jwt keyset alg={algorithm} header_alg={header_alg}")
             if header_alg != algorithm:
-                print(f"DEBUG decode_jwt return: alg mismatch")
                 return None
-            decode_kwargs: Dict[str, Any] = {
+            decode_kwargs: dict[str, Any] = {
                 "algorithms": [algorithm],
                 "audience": audience,
                 "issuer": expected_issuer,
@@ -463,35 +450,27 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
             if kid and kid in verify_keys:
                 candidates = [verify_keys[kid]]
             elif kid and kid not in verify_keys:
-                print(f"DEBUG decode_jwt return: kid not in keys")
                 return None
             else:
                 candidates = list(verify_keys.values())
-            print(f"DEBUG decode_jwt candidates={candidates}")
             payload = None
             for key in candidates:
                 try:
                     payload = jwt.decode(token, key, **decode_kwargs)
-                    print(f"DEBUG decode_jwt decoded with key={key}")
                     break
                 except jwt.ExpiredSignatureError:
                     raise
-                except jwt.InvalidTokenError as e:
-                    print(f"DEBUG decode_jwt invalid token error: {e}")
+                except jwt.InvalidTokenError:
                     continue
             if payload is None:
-                print(f"DEBUG decode_jwt return: payload None")
                 return None
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.", headers={"WWW-Authenticate": "Bearer"})
     except jwt.InvalidTokenError:
-        print(f"DEBUG decode_jwt return: invalid token error outer")
         return None
 
     raw_tenant = payload.get(tenant_claim)
-    print(f"DEBUG decode_jwt payload={payload} raw_tenant={raw_tenant}")
     if not raw_tenant:
-        print(f"DEBUG decode_jwt return: no tenant")
         return None
     try:
         tenant_id: UUID | str = UUID(str(raw_tenant))
@@ -516,7 +495,7 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
         tenant_claim, user_claim, roles_claim, org_claim, workspace_claim,
         "role", "exp", "iat", "jti", "api_key_id", "email", "name", "impersonator_id",
     }
-    extra: Dict[str, Any] = {k: v for k, v in payload.items() if k not in standard_claims}
+    extra: dict[str, Any] = {k: v for k, v in payload.items() if k not in standard_claims}
 
     return TokenClaims(
         sub=payload.get(user_claim, ""),
@@ -537,10 +516,10 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
 def encode_jwt(
     tenant_id: UUID,
     *,
-    user_id: Optional[str] = None,
-    roles: Optional[List[str]] = None,
-    api_key_id: Optional[str] = None,
-    extra_claims: Optional[dict] = None,
+    user_id: str | None = None,
+    roles: list[str] | None = None,
+    api_key_id: str | None = None,
+    extra_claims: dict | None = None,
     expires_in_seconds: int = 3600,
 ) -> str:
     keyset = _build_keyset()
@@ -587,7 +566,7 @@ class ServiceJwtClaims(TypedDictModel):
     iss: str
 
 
-def _get_service_auth_secret() -> Optional[str]:
+def _get_service_auth_secret() -> str | None:
     return os.getenv("SERVICE_AUTH_SECRET", "").strip() or None
 
 
@@ -597,7 +576,7 @@ def encode_service_jwt(
     aud: str,
     *,
     expires_in_seconds: int = 300,
-) -> Optional[str]:
+) -> str | None:
     """Sign a service-to-service JWT using SERVICE_AUTH_SECRET.
 
     Returns None when SERVICE_AUTH_SECRET is not configured.
@@ -618,7 +597,7 @@ def encode_service_jwt(
     return jwt.encode(payload, secret, algorithm=_S2S_ALGORITHM)
 
 
-def decode_service_jwt(token: str, expected_audience: Optional[str] = None) -> Optional[ServiceJwtClaims]:
+def decode_service_jwt(token: str, expected_audience: str | None = None) -> ServiceJwtClaims | None:
     """Verify a service-to-service JWT signed with SERVICE_AUTH_SECRET.
 
     Returns None for invalid, expired, or malformed tokens.

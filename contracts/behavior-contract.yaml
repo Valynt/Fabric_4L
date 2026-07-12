@@ -699,7 +699,7 @@ capabilities:
     expected_failure_mode: "401 with stable error code; public paths bypass auth"
     allowed:
       file: tests/security/test_governance_middleware_resolution_order.py
-      test: test_public_path_bypasses_auth
+      test: test_public_path_skips_authentication
     denied:
       file: tests/security/test_governance_middleware_resolution_order.py
       test: test_missing_credentials_returns_401

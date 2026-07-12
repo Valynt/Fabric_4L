@@ -39,8 +39,21 @@ def redact_pii(text: str) -> str:
 
 
 def pii_summary(text: str) -> dict:
-    """Return a summary of PII findings for ingestion job UI."""
+    """Return a summary of PII findings for ingestion job UI.
+
+    Findings are returned with type and position but the raw matched value is
+    replaced with a placeholder to avoid leaking sensitive data in API responses.
+    """
     findings = detect_pii(text)
+    redacted_findings = [
+        {
+            "type": f["type"],
+            "start": f["start"],
+            "end": f["end"],
+            "value": f"[REDACTED-{f['type'].upper()}]",
+        }
+        for f in findings
+    ]
     counts: dict[str, int] = {}
     for f in findings:
         counts[f["type"]] = counts.get(f["type"], 0) + 1
@@ -48,5 +61,5 @@ def pii_summary(text: str) -> dict:
         "has_pii": len(findings) > 0,
         "total_findings": len(findings),
         "counts": counts,
-        "findings": findings,
+        "findings": redacted_findings,
     }

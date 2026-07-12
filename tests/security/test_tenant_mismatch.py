@@ -51,13 +51,11 @@ def _mismatch_app():
     """Minimal FastAPI app backed by real GovernanceMiddleware."""
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
-    print("DEBUG _mismatch_app fixture creating app")
     app = FastAPI()
     app.add_middleware(GovernanceMiddleware, rate_limiter=None)
 
     @app.get("/api/v1/entities")
     def entities(request: Request):
-        print(f"DEBUG _mismatch_app route handler called, ctx={getattr(request.state, 'governance_context', None)}")
         ctx = getattr(request.state, "governance_context", None)
         if ctx is None:
             raise HTTPException(status_code=401, detail="Unauthenticated")

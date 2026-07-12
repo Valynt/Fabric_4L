@@ -18,7 +18,7 @@
 
 ### First-time setup
 
-Use the same canonical command map as human contributors: [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) defines when to use `make`, `pnpm`, or direct Python CI runners, [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) lists every public root script and Makefile target, and [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) routes issue types to source-of-truth files, drift checks, validation commands, and evidence.
+Use the same canonical command map as human contributors: [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) defines when to use `make`, `pnpm`, or direct Python CI runners, [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) lists every public root script and Makefile target, [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) routes issue types to source-of-truth files, drift checks, validation commands, and evidence, and [`docs/development/TROUBLESHOOTING.md`](docs/development/TROUBLESHOOTING.md) explains how to recover from the most common gate failures.
 
 ```bash
 # 1. Clone and install tooling
@@ -328,6 +328,7 @@ monitoring/                  Observability configuration
 | `DESIGN.md` | **Required reading** before modifying `apps/web/` |
 | `docs/contract.md` | Canonical platform contract (tenant context, middleware, agent output shape) |
 | `docs/development/DISCOVERY_MAP.md` | Issue-to-implementation routing map for source-of-truth files, drift checks, validation, and evidence |
+| `docs/development/TROUBLESHOOTING.md` | Common gate failures and how to recover from them |
 | `docs/governance.md` | Engineering governance entry points |
 | `canonical-paths-policy.md` | Runtime path governance matrix |
 | `.env.example` | All required environment variables with safe defaults |
@@ -1141,6 +1142,7 @@ Optimize for long-term platform integrity over short-term patching.
 
 - [Agent Architecture](docs/AGENTS.md)
 - [Development Discovery Map](docs/development/DISCOVERY_MAP.md)
+- [Developer Troubleshooting Guide](docs/development/TROUBLESHOOTING.md)
 - [Frontend Governance Contract](DESIGN.md) — required reading before modifying `apps/web/`
 - [Layer 4 Agents Service](services/layer4-agents/README.md)
 - [ADR-002: Six-Layer Architecture](docs/explanations/adr/ADR-002-six-layer-architecture.md)

@@ -31,6 +31,7 @@ _os.environ["ENV"] = "development"
 _os.environ["DEBUG"] = "false"
 
 import secrets
+from collections import deque
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
@@ -47,6 +48,10 @@ from app.routers import accounts as _accounts_mod
 # Must be at least 32 bytes for HMAC-SHA256 security
 TEST_SECRET = "fabric-dev-secret-key-32bytes-ok"
 TEST_ALGORITHM = "HS256"
+
+# Bounded buffer for async Redis client close tasks created during fixture cleanup.
+# Keeps references so coroutines are not garbage-collected before they run.
+_CLOSE_TASKS: deque = deque(maxlen=100)
 TEST_ISSUER = "value-fabric-internal"
 TEST_AUDIENCE = "value-fabric-services"
 
@@ -62,7 +67,9 @@ _os.environ.setdefault(
 )  # Disable seeding to avoid tenant context issues
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
 _os.environ.setdefault("SECRET_KEY", TEST_SECRET)
-_os.environ.setdefault("JWT_SECRET", TEST_SECRET)
+# Force a consistent JWT secret for API tests so upstream test modules cannot
+# pollute the signing key used by mint_token() and the app under test.
+_os.environ["JWT_SECRET"] = TEST_SECRET
 _os.environ.setdefault("JWT_ALGORITHM", TEST_ALGORITHM)
 _os.environ.setdefault("JWT_ISSUER", TEST_ISSUER)
 _os.environ.setdefault("JWT_AUDIENCE", TEST_AUDIENCE)
@@ -124,7 +131,7 @@ def _reset_rate_limiter_loop_binding() -> None:
 
                     loop = asyncio.get_running_loop()
                     if loop.is_running():
-                        asyncio.create_task(old_client.close())
+                        _CLOSE_TASKS.append(asyncio.create_task(old_client.close()))
                 except RuntimeError:
                     pass
         except Exception:

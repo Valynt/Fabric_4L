@@ -4,17 +4,20 @@ from uuid import uuid4
 
 import pytest
 
-from ..context import AUTH_SOURCE_JWT, RequestContext, RequestContextManager
-from ..dependencies import require_admin, require_super_admin
+from ..context import (
+    AUTH_SOURCE_JWT,
+    AUTH_SOURCE_UNKNOWN,
+    RequestContext,
+)
+from ..dependencies import require_admin, require_authenticated, require_super_admin
 from ..permissions import Permission, Role
-
 
 _TENANT = uuid4()
 
 
 def _admin_ctx(**kwargs):
     """Build a RequestContext with a valid auth source for admin tests."""
-    defaults = dict(tenant_id=_TENANT, auth_source=AUTH_SOURCE_JWT)
+    defaults = dict(tenant_id=_TENANT, auth_source=AUTH_SOURCE_JWT, user_id="admin-user")
     defaults.update(kwargs)
     return RequestContext(**defaults)
 
@@ -131,4 +134,51 @@ class TestRequireSuperAdmin:
     async def test_unauthenticated_is_rejected(self):
         with pytest.raises(Exception) as exc_info:
             await require_super_admin(context=None)
+        assert exc_info.value.status_code == 401
+
+
+class TestRequireAuthenticated:
+    """Regression tests for require_authenticated split responsibility."""
+
+    @pytest.mark.asyncio
+    async def test_valid_jwt_context_succeeds(self):
+        ctx = RequestContext(
+            tenant_id=_TENANT,
+            auth_source=AUTH_SOURCE_JWT,
+            user_id="user-123",
+        )
+        result = await require_authenticated(context=ctx)
+        assert result is ctx
+
+    @pytest.mark.asyncio
+    async def test_missing_auth_source_is_rejected(self):
+        ctx = RequestContext(
+            tenant_id=_TENANT, user_id="user-123", auth_source=AUTH_SOURCE_UNKNOWN
+        )
+        with pytest.raises(Exception) as exc_info:
+            await require_authenticated(context=ctx)
+        assert exc_info.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_context_without_tenant_passes_authenticated_gate(self):
+        """require_authenticated validates auth_source/principal, not tenant."""
+        ctx = RequestContext(auth_source=AUTH_SOURCE_JWT, user_id="user-123")
+        result = await require_authenticated(context=ctx)
+        assert result is ctx
+
+    @pytest.mark.asyncio
+    async def test_context_without_tenant_is_rejected_by_require_tenant(self):
+        """Tenant presence is enforced by require_tenant_context, not require_authenticated."""
+        from ..dependencies import require_tenant_context
+
+        ctx = RequestContext(auth_source=AUTH_SOURCE_JWT, user_id="user-123")
+        with pytest.raises(Exception) as exc_info:
+            await require_tenant_context(context=ctx)
+        assert exc_info.value.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_context_without_principal_is_rejected(self):
+        ctx = RequestContext(tenant_id=_TENANT, auth_source=AUTH_SOURCE_JWT)
+        with pytest.raises(Exception) as exc_info:
+            await require_authenticated(context=ctx)
         assert exc_info.value.status_code == 401

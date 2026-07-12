@@ -61,6 +61,8 @@ _SECRET_ASSIGNMENT_PATTERN = re.compile(
 )
 _EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+_PHONE_PATTERN = re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b")
+_CREDIT_CARD_PATTERN = re.compile(r"\b\d{4}-\d{4}-\d{4}-\d{4}\b")
 _URL_PATTERN = re.compile(r"https?://[^\s)\]}>\"']+")
 _LOG_RECORD_BUILTINS = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__)
 
@@ -87,13 +89,15 @@ def redact_credentials(message: object) -> str:
     The function preserves enough operational context for debugging, including
     host names and non-sensitive path segments, while removing query parameters
     and token-shaped substrings that commonly carry credentials. It also scrubs
-    emails and SSNs from raw log messages.
+    emails, phone numbers, SSNs, and credit card numbers from raw log messages.
     """
 
     rendered = str(message)
     rendered = _URL_PATTERN.sub(_redact_url_match, rendered)
     rendered = _EMAIL_PATTERN.sub(REDACTED_VALUE, rendered)
     rendered = _SSN_PATTERN.sub(REDACTED_VALUE, rendered)
+    rendered = _PHONE_PATTERN.sub(REDACTED_VALUE, rendered)
+    rendered = _CREDIT_CARD_PATTERN.sub(REDACTED_VALUE, rendered)
     # Redact secret assignments (e.g., JWT_SECRET=value)
     rendered = _SECRET_ASSIGNMENT_PATTERN.sub(lambda m: f"{m.group(1).split('=')[0]}={REDACTED_VALUE}", rendered)
     for pattern in _TOKEN_PATTERNS:

@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 """Route-level tests for CRM webhook tenant resolution hardening."""
 
+from __future__ import annotations
 
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -176,6 +175,28 @@ class TestSalesforceWebhookTenantIsolation:
         call_kwargs = mock_sync.sync_provider.call_args.kwargs
         assert call_kwargs["tenant_id"] == "tenant-test"
         assert call_kwargs["account_ids"] == ["001TEST123456789"]
+    def test_invalid_payload_log_does_not_leak_raw_body(self, mock_db, caplog):
+        """Malformed webhook bodies containing PII must be redacted in logs."""
+        client = _make_client(mock_db)
+        mock_db.execute.return_value = _result_with_scalar(_make_integration())
+
+        body = b'{"not valid json and contact alice@example.com or 555-123-4567"}'
+
+        with patch.object(
+            crm_webhooks_module,
+            "_decrypt_integration_credentials",
+            AsyncMock(return_value={"webhook_token": "expected-token"}),
+        ), caplog.at_level("WARNING", logger="layer4_agents.api.routes.crm_webhooks"):
+            response = client.post(
+                "/v1/webhooks/crm/salesforce?tenant_id=tenant-test",
+                headers={"X-Webhook-Token": "expected-token"},
+                content=body,
+            )
+
+        assert response.status_code == 202
+        log_text = " ".join(f"{r.message} {getattr(r, 'body_preview', '')}" for r in caplog.records)
+        assert "alice@example.com" not in log_text
+        assert "555-123-4567" not in log_text
 
 
 class TestHubSpotWebhookTenantIsolation:

@@ -13,7 +13,6 @@ from fastapi import HTTPException
 
 from ..jwt import TokenClaims, _get_jwt_secret, decode_jwt, encode_jwt
 
-
 # Use a fixed secret across all tests to avoid env-var interference
 _TEST_SECRET = "test-jwt-secret-for-unit-tests-32"
 _TEST_TENANT = uuid4()
@@ -293,3 +292,33 @@ def _make_clerk_rs256_token(*, azp: str | None) -> tuple[str, dict[str, str]]:
         "CLERK_JWKS_URL": "",
     }
     return token, env
+
+
+# ---------------------------------------------------------------------------
+# Security hygiene: decode path must not leak token material to stdout/stderr
+# ---------------------------------------------------------------------------
+
+
+class TestDecodeJwtOutputHygiene:
+    """Regression tests for information disclosure via debug prints."""
+
+    def test_decode_jwt_does_not_write_to_stdout_or_stderr(self, capsys):
+        """Valid and invalid tokens must not emit unverified headers/payloads."""
+        valid = encode_jwt(_TEST_TENANT)
+        decode_jwt(valid)
+
+        invalid = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.invalid"
+        decode_jwt(invalid)
+
+        captured = capsys.readouterr()
+        assert captured.out == "", f"Unexpected stdout: {captured.out!r}"
+        assert captured.err == "", f"Unexpected stderr: {captured.err!r}"
+
+    def test_jwt_source_has_no_print_calls(self):
+        """The JWT module must rely on structured logging, not print()."""
+        from pathlib import Path
+
+        source = Path(__file__).resolve().parents[1] / "jwt.py"
+        text = source.read_text()
+        print_lines = [line for line in text.splitlines() if line.strip().startswith("print(")]
+        assert not print_lines, f"jwt.py still contains print() calls: {print_lines}"
