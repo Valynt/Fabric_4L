@@ -6,7 +6,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROLLBACK_RUNBOOK = Path("docs/runbooks/deployment/rollback-production-release.md")
 FAILED_DEPLOYMENT_RUNBOOK = Path("docs/runbooks/deployment/failed-deployment.md")
 PROMOTION_WORKFLOW = Path(".github/workflows/environment-promotion.yml")

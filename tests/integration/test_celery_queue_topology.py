@@ -65,14 +65,16 @@ def test_broker_and_backend_use_redis_configuration() -> None:
     l1_config = _read(L1_CONFIG)
     l2_tasks = _read(L2_TASKS)
 
-    assert "broker=settings.redis_url" in l1_tasks
-    assert "backend=settings.redis_url" in l1_tasks
+    assert "get_celery_redis_broker_config(settings.redis_url)" in l1_tasks
+    assert "broker=_celery_broker_url" in l1_tasks
+    assert "backend=_celery_broker_url" in l1_tasks
     assert 'redis_url: str = Field(default="redis://localhost:6379/0"' in l1_config
     assert "REDIS_URL must be set in production-like environments" in l1_config
 
     assert 'redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")' in l2_tasks
-    assert "broker=redis_url" in l2_tasks
-    assert "backend=redis_url" in l2_tasks
+    assert "get_celery_redis_broker_config(redis_url)" in l2_tasks
+    assert "broker=celery_broker_url" in l2_tasks
+    assert "backend=celery_broker_url" in l2_tasks
 
 
 def test_l1_queue_names_are_declared_and_consumed_by_constrained_workers() -> None:
@@ -84,7 +86,9 @@ def test_l1_queue_names_are_declared_and_consumed_by_constrained_workers() -> No
         assert f'"{queue}"' in l1_tasks
         assert f'"routing_key": "{queue}"' in l1_tasks
 
-    compose_worker = _compose_service("docker-compose.full.yml", "layer1-celery-worker")
+    compose_worker = _compose_service(
+        "infra/compose/docker-compose.full.yml", "layer1-celery-worker"
+    )
     compose_queues = _queue_list_from_command(compose_worker["command"])
     assert {"default", "ingestion", "processing"}.issubset(compose_queues)
 
@@ -123,14 +127,12 @@ def test_retry_dead_letter_and_worker_loss_policies_are_configured() -> None:
 def test_l1_worker_manifests_expose_unprefixed_redis_url() -> None:
     """L1 worker/API environments must expose REDIS_URL for Settings.redis_url."""
     compose_targets = [
-        ("docker-compose.yml", "layer1"),
-        ("docker-compose.yml", "layer1-worker"),
-        ("docker-compose.live.yml", "layer1"),
-        ("docker-compose.live.yml", "layer1-worker"),
-        ("docker-compose.backend-integrated.yml", "layer1"),
-        ("docker-compose.backend-integrated.yml", "layer1-worker"),
-        ("docker-compose.full.yml", "layer1-ingestion"),
-        ("docker-compose.full.yml", "layer1-celery-worker"),
+        ("infra/compose/docker-compose.live.yml", "layer1"),
+        ("infra/compose/docker-compose.live.yml", "layer1-worker"),
+        ("infra/compose/docker-compose.backend-integrated.yml", "layer1"),
+        ("infra/compose/docker-compose.backend-integrated.yml", "layer1-worker"),
+        ("infra/compose/docker-compose.full.yml", "layer1-ingestion"),
+        ("infra/compose/docker-compose.full.yml", "layer1-celery-worker"),
         ("services/layer1-ingestion/docker-compose.yml", "api"),
         ("services/layer1-ingestion/docker-compose.yml", "worker"),
         ("services/layer1-ingestion/docker-compose.yml", "beat"),
@@ -144,7 +146,17 @@ def test_l1_worker_manifests_expose_unprefixed_redis_url() -> None:
             env_names = set(environment)
         assert "REDIS_URL" in env_names, f"{compose_file}:{service_name}"
 
-    for bunnyshell_file in ("bunnyshell.yaml", "bunnyshell-pr.yaml"):
+    # The root compose file inherits REDIS_URL by extending the live compose services.
+    for service_name in ("layer1", "layer1-worker"):
+        root_service = _compose_service("docker-compose.yml", service_name)
+        extends = root_service["extends"]
+        assert extends["file"] == "./infra/compose/docker-compose.live.yml"
+        assert extends["service"] == service_name
+
+    for bunnyshell_file in (
+        ".deployments/bunnyshell.yaml",
+        ".deployments/bunnyshell-pr.yaml",
+    ):
         components = _yaml_documents(bunnyshell_file)[0]["components"]
         by_name = {component["name"]: component for component in components}
         for component_name in ("layer1", "layer1-worker"):
@@ -167,7 +179,9 @@ def test_worker_startup_and_broker_configuration_exist_in_kubernetes() -> None:
 def test_tenant_context_and_idempotency_are_preserved() -> None:
     """Celery dispatch must propagate tenant context and keep idempotency guards."""
     l1_tasks = _read(L1_TASKS)
-    l1_api = _read("services/layer1-ingestion/src/layer1_ingestion/api/main.py")
+    l1_target_handlers = _read(
+        "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py"
+    )
     l2_tasks = _read(L2_TASKS)
 
     assert 'def process_scraping_job(self, job_id: str, tenant_id: str)' in l1_tasks
@@ -178,6 +192,6 @@ def test_tenant_context_and_idempotency_are_preserved() -> None:
     assert 'tenant_id = config.get("tenant_id")' in l2_tasks
     assert 'raise ValueError("tenant_id is required in config for extraction task")' in l2_tasks
 
-    assert "idempotency_key" in l1_api
-    assert "redis_client.set(" in l1_api
-    assert "nx=True" in l1_api
+    assert "request.idempotency_key" in l1_target_handlers
+    assert "_check_idempotency_key(" in l1_target_handlers
+    assert "_update_idempotency_key(" in l1_target_handlers

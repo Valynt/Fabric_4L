@@ -12,11 +12,11 @@ This tests the contract between:
 2. Backend (Provider) - Layer 3 Graph API
 """
 
-import pytest
 from typing import Any
-import jsonschema
-from jsonschema import validate, ValidationError
 
+import jsonschema
+import pytest
+from jsonschema import ValidationError, validate
 
 # ============================================================================
 # CONTRACT SCHEMAS (Source of Truth)

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.tenancy._invariant_manifest import TenantInvariant, assert_tenancy_invariants
-
 
 pytestmark = [pytest.mark.tenancy, pytest.mark.production_readiness]
 

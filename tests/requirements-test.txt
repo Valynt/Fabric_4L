@@ -67,6 +67,17 @@ pandas>=2.2.0              # Required by Layer 4 workflow/tooling imports in man
 langgraph>=0.2.0           # Required by Layer 4 tenant/security imports during mandatory collection
 
 # ---------------------------------------------------------------------------
+# Root conftest collection dependencies
+# tests/conftest.py executes the Layer 3 config surface (pydantic-settings)
+# and imports value_fabric.shared identity/security modules at collection time.
+# ---------------------------------------------------------------------------
+pydantic>=2.7.0
+pydantic-settings>=2.4.0
+fastapi>=0.110.0
+sqlalchemy>=2.0.0
+redis>=5.0.0
+
+# ---------------------------------------------------------------------------
 # Shared / rate limiting
 # ---------------------------------------------------------------------------
 limits>=3.13.0           # Required by value_fabric.shared.rate_limiting.ip_limiter; imported at contract-test collection time

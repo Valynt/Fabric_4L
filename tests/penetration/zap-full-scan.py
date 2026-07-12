@@ -10,8 +10,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from datetime import datetime, timezone
 
 
 def build_sarif(target: str, zap_report_path: Path, output_path: Path) -> int:
@@ -65,7 +65,7 @@ def build_sarif(target: str, zap_report_path: Path, output_path: Path) -> int:
                 "invocations": [
                     {
                         "executionSuccessful": True,
-                        "endTimeUtc": datetime.now(timezone.utc).isoformat(),
+                        "endTimeUtc": datetime.now(UTC).isoformat(),
                     }
                 ],
             }

@@ -15,15 +15,14 @@ Critical Security Property:
     Tool invoked by tenant A MUST NOT access tenant B's data
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from fastapi import HTTPException, status
 
+import pytest
+from fastapi import HTTPException, status
+from layer4_agents.tools.registry import ToolRegistry
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Permission
-
-from layer4_agents.tools.registry import ToolRegistry
 
 _REGISTRY_AVAILABLE = True
 

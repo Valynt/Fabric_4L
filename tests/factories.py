@@ -3,8 +3,9 @@ Test data factories for Fabric_4L test suite.
 Uses factory_boy and faker for deterministic, realistic test data generation.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Dict, List
+
 import factory
 from faker import Faker
 
@@ -21,8 +22,8 @@ class EntityFactory(factory.Factory):
     name = factory.LazyAttribute(lambda _: fake.company())
     type = factory.Iterator(['capability', 'usecase', 'persona', 'valuedriver'])
     description = factory.LazyAttribute(lambda _: fake.text(max_nb_chars=200))
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
-    updated_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
+    updated_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     confidence = factory.Faker('pyfloat', min_value=0.0, max_value=1.0)
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     properties = factory.LazyAttribute(lambda _: {})
@@ -66,8 +67,8 @@ class ValuePackFactory(factory.Factory):
     status = factory.Iterator(['draft', 'published', 'archived'])
     created_by = factory.Faker('email')
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
-    updated_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
+    updated_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     formulas = factory.List([factory.SubFactory(EntityFactory) for _ in range(3)])
     
     @factory.post_generation
@@ -92,8 +93,8 @@ class UserFactory(factory.Factory):
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     role = factory.Iterator(['admin', 'editor', 'viewer'])
     tier = factory.Iterator(['standard', 'advanced', 'admin'])
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
-    last_login = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
+    last_login = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     preferences = factory.LazyAttribute(lambda _: {
         'theme': 'system',
         'notifications': True,
@@ -120,7 +121,7 @@ class FormulaFactory(factory.Factory):
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     status = factory.Iterator(['draft', 'submitted', 'approved', 'rejected'])
     created_by = factory.Faker('email')
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     version = factory.Sequence(lambda n: n)
 
 
@@ -136,7 +137,7 @@ class BusinessCaseFactory(factory.Factory):
     status = factory.Iterator(['draft', 'review', 'approved', 'rejected'])
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     created_by = factory.Faker('email')
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     
     @factory.post_generation
     def add_financials(obj, create, extracted, **kwargs):
@@ -162,7 +163,7 @@ class ExtractionJobFactory(factory.Factory):
     status = factory.Iterator(['pending', 'processing', 'completed', 'failed'])
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     created_by = factory.Faker('email')
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     
     @factory.post_generation
     def add_results(obj, create, extracted, **kwargs):
@@ -201,7 +202,7 @@ class AuditLogEntryFactory(factory.Factory):
         model = dict
     
     id = factory.Sequence(lambda n: f"audit-{n:08d}")
-    timestamp = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    timestamp = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     action = factory.Iterator(['create', 'update', 'delete', 'read', 'export', 'login'])
     actor_id = factory.SubFactory(UserFactory)
     resource_type = factory.Iterator(['entity', 'value_pack', 'formula', 'user', 'business_case'])
@@ -226,7 +227,7 @@ class AgentWorkflowStateFactory(factory.Factory):
     prompt = factory.LazyAttribute(lambda _: fake.text(max_nb_chars=500))
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
     created_by = factory.Faker('email')
-    created_at = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    created_at = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     
     @factory.post_generation
     def add_checkpoint(obj, create, extracted, **kwargs):
@@ -252,9 +253,9 @@ class SubscriptionFactory(factory.Factory):
     plan_id = factory.Iterator(['starter', 'pro', 'enterprise'])
     status = factory.Iterator(['active', 'canceled', 'past_due', 'trialing'])
     tenant_id = factory.Sequence(lambda n: f"tenant-{n:04d}")
-    current_period_start = factory.LazyFunction(lambda: datetime.now(timezone.utc).isoformat())
+    current_period_start = factory.LazyFunction(lambda: datetime.now(UTC).isoformat())
     current_period_end = factory.LazyFunction(
-        lambda: datetime.now(timezone.utc).replace(month=datetime.now(timezone.utc).month + 1).isoformat()
+        lambda: datetime.now(UTC).replace(month=datetime.now(UTC).month + 1).isoformat()
     )
     
     @factory.post_generation
@@ -268,7 +269,7 @@ class SubscriptionFactory(factory.Factory):
         obj['entitlements'] = plan_entitlements.get(obj.get('plan_id', 'starter'), [])
 
 
-def create_batch(factory_class, count: int, **kwargs) -> List[Dict[str, Any]]:
+def create_batch(factory_class, count: int, **kwargs) -> list[dict[str, Any]]:
     """Create a batch of test objects using the specified factory.
     
     Args:
@@ -282,7 +283,7 @@ def create_batch(factory_class, count: int, **kwargs) -> List[Dict[str, Any]]:
     return [factory_class(**kwargs) for _ in range(count)]
 
 
-def create_tenant_isolated_data(tenant_id: str, entity_count: int = 10) -> Dict[str, List[Dict]]:
+def create_tenant_isolated_data(tenant_id: str, entity_count: int = 10) -> dict[str, list[dict]]:
     """Create a complete set of tenant-isolated test data.
     
     Args:

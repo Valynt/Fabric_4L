@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import pytest
-
 from tests.shared.identity.hostile_api_key_cases import (
     INVALID_API_KEY_CONTEXT_ERROR_CODE,
     hostile_api_key_records,

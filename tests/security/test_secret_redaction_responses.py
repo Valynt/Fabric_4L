@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 
 try:
-    from value_fabric.shared.security.redaction import redact_value, REDACTED_VALUE
+    from value_fabric.shared.security.redaction import REDACTED_VALUE, redact_value
     REDACTION_AVAILABLE = True
 except ImportError:
     REDACTION_AVAILABLE = False

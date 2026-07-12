@@ -5,11 +5,11 @@ Tests for A05: Security Misconfiguration - default credentials,
 debug endpoints, security headers, and verbose error messages.
 """
 
-import pytest
 import os
 
 # Lazy import for optional dependency
 import pytest
+
 try:
     from fastapi.testclient import TestClient
 except ImportError:
@@ -242,7 +242,7 @@ class TestSecurityHeaders:
 
         # Check for server version disclosure
         server_header = response.headers.get("Server", "").lower()
-        assert "nginx/" not in server_header or "nginx" == server_header, (
+        assert "nginx/" not in server_header or server_header == "nginx", (
             f"Server version disclosed: {server_header}"
         )
 

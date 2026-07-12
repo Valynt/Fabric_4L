@@ -18,17 +18,15 @@ Critical Security Property:
 """
 
 import asyncio
-import pytest
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
-from datetime import datetime, timedelta
 
+import pytest
 import redis.asyncio as redis
+from tests.cache.conftest import DeterministicFakeRedis, make_redis_mock
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.rate_limiting.tenant_rate_limiter import TenantRateLimiter, TenantTier
-
-from tests.cache.conftest import DeterministicFakeRedis, make_redis_mock
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Test Suite: Redis Key Tenant Scoping

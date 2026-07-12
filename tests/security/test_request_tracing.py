@@ -138,6 +138,7 @@ class TestRequestIDInLogContext:
     def test_log_context_includes_request_id_field(self):
         """POSITIVE: _request_log_context includes request_id from X-Request-ID header."""
         from unittest.mock import MagicMock
+
         from value_fabric.shared.identity.middleware import _request_log_context
 
         mock_request = MagicMock()
@@ -156,6 +157,7 @@ class TestRequestIDInLogContext:
     def test_log_context_request_id_none_when_no_header(self):
         """NEGATIVE: request_id is None in log context when no ID header is present."""
         from unittest.mock import MagicMock
+
         from value_fabric.shared.identity.middleware import _request_log_context
 
         mock_request = MagicMock()
@@ -203,7 +205,7 @@ class TestRequestContextRequestID:
 
     def test_request_context_stores_request_id(self):
         """POSITIVE: RequestContext stores the provided request_id."""
-        from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
+        from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
@@ -216,7 +218,7 @@ class TestRequestContextRequestID:
 
     def test_request_context_request_id_none_by_default(self):
         """POSITIVE: RequestContext request_id defaults to None."""
-        from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
+        from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
@@ -228,7 +230,7 @@ class TestRequestContextRequestID:
 
     def test_request_id_in_to_log_dict(self):
         """POSITIVE: request and trace identifiers appear in to_log_dict() output."""
-        from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
+        from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
@@ -245,7 +247,7 @@ class TestRequestContextRequestID:
 
     def test_request_id_in_to_dict(self):
         """POSITIVE: request and trace identifiers appear in to_dict() output."""
-        from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
+        from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 
         ctx = RequestContext(
             tenant_id="tenant-trace-test",
@@ -260,7 +262,7 @@ class TestRequestContextRequestID:
 
     def test_adversarial_request_id_injection(self):
         """ADVERSARIAL: Injection payload in request_id is stored as a plain string."""
-        from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_JWT
+        from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 
         malicious_id = "req-001\nX-Injected-Header: evil"
         ctx = RequestContext(

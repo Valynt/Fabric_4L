@@ -8,7 +8,6 @@ conform to the OpenAPI specification and return expected response shapes.
 import pytest
 from httpx import AsyncClient
 
-
 # =============================================================================
 # Workflow Endpoints
 # =============================================================================

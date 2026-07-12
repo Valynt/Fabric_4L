@@ -292,7 +292,7 @@ class TestInjection:
             )
             # Should be blocked or query should be parameterized safely
             assert response.status_code in [200, 400, 403], (
-                f"Cypher injection not properly blocked for payload"
+                "Cypher injection not properly blocked for payload"
             )
 
             if response.status_code == 200:
@@ -348,7 +348,7 @@ class TestInjection:
                 description = data.get("description", "")
                 # If SSTI executed, we'd see "49" (7*7) instead of the payload
                 assert "49" not in str(description), (
-                    f"SSTI vulnerability: template expression executed"
+                    "SSTI vulnerability: template expression executed"
                 )
             elif response.status_code not in [201, 400, 403, 404, 405, 422, 503]:
                 pytest.fail(f"Unexpected status code: {response.status_code}")

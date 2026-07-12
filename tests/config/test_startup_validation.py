@@ -20,10 +20,10 @@ Test Strategy:
 """
 
 import os
-import pytest
-from unittest.mock import patch, MagicMock
 from typing import Any
+from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Test Suite: Production Environment Validation
@@ -48,7 +48,9 @@ class TestProductionRedisRequirement:
         }, clear=True):
             # Import after env is patched
             with pytest.raises(ValueError, match="REDIS_URL.*required.*production"):
-                from value_fabric.shared.rate_limiting.tenant_rate_limiter import validate_redis_config
+                from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
+                    validate_redis_config,
+                )
                 validate_redis_config()
     
     @pytest.mark.asyncio
@@ -64,7 +66,9 @@ class TestProductionRedisRequirement:
             "JWT_SECRET": "test-secret",
         }, clear=True):
             with pytest.raises(ValueError, match="Invalid REDIS_URL"):
-                from value_fabric.shared.rate_limiting.tenant_rate_limiter import validate_redis_config
+                from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
+                    validate_redis_config,
+                )
                 validate_redis_config()
     
     @pytest.mark.asyncio
@@ -79,7 +83,9 @@ class TestProductionRedisRequirement:
             "REDIS_URL": "",
         }, clear=True):
             with patch("logging.Logger.warning") as mock_warning:
-                from value_fabric.shared.rate_limiting.tenant_rate_limiter import validate_redis_config
+                from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
+                    validate_redis_config,
+                )
                 # Should not raise, but should warn
                 try:
                     validate_redis_config()

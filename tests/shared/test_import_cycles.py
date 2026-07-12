@@ -1,10 +1,10 @@
-import pytest
 import importlib
 import pkgutil
 import subprocess
 import sys
 from itertools import permutations
 
+import pytest
 
 BOUNDARY_IMPORT_CLUSTER = (
     "value_fabric.shared.boundaries.tenant_boundary",

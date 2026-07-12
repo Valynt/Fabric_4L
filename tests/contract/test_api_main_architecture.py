@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENTRYPOINTS = [
     REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",

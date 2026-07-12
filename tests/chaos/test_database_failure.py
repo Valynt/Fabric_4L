@@ -8,12 +8,12 @@ Verifies system behavior when PostgreSQL becomes unavailable, including:
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
 import sqlalchemy
-from sqlalchemy.exc import OperationalError, DBAPIError
+from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = [pytest.mark.chaos]
@@ -192,7 +192,7 @@ class TestDatabaseDegradedModes:
         """
         mock_session = AsyncMock()
         mock_session.execute = AsyncMock(
-            side_effect=asyncio.TimeoutError("Query took too long")
+            side_effect=TimeoutError("Query took too long")
         )
         mock_session.close = AsyncMock()
         

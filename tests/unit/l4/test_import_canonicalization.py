@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from inspect import signature
 import subprocess
 import sys
+from datetime import UTC, datetime
+from inspect import signature
 
 
 def test_low_level_task_types_do_not_depend_on_layer4_runtime() -> None:
@@ -44,12 +44,16 @@ def test_canonical_type_and_core_package_imports_are_lazy() -> None:
 
 
 def test_legacy_scheduler_uses_canonical_task_types() -> None:
+    from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskStatus
     from layer4_agents.engine.scheduler import (
         ScheduledTask as LegacyScheduledTask,
+    )
+    from layer4_agents.engine.scheduler import (
         TaskPriority as LegacyTaskPriority,
+    )
+    from layer4_agents.engine.scheduler import (
         TaskStatus as LegacyTaskStatus,
     )
-    from layer4_agents.engine.scheduler import ScheduledTask, TaskPriority, TaskStatus
 
     assert LegacyScheduledTask is ScheduledTask
     assert LegacyTaskPriority is TaskPriority
@@ -58,8 +62,8 @@ def test_legacy_scheduler_uses_canonical_task_types() -> None:
 
 def test_legacy_ports_use_canonical_task_execution_interfaces() -> None:
     from layer4_agents.engine import TaskExecutionPort as EnginePackagePort
-    from layer4_agents.engine.ports import TaskExecutionPort as LegacyPort
     from layer4_agents.engine.ports import TaskExecutionPort, TaskSchedulerPort
+    from layer4_agents.engine.ports import TaskExecutionPort as LegacyPort
     from layer4_agents.engine.scheduler import TaskScheduler
 
     assert LegacyPort is TaskExecutionPort

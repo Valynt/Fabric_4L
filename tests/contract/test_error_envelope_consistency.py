@@ -252,7 +252,7 @@ def test_httpvalidationerror_deprecated_in_all_layers():
     if non_compliant:
         # Print warning but don't fail - this is a migration in progress
         print(
-            f"\n⚠️  Warning: The following layers have HTTPValidationError but it's not marked as deprecated:"
+            "\n⚠️  Warning: The following layers have HTTPValidationError but it's not marked as deprecated:"
         )
         for layer in non_compliant:
             print(f"  - {layer}")
@@ -300,7 +300,7 @@ def test_error_envelope_canonical_exists_in_all_layers():
     if missing_schemas:
         # Print warning but don't fail - this is a migration in progress
         print(
-            f"\n⚠️  Warning: The following layers are missing canonical ErrorEnvelope schema or required fields:"
+            "\n⚠️  Warning: The following layers are missing canonical ErrorEnvelope schema or required fields:"
         )
         for item in missing_schemas:
             print(f"  - {item}")

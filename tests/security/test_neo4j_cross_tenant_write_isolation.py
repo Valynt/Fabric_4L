@@ -7,7 +7,6 @@ caller to execute tenant-owned writes using a spoofed ``tenant_id`` parameter.
 from __future__ import annotations
 
 import pytest
-
 from src.api.dependencies_tenant import Neo4jTenantSession
 
 

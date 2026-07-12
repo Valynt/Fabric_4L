@@ -14,13 +14,14 @@ ValuePack Framework v1.0 - Evaluation Suite
 10. win_statement_specificity - Differentiated why_it_wins
 """
 
+from typing import Any, Dict, List
+
 import pytest
-from typing import List, Dict, Any
 from src.models.valuepack import (
     DEFAULT_VALUEPACKS,
+    EvidenceLevel,
     ValuePackCreate,
     ValuePackTier,
-    EvidenceLevel,
 )
 
 
@@ -140,7 +141,7 @@ class TestValuePackDriverUniqueness:
                 all_driver_ids.append((vp.industry_id, driver.id, driver.name))
         
         # Check for exact duplicates across industries
-        driver_id_counts: Dict[str, List[str]] = {}
+        driver_id_counts: dict[str, list[str]] = {}
         for industry_id, driver_id, driver_name in all_driver_ids:
             if driver_id not in driver_id_counts:
                 driver_id_counts[driver_id] = []
@@ -229,7 +230,7 @@ class TestValuePackOntologyConsistency:
     
     def test_cross_industry_ontology_sharing(self):
         """Some tags should be shared across industries for composability."""
-        all_tags: Dict[str, List[str]] = {}
+        all_tags: dict[str, list[str]] = {}
         
         for vp in DEFAULT_VALUEPACKS:
             for tag in vp.pre_wired_ontology_tags:
@@ -351,7 +352,7 @@ class TestValuePackTemplateReuse:
     
     def test_templates_reused_across_industries(self):
         """Templates should be applicable to multiple industries."""
-        template_usage: Dict[str, List[str]] = {}
+        template_usage: dict[str, list[str]] = {}
         
         for vp in DEFAULT_VALUEPACKS:
             for template in vp.composable_model_templates:
@@ -448,7 +449,7 @@ class TestValuePackCrossIndustryMetrics:
     
     def test_tier_distribution(self):
         """ValuePacks should be distributed across all 3 tiers."""
-        tier_counts = {tier: 0 for tier in ValuePackTier}
+        tier_counts = dict.fromkeys(ValuePackTier, 0)
         for vp in DEFAULT_VALUEPACKS:
             tier_counts[vp.tier] += 1
         

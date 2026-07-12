@@ -1,8 +1,8 @@
 """Tests for vault_check module - regression tests for code review fixes."""
 
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from value_fabric.shared.identity.vault_check import (
     VaultConfigurationError,
     get_vault_health,

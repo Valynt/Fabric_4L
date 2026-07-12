@@ -20,16 +20,16 @@ except ImportError:
 from value_fabric.shared.audit import (
     AuditAction,
     AuditOutcome,
-    TenantResolvedDetails,
     TenantContextSetDetails,
+    TenantResolvedDetails,
     emit_audit_event,
 )
 from value_fabric.shared.identity.context import (
-    RequestContext,
-    ISOLATION_TIER_SHARED,
-    ISOLATION_TIER_SCHEMA,
-    AUTH_SOURCE_JWT,
     AUTH_SOURCE_API_KEY,
+    AUTH_SOURCE_JWT,
+    ISOLATION_TIER_SCHEMA,
+    ISOLATION_TIER_SHARED,
+    RequestContext,
 )
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 

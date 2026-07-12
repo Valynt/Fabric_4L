@@ -7,13 +7,12 @@ source to count violations by severity.
 
 import json
 import os
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
-
 
 # Canonical deprecation tracking locations (in priority order)
 DEPRECATION_LOCATIONS = [
@@ -37,7 +36,7 @@ class TestDeprecationBudget:
         """Parse deprecations from canonical source."""
         deprecation_file = self._find_deprecation_file()
 
-        with open(deprecation_file, "r", encoding="utf-8") as f:
+        with open(deprecation_file, encoding="utf-8") as f:
             content = f.read()
 
         # Try JSON first (preferred machine-readable format)
@@ -190,7 +189,7 @@ class TestDeprecationBudget:
                 missing_fields.append(f"{item.get('id', 'unknown')}: missing {missing}")
 
         if missing_fields:
-            pytest.fail(f"Deprecations missing required fields:\n" + "\n".join(missing_fields))
+            pytest.fail("Deprecations missing required fields:\n" + "\n".join(missing_fields))
 
     def test_deprecation_compliance_score_above_threshold(self):
         """Overall deprecation compliance score must meet threshold.
@@ -201,7 +200,7 @@ class TestDeprecationBudget:
 
         assert deprecation_file.suffix == ".json", "Compliance score requires the canonical JSON deprecation register"
 
-        with open(deprecation_file, "r", encoding="utf-8") as f:
+        with open(deprecation_file, encoding="utf-8") as f:
             data = json.load(f)
 
         assert isinstance(data, dict) and "compliance" in data, "Deprecation register must include compliance metadata"

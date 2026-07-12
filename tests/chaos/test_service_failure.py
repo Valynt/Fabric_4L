@@ -107,7 +107,7 @@ class HttpClient:
         self.timeout = timeout
         self._session: aiohttp.ClientSession | None = None
 
-    async def __aenter__(self) -> "HttpClient":
+    async def __aenter__(self) -> HttpClient:
         self._session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=self.timeout),
             headers={"Content-Type": "application/json"},

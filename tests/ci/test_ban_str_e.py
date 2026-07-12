@@ -1,9 +1,10 @@
 """Unit tests for scripts/ci/ban_str_e.py regex behavior."""
-from pathlib import Path
-import pytest
-
 # Import the script under test by path
 import sys
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts" / "ci"))
 from ban_str_e import check_file
 

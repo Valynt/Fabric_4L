@@ -6,7 +6,6 @@ import importlib
 
 import pytest
 
-
 db = importlib.import_module("database")
 import database_facade as database
 

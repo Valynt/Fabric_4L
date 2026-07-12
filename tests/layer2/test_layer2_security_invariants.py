@@ -1,8 +1,9 @@
 """Layer 2 Security Invariants Test Suite."""
 
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
-from uuid import uuid4
 
 TENANT_A = "tenant-a"
 TENANT_B = "tenant-b"

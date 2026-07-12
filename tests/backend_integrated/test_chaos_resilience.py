@@ -6,7 +6,6 @@ import asyncio
 
 import httpx
 import pytest
-
 from tests.backend_integrated.conftest import SERVICE_URLS
 
 pytestmark = [pytest.mark.backend_integrated]

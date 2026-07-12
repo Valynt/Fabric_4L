@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -29,9 +29,9 @@ if TYPE_CHECKING:
 # Test constants
 WEBHOOK_SECRET = "whsec_test_secret_1234567890"
 VALID_PAYLOAD = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 1000}}'
-OLD_TIMESTAMP = int((datetime.now(timezone.utc) - timedelta(minutes=15)).timestamp())
-CURRENT_TIMESTAMP = int(datetime.now(timezone.utc).timestamp())
-FUTURE_TIMESTAMP = int((datetime.now(timezone.utc) + timedelta(minutes=15)).timestamp())
+OLD_TIMESTAMP = int((datetime.now(UTC) - timedelta(minutes=15)).timestamp())
+CURRENT_TIMESTAMP = int(datetime.now(UTC).timestamp())
+FUTURE_TIMESTAMP = int((datetime.now(UTC) + timedelta(minutes=15)).timestamp())
 
 
 def _make_signature(payload: bytes, secret: str, timestamp: int) -> str:

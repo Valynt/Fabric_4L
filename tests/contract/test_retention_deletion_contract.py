@@ -6,7 +6,6 @@ retention guarantees referenced by compliance documentation.
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 L1_CONFIG = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/config.py"
 L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"

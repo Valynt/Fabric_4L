@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-
 from layer4_agents.api.security.csrf import validate_double_submit
 from layer4_agents.tenants.api.routes import oidc
 from layer4_agents.tenants.api.routes import tenants as tenant_routes

@@ -8,9 +8,7 @@ from unittest.mock import patch
 
 import jwt
 import pytest
-
 from value_fabric.shared.identity.jwt import decode_jwt
-
 
 TEST_SECRET = "jwt-validation-test-secret-32-bytes-min"
 TEST_AUDIENCE = "value-fabric-services"

@@ -53,7 +53,7 @@ async def db_session() -> AsyncSession:
 
 def _create_test_schema(conn):
     """Sync helper to create minimal test schema."""
-    from sqlalchemy import Table, Column, String, Integer, MetaData, DateTime
+    from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table
     meta = MetaData()
     for layer, tables in {
         "L1": ["documents", "document_chunks", "raw_uploads", "ingestion_jobs"],
@@ -79,12 +79,12 @@ def tenant_id() -> str:
 
 
 @pytest.fixture
-def admin_user() -> Dict[str, Any]:
+def admin_user() -> dict[str, Any]:
     return {"user_id": "admin-01", "role": "admin", "tenant_id": "system"}
 
 
 @pytest.fixture
-def regular_user() -> Dict[str, Any]:
+def regular_user() -> dict[str, Any]:
     return {"user_id": "user-01", "role": "user", "tenant_id": "tenant-a"}
 
 
@@ -107,9 +107,7 @@ class TestCompleteDeletionFlow:
     @pytest.mark.asyncio
     async def test_delete_all_layers_success(self, mock_db, tenant_id):
         """All 6 layers delete cleanly; report is COMPLETED."""
-        from services.api.src.gdpr.deletion import (
-            delete_tenant_data, DeletionStatus, _LayerDeleter
-        )
+        from services.api.src.gdpr.deletion import DeletionStatus, _LayerDeleter, delete_tenant_data
 
         # Arrange: each DELETE returns 5 rows
         async def mock_execute(stmt, params=None):
@@ -141,7 +139,7 @@ class TestCompleteDeletionFlow:
         """Layers are processed in L1 → L6 dependency order."""
         from services.api.src.gdpr.deletion import delete_tenant_data
 
-        execution_order: List[str] = []
+        execution_order: list[str] = []
 
         async def tracking_execute(stmt, params=None):
             raw = str(stmt)
@@ -184,7 +182,7 @@ class TestPartialFailureHandling:
     @pytest.mark.asyncio
     async def test_one_layer_fails_others_continue(self, mock_db, tenant_id):
         """L3 failure does not stop L4-L6 from attempting deletion."""
-        from services.api.src.gdpr.deletion import delete_tenant_data, DeletionStatus
+        from services.api.src.gdpr.deletion import DeletionStatus, delete_tenant_data
 
         call_count = {"L3": 0}
 
@@ -219,7 +217,7 @@ class TestPartialFailureHandling:
     @pytest.mark.asyncio
     async def test_partial_status_when_some_tables_in_layer_fail(self, mock_db, tenant_id):
         """A layer with mixed success/failure yields PARTIAL status."""
-        from services.api.src.gdpr.deletion import delete_tenant_data, DeletionStatus
+        from services.api.src.gdpr.deletion import DeletionStatus, delete_tenant_data
 
         failed_tables = {"entities"}
 
@@ -288,9 +286,7 @@ class TestAuditLogImmutability:
 
     def test_audit_hash_includes_all_layers(self):
         """The audit hash covers per-layer results."""
-        from services.api.src.gdpr.deletion import (
-            DeletionReport, LayerDeletionResult
-        )
+        from services.api.src.gdpr.deletion import DeletionReport, LayerDeletionResult
 
         report = DeletionReport(
             tenant_id="t1", request_id="r1", initiated_by="admin"
@@ -336,9 +332,8 @@ class TestUnauthorizedAccess:
 
     def test_delete_tenant_requires_admin(self):
         """Non-admin users receive 403 on POST /delete-tenant."""
-        from fastapi import FastAPI
-        from services.api.src.gdpr.routes import router
         from services.api.src.gdpr.deletion import DeletionError
+        from services.api.src.gdpr.routes import router
 
         app = FastAPI()
         app.include_router(router)
@@ -404,7 +399,7 @@ class TestDeletionVerification:
     @pytest.mark.asyncio
     async def test_verification_fails_when_data_remains(self, mock_db, tenant_id):
         """If rows survive deletion, verification_passed is False."""
-        from services.api.src.gdpr.deletion import delete_tenant_data, DeletionStatus
+        from services.api.src.gdpr.deletion import DeletionStatus, delete_tenant_data
 
         async def leaky_execute(stmt, params=None):
             mock_result = MagicMock()
@@ -439,9 +434,7 @@ class TestSafetyLimits:
     @pytest.mark.asyncio
     async def test_safety_limit_blocks_large_tenants(self, mock_db, tenant_id):
         """Tenants exceeding MAX_RECORDS limit are rejected."""
-        from services.api.src.gdpr.deletion import (
-            delete_tenant_data, SafetyLimitExceeded
-        )
+        from services.api.src.gdpr.deletion import SafetyLimitExceeded, delete_tenant_data
 
         async def huge_count_execute(stmt, params=None):
             mock_result = MagicMock()
@@ -514,7 +507,7 @@ class TestDuplicateRequestHandling:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_tables_for_layer(layer: str) -> List[str]:
+def _get_tables_for_layer(layer: str) -> list[str]:
     from services.api.src.gdpr.deletion import LAYER_TABLES
     return LAYER_TABLES.get(layer, [])
 

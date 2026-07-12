@@ -4,9 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import yaml
-
 from scripts.ci.check_test_skip_governance import evaluate
-
 
 TODAY = date(2026, 5, 11)
 

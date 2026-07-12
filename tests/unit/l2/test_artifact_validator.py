@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from layer2_extraction.validation.artifact_validator import (
     ArtifactValidationError,
     _validate_entity_metadata,

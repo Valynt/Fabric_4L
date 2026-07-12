@@ -15,9 +15,9 @@ import pytest
 # Guarded imports so test collection does not fail when shared package is unavailable
 try:
     from value_fabric.shared.identity.jwt import (
-        encode_service_jwt,
-        decode_service_jwt,
         ServiceJwtClaims,
+        decode_service_jwt,
+        encode_service_jwt,
     )
 except Exception:
     encode_service_jwt = None  # type: ignore
@@ -32,7 +32,7 @@ except Exception:
 
 
 try:
-    from value_fabric.shared.identity.context import RequestContext, AUTH_SOURCE_SERVICE_ACCOUNT
+    from value_fabric.shared.identity.context import AUTH_SOURCE_SERVICE_ACCOUNT, RequestContext
 except Exception:
     RequestContext = None  # type: ignore
     AUTH_SOURCE_SERVICE_ACCOUNT = "service_account"  # type: ignore

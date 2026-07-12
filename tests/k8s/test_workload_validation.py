@@ -18,7 +18,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 APP_IMAGE_NAMES = [
     "services/layer1-ingestion",
     "services/layer2-extraction",

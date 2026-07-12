@@ -10,7 +10,6 @@ from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph
 

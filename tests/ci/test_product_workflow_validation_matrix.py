@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "docs" / "validation" / "master_workflow_traceability_matrix.md"
 MAKEFILE = ROOT / "Makefile"

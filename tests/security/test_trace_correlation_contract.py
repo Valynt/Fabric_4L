@@ -1,4 +1,7 @@
-from value_fabric.shared.observability.trace_context import canonical_trace_headers, resolve_trace_context
+from value_fabric.shared.observability.trace_context import (
+    canonical_trace_headers,
+    resolve_trace_context,
+)
 
 
 def test_correlation_trace_header_contract():

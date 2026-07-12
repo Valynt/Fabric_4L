@@ -12,7 +12,7 @@ Date: 2026-04-29
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -144,8 +144,8 @@ class TestExpiredToken:
             "sub": "user-123",
             "tenant_id": "tenant-a",
             "role": "standard",
-            "exp": datetime.now(timezone.utc) - timedelta(hours=1),  # Expired 1 hour ago
-            "iat": datetime.now(timezone.utc) - timedelta(hours=2),
+            "exp": datetime.now(UTC) - timedelta(hours=1),  # Expired 1 hour ago
+            "iat": datetime.now(UTC) - timedelta(hours=2),
         })
 
     def test_expired_token_rejected(self, client: TestClient, expired_token: str):
@@ -171,7 +171,7 @@ class TestExpiredToken:
             "sub": "user-123",
             "tenant_id": "tenant-a",
             "role": "standard",
-            "exp": datetime.now(timezone.utc) - timedelta(hours=24),
+            "exp": datetime.now(UTC) - timedelta(hours=24),
         })
         
         response = client.get(
@@ -404,7 +404,6 @@ class TestJWTExpirationEdgeCases:
 
     def test_expired_jwt_rejected(self, client: TestClient, jwt_encoder):
         """P1: JWT with exp in the past is rejected with 401."""
-        import time
         now = int(time.time())
         expired_token = jwt_encoder({
             "sub": "user-123",
@@ -424,7 +423,6 @@ class TestJWTExpirationEdgeCases:
 
     def test_future_issued_jwt_rejected(self, client: TestClient, jwt_encoder):
         """P1: JWT with iat in the future is rejected with 401."""
-        import time
         now = int(time.time())
         future_token = jwt_encoder({
             "sub": "user-123",
@@ -451,7 +449,6 @@ class TestJWTExpirationEdgeCases:
         the route dependency (e.g. get_current_user) must reject it. Re-run against
         the live L4 service to verify production enforcement.
         """
-        import time
         now = int(time.time())
         no_sub_token = jwt_encoder({
             "tenant_id": "tenant-a",

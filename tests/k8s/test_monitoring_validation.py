@@ -9,9 +9,9 @@ Validates:
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
-import shutil
 from urllib.parse import urlparse
 
 import pytest

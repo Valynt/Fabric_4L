@@ -4,19 +4,20 @@ Validates that backend models and API responses match the canonical contract.
 These tests do not require Neo4j and run quickly.
 """
 
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 
 try:
     from pydantic import ValidationError
     from src.api.models import (
-        EntitySummary,
         EntityDetail,
         EntityFilterRequest,
         EntityListResponse,
         EntityRelationships,
-        RelationshipPreview,
+        EntitySummary,
         ProvenanceEvent,
+        RelationshipPreview,
     )
 except (ImportError, Exception):
     pytest.skip(

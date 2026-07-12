@@ -119,7 +119,10 @@ class TestValidAuthSources:
     def test_service_account_auth_source_valid(self):
         """Service account auth source is valid."""
         try:
-            from value_fabric.shared.identity.context import AUTH_SOURCE_SERVICE_ACCOUNT, RequestContext
+            from value_fabric.shared.identity.context import (
+                AUTH_SOURCE_SERVICE_ACCOUNT,
+                RequestContext,
+            )
             
             context = RequestContext(
                 tenant_id="tenant-a",
@@ -217,7 +220,10 @@ class TestAuthSourceConsistency:
     def test_service_account_has_service_account_id(self):
         """Service account auth requires service_account_id."""
         try:
-            from value_fabric.shared.identity.context import AUTH_SOURCE_SERVICE_ACCOUNT, RequestContext
+            from value_fabric.shared.identity.context import (
+                AUTH_SOURCE_SERVICE_ACCOUNT,
+                RequestContext,
+            )
             
             # Service account auth without service_account_id is inconsistent
             context = RequestContext(
@@ -238,7 +244,10 @@ class TestAuthSourceConsistency:
     def test_service_account_without_scopes_invalid(self):
         """Service account must have scopes."""
         try:
-            from value_fabric.shared.identity.context import AUTH_SOURCE_SERVICE_ACCOUNT, RequestContext
+            from value_fabric.shared.identity.context import (
+                AUTH_SOURCE_SERVICE_ACCOUNT,
+                RequestContext,
+            )
             
             context = RequestContext(
                 tenant_id="tenant-a",
@@ -263,9 +272,9 @@ class TestRequireAuthenticatedDependency:
     def test_require_authenticated_rejects_unknown_source(self):
         """P0: require_authenticated rejects AUTH_SOURCE_UNKNOWN."""
         try:
+            from fastapi import HTTPException
             from value_fabric.shared.identity.context import AUTH_SOURCE_UNKNOWN, RequestContext
             from value_fabric.shared.identity.dependencies import require_authenticated
-            from fastapi import HTTPException
             
             context = RequestContext(
                 tenant_id="tenant-a",

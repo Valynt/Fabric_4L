@@ -1,29 +1,32 @@
-from unittest.mock import AsyncMock, MagicMock
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
+from src.agents.provenance_tracking import ProvenanceTrackingAgent
+from src.agents.roi_calculation import ROICalculationAgent
+from src.agents.value_tree_projection import ValueTreeProjectionAgent
+from src.agents.whitespace_analysis import WhitespaceAnalysisAgent
+from src.schema.entity_resolution import EntityResolutionRequest, ResolutionStrategy
 from src.services.competitive_intel_service import (
-    CompetitorCreate,
     CompetitiveIntelService,
+    CompetitorCreate,
+)
+from src.services.competitive_intel_service import (
     _get_tenant_id as get_competitive_tenant,
 )
-from src.schema.entity_resolution import EntityResolutionRequest, ResolutionStrategy
 from src.services.entity_resolution import EntityResolutionService
 from src.services.evidence_search import EvidenceSearchService
 from src.services.product_service import (
     FeatureCreate,
     ProductCreate,
     ProductService,
+)
+from src.services.product_service import (
     _get_tenant_id as get_product_tenant,
 )
-from src.services.signal_persistence import SignalPersistenceService
-from src.agents.value_tree_projection import ValueTreeProjectionAgent
-from src.agents.whitespace_analysis import WhitespaceAnalysisAgent
-from src.agents.provenance_tracking import ProvenanceTrackingAgent
-from src.agents.roi_calculation import ROICalculationAgent
-from src.services.signal_quantification import SignalQuantificationService
 from src.services.roi_calculator_service import ROICalculatorService, ROITemplateCreate
+from src.services.signal_persistence import SignalPersistenceService
+from src.services.signal_quantification import SignalQuantificationService
 
 
 class FakeAsyncSession:

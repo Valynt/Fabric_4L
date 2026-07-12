@@ -26,7 +26,7 @@ MANDATORY_MARKERS = _policy_config.mandatory_markers
 MANDATORY_EXCLUSION_MARKERS = _policy_config.mandatory_exclusion_markers
 
 
-def add_root_pytest_options(parser: "Parser") -> None:
+def add_root_pytest_options(parser: Parser) -> None:
     parser.addoption(
         "--no-mandatory-dep-check",
         action="store_true",
@@ -36,7 +36,7 @@ def add_root_pytest_options(parser: "Parser") -> None:
     )
 
 
-def enforce_mandatory_dependencies(config: "Config") -> None:
+def enforce_mandatory_dependencies(config: Config) -> None:
     if _skip_mandatory_dep_check(config):
         return
     missing = [
@@ -48,7 +48,7 @@ def enforce_mandatory_dependencies(config: "Config") -> None:
         raise SystemExit(_missing_dependency_message(missing))
 
 
-def apply_collection_markers(items: list["Item"]) -> None:
+def apply_collection_markers(items: list[Item]) -> None:
     for item in items:
         item_markers = _item_marker_names(item)
         _apply_tenant_isolation_marker(item, item_markers)
@@ -56,7 +56,7 @@ def apply_collection_markers(items: list["Item"]) -> None:
             item.add_marker("mandatory")
 
 
-def _skip_mandatory_dep_check(config: "Config") -> bool:
+def _skip_mandatory_dep_check(config: Config) -> bool:
     return (
         getattr(config.option, "no_mandatory_dep_check", False)
         or getattr(config.option, "collectonly", False)
@@ -64,7 +64,7 @@ def _skip_mandatory_dep_check(config: "Config") -> bool:
     )
 
 
-def _is_central_security_aggregation_run(config: "Config") -> bool:
+def _is_central_security_aggregation_run(config: Config) -> bool:
     args = [str(arg).rstrip("/") for arg in getattr(config, "args", ())]
     if not args:
         return False
@@ -89,15 +89,15 @@ def _missing_dependency_message(missing: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _item_marker_names(item: "Item") -> set[str]:
+def _item_marker_names(item: Item) -> set[str]:
     return {marker.name for marker in item.iter_markers()}
 
 
-def _item_repo_path(item: "Item") -> str:
+def _item_repo_path(item: Item) -> str:
     return Path(str(item.fspath)).resolve().relative_to(REPO_ROOT).as_posix()
 
 
-def _is_tenant_isolation_target(item: "Item", item_markers: set[str]) -> bool:
+def _is_tenant_isolation_target(item: Item, item_markers: set[str]) -> bool:
     item_path = _item_repo_path(item)
     item_nodeid = item.nodeid.replace("\\", "/")
     return (
@@ -107,7 +107,7 @@ def _is_tenant_isolation_target(item: "Item", item_markers: set[str]) -> bool:
     )
 
 
-def _apply_tenant_isolation_marker(item: "Item", item_markers: set[str]) -> None:
+def _apply_tenant_isolation_marker(item: Item, item_markers: set[str]) -> None:
     if not _is_tenant_isolation_target(item, item_markers):
         return
     if "tenant_isolation" in item_markers:

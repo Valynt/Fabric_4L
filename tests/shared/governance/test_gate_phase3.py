@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import jsonschema
 import pytest
-
 from value_fabric.shared.audit.models import MemoryAccessRecord, ReplaySnapshotRecord
 from value_fabric.shared.governance.memory_gateway import MemoryGateway
 from value_fabric.shared.governance.replay import ReplayRecorder

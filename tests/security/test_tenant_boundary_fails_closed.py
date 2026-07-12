@@ -13,7 +13,6 @@ from __future__ import annotations
 import re
 import sys
 
-
 import pytest
 
 pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
@@ -41,8 +40,8 @@ for name in list(_existing_shared_modules.keys()):
 from value_fabric.shared.boundaries.tenant_boundary import (  # noqa: E402
     TenantBoundaryError,
     get_tenant_context,
-    require_tenant_context,
     get_tenant_id,
+    require_tenant_context,
     require_tenant_id,
 )
 from value_fabric.shared.identity.context import RequestContext, set_request_context  # noqa: E402

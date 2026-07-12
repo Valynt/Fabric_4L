@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+
 def _get_analyze_errors_ast_node():
     src = (
         Path(__file__).resolve().parents[2]

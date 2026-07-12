@@ -102,13 +102,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install swagger-cli
-        run: npm install -g @apidevtools/swagger-cli
+        run: pnpm add -g @apidevtools/swagger-cli
 
       - name: Validate all OpenAPI specs
         run: |
@@ -150,9 +155,19 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Install openapi-generator-cli
         run: |
-          npm install -g @openapitools/openapi-generator-cli
+          pnpm add -g @openapitools/openapi-generator-cli
           openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
 
       - name: Generate Python SDKs
@@ -187,6 +202,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
@@ -200,7 +220,7 @@ jobs:
 
       - name: Install openapi-generator-cli
         run: |
-          npm install -g @openapitools/openapi-generator-cli
+          pnpm add -g @openapitools/openapi-generator-cli
           openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
 
       - name: Generate TypeScript SDKs
@@ -276,11 +296,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Set up pnpm for testing
+        if: needs.generate-typescript.result == 'success'
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Test TypeScript SDK compilation
         if: needs.generate-typescript.result == 'success'
         run: |
           cd sdk/typescript
-          npm install typescript @types/node --no-save || true
+          pnpm add --save-dev typescript @types/node || true
           # Check that generated files exist
           ls -la fabric4l-*/
           echo "✓ TypeScript SDK files generated"
@@ -405,6 +431,16 @@ jobs:
           name: sdk-typescript
           path: sdk/typescript/
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Publish Python SDKs to PyPI
         env:
           PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
@@ -418,7 +454,7 @@ jobs:
             cd "$GITHUB_WORKSPACE"
           done
 
-      - name: Publish TypeScript SDKs to npm
+      - name: Publish TypeScript SDK packages
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -426,6 +462,6 @@ jobs:
           for pkg_dir in sdk/typescript/fabric4l-*/; do
             echo "Publishing: $pkg_dir"
             cd "$pkg_dir"
-            npm publish --access public || echo "Skipped: $pkg_dir"
+            pnpm publish --access public --no-git-checks || echo "Skipped: $pkg_dir"
             cd "$GITHUB_WORKSPACE"
           done

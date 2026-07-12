@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import pytest
-
-from tests.production_readiness.manifest import assert_paths_exist, assert_pytest_coverage, assert_readme_documents_gap
-
+from tests.production_readiness.manifest import (
+    assert_paths_exist,
+    assert_pytest_coverage,
+    assert_readme_documents_gap,
+)
 
 pytestmark = [pytest.mark.abuse, pytest.mark.production_readiness]
 

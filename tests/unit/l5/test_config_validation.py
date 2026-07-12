@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from layer5_ground_truth.config import (
     Settings,
     _has_default_database_credentials,

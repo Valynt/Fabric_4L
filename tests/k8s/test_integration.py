@@ -245,7 +245,7 @@ class TestEnvironmentDifferences:
                 )
         
         if missing_labels:
-            pytest.fail(f"Resources missing environment=prod label:\n" + "\n".join(missing_labels))
+            pytest.fail("Resources missing environment=prod label:\n" + "\n".join(missing_labels))
 
     def test_replica_counts_differ(
         self, repo_root: Path, skip_without_kustomize

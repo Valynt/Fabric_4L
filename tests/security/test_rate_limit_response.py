@@ -27,12 +27,12 @@ except ImportError:
     _FASTAPI_AVAILABLE = False
 
 try:
-    from value_fabric.shared.identity.rate_limiter import RateLimitResult
-    from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.context import (
         AUTH_SOURCE_JWT,
         RequestContext,
     )
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    from value_fabric.shared.identity.rate_limiter import RateLimitResult
     _MIDDLEWARE_AVAILABLE = True
 except ImportError:
     _MIDDLEWARE_AVAILABLE = False

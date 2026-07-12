@@ -10,7 +10,6 @@ not be an empty re-export wrapper.
 import ast
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODELS_PATH = REPO_ROOT / "services/layer3-knowledge/src/api/models.py"
 

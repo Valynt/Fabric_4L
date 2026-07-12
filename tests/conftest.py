@@ -16,20 +16,19 @@ Design Rules:
 """
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import os
 import sys
 import time
-import importlib
-import importlib.util
 import types
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 from uuid import UUID
 
 import jwt as pyjwt
 import pytest
-
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -42,7 +41,7 @@ class InfraDependency:
     categories: tuple[str, ...]
 
 
-INFRA_DEPENDENCIES: Dict[str, InfraDependency] = {
+INFRA_DEPENDENCIES: dict[str, InfraDependency] = {
     "postgres": InfraDependency(
         key="postgres",
         display_name="Postgres",
@@ -187,13 +186,13 @@ def _install_legacy_collection_import_aliases() -> None:
     src_retrieval_module = _ensure_namespace_module("src.retrieval", [layer3_src / "retrieval"])
     src_services_module = _ensure_namespace_module("src.services", [layer3_src / "services", layer4_src / "services"])
     src_tools_module = _ensure_namespace_module("src.tools", [layer4_src / "tools"])
-    setattr(src_module, "agents", src_agents_module)
-    setattr(src_module, "api", src_api_module)
-    setattr(src_module, "analytics", src_analytics_module)
-    setattr(src_module, "models", src_models_module)
-    setattr(src_module, "retrieval", src_retrieval_module)
-    setattr(src_module, "services", src_services_module)
-    setattr(src_module, "tools", src_tools_module)
+    src_module.agents = src_agents_module
+    src_module.api = src_api_module
+    src_module.analytics = src_analytics_module
+    src_module.models = src_models_module
+    src_module.retrieval = src_retrieval_module
+    src_module.services = src_services_module
+    src_module.tools = src_tools_module
 
     layer4_agents_module = _ensure_namespace_module("layer4_agents", [layer4_src / "layer4_agents"])
     _ = layer4_agents_module  # noqa: F841 - registered for canonical test imports
@@ -204,10 +203,10 @@ def _install_legacy_collection_import_aliases() -> None:
         "services.layer4_agents",
         [_PROJECT_ROOT / "services" / "layer4-agents"],
     )
-    setattr(services_module, "layer4_agents", layer4_alias)
+    services_module.layer4_agents = layer4_alias
 
     layer4_src_alias = _ensure_namespace_module("services.layer4_agents.src", [layer4_src])
-    setattr(layer4_alias, "src", layer4_src_alias)
+    layer4_alias.src = layer4_src_alias
 
     # Layer 3 still has runtime modules that use top-level ``from config``.
     # Pin that bare name to the Layer 3 config surface so later sys.path
@@ -224,7 +223,7 @@ def _install_legacy_collection_import_aliases() -> None:
     sys.modules["src.config"] = layer3_config
     config_spec.loader.exec_module(layer3_config)
     sys.modules["config"] = layer3_config
-    setattr(src_module, "config", layer3_config)
+    src_module.config = layer3_config
 
     if "value_fabric.shared.testing" not in sys.modules:
         try:
@@ -266,14 +265,14 @@ def jwt_encode() -> Callable[..., str]:
     def _encode(
         tenant_id: UUID,
         *,
-        user_id: Optional[str] = None,
-        roles: Optional[list[str]] = None,
-        api_key_id: Optional[str] = None,
-        extra_claims: Optional[Dict[str, Any]] = None,
+        user_id: str | None = None,
+        roles: list[str] | None = None,
+        api_key_id: str | None = None,
+        extra_claims: dict[str, Any] | None = None,
         expires_in: int = 3600,
     ) -> str:
         now = int(time.time())
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             JWT_TENANT_CLAIM: str(tenant_id),
             "iat": now,
             "exp": now + expires_in,
@@ -427,19 +426,19 @@ def context_admin():
 # Auth header helpers
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def auth_headers_a(jwt_token_a) -> Dict[str, str]:
+def auth_headers_a(jwt_token_a) -> dict[str, str]:
     """HTTP headers authenticating as Tenant A."""
     return {"Authorization": f"Bearer {jwt_token_a}"}
 
 
 @pytest.fixture
-def auth_headers_b(jwt_token_b) -> Dict[str, str]:
+def auth_headers_b(jwt_token_b) -> dict[str, str]:
     """HTTP headers authenticating as Tenant B."""
     return {"Authorization": f"Bearer {jwt_token_b}"}
 
 
 @pytest.fixture
-def auth_headers_admin(jwt_token_admin) -> Dict[str, str]:
+def auth_headers_admin(jwt_token_admin) -> dict[str, str]:
     """HTTP headers authenticating as super_admin."""
     return {"Authorization": f"Bearer {jwt_token_admin}"}
 
@@ -696,7 +695,7 @@ def l4_route_files(project_root) -> list[Path]:
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Report infra-gated skip counts so coverage loss is explicit."""
     skipped = terminalreporter.stats.get("skipped", [])
-    counts = {key: 0 for key in INFRA_DEPENDENCIES}
+    counts = dict.fromkeys(INFRA_DEPENDENCIES, 0)
 
     for report in skipped:
         longrepr = getattr(report, "longrepr", "")

@@ -15,7 +15,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-
 from src.api.dependencies import _extract_tenant_id as dependency_extract_tenant_id
 from src.api.models import BatchEntityOperation, BatchEntityRequest
 from src.api.routes.analytics import batch_entity_operations

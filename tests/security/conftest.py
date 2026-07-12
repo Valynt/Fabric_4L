@@ -3,10 +3,11 @@
 import os
 from pathlib import Path
 from typing import Callable, Generator
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 import jwt
-from unittest.mock import MagicMock, AsyncMock
+import pytest
+
 
 # Lazy imports for optional dependencies
 def _get_psycopg2():
@@ -468,6 +469,7 @@ def _clear_rate_limit_buckets():
     subsequent tests can spuriously hit 429 rate-limit responses.
     """
     import gc
+
     from value_fabric.shared.identity import middleware
     from value_fabric.shared.rate_limiting.tenant_rate_limiter import SlidingWindowAdapter
 
