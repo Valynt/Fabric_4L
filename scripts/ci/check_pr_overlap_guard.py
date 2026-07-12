@@ -56,19 +56,47 @@ def _files_for_pr(repo: str, number: int) -> set[str]:
 
 
 def _merged_prs(repo: str, base: str, lookback: int, exclude: int) -> list[dict[str, object]]:
-    query = f"repo:{repo} is:pr is:merged base:{base} -number:{exclude}"
-    data = _run_json(
-        [
-            "gh",
-            "api",
-            "search/issues",
-            "-f",
-            f"q={query}",
-            "-f",
-            f"per_page={lookback}",
-        ]
-    )
-    return data.get("items", [])
+    """Fetch recently merged PRs using the read-only `gh pr list` command.
+
+    The previous implementation used `gh api search/issues` with a `-number:`
+    negation qualifier, which is not supported by that endpoint and caused a
+    404/empty-result failure. `gh pr list --state merged` is read-only,
+    paginates internally, and works for forked PRs because the PR number is
+    scoped to the target repository.
+    """
+    # Fetch one extra so excluding the current PR still yields `lookback` items.
+    limit = lookback + 1
+    try:
+        data = _run_json(
+            [
+                "gh",
+                "pr",
+                "list",
+                "--repo",
+                repo,
+                "--state",
+                "merged",
+                "--base",
+                base,
+                "--limit",
+                str(limit),
+                "--json",
+                "number,title",
+            ]
+        )
+    except subprocess.CalledProcessError as exc:
+        print(f"PR overlap guard: could not list merged PRs ({exc}). Skipping history check.")
+        return []
+
+    items: list[dict[str, object]] = []
+    for pr in data:
+        number = int(pr.get("number", 0))
+        if number == exclude:
+            continue
+        items.append({"number": number, "title": str(pr.get("title") or "")})
+        if len(items) >= lookback:
+            break
+    return items
 
 
 def evaluate(

@@ -992,6 +992,158 @@
       "runtime_budget_minutes": 15,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/api-changelog.yml",
+      "name": "API Changelog",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "release",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "SLACK_WEBHOOK_URL_API_CHANGES"
+      ],
+      "produced_artifacts": [
+        "${{ steps.changelog.outputs.output_path }}"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/bundle-analysis.yml",
+      "name": "Bundle Analysis",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "apps/web/dist",
+        "apps/web/dist/stats.html",
+        "apps/web/dist/stats.json",
+        "artifacts/bundle-comment.md"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/dependency-scan.yml",
+      "name": "Dependency Vulnerability Scan",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "frontend/${{ matrix.frontend }}/pnpm-audit.json",
+        "pip-audit-${{ matrix.service }}.*",
+        "sbom-vuln-track.json"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/flakiness-tracker.yml",
+      "name": "flakiness-tracker",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "reports/flakiness-report.json",
+        "reports/flakiness-report.md"
+      ],
+      "runtime_budget_minutes": 120,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/sbom.yml",
+      "name": "SBOM Generation & Attestation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "release",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "${{ env.SBOM_OUTPUT_DIR }}/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/sdk-generation.yml",
+      "name": "SDK Generation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "NPM_TOKEN",
+        "PYPI_API_TOKEN"
+      ],
+      "produced_artifacts": [
+        "sdk/python/",
+        "sdk/typescript/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/visual-regression.yml",
+      "name": "Visual Regression",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "apps/web/dist",
+        "apps/web/e2e/visual/**/*.actual.png",
+        "apps/web/e2e/visual/**/*.diff.png",
+        "apps/web/e2e/visual/**/*.expected.png",
+        "apps/web/playwright-report/",
+        "apps/web/test-results/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
     }
   ],
   "duplicate_groups": []
