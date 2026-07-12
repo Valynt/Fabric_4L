@@ -93,6 +93,12 @@ ERR_AUTH_SERVICE_UNAVAILABLE = "AUTH_SERVICE_UNAVAILABLE"
 ERR_AUTH_CONTEXT_INVALID = "AUTH_CONTEXT_INVALID"
 
 
+class TenantHeaderValidationError(ValueError):
+    """Raised when the X-Tenant-ID header is malformed or otherwise invalid."""
+
+    pass
+
+
 def _request_log_context(request: Request) -> dict[str, Any]:
     request_id = request.headers.get("X-Request-ID") or request.headers.get(
         "X-Correlation-ID"
@@ -407,7 +413,7 @@ def validate_context_consistency(
     raw_header = str(header_tenant_id).strip()
     if not raw_header:
         record_inconsistent_tenant_context_access(route=route, source="header_invalid")
-        raise ValueError("Invalid tenant_id header")
+        raise TenantHeaderValidationError("Invalid tenant_id header")
     try:
         header_value: UUID | str = UUID(raw_header)
     except (TypeError, ValueError) as exc:
@@ -419,7 +425,7 @@ def validate_context_consistency(
             record_inconsistent_tenant_context_access(
                 route=route, source="header_invalid"
             )
-            raise ValueError("Invalid tenant_id header") from exc
+            raise TenantHeaderValidationError("Invalid tenant_id header") from exc
     if str(ctx.tenant_id) != str(header_value):
         record_inconsistent_tenant_context_access(route=route, source="header")
         raise ValueError(
@@ -1148,6 +1154,23 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 route=request.url.path,
             )
             return ctx
+        except TenantHeaderValidationError as exc:
+            logger.warning(
+                "jwt_context_rejected",
+                extra={
+                    "event": "jwt_context_rejected",
+                    "error_code": ERR_AUTH_CONTEXT_INVALID,
+                    "error": str(exc),
+                    **_request_log_context(request),
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error_code": ERR_AUTH_CONTEXT_INVALID,
+                    "message": "Invalid tenant context header.",
+                },
+            ) from exc
         except ValueError as exc:
             logger.warning(
                 "jwt_context_rejected",
