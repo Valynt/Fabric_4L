@@ -142,8 +142,7 @@ jobs:
             --exclude 'archive/**' \
             --exclude 'docs/archive/**' \
             --sarif \
-            --output semgrep-full.sarif \
-            || true
+            --output semgrep-full.sarif
           test -s semgrep-full.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security

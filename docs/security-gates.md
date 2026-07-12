@@ -207,8 +207,10 @@ trivy fs --scanners vuln,secret,misconfig \
 # OSV-Scanner full recursive scan
 osv-scanner scan -r .
 
-# OpenSSF Scorecard (read-only GitHub token required)
-GITHUB_AUTH_TOKEN=<token> scorecard --repo=github.com/bmsull560/Fabric_4L
+# OpenSSF Scorecard (read-only GitHub token required; source it from a
+# secure credential store rather than typing it inline)
+export GITHUB_AUTH_TOKEN="$(<path-to-secure-token-source>)"
+scorecard --repo=github.com/bmsull560/Fabric_4L
 ```
 
 ### 7) Teardown
