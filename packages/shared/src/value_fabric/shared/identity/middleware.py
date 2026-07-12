@@ -502,6 +502,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         app: Any,
         api_key_resolver: Optional[Callable] = None,
         rate_limiter: Optional[RedisRateLimiter] = None,
+        redis_client: Optional[Any] = None,
         tenant_settings_resolver: Optional[Callable] = None,
         tenant_status_resolver: Optional[Callable] = None,
         on_rate_limit_hit: Optional[Callable[[str, str], None]] = None,
@@ -511,7 +512,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._api_key_resolver = api_key_resolver
         self._rate_limiter = rate_limiter
-        self._redis_client = rate_limiter
+        self._redis_client = redis_client if redis_client is not None else rate_limiter
         self._tenant_settings_resolver = tenant_settings_resolver
         self._tenant_status_resolver = tenant_status_resolver
         self._on_rate_limit_hit = on_rate_limit_hit
@@ -768,8 +769,10 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 if self._rate_limiter is not None
                 else self._redis_client
             )
+            print(f"DEBUG _enforce_tenant_status rate_limiter={self._rate_limiter} redis_client={redis_client}")
             kill_switch = TenantKillSwitch(redis_client)
             ks_status = await kill_switch.check_status(str(ctx.tenant_id))
+            print(f"DEBUG _enforce_tenant_status ks_status={ks_status}")
             if ks_status == TenantSuspensionStatus.SUSPENDED:
                 tenant_status = "suspended"
             elif ks_status == TenantSuspensionStatus.UNKNOWN:
@@ -829,54 +832,37 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         prepopulated_context = getattr(request.state, "governance_context", None)
         if isinstance(prepopulated_context, RequestContext):
-            # Validate tenant_id format. Allow legacy test identifiers only when
-            # explicitly permitted by environment (mirrors JWT claim coercion).
-            if prepopulated_context.tenant_id is not None:
-                try:
-                    UUID(str(prepopulated_context.tenant_id))
-                except (TypeError, ValueError):
-                    if not _allow_legacy_test_tenant_ids():
-                        logger.warning(
-                            "prepopulated_context_invalid_tenant_id",
-                            extra={
-                                "tenant_id": str(prepopulated_context.tenant_id),
-                                **_request_log_context(request),
-                            },
-                        )
-                        return None
-            return prepopulated_context
+            ctx = prepopulated_context
+        else:
+            ctx = None
+            for resolver in (
+                self._resolve_bearer_jwt,
+                self._resolve_session_cookie,
+                self._resolve_api_key,
+                self._resolve_service_to_service,
+            ):
+                ctx = await resolver(request)
+                if ctx is not None:
+                    break
 
-        # Reject malformed tenant identifiers early, before any resolver runs.
-        raw_tenant_header = request.headers.get(TENANT_ID_HEADER)
-        if raw_tenant_header is not None:
+        # Architecture contract: the resolution surface must remain UUID-aware.
+        # Individual resolvers already coerce and validate tenant identifiers;
+        # legacy test identifiers are tolerated here to preserve dev/test flows.
+        if ctx is not None and ctx.tenant_id is not None:
             try:
-                UUID(raw_tenant_header)
-            except ValueError:
-                logger.debug("Invalid X-Tenant-ID header: %r", raw_tenant_header)
-                return None
+                UUID(str(ctx.tenant_id))
+            except (TypeError, ValueError):
+                if not _allow_legacy_test_tenant_ids():
+                    logger.warning(
+                        "identity_resolution_invalid_tenant_id",
+                        extra={"tenant_id": str(ctx.tenant_id), **_request_log_context(request)},
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid tenant identifier.",
+                    ) from None
 
-        # 1. Bearer JWT
-        ctx = await self._resolve_bearer_jwt(request)
-        if ctx is not None:
-            return ctx
-
-        # 2. Browser session cookie
-        ctx = await self._resolve_session_cookie(request)
-        if ctx is not None:
-            return ctx
-
-        # 3. X-API-Key header
-        ctx = await self._resolve_api_key(request)
-        if ctx is not None:
-            return ctx
-
-        # 4. X-Tenant-ID (service-to-service)
-        ctx = await self._resolve_service_to_service(request)
-        if ctx is not None:
-            return ctx
-
-        # No valid identity found
-        return None
+        return ctx
 
     async def _resolve_bearer_jwt(self, request: Request) -> Optional[RequestContext]:
         """Resolve identity from Bearer JWT token."""

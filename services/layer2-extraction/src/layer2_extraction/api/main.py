@@ -226,6 +226,13 @@ try:
 except Exception:
     pass
 
+_redis_client_sync = None
+try:
+    import redis as _redis_sync
+    _redis_client_sync = _redis_sync.Redis.from_url(_redis_url, decode_responses=True)
+except Exception:
+    pass
+
 async def _pending_ingestion_probe() -> ProbeResult:
     """Readiness probe for the pending-ingestion store."""
     return await health_routes.pending_ingestion_probe(pending_ingestion_store)
@@ -264,6 +271,7 @@ app.add_middleware(
     GovernanceMiddleware,
     api_key_resolver=None,
     rate_limiter=None,
+    redis_client=_redis_client_sync,
 )
 logger.info("GovernanceMiddleware installed", component="layer2-extraction")
 

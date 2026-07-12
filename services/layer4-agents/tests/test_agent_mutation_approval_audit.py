@@ -166,12 +166,7 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
     class FakeDB:
         async def get(self, model: Any, key: str) -> Any:
             assert key == case_id
-            return SimpleNamespace(
-                case_id=case_id,
-                account_id=account_id,
-                tenant_id=str(tenant_id),
-                status="draft",
-            )
+            return SimpleNamespace(case_id=case_id, account_id=account_id, tenant_id=tenant_id, status="draft")
 
     class FakeAccountService:
         def __init__(self, db: Any) -> None:
@@ -193,4 +188,4 @@ async def test_rejecting_or_exporting_unapproved_draft_does_not_update_model(
         response = await client.get(f"/v1/cases/{case_id}/export")
 
     assert response.status_code == 409
-    assert "approved" in response.text.lower() or "draft" in response.text.lower() or "document bytes" in response.text.lower()
+    assert "approved" in response.text.lower() or "before export" in response.text.lower()

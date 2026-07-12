@@ -1,11 +1,10 @@
 # This file is a compatibility shim. New code must import from layer4_agents.*
 # ruff: noqa: F401,F403
 
-# INTENTIONAL_DB_ADAPTER_BYPASS: This shim intentionally re-exports the Layer 4
-# database module directly, bypassing the shared RuntimeDatabaseAdapter. The
-# marker is required by the runtime DB contract test so that deliberately
-# non-shared database entrypoints are explicitly flagged and reviewed.
-INTENTIONAL_DB_ADAPTER_BYPASS = True
+# This shim re-exports layer4_agents.database, which intentionally bypasses the
+# shared RuntimeDatabaseAdapter for local session management. The marker below
+# makes that bypass explicit per the runtime database adapter contract.
+# See: tests/contract/test_runtime_db_postgres_contract.py
 
 from layer4_agents.database import *  # noqa: F401,F403
 

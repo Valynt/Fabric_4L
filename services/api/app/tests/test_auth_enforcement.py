@@ -8,8 +8,10 @@ Proves that:
   4. A tampered JWT returns 401.
   5. X-Tenant-ID alone (no JWT) returns 401 — header spoofing is blocked.
   6. A JWT for tenant-alpha cannot access tenant-beta resources.
-  7. /health and /metrics remain public (no auth required).
-  8. The app refuses to start with the default secret in production environments.
+  7. /health remains public (no auth required).
+  8. /metrics is fail-closed by default and only allows unauthenticated access
+     when the explicit development bypass is enabled.
+  9. The app refuses to start with the default secret in production environments.
 """
 
 from __future__ import annotations
@@ -39,7 +41,6 @@ PROTECTED_ENDPOINTS = [
 
 PUBLIC_ENDPOINTS = [
     ("GET", "/health"),
-    ("GET", "/metrics"),
 ]
 
 
@@ -219,6 +220,45 @@ class TestPublicEndpoints:
         with TestClient(app) as client:
             response = client.request(method, path)
         assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# 6b. /metrics access control
+# ---------------------------------------------------------------------------
+
+
+class TestMetricsAccess:
+    """/metrics must be fail-closed by default and only allow unauthenticated
+    access when the explicit development bypass is enabled.
+    """
+
+    def test_metrics_requires_auth_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """With the dev bypass disabled, unauthenticated /metrics requests are rejected."""
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
+        monkeypatch.delenv("METRICS_INTERNAL_SCRAPE_TOKEN", raising=False)
+
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/metrics")
+        assert response.status_code == 403, (
+            f"Expected 403 for unauthenticated /metrics with bypass disabled, "
+            f"got {response.status_code}."
+        )
+
+    def test_metrics_dev_bypass_allows_unauthenticated(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Explicitly enabling the dev bypass permits unauthenticated /metrics access."""
+        monkeypatch.setenv("ENVIRONMENT", "development")
+        monkeypatch.setenv("APP_ENV", "development")
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
+        monkeypatch.delenv("METRICS_INTERNAL_SCRAPE_TOKEN", raising=False)
+
+        with TestClient(app) as client:
+            response = client.get("/metrics")
+        assert response.status_code == 200, (
+            f"Dev bypass should allow unauthenticated /metrics access, "
+            f"got {response.status_code}"
+        )
 
 
 # ---------------------------------------------------------------------------

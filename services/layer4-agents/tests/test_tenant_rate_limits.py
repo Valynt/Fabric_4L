@@ -208,6 +208,13 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
         """Set up for integration tests — previously skipped due to middleware API changes."""
         pass
 
+    def _fake_redis_client(self):
+        """Return a stub Redis client that reports no suspended tenants."""
+        class _FakeRedis:
+            async def sismember(self, *_args, **_kwargs):
+                return False
+        return _FakeRedis()
+
     def test_middleware_uses_tenant_settings_for_rate_limit(self):
         """Middleware should prefer tenant settings when a resolver is configured."""
         async def scenario():
@@ -226,6 +233,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
                 app=MagicMock(),
                 rate_limiter=limiter,
                 tenant_settings_resolver=resolver,
+                redis_client=self._fake_redis_client(),
             )
             request = _request()
             context = _context(tenant_id)
@@ -260,6 +268,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
                 app=MagicMock(),
                 rate_limiter=limiter,
                 tenant_settings_resolver=resolver,
+                redis_client=self._fake_redis_client(),
             )
 
             result = await middleware._check_rate_limit(_request(), _context(tenant_id))
@@ -275,6 +284,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
         async def scenario():
             tenant_id = uuid4()
             limiter = FakeRateLimiter(allowed=False)
+            limiter.redis_client = self._fake_redis_client()
             resolver = AsyncMock(
                 return_value={
                     "rate_limits": {
@@ -288,7 +298,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
                 app=MagicMock(),
                 rate_limiter=limiter,
                 tenant_settings_resolver=resolver,
-                tenant_status_resolver=AsyncMock(return_value="active"),
+                redis_client=self._fake_redis_client(),
             )
             request = _request()
             context = _context(tenant_id)
@@ -314,10 +324,11 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
         async def scenario():
             tenant_id = uuid4()
             limiter = FakeRateLimiter(allowed=True)
+            limiter.redis_client = self._fake_redis_client()
             middleware = GovernanceMiddleware(
                 app=MagicMock(),
                 rate_limiter=limiter,
-                tenant_status_resolver=AsyncMock(return_value="active"),
+                redis_client=self._fake_redis_client(),
             )
             request = _request()
             context = _context(tenant_id)
@@ -348,6 +359,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
                 app=MagicMock(),
                 rate_limiter=limiter,
                 tenant_settings_resolver=resolver,
+                redis_client=self._fake_redis_client(),
             )
 
             result = await middleware._check_rate_limit(_request(), _context(tenant_id))

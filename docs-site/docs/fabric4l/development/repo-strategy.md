@@ -49,7 +49,7 @@ This monorepo is **pnpm-only**. npm and yarn are prohibited in canonical runtime
 ```bash
 # Correct
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 
 # Incorrect — will fail CI package-manager policy
@@ -66,7 +66,7 @@ yarn install
 | Runtime | Canonical Version | Source of Truth |
 |---------|-------------------|-----------------|
 | Node.js | 22.12.0 | Root `package.json` `engines.node` |
-| pnpm | 10.18.1 | Root `package.json` `packageManager` |
+| pnpm | 10.34.5 | Root `package.json` `packageManager` |
 | Python | 3.11 | Makefile and GitHub Actions |
 | Python container base | `python:3.11.13-slim-bookworm` | Service Dockerfiles |
 

@@ -6,7 +6,7 @@
     "ghcr.io/devcontainers/features/node:1": { "version": "22" },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.18.1 --activate && pnpm install --frozen-lockfile && make setup && cp .env.example .env",
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.34.5 --activate && pnpm install --frozen-lockfile && make setup && cp .env.example .env",
   "postStartCommand": "docker compose -f infra/compose/docker-compose.dev.yml up -d && make migrate",
   "customizations": {
     "vscode": {

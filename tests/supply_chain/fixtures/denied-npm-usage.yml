@@ -1,0 +1,34 @@
+# Fixture: denied npm/yarn usage patterns
+# This workflow is intentionally invalid in other respects; it only serves as a
+# source of lines that the package-manager policy checker MUST reject.
+name: denied-npm-usage-fixture
+on: workflow_dispatch
+jobs:
+  denied:
+    runs-on: ubuntu-latest
+    steps:
+      - name: npm ci
+        run: npm ci
+
+      - name: npm install
+        run: npm install
+
+      - name: npm install with args
+        run: npm install --legacy-peer-deps
+
+      - name: npm i shorthand
+        run: npm i
+
+      - name: npm i with args
+        run: npm i express
+
+      - name: yarn install
+        run: yarn install
+
+      - name: yarn add
+        run: yarn add lodash
+
+      - name: npm install global then local
+        run: |
+          npm install -g tool
+          npm install

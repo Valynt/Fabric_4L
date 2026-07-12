@@ -36,7 +36,7 @@ concurrency:
 
 env:
   NODE_VERSION: "22.13.0"
-  PNPM_VERSION: "10.18.1"
+  PNPM_VERSION: "10.34.5"
   PLAYWRIGHT_VERSION: "1.49"
 
 jobs:

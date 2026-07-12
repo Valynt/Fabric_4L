@@ -31,7 +31,9 @@ also fails.
 
 from __future__ import annotations
 
+import asyncio
 import enum
+import inspect
 import logging
 import os
 from typing import Any
@@ -126,7 +128,16 @@ class TenantKillSwitch:
             )
             return TenantSuspensionStatus.UNKNOWN
         try:
-            result = await self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
+            # Support both sync and async Redis clients. Sync clients are run in
+            # a thread so they do not block the asyncio event loop; async clients
+            # are awaited directly. This keeps the kill-switch usable across
+            # event-loop boundaries (e.g., multiple TestClient instances in tests).
+            if asyncio.iscoroutinefunction(self._redis.sismember):
+                result = await self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
+            else:
+                result = await asyncio.to_thread(
+                    self._redis.sismember, SUSPENDED_TENANTS_SET, str(tenant_id)
+                )
             return (
                 TenantSuspensionStatus.SUSPENDED
                 if bool(result)

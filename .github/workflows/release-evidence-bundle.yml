@@ -279,7 +279,7 @@ jobs:
       - name: Enable pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@10.18.1 --activate
+          corepack prepare pnpm@10.34.5 --activate
 
       - name: Generate evidence bundle
         run: pnpm evidence:bundle -- --release-sha "${{ github.sha }}"

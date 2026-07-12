@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import structlog
+import os
 from contextlib import asynccontextmanager
 from typing import Any
+
+import structlog
 
 from fastapi import FastAPI
 from value_fabric.shared.probes import normalize_probe_payload
@@ -27,6 +29,19 @@ Port: 8007
 # Configure structured logging
 configure_structured_logging()
 logger = structlog.get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Redis client for governance kill-switch (sync, event-loop agnostic)
+# ---------------------------------------------------------------------------
+
+_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+_redis_client_sync = None
+try:
+    import redis as _redis_sync
+    _redis_client_sync = _redis_sync.Redis.from_url(_redis_url, decode_responses=True)
+except Exception:
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +104,7 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
             GovernanceMiddleware,
             api_key_resolver=None,
             rate_limiter=None,
+            redis_client=_redis_client_sync,
         )
         security_config = SecurityConfig.from_env(
             skip_validation_paths=frozenset({"/health", "/metrics", "/ready"}),

@@ -1,0 +1,27 @@
+# Fixture: allowed npm/yarn usage patterns
+# This workflow is intentionally invalid in other respects; it only serves as a
+# source of lines that the package-manager policy checker MUST permit.
+name: allowed-npm-usage-fixture
+on: workflow_dispatch
+jobs:
+  allowed:
+    runs-on: ubuntu-latest
+    steps:
+      # Registry publish is permitted.
+      - name: Publish to npm
+        run: npm publish --access public
+
+      # Step-level exception marker permits a global npm tool install.
+      - name: Install openapi-generator-cli globally
+        # NPM-GLOBAL-EXCEPTION: openapi-generator-cli has no pnpm-distributed binary.
+        run: npm install -g @openapitools/openapi-generator-cli
+
+      # pnpm project installs are always allowed.
+      - name: Install with pnpm
+        run: pnpm install --frozen-lockfile
+
+      - name: Add pnpm dev dependency
+        run: pnpm add -D typescript
+
+      - name: Global pnpm tool
+        run: pnpm add -g @apidevtools/swagger-cli

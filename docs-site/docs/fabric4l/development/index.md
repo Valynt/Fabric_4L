@@ -24,7 +24,7 @@ If this is your first time in the repo, run the canonical setup flow:
 ```bash
 # 1. Enable pnpm (do not use npm or yarn)
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 2. Install JavaScript dependencies
 pnpm install --frozen-lockfile

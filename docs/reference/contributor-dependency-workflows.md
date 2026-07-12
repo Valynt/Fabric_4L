@@ -11,7 +11,7 @@ Use `apps/web/` as the only valid frontend source/config root.
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 pnpm --dir apps/web install --frozen-lockfile
 ```
@@ -24,6 +24,15 @@ Do not run `npm install`, `npm ci`, or `yarn install` in this repository.
 
 - `pnpm-lock.yaml` (repo root)
 - `apps/web/pnpm-lock.yaml`
+
+### `apps/web/pnpm-lock.yaml` contract
+
+`apps/web/pnpm-lock.yaml` is a **standalone fallback lockfile** for the frontend package. It is generated as if `apps/web/` were an independent package, not as a member of the pnpm workspace.
+
+- `apps/web/package.json` keeps `workspace:*` references for local packages (`@fabric/platform-contract`, `eslint-plugin-fabric-contracts`) so the workspace install and IDE resolution work correctly.
+- The standalone lockfile remaps those references to relative `file:` paths (`file:../../packages/...`) so the lockfile is self-contained if the package is ever consumed outside the workspace.
+- CI enforces that the file does not drift unintentionally (`git diff --exit-code -- apps/web/pnpm-lock.yaml` in `.github/workflows/supply-chain.yml`).
+- Do not hand-edit `file:` entries. If the standalone lockfile must be regenerated, use the documented standalone process and verify the relative paths resolve from `apps/web/` to the correct `packages/` directories.
 
 ### pnpm override rollback plan
 
@@ -71,6 +80,16 @@ The guard rejects:
 
 Approved lockfile churn paths are intentionally narrow to prevent accidental cross-workspace dependency drift.
 
+## Workflow package-manager exceptions
+
+Workflow steps must install project dependencies through pnpm (`pnpm install --frozen-lockfile`). The policy checker classifies npm/yarn commands in workflow `run:` blocks:
+
+- **Denied**: `npm ci`, project-level `npm install` / `npm i`, `yarn install`, `yarn add`.
+- **Allowed**: `npm publish` for registry operations.
+- **Allowed with marker**: global npm CLI installs only when preceded by a step-level `# NPM-GLOBAL-EXCEPTION: <justification>` comment and no pnpm/Corepack equivalent exists.
+
+See `.github/workflows/sdk-generation.yml` for the current `npm publish` exception and the documented global-tool conversions.
+
 ## Where the guard runs
 
 - **CI**: `pnpm run check:package-manager-policy`
@@ -92,3 +111,7 @@ Guard entrypoint:
 ```bash
 python scripts/ci/check_frontend_root_policy.py --base-ref origin/main
 ```
+
+## Archive snapshots
+
+Path patterns under `docs/archive/` (for example, `docs/archive/frontend-root-2026-05-02/source-snapshot/`) are **immutable historical evidence**. They are not supported executable surfaces, are excluded from active lockfile/sbom governance, and must not be built or deployed. Vulnerability findings in archive snapshots are triaged as informational only unless the archive is explicitly promoted to a supported surface through a dedicated governance change.

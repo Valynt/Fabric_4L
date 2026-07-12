@@ -2,7 +2,7 @@
 
 RB-8 FIX: The original test_metrics() test assumed unauthenticated access to
 /metrics always returns 200. This is only true in development mode with
-ALLOW_INSECURE_DEV_AUTH_BYPASS=true. In production/staging environments the
+ALLOW_INSECURE_DEV_AUTH_BYPASS set to true. In production/staging environments the
 endpoint correctly returns 403 for unauthenticated requests.
 
 The tests are now split into:
@@ -110,8 +110,9 @@ def test_metrics_with_x_prometheus_scrape_token_returns_200(monkeypatch):
 
 
 def test_metrics_dev_bypass_allows_unauthenticated(monkeypatch):
-    """In development mode with ALLOW_INSECURE_DEV_AUTH_BYPASS=true, unauthenticated
-    /metrics access must succeed (regression guard for the dev bypass path).
+    """In development mode with ALLOW_INSECURE_DEV_AUTH_BYPASS set to true,
+    unauthenticated /metrics access must succeed (regression guard for the dev
+    bypass path).
     """
     monkeypatch.setenv("ENVIRONMENT", "development")
     monkeypatch.setenv("APP_ENV", "development")

@@ -1091,59 +1091,6 @@ async def regenerate_business_case(
     return response
 
 
-@router.get("/cases/{case_id}", response_model=BusinessCaseResponse)
-async def get_business_case(
-    case_id: str,
-    executor: WorkflowExecutor = Depends(get_executor),
-    db: AsyncSession = Depends(get_route_db),
-    context: RequestContext = Depends(require_authenticated),
-) -> BusinessCaseResponse:
-    """Get a generated business case by ID."""
-    authorize_action("layer4.analysis.read_case", context)
-    result = await executor.get_result(case_id)
-
-    if not result:
-        raise NotFoundError(message = str(f"Business case {case_id} not found"))
-
-    record = await db.get(BusinessCaseRecord, case_id)
-    if record and record.account_id:
-        await _require_tenant_account(db, record.account_id, context)
-    else:
-        result_tenant = result.get("metadata", {}).get("tenant_id")
-        if result_tenant and str(result_tenant) != str(context.tenant_id):
-            raise AuthorizationError(message = str(f"Business case {case_id} does not belong to the current tenant"))
-
-    output = result.get("output", {})
-    assemble_data = output.get("assemble_document", {})
-    truth_gate = output.get("verify_truth_requirements", {})
-    sdes_bundle = output.get("generate_sdes", {})
-    narrative_data = output.get("synthesize_narrative", {})
-    case_metadata = dict(assemble_data.get("case_metadata", {}))
-    if record and record.account_id:
-        case_metadata["account_id"] = str(record.account_id)
-
-    return BusinessCaseResponse(
-        case_id=case_id,
-        title=assemble_data.get("title", "Business Case"),
-        summary=assemble_data.get("executive_summary", narrative_data.get("narrative", "")),
-        total_value=assemble_data.get("total_estimated_value", 0.0),
-        implementation_cost=assemble_data.get("implementation_cost_estimate", 0.0),
-        roi_ratio=assemble_data.get("roi_ratio", 0.0),
-        payback_months=assemble_data.get("payback_months", 0),
-        confidence_score=assemble_data.get("confidence_score", 0.0),
-        recommendations=assemble_data.get("recommendations", []),
-        created_at=result.get("created_at"),
-        status=assemble_data.get("status", record.status if record else result.get("status", "unknown")),
-        document_url=assemble_data.get("document_url", record.document_url if record else None),
-        page_count=assemble_data.get("page_count", 0),
-        file_size_bytes=assemble_data.get("file_size_bytes", 0),
-        truth_references=assemble_data.get("truth_references", truth_gate.get("truth_references", [])),
-        remediation_items=assemble_data.get("remediation_items", truth_gate.get("remediation_items", [])),
-        sdes=sdes_bundle,
-        case_metadata=case_metadata,
-    )
-
-
 @router.post("/validation/seed/business-case-lifecycle")
 async def seed_business_case_lifecycle(
     payload: BusinessCaseLifecycleSeedRequest,
@@ -1660,6 +1607,59 @@ class WorkspaceEvidenceItem(BaseModel):
 
 class WorkspaceEvidenceResponse(BaseModel):
     evidence: list[WorkspaceEvidenceItem] = Field(default_factory=list)
+
+
+@router.get("/cases/{case_id}", response_model=BusinessCaseResponse)
+async def get_business_case(
+    case_id: str,
+    executor: WorkflowExecutor = Depends(get_executor),
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> BusinessCaseResponse:
+    """Get a generated business case by ID."""
+    authorize_action("layer4.analysis.read_case", context)
+    result = await executor.get_result(case_id)
+
+    if not result:
+        raise NotFoundError(message = str(f"Business case {case_id} not found"))
+
+    record = await db.get(BusinessCaseRecord, case_id)
+    if record and record.account_id:
+        await _require_tenant_account(db, record.account_id, context)
+    else:
+        result_tenant = result.get("metadata", {}).get("tenant_id")
+        if result_tenant and str(result_tenant) != str(context.tenant_id):
+            raise AuthorizationError(message = str(f"Business case {case_id} does not belong to the current tenant"))
+
+    output = result.get("output", {})
+    assemble_data = output.get("assemble_document", {})
+    truth_gate = output.get("verify_truth_requirements", {})
+    sdes_bundle = output.get("generate_sdes", {})
+    narrative_data = output.get("synthesize_narrative", {})
+    case_metadata = dict(assemble_data.get("case_metadata", {}))
+    if record and record.account_id:
+        case_metadata["account_id"] = str(record.account_id)
+
+    return BusinessCaseResponse(
+        case_id=case_id,
+        title=assemble_data.get("title", "Business Case"),
+        summary=assemble_data.get("executive_summary", narrative_data.get("narrative", "")),
+        total_value=assemble_data.get("total_estimated_value", 0.0),
+        implementation_cost=assemble_data.get("implementation_cost_estimate", 0.0),
+        roi_ratio=assemble_data.get("roi_ratio", 0.0),
+        payback_months=assemble_data.get("payback_months", 0),
+        confidence_score=assemble_data.get("confidence_score", 0.0),
+        recommendations=assemble_data.get("recommendations", []),
+        created_at=result.get("created_at"),
+        status=assemble_data.get("status", record.status if record else result.get("status", "unknown")),
+        document_url=assemble_data.get("document_url", record.document_url if record else None),
+        page_count=assemble_data.get("page_count", 0),
+        file_size_bytes=assemble_data.get("file_size_bytes", 0),
+        truth_references=assemble_data.get("truth_references", truth_gate.get("truth_references", [])),
+        remediation_items=assemble_data.get("remediation_items", truth_gate.get("remediation_items", [])),
+        sdes=sdes_bundle,
+        case_metadata=case_metadata,
+    )
 
 
 @router.get("/cases", response_model=CaseListResponse)

@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: '22.13.0'
       - name: Enable pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
       - name: Run router contract gate
         run: pnpm test:router
       - name: Upload route audit artifact

@@ -96,7 +96,7 @@ This glossary defines terms used across the ValuePact platform, its documentatio
 
 | Term | Definition |
 |---|---|
-| **pnpm** | The mandatory package manager for the monorepo. npm and yarn are prohibited. Version is pinned at 10.18.1. |
+| **pnpm** | The mandatory package manager for the monorepo. npm and yarn are prohibited. Version is pinned at 10.34.5. |
 | **Infisical** | The secrets management platform used for local development and CI/CD secret injection. |
 | **Alembic** | The database migration tool used by Python services. Each service manages its own migration path. |
 | **Celery** | The distributed task queue used by Layer 1 for background job processing. Backed by Redis. |

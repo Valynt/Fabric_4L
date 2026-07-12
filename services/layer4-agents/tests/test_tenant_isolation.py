@@ -172,11 +172,16 @@ class TestGovernanceMiddlewareClaims:
     @pytest.fixture
     def claim_capture_app(self):
         """FastAPI app that captures the resolved RequestContext for assertion."""
+
+        class _FakeRedis:
+            async def sismember(self, *_args, **_kwargs):
+                return False
+
         _app = FastAPI()
         _app.add_middleware(
             GovernanceMiddleware,
             enforce_authentication=True,
-            tenant_status_resolver=AsyncMock(return_value="active"),
+            redis_client=_FakeRedis(),
         )
 
         @_app.get("/ctx")
@@ -308,11 +313,16 @@ class TestGovernanceMiddlewareClaims:
         }
 
         _app = FastAPI()
+
+        class _FakeRedis:
+            async def sismember(self, *_args, **_kwargs):
+                return False
+
         _app.add_middleware(
             GovernanceMiddleware,
             enforce_authentication=True,
             api_key_resolver=AsyncMock(return_value=mock_key_data),
-            tenant_status_resolver=AsyncMock(return_value="active"),
+            redis_client=_FakeRedis(),
         )
 
         @_app.get("/ctx")

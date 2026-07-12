@@ -68,11 +68,11 @@ _os.environ.setdefault("JWT_ISSUER", TEST_ISSUER)
 _os.environ.setdefault("JWT_AUDIENCE", TEST_AUDIENCE)
 # Disable bcrypt in tests to avoid 72-byte password limit issues in passlib
 _os.environ.setdefault("USE_BCRYPT", "false")
-# Allow unauthenticated access to /metrics in development test runs.
-# This flag is validated and rejected in production-like environments.
-# NOTE: test_tenant_isolation.py overrides this to "false" to ensure real
-# authorization enforcement is tested (not the dev bypass path).
-_os.environ.setdefault("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
+# Disable the insecure dev auth bypass by default in tests. Tests that need
+# unauthenticated /metrics access must opt in explicitly. This prevents
+# accidental reliance on bypass behavior and ensures auth enforcement is the
+# default path under test.
+_os.environ.setdefault("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
 
 
 def _clear_singletons() -> None:

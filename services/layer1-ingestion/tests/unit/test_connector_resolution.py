@@ -154,7 +154,7 @@ def test_resolve_connector_for_url_uses_source_external_reference() -> None:
 
 def test_resolve_connector_for_audio_requires_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.AUDIO, custody_mode="B", meta={})
-    source_version = SimpleNamespace(raw_storage_uri="raw://source-version", meta={})
+    source_version = SimpleNamespace(raw_storage_uri=None, meta={})
 
     with pytest.raises(Exception):
         resolve_connector_for_source(source, source_version)
@@ -162,7 +162,7 @@ def test_resolve_connector_for_audio_requires_storage_ref() -> None:
 
 def test_resolve_connector_for_meeting_requires_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.MEETING, custody_mode="B", meta={})
-    source_version = SimpleNamespace(raw_storage_uri="raw://source-version", meta={})
+    source_version = SimpleNamespace(raw_storage_uri=None, meta={})
 
     with pytest.raises(Exception):
         resolve_connector_for_source(source, source_version)

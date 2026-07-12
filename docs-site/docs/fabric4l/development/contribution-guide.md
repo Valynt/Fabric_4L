@@ -14,7 +14,7 @@ This guide covers everything you need to get the Value Fabric monorepo running l
 |------|-----------------|---------|
 | Python | 3.11+ | Backend services, pytest, migration tooling |
 | Node.js | 22.12.0 | Frontend build system, pnpm workspaces, GitHub Actions parity |
-| pnpm | 10.18.1 | Package manager (pnpm-only; npm and yarn are prohibited) |
+| pnpm | 10.34.5 | Package manager (pnpm-only; npm and yarn are prohibited) |
 | Docker + Docker Compose | Latest stable | PostgreSQL, Redis, Neo4j, Keycloak local stacks |
 | make | GNU Make | Canonical build system interface |
 
@@ -35,7 +35,7 @@ pyenv local 3.11
 
 # 3. Enable pnpm via corepack
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 4. Install frontend dependencies
 pnpm install --frozen-lockfile

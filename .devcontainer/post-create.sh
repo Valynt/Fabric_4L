@@ -9,7 +9,7 @@ cd /workspace
 
 # Enable corepack and activate pinned pnpm version
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # Install frontend dependencies
 echo "Installing frontend dependencies..."

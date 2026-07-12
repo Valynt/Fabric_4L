@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
+
+from sqlalchemy.orm import Session
 
 from sqlalchemy.orm import Session
 
@@ -19,7 +22,7 @@ from layer1_ingestion.orchestrator.stage_handlers.context import StageContext, _
 from layer1_ingestion.shared.models import IngestionRunStep, SourceIngestionRun
 
 
-def _snapshot_hash(source: object, source_version: object, resolution: ConnectorResolution) -> str:
+def _snapshot_hash(source: Any, source_version: Any, resolution: ConnectorResolution) -> str:
     """Build a deterministic hash for the connector/source snapshot used by this run."""
     payload = {
         "source": {

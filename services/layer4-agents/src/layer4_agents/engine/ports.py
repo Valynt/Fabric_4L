@@ -7,9 +7,8 @@ execution pilots without binding application code to the legacy scheduler.
 """
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
-
-from .types import ScheduledTask
 
 
 @runtime_checkable
@@ -23,6 +22,28 @@ class TaskExecutionRequest(Protocol):
     tenant_id: str | None
     context: dict[str, Any]
     parameters: dict[str, Any]
+
+
+@runtime_checkable
+class Task(Protocol):
+    """Task shape accepted by the scheduler port.
+
+    This protocol intentionally lives in the ports module so the scheduler port
+    stays abstract and does not depend on the concrete ``.scheduler`` adapter.
+    """
+
+    priority: int
+    scheduled_time: datetime
+    task_id: str
+    workflow_instance_id: str
+    capability: str
+    agent_type: str
+    context: dict[str, Any]
+    parameters: dict[str, Any]
+    retry_count: int
+    max_retries: int
+    timeout_seconds: int
+    tenant_id: str | None
 
 
 @runtime_checkable
@@ -62,7 +83,7 @@ class TaskSchedulerPort(Protocol):
     async def stop(self) -> None:
         """Stop scheduler background processing."""
 
-    async def schedule_task(self, task: ScheduledTask) -> str:
+    async def schedule_task(self, task: Task) -> str:
         """Schedule a task for execution."""
 
     async def cancel_task(self, task_id: str) -> bool:
@@ -88,12 +109,12 @@ class TaskSchedulerPort(Protocol):
 
     def set_callbacks(
         self,
-        on_complete: Callable[[ScheduledTask], Any] | None = None,
-        on_fail: Callable[[ScheduledTask, Exception], Any] | None = None,
+        on_complete: Callable[[Task], Any] | None = None,
+        on_fail: Callable[[Task, Exception], Any] | None = None,
     ) -> None:
         """Set scheduler lifecycle callbacks."""
 
-    def register_handler(self, capability: str, handler: Callable[[ScheduledTask], Any]) -> None:
+    def register_handler(self, capability: str, handler: Callable[[Task], Any]) -> None:
         """Register a handler for a task capability."""
 
     def get_stats(self) -> dict[str, Any]:

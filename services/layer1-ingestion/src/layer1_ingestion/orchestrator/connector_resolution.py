@@ -228,17 +228,11 @@ def _pick_url(metadata: dict[str, Any], source: Any | None = None) -> str | None
 def _pick_storage_ref(
     metadata: dict[str, Any],
     source_version: Any | None,
-    source_type: SourceType | None = None,
 ) -> str | None:
     """Read a stable storage reference for object-backend fetch stages."""
     storage_ref = metadata.get("storage_ref")
     if isinstance(storage_ref, str) and storage_ref.strip():
         return storage_ref.strip()
-
-    # Audio and meeting sources require an explicit storage_ref in metadata;
-    # the raw storage URI is not a valid fetch target for these types.
-    if source_type in (SourceType.AUDIO, SourceType.MEETING):
-        return None
 
     raw_storage_uri = getattr(source_version, "raw_storage_uri", None)
     return raw_storage_uri if isinstance(raw_storage_uri, str) and raw_storage_uri.strip() else None
@@ -252,16 +246,11 @@ def resolve_connector_for_source(
     source_type = _normalize_source_type(getattr(source, "source_type", None))
     metadata = _merge_metadata(source, source_version)
 
-    custody_mode_value = normalize_custody_mode(
-        getattr(source, "custody_mode", CustodyMode.REFERENCE_EXTRACT.value)
+    custody_mode = CustodyMode(
+        normalize_custody_mode(
+            getattr(source, "custody_mode", CustodyMode.REFERENCE_EXTRACT.value)
+        )
     )
-    try:
-        custody_mode = CustodyMode(custody_mode_value)
-    except (ValueError, TypeError) as exc:
-        raise ConnectorResolutionError(
-            "UNSUPPORTED_CUSTODY_MODE",
-            f"Custody mode {custody_mode_value!r} is not supported.",
-        ) from exc
 
     customer_hosted = _as_bool(metadata.get("customer_hosted", False)) or (
         custody_mode == CustodyMode.CUSTOMER_HOSTED
@@ -321,7 +310,7 @@ def resolve_connector_for_source(
         )
 
     if source_type in (SourceType.AUDIO, SourceType.MEETING):
-        storage_ref = _pick_storage_ref(metadata, source_version, source_type=source_type)
+        storage_ref = _pick_storage_ref(metadata, source_version)
         if not storage_ref:
             raise ConnectorResolutionError(
                 "UNSUPPORTED_CONNECTOR_CONFIG",

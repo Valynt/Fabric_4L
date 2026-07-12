@@ -31,17 +31,17 @@ def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> tuple[TestClient, _S
         lambda token: {"tenant_id": tenant_id, "sub": user_id, "roles": ["viewer"]},
     )
 
-    app = FastAPI()
-    limiter = _StubRateLimiter()
-    async def _active_tenant_status_resolver(tenant_id: str) -> str:
+    async def _resolve_tenant_status(_tenant_id: str) -> str:
         return "active"
 
+    app = FastAPI()
+    limiter = _StubRateLimiter()
     app.add_middleware(
         GovernanceMiddleware,
         api_key_resolver=reject_api_key_unsupported,
         rate_limiter=limiter,
         enforce_authentication=True,
-        tenant_status_resolver=_active_tenant_status_resolver,
+        tenant_status_resolver=_resolve_tenant_status,
     )
 
     @app.get("/v1/protected")

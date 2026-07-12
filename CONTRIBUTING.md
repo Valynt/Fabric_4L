@@ -34,7 +34,7 @@ pyenv local 3.11
 
 # 4. Enable the repo-pinned pnpm version
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 
 # 5. Install JavaScript/TypeScript workspace dependencies
 pnpm install --frozen-lockfile
@@ -153,8 +153,13 @@ and rules for when to use `make`, `pnpm`, or direct Python CI runners live in
 
 - **Canonical runtime/workspace directories** (`apps/web`, `packages/*`, `services/*`): use pnpm/uv only. Commit `pnpm-lock.yaml`/approved `uv.lock` files and do **not** add `package-lock.json` or `yarn.lock`.
 - **Prototype/archive directories** (for example `prototypes/`, `archive/`): npm/yarn lockfiles are allowed only when explicitly justified. Current approved exception: `prototypes/ui-prototype/app/package-lock.json`, retained to preserve reproducible prototype setup outside the canonical pnpm workspace.
+- **Archive snapshots** (for example `docs/archive/frontend-root-2026-05-02/source-snapshot/`): immutable historical evidence. They are excluded from active lockfile/sbom governance and must not be built or deployed.
 
 Any new exception must be added with rationale to `scripts/ci/check_package_manager_policy.mjs` and documented here in `CONTRIBUTING.md`.
+
+### Workflow package-manager exceptions
+
+Workflow steps must install project dependencies through pnpm (`pnpm install --frozen-lockfile`). The only npm command permitted without an inline exception marker is `npm publish` for registry operations. Global npm tool installs require a step-level `# NPM-GLOBAL-EXCEPTION: <justification>` comment and are only allowed when no supported pnpm/Corepack equivalent exists.
 
 ---
 

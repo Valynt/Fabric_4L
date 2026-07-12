@@ -388,30 +388,37 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                 "verify_nbf": False,
             },
         )
+        print(f"DEBUG decode_jwt header={header} unverified={unverified}")
         header_alg = str(header.get("alg", "")).strip().upper()
         if not header_alg:
+            print("DEBUG decode_jwt return: no header_alg")
             return None
         issuer = unverified.get("iss")
         if any(unverified.get(claim) in (None, "") for claim in _REQUIRED_REGISTERED_CLAIMS):
+            print(f"DEBUG decode_jwt return: missing required claim")
             return None
         audience = oidc_audience if oidc_issuer and issuer == oidc_issuer else internal_audience
         expected_issuer = oidc_issuer if oidc_issuer and issuer == oidc_issuer else internal_issuer
+        print(f"DEBUG decode_jwt audience={audience} expected_issuer={expected_issuer}")
 
         if expected_issuer is not None and issuer != expected_issuer:
-            logger.debug("Unexpected JWT issuer: %s", issuer)
+            print(f"DEBUG decode_jwt return: issuer mismatch")
             return None
 
         kid = header.get("kid")
         if kid and kid in _get_revoked_kids():
-            logger.debug("JWT kid revoked: %s", kid)
+            print(f"DEBUG decode_jwt return: kid revoked")
             return None
 
         payload: Dict[str, Any]
         if expected_issuer == oidc_issuer:
+            print(f"DEBUG decode_jwt: OIDC path")
             if header_alg not in _ALLOWED_EXTERNAL_ALGORITHMS:
+                print(f"DEBUG decode_jwt return: external alg not allowed")
                 return None
             verify_key = _resolve_external_key(header, issuer)
             if verify_key is None:
+                print(f"DEBUG decode_jwt return: no external key")
                 return None
             payload = jwt.decode(
                 token,
@@ -429,12 +436,15 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                 },
             )
             if _is_clerk_issuer(expected_issuer) and not _clerk_authorized_party_allowed(payload):
-                logger.debug("Clerk JWT authorized party rejected")
+                print(f"DEBUG decode_jwt return: clerk azp rejected")
                 return None
         else:
+            print(f"DEBUG decode_jwt: internal path")
             keyset = _build_keyset()
             algorithm = keyset["algorithm"]
+            print(f"DEBUG decode_jwt keyset alg={algorithm} header_alg={header_alg}")
             if header_alg != algorithm:
+                print(f"DEBUG decode_jwt return: alg mismatch")
                 return None
             decode_kwargs: Dict[str, Any] = {
                 "algorithms": [algorithm],
@@ -453,27 +463,35 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
             if kid and kid in verify_keys:
                 candidates = [verify_keys[kid]]
             elif kid and kid not in verify_keys:
+                print(f"DEBUG decode_jwt return: kid not in keys")
                 return None
             else:
                 candidates = list(verify_keys.values())
+            print(f"DEBUG decode_jwt candidates={candidates}")
             payload = None
             for key in candidates:
                 try:
                     payload = jwt.decode(token, key, **decode_kwargs)
+                    print(f"DEBUG decode_jwt decoded with key={key}")
                     break
                 except jwt.ExpiredSignatureError:
                     raise
-                except jwt.InvalidTokenError:
+                except jwt.InvalidTokenError as e:
+                    print(f"DEBUG decode_jwt invalid token error: {e}")
                     continue
             if payload is None:
+                print(f"DEBUG decode_jwt return: payload None")
                 return None
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.", headers={"WWW-Authenticate": "Bearer"})
     except jwt.InvalidTokenError:
+        print(f"DEBUG decode_jwt return: invalid token error outer")
         return None
 
     raw_tenant = payload.get(tenant_claim)
+    print(f"DEBUG decode_jwt payload={payload} raw_tenant={raw_tenant}")
     if not raw_tenant:
+        print(f"DEBUG decode_jwt return: no tenant")
         return None
     try:
         tenant_id: UUID | str = UUID(str(raw_tenant))

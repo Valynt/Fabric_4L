@@ -35,7 +35,7 @@ Use the same runtime family across local development, CI, and container images t
 | Runtime | Canonical version | Applies to | Source of truth |
 |---|---:|---|---|
 | Node.js | `22.12.0` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
-| pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
+| pnpm | `10.34.5` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.34.5 --activate` commands |
 | Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
 | Python container base | `python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1` (`python:3.11.13-slim-bookworm`) | Maintained service Dockerfiles and full/uv service variants | `FROM python@sha256:...` in service Dockerfiles |
 | Node container base | `node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625` (`node:22.12.0-alpine3.20`) | Frontend Dockerfiles | `FROM node@sha256:...` in `apps/web/Dockerfile*` |
@@ -54,7 +54,7 @@ For first-time local setup, use one flow:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.18.1 --activate
+corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 make setup
 make migrate

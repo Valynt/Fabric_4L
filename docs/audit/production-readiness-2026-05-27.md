@@ -1137,7 +1137,7 @@ Fabric_4L/
 ### Local Development
 ```bash
 # Setup
-corepack enable && corepack prepare pnpm@10.18.1 --activate
+corepack enable && corepack prepare pnpm@10.34.5 --activate
 pnpm install --frozen-lockfile
 make setup
 

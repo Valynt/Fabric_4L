@@ -185,12 +185,12 @@ package-manager=pnpm@9.x
 
 **package.json states**:
 ```
-"packageManager": "pnpm@10.18.1"
+"packageManager": "pnpm@10.34.5"
 ```
 
 **Change**:
 ```
-package-manager=pnpm@10.18.1
+package-manager=pnpm@10.34.5
 ```
 
 ### Step 5: Verify CI Compatibility

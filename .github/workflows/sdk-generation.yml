@@ -102,13 +102,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable Corepack and activate pinned pnpm
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
+      # swagger-cli is a standalone validator with no pnpm-distributed binary;
+      # global installation via pnpm keeps the tool available on PATH.
       - name: Install swagger-cli
-        run: npm install -g @apidevtools/swagger-cli
+        run: pnpm add -g @apidevtools/swagger-cli
 
       - name: Validate all OpenAPI specs
         run: |
@@ -150,9 +156,21 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
 
+      - name: Enable Corepack and activate pinned pnpm
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      # openapi-generator-cli is a Java-backed CLI distributed via npm with no
+      # pnpm-distributed equivalent; global installation via pnpm makes the
+      # `openapi-generator-cli` command available to the generator script.
       - name: Install openapi-generator-cli
         run: |
-          npm install -g @openapitools/openapi-generator-cli
+          pnpm add -g @openapitools/openapi-generator-cli
           openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
 
       - name: Generate Python SDKs
@@ -187,10 +205,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enable Corepack and activate pinned pnpm
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
       - name: Setup Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -198,9 +220,12 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "temurin"
 
+      # openapi-generator-cli is a Java-backed CLI distributed via npm with no
+      # pnpm-distributed equivalent; global installation via pnpm makes the
+      # `openapi-generator-cli` command available to the generator script.
       - name: Install openapi-generator-cli
         run: |
-          npm install -g @openapitools/openapi-generator-cli
+          pnpm add -g @openapitools/openapi-generator-cli
           openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
 
       - name: Generate TypeScript SDKs
@@ -270,17 +295,24 @@ jobs:
           name: sdk-typescript
           path: sdk/typescript/
 
+      - name: Enable Corepack and activate pinned pnpm
+        if: needs.generate-typescript.result == 'success'
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+
       - name: Setup Node.js for testing
         if: needs.generate-typescript.result == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
 
+      # TypeScript is installed transiently into the generated SDK directory so
+      # the smoke test can attempt a typecheck without persisting the change.
       - name: Test TypeScript SDK compilation
         if: needs.generate-typescript.result == 'success'
         run: |
           cd sdk/typescript
-          npm install typescript @types/node --no-save || true
+          pnpm add -D typescript @types/node --ignore-workspace || true
           # Check that generated files exist
           ls -la fabric4l-*/
           echo "✓ TypeScript SDK files generated"
@@ -418,6 +450,12 @@ jobs:
             cd "$GITHUB_WORKSPACE"
           done
 
+      # NPM-PUBLISH-EXCEPTION: this step pushes generated SDK tarballs to the
+      # public npm registry. `npm publish` is retained here because the
+      # workflow already authenticates via `~/.npmrc` and the npm CLI is the
+      # registry-native publisher; `pnpm publish` is behaviorally equivalent
+      # but switching would introduce auth-format risk for no supply-chain gain.
+      # This is the only allowed npm command in this workflow.
       - name: Publish TypeScript SDKs to npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any, cast
 
 from layer4_agents.engine.ports import (
+    Task,
     TaskExecutionPort,
     TaskExecutionRequest,
     TaskSchedulerPort,
 )
-from layer4_agents.engine.types import ScheduledTask
 
 
 class LegacyTaskExecutionAdapter:
@@ -19,7 +19,7 @@ class LegacyTaskExecutionAdapter:
         self._scheduler = scheduler
 
     async def submit(self, task: TaskExecutionRequest) -> str:
-        return cast(str, await self._scheduler.schedule_task(cast(ScheduledTask, task)))
+        return cast(str, await self._scheduler.schedule_task(cast(Task, task)))
 
     async def cancel(self, task_id: str) -> bool:
         return cast(bool, await self._scheduler.cancel_task(task_id))

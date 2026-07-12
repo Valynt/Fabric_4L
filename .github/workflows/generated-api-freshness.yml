@@ -74,7 +74,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

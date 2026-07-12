@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Middleware composition for Layer 4 API."""
 
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,9 +11,24 @@ from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.security import SecurityConfig, add_security_middleware
 
+from ..config.settings import get_settings
 from ..database import db_session_for_context
 from ..metrics import get_metrics
 from ..tenants import get_tenant_settings, lookup_api_key_by_hash
+
+
+def _create_sync_redis_client():
+    """Create a synchronous Redis client for the kill-switch fallback.
+
+    Returns None if Redis is unavailable so the middleware falls back to
+    UNKNOWN and fails closed, rather than crashing during import.
+    """
+    redis_url = os.getenv("REDIS_URL") or get_settings().redis_url
+    try:
+        import redis as _redis_sync
+        return _redis_sync.Redis.from_url(redis_url, decode_responses=True)
+    except Exception:
+        return None
 
 
 def on_rate_limit_hit(tenant_id: str, scope: str):
@@ -35,6 +51,7 @@ def configure_middleware(app: FastAPI) -> None:
         GovernanceMiddleware,
         api_key_resolver=lookup_api_key_by_hash,
         rate_limiter=getattr(app.state, "rate_limiter", None),
+        redis_client=_create_sync_redis_client(),
         on_rate_limit_hit=on_rate_limit_hit,
         tenant_settings_resolver=_tenant_settings_lookup,
     )

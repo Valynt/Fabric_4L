@@ -114,7 +114,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -169,7 +169,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -230,7 +230,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install frontend dependencies
         working-directory: apps/web
@@ -279,7 +279,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install plugin
         working-directory: packages/eslint-plugin-fabric-contracts
@@ -323,7 +323,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+        run: corepack enable && corepack prepare pnpm@10.34.5 --activate
 
       - name: Install Python contract test dependencies
         run: pip install -r packages/platform-contract/requirements-test.txt
