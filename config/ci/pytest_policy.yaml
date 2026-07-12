@@ -21,7 +21,6 @@ mandatory_deps:
   psycopg: "pip install 'psycopg[binary]>=3.1'  (layer4-agents[dev])"
   email_validator: "pip install 'email-validator>=2.1'  (layer4-agents[dev])"
   langgraph: "pip install 'langgraph>=0.2'  (layer4-agents dependency)"
-  jose: "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)"
   jsonschema: "pip install 'jsonschema>=4.23'  (tests/requirements-test.txt)"
 
 tenant_isolation:
