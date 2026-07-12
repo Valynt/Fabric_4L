@@ -20084,6 +20084,7 @@
           "read:schema",
           "read:search",
           "read:graphrag",
+          "read:benchmarks",
           "read:analytics",
           "read:ingestion",
           "read:agents",
