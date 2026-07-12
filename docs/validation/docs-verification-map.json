@@ -7,7 +7,7 @@
       "checks": [
         {
           "name": "security_gate_declares_auth_enforcement",
-          "command": "rg -n \"auth enforcement\" Makefile"
+          "command": "grep -n \"gate-auth-readiness\" Makefile"
         }
       ]
     },
@@ -29,7 +29,7 @@
       "checks": [
         {
           "name": "live_workflow_validator_supports_endpoint_probes",
-          "command": "python scripts/ci/validate_live_workflow_artifacts.py --help | rg -n -- --require-endpoint-probes"
+          "command": "python scripts/ci/validate_live_workflow_artifacts.py --help | grep -n \"require-endpoint-probes\""
         }
       ]
     },

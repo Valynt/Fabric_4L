@@ -4,10 +4,10 @@ Contract Tests for Layer 5 Ground Truth API
 Validates that the implementation matches the OpenAPI specification.
 """
 
-import pytest
-from httpx import AsyncClient
 from uuid import uuid4
 
+import pytest
+from httpx import AsyncClient
 
 # ============================================================================
 # Core TruthObject Endpoints

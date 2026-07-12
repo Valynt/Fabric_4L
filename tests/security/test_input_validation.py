@@ -19,7 +19,6 @@ from typing import Any
 
 import pytest
 
-
 try:
     from fastapi import FastAPI, Request
     from fastapi.testclient import TestClient

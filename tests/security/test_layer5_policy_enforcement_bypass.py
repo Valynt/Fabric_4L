@@ -4,13 +4,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-
 from layer5_ground_truth.services.policy_enforcement import (
     ArtifactAccessRequest,
     ArtifactStatus,
     enforce_formula_benchmark_runtime_policy,
 )
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 
 @pytest.mark.security

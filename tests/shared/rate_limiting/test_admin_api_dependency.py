@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.rate_limiting.admin_api import get_rate_limiter
 from value_fabric.shared.rate_limiting.tenant_rate_limiter import TenantRateLimiter
 

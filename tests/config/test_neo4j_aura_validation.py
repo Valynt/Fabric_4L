@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from value_fabric.shared.security.neo4j import validate_neo4j_aura_config
 
 

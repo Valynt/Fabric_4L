@@ -5,8 +5,11 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
-
-from value_fabric.shared.identity.context import AUTH_SOURCE_API_KEY, AUTH_SOURCE_SERVICE_ACCOUNT, RequestContext
+from value_fabric.shared.identity.context import (
+    AUTH_SOURCE_API_KEY,
+    AUTH_SOURCE_SERVICE_ACCOUNT,
+    RequestContext,
+)
 from value_fabric.shared.identity.middleware_sync import (
     GovernanceMiddlewareSync,
     SyncRequestContext,

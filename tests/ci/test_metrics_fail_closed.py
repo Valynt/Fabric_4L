@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "services" / "layer
 
 from layer4_agents.api.core_routes import register_core_routes
 
-
 METRICS_PAYLOAD = "# HELP fabric_test_counter test metric\nfabric_test_counter 1\n"
 
 

@@ -33,7 +33,6 @@ os.environ.setdefault("ALLOW_LEGACY_TEST_TENANT_IDS", "true")
 
 from utils.cypher_security import TENANT_OWNED_LABELS, validate_tenant_scoped_cypher
 
-
 # ---------------------------------------------------------------------------
 # Load L3 db modules via importlib — inject fake packages so relative
 # imports inside query_execution.py and tenant_queries.py resolve.

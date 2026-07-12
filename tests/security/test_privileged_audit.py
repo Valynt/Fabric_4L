@@ -12,10 +12,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 from fastapi import HTTPException, Request
-
+from value_fabric.shared.audit.models import AuditAction, AuditOutcome, PrivilegedAccessDetails
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
-from value_fabric.shared.audit.models import AuditAction, AuditOutcome, PrivilegedAccessDetails
 
 
 @pytest.fixture
@@ -329,10 +328,10 @@ class TestAdminConsoleEndpoint:
         app.add_middleware(_InjectContextMiddleware, context=super_admin_context)
 
         # Import and register the router
+        from layer4_agents.database import get_db_from_context
         from layer4_agents.tenants.api.routes.admin_console import (
             router as admin_console_router,
         )
-        from layer4_agents.database import get_db_from_context
 
         # Mock DB dependency — return empty results for read-only aggregation
         async def _mock_get_db():
@@ -398,11 +397,10 @@ class TestAdminConsoleEndpoint:
         self, admin_console_app, super_admin_context
     ):
         """Verify the endpoint rejects requests without X-Privileged-Reason."""
-        from fastapi.testclient import TestClient
-
         # Use a fresh app without the injected context so we can test the
         # dependency in isolation via a simple route.
         from fastapi import FastAPI
+        from fastapi.testclient import TestClient
         from starlette.middleware.base import BaseHTTPMiddleware
 
         class _InjectContextMiddleware(BaseHTTPMiddleware):
@@ -417,10 +415,10 @@ class TestAdminConsoleEndpoint:
         app = FastAPI()
         app.add_middleware(_InjectContextMiddleware, context=super_admin_context)
 
+        from layer4_agents.database import get_db_from_context
         from layer4_agents.tenants.api.routes.admin_console import (
             router as admin_console_router,
         )
-        from layer4_agents.database import get_db_from_context
 
         async def _mock_get_db():
             mock_session = AsyncMock()

@@ -19,7 +19,6 @@ from uuid import uuid4
 
 import jsonschema
 import pytest
-
 from value_fabric.shared.governance.abom import (
     ABOMInvariants,
     AgentBillOfMaterials,

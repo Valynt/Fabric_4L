@@ -223,7 +223,10 @@ class TestRateLimitWindowReset:
 
     def test_rate_limit_window_resets(self, client: TestClient, tenant_a_token: str):
         """P1: stale in-memory buckets are evicted without waiting for wall-clock time."""
-        from value_fabric.shared.identity.middleware import _evict_stale_rate_limit_entries, _tenant_rate_limit_buckets
+        from value_fabric.shared.identity.middleware import (
+            _evict_stale_rate_limit_entries,
+            _tenant_rate_limit_buckets,
+        )
 
         _tenant_rate_limit_buckets["tenant-a"] = {"count": 99, "reset_at": 1.0}
         removed = _evict_stale_rate_limit_entries(now=2.0)
@@ -318,10 +321,12 @@ class TestRateLimitCleanup:
     def test_stale_rate_limit_entries_cleaned(self):
         """Stale rate limit entries are cleaned up."""
         try:
-            from value_fabric.shared.identity.middleware import _evict_stale_rate_limit_entries
             import time
-            
-            from value_fabric.shared.identity.middleware import _tenant_rate_limit_buckets
+
+            from value_fabric.shared.identity.middleware import (
+                _evict_stale_rate_limit_entries,
+                _tenant_rate_limit_buckets,
+            )
 
             _tenant_rate_limit_buckets["stale-test"] = {"count": 1, "reset_at": 1.0}
             removed = _evict_stale_rate_limit_entries(now=time.time() + 3600)

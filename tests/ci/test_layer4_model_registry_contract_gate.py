@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_SERVICE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/registry/service.py"
 REGISTRY_ROUTES = REPO_ROOT / "services/layer4-agents/src/layer4_agents/registry/api/routes.py"

@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
-
 from src.api.routes import variables
 
 pytestmark = pytest.mark.skip(

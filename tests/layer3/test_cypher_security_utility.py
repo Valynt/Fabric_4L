@@ -11,7 +11,6 @@ Verifies 100% coverage of the consolidated Cypher safety utility:
 from __future__ import annotations
 
 import pytest
-
 from src.utils.cypher_security import (
     ALLOWED_REL_TYPES,
     ALLOWED_TARGET_LABELS,
@@ -19,7 +18,6 @@ from src.utils.cypher_security import (
     validate_cypher_identifier,
     validate_tenant_scoped_cypher,
 )
-
 
 # ---------------------------------------------------------------------------
 # validate_cypher_identifier

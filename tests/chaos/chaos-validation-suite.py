@@ -10,7 +10,7 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
 
     healthy = pod_rc == 0 and deployment_rc == 0
     report = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "namespace": args.namespace,
         "healthy": healthy,
         "checks": {

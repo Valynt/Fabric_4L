@@ -1,15 +1,15 @@
 """Tests for bulk_dict_to_model script - regression tests for code review fixes."""
 
 import ast
-import pytest
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
+import pytest
 from scripts.ci.bulk_dict_to_model import (
-    _build_models,
-    _infer_type,
     TYPED_DICT_IMPORT_LINE,
     TYPED_DICT_MODULE,
+    _build_models,
+    _infer_type,
 )
 
 
@@ -104,13 +104,13 @@ class TestTypedDictImportConstant:
     def test_import_line_is_correct(self):
         """Verify import line constant is correct."""
         expected = f"from {TYPED_DICT_MODULE} import TypedDictModel"
-        assert TYPED_DICT_IMPORT_LINE == expected
+        assert expected == TYPED_DICT_IMPORT_LINE
 
     def test_import_line_in_generated_code(self):
         """Verify generated code uses the import constant."""
         source = "def foo():\n    return {'key': 'value'}\n"
         tree = ast.parse(source)
-        from scripts.ci.bulk_dict_to_model import _gather_returns, _apply_changes
+        from scripts.ci.bulk_dict_to_model import _apply_changes, _gather_returns
         grouped = _gather_returns(tree, source)
         
         assert grouped, "Should have detected return statements"

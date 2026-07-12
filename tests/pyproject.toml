@@ -1,0 +1,70 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "B", "C4", "SIM", "UP"]
+ignore = [
+    # Line length — tests often have long assertion strings
+    "E501",
+    # Module-level imports not at top of file are common in test fixtures
+    "E402",
+    # Trailing / blank-line whitespace — cosmetic
+    "W291",
+    "W293",
+    # Unused imports: test files routinely import things purely to verify
+    # they are importable (integration smoke tests)
+    "F401",
+    # Unused variables: common in pytest fixtures and asserting side-effects
+    "F841",
+    # Loop control variable not used in loop body
+    "B007",
+    # zip() without explicit strict= (Python < 3.10 compat)
+    "B905",
+    # assert-raises-exception without a match arg is acceptable in tests
+    "B017",
+    # raise inside except without chaining — common in test helpers
+    "B904",
+    # SIM: style simplifications that can change readability in tests
+    "SIM102",  # collapsible-if
+    "SIM105",  # suppressible-exception
+    "SIM115",  # open-file-with-context-handler
+    "SIM117",  # multiple-with-statements
+    "SIM118",  # in-dict-keys
+    # Naming: tests often use uppercase constants inside functions
+    "N806",
+    # first argument name not 'self' — occurs in test mock classes
+    "N805",
+    # UP: typing.List etc from pre-3.9 code is common in existing tests
+    "UP035",
+    # undefined-name: F821 false-positives in test files where pytest fixtures
+    # and conftest-defined types are resolved dynamically at runtime
+    "F821",
+    # true/false comparison: test assertions are more explicit with == True
+    "E712",
+    # function-call-in-default-argument: FastAPI Depends() pattern in test fixtures
+    "B008",
+    # assert False is acceptable as a "should not reach" marker in tests
+    "B011",
+    # mutable default argument: occasionally intentional in test helpers
+    "B006",
+    # style simplification alternatives — preference kept as-is in tests
+    "SIM108",
+    "SIM201",
+    # Python upgrade patterns that require broader refactor
+    "UP022",
+    "UP042",
+    # naming: test files sometimes use non-standard names
+    "N801",
+    "N802",
+    "N811",
+    "N999",
+    # unnecessary dict/collection call — can change readability in tests
+    "C408",
+    # ambiguous variable names (l, O, I) — used in test data loops
+    "E741",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in __init__ re-export modules
+"__init__.py" = ["F401"]

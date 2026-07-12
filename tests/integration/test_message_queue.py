@@ -61,7 +61,7 @@ async def test_rabbitmq_connectivity(rabbitmq_container):
 async def test_kafka_connectivity(kafka_container):
     """Verify Kafka producer/consumer round-trip."""
     pytest.importorskip("aiokafka")
-    from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+    from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
     topic = "test_topic"
     test_message = b"kafka_integration_test"

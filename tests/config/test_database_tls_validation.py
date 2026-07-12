@@ -2,7 +2,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-
 from value_fabric.shared.security.config import validate_database_config
 
 

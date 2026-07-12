@@ -3,7 +3,6 @@ from __future__ import annotations
 import types
 
 import pytest
-
 from value_fabric.shared.secrets.infisical import (
     InfisicalAuthError,
     InfisicalMissingRequiredSecretsError,

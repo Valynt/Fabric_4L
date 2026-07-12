@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER5_SRC = REPO_ROOT / "services" / "layer5-ground-truth" / "src"
 if str(LAYER5_SRC) not in sys.path:

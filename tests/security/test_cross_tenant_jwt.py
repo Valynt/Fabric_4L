@@ -23,7 +23,6 @@ import jwt as pyjwt
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.identity.jwt import encode_jwt
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 

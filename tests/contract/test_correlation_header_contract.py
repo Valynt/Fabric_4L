@@ -2,7 +2,6 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.error_handling.handlers import register_exception_handlers
 from value_fabric.shared.error_handling.middleware import RequestIDMiddleware
 from value_fabric.shared.observability.trace_context import CANONICAL_TRACE_HEADER

@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-from tests.production_readiness.manifest import assert_contains_all, assert_paths_exist, assert_pytest_coverage
 from tests.config._helpers import REPO_ROOT, read_text, read_yaml_documents
-
+from tests.production_readiness.manifest import (
+    assert_contains_all,
+    assert_paths_exist,
+    assert_pytest_coverage,
+)
 
 pytestmark = [pytest.mark.config, pytest.mark.production_readiness]
 

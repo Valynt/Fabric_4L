@@ -306,7 +306,7 @@ jobs:
         if: needs.generate-typescript.result == 'success'
         run: |
           cd sdk/typescript
-          pnpm add typescript @types/node || true
+          pnpm add --save-dev typescript @types/node || true
           # Check that generated files exist
           ls -la fabric4l-*/
           echo "✓ TypeScript SDK files generated"
@@ -454,7 +454,7 @@ jobs:
             cd "$GITHUB_WORKSPACE"
           done
 
-      - name: Publish TypeScript SDKs to the npm registry (pnpm publish)
+      - name: Publish TypeScript SDK packages
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |

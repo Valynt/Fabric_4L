@@ -12,7 +12,6 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-
 SEMVER_PATTERN = re.compile(r"^v?\d+\.\d+\.\d+(-[A-Za-z0-9_.-]+)?$")
 ISO_UTC_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 

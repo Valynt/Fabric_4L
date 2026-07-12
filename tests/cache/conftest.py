@@ -13,9 +13,9 @@ fail-closed errors elsewhere. See
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
 from collections import defaultdict
 from datetime import datetime
+from unittest.mock import AsyncMock
 
 import pytest
 

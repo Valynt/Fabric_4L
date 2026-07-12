@@ -107,7 +107,14 @@ class TestProtocolRuntimeCheckable:
         ],
     )
     def test_implementations_satisfy_protocols(self, impl_name: str, protocol_name: str):
-        from value_fabric.shared.testability import Clock, FixedClock, IDGenerator, SequentialIDGenerator, SystemClock, UUIDGenerator
+        from value_fabric.shared.testability import (
+            Clock,
+            FixedClock,
+            IDGenerator,
+            SequentialIDGenerator,
+            SystemClock,
+            UUIDGenerator,
+        )
 
         impl_map = {
             "SystemClock": SystemClock,

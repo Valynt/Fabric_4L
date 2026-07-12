@@ -18,7 +18,6 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 import respx
-
 from value_fabric.shared.identity.oidc import (
     OIDCClient,
     OIDCDiscoveryError,

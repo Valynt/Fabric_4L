@@ -7,7 +7,6 @@ import hmac
 import time
 
 import pytest
-
 from layer7_billing.webhook_security import (
     DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
     StripeSignature,
@@ -72,7 +71,7 @@ class TestVerifyStripeWebhookSignature:
         secret: str,
         timestamp: int,
     ) -> str:
-        signed = f"{timestamp}.".encode("utf-8") + payload
+        signed = f"{timestamp}.".encode() + payload
         sig = hmac.new(secret.encode("utf-8"), signed, hashlib.sha256).hexdigest()
         return f"t={timestamp},v1={sig}"
 

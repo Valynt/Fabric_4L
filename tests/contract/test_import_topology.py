@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).parent.parent.parent
 
 
@@ -46,7 +45,7 @@ class TestImportTopology:
     def test_layer_imports(self, layer):
         """Each layer should be importable via value_fabric."""
         try:
-            module = __import__(f"layer4_agents", fromlist=["layer4_agents"])
+            module = __import__("layer4_agents", fromlist=["layer4_agents"])
             assert module is not None
         except ImportError as e:
             pytest.skip(f"Layer 4 agents not yet available: {e}")

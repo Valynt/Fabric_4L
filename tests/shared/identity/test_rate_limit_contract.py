@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig
 

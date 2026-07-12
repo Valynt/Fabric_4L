@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNBOOK_PATH = REPO_ROOT / "docs/operations/runbook-overview.md"
 SERVICE_DOWN_RUNBOOK_PATH = REPO_ROOT / "docs/troubleshooting/runbooks/infrastructure/service-down.md"

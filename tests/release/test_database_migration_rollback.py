@@ -5,7 +5,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-
 MIGRATION_ROOTS = [
     Path("services/layer1-ingestion/migrations/versions"),
     Path("services/layer2-extraction/migrations/versions"),

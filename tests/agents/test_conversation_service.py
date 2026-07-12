@@ -418,7 +418,7 @@ class TestAuditEmission:
         canonical_mod = sys.modules.get("layer4_agents.services.conversation")
         original = getattr(canonical_mod, "emit_audit_event", None) if canonical_mod else None
         if canonical_mod:
-            setattr(canonical_mod, "emit_audit_event", mock_emit)
+            canonical_mod.emit_audit_event = mock_emit
 
         try:
             await service.handle_message(
@@ -436,7 +436,7 @@ class TestAuditEmission:
             assert call_kwargs is not None
         finally:
             if canonical_mod and original is not None:
-                setattr(canonical_mod, "emit_audit_event", original)
+                canonical_mod.emit_audit_event = original
 
     @pytest.mark.asyncio
     async def test_audit_failure_does_not_crash(self, service):
@@ -444,7 +444,7 @@ class TestAuditEmission:
         canonical_mod = sys.modules.get("layer4_agents.services.conversation")
         original = getattr(canonical_mod, "emit_audit_event", None) if canonical_mod else None
         if canonical_mod:
-            setattr(canonical_mod, "emit_audit_event", mock_emit)
+            canonical_mod.emit_audit_event = mock_emit
 
         try:
             # Should not raise
@@ -457,7 +457,7 @@ class TestAuditEmission:
             assert "content" in result
         finally:
             if canonical_mod and original is not None:
-                setattr(canonical_mod, "emit_audit_event", original)
+                canonical_mod.emit_audit_event = original
 
 
 # ---------------------------------------------------------------------------

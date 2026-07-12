@@ -1,15 +1,13 @@
 """CI guardrail for tenant isolation in Layer 6 benchmark dataset queries."""
 
 import ast
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import textwrap
+from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
-
 from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER6_REPOSITORY_PATHS = [
@@ -52,7 +50,7 @@ def test_layer6_repository_paths_use_canonical_service_namespace() -> None:
         / "layer6_benchmarks"
         / "repositories"
     )
-    assert LAYER6_REPOSITORY_PATHS == [expected]
+    assert [expected] == LAYER6_REPOSITORY_PATHS
     assert expected.is_dir()
     assert (expected / "benchmark_repository.py").is_file()
 

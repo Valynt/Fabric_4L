@@ -13,7 +13,6 @@ Author: Platform Security Team
 from __future__ import annotations
 
 import pytest
-
 from value_fabric.shared.identity.context import (
     AUTH_SOURCE_JWT,
     AUTH_SOURCE_SERVICE_ACCOUNT,

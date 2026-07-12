@@ -5,7 +5,6 @@ from pathlib import Path
 
 from scripts.ci import python_contract_lint
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 

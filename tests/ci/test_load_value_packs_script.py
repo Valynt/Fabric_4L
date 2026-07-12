@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 import scripts.load_value_packs as loader
 
 

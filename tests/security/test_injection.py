@@ -10,6 +10,7 @@ Validates that:
 
 # Lazy import for optional dependency
 import pytest
+
 try:
     from fastapi.testclient import TestClient
 except ImportError:

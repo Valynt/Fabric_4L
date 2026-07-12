@@ -4,8 +4,6 @@ import re
 from pathlib import Path
 
 import pytest
-
-from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 from src.db.query_execution import (
     TenantExecutionContext,
     TenantQueryExecutor,
@@ -13,7 +11,7 @@ from src.db.query_execution import (
     run_scoped_query,
 )
 from src.services.cypher_scope_guard import validate_tenant_scoped_cypher
-
+from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
 _QUERY_BLOCK = re.compile(r'(?s)(?:query|count_query|list_query)\s*=\s*f?"""(.*?)"""')
 _TENANT_OWNED = {

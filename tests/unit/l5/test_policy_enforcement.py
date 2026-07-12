@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-
 from layer5_ground_truth.services.policy_enforcement import (
     ArtifactAccessRequest,
     ArtifactStatus,

@@ -15,14 +15,12 @@ import os
 from unittest.mock import patch
 
 import pytest
-
 from value_fabric.shared.security.config import (
     ProductionSafetyValidator,
     is_production_like_environment,
     is_strict_environment,
     validate_production_safety,
 )
-
 
 # ---------------------------------------------------------------------------
 # Environment classification (repository-level sanity)

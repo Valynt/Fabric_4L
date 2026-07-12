@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 APP_MAIN = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py"
 

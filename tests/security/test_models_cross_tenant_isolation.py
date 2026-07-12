@@ -17,13 +17,12 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+from starlette.requests import Request as StarletteRequest
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
 )
-
-from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
-from starlette.requests import Request as StarletteRequest
 
 pytestmark = pytest.mark.tenant_boundary
 
@@ -191,7 +190,8 @@ def _make_request(auth_header: str = "", tenant_header: str = "") -> StarletteRe
 
 
 def _bearer(payload: dict) -> str:
-    import base64, json
+    import base64
+    import json
     def enc(d): return base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
     return f"Bearer {enc({'alg':'none'})}.{enc(payload)}.sig"
 

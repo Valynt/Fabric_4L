@@ -13,13 +13,13 @@ Note:
 """
 
 import importlib.util
-from importlib.machinery import ModuleSpec
 import os
 import sys
 import types
-import urllib.request
 import urllib.error
+import urllib.request
 from collections.abc import Mapping
+from importlib.machinery import ModuleSpec
 
 import pytest
 from httpx import AsyncClient

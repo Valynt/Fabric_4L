@@ -29,7 +29,6 @@ import httpx
 import jwt as pyjwt
 import pytest
 import pytest_asyncio
-
 from value_fabric.shared.identity.oidc import OIDCClient, OIDCDiscoveryError
 
 # ---------------------------------------------------------------------------
@@ -238,7 +237,8 @@ async def test_tampered_token_is_rejected(keycloak_realm, oidc_client):
 
     # Corrupt the payload segment (middle part of the JWT)
     header, payload, sig = id_token.split(".")
-    import base64, json as _json
+    import base64
+    import json as _json
     padded = payload + "=" * (-len(payload) % 4)
     claims_dict = _json.loads(base64.urlsafe_b64decode(padded))
     claims_dict["sub"] = "attacker-injected-sub"

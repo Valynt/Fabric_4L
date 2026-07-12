@@ -10,13 +10,17 @@ Covers:
 
 from __future__ import annotations
 
-import pytest
 from uuid import uuid4
 
-from value_fabric.shared.audit.emitter import AuditEmitter, emit_audit_event, _create_audit_event
+import pytest
+from value_fabric.shared.audit.emitter import (
+    AuditEmitter,
+    _create_audit_event,
+    emit_audit_event,
+    validate_audit_config,
+)
 from value_fabric.shared.audit.ledger import LedgerCommitHandler
 from value_fabric.shared.audit.models import AuditAction, AuditEvent, AuditOutcome
-from value_fabric.shared.audit.emitter import validate_audit_config
 
 
 def _make_event(

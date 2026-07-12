@@ -15,8 +15,8 @@ import pytest
 from tests.support.root_pytest_bootstrap import (
     _FAIL_CLOSED_TEST_DEFAULTS,
     _TEST_ENV,
-    bootstrap_root_pytest,
     _install_test_environment,
+    bootstrap_root_pytest,
 )
 
 pytestmark = [pytest.mark.unit]

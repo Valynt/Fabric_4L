@@ -3,7 +3,6 @@
 import hashlib
 import json
 
-
 EXPORT_SCHEMA_VERSION = "data-lifecycle-export.v1"
 REQUIRED_TOP_LEVEL_FIELDS = [
     "schema_version",

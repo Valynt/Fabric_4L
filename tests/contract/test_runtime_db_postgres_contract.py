@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-from value_fabric.shared.database.runtime_adapter import DatabaseAdapterConfig, RuntimeDatabaseAdapter
+from value_fabric.shared.database.runtime_adapter import (
+    DatabaseAdapterConfig,
+    RuntimeDatabaseAdapter,
+)
 
 
 @pytest.mark.contract_static

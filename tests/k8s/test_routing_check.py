@@ -25,7 +25,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_REL = Path("scripts/ci/k8s_routing_check.py")
 
 

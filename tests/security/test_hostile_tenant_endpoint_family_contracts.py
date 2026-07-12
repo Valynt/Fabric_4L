@@ -29,7 +29,7 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Endpoint family mapping: (layer, route_file, endpoint_prefix, methods)
-ENDPOINT_FAMILIES: Dict[str, tuple[str, Path, str, List[str]]] = {
+ENDPOINT_FAMILIES: dict[str, tuple[str, Path, str, list[str]]] = {
     "L1_ingestion_sources": (
         "L1",
         REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",

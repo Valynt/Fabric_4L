@@ -11,7 +11,6 @@ from pathlib import Path
 import jsonschema
 import pytest
 import yaml
-
 from value_fabric.shared.audit.models import PolicyDecisionRecord
 
 

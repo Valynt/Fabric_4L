@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_FILE = REPO_ROOT / "services/layer4-agents/src/layer4_agents/services/encryption_service.py"
 SECURITY_MODEL_DOC = REPO_ROOT / "docs/core-concepts/security-model.md"

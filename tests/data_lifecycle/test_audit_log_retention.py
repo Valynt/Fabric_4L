@@ -49,4 +49,4 @@ def test_audit_logs_are_retained_after_hard_delete():
     }
     assert hard_delete_actions["audit_logs"] == "retain_append_only"
     assert hard_delete_actions["billing_records"] == "retain_ledger"
-    assert "purge" != hard_delete_actions["audit_logs"]
+    assert hard_delete_actions["audit_logs"] != "purge"

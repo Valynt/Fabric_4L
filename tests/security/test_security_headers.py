@@ -19,27 +19,25 @@ from __future__ import annotations
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 from fastapi.responses import PlainTextResponse
-
+from fastapi.testclient import TestClient
 from value_fabric.shared.security_middleware import (
-    SecurityHeadersMiddleware,
-    Environment,
-    disable_security_headers,
-    security_header_override,
+    COEP_DEV,
+    COEP_PROD,
+    COOP_DEV,
+    COOP_PROD,
+    CORP_DEV,
+    CORP_PROD,
     HSTS_VALUE_PROD,
+    PERMISSIONS_POLICY,
+    REFERRER_POLICY,
     X_CONTENT_TYPE_OPTIONS,
     X_FRAME_OPTIONS,
-    REFERRER_POLICY,
-    PERMISSIONS_POLICY,
-    COEP_PROD,
-    COOP_PROD,
-    CORP_PROD,
-    COEP_DEV,
-    COOP_DEV,
-    CORP_DEV,
+    Environment,
+    SecurityHeadersMiddleware,
+    disable_security_headers,
+    security_header_override,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
