@@ -185,7 +185,6 @@ class TestBodyTenantIgnored:
         source = pathlib.Path(
             "services/api/app/core/tenant_context.py"
         ).read_text()
-        # DECISION(10f1343660a64912bd5e43ebe82a26c9): ACCEPTED
         # Must not read tenant_id from request body
         assert "request.body" not in source and "body.tenant_id" not in source, (
             "TenantRequired must not read tenant_id from request body"
@@ -273,7 +272,6 @@ class TestNoSecretsInLogs:
         source = pathlib.Path(
             "services/api/app/core/security.py"
         ).read_text()
-        # DECISION(57c427a3066048f99dbc051c40a5766d): ACCEPTED
         # secret_key must not appear in any log call
         log_lines = [
             line for line in source.splitlines()

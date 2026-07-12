@@ -160,7 +160,6 @@ def _find_optional_context_in_write_routes(filepath: Path) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# DECISION(e0978bcfb2784578880fecc434b0c943): ACCEPTED
 # Module loading helpers (avoids sqlalchemy import chain)
 # ---------------------------------------------------------------------------
 
@@ -476,7 +475,7 @@ class TestImportConsistency:
         # This is informational — import errors would be caught at runtime
         # but we want to catch them statically
         assert not violations, (
-            f"Import consistency violations:\n"
+            "Import consistency violations:\n"
             + "\n".join(f"  - {v}" for v in violations)
         )
 
