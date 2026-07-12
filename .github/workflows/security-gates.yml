@@ -102,6 +102,205 @@ jobs:
             semgrep-cypher-warnings.json
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
+  # Full-repository Semgrep CE scan (SAST) with curated registry rulesets plus
+  # local .semgrep/ rules. Produces SARIF for the GitHub Security tab and fails
+  # closed on ERROR-severity findings.
+  semgrep-full-scan:
+    name: Semgrep CE Full Scan (SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep CE
+        run: pip install semgrep
+
+      - name: Run Semgrep CE (registry rulesets + local rules)
+        env:
+          # Semgrep CE only; no Semgrep AppSec Platform token is used.
+          SEMGREP_SEND_METRICS: 'off'
+        run: |
+          semgrep scan \
+            --config p/security-audit \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --config p/python \
+            --config p/typescript \
+            --config p/react \
+            --config p/dockerfile \
+            --config p/docker-compose \
+            --config p/kubernetes \
+            --config p/github-actions \
+            --config .semgrep/ \
+            --metrics off \
+            --exclude 'archive/**' \
+            --exclude 'docs/archive/**' \
+            --sarif \
+            --output semgrep-full.sarif
+          test -s semgrep-full.sarif
+
+      - name: Upload Semgrep SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: semgrep-full.sarif
+          category: semgrep-full-scan
+
+      - name: Fail on ERROR-severity Semgrep findings
+        run: |
+          python3 << 'PYEOF'
+          import json
+          import sys
+          with open('semgrep-full.sarif', encoding='utf-8') as fh:
+              sarif = json.load(fh)
+          errors = []
+          for run in sarif.get('runs', []):
+              for result in run.get('results', []):
+                  if result.get('level', 'warning') == 'error':
+                      loc = result.get('locations', [{}])[0].get('physicalLocation', {})
+                      uri = loc.get('artifactLocation', {}).get('uri', '<unknown>')
+                      line = loc.get('region', {}).get('startLine', '?')
+                      errors.append(f"{result.get('ruleId', '<rule>')} at {uri}:{line}")
+          if errors:
+              print(f"Found {len(errors)} ERROR-severity Semgrep findings:")
+              for item in errors[:20]:
+                  print(f"  - {item}")
+              sys.exit(1)
+          print("No ERROR-severity Semgrep findings")
+          PYEOF
+
+      - name: Upload Semgrep full-scan results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-full-scan-${{github.sha}}
+          path: semgrep-full.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+  # Repository-wide Trivy scan: dependency vulnerabilities (lockfiles/requirements),
+  # secrets, and IaC misconfigurations (Dockerfiles, Compose, Kubernetes, Terraform).
+  # Complements the per-image trivy-image-scan job below.
+  trivy-repo-scan:
+    name: Repository Scan (Trivy fs + IaC + secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Run Trivy repository scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-repo.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          scanners: 'vuln,secret,config'
+          skip-dirs: 'archive,docs/archive,node_modules'
+
+      - name: Upload Trivy repository scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: 'trivy-repo.sarif'
+          category: trivy-repo
+
+      - name: Upload Trivy repository scan artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trivy-repo-scan-${{github.sha}}
+          path: trivy-repo.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+  # OSV-Scanner PR diff scan: blocks PRs that introduce NEW known vulnerabilities
+  # (compares base vs head against the OSV database) without failing on
+  # pre-existing findings. Uses Google's official reusable workflow so we get
+  # SARIF upload, artifacts, and annotations for free.
+  osv-scanner-pr:
+    name: OSV-Scanner (PR diff)
+    if: github.event_name == 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        -r
+        ./
+      results-file-name: osv-scanner-pr.sarif
+      fail-on-vuln: true
+
+  # OSV-Scanner full scan of the repository on push and weekly schedule.
+  osv-scanner-full:
+    name: OSV-Scanner (full repository)
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        -r
+        ./
+      results-file-name: osv-scanner-full.sarif
+      fail-on-vuln: false
+
+  # OpenSSF Scorecard: supply-chain security posture of the repository itself
+  # (branch protection, token permissions, pinned dependencies, SAST, etc.).
+  # Runs on pushes to main and on the weekly schedule; publishes results so the
+  # OpenSSF badge/API stay current and uploads SARIF to the Security tab.
+  openssf-scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+      # Needed to publish results to the OpenSSF REST API via OIDC.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard analysis
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          repo_token: ${{secrets.GITHUB_TOKEN}}
+          publish_results: true
+
+      - name: Upload Scorecard results artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openssf-scorecard-${{github.sha}}
+          path: scorecard-results.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+      - name: Upload Scorecard SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: scorecard-results.sarif
+          category: ossf-scorecard
+
   # Container vulnerability scanning with Trivy
   trivy-image-scan:
     name: Container Scan (Trivy)
@@ -554,6 +753,8 @@ jobs:
       - dast-api-scan
       - sbom-policy
       - trivy-image-scan
+      - trivy-repo-scan
+      - semgrep-full-scan
       - gitleaks-scan
       - mandatory-security-regression
 

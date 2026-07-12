@@ -86,6 +86,7 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     },
     "security-gates.yml": {
         "security-events": "uploads security scan SARIF",
+        "id-token": "publishes OpenSSF Scorecard results through OIDC",
     },
     "supply-chain.yml": {
         "id-token": "uses OIDC for provenance verification",
