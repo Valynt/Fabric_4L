@@ -8,8 +8,6 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from sqlalchemy.orm import Session
-
 from layer1_ingestion.domain.stages import IngestionStage
 from layer1_ingestion.orchestrator.connector_resolution import (
     ConnectorResolution,

@@ -18,7 +18,7 @@ from typing import Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from .types import ScheduledTask, TaskPriority, TaskStatus
+from .types import ScheduledTask, TaskStatus
 
 
 class TaskScheduler__run_task_handlerResult(TypedDictModel):
