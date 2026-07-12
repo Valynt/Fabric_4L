@@ -61,6 +61,8 @@ def _merged_prs(repo: str, base: str, lookback: int, exclude: int) -> list[dict[
         [
             "gh",
             "api",
+            "--method",
+            "GET",
             "search/issues",
             "-f",
             f"q={query}",

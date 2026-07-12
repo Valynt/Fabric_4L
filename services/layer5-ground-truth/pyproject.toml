@@ -53,6 +53,7 @@ dev = [
     "ruff>=0.2",
     "mypy>=1.8",
     "sqlalchemy[mypy]>=2.0",
+    "aiosqlite>=0.20.0",
     "factory-boy>=3.3.0",
     "faker>=33.0.0",
     "testcontainers>=4.8.0",
