@@ -98,7 +98,7 @@ jobs:
               --format=json --output="pip-audit-${{ matrix.service }}.json"
           else
             echo "No manifest found for $svc; skipping"
-            echo '{"dependencies":{}}' > "pip-audit-${{ matrix.service }}.json"
+            echo '{"dependencies":[]}' > "pip-audit-${{ matrix.service }}.json"
           fi
           # Don't fail here; we collect all results then evaluate
 
@@ -113,8 +113,9 @@ jobs:
           data = json.loads(pathlib.Path('pip-audit-${{ matrix.service }}.json').read_text())
           rules = []
           results = []
-          for dep, vulns in data.get('dependencies', {}).items():
-              for v in vulns.get('vulns', []):
+          for entry in data.get('dependencies', []):
+              dep = entry.get('name', 'unknown')
+              for v in entry.get('vulns', []):
                   vuln_id = v.get('id', 'UNKNOWN')
                   rules.append({
                       'id': vuln_id,
@@ -174,8 +175,9 @@ jobs:
               print('No results file; assuming clean')
               sys.exit(0)
           max_sev = -1
-          for dep, vulns in data.get('dependencies', {}).items():
-              for v in vulns.get('vulns', []):
+          for entry in data.get('dependencies', []):
+              dep = entry.get('name', 'unknown')
+              for v in entry.get('vulns', []):
                   sev = v.get('severity', 'low')
                   max_sev = max(max_sev, threshold_map.get(sev, 0))
           if max_sev >= threshold:
