@@ -17,7 +17,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 pytestmark = [
     pytest.mark.security,
     pytest.mark.jwt_config,
@@ -296,6 +295,7 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 
 import time as _time
+
 import jwt as _jwt
 
 _RUNTIME_SECRET = "runtime-test-secret-must-be-32chars!!"
@@ -428,6 +428,7 @@ class TestRuntimeDecodeAttackVectors:
         """Token with 'none' algorithm is rejected (algorithm confusion attack)."""
         import base64
         import json
+
         from value_fabric.shared.identity.jwt import decode_jwt
 
         header = base64.urlsafe_b64encode(

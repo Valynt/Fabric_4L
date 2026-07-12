@@ -1,7 +1,6 @@
 from uuid import UUID
 
 import pytest
-
 from value_fabric.shared.identity.api_key_cache import _build_api_key_cache_key
 
 

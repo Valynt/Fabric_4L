@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
-
 from scripts.ci.check_test_skip_register_uniqueness import find_duplicates
 
 

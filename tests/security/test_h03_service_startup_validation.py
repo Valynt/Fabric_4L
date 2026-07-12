@@ -7,7 +7,6 @@ Covers:
 """
 
 import pytest
-
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.security.config import validate_production_safety
 

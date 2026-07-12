@@ -4,7 +4,6 @@ import re
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MIGRATION_ROOTS = (
     Path("services/layer1-ingestion/migrations/versions"),

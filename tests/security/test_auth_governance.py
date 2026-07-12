@@ -142,8 +142,8 @@ class TestF01PredictableUserIds:
     @pytest.mark.skipif(not _SERVICE_DEPS_AVAILABLE, reason="service runtime deps not installed")
     def test_two_users_same_email_prefix_get_different_ids(self) -> None:
         """Signup handler must produce different IDs for users with the same email local-part."""
-        from fastapi.testclient import TestClient
         from app.main import app
+        from fastapi.testclient import TestClient
         client = TestClient(app, raise_server_exceptions=True)
 
         # Legacy auth signup endpoint is not mounted in the current gateway app (Clerk auth).
@@ -180,8 +180,8 @@ class TestF01PredictableUserIds:
     @pytest.mark.skipif(not _SERVICE_DEPS_AVAILABLE, reason="service runtime deps not installed")
     def test_user_id_not_derivable_from_email(self) -> None:
         """Signup handler must not embed the email local-part in the user ID."""
-        from fastapi.testclient import TestClient
         from app.main import app
+        from fastapi.testclient import TestClient
         client = TestClient(app, raise_server_exceptions=True)
 
         routes = [r.path for r in app.routes if hasattr(r, "path")]
@@ -348,8 +348,8 @@ class TestF08JwtExpiryFromConfig:
         )
 
     def test_create_access_token_uses_settings_default(self) -> None:
-        from app.core.security import create_access_token
         import jwt as pyjwt
+        from app.core.security import create_access_token
         token = create_access_token(subject="user-1", tenant_id="tenant-1")
         payload = pyjwt.decode(token, options={"verify_signature": False})
         exp = payload.get("exp")
@@ -406,9 +406,10 @@ class TestF11RoleEscalationGuard:
     def test_analyst_cannot_invite_tenant_admin(self) -> None:
         """invite_user must raise 403 when an analyst tries to invite a tenant_admin."""
         import asyncio
-        from fastapi import HTTPException
+
         from app.models.schemas import User
         from app.routers.auth import InviteRequest, invite_user
+        from fastapi import HTTPException
 
         analyst = User(
             id="analyst-guard-test", tenant_id="t-guard", email="analyst@guard.com",
@@ -426,9 +427,10 @@ class TestF11RoleEscalationGuard:
     def test_tenant_admin_cannot_invite_equal_rank(self) -> None:
         """invite_user must raise 403 when a tenant_admin invites another tenant_admin."""
         import asyncio
-        from fastapi import HTTPException
+
         from app.models.schemas import User
         from app.routers.auth import InviteRequest, invite_user
+        from fastapi import HTTPException
 
         admin = User(
             id="admin-equal-test", tenant_id="t-equal", email="admin@equal.com",
@@ -446,6 +448,7 @@ class TestF11RoleEscalationGuard:
     def test_tenant_admin_can_invite_analyst(self) -> None:
         """invite_user must succeed when a tenant_admin invites an analyst."""
         import asyncio
+
         from app.models.schemas import User
         from app.routers.auth import InviteRequest, invite_user
         from value_fabric.shared.identity.context import RequestContext, set_request_context
@@ -508,6 +511,7 @@ class TestF13SuperAdminMethodCall:
     def test_non_super_admin_denied_for_foreign_tenant(self) -> None:
         """_verify_tenant_access must raise 403 when a non-super-admin accesses a foreign tenant."""
         import uuid as _uuid
+
         from fastapi import HTTPException
         try:
             from layer4_agents.tenants.api.routes.admin import _verify_tenant_access
@@ -656,7 +660,9 @@ class TestF23DevBypassRemoved:
 
     def test_maybe_install_dev_bypass_not_importable(self) -> None:
         with pytest.raises(ImportError):
-            from value_fabric.shared.identity.dev_bypass import maybe_install_dev_bypass  # noqa: F401
+            from value_fabric.shared.identity.dev_bypass import (
+                maybe_install_dev_bypass,  # noqa: F401
+            )
 
     def test_dev_bypass_source_file_deleted(self) -> None:
         from pathlib import Path
@@ -672,8 +678,8 @@ class TestF25SecureShareToken:
     """Share tokens must use secrets.token_urlsafe, not Python hash()."""
 
     def test_no_hash_builtin_in_accounts_router(self) -> None:
-        from pathlib import Path
         import re
+        from pathlib import Path
         source = (Path(__file__).parents[2] / "services/api/app/routers/accounts.py").read_text()
         # Only flag hash() on non-comment, non-docstring lines
         code_lines = [

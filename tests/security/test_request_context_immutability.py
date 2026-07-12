@@ -7,18 +7,18 @@ preventing privilege escalation attacks.
 Critical P0 test - immutability bypass could allow tenant context switching.
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from value_fabric.shared.identity.context import (
-    RequestContext,
-    get_current_context,
-    set_current_context,
-    clear_current_context,
     AUTH_SOURCE_JWT,
     ISOLATION_TIER_SHARED,
+    RequestContext,
+    clear_current_context,
+    get_current_context,
+    set_current_context,
 )
-from value_fabric.shared.identity.permissions import Role, Permission
+from value_fabric.shared.identity.permissions import Permission, Role
 
 
 class TestRequestContextImmutability:

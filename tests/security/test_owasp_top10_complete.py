@@ -14,10 +14,10 @@ A09: Security Logging and Monitoring Failures
 A10: Server-Side Request Forgery (SSRF)
 """
 
-import pytest
-import jwt
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
+import jwt
+import pytest
 
 # ============================================================================
 # A01: BROKEN ACCESS CONTROL
@@ -177,7 +177,7 @@ class TestCryptographicFailures:
         """Weak cryptographic algorithms not accepted."""
         # Test JWT signing algorithm
         weak_token = jwt.encode(
-            {"sub": "user123", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+            {"sub": "user123", "exp": datetime.now(UTC) + timedelta(hours=1)},
             key=None,
             algorithm="none",  # Insecure algorithm
         )
@@ -587,7 +587,7 @@ class TestAuthenticationFailures:
         expired_token = jwt.encode(
             {
                 "sub": "user123",
-                "exp": datetime.now(timezone.utc) - timedelta(hours=1),  # Expired
+                "exp": datetime.now(UTC) - timedelta(hours=1),  # Expired
             },
             "secret-key",
             algorithm="HS256",
@@ -739,7 +739,7 @@ class TestLoggingAndMonitoring:
     @pytest.mark.asyncio
     async def test_no_sensitive_data_in_logs(self, client):
         """Logs do not contain sensitive data (passwords, tokens)."""
-        from value_fabric.shared.audit.emitter import _scrub_details, _SENSITIVE_KEYS
+        from value_fabric.shared.audit.emitter import _SENSITIVE_KEYS, _scrub_details
 
         sensitive_payload = {
             "password": "super-secret-password",

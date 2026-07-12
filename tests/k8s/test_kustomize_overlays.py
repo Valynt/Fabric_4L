@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ZERO_SHA256_DIGEST = "sha256:" + ("0" * 64)
 
 

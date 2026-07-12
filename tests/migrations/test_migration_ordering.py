@@ -5,7 +5,6 @@ from pathlib import Path
 from scripts.ci import check_migration_entrypoints as entrypoints
 from scripts.ci import migration_status_report as status_report
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 

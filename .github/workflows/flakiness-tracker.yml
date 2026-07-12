@@ -87,7 +87,7 @@ jobs:
         if: ${{ env.FRONTEND_ONLY == 'true' || env.BACKEND_ONLY != 'true' }}
         run: |
           cd apps/web
-          npm ci
+          pnpm install --frozen-lockfile
           npx playwright install --with-deps chromium
 
       # ── Run flakiness tracker ─────────────────────────────────────────────

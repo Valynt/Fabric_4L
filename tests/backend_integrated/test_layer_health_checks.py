@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.backend_integrated.conftest import SERVICE_URLS, BackendValidationHarness
 
 pytestmark = [pytest.mark.backend_integrated]
@@ -13,7 +12,7 @@ class TestLayerHealthChecks:
     """Verify all Fabric layers expose a working health endpoint."""
 
     @pytest.fixture
-    def harness(self, seed_ids: "SeedIds") -> BackendValidationHarness:  # type: ignore[name-defined]
+    def harness(self, seed_ids: SeedIds) -> BackendValidationHarness:  # type: ignore[name-defined]
         return BackendValidationHarness(seed_ids)
 
     @pytest.mark.parametrize("layer", ["l1", "l2", "l3", "l4", "l5", "l6"])

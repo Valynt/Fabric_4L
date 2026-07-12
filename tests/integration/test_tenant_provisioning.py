@@ -491,10 +491,10 @@ class TestProvisioningAuditEvents:
         mock_infisical_client,
     ):
         """Test that successful provisioning emits TENANT_PROVISIONED audit event."""
-        from value_fabric.shared.audit import AuditAction
         from layer4_agents.tenants.provisioning import (
             TenantProvisioningService,
         )
+        from value_fabric.shared.audit import AuditAction
 
         with patch(MOCK_EMIT_AUDIT, new_callable=AsyncMock) as mock_emit:
             with patch(

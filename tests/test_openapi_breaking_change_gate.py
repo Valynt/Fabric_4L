@@ -1,5 +1,4 @@
 import pytest
-
 from scripts.ci.openapi_breaking_change_gate import compare_specs
 
 

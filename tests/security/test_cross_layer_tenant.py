@@ -63,7 +63,7 @@ class TestCrossLayerContextConsistency:
         from value_fabric.shared.identity.context import VALID_ISOLATION_TIERS
 
         valid_tiers = {ISOLATION_TIER_SHARED, ISOLATION_TIER_SCHEMA, ISOLATION_TIER_DATABASE}
-        assert VALID_ISOLATION_TIERS == valid_tiers
+        assert valid_tiers == VALID_ISOLATION_TIERS
 
     def test_auth_source_constants_consistency(self):
         """All layers use same auth source constants."""

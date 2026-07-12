@@ -6,11 +6,11 @@ for infrastructure probes and gate reasons using mocks/fakes.
 
 from __future__ import annotations
 
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
-import sys
 
 import pytest
 

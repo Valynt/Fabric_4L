@@ -13,7 +13,6 @@ from uuid import uuid4
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
-
 from layer7_billing.api.main import app
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated

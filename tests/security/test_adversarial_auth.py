@@ -22,7 +22,6 @@ import os
 import time
 
 import pytest
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
 
@@ -613,8 +612,9 @@ class TestOIDCAdversarialPaths:
 
     def test_cross_tenant_header_conflict_rejected(self, client: TestClient):
         """JWT for tenant-a + X-Tenant-ID header for tenant-b → 403."""
-        import jwt as pyjwt
         from uuid import UUID
+
+        import jwt as pyjwt
 
         # Use UUID tenant IDs to satisfy GovernanceMiddleware's UUID validation
         tenant_a = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"

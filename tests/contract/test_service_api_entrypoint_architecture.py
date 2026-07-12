@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MAX_ENTRYPOINT_BYTES = 35 * 1024
 MAX_ROUTE_MODULE_BYTES = 25 * 1024

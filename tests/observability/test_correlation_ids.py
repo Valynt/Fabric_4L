@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.error_handling.middleware import RequestIDMiddleware
 from value_fabric.shared.observability.correlation import (
     LOG_FIELD_CORRELATION_ID,
@@ -27,7 +26,7 @@ def _build_app() -> FastAPI:
         return {
             "trace_id": getattr(request.state, REQUEST_STATE_TRACE_ID_KEY),
             "correlation_id": getattr(request.state, REQUEST_STATE_CORRELATION_ID_KEY),
-            "request_id": getattr(request.state, "request_id"),
+            "request_id": request.state.request_id,
         }
 
     return app

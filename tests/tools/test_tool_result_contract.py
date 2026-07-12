@@ -4,10 +4,9 @@ Verifies that tools return structured ToolResult instead of raising exceptions.
 """
 
 import pytest
-from pydantic import BaseModel
-
-from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
 from layer4_agents.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
+from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
+from pydantic import BaseModel
 
 
 def validate_tool_result(result):

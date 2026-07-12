@@ -2,8 +2,8 @@ import pytest
 
 try:
     from fastapi.testclient import TestClient
-    from src.api.main import app
     from src.api.dependencies import get_graph_rag, get_hybrid_search
+    from src.api.main import app
 except (ImportError, Exception) as _exc:
     import traceback
     with open("skip_debug.txt", "w") as _f:

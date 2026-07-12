@@ -7,7 +7,6 @@ authentication with clear logging.
 import logging
 
 import pytest
-
 from value_fabric.shared.identity.api_key_stub import (
     reject_api_key_unsupported,
     reject_api_key_with_error,

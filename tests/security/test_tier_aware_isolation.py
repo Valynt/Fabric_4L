@@ -7,16 +7,16 @@ and only the shared tier is currently functional.
 Critical P0 test - tier misconfiguration could cause HTTP 501 errors.
 """
 
-import pytest
-from fastapi import HTTPException
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException
 from value_fabric.shared.identity.context import (
-    RequestContext,
-    ISOLATION_TIER_SHARED,
-    ISOLATION_TIER_SCHEMA,
     ISOLATION_TIER_DATABASE,
+    ISOLATION_TIER_SCHEMA,
+    ISOLATION_TIER_SHARED,
     VALID_ISOLATION_TIERS,
+    RequestContext,
 )
 
 

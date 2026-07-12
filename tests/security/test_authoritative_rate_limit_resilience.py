@@ -4,8 +4,10 @@ import os
 from unittest.mock import patch
 
 import pytest
-
-from value_fabric.shared.identity.authoritative_rate_limiter import AuthoritativeRateLimiter, RateLimitDimensions
+from value_fabric.shared.identity.authoritative_rate_limiter import (
+    AuthoritativeRateLimiter,
+    RateLimitDimensions,
+)
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig
 
 

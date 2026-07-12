@@ -14,7 +14,6 @@ from uuid import uuid4
 
 import jsonschema
 import pytest
-
 from value_fabric.shared.audit.models import (
     AuditAction,
     AuditEvent,

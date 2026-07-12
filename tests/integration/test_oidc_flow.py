@@ -26,16 +26,15 @@ import base64
 import hashlib
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import jwt as pyjwt
 import pytest
 import respx
-import httpx
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
 from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
 
@@ -79,7 +78,7 @@ def _make_id_token(
     iat_offset: int = -5,
     extra_claims: dict | None = None,
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     claims: dict = {
         "sub": "user-001",
         "email": "user@example.com",
@@ -319,7 +318,7 @@ async def test_wrong_issuer_raises(oidc_client: OIDCClient):
 @respx.mock
 async def test_stale_iat_raises(oidc_client: OIDCClient):
     """verify_id_token raises InvalidTokenError when iat is older than max_iat_age_seconds."""
-    stale_iat = int((datetime.now(timezone.utc) - timedelta(seconds=700)).timestamp())
+    stale_iat = int((datetime.now(UTC) - timedelta(seconds=700)).timestamp())
     id_token = _make_id_token(iat_offset=0)
     # Manually re-encode with stale iat
     claims = pyjwt.decode(id_token, options={"verify_signature": False,

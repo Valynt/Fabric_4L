@@ -4,9 +4,9 @@ These tests verify that BeautifulSoup uses html.parser instead of lxml
 to prevent XXE attacks.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
 from bs4 import BeautifulSoup
 from layer1_ingestion.post_processor.content_extractor import ContentExtractor
 
@@ -18,6 +18,7 @@ class TestXXEPrevention:
         """ContentExtractor must use html.parser, not lxml."""
         # Read the source file to verify the fix
         import inspect
+
         import layer1_ingestion.post_processor.content_extractor as module
 
         source = inspect.getsource(module)

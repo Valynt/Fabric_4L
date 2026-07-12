@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from value_fabric.shared.security import validate_production_safety
 
 

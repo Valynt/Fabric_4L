@@ -12,14 +12,12 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException, Request
-
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
     ValidationError,
 )
 from value_fabric.shared.identity.context import RequestContext
-
 
 pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary, pytest.mark.tenant_matrix]
 

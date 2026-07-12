@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from layer1_ingestion.compliance.url_safety import (
     URLSafetyError,
     URLSafetyResult,

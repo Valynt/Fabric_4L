@@ -1,7 +1,6 @@
 """Soft-delete lifecycle contract tests."""
 
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime, timezone
 
 ACTIVE_QUERY_STATES = {"active", "pending", "suspended"}
 
@@ -11,7 +10,7 @@ def _soft_delete(record: dict, *, actor_id: str, request_id: str) -> dict:
     deleted.update(
         {
             "status": "deleted",
-            "deleted_at": datetime(2026, 6, 4, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z"),
+            "deleted_at": datetime(2026, 6, 4, tzinfo=UTC).isoformat().replace("+00:00", "Z"),
             "deleted_by": actor_id,
             "deletion_request_id": request_id,
         }

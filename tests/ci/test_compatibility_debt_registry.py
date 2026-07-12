@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import datetime as dt
 import re
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY = ROOT / "docs/governance/compatibility-debt-registry.md"

@@ -305,6 +305,7 @@ class TestL3GraphRelationshipContracts:
         """GraphEdge model_dump includes relationship_type alias for frontend compatibility."""
         # Import and use the actual Pydantic model to test real serialization
         from pathlib import Path
+
         from src.api.models import GraphEdge
 
         # Create a GraphEdge instance (uses legacy 'type' field internally)

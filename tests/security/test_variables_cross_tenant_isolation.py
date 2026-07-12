@@ -17,7 +17,6 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-
 from value_fabric.shared.identity.dependencies import require_tenant_context
 
 pytestmark = pytest.mark.tenant_boundary

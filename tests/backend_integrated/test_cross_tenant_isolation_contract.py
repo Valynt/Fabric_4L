@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.backend_integrated.conftest import BackendValidationHarness
 
 pytestmark = [pytest.mark.backend_integrated]
@@ -13,7 +12,7 @@ class TestCrossTenantIsolation:
     """Verify tenant A cannot access tenant B's data through service contracts."""
 
     @pytest.fixture
-    def harness(self, seed_ids: "SeedIds") -> BackendValidationHarness:  # type: ignore[name-defined]
+    def harness(self, seed_ids: SeedIds) -> BackendValidationHarness:  # type: ignore[name-defined]
         return BackendValidationHarness(seed_ids)
 
     async def test_tenant_a_cannot_impersonate_tenant_b(self, harness: BackendValidationHarness) -> None:

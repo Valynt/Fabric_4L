@@ -4,7 +4,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR_PATH = REPO_ROOT / "scripts" / "ci" / "validate-env-contract.ts"
 DEV_CHECKER_PATH = REPO_ROOT / "scripts" / "dev" / "check-env.ts"

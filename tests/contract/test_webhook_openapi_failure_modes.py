@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
+
 import pytest
 
 pytestmark = pytest.mark.contract_static_no_service

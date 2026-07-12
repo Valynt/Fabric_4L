@@ -13,15 +13,14 @@ These tests run against live services in integration environment.
 """
 
 import asyncio
-import pytest
-import websockets
 from datetime import datetime
 from uuid import uuid4
 
 import httpx
+import pytest
+import websockets
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Test Configuration

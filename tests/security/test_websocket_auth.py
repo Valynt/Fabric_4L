@@ -14,12 +14,13 @@ Date: 2026-04-28
 from __future__ import annotations
 
 import os
+
 import pytest
 
 # Skip entire module if WebSocket dependencies unavailable
 try:
-    from fastapi.testclient import TestClient
     from fastapi import WebSocketDisconnect
+    from fastapi.testclient import TestClient
     WEBSOCKET_AVAILABLE = True
 except ImportError:
     WEBSOCKET_AVAILABLE = False

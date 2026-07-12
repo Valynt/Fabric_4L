@@ -11,7 +11,6 @@ from uuid import uuid4
 
 import pytest
 from fastapi import Request
-
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome, PrivilegedAccessDetails
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access

@@ -1,6 +1,7 @@
 """Shared fixtures for performance tests."""
 
 import os
+
 import pytest
 
 

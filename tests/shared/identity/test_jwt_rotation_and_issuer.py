@@ -10,7 +10,6 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import HTTPException
-
 from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt
 
 

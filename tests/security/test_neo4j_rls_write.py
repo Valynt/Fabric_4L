@@ -17,7 +17,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -226,8 +225,8 @@ class TestNeo4jWriteTenantEnforcement:
         """P0: Entity creation must use JWT tenant_id, not a body-supplied value."""
         try:
             from src.api.main import (
-                create_entity,
                 NEO4J_TENANT_AVAILABLE,
+                create_entity,
             )
         except ImportError:
             pytest.skip("Layer 3 not available")
@@ -289,8 +288,8 @@ class TestNeo4jWriteTenantEnforcement:
         """P0: Entity update must only affect nodes owned by the JWT tenant."""
         try:
             from src.api.main import (
-                update_entity,
                 NEO4J_TENANT_AVAILABLE,
+                update_entity,
             )
         except ImportError:
             pytest.skip("Layer 3 not available")
@@ -340,8 +339,8 @@ class TestNeo4jWriteTenantEnforcement:
         """P0: Entity deletion must only affect nodes owned by the JWT tenant."""
         try:
             from src.api.main import (
-                delete_entity,
                 NEO4J_TENANT_AVAILABLE,
+                delete_entity,
             )
         except ImportError:
             pytest.skip("Layer 3 not available")
@@ -390,10 +389,10 @@ class TestNeo4jWriteTenantEnforcement:
         """P0: Batch write operations must all use JWT tenant_id."""
         try:
             from src.api.main import (
-                batch_entity_operations,
                 NEO4J_TENANT_AVAILABLE,
-                BatchEntityRequest,
                 BatchEntityOperation,
+                BatchEntityRequest,
+                batch_entity_operations,
             )
         except ImportError:
             pytest.skip("Layer 3 not available")

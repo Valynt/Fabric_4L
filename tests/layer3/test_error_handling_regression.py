@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pytest
-from fastapi import HTTPException
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
 from src.api.models import GraphRAGQuery, SearchRequest, SearchType
 from src.api.routes import query_search, system
 

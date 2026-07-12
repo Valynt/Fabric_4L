@@ -277,10 +277,9 @@ jobs:
           node-version: '22.18.0'
 
       - name: Enable pnpm
-        run: |
-          npm install -g corepack@latest
-          corepack enable
-          corepack prepare pnpm@10.18.1 --activate
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
       - name: Generate evidence bundle
         run: pnpm evidence:bundle -- --release-sha "${{ github.sha }}"
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-
 from layer4_agents.services.llm_adapter_interfaces import (
     AdapterError,
     CompletionRequest,

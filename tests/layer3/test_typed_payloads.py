@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-
 from src.analytics.manager import AnalyticsConfig, AnalyticsEvent, AnalyticsManager
 from src.security.monitor import SecurityConfig, SecurityEvent, SecurityMonitor
 from src.security.query_validator import ValidationFinding, ValidationSeverity

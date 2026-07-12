@@ -10,12 +10,11 @@ import datetime
 import json
 from pathlib import Path
 
-import pytest
-
-import review_state
-import render_lessons
-import promote
 import auto_dream
+import promote
+import pytest
+import render_lessons
+import review_state
 
 pytestmark = [pytest.mark.unit]
 
@@ -95,7 +94,7 @@ class TestAppendLessonsBatching:
         migrated = render_lessons._migrate_claims(
             claims,
             str(semantic_dir),
-            datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            datetime.datetime.now(datetime.UTC).isoformat(),
         )
 
         assert migrated == 2

@@ -20,7 +20,6 @@ from pathlib import Path
 
 import pytest
 
-
 _REPO = Path(__file__).resolve().parents[2]
 for sub in ("services/layer4-agents/src", "services/layer5-ground-truth/src", "packages/shared/src"):
     p = str(_REPO / sub)
@@ -46,13 +45,13 @@ class TestLayer4TenantEntityAllowlist:
         from layer4_agents.api.tenants import _TENANT_ENTITY_TABLES
 
         assert isinstance(_TENANT_ENTITY_TABLES, frozenset)
-        assert _TENANT_ENTITY_TABLES == frozenset({
+        assert frozenset({
             "entities",
             "knowledge_entities",
             "graph_entities",
             "crm_accounts",
             "accounts",
-        })
+        }) == _TENANT_ENTITY_TABLES
 
     @pytest.mark.parametrize("payload", HOSTILE_IDENTIFIERS)
     def test_hostile_identifier_is_not_in_allowlist(self, payload: str) -> None:

@@ -23,7 +23,6 @@ from layer4_agents.tenants.api.routes import oidc
 from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
-
 TENANT_ID = UUID("00000000-0000-4000-8000-000000000001")
 OTHER_TENANT_ID = UUID("00000000-0000-4000-8000-000000000002")
 

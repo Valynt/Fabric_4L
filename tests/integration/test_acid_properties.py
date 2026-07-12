@@ -8,8 +8,8 @@ Validates that:
 """
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = [pytest.mark.integration, pytest.mark.requires_postgres]
 

@@ -9,7 +9,6 @@ import jsonschema
 import pytest
 from httpx import AsyncClient
 
-
 # GraphNode schema for validation
 GRAPH_NODE_SCHEMA = {
     "type": "object",

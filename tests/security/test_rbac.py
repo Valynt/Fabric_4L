@@ -29,7 +29,7 @@ def _disable_rate_limiting_for_rbac(monkeypatch):
     under test.
     """
     try:
-        from value_fabric.shared.identity.rate_limiter import RedisRateLimiter, RateLimitResult
+        from value_fabric.shared.identity.rate_limiter import RateLimitResult, RedisRateLimiter
     except ImportError:
         return
 
@@ -342,8 +342,9 @@ class TestJWTTamperingResistance:
         payload = base64.urlsafe_b64encode(json.dumps({"sub": "admin", "role": "admin"}).encode()).decode().strip("=")
 
         # Sign with HMAC (trying to trick RS256 verification)
-        import hmac
         import hashlib
+        import hmac
+
         from tests.security.conftest import TEST_JWT_SECRET
         message = f"{header}.{payload}"
         signature = base64.urlsafe_b64encode(
@@ -442,6 +443,7 @@ class TestPermissionScopeChecks:
         })
 
         import jwt as _jwt
+
         from tests.security.conftest import TEST_JWT_SECRET
         try:
             payload = _jwt.decode(

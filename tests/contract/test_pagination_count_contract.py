@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import pytest
 
-
 try:
     import fastapi  # noqa: F401
     _SERVICE_DEPS_AVAILABLE = True

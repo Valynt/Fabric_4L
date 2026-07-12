@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 import pytest
 
 DEPRECATIONS = json.loads(Path("docs/governance/deprecations.json").read_text())

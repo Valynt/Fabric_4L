@@ -1,7 +1,6 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "ci" / "legacy_path_guard.py"
 SPEC = spec_from_file_location("legacy_path_guard", MODULE_PATH)
 assert SPEC and SPEC.loader

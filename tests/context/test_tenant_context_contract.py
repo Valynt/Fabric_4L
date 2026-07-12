@@ -12,21 +12,20 @@ Test Strategy:
 - Verify context immutability and thread safety
 """
 
-import pytest
 from unittest.mock import patch
 from uuid import uuid4
+
+import pytest
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import (
+    require_admin,
     require_authenticated,
     require_tenant,
     require_tenant_context,
-    require_admin,
 )
 from value_fabric.shared.identity.permissions import Permission
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Test Suite: Context Extraction and Validation
@@ -402,7 +401,11 @@ class TestContextPropagation:
         
         Rationale: Async context must be request-scoped, not global.
         """
-        from value_fabric.shared.identity.context import set_current_context, get_current_context, clear_current_context
+        from value_fabric.shared.identity.context import (
+            clear_current_context,
+            get_current_context,
+            set_current_context,
+        )
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -483,8 +486,8 @@ class TestNegativePathContextScenarios:
         
         Rationale: Expired tokens should not grant access.
         """
-        from value_fabric.shared.identity.middleware import decode_jwt
         from jose import JWTError
+        from value_fabric.shared.identity.middleware import decode_jwt
         
         expired_token = "eyJ..."  # Mock expired token
         
@@ -497,8 +500,8 @@ class TestNegativePathContextScenarios:
         
         Attack scenario: Attacker modifies token payload.
         """
-        from value_fabric.shared.identity.middleware import decode_jwt
         from jose import JWTError
+        from value_fabric.shared.identity.middleware import decode_jwt
         
         tampered_token = "eyJ..."  # Mock tampered token
         

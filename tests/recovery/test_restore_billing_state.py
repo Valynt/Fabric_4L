@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .conftest import assert_contains_all, read_text
 
-
 EXPECTED_BILLING_TABLES = {
     "l7_billing_plans",
     "l7_billing_usage_events",

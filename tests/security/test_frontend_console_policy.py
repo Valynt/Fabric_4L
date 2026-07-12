@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WEB_SRC = REPO_ROOT / "apps" / "web" / "src"
 CONSOLE_CALL_RE = re.compile(r"\bconsole\.(?:log|warn|error|info|debug)\b")

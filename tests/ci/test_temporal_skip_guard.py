@@ -12,7 +12,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from scripts.ci.check_temporal_skips import (
     _extract_reason,
     _has_temporal_language,

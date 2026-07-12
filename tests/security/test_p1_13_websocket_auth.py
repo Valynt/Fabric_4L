@@ -4,10 +4,11 @@ These tests verify that JWT tokens in query parameters are rejected
 and tokens must be passed via Sec-WebSocket-Protocol header.
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
 import pytest
 from fastapi import WebSocketDisconnect
-from uuid import uuid4
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestWebSocketJWTAuth:
@@ -75,8 +76,8 @@ class TestWebSocketJWTAuth:
     def test_extract_tenant_from_token_parses_protocol_header(self):
         """Token extraction should handle Sec-WebSocket-Protocol format."""
         from layer4_agents.api.websocket.auth import (
-            decode_ws_token,
             WebSocketAuthError,
+            decode_ws_token,
         )
 
         with pytest.raises(WebSocketAuthError):

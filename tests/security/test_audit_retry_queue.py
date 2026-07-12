@@ -15,16 +15,15 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from value_fabric.shared.audit.models import AuditAction, AuditEvent, AuditOutcome
 from value_fabric.shared.audit.redis_queue import (
-    RedisAuditQueue,
     _DEAD_LETTER_KEY,
     _MAX_RETRIES,
     _PENDING_KEY,
     _TTL_SECONDS,
+    RedisAuditQueue,
 )
-from value_fabric.shared.audit.worker import AuditWorker, _BACKOFF_DELAYS
+from value_fabric.shared.audit.worker import _BACKOFF_DELAYS, AuditWorker
 
 
 class TestRedisAuditQueue:
@@ -228,7 +227,6 @@ class TestFabricAppLifespanWrapping:
     @pytest.mark.asyncio
     async def test_audit_worker_started_when_db_factory_provided(self):
         from fastapi import FastAPI
-
         from value_fabric.shared.audit.worker import AuditWorker
         from value_fabric.shared.fastapi_framework.app import create_fabric_app
 

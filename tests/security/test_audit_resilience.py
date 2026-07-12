@@ -17,7 +17,6 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 
@@ -117,8 +116,9 @@ class TestAuditEmitterDbWriteResilience:
         write_to_db is a static method: AuditEmitter.write_to_db(event, db_factory).
         It is called as a BackgroundTask — failures must be logged, not raised.
         """
-        from value_fabric.shared.audit.emitter import AuditEmitter
         import asyncio
+
+        from value_fabric.shared.audit.emitter import AuditEmitter
 
         event = emit_audit_event(AuditAction.TENANT_CREATED, tenant_id=None)
 

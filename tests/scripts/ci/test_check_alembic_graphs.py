@@ -1,7 +1,8 @@
 from pathlib import Path
 
-from scripts.ci import _check_alembic_graphs
 from scripts.ci._check_alembic_graphs import _extract_revisions
+
+from scripts.ci import _check_alembic_graphs
 
 
 def _write(path: Path, content: str) -> None:
