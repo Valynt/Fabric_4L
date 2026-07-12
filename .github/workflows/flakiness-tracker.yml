@@ -65,12 +65,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
+      # ── pnpm setup (must precede setup-node so its pnpm cache resolves) ──
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       # ── Node.js setup ─────────────────────────────────────────────────────
       - name: Set up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          cache: "pnpm"
 
       # ── Backend dependencies ──────────────────────────────────────────────
       - name: Install backend dependencies
@@ -86,9 +92,8 @@ jobs:
       - name: Install frontend dependencies
         if: ${{ env.FRONTEND_ONLY == 'true' || env.BACKEND_ONLY != 'true' }}
         run: |
-          cd apps/web
-          npm ci
-          npx playwright install --with-deps chromium
+          pnpm install --frozen-lockfile
+          pnpm --dir apps/web exec playwright install --with-deps chromium
 
       # ── Run flakiness tracker ─────────────────────────────────────────────
       - name: Run flakiness tracker
