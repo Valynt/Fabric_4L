@@ -28,6 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
+# Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
+RUN pip install --no-cache-dir --upgrade setuptools wheel
+
 WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
