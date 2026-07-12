@@ -36,9 +36,8 @@ class TestActiveTenantAccess:
             headers={"Authorization": f"Bearer {tenant_a_token}"}
         )
         
-        # DECISION(a47becbf35954a03bad2eac6c6a4c9be): ACCEPTED
-        # Active tenant should have normal access
-        # Note: May be 200 or 404 depending on data, but NOT 401/403
+        # Active tenant should have normal access.
+        # Note: May be 200 or 404 depending on data, but NOT 401/403.
         assert response.status_code not in [401, 403], (
             f"Active tenant should not be rejected, got {response.status_code}"
         )
@@ -55,7 +54,6 @@ def suspended_tenant_token(jwt_encoder) -> str:
     })
 
 
-@pytest.mark.xfail(strict=False, reason='Tenant lifecycle status enforcement not yet implemented in GovernanceMiddleware; returns 501')
 class TestSuspendedTenantRejection:
     """NEGATIVE: Suspended tenants are blocked with 403."""
 
@@ -104,7 +102,6 @@ class TestSuspendedTenantRejection:
             )
 
 
-@pytest.mark.xfail(strict=False, reason='Tenant lifecycle status enforcement not yet implemented in GovernanceMiddleware; returns 501')
 class TestPendingTenantRejection:
     """NEGATIVE: Pending tenants are blocked with 403."""
 
@@ -126,22 +123,21 @@ class TestPendingTenantRejection:
             "/api/v1/entities",
             headers={"Authorization": f"Bearer {pending_tenant_token}"}
         )
-        
+
         assert response.status_code == 403, (
             f"Pending tenant should get 403, got {response.status_code}. "
             "P0: Pending tenant access not blocked."
         )
-        
+
         data = response.json()
         assert data.get("error") == "tenant_pending", (
             f"Expected 'tenant_pending' error, got {data.get('error')}"
         )
-        assert "onboarding" in data.get("detail", "").lower(), (
-            "Error message should mention completing onboarding"
+        assert "pending" in data.get("detail", "").lower(), (
+            "Error message should indicate pending activation"
         )
 
 
-@pytest.mark.xfail(strict=False, reason='Tenant lifecycle status enforcement not yet implemented in GovernanceMiddleware; returns 501')
 class TestDeletedTenantRejection:
     """NEGATIVE: Deleted tenants are blocked with 404 (don't reveal existence)."""
 
@@ -164,8 +160,7 @@ class TestDeletedTenantRejection:
             headers={"Authorization": f"Bearer {deleted_tenant_token}"}
         )
         
-        # DECISION(063048c9b6604c2fbf8b2c223c67f420): ACCEPTED
-        # Use 404 not 403 to avoid revealing tenant existed
+        # Use 404 (not 403) to avoid revealing the tenant existed.
         assert response.status_code == 404, (
             f"Deleted tenant should get 404 (not 403), got {response.status_code}. "
             "403 reveals tenant existed. P0: Information disclosure."
@@ -177,10 +172,6 @@ class TestDeletedTenantRejection:
         )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="Tenant lifecycle audit requires live DB and GovernanceMiddleware status enforcement (returns 501 today)",
-)
 class TestTenantLifecycleAudit:
     """P1: Tenant lifecycle events are audited."""
 

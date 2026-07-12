@@ -16,14 +16,14 @@ Critical Security Property:
 """
 
 import pytest
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 from fastapi import HTTPException, status
 
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Permission
 
-from layer4_agents.tools.registry import ToolRegistry, ToolCategory
+from layer4_agents.tools.registry import ToolRegistry
 
 _REGISTRY_AVAILABLE = True
 
@@ -106,7 +106,7 @@ class TestToolInvocationIsolation:
         from layer4_agents.tools.knowledge import get_entity
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
         entity_id = "entity-123"
 
         ctx_a = RequestContext(
@@ -142,7 +142,7 @@ class TestToolInvocationIsolation:
         from layer4_agents.tools.knowledge import update_entity
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
         entity_id = "entity-123"
 
         ctx_a = RequestContext(
@@ -179,7 +179,7 @@ class TestToolInvocationIsolation:
         from layer4_agents.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
         entity_id = "entity-123"
 
         ctx_a = RequestContext(
@@ -230,7 +230,6 @@ class TestToolParameterValidation:
         )
         malicious_entity_id = "' OR '1'='1"
 
-        # DECISION(e1e07f4b84ac4829a33157b5108fe5cd): ACCEPTED
         # get_entity silently rejects injection attempts by returning None
         # rather than raising, to avoid leaking validation details to callers.
         mock_driver = MagicMock()
@@ -288,7 +287,6 @@ class TestToolParameterValidation:
         )
         huge_query = "A" * 100000  # 100KB query
 
-        # DECISION(b2601407c46d4966b6e7b4e313d9b251): ACCEPTED
         # search_entities silently rejects oversized queries by returning []
         # rather than raising, to avoid leaking size limits to callers.
         mock_driver = AsyncMock()
@@ -325,7 +323,7 @@ class TestToolResultFiltering:
         from layer4_agents.tools.knowledge import search_entities
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
 
         ctx_a = RequestContext(
             tenant_id=tenant_a,
@@ -364,7 +362,7 @@ class TestToolResultFiltering:
         from layer4_agents.tools.knowledge import list_entities
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
 
         ctx_a = RequestContext(
             tenant_id=tenant_a,
@@ -448,7 +446,7 @@ class TestToolAuditLogging:
         from layer4_agents.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
-        tenant_b = uuid4()
+        _ = uuid4()  # tenant_b
 
         ctx_a = RequestContext(
             tenant_id=tenant_a,
