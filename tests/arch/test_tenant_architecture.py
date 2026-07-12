@@ -178,10 +178,15 @@ def _contextvar_is_tenant_relevant(node: ast.Assign | ast.AnnAssign, source: str
 
 def _python_files_under(*roots: str) -> list[Path]:
     files: list[Path] = []
+    skip_dirs = {".venv", "venv", "__pycache__", ".pytest_cache", ".git", "node_modules"}
     for root in roots:
         root_path = REPO_ROOT / root
         if root_path.exists():
-            files.extend(path for path in root_path.rglob("*.py") if path.is_file())
+            files.extend(
+                path
+                for path in root_path.rglob("*.py")
+                if path.is_file() and not any(part in skip_dirs for part in path.parts)
+            )
     return files
 
 

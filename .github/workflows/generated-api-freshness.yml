@@ -66,20 +66,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
         with:
-          version: "10.18.1"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
+          node-version: '22.13.0'
+          pnpm-version: '10.34.5'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # scripts/export_openapi.py imports service FastAPI apps and needs pydantic
+      # for its email-validator shim. Install the minimal Python runtime surface
+      # required for schema export without pulling in the full test suite.
+      - name: Install Python OpenAPI export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install fastapi uvicorn pydantic email-validator
 
       - name: Run generated API freshness gate
         run: |

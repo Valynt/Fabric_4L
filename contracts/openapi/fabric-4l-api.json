@@ -896,7 +896,7 @@
           "Clerk Authentication"
         ],
         "summary": "Get Clerk Tenant",
-        "description": "Return the Fabric tenant mapping for the active Clerk organization.\n\nThis endpoint is the single source of truth for Clerk org \u2192 Fabric tenant\nresolution. Callers must present a valid Clerk Bearer token. Failures map\nto the standard codes from ``require_clerk_authenticated``:\n\n- 401: missing/invalid/expired token\n- 403: no active Clerk org, no tenant mapping, inactive membership, or\n  suspended/deleted tenant",
+        "description": "Return the Fabric tenant mapping for the active Clerk organization.\n\nThis endpoint is the single source of truth for Clerk org → Fabric tenant\nresolution. Callers must present a valid Clerk Bearer token. Failures map\nto the standard codes from ``require_clerk_authenticated``:\n\n- 401: missing/invalid/expired token\n- 403: no active Clerk org, no tenant mapping, inactive membership, or\n  suspended/deleted tenant",
         "operationId": "get_clerk_tenant_v1_auth_clerk_tenant_get",
         "requestBody": {
           "content": {
@@ -6388,7 +6388,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_str__Any__"
+                  "$ref": "#/components/schemas/PaginatedResponse"
                 }
               }
             }
@@ -11296,13 +11296,10 @@
           "status"
         ]
       },
-      "PaginatedResponse_dict_str__Any__": {
+      "PaginatedResponse": {
         "properties": {
           "items": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
+            "items": {},
             "type": "array",
             "title": "Items"
           },
@@ -11310,23 +11307,29 @@
             "type": "integer",
             "title": "Total"
           },
-          "limit": {
+          "page": {
             "type": "integer",
-            "title": "Limit"
+            "title": "Page"
           },
-          "offset": {
+          "page_size": {
             "type": "integer",
-            "title": "Offset"
+            "title": "Page Size"
+          },
+          "has_next": {
+            "type": "boolean",
+            "title": "Has Next"
           }
         },
         "type": "object",
         "required": [
           "items",
           "total",
-          "limit",
-          "offset"
+          "page",
+          "page_size",
+          "has_next"
         ],
-        "title": "PaginatedResponse[dict[str, Any]]"
+        "title": "PaginatedResponse",
+        "description": "Standard paginated response envelope."
       }
     },
     "securitySchemes": {

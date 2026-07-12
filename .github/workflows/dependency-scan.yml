@@ -72,29 +72,35 @@ jobs:
           - layer1-ingestion
           - layer2-extraction
           - layer3-knowledge
-          - layer4-workflow
-          - layer5-groundtruth
-          - layer6-benchmark
+          - layer4-agents
+          - layer5-ground-truth
+          - layer6-benchmarks
 
     steps:
       # -----------------------------------------------------------------------
       # 1. Checkout
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       # -----------------------------------------------------------------------
       # 2. Scan with pip-audit
       # -----------------------------------------------------------------------
       - name: pip-audit ${{ matrix.service }}
-        uses: pypa/gh-action-pip-audit@v1
-        with:
-          inputs: "services/${{ matrix.service }}/requirements.txt"
-          output-format: json
-          output: "pip-audit-${{ matrix.service }}.json"
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          svc="services/${{ matrix.service }}"
+          if [ -f "$svc/requirements.txt" ]; then
+            pip-audit --requirement "$svc/requirements.txt" \
+              --format=json --output="pip-audit-${{ matrix.service }}.json"
+          elif [ -f "$svc/pyproject.toml" ]; then
+            pip-audit "$svc" \
+              --format=json --output="pip-audit-${{ matrix.service }}.json"
+          else
+            echo "No manifest found for $svc; skipping"
+            echo '{"dependencies":{}}' > "pip-audit-${{ matrix.service }}.json"
+          fi
           # Don't fail here; we collect all results then evaluate
-          ignore-vulns: |
-            GHSA-XXXX-XXXX-XXXX # Example: acceptable risk with justification
 
       # -----------------------------------------------------------------------
       # 3. Convert to SARIF
@@ -135,7 +141,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
         with:
           sarif_file: pip-audit-${{ matrix.service }}.sarif
           category: pip-audit-${{ matrix.service }}
@@ -145,7 +151,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload raw results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: pip-audit-${{ matrix.service }}
           path: pip-audit-${{ matrix.service }}.*
@@ -193,43 +199,39 @@ jobs:
       matrix:
         frontend:
           - web
-          - admin
 
     steps:
       # -----------------------------------------------------------------------
       # 1. Checkout
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       # -----------------------------------------------------------------------
       # 2. Setup Node.js + pnpm
       # -----------------------------------------------------------------------
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
         with:
-          node-version: "20"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+          node-version: '22.13.0'
+          pnpm-version: '10.34.5'
 
       # -----------------------------------------------------------------------
       # 3. Dependency review (PR only)
       # -----------------------------------------------------------------------
       - name: Dependency Review
         if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          fail-on-severity: ${{ env.FAIL_THRESHOLD }}
+          # dependency-review-action uses 'moderate', not 'medium'
+          fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
           comment-summary-in-pr: true
 
       # -----------------------------------------------------------------------
       # 4. pnpm audit
       # -----------------------------------------------------------------------
       - name: pnpm audit ${{ matrix.frontend }}
-        working-directory: frontend/${{ matrix.frontend }}
+        working-directory: apps/web
         run: |
           pnpm install --frozen-lockfile
           pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > pnpm-audit.json || true
@@ -254,10 +256,10 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload audit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: node-audit-${{ matrix.frontend }}
-          path: frontend/${{ matrix.frontend }}/pnpm-audit.json
+          path: apps/web/pnpm-audit.json
           retention-days: 30
 
   # =========================================================================
@@ -273,14 +275,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Build API service image
         run: |
           docker build -t fabric4l/api:scan-target -f services/api/Dockerfile .
 
       - name: Scan image with Grype
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           image: "fabric4l/api:scan-target"
           severity-cutoff: ${{ env.FAIL_THRESHOLD }}
@@ -289,7 +291,7 @@ jobs:
 
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
         with:
           sarif_file: container-scan.sarif
           category: container-scan
@@ -305,22 +307,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0
+        uses: anchore/sbom-action/download-syft@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
 
       - name: Generate SBOM
         run: |
           syft packages dir:. -o spdx-json=sbom-vuln-track.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: sbom-vulnerability-tracking
           path: sbom-vuln-track.json
@@ -344,7 +346,7 @@ jobs:
           echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
           # Python services
-          for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-workflow layer5-groundtruth layer6-benchmark; do
+          for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks; do
             status="⏭️ Skipped"
             if [ "${{ needs.scan-python.result }}" = "success" ]; then status="✅ Pass"; fi
             if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="❌ Fail"; fi
@@ -352,7 +354,7 @@ jobs:
           done
 
           # Node frontends
-          for fe in web admin; do
+          for fe in web; do
             status="⏭️ Skipped"
             if [ "${{ needs.scan-node.result }}" = "success" ]; then status="✅ Pass"; fi
             if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="❌ Fail"; fi

@@ -39,9 +39,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Oidc Callback Auth Oidc Callback Get"
+            "$ref": "#/components/schemas/oidc_callbackResult"
           }
         }
       ],
@@ -74,9 +72,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Auth Logout Auth Oidc Logout Post"
+            "$ref": "#/components/schemas/logout_result"
           }
         }
       ],
@@ -108,9 +104,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Auth Refresh Auth Oidc Refresh Post"
+            "$ref": "#/components/schemas/refresh_result"
           }
         }
       ],
@@ -145,11 +139,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Response Oidc Login Auth Oidc  Tenant Slug  Login Get"
+            "$ref": "#/components/schemas/oidc_loginResult"
           }
         }
       ],
@@ -183,9 +173,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Oidc Metadata Auth Oidc  Tenant Slug  Metadata Get"
+            "$ref": "#/components/schemas/oidc_metadataResult"
           }
         }
       ],
@@ -254,7 +242,7 @@
       "backend_route_files": [],
       "openapi_path": "/ready",
       "method": "GET",
-      "operation_id": "ready_ready_get",
+      "operation_id": "readiness_handler_ready_get",
       "request_schema": null,
       "success_response_schemas": [
         {
@@ -591,6 +579,44 @@
       ]
     },
     {
+      "route_id": "GET /v1/admin/tenant-overview",
+      "backend_route_files": [],
+      "openapi_path": "/v1/admin/tenant-overview",
+      "method": "GET",
+      "operation_id": "get_tenant_overview_v1_admin_tenant_overview_get",
+      "request_schema": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/RequestContext"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Context"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/TenantOverviewResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
       "route_id": "POST /v1/agent-stream/chat",
       "backend_route_files": [],
       "openapi_path": "/v1/agent-stream/chat",
@@ -731,56 +757,12 @@
       ]
     },
     {
-      "route_id": "POST /v1/api-keys",
-      "backend_route_files": [],
-      "openapi_path": "/v1/api-keys",
-      "method": "POST",
-      "operation_id": "api_create_key_v1_api_keys_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/Body_api_create_key_v1_api_keys_post"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "201",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/APIKeyCreateResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/admin/PermissionsAdmin.tsx",
-        "apps/web/src/app/settings/schemas.ts",
-        "apps/web/src/hooks/useGovernance.ts"
-      ]
-    },
-    {
       "route_id": "GET /v1/api-keys",
       "backend_route_files": [],
       "openapi_path": "/v1/api-keys",
       "method": "GET",
       "operation_id": "api_list_keys_v1_api_keys_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -812,27 +794,51 @@
       ]
     },
     {
+      "route_id": "POST /v1/api-keys",
+      "backend_route_files": [],
+      "openapi_path": "/v1/api-keys",
+      "method": "POST",
+      "operation_id": "api_create_key_v1_api_keys_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/APIKeyCreateRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "201",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/APIKeyCreateResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/admin/PermissionsAdmin.tsx",
+        "apps/web/src/app/settings/schemas.ts",
+        "apps/web/src/hooks/useGovernance.ts"
+      ]
+    },
+    {
       "route_id": "DELETE /v1/api-keys/{key_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/api-keys/{key_id}",
       "method": "DELETE",
       "operation_id": "api_revoke_key_v1_api_keys__key_id__delete",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "204",
           "description": "Successful Response",
-          "schema": null
+          "schema": {}
         }
       ],
       "error_envelope_schemas": [
@@ -853,17 +859,7 @@
       "openapi_path": "/v1/audit/logs",
       "method": "GET",
       "operation_id": "list_audit_logs_v1_audit_logs_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -946,6 +942,846 @@
       ]
     },
     {
+      "route_id": "GET /v1/billing/charges",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/charges",
+      "method": "GET",
+      "operation_id": "list_charges_v1_billing_charges_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/list_chargesResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/charges",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/charges",
+      "method": "POST",
+      "operation_id": "record_charge_v1_billing_charges_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/RecordChargeRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/record_chargeResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/check-feature",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/check-feature",
+      "method": "GET",
+      "operation_id": "check_feature_v1_billing_check_feature_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/check_featureResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/checkout",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/checkout",
+      "method": "POST",
+      "operation_id": "create_checkout_v1_billing_checkout_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CheckoutRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Response Create Checkout V1 Billing Checkout Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/customers/{customer_id}/balance",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/customers/{customer_id}/balance",
+      "method": "GET",
+      "operation_id": "get_customer_balance_v1_billing_customers__customer_id__balance_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Get Customer Balance V1 Billing Customers  Customer Id  Balance Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/entitlements",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/entitlements",
+      "method": "GET",
+      "operation_id": "get_entitlements_v1_billing_entitlements_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Get Entitlements V1 Billing Entitlements Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/events",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/events",
+      "method": "POST",
+      "operation_id": "ingest_usage_event_v1_billing_events_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/UsageEventRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/ingest_usage_eventResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/events/batch",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/events/batch",
+      "method": "POST",
+      "operation_id": "ingest_usage_batch_v1_billing_events_batch_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/UsageBatchRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/ingest_usage_batchResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/invoices",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices",
+      "method": "GET",
+      "operation_id": "list_invoices_v1_billing_invoices_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/list_invoicesResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/invoices",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices",
+      "method": "POST",
+      "operation_id": "create_invoice_v1_billing_invoices_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CreateInvoiceRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/create_invoiceResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/invoices/{invoice_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices/{invoice_id}",
+      "method": "GET",
+      "operation_id": "get_invoice_v1_billing_invoices__invoice_id__get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_invoiceResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/invoices/{invoice_id}/finalize",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices/{invoice_id}/finalize",
+      "method": "POST",
+      "operation_id": "finalize_invoice_v1_billing_invoices__invoice_id__finalize_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/finalize_invoiceResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/invoices/{invoice_id}/items",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices/{invoice_id}/items",
+      "method": "POST",
+      "operation_id": "add_invoice_item_v1_billing_invoices__invoice_id__items_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/AddInvoiceItemRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/add_invoice_itemResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/invoices/{invoice_id}/void",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/invoices/{invoice_id}/void",
+      "method": "POST",
+      "operation_id": "void_invoice_v1_billing_invoices__invoice_id__void_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/void_invoiceResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/limits/{customer_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/limits/{customer_id}",
+      "method": "GET",
+      "operation_id": "get_usage_limits_v1_billing_limits__customer_id__get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_usage_limitsResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/limits/{customer_id}/check",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/limits/{customer_id}/check",
+      "method": "POST",
+      "operation_id": "check_request_allowed_v1_billing_limits__customer_id__check_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Check Request Allowed V1 Billing Limits  Customer Id  Check Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/plans/{plan_id}/limits",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/plans/{plan_id}/limits",
+      "method": "GET",
+      "operation_id": "get_plan_limits_v1_billing_plans__plan_id__limits_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_plan_limitsResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/portal",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/portal",
+      "method": "POST",
+      "operation_id": "create_portal_v1_billing_portal_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/PortalRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Response Create Portal V1 Billing Portal Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/reports/revenue",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/reports/revenue",
+      "method": "GET",
+      "operation_id": "get_revenue_summary_v1_billing_reports_revenue_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Get Revenue Summary V1 Billing Reports Revenue Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/subscription",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/subscription",
+      "method": "GET",
+      "operation_id": "get_subscription_v1_billing_subscription_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_subscriptionResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/subscription/cancel",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/subscription/cancel",
+      "method": "POST",
+      "operation_id": "cancel_subscription_v1_billing_subscription_cancel_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CancelSubscriptionRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Cancel Subscription V1 Billing Subscription Cancel Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/subscription/reactivate",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/subscription/reactivate",
+      "method": "POST",
+      "operation_id": "reactivate_subscription_v1_billing_subscription_reactivate_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Reactivate Subscription V1 Billing Subscription Reactivate Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/subscription/update-plan",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/subscription/update-plan",
+      "method": "POST",
+      "operation_id": "update_subscription_plan_v1_billing_subscription_update_plan_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/UpdatePlanRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Update Subscription Plan V1 Billing Subscription Update Plan Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/sync-customer",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/sync-customer",
+      "method": "POST",
+      "operation_id": "sync_customer_v1_billing_sync_customer_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CustomerSyncRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/sync_customerResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/usage/{customer_id}/events",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/usage/{customer_id}/events",
+      "method": "GET",
+      "operation_id": "list_usage_events_v1_billing_usage__customer_id__events_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "title": "Response List Usage Events V1 Billing Usage  Customer Id  Events Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/billing/usage/{customer_id}/summary",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/usage/{customer_id}/summary",
+      "method": "GET",
+      "operation_id": "get_usage_summary_v1_billing_usage__customer_id__summary_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Get Usage Summary V1 Billing Usage  Customer Id  Summary Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/usage/{customer_id}/sync",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/usage/{customer_id}/sync",
+      "method": "POST",
+      "operation_id": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Sync Usage To Stripe V1 Billing Usage  Customer Id  Sync Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/billing/webhook",
+      "backend_route_files": [],
+      "openapi_path": "/v1/billing/webhook",
+      "method": "POST",
+      "operation_id": "stripe_webhook_v1_billing_webhook_post",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/stripe_webhookResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "400",
+          "description": "Invalid webhook payload — verify the payload body and Stripe-Signature timestamp",
+          "schema": {}
+        },
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
       "route_id": "POST /v1/c1/stream",
       "backend_route_files": [],
       "openapi_path": "/v1/c1/stream",
@@ -974,6 +1810,39 @@
       "frontend_consumers": [
         "apps/web/src/pages/intelligence/EvidenceAcceptanceFlow.test.tsx",
         "apps/web/src/pages/ExtractionEngine.tsx"
+      ]
+    },
+    {
+      "route_id": "GET /v1/cases",
+      "backend_route_files": [],
+      "openapi_path": "/v1/cases",
+      "method": "GET",
+      "operation_id": "list_cases_v1_cases_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/CaseListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/ValuePacks.tsx",
+        "apps/web/src/test/mocks/handlers.ts",
+        "apps/web/src/agui/useAgentEvents.ts",
+        "apps/web/src/pages/BusinessCaseList.tsx"
       ]
     },
     {
@@ -1008,39 +1877,6 @@
         "apps/web/src/pages/BusinessCaseList.test.tsx",
         "apps/web/src/pages/ValuePacks.tsx",
         "apps/web/src/pages/BusinessCase.test.tsx",
-        "apps/web/src/pages/BusinessCaseList.tsx"
-      ]
-    },
-    {
-      "route_id": "GET /v1/cases",
-      "backend_route_files": [],
-      "openapi_path": "/v1/cases",
-      "method": "GET",
-      "operation_id": "list_cases_v1_cases_get",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/CaseListResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/ValuePacks.tsx",
-        "apps/web/src/test/mocks/handlers.ts",
-        "apps/web/src/agui/useAgentEvents.ts",
         "apps/web/src/pages/BusinessCaseList.tsx"
       ]
     },
@@ -1216,19 +2052,17 @@
       ]
     },
     {
-      "route_id": "GET /v1/cases/{case_id}/scenarios/{scenario_id}",
+      "route_id": "DELETE /v1/cases/{case_id}/scenarios/{scenario_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/cases/{case_id}/scenarios/{scenario_id}",
-      "method": "GET",
-      "operation_id": "get_saved_scenario_v1_cases__case_id__scenarios__scenario_id__get",
+      "method": "DELETE",
+      "operation_id": "delete_saved_scenario_v1_cases__case_id__scenarios__scenario_id__delete",
       "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "200",
+          "status_code": "204",
           "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/SavedScenarioDetail"
-          }
+          "schema": {}
         }
       ],
       "error_envelope_schemas": [
@@ -1247,17 +2081,19 @@
       ]
     },
     {
-      "route_id": "DELETE /v1/cases/{case_id}/scenarios/{scenario_id}",
+      "route_id": "GET /v1/cases/{case_id}/scenarios/{scenario_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/cases/{case_id}/scenarios/{scenario_id}",
-      "method": "DELETE",
-      "operation_id": "delete_saved_scenario_v1_cases__case_id__scenarios__scenario_id__delete",
+      "method": "GET",
+      "operation_id": "get_saved_scenario_v1_cases__case_id__scenarios__scenario_id__get",
       "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "204",
+          "status_code": "200",
           "description": "Successful Response",
-          "schema": null
+          "schema": {
+            "$ref": "#/components/schemas/SavedScenarioDetail"
+          }
         }
       ],
       "error_envelope_schemas": [
@@ -1788,20 +2624,18 @@
       ]
     },
     {
-      "route_id": "POST /v1/company-knowledge/sources",
+      "route_id": "GET /v1/company-knowledge/sources",
       "backend_route_files": [],
       "openapi_path": "/v1/company-knowledge/sources",
-      "method": "POST",
-      "operation_id": "add_knowledge_source_v1_company_knowledge_sources_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/KnowledgeSourceCreateRequest"
-      },
+      "method": "GET",
+      "operation_id": "list_knowledge_sources_v1_company_knowledge_sources_get",
+      "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "201",
+          "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "$ref": "#/components/schemas/KnowledgeSourceResponse"
+            "$ref": "#/components/schemas/KnowledgeSourceListResponse"
           }
         }
       ],
@@ -1820,18 +2654,20 @@
       ]
     },
     {
-      "route_id": "GET /v1/company-knowledge/sources",
+      "route_id": "POST /v1/company-knowledge/sources",
       "backend_route_files": [],
       "openapi_path": "/v1/company-knowledge/sources",
-      "method": "GET",
-      "operation_id": "list_knowledge_sources_v1_company_knowledge_sources_get",
-      "request_schema": null,
+      "method": "POST",
+      "operation_id": "add_knowledge_source_v1_company_knowledge_sources_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/KnowledgeSourceCreateRequest"
+      },
       "success_response_schemas": [
         {
-          "status_code": "200",
+          "status_code": "201",
           "description": "Successful Response",
           "schema": {
-            "$ref": "#/components/schemas/KnowledgeSourceListResponse"
+            "$ref": "#/components/schemas/KnowledgeSourceResponse"
           }
         }
       ],
@@ -1909,6 +2745,40 @@
       ]
     },
     {
+      "route_id": "GET /v1/enrichment/{account_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/enrichment/{account_id}",
+      "method": "GET",
+      "operation_id": "get_account_enrichment_v1_enrichment__account_id__get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Get Account Enrichment V1 Enrichment  Account Id  Get"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/NotificationsPage.tsx",
+        "apps/web/src/pages/value-case/ValueCasePage.tsx",
+        "apps/web/src/pages/intelligence/HypothesesTab.tsx"
+      ]
+    },
+    {
       "route_id": "POST /v1/enrichment/{account_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/enrichment/{account_id}",
@@ -1954,45 +2824,11 @@
       ]
     },
     {
-      "route_id": "GET /v1/enrichment/{account_id}",
+      "route_id": "PATCH /v1/evidence/{evidence_id}/decision",
       "backend_route_files": [],
-      "openapi_path": "/v1/enrichment/{account_id}",
-      "method": "GET",
-      "operation_id": "get_account_enrichment_v1_enrichment__account_id__get",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Get Account Enrichment V1 Enrichment  Account Id  Get"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/NotificationsPage.tsx",
-        "apps/web/src/pages/value-case/ValueCasePage.tsx",
-        "apps/web/src/pages/intelligence/HypothesesTab.tsx"
-      ]
-    },
-    {
-      "route_id": "POST /v1/evidence/{evidence_id}/decisions",
-      "backend_route_files": [],
-      "openapi_path": "/v1/evidence/{evidence_id}/decisions",
-      "method": "POST",
-      "operation_id": "decide_evidence_v1_evidence__evidence_id__decisions_post",
+      "openapi_path": "/v1/evidence/{evidence_id}/decision",
+      "method": "PATCH",
+      "operation_id": "decide_evidence_v1_evidence__evidence_id__decision_patch",
       "request_schema": {
         "$ref": "#/components/schemas/EvidenceDecisionRequest"
       },
@@ -2015,12 +2851,39 @@
         }
       ],
       "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/DecisionTrace.tsx",
-        "apps/web/src/hooks/useWorkspaceCase.ts",
-        "apps/web/src/hooks/queryKeys.ts",
-        "apps/web/src/stores/userTierStore.test.ts"
-      ]
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/evidence/{evidence_id}/drivers/{driver_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/evidence/{evidence_id}/drivers/{driver_id}",
+      "method": "POST",
+      "operation_id": "link_evidence_driver_v1_evidence__evidence_id__drivers__driver_id__post",
+      "request_schema": {
+        "$ref": "#/components/schemas/EvidenceDriverLinkRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Response Link Evidence Driver V1 Evidence  Evidence Id  Drivers  Driver Id  Post"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
     },
     {
       "route_id": "GET /v1/feature-flags",
@@ -2028,17 +2891,7 @@
       "openapi_path": "/v1/feature-flags",
       "method": "GET",
       "operation_id": "list_feature_flags_v1_feature_flags_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -2067,22 +2920,41 @@
       ]
     },
     {
+      "route_id": "DELETE /v1/feature-flags/{flag_key}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/feature-flags/{flag_key}",
+      "method": "DELETE",
+      "operation_id": "delete_feature_flag_v1_feature_flags__flag_key__delete",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "204",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
+        "apps/web/src/api/__tests__/contract/_helpers.ts"
+      ]
+    },
+    {
       "route_id": "GET /v1/feature-flags/{flag_key}",
       "backend_route_files": [],
       "openapi_path": "/v1/feature-flags/{flag_key}",
       "method": "GET",
       "operation_id": "get_feature_flag_v1_feature_flags__flag_key__get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -2114,7 +2986,7 @@
       "method": "PUT",
       "operation_id": "upsert_feature_flag_v1_feature_flags__flag_key__put",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_upsert_feature_flag_v1_feature_flags__flag_key__put"
+        "$ref": "#/components/schemas/FeatureFlagUpsertRequest"
       },
       "success_response_schemas": [
         {
@@ -2141,61 +3013,12 @@
       ]
     },
     {
-      "route_id": "DELETE /v1/feature-flags/{flag_key}",
-      "backend_route_files": [],
-      "openapi_path": "/v1/feature-flags/{flag_key}",
-      "method": "DELETE",
-      "operation_id": "delete_feature_flag_v1_feature_flags__flag_key__delete",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "204",
-          "description": "Successful Response",
-          "schema": null
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/api/__tests__/contract/governance.contract.test.ts",
-        "apps/web/src/api/__tests__/contract/_helpers.ts"
-      ]
-    },
-    {
       "route_id": "GET /v1/feature-flags/{flag_key}/evaluate",
       "backend_route_files": [],
       "openapi_path": "/v1/feature-flags/{flag_key}/evaluate",
       "method": "GET",
       "operation_id": "evaluate_feature_flag_v1_feature_flags__flag_key__evaluate_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -2324,20 +3147,22 @@
       ]
     },
     {
-      "route_id": "POST /v1/governance/reviews",
+      "route_id": "GET /v1/governance/reviews",
       "backend_route_files": [],
       "openapi_path": "/v1/governance/reviews",
-      "method": "POST",
-      "operation_id": "create_review_v1_governance_reviews_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/ReviewRequest"
-      },
+      "method": "GET",
+      "operation_id": "list_reviews_v1_governance_reviews_get",
+      "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "201",
+          "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "$ref": "#/components/schemas/ReviewRequest"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewRequest"
+            },
+            "title": "Response List Reviews V1 Governance Reviews Get"
           }
         }
       ],
@@ -2357,22 +3182,20 @@
       ]
     },
     {
-      "route_id": "GET /v1/governance/reviews",
+      "route_id": "POST /v1/governance/reviews",
       "backend_route_files": [],
       "openapi_path": "/v1/governance/reviews",
-      "method": "GET",
-      "operation_id": "list_reviews_v1_governance_reviews_get",
-      "request_schema": null,
+      "method": "POST",
+      "operation_id": "create_review_v1_governance_reviews_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/ReviewRequest"
+      },
       "success_response_schemas": [
         {
-          "status_code": "200",
+          "status_code": "201",
           "description": "Successful Response",
           "schema": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReviewRequest"
-            },
-            "title": "Response List Reviews V1 Governance Reviews Get"
+            "$ref": "#/components/schemas/ReviewRequest"
           }
         }
       ],
@@ -2781,6 +3604,370 @@
       ]
     },
     {
+      "route_id": "POST /v1/harness/gates/{gate_id}/decide",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/gates/{gate_id}/decide",
+      "method": "POST",
+      "operation_id": "decide_gate_v1_harness_gates__gate_id__decide_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/GateDecisionRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/GateResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/health",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/health",
+      "method": "GET",
+      "operation_id": "harness_health_v1_harness_health_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/HarnessHealthResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs",
+      "method": "GET",
+      "operation_id": "list_runs_v1_harness_runs_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/harness/runs",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs",
+      "method": "POST",
+      "operation_id": "create_run_v1_harness_runs_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CreateRunRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "201",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "DELETE /v1/harness/runs/{run_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}",
+      "method": "DELETE",
+      "operation_id": "cancel_run_v1_harness_runs__run_id__delete",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "204",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs/{run_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}",
+      "method": "GET",
+      "operation_id": "get_run_v1_harness_runs__run_id__get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/RunResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs/{run_id}/checkpoints",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/checkpoints",
+      "method": "GET",
+      "operation_id": "list_checkpoints_v1_harness_runs__run_id__checkpoints_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/layer4_agents__harness__api_models__CheckpointListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs/{run_id}/checkpoints/latest",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/checkpoints/latest",
+      "method": "GET",
+      "operation_id": "get_latest_checkpoint_v1_harness_runs__run_id__checkpoints_latest_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/CheckpointResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs/{run_id}/gates",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/gates",
+      "method": "GET",
+      "operation_id": "list_gates_v1_harness_runs__run_id__gates_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/GateListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/harness/runs/{run_id}/gates",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/gates",
+      "method": "POST",
+      "operation_id": "create_gate_v1_harness_runs__run_id__gates_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/CreateGateRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "201",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/GateResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/harness/runs/{run_id}/transition",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/transition",
+      "method": "POST",
+      "operation_id": "transition_run_v1_harness_runs__run_id__transition_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/TransitionRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/TransitionResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/harness/runs/{run_id}/validate",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/validate",
+      "method": "POST",
+      "operation_id": "validate_claims_v1_harness_runs__run_id__validate_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/ValidateClaimsRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/ValidateClaimsResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/harness/runs/{run_id}/validation",
+      "backend_route_files": [],
+      "openapi_path": "/v1/harness/runs/{run_id}/validation",
+      "method": "GET",
+      "operation_id": "get_run_validation_v1_harness_runs__run_id__validation_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/ValidateClaimsResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
       "route_id": "GET /v1/health/badges",
       "backend_route_files": [],
       "openapi_path": "/v1/health/badges",
@@ -3032,7 +4219,9 @@
         {
           "status_code": "200",
           "description": "Successful Response",
-          "schema": {}
+          "schema": {
+            "$ref": "#/components/schemas/generate_hypothesesResult"
+          }
         }
       ],
       "error_envelope_schemas": [
@@ -3063,7 +4252,9 @@
         {
           "status_code": "200",
           "description": "Successful Response",
-          "schema": {}
+          "schema": {
+            "$ref": "#/components/schemas/rank_hypothesesResult"
+          }
         }
       ],
       "error_envelope_schemas": [
@@ -3112,17 +4303,19 @@
       ]
     },
     {
-      "route_id": "GET /v1/hypotheses/{hypothesis_id}",
+      "route_id": "DELETE /v1/hypotheses/{hypothesis_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/hypotheses/{hypothesis_id}",
-      "method": "GET",
-      "operation_id": "get_hypothesis_v1_hypotheses__hypothesis_id__get",
+      "method": "DELETE",
+      "operation_id": "delete_hypothesis_v1_hypotheses__hypothesis_id__delete",
       "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
           "description": "Successful Response",
-          "schema": {}
+          "schema": {
+            "$ref": "#/components/schemas/delete_hypothesisResult"
+          }
         }
       ],
       "error_envelope_schemas": [
@@ -3144,11 +4337,11 @@
       ]
     },
     {
-      "route_id": "DELETE /v1/hypotheses/{hypothesis_id}",
+      "route_id": "GET /v1/hypotheses/{hypothesis_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/hypotheses/{hypothesis_id}",
-      "method": "DELETE",
-      "operation_id": "delete_hypothesis_v1_hypotheses__hypothesis_id__delete",
+      "method": "GET",
+      "operation_id": "get_hypothesis_v1_hypotheses__hypothesis_id__get",
       "request_schema": null,
       "success_response_schemas": [
         {
@@ -3219,7 +4412,9 @@
         {
           "status_code": "200",
           "description": "Successful Response",
-          "schema": {}
+          "schema": {
+            "$ref": "#/components/schemas/validate_hypothesisResult"
+          }
         }
       ],
       "error_envelope_schemas": [
@@ -3260,6 +4455,41 @@
       ]
     },
     {
+      "route_id": "POST /v1/integrations/salesforce/oauth/authorize",
+      "backend_route_files": [],
+      "openapi_path": "/v1/integrations/salesforce/oauth/authorize",
+      "method": "POST",
+      "operation_id": "start_salesforce_oauth_compat_v1_integrations_salesforce_oauth_authorize_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/SalesforceOAuthAuthorizeRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/SalesforceOAuthAuthorizeResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/Integrations.tsx",
+        "apps/web/src/pages/admin/VariableRegistry.tsx",
+        "apps/web/src/hooks/useGraphQuery.integration.test.ts",
+        "apps/web/src/hooks/useAuth.test.ts"
+      ]
+    },
+    {
       "route_id": "POST /v1/integrations/salesforce/oauth/start",
       "backend_route_files": [],
       "openapi_path": "/v1/integrations/salesforce/oauth/start",
@@ -3292,21 +4522,17 @@
       ]
     },
     {
-      "route_id": "POST /v1/integrations/salesforce/oauth/authorize",
+      "route_id": "DELETE /v1/integrations/{provider}",
       "backend_route_files": [],
-      "openapi_path": "/v1/integrations/salesforce/oauth/authorize",
-      "method": "POST",
-      "operation_id": "start_salesforce_oauth_v1_integrations_salesforce_oauth_authorize_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/SalesforceOAuthAuthorizeRequest"
-      },
+      "openapi_path": "/v1/integrations/{provider}",
+      "method": "DELETE",
+      "operation_id": "delete_integration_v1_integrations__provider__delete",
+      "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "200",
+          "status_code": "204",
           "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/SalesforceOAuthAuthorizeResponse"
-          }
+          "schema": {}
         }
       ],
       "error_envelope_schemas": [
@@ -3320,10 +4546,7 @@
       ],
       "sse_event_channels": [],
       "frontend_consumers": [
-        "apps/web/src/pages/Integrations.tsx",
-        "apps/web/src/pages/admin/VariableRegistry.tsx",
-        "apps/web/src/hooks/useGraphQuery.integration.test.ts",
-        "apps/web/src/hooks/useAuth.test.ts"
+        "apps/web/src/config/auth.ts"
       ]
     },
     {
@@ -3372,34 +4595,6 @@
           "schema": {
             "$ref": "#/components/schemas/IntegrationStatusResponse"
           }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/config/auth.ts"
-      ]
-    },
-    {
-      "route_id": "DELETE /v1/integrations/{provider}",
-      "backend_route_files": [],
-      "openapi_path": "/v1/integrations/{provider}",
-      "method": "DELETE",
-      "operation_id": "delete_integration_v1_integrations__provider__delete",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "204",
-          "description": "Successful Response",
-          "schema": null
         }
       ],
       "error_envelope_schemas": [
@@ -3624,39 +4819,6 @@
       ]
     },
     {
-      "route_id": "POST /v1/models",
-      "backend_route_files": [],
-      "openapi_path": "/v1/models",
-      "method": "POST",
-      "operation_id": "api_register_model_v1_models_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/Body_api_register_model_v1_models_post"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "201",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/ModelVersionResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/test/mocks/handlers.ts",
-        "apps/web/src/pages/MyModels.test.tsx"
-      ]
-    },
-    {
       "route_id": "GET /v1/models",
       "backend_route_files": [],
       "openapi_path": "/v1/models",
@@ -3697,6 +4859,39 @@
       ],
       "sse_event_channels": [],
       "frontend_consumers": [
+        "apps/web/src/pages/MyModels.test.tsx"
+      ]
+    },
+    {
+      "route_id": "POST /v1/models",
+      "backend_route_files": [],
+      "openapi_path": "/v1/models",
+      "method": "POST",
+      "operation_id": "api_register_model_v1_models_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/Body_api_register_model_v1_models_post"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "201",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/ModelVersionResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/pages/MyModels.test.tsx"
       ]
     },
@@ -3956,11 +5151,11 @@
       ]
     },
     {
-      "route_id": "GET /v1/narratives/{narrative_id}",
+      "route_id": "DELETE /v1/narratives/{narrative_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/narratives/{narrative_id}",
-      "method": "GET",
-      "operation_id": "get_narrative_v1_narratives__narrative_id__get",
+      "method": "DELETE",
+      "operation_id": "delete_narrative_v1_narratives__narrative_id__delete",
       "request_schema": null,
       "success_response_schemas": [
         {
@@ -3982,11 +5177,11 @@
       "frontend_consumers": []
     },
     {
-      "route_id": "DELETE /v1/narratives/{narrative_id}",
+      "route_id": "GET /v1/narratives/{narrative_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/narratives/{narrative_id}",
-      "method": "DELETE",
-      "operation_id": "delete_narrative_v1_narratives__narrative_id__delete",
+      "method": "GET",
+      "operation_id": "get_narrative_v1_narratives__narrative_id__get",
       "request_schema": null,
       "success_response_schemas": [
         {
@@ -4476,20 +5671,22 @@
       ]
     },
     {
-      "route_id": "POST /v1/tenants",
+      "route_id": "GET /v1/tenants",
       "backend_route_files": [],
       "openapi_path": "/v1/tenants",
-      "method": "POST",
-      "operation_id": "api_create_tenant_v1_tenants_post",
-      "request_schema": {
-        "$ref": "#/components/schemas/Body_api_create_tenant_v1_tenants_post"
-      },
+      "method": "GET",
+      "operation_id": "api_list_tenants_v1_tenants_get",
+      "request_schema": null,
       "success_response_schemas": [
         {
-          "status_code": "201",
+          "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "$ref": "#/components/schemas/TenantModel"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantModel"
+            },
+            "title": "Response Api List Tenants V1 Tenants Get"
           }
         }
       ],
@@ -4512,32 +5709,20 @@
       ]
     },
     {
-      "route_id": "GET /v1/tenants",
+      "route_id": "POST /v1/tenants",
       "backend_route_files": [],
       "openapi_path": "/v1/tenants",
-      "method": "GET",
-      "operation_id": "api_list_tenants_v1_tenants_get",
+      "method": "POST",
+      "operation_id": "api_create_tenant_v1_tenants_post",
       "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
+        "$ref": "#/components/schemas/TenantCreateRequest"
       },
       "success_response_schemas": [
         {
-          "status_code": "200",
+          "status_code": "201",
           "description": "Successful Response",
           "schema": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TenantModel"
-            },
-            "title": "Response Api List Tenants V1 Tenants Get"
+            "$ref": "#/components/schemas/TenantModel"
           }
         }
       ],
@@ -4738,22 +5923,44 @@
       "frontend_consumers": []
     },
     {
+      "route_id": "DELETE /v1/tenants/{tenant_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/tenants/{tenant_id}",
+      "method": "DELETE",
+      "operation_id": "api_delete_tenant_v1_tenants__tenant_id__delete",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "204",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/IngestionJobs.test.tsx",
+        "apps/web/src/pages/intelligence/HypothesesTab.tsx",
+        "apps/web/src/pages/admin/AdminPages.test.tsx",
+        "apps/web/src/pages/admin/VariableRegistry.tsx",
+        "apps/web/src/pages/Signup.tsx"
+      ]
+    },
+    {
       "route_id": "GET /v1/tenants/{tenant_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/tenants/{tenant_id}",
       "method": "GET",
       "operation_id": "api_get_tenant_v1_tenants__tenant_id__get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -4790,7 +5997,7 @@
       "method": "PATCH",
       "operation_id": "api_update_tenant_v1_tenants__tenant_id__patch",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_update_tenant_v1_tenants__tenant_id__patch"
+        "$ref": "#/components/schemas/TenantUpdateRequest"
       },
       "success_response_schemas": [
         {
@@ -4822,55 +6029,21 @@
       ]
     },
     {
-      "route_id": "DELETE /v1/tenants/{tenant_id}",
-      "backend_route_files": [],
-      "openapi_path": "/v1/tenants/{tenant_id}",
-      "method": "DELETE",
-      "operation_id": "api_delete_tenant_v1_tenants__tenant_id__delete",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "204",
-          "description": "Successful Response",
-          "schema": null
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/IngestionJobs.test.tsx",
-        "apps/web/src/pages/intelligence/HypothesesTab.tsx",
-        "apps/web/src/pages/admin/AdminPages.test.tsx",
-        "apps/web/src/pages/admin/VariableRegistry.tsx",
-        "apps/web/src/pages/Signup.tsx"
-      ]
-    },
-    {
       "route_id": "POST /v1/tenants/{tenant_id}/activate",
       "backend_route_files": [],
       "openapi_path": "/v1/tenants/{tenant_id}/activate",
       "method": "POST",
       "operation_id": "api_activate_tenant_v1_tenants__tenant_id__activate_post",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_activate_tenant_v1_tenants__tenant_id__activate_post"
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/StatusChangeRequest"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Body"
       },
       "success_response_schemas": [
         {
@@ -4906,17 +6079,7 @@
       "openapi_path": "/v1/tenants/{tenant_id}/audit-log",
       "method": "GET",
       "operation_id": "get_tenant_audit_log_v1_tenants__tenant_id__audit_log_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -4946,17 +6109,7 @@
       "openapi_path": "/v1/tenants/{tenant_id}/provisioning/retry",
       "method": "POST",
       "operation_id": "retry_provisioning_v1_tenants__tenant_id__provisioning_retry_post",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5030,6 +6183,11 @@
       ],
       "error_envelope_schemas": [
         {
+          "status_code": "401",
+          "description": "Invalid webhook signature or expired timestamp",
+          "schema": {}
+        },
+        {
           "status_code": "422",
           "description": "Validation Error",
           "schema": {
@@ -5049,17 +6207,7 @@
       "openapi_path": "/v1/tenants/{tenant_id}/settings",
       "method": "GET",
       "operation_id": "get_tenant_settings_v1_tenants__tenant_id__settings_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5092,7 +6240,7 @@
       "method": "PATCH",
       "operation_id": "update_tenant_settings_v1_tenants__tenant_id__settings_patch",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch"
+        "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"
       },
       "success_response_schemas": [
         {
@@ -5126,7 +6274,15 @@
       "method": "POST",
       "operation_id": "api_change_tenant_status_v1_tenants__tenant_id__status_post",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_change_tenant_status_v1_tenants__tenant_id__status_post"
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/StatusChangeRequest"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Body"
       },
       "success_response_schemas": [
         {
@@ -5158,7 +6314,15 @@
       "method": "POST",
       "operation_id": "api_suspend_tenant_v1_tenants__tenant_id__suspend_post",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_suspend_tenant_v1_tenants__tenant_id__suspend_post"
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/StatusChangeRequest"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Body"
       },
       "success_response_schemas": [
         {
@@ -5191,17 +6355,7 @@
       "openapi_path": "/v1/tenants/{tenant_id}/usage",
       "method": "GET",
       "operation_id": "get_tenant_usage_v1_tenants__tenant_id__usage_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5235,17 +6389,7 @@
       "openapi_path": "/v1/tenants/{tenant_id}/users",
       "method": "GET",
       "operation_id": "list_tenant_users_v1_tenants__tenant_id__users_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5482,17 +6626,7 @@
       "openapi_path": "/v1/users",
       "method": "GET",
       "operation_id": "api_list_users_v1_users_get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5525,13 +6659,43 @@
       ]
     },
     {
+      "route_id": "POST /v1/users/accept-invite",
+      "backend_route_files": [],
+      "openapi_path": "/v1/users/accept-invite",
+      "method": "POST",
+      "operation_id": "api_accept_invite_v1_users_accept_invite_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/UserAcceptInviteRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/UserModel"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
       "route_id": "POST /v1/users/invite",
       "backend_route_files": [],
       "openapi_path": "/v1/users/invite",
       "method": "POST",
       "operation_id": "api_invite_user_v1_users_invite_post",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_invite_user_v1_users_invite_post"
+        "$ref": "#/components/schemas/UserInviteRequest"
       },
       "success_response_schemas": [
         {
@@ -5557,22 +6721,92 @@
       ]
     },
     {
+      "route_id": "GET /v1/users/me",
+      "backend_route_files": [],
+      "openapi_path": "/v1/users/me",
+      "method": "GET",
+      "operation_id": "api_get_current_user_v1_users_me_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/UserModel"
+          }
+        }
+      ],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "PATCH /v1/users/me",
+      "backend_route_files": [],
+      "openapi_path": "/v1/users/me",
+      "method": "PATCH",
+      "operation_id": "api_update_current_user_v1_users_me_patch",
+      "request_schema": {
+        "$ref": "#/components/schemas/UserUpdateRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/UserModel"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "DELETE /v1/users/{user_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/users/{user_id}",
+      "method": "DELETE",
+      "operation_id": "api_deactivate_user_v1_users__user_id__delete",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "204",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/test/mocks/handlers.ts",
+        "apps/web/src/services/authClient.ts",
+        "apps/web/src/services/authClient.test.ts"
+      ]
+    },
+    {
       "route_id": "GET /v1/users/{user_id}",
       "backend_route_files": [],
       "openapi_path": "/v1/users/{user_id}",
       "method": "GET",
       "operation_id": "api_get_user_v1_users__user_id__get",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
+      "request_schema": null,
       "success_response_schemas": [
         {
           "status_code": "200",
@@ -5606,7 +6840,7 @@
       "method": "PATCH",
       "operation_id": "api_update_user_v1_users__user_id__patch",
       "request_schema": {
-        "$ref": "#/components/schemas/Body_api_update_user_v1_users__user_id__patch"
+        "$ref": "#/components/schemas/UserUpdateRequest"
       },
       "success_response_schemas": [
         {
@@ -5630,46 +6864,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/Signup.tsx",
         "apps/web/src/contexts/AuthContext.tsx",
-        "apps/web/src/services/authClient.ts",
-        "apps/web/src/services/authClient.test.ts"
-      ]
-    },
-    {
-      "route_id": "DELETE /v1/users/{user_id}",
-      "backend_route_files": [],
-      "openapi_path": "/v1/users/{user_id}",
-      "method": "DELETE",
-      "operation_id": "api_deactivate_user_v1_users__user_id__delete",
-      "request_schema": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/RequestContext"
-          },
-          {
-            "type": "null"
-          }
-        ],
-        "title": "Context"
-      },
-      "success_response_schemas": [
-        {
-          "status_code": "204",
-          "description": "Successful Response",
-          "schema": null
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/services/authClient.ts",
         "apps/web/src/services/authClient.test.ts"
       ]
@@ -5824,6 +7018,11 @@
       ],
       "error_envelope_schemas": [
         {
+          "status_code": "401",
+          "description": "Invalid webhook credentials or signature",
+          "schema": {}
+        },
+        {
           "status_code": "422",
           "description": "Validation Error",
           "schema": {
@@ -5860,6 +7059,11 @@
       ],
       "error_envelope_schemas": [
         {
+          "status_code": "401",
+          "description": "Invalid webhook credentials or signature",
+          "schema": {}
+        },
+        {
           "status_code": "422",
           "description": "Validation Error",
           "schema": {
@@ -5871,6 +7075,38 @@
       "frontend_consumers": [
         "apps/web/src/pages/Integrations.tsx",
         "apps/web/src/lib/schemas/integrations.test.ts"
+      ]
+    },
+    {
+      "route_id": "GET /v1/workflows",
+      "backend_route_files": [],
+      "openapi_path": "/v1/workflows",
+      "method": "GET",
+      "operation_id": "list_workflows_v1_workflows_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/WorkflowListResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/AgentWorkflows.test.tsx",
+        "apps/web/src/pages/ValuePacks.tsx",
+        "apps/web/src/test/mocks/handlers.ts"
       ]
     },
     {
@@ -5904,38 +7140,6 @@
       "frontend_consumers": [
         "apps/web/src/pages/AgentWorkflows.test.tsx",
         "apps/web/src/pages/AgentWorkflows.tsx"
-      ]
-    },
-    {
-      "route_id": "GET /v1/workflows",
-      "backend_route_files": [],
-      "openapi_path": "/v1/workflows",
-      "method": "GET",
-      "operation_id": "list_workflows_v1_workflows_get",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "$ref": "#/components/schemas/WorkflowListResponse"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/AgentWorkflows.test.tsx",
-        "apps/web/src/pages/ValuePacks.tsx",
-        "apps/web/src/test/mocks/handlers.ts"
       ]
     },
     {
@@ -5982,9 +7186,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Response List Available Workflows V1 Workflows Types Get"
+            "$ref": "#/components/schemas/AvailableWorkflowsResponse"
           }
         }
       ],
@@ -5996,6 +7198,40 @@
         "apps/web/src/pages/AgentWorkflows.tsx",
         "apps/web/src/pages/formulaBuilderLogic.ts",
         "apps/web/src/pages/ValueTreeExplorer.tsx"
+      ]
+    },
+    {
+      "route_id": "DELETE /v1/workflows/{workflow_id}",
+      "backend_route_files": [],
+      "openapi_path": "/v1/workflows/{workflow_id}",
+      "method": "DELETE",
+      "operation_id": "cancel_workflow_v1_workflows__workflow_id__delete",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/WorkflowCancelResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/pages/BusinessCaseList.tsx",
+        "apps/web/src/test/mocks/handlers.ts",
+        "apps/web/src/agui/AgentEventClient.ts",
+        "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
+        "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
       ]
     },
     {
@@ -6027,42 +7263,6 @@
       "frontend_consumers": [
         "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/pages/BusinessCaseList.tsx",
-        "apps/web/src/agui/AgentEventClient.ts",
-        "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
-        "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
-      ]
-    },
-    {
-      "route_id": "DELETE /v1/workflows/{workflow_id}",
-      "backend_route_files": [],
-      "openapi_path": "/v1/workflows/{workflow_id}",
-      "method": "DELETE",
-      "operation_id": "cancel_workflow_v1_workflows__workflow_id__delete",
-      "request_schema": null,
-      "success_response_schemas": [
-        {
-          "status_code": "200",
-          "description": "Successful Response",
-          "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Cancel Workflow V1 Workflows  Workflow Id  Delete"
-          }
-        }
-      ],
-      "error_envelope_schemas": [
-        {
-          "status_code": "422",
-          "description": "Validation Error",
-          "schema": {
-            "$ref": "#/components/schemas/HTTPValidationError"
-          }
-        }
-      ],
-      "sse_event_channels": [],
-      "frontend_consumers": [
-        "apps/web/src/pages/BusinessCaseList.tsx",
-        "apps/web/src/test/mocks/handlers.ts",
         "apps/web/src/agui/AgentEventClient.ts",
         "apps/web/src/value-pilot/pages/ProspectSetup.test.tsx",
         "apps/web/src/value-pilot/pages/ProspectSetup.tsx"
@@ -6112,11 +7312,21 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "$ref": "#/components/schemas/CheckpointListResponse"
+            "$ref": "#/components/schemas/layer4_agents__api__routes__checkpoints__CheckpointListResponse"
           }
         }
       ],
       "error_envelope_schemas": [
+        {
+          "status_code": "403",
+          "description": "Workflow out of tenant scope",
+          "schema": {}
+        },
+        {
+          "status_code": "404",
+          "description": "Workflow not found",
+          "schema": {}
+        },
         {
           "status_code": "422",
           "description": "Validation Error",
@@ -6149,6 +7359,16 @@
         }
       ],
       "error_envelope_schemas": [
+        {
+          "status_code": "403",
+          "description": "Workflow out of tenant scope",
+          "schema": {}
+        },
+        {
+          "status_code": "404",
+          "description": "Workflow/checkpoint not found",
+          "schema": {}
+        },
         {
           "status_code": "422",
           "description": "Validation Error",
@@ -6183,6 +7403,16 @@
         }
       ],
       "error_envelope_schemas": [
+        {
+          "status_code": "403",
+          "description": "Workflow out of tenant scope",
+          "schema": {}
+        },
+        {
+          "status_code": "404",
+          "description": "Workflow/checkpoint not found",
+          "schema": {}
+        },
         {
           "status_code": "422",
           "description": "Validation Error",
@@ -6279,9 +7509,7 @@
           "status_code": "200",
           "description": "Successful Response",
           "schema": {
-            "type": "object",
-            "additionalProperties": true,
-            "title": "Response Get Workflow Result V1 Workflows  Workflow Id  Result Get"
+            "$ref": "#/components/schemas/WorkflowResultResponse"
           }
         }
       ],
@@ -6353,6 +7581,16 @@
         }
       ],
       "error_envelope_schemas": [
+        {
+          "status_code": "403",
+          "description": "Workflow out of tenant scope",
+          "schema": {}
+        },
+        {
+          "status_code": "404",
+          "description": "Workflow/checkpoint not found",
+          "schema": {}
+        },
         {
           "status_code": "422",
           "description": "Validation Error",
@@ -6560,6 +7798,204 @@
         "apps/web/src/pages/admin/PlatformSettings.tsx",
         "apps/web/src/pages/drivers/DriverTreePage.test.tsx"
       ]
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/dashboard/audit-log",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/dashboard/audit-log",
+      "method": "GET",
+      "operation_id": "get_tenant_audit_log_v1__tenant_id__dashboard_audit_log_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_tenant_audit_logResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/dashboard/daily-usage",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/dashboard/daily-usage",
+      "method": "GET",
+      "operation_id": "get_daily_usage_v1__tenant_id__dashboard_daily_usage_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_daily_usageResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/dashboard/tier-usage",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/dashboard/tier-usage",
+      "method": "GET",
+      "operation_id": "get_tier_usage_v1__tenant_id__dashboard_tier_usage_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_tier_usageResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/dashboard/top-endpoints",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/dashboard/top-endpoints",
+      "method": "GET",
+      "operation_id": "get_top_endpoints_v1__tenant_id__dashboard_top_endpoints_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_top_endpointsResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/dashboard/usage",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/dashboard/usage",
+      "method": "GET",
+      "operation_id": "get_tenant_usage_v1__tenant_id__dashboard_usage_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_tenant_usageResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/{tenant_id}/settings",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/settings",
+      "method": "GET",
+      "operation_id": "get_tenant_settings_v1__tenant_id__settings_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_tenant_settingsResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "PATCH /v1/{tenant_id}/settings",
+      "backend_route_files": [],
+      "openapi_path": "/v1/{tenant_id}/settings",
+      "method": "PATCH",
+      "operation_id": "update_tenant_settings_v1__tenant_id__settings_patch",
+      "request_schema": {
+        "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/get_tenant_settingsResult"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
     }
   ]
 }

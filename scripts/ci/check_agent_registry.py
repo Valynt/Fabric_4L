@@ -32,11 +32,11 @@ from typing import Any, Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_ROOT = REPO_ROOT / "contracts" / "agent-registry"
 TOOL_MANIFEST_ROOT = REPO_ROOT / "contracts" / "tool-manifests"
-AGENT_TAXONOMY_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "agents" / "taxonomy.py"
-WORKFLOW_CONFIG_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "models" / "workflow_config.py"
-MODEL_REGISTRY_SERVICE_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "registry" / "service.py"
-MODEL_REGISTRY_ROUTES_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "registry" / "api" / "routes.py"
-L4_SETTINGS_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "config" / "settings.py"
+AGENT_TAXONOMY_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "agents" / "taxonomy.py"
+WORKFLOW_CONFIG_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "models" / "workflow_config.py"
+MODEL_REGISTRY_SERVICE_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "registry" / "service.py"
+MODEL_REGISTRY_ROUTES_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "registry" / "api" / "routes.py"
+L4_SETTINGS_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "config" / "settings.py"
 ALLOWED_MODEL_STAGES = {"dev", "staging", "production", "deprecated"}
 
 BASE_REQUIRED_FIELDS = {
