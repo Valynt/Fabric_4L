@@ -10,6 +10,7 @@ import pytest
 from layer1_ingestion.orchestrator.connector_resolution import (
     ConnectorKind,
     ConnectorResolution,
+    ConnectorResolutionError,
     CustodyMode,
     FetchStrategy,
     normalize_custody_mode,
@@ -156,8 +157,10 @@ def test_resolve_connector_for_audio_fails_without_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.AUDIO, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri=None, meta={})
 
-    with pytest.raises(Exception):
+    with pytest.raises(ConnectorResolutionError) as exc_info:
         resolve_connector_for_source(source, source_version)
+    assert exc_info.value.code == "UNSUPPORTED_CONNECTOR_CONFIG"
+    assert "metadata.storage_ref" in exc_info.value.message
 
 
 def test_resolve_connector_for_audio_fails_with_only_raw_storage_uri() -> None:
@@ -165,16 +168,20 @@ def test_resolve_connector_for_audio_fails_with_only_raw_storage_uri() -> None:
     source = SimpleNamespace(source_type=SourceType.AUDIO, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri="raw://s3/audio/recording.mp3", meta={})
 
-    with pytest.raises(Exception):
+    with pytest.raises(ConnectorResolutionError) as exc_info:
         resolve_connector_for_source(source, source_version)
+    assert exc_info.value.code == "UNSUPPORTED_CONNECTOR_CONFIG"
+    assert "metadata.storage_ref" in exc_info.value.message
 
 
 def test_resolve_connector_for_meeting_fails_without_storage_ref() -> None:
     source = SimpleNamespace(source_type=SourceType.MEETING, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri=None, meta={})
 
-    with pytest.raises(Exception):
+    with pytest.raises(ConnectorResolutionError) as exc_info:
         resolve_connector_for_source(source, source_version)
+    assert exc_info.value.code == "UNSUPPORTED_CONNECTOR_CONFIG"
+    assert "metadata.storage_ref" in exc_info.value.message
 
 
 def test_resolve_connector_for_meeting_fails_with_only_raw_storage_uri() -> None:
@@ -182,8 +189,10 @@ def test_resolve_connector_for_meeting_fails_with_only_raw_storage_uri() -> None
     source = SimpleNamespace(source_type=SourceType.MEETING, custody_mode="B", meta={})
     source_version = SimpleNamespace(raw_storage_uri="raw://s3/meetings/recording.mp4", meta={})
 
-    with pytest.raises(Exception):
+    with pytest.raises(ConnectorResolutionError) as exc_info:
         resolve_connector_for_source(source, source_version)
+    assert exc_info.value.code == "UNSUPPORTED_CONNECTOR_CONFIG"
+    assert "metadata.storage_ref" in exc_info.value.message
 
 
 def test_resolve_connector_for_crm_uses_source_external_reference() -> None:

@@ -155,8 +155,9 @@ function checkWorkflowFile(filePath) {
     const rawLine = lines[idx];
     const dedented = rawLine.replace(/^[ \t]+/, '');
 
-    // Heuristic step boundary: a top-level `- name:` resets context.
-    if (/^-\s+name:/.test(dedented)) {
+    // Heuristic step boundary: a top-level `- name:`, `- uses:`, or `- run:`
+    // indicates a new step and resets exception context.
+    if (/^-\s+(?:name|uses|run):/.test(dedented)) {
       currentStepHasException = false;
     }
     if (lineHasGlobalExceptionMarker(rawLine)) {

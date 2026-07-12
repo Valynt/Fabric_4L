@@ -246,11 +246,16 @@ def resolve_connector_for_source(
     source_type = _normalize_source_type(getattr(source, "source_type", None))
     metadata = _merge_metadata(source, source_version)
 
-    custody_mode = CustodyMode(
-        normalize_custody_mode(
-            getattr(source, "custody_mode", CustodyMode.REFERENCE_EXTRACT.value)
-        )
+    normalized_custody_mode = normalize_custody_mode(
+        getattr(source, "custody_mode", CustodyMode.REFERENCE_EXTRACT.value)
     )
+    try:
+        custody_mode = CustodyMode(normalized_custody_mode)
+    except (TypeError, ValueError) as exc:
+        raise ConnectorResolutionError(
+            "UNSUPPORTED_CUSTODY_MODE",
+            f"Unsupported custody mode '{normalized_custody_mode}'.",
+        ) from exc
 
     customer_hosted = _as_bool(metadata.get("customer_hosted", False)) or (
         custody_mode == CustodyMode.CUSTOMER_HOSTED
