@@ -72,16 +72,19 @@ def generate_diff_report(current: Scorecard, previous: Scorecard) -> str:
 
     prev_by_area = {a.area.value: a for a in previous.area_scores}
     for area in current.area_scores:
+        area_name = _escape_md_table_cell(area.area.value)
         prev = prev_by_area.get(area.area.value)
         if prev:
             delta = area.score - prev.score
+            prev_grade = _escape_md_table_cell(prev.grade or "")
+            grade = _escape_md_table_cell(area.grade or "")
             lines.append(
-                f"| {area.area.value} | {prev.score} ({prev.grade}) | "
-                f"{area.score} ({area.grade}) | {_format_delta(delta)} |"
+                f"| {area_name} | {prev.score} ({prev_grade}) | "
+                f"{area.score} ({grade}) | {_format_delta(delta)} |"
             )
         else:
             lines.append(
-                f"| {area.area.value} | — | {area.score} ({area.grade}) | new |"
+                f"| {area_name} | — | {area.score} ({area.grade}) | new |"
             )
 
     lines.extend(["", "## New Findings", ""])
@@ -176,9 +179,13 @@ def generate_scorecard_table(scorecard: Scorecard) -> str:
         "|------|--------|-------|-------|------------|------------|----------|",
     ]
     for area in scorecard.area_scores:
+        area_name = _escape_md_table_cell(area.area.value)
+        grade = _escape_md_table_cell(area.grade or "")
+        confidence = _escape_md_table_cell(area.confidence.value)
+        trend_risk = _escape_md_table_cell(area.trend_risk or "")
         lines.append(
-            f"| {area.area.value} | {area.weight:.0%} | {area.score} | "
-            f"{area.grade} | {area.confidence.value} | {area.trend_risk} | "
+            f"| {area_name} | {area.weight:.0%} | {area.score} | "
+            f"{grade} | {confidence} | {trend_risk} | "
             f"{area.findings_count} |"
         )
     lines.extend([
@@ -200,17 +207,21 @@ def generate_findings_register(findings: Sequence[Finding]) -> str:
     for finding in sorted(findings, key=lambda f: (f.severity.value, f.id)):
         evidence = _escape_md_table_cell(finding.evidence)
         owner = _escape_md_table_cell(finding.owner)
+        area = _escape_md_table_cell(finding.area.value)
+        status = _escape_md_table_cell(finding.status.value)
+        finding_id = _escape_md_table_cell(finding.id)
+        severity = _escape_md_table_cell(finding.severity.value)
+        effort = _escape_md_table_cell(finding.effort)
         lines.append(
-            f"| {finding.id} | {finding.severity.value} | {finding.area.value} | "
-            f"{finding.status.value} | {finding.effort} | {owner} | "
+            f"| {finding_id} | {severity} | {area} | {status} | {effort} | {owner} | "
             f"`{evidence}` |"
         )
     return "\n".join(lines)
 
 
 def _escape_md_table_cell(value: str) -> str:
-    """Escape pipe characters inside a Markdown table cell."""
-    return value.replace("|", "\\|")
+    """Escape pipe and newline characters inside a Markdown table cell."""
+    return value.replace("|", "\\|").replace("\r", "").replace("\n", " ")
 
 
 def generate_governance_gap_matrix(scorecard: Scorecard) -> str:
@@ -223,8 +234,11 @@ def generate_governance_gap_matrix(scorecard: Scorecard) -> str:
     ]
     for area in scorecard.area_scores:
         risk = _risk_level(area.score)
+        area_name = _escape_md_table_cell(area.area.value)
+        grade = _escape_md_table_cell(area.grade or "")
+        diagnosis = _escape_md_table_cell(area.diagnosis or "")
         lines.append(
-            f"| {area.area.value} | {area.grade} | {risk} | {area.diagnosis} |"
+            f"| {area_name} | {grade} | {risk} | {diagnosis} |"
         )
     return "\n".join(lines)
 
@@ -310,8 +324,10 @@ def generate_sprint_roadmap(sprints: Sequence[Sprint]) -> str:
         "|--------|-------|--------|----------|------------------|",
     ]
     for sprint in sorted(sprints, key=lambda s: s.id):
+        theme = _escape_md_table_cell(sprint.theme)
+        status = _escape_md_table_cell(sprint.status.value)
         lines.append(
-            f"| {sprint.id} | {sprint.theme} | {sprint.status.value} | "
+            f"| {sprint.id} | {theme} | {status} | "
             f"{len(sprint.findings_targeted)} | +{sprint.score_impact_projected} pts |"
         )
     total_impact = sum(s.score_impact_projected for s in sprints)
@@ -363,7 +379,8 @@ def generate_projected_scorecard(
     for area in scorecard.area_scores:
         share = (area.weight / total_weight) * total_projected_impact
         projected = min(100, round(area.score + share))
-        lines.append(f"| {area.area.value} | {area.score} ({area.grade}) | {projected} |")
+        area_name = _escape_md_table_cell(area.area.value)
+        lines.append(f"| {area_name} | {area.score} ({area.grade}) | {projected} |")
 
     return "\n".join(lines)
 

@@ -235,6 +235,62 @@ def test_diff_report_handles_no_changes() -> None:
 
 
 @pytest.mark.unit
+def test_findings_register_escapes_pipes_and_newlines_in_cells() -> None:
+    """Pipe and newline characters inside table cells must not break table structure."""
+    finding = Finding(
+        id="COR-PIPE",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        area="C: Correctness, Data Integrity, Contracts",
+        evidence="src/a.py:1|src/b.py:2",
+        observed_fact="Value contains a pipe\nand a newline",
+        inference_risk="Table breaks",
+        business_impact="Low",
+        recommended_fix="Escape it",
+        effort="XS",
+        risk_of_change="Low",
+        owner="team|platform",
+        analyzer_type="code",
+    )
+    report = generate_findings_register([finding])
+    assert "src/a.py:1\\|src/b.py:2" in report
+    assert "team\\|platform" in report
+    row = [line for line in report.splitlines() if line.startswith("| COR-PIPE")][0]
+    # The escaped pipes and collapsed newline should keep the row to 8 separators.
+    unescaped_pipes = row.replace("\\|", "").count("|")
+    assert unescaped_pipes == 8
+    assert "\n" not in row
+
+
+@pytest.mark.unit
+def test_governance_gap_matrix_escapes_pipes_in_cells() -> None:
+    """Diagnosis cells containing pipes must be escaped."""
+    finding = Finding(
+        id="GOV-001",
+        severity=Severity.MEDIUM,
+        confidence=Confidence.MEDIUM,
+        area="G: Reliability, Observability, Operations",
+        evidence="policy.md",
+        observed_fact="Missing policy",
+        inference_risk="Compliance gap",
+        business_impact="Medium",
+        recommended_fix="Add policy",
+        effort="S",
+        risk_of_change="Low",
+        owner="governance-team",
+        analyzer_type="doc",
+    )
+    scorecard = build_scorecard(repo_name="owner/repo", findings=[finding])
+    # Inject a pipe into an area diagnosis to exercise cell escaping.
+    scorecard.area_scores[0].diagnosis = "Needs work | urgent"
+    report = generate_full_report(scorecard, [])
+    assert "Needs work \\| urgent" in report
+    row = [line for line in report.splitlines() if "Needs work" in line][0]
+    unescaped_pipes = row.replace("\\|", "").count("|")
+    assert unescaped_pipes == 5
+
+
+@pytest.mark.unit
 def test_findings_register_escapes_pipes_in_cells() -> None:
     """Pipe characters inside table cells must be escaped so Markdown renders correctly."""
     finding = Finding(

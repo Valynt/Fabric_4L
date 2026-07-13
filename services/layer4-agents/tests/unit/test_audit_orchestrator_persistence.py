@@ -404,10 +404,14 @@ async def test_scorecard_round_trip_preserves_all_fields(
 ) -> None:
     """Assert every Scorecard and AreaScore field survives a DB round trip."""
     await db_manager.save_run(sample_run)
+    sample_scorecard.executive_summary = (
+        "Test executive summary with a pipe | and a newline."
+    )
     await db_manager.save_scorecard(sample_run.id, sample_scorecard)
 
     loaded = await db_manager.get_latest_scorecard(sample_scorecard.repo_name)
     assert loaded is not None
+    assert loaded.executive_summary == sample_scorecard.executive_summary
     assert loaded.branch == sample_scorecard.branch
     assert loaded.commit_sha == sample_scorecard.commit_sha
     assert loaded.version == sample_scorecard.version

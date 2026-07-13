@@ -209,6 +209,7 @@ if _SQLALCHEMY_AVAILABLE:
         overall_grade: Mapped[str] = mapped_column(String(5), nullable=False)
         confidence: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
         trend: Mapped[str | None] = mapped_column(String(50), nullable=True)
+        executive_summary: Mapped[str | None] = mapped_column(nullable=True)
         total_files: Mapped[int] = mapped_column(default=0)
         total_directories: Mapped[int] = mapped_column(default=0)
         total_commits: Mapped[int] = mapped_column(default=0)
@@ -664,6 +665,7 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
         total_commits=scorecard.total_commits,
         total_contributors=scorecard.total_contributors,
         audit_timestamp=scorecard.audit_timestamp,
+        executive_summary=scorecard.executive_summary,
     )
     db_scorecard.area_scores = [
         _area_score_to_db(a, scorecard.id) for a in scorecard.area_scores
@@ -694,6 +696,7 @@ def _scorecard_from_db(
         total_contributors=row.total_contributors or 0,
         audit_timestamp=row.audit_timestamp,
         findings=list(findings),
+        executive_summary=row.executive_summary,
     )
 
 
@@ -804,10 +807,10 @@ class PersistenceManager:
         if self._session_factory is None:
             raise RuntimeError("No database session factory configured")
         session = self._session_factory()
+        session.info["tenant_context_state"] = "set"
+        session.info["tenant_context_value"] = "audit"
         try:
             yield session
-            session.info["tenant_context_state"] = "set"
-            session.info["tenant_context_value"] = "audit"
             await session.commit()
         except asyncio.CancelledError:
             raise
@@ -1045,6 +1048,7 @@ class PersistenceManager:
                 existing.total_commits = scorecard.total_commits
                 existing.total_contributors = scorecard.total_contributors
                 existing.audit_timestamp = scorecard.audit_timestamp
+                existing.executive_summary = scorecard.executive_summary
                 await session.execute(
                     delete(AreaScoreDB).where(AreaScoreDB.scorecard_id == scorecard.id)
                 )
