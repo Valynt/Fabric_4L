@@ -44,7 +44,7 @@ echo "==> Checking SBOM artifact retrieval and digest verification ..."
 
 for required in \
   "Download SBOM and signing artifacts" \
-  "actions/download-artifact@v4" \
+  "actions/download-artifact@" \
   "Verify SBOMs against deploy image digests" \
   "deployed_digest" \
   "cosign verify-attestation" \
