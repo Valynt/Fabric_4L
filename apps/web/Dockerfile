@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625 AS builder
+FROM node@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b AS builder
 WORKDIR /app
 
 # Canonical public API route prefixes for production builds. These match
@@ -25,7 +25,9 @@ ENV VITE_L5_PREFIX=${VITE_L5_PREFIX}
 ENV VITE_L6_PREFIX=${VITE_L6_PREFIX}
 ENV VITE_L7_PREFIX=${VITE_L7_PREFIX}
 
-RUN corepack enable
+# Install pnpm directly instead of corepack to avoid signature-key rotation
+# issues that periodically break `corepack enable` in pinned base images.
+RUN npm install -g pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -39,14 +41,14 @@ RUN pnpm install --frozen-lockfile
 # Build only the web app using workspace filter
 RUN pnpm --filter ./apps/web build
 
-FROM node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625 AS runtime
+FROM node@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# corepack enable requires root to create symlinks in /usr/local/bin
-RUN corepack enable
+# Install pnpm directly instead of corepack to avoid signature-key rotation issues.
+RUN npm install -g pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -58,7 +60,7 @@ COPY packages/config/package.json ./packages/config/
 RUN pnpm install --frozen-lockfile --prod
 
 # Security: Run as non-root user (node is built-in to node:alpine images)
-# Set USER after all root-requiring operations (corepack, pnpm install)
+# Set USER after all root-requiring operations (pnpm install)
 USER node
 
 COPY --from=builder /app/dist ./dist

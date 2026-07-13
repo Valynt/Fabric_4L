@@ -1,4 +1,4 @@
-# ADR-030: Tool Invocation Boundary Contract Ratification
+# ADR-033: Tool Invocation Boundary Contract Ratification
 
 ## Status: ACCEPTED
 

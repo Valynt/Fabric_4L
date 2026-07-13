@@ -217,7 +217,7 @@ jobs:
           mkdir -p artifacts/critical-gates
           echo "Executing gate ${{ matrix.gate.id }} for ${{ matrix.gate.service }}"
           set +e
-          bash -lc '${{ matrix.gate.command }}' | tee "artifacts/critical-gates/${{ matrix.gate.id }}.log"
+          bash -lc "$GATE_COMMAND" | tee "artifacts/critical-gates/${{ matrix.gate.id }}.log"
           status=${PIPESTATUS[0]}
           set -e
           export GATE_STATUS="$status"
