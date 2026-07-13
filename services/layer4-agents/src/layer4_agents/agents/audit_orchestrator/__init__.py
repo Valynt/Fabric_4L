@@ -30,6 +30,12 @@ from .config import (
     ENV_PREFIX,
     ConfigManager,
 )
+from .graph import (
+    AuditState,
+    create_audit_graph,
+    run_audit,
+    run_audit_async,
+)
 from .models import (
     DEFAULT_AREA_WEIGHTS,
     DEFAULT_AREAS_ENABLED,
@@ -98,6 +104,11 @@ __all__ = [
     "ConfigManager",
     "ENV_PREFIX",
     "DEFAULT_YAML_PATH",
+    # Graph
+    "AuditState",
+    "create_audit_graph",
+    "run_audit",
+    "run_audit_async",
     # Scoring
     "GRADE_THRESHOLDS",
     "score_to_grade",

@@ -1,0 +1,9 @@
+Analyze the git history and repository structure for the following repository. Focus on:
+
+- File and directory counts by language/extension.
+- Commit frequency, recency, and contributor distribution.
+- Oversized modules (Python > 1400 lines, JS/TS > 800 lines).
+- Duplicate files detected by content hash.
+- .gitignore completeness and branch/tag structure.
+
+Return findings as structured evidence with file paths, severity, confidence, audit area (prefer Architecture A), effort to fix, and a recommended owner. Keep findings factual and concise.

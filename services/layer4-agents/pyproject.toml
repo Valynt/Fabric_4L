@@ -33,6 +33,7 @@ dependencies = [
     "python-multipart>=0.0.31",
     "structlog>=24.4.0",
     "prometheus-client>=0.19.0",
+    "PyYAML>=6.0.0",
     "sentry-sdk>=2.0.0",
     "weasyprint>=69.0",
     "python-docx>=1.1.0",
