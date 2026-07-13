@@ -31,7 +31,9 @@ RUN npm install -g pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY scripts/enforce-package-manager.cjs ./scripts/enforce-package-manager.cjs
 COPY apps/web/package.json ./apps/web/
+COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
 
@@ -52,7 +54,9 @@ RUN npm install -g pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY scripts/enforce-package-manager.cjs ./scripts/enforce-package-manager.cjs
 COPY apps/web/package.json ./apps/web/
+COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
 
