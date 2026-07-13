@@ -108,6 +108,10 @@ jobs:
             echo "No manifest found for $svc; skipping"
             echo '{"dependencies":[]}' > "pip-audit-${{ matrix.service }}.json"
           fi
+          # Ensure the output file exists even if pip-audit exited before writing it
+          if [ ! -s "pip-audit-${{ matrix.service }}.json" ]; then
+            echo '{"dependencies":[]}' > "pip-audit-${{ matrix.service }}.json"
+          fi
           # Don't fail here; we collect all results then evaluate
 
       # -----------------------------------------------------------------------
