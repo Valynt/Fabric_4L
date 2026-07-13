@@ -6,19 +6,49 @@ that a complete scorecard and report are produced.
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from layer4_agents.agents.audit_orchestrator import run_audit
 from layer4_agents.agents.audit_orchestrator.models import AuditArea, AuditConfig
 
 
+def _derive_repo_name() -> str:
+    """Derive owner/repo from the working tree origin remote, or fall back."""
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+        )
+        url = result.stdout.strip()
+    except Exception:
+        return "local/audit-target"
+
+    if url.endswith(".git"):
+        url = url[:-4]
+
+    # SSH: git@host:owner/repo  -> owner/repo
+    if ":" in url and "@" in url:
+        path = url.rsplit(":", 1)[-1]
+    else:
+        path = url.rsplit("/", 1)[-1]
+
+    if path.count("/") == 1 and not path.startswith(("/", ".")):
+        return path
+    return "local/audit-target"
+
+
 @pytest.mark.unit
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(30)
 def test_audit_orchestrator_smoke_on_current_repo():
     """A full audit run on the current repo must produce a scorecard and report."""
     config = AuditConfig(
         repo_url=".",
-        repo_name="bmsull560/Fabric_4L",
+        repo_name=_derive_repo_name(),
         incremental=False,
         output_dir=".audit_cache/test_reports",
     )
