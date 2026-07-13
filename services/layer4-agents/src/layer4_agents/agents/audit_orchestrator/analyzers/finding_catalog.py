@@ -241,7 +241,7 @@ def _check_deep_nesting(repo_path: Path, _config: AuditConfig) -> dict[str, Any]
     }
 
 
-_CROSS_LAYER_RE = re.compile(r"(?:from|import)\s+layer\d+")
+_CROSS_LAYER_RE = re.compile(r"(?:from|import)\s+layer\d+(?![_\w-])")
 
 
 def _check_service_boundaries(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:

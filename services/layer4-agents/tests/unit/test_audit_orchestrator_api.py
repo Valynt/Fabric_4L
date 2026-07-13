@@ -7,6 +7,7 @@ so no live database is required.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -136,8 +137,6 @@ def _make_run_artifact(
             tenant_id=tenant_id,
         )
     ]
-
-    import asyncio
 
     asyncio.run(manager.save_run(run, tenant_id=tenant_id))
     asyncio.run(manager.save_scorecard(run_id, scorecard, tenant_id=tenant_id))
@@ -296,9 +295,13 @@ def test_get_manager_uses_postgres_dsn_from_env(
     monkeypatch.delenv("AUDIT__CACHE_DIR", raising=False)
 
     manager = get_manager()
-    assert manager._use_fallback is False
-    assert manager._engine is not None
-    assert "postgresql" in str(manager._engine.url)
+    try:
+        assert manager._use_fallback is False
+        assert manager._engine is not None
+        assert "postgresql" in str(manager._engine.url)
+    finally:
+        if manager._engine is not None:
+            asyncio.run(manager._engine.dispose())
 
 
 @pytest.mark.unit
