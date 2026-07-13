@@ -6,6 +6,7 @@ These tests are static and do not require live infrastructure.
 from __future__ import annotations
 
 import ast
+import os
 from pathlib import Path
 
 import pytest
@@ -182,11 +183,9 @@ def _python_files_under(*roots: str) -> list[Path]:
     for root in roots:
         root_path = REPO_ROOT / root
         if root_path.exists():
-            files.extend(
-                path
-                for path in root_path.rglob("*.py")
-                if path.is_file() and not any(part in skip_dirs for part in path.parts)
-            )
+            for current_root, dir_names, file_names in os.walk(root_path, topdown=True):
+                dir_names[:] = [name for name in dir_names if name not in skip_dirs]
+                files.extend(Path(current_root) / name for name in file_names if name.endswith(".py"))
     return files
 
 
