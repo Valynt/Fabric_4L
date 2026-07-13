@@ -199,8 +199,7 @@ def _plan_sprints_from_findings(
         return []
 
     open_findings = [
-        f for f in findings
-        if f.status in (FindingStatus.OPEN, FindingStatus.IN_PROGRESS)
+        f for f in findings if f.status in (FindingStatus.OPEN, FindingStatus.IN_PROGRESS)
     ]
 
     # Sort by severity then by effort so high-impact items are addressed first.
@@ -301,7 +300,7 @@ def node_clone_repo(state: AuditState) -> dict[str, Any]:
         return {"error": f"clone failed: {exc}", "current_step": "clone"}
 
 
-def node_analyze_git(state: AuditState) -> dict[str, Any]:
+async def node_analyze_git(state: AuditState) -> dict[str, Any]:
     """Run the git/structural analyzer."""
     config = state["config"]
     repo_path = state.get("repo_path")
@@ -310,7 +309,7 @@ def node_analyze_git(state: AuditState) -> dict[str, Any]:
 
     try:
         analyzer = GitAnalyzer(config)
-        findings, metrics = analyzer.analyze(repo_path)
+        findings, metrics = await asyncio.to_thread(analyzer.analyze, repo_path)
         return {
             "git_metrics": metrics,
             "findings": findings,
@@ -321,7 +320,7 @@ def node_analyze_git(state: AuditState) -> dict[str, Any]:
         return {"error": f"git analyzer failed: {exc}", "current_step": "analyze_git"}
 
 
-def node_analyze_code(state: AuditState) -> dict[str, Any]:
+async def node_analyze_code(state: AuditState) -> dict[str, Any]:
     """Run the static code analyzer."""
     config = state["config"]
     repo_path = state.get("repo_path")
@@ -330,7 +329,7 @@ def node_analyze_code(state: AuditState) -> dict[str, Any]:
 
     try:
         analyzer = CodeAnalyzer(config)
-        findings, metrics = analyzer.analyze(repo_path)
+        findings, metrics = await asyncio.to_thread(analyzer.analyze, repo_path)
         return {
             "code_metrics": metrics,
             "findings": findings,
@@ -341,7 +340,7 @@ def node_analyze_code(state: AuditState) -> dict[str, Any]:
         return {"error": f"code analyzer failed: {exc}", "current_step": "analyze_code"}
 
 
-def node_analyze_docs(state: AuditState) -> dict[str, Any]:
+async def node_analyze_docs(state: AuditState) -> dict[str, Any]:
     """Run the documentation and agent-readiness analyzer."""
     config = state["config"]
     repo_path = state.get("repo_path")
@@ -350,7 +349,7 @@ def node_analyze_docs(state: AuditState) -> dict[str, Any]:
 
     try:
         analyzer = DocAnalyzer(config)
-        findings, metrics = analyzer.analyze(repo_path)
+        findings, metrics = await asyncio.to_thread(analyzer.analyze, repo_path)
         return {
             "doc_metrics": metrics,
             "findings": findings,
@@ -467,10 +466,10 @@ async def node_persist(state: AuditState) -> dict[str, Any]:
         await manager.save_run(audit_run)
         if scorecard is not None:
             await manager.save_scorecard(audit_run.id, scorecard)
+        if state.get("findings"):
+            await manager.save_findings(audit_run.id, state["findings"], repo_name=config.repo_name)
         if state.get("sprints"):
-            await manager.save_sprints(
-                audit_run.id, state["sprints"], repo_name=config.repo_name
-            )
+            await manager.save_sprints(audit_run.id, state["sprints"], repo_name=config.repo_name)
 
         return {"current_step": "persist"}
     except Exception as exc:

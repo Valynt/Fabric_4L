@@ -124,6 +124,7 @@ def _make_run_artifact(
 
     asyncio.run(manager.save_run(run))
     asyncio.run(manager.save_scorecard(run_id, scorecard))
+    asyncio.run(manager.save_findings(run_id, findings, repo_name=repo_name))
     asyncio.run(manager.save_sprints(run_id, sprints, repo_name=repo_name))
 
 
@@ -221,11 +222,10 @@ def test_trigger_audit_requires_repo_url(client: Any):
 
 
 @pytest.mark.unit
-def test_github_webhook_requires_valid_signature(client: Any):
+def test_github_webhook_requires_valid_signature(client: Any, monkeypatch: pytest.MonkeyPatch):
     """The GitHub webhook endpoint must reject requests with an invalid HMAC."""
-    import os
-
-    os.environ["GITHUB_WEBHOOK_SECRET"] = "super-secret"
+    monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", "super-secret")
+    monkeypatch.delenv("DEV_WEBHOOK_UNSAFE", raising=False)
     payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
     response = client.post(
         "/v1/repo-audit/webhook/github",
@@ -233,3 +233,66 @@ def test_github_webhook_requires_valid_signature(client: Any):
         headers={"x-github-event": "push", "x-hub-signature-256": "sha256=invalid"},
     )
     assert response.status_code == 403
+
+
+@pytest.mark.unit
+def test_github_webhook_rejects_unsigned_when_secret_missing(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+):
+    """Unsigned webhooks are rejected when no secret is configured."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("DEV_WEBHOOK_UNSAFE", raising=False)
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
+    response = client.post(
+        "/v1/repo-audit/webhook/github",
+        content=payload,
+        headers={"x-github-event": "push"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.unit
+def test_github_webhook_accepts_unsigned_with_dev_flag(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+):
+    """Unsigned webhooks are accepted only when the explicit dev flag is set."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
+    response = client.post(
+        "/v1/repo-audit/webhook/github",
+        content=payload,
+        headers={"x-github-event": "push"},
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.unit
+def test_get_manager_uses_postgres_dsn_from_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """get_manager must use AUDIT__POSTGRES_DSN when it is configured."""
+    monkeypatch.setenv("AUDIT__POSTGRES_DSN", "postgresql+asyncpg://user:pass@localhost/audit")
+    monkeypatch.delenv("AUDIT__CACHE_DIR", raising=False)
+
+    manager = get_manager()
+    assert manager._use_fallback is False
+    assert manager._engine is not None
+    assert "postgresql" in str(manager._engine.url)
+
+
+@pytest.mark.unit
+def test_update_finding_requires_repo_and_scopes_to_repo(client: Any, tmp_path: Any) -> None:
+    """PATCH /findings/{id} must require a repo query parameter."""
+    manager = PersistenceManager(fallback_dir=tmp_path / "fallback")
+    _make_run_artifact(manager, "run-123", "owner/repo-x", ["CQ-010"])
+
+    response = client.patch("/v1/repo-audit/findings/CQ-010")
+    assert response.status_code == 422
+
+    response = client.patch(
+        "/v1/repo-audit/findings/CQ-010?repo=owner/repo-x",
+        json={"status": "resolved"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "resolved"

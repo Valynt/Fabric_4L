@@ -213,6 +213,7 @@ def _check_duplicate_files(repo_path: Path, _config: AuditConfig) -> dict[str, A
         "evidence": evidence,
         "check_output": f"{len(duplicate_groups)} groups of duplicate files detected",
         "duplicate_file_groups": len(duplicate_groups),
+        "duplicate_file_count": len(duplicate_groups),
         "observed_fact": f"{len(duplicate_groups)} group(s) of duplicate source files detected.",
     }
 
@@ -335,6 +336,7 @@ def _check_todo_backlog(repo_path: Path, _config: AuditConfig) -> dict[str, Any]
         "evidence": f"{total} occurrences; examples: " + "; ".join(snippets[:5]),
         "check_output": f"{total} TODO/FIXME/XXX/HACK comments",
         "todo_fixup_count": total,
+        "todo_fixme_count": total,
         "observed_fact": f"{total} TODO/FIXME/XXX/HACK comment(s) remain in source.",
     }
 
@@ -361,6 +363,7 @@ def _check_contract_drift(repo_path: Path, _config: AuditConfig) -> dict[str, An
         "openapi_files": len(openapi_files),
         "service_route_dirs": len(route_dirs),
         "contract_drift_gap": gap,
+        "contract_drift_count": gap,
         "observed_fact": f"{gap} service route group(s) lack a matching OpenAPI contract file.",
     }
 
@@ -441,6 +444,7 @@ def _check_idempotency_gaps(repo_path: Path, _config: AuditConfig) -> dict[str, 
         "evidence": "; ".join(examples[:5]),
         "check_output": f"{non_idempotent} mutating endpoints without idempotency mention",
         "non_idempotent_endpoints": non_idempotent,
+        "missing_idempotency_count": non_idempotent,
         "observed_fact": f"{non_idempotent} mutating endpoint(s) lack idempotency controls.",
     }
 
@@ -540,6 +544,7 @@ def _check_parallel_tests(repo_path: Path, _config: AuditConfig) -> dict[str, An
         "evidence": "No pytest-xdist -n option detected in pytest configuration",
         "check_output": f"parallel_test_configured={parallel}",
         "parallel_test_configured": parallel,
+        "no_parallel_tests": not parallel,
         "observed_fact": "Test suite is not configured for parallel execution, lengthening CI feedback.",
     }
 
@@ -617,6 +622,7 @@ def _check_llm_guardrails(repo_path: Path, _config: AuditConfig) -> dict[str, An
         "evidence": "; ".join(missing[:5]),
         "check_output": f"{len(missing)} LLM prompts lack guardrail language",
         "prompts_missing_guardrails": len(missing),
+        "missing_llm_guardrails": bool(missing),
         "observed_fact": f"{len(missing)} LLM prompt file(s) do not contain obvious guardrail language.",
     }
 
@@ -663,6 +669,7 @@ def _check_ci_timeouts(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
         "evidence": "; ".join(examples[:10]),
         "check_output": f"{missing} CI jobs missing timeout-minutes",
         "ci_jobs_missing_timeouts": missing,
+        "missing_ci_timeouts": missing > 0,
         "observed_fact": f"{missing} CI job(s) do not specify a ``timeout-minutes`` value.",
     }
 
@@ -731,6 +738,7 @@ def _check_health_endpoints(repo_path: Path, _config: AuditConfig) -> dict[str, 
         "evidence": "; ".join(missing[:10]),
         "check_output": f"{len(missing)} services missing /health endpoint",
         "services_missing_health": len(missing),
+        "missing_health_checks": bool(missing),
         "observed_fact": f"{len(missing)} service(s) do not expose a ``/health`` endpoint.",
     }
 
@@ -753,6 +761,7 @@ def _check_stale_runbooks(repo_path: Path, _config: AuditConfig) -> dict[str, An
         "evidence": f"RUNBOOK.md last modified {age_days} days ago",
         "check_output": f"runbook_age_days={age_days}",
         "runbook_age_days": age_days,
+        "stale_runbook_count": 1 if stale else 0,
         "observed_fact": f"RUNBOOK.md has not been updated in {age_days} days.",
     }
 
@@ -773,6 +782,7 @@ def _check_graceful_shutdown(repo_path: Path, _config: AuditConfig) -> dict[str,
         "evidence": "No signal/atexit shutdown handlers found in service entrypoints",
         "check_output": f"shutdown_handler_references={total}",
         "shutdown_handler_references": total,
+        "no_graceful_shutdown": total < 1,
         "observed_fact": "Service entrypoints lack explicit graceful shutdown handlers.",
     }
 
@@ -810,6 +820,7 @@ def _check_missing_tier1_docs(repo_path: Path, _config: AuditConfig) -> dict[str
         "evidence": "; ".join(missing[:10]),
         "check_output": f"{len(missing)} missing tier-1 docs",
         "missing_tier1_docs": missing,
+        "missing_root_doc_count": len(missing),
         "observed_fact": f"{len(missing)} expected tier-1 governance document(s) are missing.",
     }
 
@@ -835,7 +846,7 @@ def _check_adr_gaps(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
         if match:
             numbers.append(int(match.group(1)))
     if not numbers:
-        return {"triggered": False, "adr_gaps": []}
+        return {"triggered": False, "adr_gaps": [], "missing_adr_count": 0}
     numbers.sort()
     full_range = set(range(1, numbers[-1] + 1))
     gaps = sorted(full_range - set(numbers))
@@ -844,6 +855,7 @@ def _check_adr_gaps(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
         "evidence": f"Missing ADR numbers: {gaps[:10]}",
         "check_output": f"adr_gaps={gaps}",
         "adr_gaps": gaps,
+        "missing_adr_count": len(gaps),
         "observed_fact": f"{len(gaps)} gap(s) detected in ADR numbering sequence.",
     }
 
@@ -862,6 +874,7 @@ def _check_conflicting_claims(repo_path: Path, _config: AuditConfig) -> dict[str
         ),
         "check_output": f"npm_mentioned={npm}, pnpm_mentioned={pnpm}",
         "conflicting_claims": triggered,
+        "conflicting_claim_count": 1 if triggered else 0,
         "observed_fact": "Documentation contains conflicting package manager guidance.",
     }
 
@@ -880,6 +893,7 @@ def _check_missing_repo_audit_skill(repo_path: Path, _config: AuditConfig) -> di
         ),
         "check_output": f"repo_audit_skill_present={present}",
         "repo_audit_skill_present": present,
+        "missing_skill_definition_count": 0 if present else 1,
         "observed_fact": "The repo-audit skill package is missing or incomplete.",
     }
 
@@ -965,6 +979,7 @@ def _check_tool_schema_completeness(repo_path: Path, _config: AuditConfig) -> di
         "evidence": "; ".join(examples[:5]),
         "check_output": f"{missing_schema} tools with incomplete schema",
         "tools_with_missing_schema": missing_schema,
+        "unconfigured_tool_count": missing_schema,
         "observed_fact": f"{missing_schema} tool schema file(s) are missing required fields.",
     }
 
@@ -978,6 +993,7 @@ def _check_missing_debug_config(repo_path: Path, _config: AuditConfig) -> dict[s
         "evidence": "No .vscode/launch.json or debugpy config found",
         "check_output": f"debug_config_present={present}",
         "debug_config_present": present,
+        "missing_debug_config": not present,
         "observed_fact": "No IDE debug configuration is present for local development.",
     }
 
@@ -1005,6 +1021,7 @@ def _check_infisical_barrier(repo_path: Path, _config: AuditConfig) -> dict[str,
         ),
         "check_output": f"mentions_infisical={mentions_infisical}, mentions_fallback={mentions_fallback}",
         "infisical_fallback_present": not triggered,
+        "secret_management_barrier": triggered,
         "observed_fact": "Onboarding documentation mandates Infisical without a documented env fallback.",
     }
 

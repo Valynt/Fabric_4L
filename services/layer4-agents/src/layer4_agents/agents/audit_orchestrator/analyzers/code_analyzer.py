@@ -116,4 +116,9 @@ class CodeAnalyzer(BaseAnalyzer):
             "total_test_files": len(test_files),
             "python_lines_of_code": python_lines,
             "frontend_lines_of_code": js_lines,
+            "shared_package_file_count": len(
+                [p for p in (path / "packages" / "shared").rglob("*.py") if p.is_file()]
+            )
+            if (path / "packages" / "shared").exists()
+            else 0,
         }

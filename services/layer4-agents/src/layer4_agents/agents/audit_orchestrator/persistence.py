@@ -113,9 +113,7 @@ if _SQLALCHEMY_AVAILABLE:
         version: Mapped[str | None] = mapped_column(String(50), nullable=True)
         trigger_type: Mapped[str] = mapped_column(String(50), nullable=False)
         status: Mapped[str] = mapped_column(String(50), nullable=False)
-        started_at: Mapped[datetime] = mapped_column(
-            DateTime(timezone=True), nullable=False
-        )
+        started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
         completed_at: Mapped[datetime | None] = mapped_column(
             DateTime(timezone=True), nullable=True
         )
@@ -158,9 +156,7 @@ if _SQLALCHEMY_AVAILABLE:
         created_at: Mapped[datetime] = mapped_column(
             DateTime(timezone=True), default=lambda: datetime.now(UTC)
         )
-        resolved_at: Mapped[datetime | None] = mapped_column(
-            DateTime(timezone=True), nullable=True
-        )
+        resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
         resolution_note: Mapped[str | None] = mapped_column(nullable=True)
         # Extra fields from the Pydantic Finding model required for round-trips.
         first_seen_at: Mapped[datetime] = mapped_column(
@@ -214,9 +210,7 @@ if _SQLALCHEMY_AVAILABLE:
         total_directories: Mapped[int] = mapped_column(default=0)
         total_commits: Mapped[int] = mapped_column(default=0)
         total_contributors: Mapped[int] = mapped_column(default=0)
-        audit_timestamp: Mapped[datetime] = mapped_column(
-            DateTime(timezone=True), nullable=False
-        )
+        audit_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
         area_scores: Mapped[list[AreaScoreDB]] = relationship(
             "AreaScoreDB",
@@ -259,9 +253,7 @@ if _SQLALCHEMY_AVAILABLE:
         deliverables: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
         findings_targeted: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
         status: Mapped[str] = mapped_column(String(20), default="planned")
-        started_at: Mapped[datetime | None] = mapped_column(
-            DateTime(timezone=True), nullable=True
-        )
+        started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
         completed_at: Mapped[datetime | None] = mapped_column(
             DateTime(timezone=True), nullable=True
         )
@@ -700,9 +692,7 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
         audit_timestamp=scorecard.audit_timestamp,
         executive_summary=scorecard.executive_summary,
     )
-    db_scorecard.area_scores = [
-        _area_score_to_db(a, scorecard.id) for a in scorecard.area_scores
-    ]
+    db_scorecard.area_scores = [_area_score_to_db(a, scorecard.id) for a in scorecard.area_scores]
     return db_scorecard
 
 
@@ -923,11 +913,7 @@ class PersistenceManager:
 
     def _fallback_write_scorecard(self, scorecard: Scorecard, run_id: str) -> None:
         """Persist a scorecard to the fallback store."""
-        path = (
-            self._fallback_repo_dir(scorecard.repo_name)
-            / "scorecards"
-            / f"{scorecard.id}.json"
-        )
+        path = self._fallback_repo_dir(scorecard.repo_name) / "scorecards" / f"{scorecard.id}.json"
         self._atomic_write_json(path, _scorecard_to_dict(scorecard, run_id))
 
     def _fallback_write_sprints(
@@ -938,9 +924,13 @@ class PersistenceManager:
     ) -> None:
         """Persist sprints to the fallback store, grouped by run."""
         path = self._fallback_repo_dir(repo_name) / "sprints" / f"{run_id}.json"
-        self._atomic_write_json(path, {"run_id": run_id, "sprints": [_sprint_to_dict(s) for s in sprints]})
+        self._atomic_write_json(
+            path, {"run_id": run_id, "sprints": [_sprint_to_dict(s) for s in sprints]}
+        )
 
-    def _fallback_list_scorecards(self, repo_name: str) -> list[tuple[datetime, dict[str, Any], Path]]:
+    def _fallback_list_scorecards(
+        self, repo_name: str
+    ) -> list[tuple[datetime, dict[str, Any], Path]]:
         """Return all fallback scorecards for a repo with timestamps."""
         base = self._fallback_repo_dir(repo_name) / "scorecards"
         if not base.exists():
@@ -1018,9 +1008,7 @@ class PersistenceManager:
 
         if self._use_fallback:
             if repo_name is None:
-                raise ValueError(
-                    "repo_name is required for fallback persistence of findings"
-                )
+                raise ValueError("repo_name is required for fallback persistence of findings")
             self._fallback_write_findings(repo_name, run_id, findings)
             return
 
@@ -1063,7 +1051,6 @@ class PersistenceManager:
         """Persist a scorecard and its area scores."""
         if self._use_fallback:
             self._fallback_write_scorecard(scorecard, run_id)
-            self._fallback_write_findings(scorecard.repo_name, run_id, scorecard.findings)
             return
 
         async with self._session() as session:
@@ -1090,13 +1077,13 @@ class PersistenceManager:
             else:
                 session.add(_scorecard_to_db(scorecard, run_id))
 
-    async def save_sprints(self, run_id: str, sprints: Sequence[Sprint], repo_name: str | None = None) -> None:
+    async def save_sprints(
+        self, run_id: str, sprints: Sequence[Sprint], repo_name: str | None = None
+    ) -> None:
         """Persist remediation sprints for a run."""
         if self._use_fallback:
             if repo_name is None:
-                raise ValueError(
-                    "repo_name is required for fallback persistence of sprints"
-                )
+                raise ValueError("repo_name is required for fallback persistence of sprints")
             self._fallback_write_sprints(repo_name, run_id, sprints)
             return
 
@@ -1275,13 +1262,20 @@ class PersistenceManager:
         self,
         finding_id: str,
         update: FindingUpdate,
+        repo: str | None = None,
     ) -> Finding | None:
-        """Update a finding's status, owner, sprint, or resolution note."""
+        """Update a finding's status, owner, sprint, or resolution note.
+
+        When ``repo`` is provided the update is scoped to that repository; a
+        finding that belongs to a different repository will not be modified.
+        """
         if self._use_fallback:
-            # Search all repo fallback directories for the finding file.
-            for repo_dir in self._fallback_dir.glob("*"):
-                if not repo_dir.is_dir():
-                    continue
+            repo_dirs: list[Path]
+            if repo is not None:
+                repo_dirs = [self._fallback_repo_dir(repo)]
+            else:
+                repo_dirs = [d for d in self._fallback_dir.glob("*") if d.is_dir()]
+            for repo_dir in repo_dirs:
                 path = repo_dir / "findings" / f"{finding_id}.json"
                 if path.exists():
                     data = json.loads(path.read_text(encoding="utf-8"))
@@ -1299,7 +1293,22 @@ class PersistenceManager:
             return None
 
         async with self._session() as session:
-            row = await session.get(FindingDB, finding_id)
+            if repo is not None:
+                result = await session.execute(
+                    select(FindingDB)
+                    .join(
+                        FindingOccurrenceDB,
+                        FindingDB.id == FindingOccurrenceDB.finding_id,
+                    )
+                    .join(AuditRunDB, FindingOccurrenceDB.run_id == AuditRunDB.id)
+                    .where(
+                        FindingDB.id == finding_id,
+                        AuditRunDB.repo_name == repo,
+                    )
+                )
+                row = result.scalar_one_or_none()
+            else:
+                row = await session.get(FindingDB, finding_id)
             if row is None:
                 return None
             row.status = update.status.value
@@ -1408,9 +1417,7 @@ class PersistenceManager:
         run_id: str,
     ) -> Scorecard | None:
         """Load the scorecard linked to a specific audit run."""
-        result = await session.execute(
-            select(ScorecardDB).where(ScorecardDB.run_id == run_id)
-        )
+        result = await session.execute(select(ScorecardDB).where(ScorecardDB.run_id == run_id))
         row = result.scalar_one_or_none()
         if row is None:
             return None
@@ -1505,7 +1512,7 @@ async def update_knowledge_graph(
         logger.warning("Neo4j driver unavailable; skipping knowledge-graph update")
         return
 
-    auth = (neo4j_user, neo4j_password) if neo4j_user or neo4j_password else None
+    auth = (neo4j_user, neo4j_password) if neo4j_user and neo4j_password else None
     driver = AsyncGraphDatabase.driver(neo4j_uri, auth=auth)
     try:
         async with driver.session() as graph_session:

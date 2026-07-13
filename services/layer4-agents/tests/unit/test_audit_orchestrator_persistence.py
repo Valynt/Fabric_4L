@@ -183,9 +183,7 @@ async def test_save_and_list_findings(
     assert len(critical) == 1
     assert critical[0].id == "SEC-001"
 
-    security = await db_manager.list_findings(
-        sample_scorecard.repo_name, area=another_finding.area
-    )
+    security = await db_manager.list_findings(sample_scorecard.repo_name, area=another_finding.area)
     assert len(security) == 1
     assert security[0].id == "SEC-001"
 
@@ -250,9 +248,7 @@ async def test_score_history(
 
     # Area-specific history
     area = sample_scorecard.area_scores[0].area
-    area_history = await db_manager.get_score_history(
-        sample_scorecard.repo_name, area=area
-    )
+    area_history = await db_manager.get_score_history(sample_scorecard.repo_name, area=area)
     assert len(area_history.entries) == 1
 
 
@@ -301,6 +297,9 @@ async def test_fallback_list_findings_repo_filter(
 ) -> None:
     await fallback_manager.save_run(sample_run)
     await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
+    await fallback_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
 
     repo_findings = await fallback_manager.list_findings(sample_scorecard.repo_name)
     assert len(repo_findings) == 1
@@ -318,6 +317,9 @@ async def test_fallback_update_finding(
 ) -> None:
     await fallback_manager.save_run(sample_run)
     await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
+    await fallback_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
 
     update = FindingUpdate(status=FindingStatus.RESOLVED)
     updated = await fallback_manager.update_finding(sample_finding.id, update)
@@ -404,9 +406,7 @@ async def test_scorecard_round_trip_preserves_all_fields(
 ) -> None:
     """Assert every Scorecard and AreaScore field survives a DB round trip."""
     await db_manager.save_run(sample_run)
-    sample_scorecard.executive_summary = (
-        "Test executive summary with a pipe | and a newline."
-    )
+    sample_scorecard.executive_summary = "Test executive summary with a pipe | and a newline."
     await db_manager.save_scorecard(sample_run.id, sample_scorecard)
 
     loaded = await db_manager.get_latest_scorecard(sample_scorecard.repo_name)
@@ -489,9 +489,12 @@ async def test_fallback_save_findings_increments_times_seen(
     sample_scorecard: Any,
     sample_finding: Finding,
 ) -> None:
-    """JSON fallback also increments times_seen for existing findings."""
+    """JSON fallback increments times_seen when a finding is observed again."""
     await fallback_manager.save_run(sample_run)
     await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
+    await fallback_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
 
     first_listed = await fallback_manager.list_findings(sample_scorecard.repo_name)
     assert first_listed[0].times_seen == 1

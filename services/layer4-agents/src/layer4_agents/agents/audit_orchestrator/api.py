@@ -14,6 +14,7 @@ import hmac
 import json
 import logging
 import os
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -25,6 +26,7 @@ from .graph import run_audit_async
 from .models import (
     AuditArea,
     AuditConfig,
+    AuditRun,
     AuditRunDetail,
     AuditRunResponse,
     AuditRunSummary,
@@ -100,8 +102,23 @@ def _get_manager(fallback_dir: str = ".audit_cache/fallback") -> PersistenceMana
 
 
 def get_manager() -> PersistenceManager:
-    """FastAPI dependency providing a persistence manager."""
-    return _get_manager()
+    """FastAPI dependency providing a persistence manager.
+
+    Uses the resolved audit configuration so API reads and the graph write to
+    the same store. When ``AUDIT__POSTGRES_DSN`` (or a YAML config DSN) is set
+    PostgreSQL is used; otherwise the JSON fallback under the configured cache
+    directory is used.
+    """
+    config = ConfigManager().load_or_default(
+        overrides={
+            "repo_url": "https://github.com/unknown/unknown",
+            "repo_name": "unknown/unknown",
+        }
+    )
+    return PersistenceManager(
+        postgres_dsn=config.postgres_dsn,
+        fallback_dir=config.cache_dir,
+    )
 
 
 def _build_config(request: AuditTriggerRequest) -> AuditConfig:
@@ -139,10 +156,30 @@ def _background_run(
     run_id: str | None = None,
 ) -> None:
     """Synchronous wrapper used by FastAPI BackgroundTasks."""
+    started_at = datetime.now(UTC)
+    actual_run_id = run_id or str(uuid4())
     try:
-        asyncio.run(run_audit_async(config, trigger_type, previous_run_id, run_id))
-    except Exception:
+        asyncio.run(run_audit_async(config, trigger_type, previous_run_id, actual_run_id))
+    except Exception as exc:
         logger.exception("Background audit run failed")
+        try:
+            manager = PersistenceManager(
+                postgres_dsn=config.postgres_dsn,
+                fallback_dir=config.cache_dir,
+            )
+            failed_run = AuditRun(
+                id=actual_run_id,
+                status="failed",
+                trigger_type=trigger_type,
+                started_at=started_at,
+                completed_at=datetime.now(UTC),
+                repo_path=config.repo_name,
+                error_message=str(exc),
+                previous_run_id=previous_run_id,
+            )
+            asyncio.run(manager.save_run(failed_run))
+        except Exception:
+            logger.exception("Failed to persist failed audit run")
 
 
 # ---------------------------------------------------------------------------
@@ -272,10 +309,15 @@ async def list_findings(
 async def update_finding(
     finding_id: str,
     update: FindingUpdate,
+    repo: str,
     manager: PersistenceManager = Depends(get_manager),
 ) -> Finding:
-    """Update a finding's status, owner, sprint, or resolution note."""
-    updated = await manager.update_finding(finding_id, update)
+    """Update a finding's status, owner, sprint, or resolution note.
+
+    The ``repo`` query parameter scopes the update to a single repository and
+    prevents accidental cross-repo modifications.
+    """
+    updated = await manager.update_finding(finding_id, update, repo=repo)
     if updated is None:
         raise HTTPException(status_code=404, detail="Finding not found")
     return updated
@@ -302,17 +344,12 @@ async def get_report(
         raise HTTPException(status_code=404, detail="Audit run not found")
 
     if format == ReportFormat.MARKDOWN:
-        if run.scorecard and run.scorecard.executive_summary:
-            content = run.scorecard.executive_summary
-        else:
-            content = ""
-        if run.scorecard:
-            from .reporter import generate_full_report
+        if run.scorecard is None:
+            raise HTTPException(status_code=404, detail="Scorecard not available")
+        from .reporter import generate_full_report
 
-            sprints = await manager.get_sprints(
-                run.scorecard.repo_name if run.scorecard else "unknown/repo"
-            )
-            content = generate_full_report(run.scorecard, sprints)
+        sprints = await manager.get_sprints(run.scorecard.repo_name)
+        content = generate_full_report(run.scorecard, sprints)
         return PlainTextResponse(content=content, media_type="text/markdown")
 
     # JSON format returns the scorecard with sprint plan metadata.
@@ -340,13 +377,30 @@ async def github_webhook(
 
     secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
     if secret:
-        expected = "sha256=" + hmac.new(
-            secret.encode("utf-8"),
-            body,
-            hashlib.sha256,
-        ).hexdigest()
+        expected = (
+            "sha256="
+            + hmac.new(
+                secret.encode("utf-8"),
+                body,
+                hashlib.sha256,
+            ).hexdigest()
+        )
         if not hmac.compare_digest(expected, signature):
             raise HTTPException(status_code=403, detail="Invalid webhook signature")
+    elif os.environ.get("DEV_WEBHOOK_UNSAFE", "").lower() not in (
+        "true",
+        "1",
+        "yes",
+        "on",
+    ):
+        # Fail closed: unsigned webhooks are rejected unless an explicit dev flag
+        # is set. Never enable DEV_WEBHOOK_UNSAFE in production.
+        raise HTTPException(
+            status_code=401,
+            detail="Missing webhook signature",
+        )
+    else:
+        logger.warning("DEV_WEBHOOK_UNSAFE is set; accepting unsigned GitHub webhook")
 
     try:
         payload = json.loads(body.decode("utf-8"))
@@ -361,7 +415,7 @@ async def github_webhook(
     trigger_type = "webhook"
     should_trigger = False
 
-    if event_type == "push" and "push" in repo_url or event_type == "push" and ref.startswith("refs/heads/"):
+    if event_type == "push" and ("push" in repo_url or ref.startswith("refs/heads/")):
         should_trigger = True
     elif event_type in {"release", "released"}:
         should_trigger = True

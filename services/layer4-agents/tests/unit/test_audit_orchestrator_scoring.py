@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from layer4_agents.agents.audit_orchestrator.models import (
@@ -47,6 +49,7 @@ def perfect_finding() -> Finding:
 # Grade mapping
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "score,expected_grade",
@@ -90,6 +93,7 @@ def test_grade_to_index_ordering() -> None:
 # ---------------------------------------------------------------------------
 # Overall score
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 def test_calculate_overall_score_perfect() -> None:
@@ -151,6 +155,7 @@ def test_calculate_overall_score_weighted() -> None:
 # Area score
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 def test_calculate_area_score_no_findings() -> None:
     area_score = calculate_area_score(AuditArea.SECURITY, [], {})
@@ -162,9 +167,7 @@ def test_calculate_area_score_no_findings() -> None:
 @pytest.mark.unit
 def test_calculate_area_score_with_findings(perfect_finding: Finding) -> None:
     perfect_finding.area = AuditArea.CORRECTNESS
-    area_score = calculate_area_score(
-        AuditArea.CORRECTNESS, [perfect_finding], {}
-    )
+    area_score = calculate_area_score(AuditArea.CORRECTNESS, [perfect_finding], {})
     # High severity with high confidence: 5 pts deduction.
     assert area_score.score == 95
     assert area_score.grade == "A"
@@ -176,9 +179,7 @@ def test_calculate_area_score_confidence_multiplier(
 ) -> None:
     perfect_finding.area = AuditArea.CORRECTNESS
     perfect_finding.confidence = Confidence.LOW
-    area_score = calculate_area_score(
-        AuditArea.CORRECTNESS, [perfect_finding], {}
-    )
+    area_score = calculate_area_score(AuditArea.CORRECTNESS, [perfect_finding], {})
     # High severity with low confidence: 5 * 0.5 = 2.5, rounded.
     assert area_score.score == pytest.approx(97, abs=1)
 
@@ -223,6 +224,7 @@ def test_calculate_area_score_finding_deduction_cap() -> None:
 # Trend detection
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 def test_detect_trend_insufficient_history() -> None:
     assert detect_trend(80, []) == "Stable"
@@ -254,6 +256,7 @@ def test_detect_trend_with_variance() -> None:
 # ---------------------------------------------------------------------------
 # Scorecard builder
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 def test_build_scorecard_empty() -> None:
@@ -321,11 +324,41 @@ def test_calculate_area_score_custom_weight(perfect_finding: Finding) -> None:
 
 
 @pytest.mark.unit
+def test_calculate_area_score_applies_catalog_metric_adjustments(
+    tmp_path: Path,
+) -> None:
+    """Scoring adjusters must consume metric keys emitted by the finding catalog."""
+    from layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog import (
+        _check_duplicate_files,
+    )
+    from layer4_agents.agents.audit_orchestrator.models import AuditConfig
+
+    services_dir = tmp_path / "services" / "svc"
+    packages_dir = tmp_path / "packages" / "pkg"
+    services_dir.mkdir(parents=True)
+    packages_dir.mkdir(parents=True)
+    content = "x = 1\n"
+    (services_dir / "dup.py").write_text(content)
+    (packages_dir / "dup.py").write_text(content)
+
+    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    result = _check_duplicate_files(tmp_path, config)
+    assert "duplicate_file_count" in result
+    assert result["duplicate_file_count"] > 0
+
+    area_score = calculate_area_score(
+        AuditArea.ARCHITECTURE,
+        [],
+        {"duplicate_file_count": result["duplicate_file_count"]},
+    )
+    assert area_score.score < 100
+    assert area_score.diagnosis.startswith("1.5 pts deducted")
+
+
+@pytest.mark.unit
 def test_calculate_area_score_default_weight(perfect_finding: Finding) -> None:
     perfect_finding.area = AuditArea.CORRECTNESS
-    area_score = calculate_area_score(
-        AuditArea.CORRECTNESS, [perfect_finding], {}
-    )
+    area_score = calculate_area_score(AuditArea.CORRECTNESS, [perfect_finding], {})
     assert area_score.weight == DEFAULT_AREA_WEIGHTS[AuditArea.CORRECTNESS]
 
 
@@ -344,6 +377,7 @@ def test_build_scorecard_overall_history(perfect_finding: Finding) -> None:
 # Constants
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 def test_grade_thresholds_exposed() -> None:
     assert GRADE_THRESHOLDS["A+"] == (97, 100)
@@ -353,6 +387,7 @@ def test_grade_thresholds_exposed() -> None:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 def test_score_to_grade_float_rounding() -> None:
