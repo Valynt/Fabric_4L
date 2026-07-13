@@ -7,7 +7,7 @@ inputs:
     required: false
     default: '22.18.0'
   cache:
-    description: 'Package manager to cache (npm, yarn, pnpm) or empty'
+    description: 'Package manager to cache (npm, yarn, or pnpm); leave empty to disable caching'
     required: false
     default: 'pnpm'
   cache-dependency-path:
