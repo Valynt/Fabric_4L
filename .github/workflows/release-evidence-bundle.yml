@@ -202,13 +202,13 @@ jobs:
 
       - name: Bandit SAST
         run: |
-          uv pip install bandit[toml]
+          uv pip install --system bandit[toml]
           bandit -r services/ -f json -o bandit-report.json
           bandit -r services/ -f txt -o bandit-report.txt
 
       - name: Run security regression tests
         run: |
-          uv pip install pytest pytest-asyncio
+          uv pip install --system pytest pytest-asyncio
           pytest tests/security/ -v --tb=short \
             --junitxml=security-tests.xml
 
