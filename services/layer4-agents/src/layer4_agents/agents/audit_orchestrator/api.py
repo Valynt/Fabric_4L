@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
@@ -42,7 +42,7 @@ from .models import (
     Severity,
     Sprint,
 )
-from .persistence import PersistenceManager
+from .persistence import PersistenceManager, get_engine
 
 try:  # pragma: no cover
     from prometheus_client import Counter, Gauge, Histogram
@@ -110,6 +110,9 @@ def get_manager() -> PersistenceManager:
     the same store. When ``AUDIT__POSTGRES_DSN`` (or a YAML config DSN) is set
     PostgreSQL is used; otherwise the JSON fallback under the configured cache
     directory is used.
+
+    PostgreSQL engines are cached per DSN by :func:`get_engine`, so constructing
+    this dependency on every request does not recreate the connection pool.
     """
     config = ConfigManager().load_or_default(
         overrides={
@@ -117,6 +120,9 @@ def get_manager() -> PersistenceManager:
             "repo_name": "unknown/unknown",
         }
     )
+    if config.postgres_dsn:
+        # Warm the module-level engine cache so the manager shares the pool.
+        get_engine(config.postgres_dsn)
     return PersistenceManager(
         postgres_dsn=config.postgres_dsn,
         fallback_dir=config.cache_dir,
@@ -151,18 +157,18 @@ def _build_config(request: AuditTriggerRequest) -> AuditConfig:
     return config
 
 
-def _background_run(
+async def _background_run_async(
     config: AuditConfig,
     trigger_type: str,
     previous_run_id: str | None,
     run_id: str | None = None,
     tenant_id: str | None = None,
 ) -> None:
-    """Synchronous wrapper used by FastAPI BackgroundTasks."""
+    """Run an audit asynchronously and persist a failure record on error."""
     started_at = datetime.now(UTC)
     actual_run_id = run_id or str(uuid4())
     try:
-        asyncio.run(run_audit_async(config, trigger_type, previous_run_id, actual_run_id, tenant_id))
+        await run_audit_async(config, trigger_type, previous_run_id, actual_run_id, tenant_id)
     except Exception as exc:
         logger.exception("Background audit run failed")
         try:
@@ -181,9 +187,20 @@ def _background_run(
                 previous_run_id=previous_run_id,
                 tenant_id=tenant_id,
             )
-            asyncio.run(manager.save_run(failed_run, tenant_id=tenant_id))
+            await manager.save_run(failed_run, tenant_id=tenant_id)
         except Exception:
             logger.exception("Failed to persist failed audit run")
+
+
+def _background_run(
+    config: AuditConfig,
+    trigger_type: str,
+    previous_run_id: str | None,
+    run_id: str | None = None,
+    tenant_id: str | None = None,
+) -> None:
+    """Synchronous wrapper that runs the async background task in one event loop."""
+    asyncio.run(_background_run_async(config, trigger_type, previous_run_id, run_id, tenant_id))
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +211,6 @@ def _background_run(
 @router.post("/run", response_model=AuditRunResponse)
 async def trigger_audit(
     request: AuditTriggerRequest,
-    background_tasks: BackgroundTasks,
     context: RequestContext = Depends(require_tenant_admin),
 ) -> AuditRunResponse:
     """Trigger a new audit run. Returns a run ID immediately."""
@@ -209,8 +225,8 @@ async def trigger_audit(
 
     trigger_type = request.trigger_type or "manual"
     run_id = str(uuid4())
-    background_tasks.add_task(
-        _background_run, config, trigger_type, None, run_id, str(context.tenant_id)
+    asyncio.create_task(
+        _background_run_async(config, trigger_type, None, run_id, str(context.tenant_id))
     )
 
     if _PROMETHEUS_AVAILABLE:
@@ -397,9 +413,14 @@ async def get_report(
 @router.post("/webhook/github")
 async def github_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
+    tenant_id: str = Query(..., description="Tenant that owns the triggered audit run"),
 ) -> dict[str, str]:
-    """Receive GitHub push/release webhooks and trigger audits after HMAC verification."""
+    """Receive GitHub push/release webhooks and trigger audits after HMAC verification.
+
+    The webhook URL must include ``?tenant_id=<tenant>`` so the resulting audit
+    run is scoped to a tenant. Requests without ``tenant_id`` are rejected with
+    a 400 error.
+    """
     body = await request.body()
     signature = request.headers.get("x-hub-signature-256", "")
 
@@ -454,11 +475,9 @@ async def github_webhook(
         config = config_manager.load_or_default(
             overrides={"repo_url": repo_url, "repo_name": repo_name}
         )
-        # Placeholder tenant until multi-tenant webhook routing is designed.
-        webhook_tenant_id = "github-webhook"
-        config.tenant_id = webhook_tenant_id
-        background_tasks.add_task(
-            _background_run, config, trigger_type, None, None, webhook_tenant_id
+        config.tenant_id = tenant_id
+        asyncio.create_task(
+            _background_run_async(config, trigger_type, None, None, tenant_id)
         )
 
         if _PROMETHEUS_AVAILABLE:

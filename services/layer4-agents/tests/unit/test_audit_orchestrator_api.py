@@ -8,6 +8,8 @@ so no live database is required.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,6 +20,7 @@ from value_fabric.shared.identity.dependencies import require_tenant_admin
 
 from layer4_agents.agents.audit_orchestrator import api as audit_api
 from layer4_agents.agents.audit_orchestrator.api import (
+    _background_run_async,
     get_manager,
 )
 from layer4_agents.agents.audit_orchestrator.api import (
@@ -149,7 +152,7 @@ def test_trigger_audit_returns_run_id(client: Any, monkeypatch: pytest.MonkeyPat
     """POST /run must accept a trigger and return a run ID immediately."""
     captured = {}
 
-    def fake_background_run(
+    async def fake_background_run_async(
         config: AuditConfig,
         trigger_type: str,
         previous_run_id: str | None,
@@ -160,7 +163,7 @@ def test_trigger_audit_returns_run_id(client: Any, monkeypatch: pytest.MonkeyPat
         captured["repo_name"] = config.repo_name
         captured["tenant_id"] = tenant_id
 
-    monkeypatch.setattr(audit_api, "_background_run", fake_background_run)
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
 
     response = client.post(
         "/v1/repo-audit/run",
@@ -247,7 +250,7 @@ def test_github_webhook_requires_valid_signature(client: Any, monkeypatch: pytes
     monkeypatch.delenv("DEV_WEBHOOK_UNSAFE", raising=False)
     payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
     response = client.post(
-        "/v1/repo-audit/webhook/github",
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
         content=payload,
         headers={"x-github-event": "push", "x-hub-signature-256": "sha256=invalid"},
     )
@@ -263,7 +266,7 @@ def test_github_webhook_rejects_unsigned_when_secret_missing(
     monkeypatch.delenv("DEV_WEBHOOK_UNSAFE", raising=False)
     payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
     response = client.post(
-        "/v1/repo-audit/webhook/github",
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
         content=payload,
         headers={"x-github-event": "push"},
     )
@@ -279,7 +282,7 @@ def test_github_webhook_accepts_unsigned_with_dev_flag(
     monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
     payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
     response = client.post(
-        "/v1/repo-audit/webhook/github",
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
         content=payload,
         headers={"x-github-event": "push"},
     )
@@ -331,7 +334,7 @@ def test_github_webhook_url_with_push_does_not_trigger_on_pull_request(
 
     captured = {}
 
-    def fake_background_run(
+    async def fake_background_run_async(
         config: AuditConfig,
         trigger_type: str,
         previous_run_id: str | None,
@@ -340,13 +343,152 @@ def test_github_webhook_url_with_push_does_not_trigger_on_pull_request(
     ) -> None:
         captured["triggered"] = True
 
-    monkeypatch.setattr(audit_api, "_background_run", fake_background_run)
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
 
     payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/push-to-deploy/repo.git","full_name":"push-to-deploy/repo"}}'
     response = client.post(
-        "/v1/repo-audit/webhook/github",
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
         content=payload,
         headers={"x-github-event": "pull_request"},
     )
     assert response.status_code == 200
     assert "triggered" not in captured
+
+
+@pytest.mark.unit
+def test_github_webhook_requires_tenant_id(client: Any, monkeypatch: pytest.MonkeyPatch):
+    """The GitHub webhook endpoint must reject requests without a tenant_id."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
+
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
+    response = client.post(
+        "/v1/repo-audit/webhook/github",
+        content=payload,
+        headers={"x-github-event": "push"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.unit
+def test_github_webhook_scopes_run_to_provided_tenant(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+):
+    """A webhook with ?tenant_id=... must pass that tenant to the background run."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
+
+    captured = {}
+
+    async def fake_background_run_async(
+        config: AuditConfig,
+        trigger_type: str,
+        previous_run_id: str | None,
+        run_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> None:
+        captured["tenant_id"] = tenant_id
+        captured["config_tenant_id"] = config.tenant_id
+
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
+
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
+    response = client.post(
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
+        content=payload,
+        headers={"x-github-event": "push"},
+    )
+    assert response.status_code == 200
+    assert captured["tenant_id"] == "tenant-webhook"
+    assert captured["config_tenant_id"] == "tenant-webhook"
+
+
+@pytest.mark.unit
+def test_github_webhook_with_secret_and_tenant_id(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+):
+    """A signed webhook must still require and forward tenant_id."""
+    secret = "super-secret"
+    monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", secret)
+    monkeypatch.delenv("DEV_WEBHOOK_UNSAFE", raising=False)
+
+    captured = {}
+
+    async def fake_background_run_async(
+        config: AuditConfig,
+        trigger_type: str,
+        previous_run_id: str | None,
+        run_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> None:
+        captured["tenant_id"] = tenant_id
+
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
+
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/owner/repo.git","full_name":"owner/repo"}}'
+    signature = "sha256=" + hmac.new(
+        secret.encode("utf-8"), payload, hashlib.sha256
+    ).hexdigest()
+
+    response = client.post(
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-signed",
+        content=payload,
+        headers={"x-github-event": "push", "x-hub-signature-256": signature},
+    )
+    assert response.status_code == 200
+    assert captured["tenant_id"] == "tenant-signed"
+
+
+@pytest.mark.unit
+def test_get_manager_caches_engine_per_dsn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_manager must reuse the same engine for identical DSNs."""
+    dsn = "postgresql+asyncpg://user:pass@localhost/audit"
+    monkeypatch.setenv("AUDIT__POSTGRES_DSN", dsn)
+    monkeypatch.delenv("AUDIT__CACHE_DIR", raising=False)
+
+    from layer4_agents.agents.audit_orchestrator.persistence import _engine_cache
+
+    # Clear any cached engine for this DSN so the test starts fresh.
+    _engine_cache.pop(dsn, None)
+
+    manager_a = get_manager()
+    manager_b = get_manager()
+    try:
+        assert manager_a._engine is not None
+        assert manager_a._engine is manager_b._engine
+        assert dsn in _engine_cache
+    finally:
+        if manager_a._engine is not None:
+            asyncio.run(manager_a._engine.dispose())
+        _engine_cache.pop(dsn, None)
+
+
+@pytest.mark.unit
+def test_background_run_async_persists_failure(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_background_run_async must persist a failed run when run_audit_async raises."""
+
+    async def failing_audit(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("simulated audit failure")
+
+    monkeypatch.setattr(audit_api, "run_audit_async", failing_audit)
+
+    config = AuditConfig(
+        repo_url="https://github.com/owner/repo",
+        repo_name="owner/repo",
+        cache_dir=str(tmp_path / "cache"),
+    )
+    run_id = "failed-run-001"
+    tenant_id = "tenant-fail"
+
+    asyncio.run(
+        _background_run_async(config, "manual", None, run_id=run_id, tenant_id=tenant_id)
+    )
+
+    manager = PersistenceManager(fallback_dir=config.cache_dir)
+    run = asyncio.run(manager.get_run(run_id, tenant_id=tenant_id))
+    assert run is not None
+    assert run.status == "failed"
+    assert run.tenant_id == tenant_id
+    assert "simulated audit failure" in run.error_message

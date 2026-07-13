@@ -90,6 +90,30 @@ except ImportError:  # pragma: no cover
     AsyncGraphDatabase = None  # type: ignore[misc,assignment]
 
 
+# Module-level cache for async SQLAlchemy engines keyed by DSN.
+# Engines are long-lived and reused across PersistenceManager instances so
+# the manager remains lightweight to construct on every API request.
+_engine_cache: dict[str, AsyncEngine] = {}
+
+
+def get_engine(dsn: str) -> AsyncEngine:
+    """Return a cached async engine for the given DSN, creating it if needed.
+
+    Engines are intentionally cached by DSN so that repeated
+    ``PersistenceManager`` constructions reuse the same connection pool.
+    Callers are responsible for disposing engines at application shutdown.
+    """
+    if dsn in _engine_cache:
+        return _engine_cache[dsn]
+
+    if not _SQLALCHEMY_AVAILABLE:  # pragma: no cover
+        raise RuntimeError("SQLAlchemy is required when using PostgreSQL persistence")
+
+    engine = create_async_engine(dsn, pool_pre_ping=True, future=True)
+    _engine_cache[dsn] = engine
+    return engine
+
+
 # ---------------------------------------------------------------------------
 # SQLAlchemy declarative base and ORM models (SPEC Section 9.1)
 # ---------------------------------------------------------------------------
@@ -823,11 +847,10 @@ class PersistenceManager:
             self._session_factory = session_factory
             self._engine: AsyncEngine | None = None
         elif postgres_dsn is not None:
-            if not _SQLALCHEMY_AVAILABLE:  # pragma: no cover
-                raise RuntimeError("SQLAlchemy is required when postgres_dsn is set")
-            self._engine = create_async_engine(postgres_dsn, pool_pre_ping=True, future=True)
+            engine = get_engine(postgres_dsn)
+            self._engine = engine
             self._session_factory = async_sessionmaker(
-                bind=self._engine,
+                bind=engine,
                 autocommit=False,
                 autoflush=False,
                 expire_on_commit=False,

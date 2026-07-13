@@ -23,8 +23,6 @@ class BaseAnalyzer(ABC):
     name: str = "base"
     areas: list[AuditArea] = []
 
-    _id_counters: dict[str, int] = {}
-
     def __init__(self, config: AuditConfig) -> None:
         """Initialize the analyzer with runtime configuration.
 
@@ -34,6 +32,7 @@ class BaseAnalyzer(ABC):
         self.config = config
         self.findings: list[Finding] = []
         self.metrics: dict[str, Any] = {}
+        self._id_counters: dict[str, int] = {}
 
     @abstractmethod
     def analyze(self, repo_path: str) -> tuple[list[Finding], dict[str, Any]]:
@@ -96,9 +95,9 @@ class BaseAnalyzer(ABC):
             A validated ``Finding`` instance.
         """
         if finding_id is None:
-            BaseAnalyzer._id_counters.setdefault(id_prefix, 0)
-            BaseAnalyzer._id_counters[id_prefix] += 1
-            finding_id = f"{id_prefix}-{BaseAnalyzer._id_counters[id_prefix]:03d}"
+            self._id_counters.setdefault(id_prefix, 0)
+            self._id_counters[id_prefix] += 1
+            finding_id = f"{id_prefix}-{self._id_counters[id_prefix]:03d}"
 
         return Finding(
             id=finding_id,
@@ -120,6 +119,7 @@ class BaseAnalyzer(ABC):
         )
 
     def reset(self) -> None:
-        """Clear findings and metrics for a fresh run."""
+        """Clear findings, metrics, and ID counters for a fresh run."""
         self.findings = []
         self.metrics = {}
+        self._id_counters = {}

@@ -1164,7 +1164,7 @@ The AuditOrchestrator router is mounted under `/v1/repo-audit` to avoid collisio
 - `PATCH /v1/repo-audit/findings/{finding_id}` — update finding status.
 - `GET /v1/repo-audit/sprints` — current sprint plan.
 - `GET /v1/repo-audit/report/{run_id}` — download report (Markdown or JSON).
-- `POST /v1/repo-audit/webhook/github` — GitHub push/release webhook handler.
+- `POST /v1/repo-audit/webhook/github?tenant_id=<tenant>` — GitHub push/release webhook handler. The URL must include `?tenant_id=<tenant>`; the triggered audit run is scoped to that tenant.
 
 ### Configuration sources
 

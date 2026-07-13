@@ -7,7 +7,6 @@ is used to instantiate a :class:`Finding` from ``models.py``.
 
 from __future__ import annotations
 
-import functools
 import hashlib
 import os
 import re
@@ -79,11 +78,12 @@ def _py_files(repo_path: Path) -> list[Path]:
     return _source_files(repo_path, {".py"})
 
 
-@functools.lru_cache(maxsize=8192)
 def _read_lines(path: Path) -> list[str]:
     """Read a text file, returning a list of lines.
 
     Errors are ignored so that binary or malformed files do not abort a run.
+    Caching is intentionally avoided here: a process-wide cache would retain
+    stale file contents across audit runs and across different repositories.
     """
     try:
         with path.open("r", encoding="utf-8", errors="ignore") as fh:

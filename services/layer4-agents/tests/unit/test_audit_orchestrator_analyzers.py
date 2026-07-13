@@ -137,6 +137,85 @@ def test_base_analyzer_auto_increments_ids():
     assert f2.id == "TEST-002"
 
 
+def test_base_analyzer_resets_id_counters_per_instance():
+    """Each analyzer instance must start its ID counters from zero."""
+    config = AuditConfig(repo_url="https://example.com/repo", repo_name="repo")
+
+    first = GitAnalyzer(config)
+    f1 = first.create_finding(
+        id_prefix="TEST",
+        severity="low",
+        confidence="high",
+        area=AuditArea.CODE_QUALITY,
+        evidence="src/foo.py:1",
+        observed_fact="x",
+        inference_risk="y",
+        business_impact="z",
+        recommended_fix="a",
+        effort="XS",
+        risk_of_change="Low",
+        owner="Team",
+    )
+    assert f1.id == "TEST-001"
+
+    second = GitAnalyzer(config)
+    f2 = second.create_finding(
+        id_prefix="TEST",
+        severity="low",
+        confidence="high",
+        area=AuditArea.CODE_QUALITY,
+        evidence="src/foo.py:2",
+        observed_fact="x",
+        inference_risk="y",
+        business_impact="z",
+        recommended_fix="a",
+        effort="XS",
+        risk_of_change="Low",
+        owner="Team",
+    )
+    assert f2.id == "TEST-001"
+
+
+def test_base_analyzer_reset_clears_counters():
+    """reset() must restart ID counters so a re-run does not continue numbering."""
+    config = AuditConfig(repo_url="https://example.com/repo", repo_name="repo")
+    analyzer = GitAnalyzer(config)
+
+    f1 = analyzer.create_finding(
+        id_prefix="TEST",
+        severity="low",
+        confidence="high",
+        area=AuditArea.CODE_QUALITY,
+        evidence="src/foo.py:1",
+        observed_fact="x",
+        inference_risk="y",
+        business_impact="z",
+        recommended_fix="a",
+        effort="XS",
+        risk_of_change="Low",
+        owner="Team",
+    )
+    assert f1.id == "TEST-001"
+
+    analyzer.reset()
+
+    f2 = analyzer.create_finding(
+        id_prefix="TEST",
+        severity="low",
+        confidence="high",
+        area=AuditArea.CODE_QUALITY,
+        evidence="src/foo.py:2",
+        observed_fact="x",
+        inference_risk="y",
+        business_impact="z",
+        recommended_fix="a",
+        effort="XS",
+        risk_of_change="Low",
+        owner="Team",
+    )
+    assert f2.id == "TEST-001"
+
+
 def test_git_analyzer_runs_on_current_repo(audit_config: AuditConfig):
     analyzer = GitAnalyzer(audit_config)
     findings, metrics = analyzer.analyze(REPO_PATH)
@@ -149,6 +228,29 @@ def test_git_analyzer_runs_on_current_repo(audit_config: AuditConfig):
     for finding in findings:
         assert isinstance(finding, Finding)
         _assert_finding_fields(finding)
+
+
+def test_read_lines_not_cached_across_repos(tmp_path: Path):
+    """_read_lines must return current file contents, not a stale cache entry."""
+    from layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog import _read_lines
+
+    repo_a = tmp_path / "repo_a"
+    repo_b = tmp_path / "repo_b"
+    repo_a.mkdir()
+    repo_b.mkdir()
+
+    file_a = repo_a / "test.txt"
+    file_b = repo_b / "test.txt"
+    file_a.write_text("repo a content", encoding="utf-8")
+    file_b.write_text("repo b content", encoding="utf-8")
+
+    assert _read_lines(file_a) == ["repo a content"]
+    assert _read_lines(file_b) == ["repo b content"]
+    assert _read_lines(file_a) == ["repo a content"]
+
+    # Updating a file must be reflected on the next read.
+    file_a.write_text("updated content", encoding="utf-8")
+    assert _read_lines(file_a) == ["updated content"]
 
 
 def test_code_analyzer_runs_on_current_repo(audit_config: AuditConfig):
