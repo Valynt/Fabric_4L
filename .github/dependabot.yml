@@ -1,722 +1,158 @@
 version: 2
+
+# Keep the dependency queue reviewable by grouping the same dependency across
+# monorepo directories and staggering ecosystem runs through the week.
 updates:
-  # Root npm workspace
   - package-ecosystem: npm
+    directories:
+      - /
+      - /apps/web
+      - /packages/config
+      - /packages/eslint-plugin-fabric-contracts
+      - /packages/platform-contract
+      - /services/value-studio
+    exclude-paths:
+      - docs/archive/**
+      - archive/**
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 4
+    labels:
+      - dependencies
+      - nodejs
+    reviewers:
+      - value-fabric/sre-leads
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      routine-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+        group-by: dependency-name
+      major-upgrades:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+        group-by: dependency-name
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: pip
+    directories:
+      - /services/api
+      - /services/layer1-ingestion
+      - /services/layer2-extraction
+      - /services/layer2-5-signal-refinery
+      - /services/layer3-knowledge
+      - /services/layer4-agents
+      - /services/layer5-ground-truth
+      - /services/layer6-benchmarks
+      - /services/billing
+      - /services/layer7-billing
+      - /packages/shared/src
+      - /packages/platform-contract/src/python
+      - /sdk/python
+      - /tests
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "05:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 4
+    labels:
+      - dependencies
+      - python
+    reviewers:
+      - value-fabric/sre-leads
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      routine-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+        group-by: dependency-name
+      major-upgrades:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+        group-by: dependency-name
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directories:
+      - /.devcontainer
+      - /apps/web
+      - /services/api
+      - /services/layer1-ingestion
+      - /services/layer2-extraction
+      - /services/layer2-5-signal-refinery
+      - /services/layer3-knowledge
+      - /services/layer4-agents
+      - /services/layer5-ground-truth
+      - /services/layer6-benchmarks
+      - /services/layer7-billing
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: "05:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - docker
+    reviewers:
+      - value-fabric/sre-leads
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      routine-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+        group-by: dependency-name
+      major-upgrades:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - major
+        group-by: dependency-name
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - nodejs
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Frontend
-  - package-ecosystem: npm
-    directory: /apps/web
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 3
-    labels:
-      - dependencies
-      - nodejs
-      - frontend
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Node packages
-  - package-ecosystem: npm
-    directory: /packages/config
-    schedule:
-      interval: weekly
-      day: monday
+      day: thursday
       time: "05:00"
       timezone: America/New_York
     open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - nodejs
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: npm
-    directory: /packages/eslint-plugin-fabric-contracts
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - nodejs
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: npm
-    directory: /packages/platform-contract
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - nodejs
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: npm
-    directory: /services/value-studio
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - nodejs
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  # Python services
-  - package-ecosystem: pip
-    directory: /services/api
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-api
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer1-ingestion
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer1
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer2-extraction
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer2
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer2-5-signal-refinery
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer3-knowledge
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer3
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer4-agents
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer4
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer5-ground-truth
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer5
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer6-benchmarks
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - service-layer6
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/billing
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /services/layer7-billing
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Shared Python packages
-  - package-ecosystem: pip
-    directory: /packages/shared/src
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - shared
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /packages/platform-contract/src/python
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - platform-contract
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: pip
-    directory: /sdk/python
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - sdk
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Test dependencies
-  - package-ecosystem: pip
-    directory: /tests
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - python
-      - tests
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Docker images
-  - package-ecosystem: docker
-    directory: /.devcontainer
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /apps/web
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-      - frontend
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/api
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer1-ingestion
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer2-extraction
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer2-5-signal-refinery
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer3-knowledge
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer4-agents
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer5-ground-truth
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer6-benchmarks
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  - package-ecosystem: docker
-    directory: /services/layer7-billing
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
-  # GitHub Actions
-  - package-ecosystem: github-actions
-    directory: /.github
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 5
     labels:
       - dependencies
       - github-actions
@@ -724,15 +160,3 @@ updates:
       - value-fabric/sre-leads
     commit-message:
       prefix: chore(deps)
-    groups:
-      routine-minor-patch:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - minor
-          - patch
-      security-updates:
-        applies-to: security-updates
-        patterns:
-          - "*"

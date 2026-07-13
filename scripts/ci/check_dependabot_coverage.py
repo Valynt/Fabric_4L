@@ -40,6 +40,9 @@ EXCLUDE_DIRS = frozenset(
         "__pycache__",
         ".mypy_cache",
         ".pytest_cache",
+        # Bundled agent skill templates are examples, not deployable packages.
+        ".agents",
+        ".claude",
         # Legacy / obsolete roots — canonical structure
         "value-fabric",
         "frontend",
@@ -114,13 +117,17 @@ def discover_docker_dirs(root: Path) -> set[str]:
 
 
 def load_dependabot_entries(dependabot_path: Path) -> dict[str, set[str]]:
-    """Parse dependabot.yml and return {ecosystem: {directory, ...}}."""
+    """Parse dependabot.yml and return all covered directories by ecosystem."""
     data = yaml.safe_load(dependabot_path.read_text()) or {}
     covered: dict[str, set[str]] = {}
     for entry in data.get("updates", []):
         ecosystem = entry.get("package-ecosystem", "")
-        directory = entry.get("directory", "")
-        covered.setdefault(ecosystem, set()).add(directory)
+        directories = entry.get("directories")
+        if directories is None:
+            directories = [entry.get("directory", "")]
+        covered.setdefault(ecosystem, set()).update(
+            str(directory) for directory in directories if directory
+        )
     return covered
 
 

@@ -334,9 +334,6 @@ importers:
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.6.3)
-      pnpm:
-        specifier: ^11.11.0
-        version: 11.11.0
       postcss:
         specifier: ^8.4.47
         version: 8.5.13

@@ -15,14 +15,16 @@ must not be deleted through hygiene cleanup.
 
 ## Branch Inventory
 
-Before stabilization begins, publish a branch inventory grouped by owner. Each row must include the
-branch age, last commit date, associated pull request, and proposed disposition.
+The scheduled repository-hygiene workflow publishes a report-only inventory every week. Scheduled
+runs must never close a pull request or delete a branch. Each row must include the owner, head SHA,
+branch age, last commit date, ahead/behind counts relative to `main`, associated pull request, and
+proposed disposition.
 
 Recommended inventory format:
 
-| Owner | Branch | Age | Last commit date | Associated PR | Disposition | Notes |
-|---|---|---:|---|---|---|---|
-| `<team-or-person>` | `<branch-name>` | `<days>` | `<YYYY-MM-DD>` | `<PR # / URL / none>` | `<category>` | `<cleanup or stabilization note>` |
+| Owner | Branch | Head SHA | Age | Ahead / behind | Associated PR | Disposition | Notes |
+|---|---|---|---:|---:|---|---|---|
+| `<team-or-person>` | `<branch-name>` | `<sha>` | `<days>` | `<ahead> / <behind>` | `<PR # / URL / none>` | `<category>` | `<cleanup or stabilization note>` |
 
 Inventory requirements:
 
@@ -35,6 +37,15 @@ Inventory requirements:
   and note closed or superseded PRs in `Notes`.
 - Mark branches without discoverable owners or PRs as cleanup candidates unless release leadership
   explicitly grants a temporary owner and due date.
+
+## Team Branch and PR Rules
+
+- Keep one concern per branch. Split unrelated runtime, contract, security, and infrastructure work.
+- Open a draft pull request on the first push so ownership, status, and review scope are visible.
+- Never reuse a merged branch. Create a new branch from the current baseline for follow-up work.
+- Every open pull request must name an owner, state its status, and include a merge-or-close due date.
+- Recovery and quarantine pull requests remain drafts until their unique changes have been reconciled
+  against `main` and any named successor.
 
 ## Disposition Categories
 
@@ -77,8 +88,14 @@ Use this checklist before deleting merged, abandoned, or superseded remote branc
 - [ ] Confirm required evidence, tags, release notes, or audit artifacts have been preserved elsewhere
       if the branch supported a release, hotfix, incident, or governance review.
 - [ ] Confirm no open workflow, deployment, environment, or automation still references the branch.
+- [ ] Confirm branch, comparison, protection, pull-request, workflow, and deployment-reference checks
+      all completed successfully. Any API or comparison failure blocks deletion.
+- [ ] Invoke the manual workflow with the exact branch and the exact confirmation `DELETE <branch>`.
 - [ ] Delete the remote branch only after confirmation, then update the branch inventory with the
       deletion date and confirming owner.
+
+Age, bot ownership, a branch-name prefix, or the absence of a pull request is never sufficient
+authorization to delete a branch or close a pull request.
 
 Example command after confirmation:
 
