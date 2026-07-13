@@ -93,8 +93,13 @@ function checkPnpmActionSetupVersions() {
 
 function checkCorepackPnpmInScripts() {
   const violations = [];
-  for (const file of walkFiles('.')) {
-    if (!file.endsWith('package.json')) continue;
+  const packageJsonFiles = gitOutput('ls-files')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((file) => file.endsWith('package.json'));
+
+  for (const file of packageJsonFiles) {
     const pkg = loadJson(file);
     if (!pkg.scripts) continue;
     for (const [name, script] of Object.entries(pkg.scripts)) {
@@ -103,8 +108,11 @@ function checkCorepackPnpmInScripts() {
       }
     }
   }
+
   if (violations.length > 0) {
-    fail(`Use plain pnpm in package.json scripts; do not invoke pnpm through corepack: ${violations.join(' | ')}`);
+    fail(
+      `Use plain pnpm in package.json scripts; do not invoke pnpm through corepack: ${violations.join(' | ')}`,
+    );
   }
 }
 
