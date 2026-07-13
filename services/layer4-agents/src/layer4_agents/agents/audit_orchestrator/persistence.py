@@ -107,6 +107,7 @@ if _SQLALCHEMY_AVAILABLE:
         __tablename__ = "audit_runs"
 
         id: Mapped[str] = mapped_column(String(36), primary_key=True)
+        tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
         repo_name: Mapped[str] = mapped_column(String(255), nullable=False)
         branch: Mapped[str] = mapped_column(String(255), nullable=False, default="main")
         commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -124,6 +125,10 @@ if _SQLALCHEMY_AVAILABLE:
         created_at: Mapped[datetime] = mapped_column(
             DateTime(timezone=True), default=lambda: datetime.now(UTC)
         )
+        # Incremental audit tracking
+        previous_run_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+        files_changed_since_last: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+        areas_reanalyzed: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
         findings: Mapped[list[FindingDB]] = relationship(
             "FindingDB",
@@ -137,6 +142,7 @@ if _SQLALCHEMY_AVAILABLE:
         __tablename__ = "findings"
 
         id: Mapped[str] = mapped_column(String(50), primary_key=True)
+        tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
         first_seen_run_id: Mapped[str | None] = mapped_column(
             ForeignKey("audit_runs.id"), nullable=True
         )
@@ -176,6 +182,7 @@ if _SQLALCHEMY_AVAILABLE:
         __tablename__ = "finding_occurrences"
 
         id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+        tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
         run_id: Mapped[str] = mapped_column(
             ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
         )
@@ -194,6 +201,7 @@ if _SQLALCHEMY_AVAILABLE:
         __tablename__ = "scorecards"
 
         id: Mapped[str] = mapped_column(String(36), primary_key=True)
+        tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
         run_id: Mapped[str] = mapped_column(
             ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
         )
@@ -244,6 +252,7 @@ if _SQLALCHEMY_AVAILABLE:
         __tablename__ = "sprints"
 
         id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+        tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
         run_id: Mapped[str] = mapped_column(
             ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
         )
@@ -296,6 +305,7 @@ def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:
     return {
         "id": scorecard.id,
         "run_id": run_id,
+        "tenant_id": scorecard.tenant_id,
         "repo_name": scorecard.repo_name,
         "branch": scorecard.branch,
         "commit_sha": scorecard.commit_sha,
@@ -358,6 +368,7 @@ def _scorecard_from_dict(data: dict[str, Any], findings: list[Finding]) -> Score
         audit_timestamp=_parse_datetime(data["audit_timestamp"]) or datetime.now(UTC),
         findings=findings,
         executive_summary=data.get("executive_summary"),
+        tenant_id=data.get("tenant_id"),
     )
 
 
@@ -365,6 +376,7 @@ def _finding_to_dict(finding: Finding) -> dict[str, Any]:
     """Serialize a finding for fallback storage."""
     return {
         "id": finding.id,
+        "tenant_id": finding.tenant_id,
         "severity": finding.severity.value,
         "confidence": finding.confidence.value,
         "area": finding.area.value,
@@ -416,6 +428,7 @@ def _finding_from_dict(data: dict[str, Any]) -> Finding:
         analyzer_type=data.get("analyzer_type", "code"),
         check_command=data.get("check_command"),
         check_output=data.get("check_output"),
+        tenant_id=data.get("tenant_id"),
     )
 
 
@@ -423,6 +436,7 @@ def _sprint_to_dict(sprint: Sprint) -> dict[str, Any]:
     """Serialize a sprint for fallback storage."""
     return {
         "id": sprint.id,
+        "tenant_id": sprint.tenant_id,
         "theme": sprint.theme,
         "objectives": sprint.objectives,
         "deliverables": sprint.deliverables,
@@ -450,6 +464,7 @@ def _sprint_from_dict(data: dict[str, Any]) -> Sprint:
         actual_effort_days=data.get("actual_effort_days"),
         score_impact_projected=data.get("score_impact_projected", 0),
         score_impact_actual=data.get("score_impact_actual"),
+        tenant_id=data.get("tenant_id"),
     )
 
 
@@ -457,6 +472,7 @@ def _run_to_dict(run: AuditRun) -> dict[str, Any]:
     """Serialize an audit run for fallback storage."""
     return {
         "id": run.id,
+        "tenant_id": run.tenant_id,
         "status": run.status,
         "trigger_type": run.trigger_type,
         "started_at": _isoformat(run.started_at),
@@ -482,6 +498,7 @@ def _run_from_dict_with_repo(data: dict[str, Any], repo_name: str) -> AuditRun:
         previous_run_id=data.get("previous_run_id"),
         files_changed_since_last=data.get("files_changed_since_last", []),
         areas_reanalyzed=data.get("areas_reanalyzed", []),
+        tenant_id=data.get("tenant_id"),
     )
 
 
@@ -496,9 +513,10 @@ def _run_from_db_with_scorecard(row: AuditRunDB, scorecard: Scorecard | None) ->
         repo_path=scorecard.repo_name if scorecard else row.repo_name,
         scorecard=scorecard,
         error_message=row.error_message,
-        previous_run_id=None,
-        files_changed_since_last=[],
-        areas_reanalyzed=[],
+        previous_run_id=row.previous_run_id,
+        files_changed_since_last=row.files_changed_since_last or [],
+        areas_reanalyzed=row.areas_reanalyzed or [],
+        tenant_id=row.tenant_id,
     )
 
 
@@ -570,6 +588,7 @@ def _run_to_db(run: AuditRun) -> AuditRunDB:
     )
     return AuditRunDB(
         id=run.id,
+        tenant_id=run.tenant_id,
         repo_name=repo_name,
         branch=run.scorecard.branch if run.scorecard else "main",
         commit_sha=run.scorecard.commit_sha if run.scorecard else None,
@@ -581,6 +600,9 @@ def _run_to_db(run: AuditRun) -> AuditRunDB:
         overall_score=run.scorecard.overall_score if run.scorecard else None,
         overall_grade=run.scorecard.overall_grade if run.scorecard else None,
         error_message=run.error_message,
+        previous_run_id=run.previous_run_id,
+        files_changed_since_last=run.files_changed_since_last or [],
+        areas_reanalyzed=run.areas_reanalyzed or [],
     )
 
 
@@ -588,6 +610,7 @@ def _finding_to_db(finding: Finding, first_seen_run_id: str | None = None) -> Fi
     """Convert a Finding Pydantic model to a DB row."""
     return FindingDB(
         id=finding.id,
+        tenant_id=finding.tenant_id,
         first_seen_run_id=first_seen_run_id,
         severity=finding.severity.value,
         confidence=finding.confidence.value,
@@ -640,6 +663,7 @@ def _finding_from_db(row: FindingDB) -> Finding:
         analyzer_type=row.analyzer_type,
         check_command=row.check_command,
         check_output=row.check_output,
+        tenant_id=row.tenant_id,
     )
 
 
@@ -676,6 +700,7 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
     """Convert a Scorecard to a DB row (area scores attached via relationship)."""
     db_scorecard = ScorecardDB(
         id=scorecard.id,
+        tenant_id=scorecard.tenant_id,
         run_id=run_id,
         repo_name=scorecard.repo_name,
         branch=scorecard.branch,
@@ -720,6 +745,7 @@ def _scorecard_from_db(
         audit_timestamp=row.audit_timestamp,
         findings=list(findings),
         executive_summary=row.executive_summary,
+        tenant_id=row.tenant_id,
     )
 
 
@@ -727,6 +753,7 @@ def _sprint_to_db(sprint: Sprint, run_id: str) -> SprintDB:
     """Convert a Sprint to a DB row."""
     return SprintDB(
         run_id=run_id,
+        tenant_id=sprint.tenant_id,
         sprint_number=sprint.id,
         theme=sprint.theme,
         objectives=sprint.objectives,
@@ -753,6 +780,7 @@ def _sprint_from_db(row: SprintDB) -> Sprint:
         completed_at=row.completed_at,
         score_impact_projected=row.score_impact_projected or 0,
         score_impact_actual=row.score_impact_actual,
+        tenant_id=row.tenant_id,
     )
 
 
@@ -857,10 +885,15 @@ class PersistenceManager:
     # Fallback helpers
     # -----------------------------------------------------------------------
 
-    def _fallback_repo_dir(self, repo_name: str) -> Path:
-        """Return the sanitized fallback directory for a repository."""
-        safe = repo_name.replace("/", "__").replace("\\", "__")
+    def _fallback_tenant_dir(self, tenant_id: str | None) -> Path:
+        """Return the sanitized fallback directory for a tenant."""
+        safe = tenant_id.replace("/", "__").replace("\\", "__") if tenant_id else "_default"
         return self._fallback_dir / safe
+
+    def _fallback_repo_dir(self, tenant_id: str | None, repo_name: str) -> Path:
+        """Return the sanitized fallback directory for a repository within a tenant."""
+        safe = repo_name.replace("/", "__").replace("\\", "__")
+        return self._fallback_tenant_dir(tenant_id) / safe
 
     def _atomic_write_json(self, path: Path, data: dict[str, Any]) -> None:
         """Write JSON atomically using a temp file and rename."""
@@ -878,13 +911,16 @@ class PersistenceManager:
             raise
         shutil.move(tmp, path)
 
-    def _fallback_write_run(self, run: AuditRun, repo_name: str) -> None:
-        """Persist an audit run to the fallback store under its repo scope."""
-        path = self._fallback_repo_dir(repo_name) / "runs" / f"{run.id}.json"
+    def _fallback_write_run(
+        self, run: AuditRun, tenant_id: str | None, repo_name: str
+    ) -> None:
+        """Persist an audit run to the fallback store under its tenant/repo scope."""
+        path = self._fallback_repo_dir(tenant_id, repo_name) / "runs" / f"{run.id}.json"
         self._atomic_write_json(path, _run_to_dict(run))
 
     def _fallback_write_findings(
         self,
+        tenant_id: str | None,
         repo_name: str,
         run_id: str,
         findings: Sequence[Finding],
@@ -894,7 +930,7 @@ class PersistenceManager:
         Existing findings have their ``times_seen`` count incremented and
         ``last_seen_at`` refreshed.
         """
-        base = self._fallback_repo_dir(repo_name) / "findings"
+        base = self._fallback_repo_dir(tenant_id, repo_name) / "findings"
         for finding in findings:
             path = base / f"{finding.id}.json"
             if path.exists():
@@ -905,34 +941,43 @@ class PersistenceManager:
             else:
                 self._atomic_write_json(path, _finding_to_dict(finding))
         # Track occurrences per run.
-        occurrences_path = self._fallback_repo_dir(repo_name) / "occurrences" / f"{run_id}.json"
+        occurrences_path = (
+            self._fallback_repo_dir(tenant_id, repo_name) / "occurrences" / f"{run_id}.json"
+        )
         self._atomic_write_json(
             occurrences_path,
             {"run_id": run_id, "finding_ids": [f.id for f in findings]},
         )
 
-    def _fallback_write_scorecard(self, scorecard: Scorecard, run_id: str) -> None:
+    def _fallback_write_scorecard(
+        self, scorecard: Scorecard, run_id: str, tenant_id: str | None
+    ) -> None:
         """Persist a scorecard to the fallback store."""
-        path = self._fallback_repo_dir(scorecard.repo_name) / "scorecards" / f"{scorecard.id}.json"
+        path = (
+            self._fallback_repo_dir(tenant_id, scorecard.repo_name)
+            / "scorecards"
+            / f"{scorecard.id}.json"
+        )
         self._atomic_write_json(path, _scorecard_to_dict(scorecard, run_id))
 
     def _fallback_write_sprints(
         self,
+        tenant_id: str | None,
         repo_name: str,
         run_id: str,
         sprints: Sequence[Sprint],
     ) -> None:
         """Persist sprints to the fallback store, grouped by run."""
-        path = self._fallback_repo_dir(repo_name) / "sprints" / f"{run_id}.json"
+        path = self._fallback_repo_dir(tenant_id, repo_name) / "sprints" / f"{run_id}.json"
         self._atomic_write_json(
             path, {"run_id": run_id, "sprints": [_sprint_to_dict(s) for s in sprints]}
         )
 
     def _fallback_list_scorecards(
-        self, repo_name: str
+        self, tenant_id: str | None, repo_name: str
     ) -> list[tuple[datetime, dict[str, Any], Path]]:
         """Return all fallback scorecards for a repo with timestamps."""
-        base = self._fallback_repo_dir(repo_name) / "scorecards"
+        base = self._fallback_repo_dir(tenant_id, repo_name) / "scorecards"
         if not base.exists():
             return []
         results: list[tuple[datetime, dict[str, Any], Path]] = []
@@ -944,22 +989,24 @@ class PersistenceManager:
             results.append((ts, data, path))
         return results
 
-    def _fallback_load_findings_for_run(self, repo_name: str, run_id: str) -> list[Finding]:
+    def _fallback_load_findings_for_run(
+        self, tenant_id: str | None, repo_name: str, run_id: str
+    ) -> list[Finding]:
         """Load findings associated with a specific run from the fallback store."""
-        occ_path = self._fallback_repo_dir(repo_name) / "occurrences" / f"{run_id}.json"
+        occ_path = self._fallback_repo_dir(tenant_id, repo_name) / "occurrences" / f"{run_id}.json"
         if not occ_path.exists():
             return []
         occ = json.loads(occ_path.read_text(encoding="utf-8"))
         findings: list[Finding] = []
         for fid in occ.get("finding_ids", []):
-            fpath = self._fallback_repo_dir(repo_name) / "findings" / f"{fid}.json"
+            fpath = self._fallback_repo_dir(tenant_id, repo_name) / "findings" / f"{fid}.json"
             if fpath.exists():
                 findings.append(_finding_from_dict(json.loads(fpath.read_text(encoding="utf-8"))))
         return findings
 
-    def _fallback_all_findings(self, repo_name: str) -> list[Finding]:
+    def _fallback_all_findings(self, tenant_id: str | None, repo_name: str) -> list[Finding]:
         """Load all findings for a repository from the fallback store."""
-        base = self._fallback_repo_dir(repo_name) / "findings"
+        base = self._fallback_repo_dir(tenant_id, repo_name) / "findings"
         if not base.exists():
             return []
         findings: list[Finding] = []
@@ -971,19 +1018,30 @@ class PersistenceManager:
     # Public API
     # -----------------------------------------------------------------------
 
-    async def save_run(self, audit_run: AuditRun) -> None:
+    async def save_run(
+        self,
+        audit_run: AuditRun,
+        tenant_id: str | None = None,
+    ) -> None:
         """Persist an audit run.
 
         When a database is configured the run is written to PostgreSQL;
-        otherwise it is written to the JSON fallback store under the repo scope.
+        otherwise it is written to the JSON fallback store under the tenant/repo
+        scope. If ``tenant_id`` is provided it is set on the run and its scorecard
+        before persistence.
         """
+        if tenant_id is not None:
+            audit_run.tenant_id = tenant_id
+            if audit_run.scorecard is not None:
+                audit_run.scorecard.tenant_id = tenant_id
+
         repo_name = (
             audit_run.scorecard.repo_name
             if audit_run.scorecard is not None
             else _repo_name_from_path(audit_run.repo_path)
         )
         if self._use_fallback:
-            self._fallback_write_run(audit_run, repo_name)
+            self._fallback_write_run(audit_run, audit_run.tenant_id, repo_name)
             return
 
         async with self._session() as session:
@@ -994,6 +1052,7 @@ class PersistenceManager:
         run_id: str,
         findings: Sequence[Finding],
         repo_name: str | None = None,
+        tenant_id: str | None = None,
     ) -> None:
         """Persist findings for a run, deduplicating by finding ID.
 
@@ -1002,14 +1061,20 @@ class PersistenceManager:
             findings: Findings to persist.
             repo_name: Optional repo name override required by the JSON fallback
                 store; ignored when a database is configured.
+            tenant_id: Tenant that owns these findings. When provided it is set
+                on each finding and used to scope fallback storage.
         """
         if not findings:
             return
 
+        for finding in findings:
+            if tenant_id is not None:
+                finding.tenant_id = tenant_id
+
         if self._use_fallback:
             if repo_name is None:
                 raise ValueError("repo_name is required for fallback persistence of findings")
-            self._fallback_write_findings(repo_name, run_id, findings)
+            self._fallback_write_findings(tenant_id, repo_name, run_id, findings)
             return
 
         async with self._session() as session:
@@ -1035,22 +1100,39 @@ class PersistenceManager:
                     existing.times_seen += 1
                     existing.check_command = finding.check_command
                     existing.check_output = finding.check_output
+                    existing.tenant_id = finding.tenant_id
                 else:
                     session.add(_finding_to_db(finding, first_seen_run_id=run_id))
                 session.add(
                     FindingOccurrenceDB(
                         run_id=run_id,
                         finding_id=finding.id,
+                        tenant_id=finding.tenant_id,
                         still_present=finding.status
                         in (FindingStatus.OPEN, FindingStatus.IN_PROGRESS),
                         evidence_at_time=finding.evidence,
                     )
                 )
 
-    async def save_scorecard(self, run_id: str, scorecard: Scorecard) -> None:
-        """Persist a scorecard and its area scores."""
+    async def save_scorecard(
+        self,
+        run_id: str,
+        scorecard: Scorecard,
+        tenant_id: str | None = None,
+    ) -> None:
+        """Persist a scorecard and its area scores.
+
+        Args:
+            run_id: Audit run identifier.
+            scorecard: Scorecard to persist.
+            tenant_id: Tenant that owns this scorecard. When provided it is set
+                on the scorecard and used to scope fallback storage.
+        """
+        if tenant_id is not None:
+            scorecard.tenant_id = tenant_id
+
         if self._use_fallback:
-            self._fallback_write_scorecard(scorecard, run_id)
+            self._fallback_write_scorecard(scorecard, run_id, scorecard.tenant_id)
             return
 
         async with self._session() as session:
@@ -1069,6 +1151,7 @@ class PersistenceManager:
                 existing.total_contributors = scorecard.total_contributors
                 existing.audit_timestamp = scorecard.audit_timestamp
                 existing.executive_summary = scorecard.executive_summary
+                existing.tenant_id = scorecard.tenant_id
                 await session.execute(
                     delete(AreaScoreDB).where(AreaScoreDB.scorecard_id == scorecard.id)
                 )
@@ -1078,13 +1161,30 @@ class PersistenceManager:
                 session.add(_scorecard_to_db(scorecard, run_id))
 
     async def save_sprints(
-        self, run_id: str, sprints: Sequence[Sprint], repo_name: str | None = None
+        self,
+        run_id: str,
+        sprints: Sequence[Sprint],
+        repo_name: str | None = None,
+        tenant_id: str | None = None,
     ) -> None:
-        """Persist remediation sprints for a run."""
+        """Persist remediation sprints for a run.
+
+        Args:
+            run_id: Audit run identifier.
+            sprints: Sprints to persist.
+            repo_name: Optional repo name override required by the JSON fallback
+                store; ignored when a database is configured.
+            tenant_id: Tenant that owns these sprints. When provided it is set
+                on each sprint and used to scope fallback storage.
+        """
+        for sprint in sprints:
+            if tenant_id is not None:
+                sprint.tenant_id = tenant_id
+
         if self._use_fallback:
             if repo_name is None:
                 raise ValueError("repo_name is required for fallback persistence of sprints")
-            self._fallback_write_sprints(repo_name, run_id, sprints)
+            self._fallback_write_sprints(tenant_id, repo_name, run_id, sprints)
             return
 
         async with self._session() as session:
@@ -1092,22 +1192,29 @@ class PersistenceManager:
             for sprint in sprints:
                 session.add(_sprint_to_db(sprint, run_id))
 
-    async def get_latest_scorecard(self, repo_name: str) -> Scorecard | None:
+    async def get_latest_scorecard(
+        self,
+        repo_name: str,
+        tenant_id: str | None = None,
+    ) -> Scorecard | None:
         """Return the most recent scorecard for a repository, or None."""
         if self._use_fallback:
-            scorecards = self._fallback_list_scorecards(repo_name)
+            scorecards = self._fallback_list_scorecards(tenant_id, repo_name)
             if not scorecards:
                 return None
             scorecards.sort(key=lambda x: x[0], reverse=True)
             data = scorecards[0][1]
             run_id = data.get("run_id", "")
-            findings = self._fallback_load_findings_for_run(repo_name, run_id)
+            findings = self._fallback_load_findings_for_run(tenant_id, repo_name, run_id)
             return _scorecard_from_dict(data, findings)
 
         async with self._session() as session:
             result = await session.execute(
                 select(ScorecardDB)
-                .where(ScorecardDB.repo_name == repo_name)
+                .where(
+                    ScorecardDB.repo_name == repo_name,
+                    ScorecardDB.tenant_id == tenant_id,
+                )
                 .order_by(ScorecardDB.audit_timestamp.desc())
                 .limit(1)
             )
@@ -1126,7 +1233,10 @@ class PersistenceManager:
                     FindingOccurrenceDB,
                     FindingDB.id == FindingOccurrenceDB.finding_id,
                 )
-                .where(FindingOccurrenceDB.run_id == row.run_id)
+                .where(
+                    FindingOccurrenceDB.run_id == row.run_id,
+                    FindingDB.tenant_id == tenant_id,
+                )
                 .distinct()
             )
             findings = [_finding_from_db(f) for f in finding_rows.scalars()]
@@ -1137,12 +1247,13 @@ class PersistenceManager:
         self,
         repo_name: str,
         area: AuditArea | None = None,
+        tenant_id: str | None = None,
     ) -> ScoreHistory:
         """Return score history for a repository, optionally filtered by area."""
         if self._use_fallback:
             entries: list[ScoreHistoryEntry] = []
             for ts, data, _path in sorted(
-                self._fallback_list_scorecards(repo_name), key=lambda x: x[0]
+                self._fallback_list_scorecards(tenant_id, repo_name), key=lambda x: x[0]
             ):
                 run_id = data.get("run_id", "")
                 if area is None:
@@ -1175,7 +1286,10 @@ class PersistenceManager:
         async with self._session() as session:
             result = await session.execute(
                 select(ScorecardDB)
-                .where(ScorecardDB.repo_name == repo_name)
+                .where(
+                    ScorecardDB.repo_name == repo_name,
+                    ScorecardDB.tenant_id == tenant_id,
+                )
                 .order_by(ScorecardDB.audit_timestamp.asc())
             )
             entries = []
@@ -1218,13 +1332,15 @@ class PersistenceManager:
         status: FindingStatus | None = None,
         severity: Severity | None = None,
         area: AuditArea | None = None,
+        tenant_id: str | None = None,
     ) -> list[Finding]:
         """List findings for a repository with optional filters.
 
-        Queries always filter by ``repo`` to prevent cross-repo leaks.
+        Queries always filter by ``repo`` and ``tenant_id`` to prevent cross-repo
+        and cross-tenant leaks.
         """
         if self._use_fallback:
-            findings = self._fallback_all_findings(repo)
+            findings = self._fallback_all_findings(tenant_id, repo)
             if status is not None:
                 findings = [f for f in findings if f.status == status]
             if severity is not None:
@@ -1242,7 +1358,11 @@ class PersistenceManager:
                     FindingDB.id == FindingOccurrenceDB.finding_id,
                 )
                 .join(AuditRunDB, FindingOccurrenceDB.run_id == AuditRunDB.id)
-                .where(AuditRunDB.repo_name == repo)
+                .where(
+                    AuditRunDB.repo_name == repo,
+                    AuditRunDB.tenant_id == tenant_id,
+                    FindingDB.tenant_id == tenant_id,
+                )
             )
             if status is not None:
                 query = query.where(FindingDB.status == status.value)
@@ -1255,7 +1375,12 @@ class PersistenceManager:
             ids = list(result.scalars().all())
             if not ids:
                 return []
-            rows = await session.execute(select(FindingDB).where(FindingDB.id.in_(ids)))
+            rows = await session.execute(
+                select(FindingDB).where(
+                    FindingDB.id.in_(ids),
+                    FindingDB.tenant_id == tenant_id,
+                )
+            )
             return [_finding_from_db(row) for row in rows.scalars()]
 
     async def update_finding(
@@ -1263,22 +1388,32 @@ class PersistenceManager:
         finding_id: str,
         update: FindingUpdate,
         repo: str | None = None,
+        tenant_id: str | None = None,
     ) -> Finding | None:
         """Update a finding's status, owner, sprint, or resolution note.
 
         When ``repo`` is provided the update is scoped to that repository; a
         finding that belongs to a different repository will not be modified.
+        ``tenant_id`` scopes the search in fallback mode and is applied as a
+        filter in SQL mode so cross-tenant updates fail closed.
         """
         if self._use_fallback:
             repo_dirs: list[Path]
             if repo is not None:
-                repo_dirs = [self._fallback_repo_dir(repo)]
+                repo_dirs = [self._fallback_repo_dir(tenant_id, repo)]
             else:
-                repo_dirs = [d for d in self._fallback_dir.glob("*") if d.is_dir()]
+                tenant_dirs = [self._fallback_tenant_dir(tenant_id)] if tenant_id is not None else [
+                    d for d in self._fallback_dir.glob("*") if d.is_dir()
+                ]
+                repo_dirs = []
+                for tenant_dir in tenant_dirs:
+                    repo_dirs.extend(d for d in tenant_dir.glob("*") if d.is_dir())
             for repo_dir in repo_dirs:
                 path = repo_dir / "findings" / f"{finding_id}.json"
                 if path.exists():
                     data = json.loads(path.read_text(encoding="utf-8"))
+                    if tenant_id is not None and data.get("tenant_id") != tenant_id:
+                        continue
                     data["status"] = update.status.value
                     if update.resolution_note is not None:
                         data["resolution_note"] = update.resolution_note
@@ -1303,12 +1438,16 @@ class PersistenceManager:
                     .join(AuditRunDB, FindingOccurrenceDB.run_id == AuditRunDB.id)
                     .where(
                         FindingDB.id == finding_id,
+                        FindingDB.tenant_id == tenant_id,
                         AuditRunDB.repo_name == repo,
+                        AuditRunDB.tenant_id == tenant_id,
                     )
                 )
                 row = result.scalar_one_or_none()
             else:
                 row = await session.get(FindingDB, finding_id)
+                if row is not None and row.tenant_id != tenant_id:
+                    return None
             if row is None:
                 return None
             row.status = update.status.value
@@ -1326,71 +1465,97 @@ class PersistenceManager:
     # Audit-run read API
     # -----------------------------------------------------------------------
 
-    def _fallback_load_run(self, repo_name: str, run_id: str) -> AuditRun | None:
+    def _fallback_load_run(
+        self,
+        tenant_id: str | None,
+        repo_name: str,
+        run_id: str,
+    ) -> AuditRun | None:
         """Load a single audit run from the JSON fallback store."""
-        path = self._fallback_repo_dir(repo_name) / "runs" / f"{run_id}.json"
+        path = self._fallback_repo_dir(tenant_id, repo_name) / "runs" / f"{run_id}.json"
         if not path.exists():
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
+        if tenant_id is not None and data.get("tenant_id") != tenant_id:
+            return None
         return _run_from_dict_with_repo(data, repo_name)
 
-    def _fallback_find_run(self, run_id: str) -> tuple[str, dict[str, Any]] | None:
-        """Search all repo fallback directories for a run file."""
-        for repo_dir in self._fallback_dir.glob("*"):
-            if not repo_dir.is_dir():
-                continue
-            path = repo_dir / "runs" / f"{run_id}.json"
-            if path.exists():
-                repo_name = repo_dir.name.replace("__", "/")
-                return repo_name, json.loads(path.read_text(encoding="utf-8"))
+    def _fallback_find_run(
+        self,
+        run_id: str,
+        tenant_id: str | None = None,
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Search tenant/repo fallback directories for a run file."""
+        tenant_dirs = [self._fallback_tenant_dir(tenant_id)] if tenant_id is not None else [
+            d for d in self._fallback_dir.glob("*") if d.is_dir()
+        ]
+        for tenant_dir in tenant_dirs:
+            for repo_dir in tenant_dir.glob("*"):
+                if not repo_dir.is_dir():
+                    continue
+                path = repo_dir / "runs" / f"{run_id}.json"
+                if path.exists():
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    if tenant_id is not None and data.get("tenant_id") != tenant_id:
+                        continue
+                    repo_name = repo_dir.name.replace("__", "/")
+                    return repo_name, data
         return None
 
     def _fallback_load_scorecard_for_run(
         self,
+        tenant_id: str | None,
         repo_name: str,
         run_id: str,
     ) -> Scorecard | None:
         """Load the scorecard associated with a specific run from fallback storage."""
-        for ts, data, _path in self._fallback_list_scorecards(repo_name):
+        for ts, data, _path in self._fallback_list_scorecards(tenant_id, repo_name):
             if data.get("run_id") == run_id:
-                findings = self._fallback_load_findings_for_run(repo_name, run_id)
+                findings = self._fallback_load_findings_for_run(tenant_id, repo_name, run_id)
                 return _scorecard_from_dict(data, findings)
         return None
 
-    async def get_run(self, run_id: str) -> AuditRun | None:
+    async def get_run(
+        self,
+        run_id: str,
+        tenant_id: str | None = None,
+    ) -> AuditRun | None:
         """Return a single audit run by ID, or None if not found."""
         if self._use_fallback:
-            found = self._fallback_find_run(run_id)
+            found = self._fallback_find_run(run_id, tenant_id=tenant_id)
             if found is None:
                 return None
             repo_name, data = found
             run = _run_from_dict_with_repo(data, repo_name)
-            scorecard = self._fallback_load_scorecard_for_run(repo_name, run_id)
+            scorecard = self._fallback_load_scorecard_for_run(tenant_id, repo_name, run_id)
             if scorecard is not None:
                 run.scorecard = scorecard
             return run
 
         async with self._session() as session:
             row = await session.get(AuditRunDB, run_id)
-            if row is None:
+            if row is None or row.tenant_id != tenant_id:
                 return None
-            scorecard = await self._db_get_scorecard_for_run(session, run_id)
+            scorecard = await self._db_get_scorecard_for_run(session, run_id, tenant_id)
             return _run_from_db_with_scorecard(row, scorecard)
 
     async def list_runs(
         self,
         repo: str,
         limit: int = 20,
+        tenant_id: str | None = None,
     ) -> list[AuditRun]:
         """List recent audit runs for a repository."""
         if self._use_fallback:
             runs: list[tuple[datetime, AuditRun]] = []
-            base = self._fallback_repo_dir(repo) / "runs"
+            base = self._fallback_repo_dir(tenant_id, repo) / "runs"
             if base.exists():
                 for path in base.glob("*.json"):
                     data = json.loads(path.read_text(encoding="utf-8"))
+                    if tenant_id is not None and data.get("tenant_id") != tenant_id:
+                        continue
                     run = _run_from_dict_with_repo(data, repo)
-                    scorecard = self._fallback_load_scorecard_for_run(repo, run.id)
+                    scorecard = self._fallback_load_scorecard_for_run(tenant_id, repo, run.id)
                     if scorecard is not None:
                         run.scorecard = scorecard
                     runs.append((run.started_at or datetime.fromtimestamp(0, tz=UTC), run))
@@ -1400,14 +1565,17 @@ class PersistenceManager:
         async with self._session() as session:
             result = await session.execute(
                 select(AuditRunDB)
-                .where(AuditRunDB.repo_name == repo)
+                .where(
+                    AuditRunDB.repo_name == repo,
+                    AuditRunDB.tenant_id == tenant_id,
+                )
                 .order_by(AuditRunDB.started_at.desc())
                 .limit(limit)
             )
             rows = result.scalars().all()
             runs: list[AuditRun] = []
             for row in rows:
-                scorecard = await self._db_get_scorecard_for_run(session, row.id)
+                scorecard = await self._db_get_scorecard_for_run(session, row.id, tenant_id)
                 runs.append(_run_from_db_with_scorecard(row, scorecard))
             return runs
 
@@ -1415,9 +1583,15 @@ class PersistenceManager:
         self,
         session: AsyncSession,
         run_id: str,
+        tenant_id: str | None = None,
     ) -> Scorecard | None:
         """Load the scorecard linked to a specific audit run."""
-        result = await session.execute(select(ScorecardDB).where(ScorecardDB.run_id == run_id))
+        result = await session.execute(
+            select(ScorecardDB).where(
+                ScorecardDB.run_id == run_id,
+                ScorecardDB.tenant_id == tenant_id,
+            )
+        )
         row = result.scalar_one_or_none()
         if row is None:
             return None
@@ -1433,25 +1607,36 @@ class PersistenceManager:
                 FindingOccurrenceDB,
                 FindingDB.id == FindingOccurrenceDB.finding_id,
             )
-            .where(FindingOccurrenceDB.run_id == run_id)
+            .where(
+                FindingOccurrenceDB.run_id == run_id,
+                FindingDB.tenant_id == tenant_id,
+            )
             .distinct()
         )
         findings = [_finding_from_db(f) for f in finding_rows.scalars()]
 
         return _scorecard_from_db(row, area_scores, findings)
 
-    async def get_sprints(self, repo: str) -> list[Sprint]:
+    async def get_sprints(
+        self,
+        repo: str,
+        tenant_id: str | None = None,
+    ) -> list[Sprint]:
         """Return the sprints for the most recent audit run of a repository."""
         if self._use_fallback:
-            base = self._fallback_repo_dir(repo) / "sprints"
+            base = self._fallback_repo_dir(tenant_id, repo) / "sprints"
             if not base.exists():
                 return []
             entries: list[tuple[datetime, list[Sprint], Path]] = []
             for path in base.glob("*.json"):
                 data = json.loads(path.read_text(encoding="utf-8"))
                 sprints = [_sprint_from_dict(s) for s in data.get("sprints", [])]
+                if tenant_id is not None and any(
+                    s.get("tenant_id") != tenant_id for s in data.get("sprints", [])
+                ):
+                    continue
                 run_id = data.get("run_id", "")
-                run_path = self._fallback_repo_dir(repo) / "runs" / f"{run_id}.json"
+                run_path = self._fallback_repo_dir(tenant_id, repo) / "runs" / f"{run_id}.json"
                 started_at = datetime.fromtimestamp(0, tz=UTC)
                 if run_path.exists():
                     run_data = json.loads(run_path.read_text(encoding="utf-8"))
@@ -1466,7 +1651,10 @@ class PersistenceManager:
             result = await session.execute(
                 select(SprintDB)
                 .join(AuditRunDB, SprintDB.run_id == AuditRunDB.id)
-                .where(AuditRunDB.repo_name == repo)
+                .where(
+                    AuditRunDB.repo_name == repo,
+                    AuditRunDB.tenant_id == tenant_id,
+                )
                 .order_by(AuditRunDB.started_at.desc())
             )
             rows = result.scalars().all()

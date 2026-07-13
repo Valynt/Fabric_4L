@@ -12,6 +12,8 @@ from typing import Any
 
 import pytest
 from fastapi import FastAPI
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_admin
 
 from layer4_agents.agents.audit_orchestrator import api as audit_api
 from layer4_agents.agents.audit_orchestrator.api import (
@@ -35,6 +37,15 @@ from layer4_agents.agents.audit_orchestrator.persistence import PersistenceManag
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
 
 
+def _fake_require_tenant_admin():
+    return RequestContext(
+        tenant_id="tenant-a",
+        user_id="user-1",
+        auth_source="jwt_claim",
+        roles=["tenant_admin"],
+    )
+
+
 @pytest.fixture
 def app(tmp_path):
     """Create a minimal FastAPI app with the audit orchestrator router."""
@@ -49,6 +60,7 @@ def app(tmp_path):
         return PersistenceManager(fallback_dir=tmp_path / "fallback")
 
     application.dependency_overrides[get_manager] = _manager
+    application.dependency_overrides[require_tenant_admin] = _fake_require_tenant_admin
     return application
 
 
@@ -65,6 +77,7 @@ def _make_run_artifact(
     run_id: str,
     repo_name: str,
     finding_ids: list[str],
+    tenant_id: str = "tenant-a",
 ) -> None:
     """Seed a completed audit run with findings for a repository."""
     findings = [
@@ -83,6 +96,7 @@ def _make_run_artifact(
             owner="platform-team",
             status=FindingStatus.OPEN,
             analyzer_type="code",
+            tenant_id=tenant_id,
         )
         for fid in finding_ids
     ]
@@ -97,6 +111,7 @@ def _make_run_artifact(
         total_commits=5,
         total_contributors=1,
     )
+    scorecard.tenant_id = tenant_id
 
     run = AuditRun(
         id=run_id,
@@ -106,6 +121,7 @@ def _make_run_artifact(
         completed_at=datetime.now(UTC),
         repo_path="/tmp/repo",
         scorecard=scorecard,
+        tenant_id=tenant_id,
     )
 
     sprints = [
@@ -117,15 +133,16 @@ def _make_run_artifact(
             findings_targeted=finding_ids,
             status=SprintStatus.PLANNED,
             score_impact_projected=5,
+            tenant_id=tenant_id,
         )
     ]
 
     import asyncio
 
-    asyncio.run(manager.save_run(run))
-    asyncio.run(manager.save_scorecard(run_id, scorecard))
-    asyncio.run(manager.save_findings(run_id, findings, repo_name=repo_name))
-    asyncio.run(manager.save_sprints(run_id, sprints, repo_name=repo_name))
+    asyncio.run(manager.save_run(run, tenant_id=tenant_id))
+    asyncio.run(manager.save_scorecard(run_id, scorecard, tenant_id=tenant_id))
+    asyncio.run(manager.save_findings(run_id, findings, repo_name=repo_name, tenant_id=tenant_id))
+    asyncio.run(manager.save_sprints(run_id, sprints, repo_name=repo_name, tenant_id=tenant_id))
 
 
 @pytest.mark.unit
@@ -138,9 +155,11 @@ def test_trigger_audit_returns_run_id(client: Any, monkeypatch: pytest.MonkeyPat
         trigger_type: str,
         previous_run_id: str | None,
         run_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> None:
         captured["run_id"] = run_id
         captured["repo_name"] = config.repo_name
+        captured["tenant_id"] = tenant_id
 
     monkeypatch.setattr(audit_api, "_background_run", fake_background_run)
 
@@ -159,6 +178,7 @@ def test_trigger_audit_returns_run_id(client: Any, monkeypatch: pytest.MonkeyPat
     assert data["run_id"]
     assert data["run_id"] == captured["run_id"]
     assert captured["repo_name"] == "owner/repo-a"
+    assert captured["tenant_id"] == "tenant-a"
 
 
 @pytest.mark.unit
@@ -296,3 +316,34 @@ def test_update_finding_requires_repo_and_scopes_to_repo(client: Any, tmp_path: 
     )
     assert response.status_code == 200
     assert response.json()["status"] == "resolved"
+
+
+@pytest.mark.unit
+def test_github_webhook_url_with_push_does_not_trigger_on_pull_request(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+):
+    """A repo URL containing 'push' but event_type 'pull_request' must not trigger."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
+
+    captured = {}
+
+    def fake_background_run(
+        config: AuditConfig,
+        trigger_type: str,
+        previous_run_id: str | None,
+        run_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> None:
+        captured["triggered"] = True
+
+    monkeypatch.setattr(audit_api, "_background_run", fake_background_run)
+
+    payload = b'{"ref":"refs/heads/main","repository":{"clone_url":"https://github.com/push-to-deploy/repo.git","full_name":"push-to-deploy/repo"}}'
+    response = client.post(
+        "/v1/repo-audit/webhook/github",
+        content=payload,
+        headers={"x-github-event": "pull_request"},
+    )
+    assert response.status_code == 200
+    assert "triggered" not in captured

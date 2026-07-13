@@ -20,6 +20,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_admin
 
 from .config import ConfigManager
 from .graph import run_audit_async
@@ -154,12 +156,13 @@ def _background_run(
     trigger_type: str,
     previous_run_id: str | None,
     run_id: str | None = None,
+    tenant_id: str | None = None,
 ) -> None:
     """Synchronous wrapper used by FastAPI BackgroundTasks."""
     started_at = datetime.now(UTC)
     actual_run_id = run_id or str(uuid4())
     try:
-        asyncio.run(run_audit_async(config, trigger_type, previous_run_id, actual_run_id))
+        asyncio.run(run_audit_async(config, trigger_type, previous_run_id, actual_run_id, tenant_id))
     except Exception as exc:
         logger.exception("Background audit run failed")
         try:
@@ -176,8 +179,9 @@ def _background_run(
                 repo_path=config.repo_name,
                 error_message=str(exc),
                 previous_run_id=previous_run_id,
+                tenant_id=tenant_id,
             )
-            asyncio.run(manager.save_run(failed_run))
+            asyncio.run(manager.save_run(failed_run, tenant_id=tenant_id))
         except Exception:
             logger.exception("Failed to persist failed audit run")
 
@@ -191,19 +195,23 @@ def _background_run(
 async def trigger_audit(
     request: AuditTriggerRequest,
     background_tasks: BackgroundTasks,
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> AuditRunResponse:
     """Trigger a new audit run. Returns a run ID immediately."""
     if not request.repo_url or not request.repo_url.strip():
         raise HTTPException(status_code=400, detail="repo_url is required")
 
     config = _build_config(request)
+    config.tenant_id = str(context.tenant_id)
 
     if not config.repo_url or not config.repo_url.strip():
         raise HTTPException(status_code=400, detail="repo_url is required")
 
     trigger_type = request.trigger_type or "manual"
     run_id = str(uuid4())
-    background_tasks.add_task(_background_run, config, trigger_type, None, run_id)
+    background_tasks.add_task(
+        _background_run, config, trigger_type, None, run_id, str(context.tenant_id)
+    )
 
     if _PROMETHEUS_AVAILABLE:
         AUDIT_RUNS_TOTAL.labels(trigger_type=trigger_type, status="pending").inc()
@@ -218,15 +226,17 @@ async def trigger_audit(
 async def get_audit_run(
     run_id: str,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> AuditRunDetail:
     """Get the status and results of a single audit run."""
-    run = await manager.get_run(run_id)
+    tenant_id = str(context.tenant_id)
+    run = await manager.get_run(run_id, tenant_id=tenant_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Audit run not found")
 
     scorecard = run.scorecard
     repo_name = scorecard.repo_name if scorecard else "unknown/repo"
-    sprints = await manager.get_sprints(repo_name)
+    sprints = await manager.get_sprints(repo_name, tenant_id=tenant_id)
     return AuditRunDetail(
         run_id=run.id,
         status=run.status,
@@ -250,9 +260,11 @@ async def list_audit_runs(
     repo: str,
     limit: int = Query(20, ge=1, le=100),
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> list[AuditRunSummary]:
     """List recent audit runs for a repository."""
-    runs = await manager.list_runs(repo, limit=limit)
+    tenant_id = str(context.tenant_id)
+    runs = await manager.list_runs(repo, limit=limit, tenant_id=tenant_id)
     return [
         AuditRunSummary(
             run_id=run.id,
@@ -274,9 +286,11 @@ async def list_audit_runs(
 async def get_latest_scorecard(
     repo: str,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> Scorecard:
     """Return the latest scorecard for a repository."""
-    scorecard = await manager.get_latest_scorecard(repo)
+    tenant_id = str(context.tenant_id)
+    scorecard = await manager.get_latest_scorecard(repo, tenant_id=tenant_id)
     if scorecard is None:
         raise HTTPException(status_code=404, detail="No scorecard found for repository")
     return scorecard
@@ -287,9 +301,11 @@ async def get_score_history(
     repo: str,
     area: AuditArea | None = None,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> ScoreHistory:
     """Return score history over time for a repository."""
-    return await manager.get_score_history(repo, area=area)
+    tenant_id = str(context.tenant_id)
+    return await manager.get_score_history(repo, area=area, tenant_id=tenant_id)
 
 
 @router.get("/findings", response_model=list[Finding])
@@ -299,9 +315,13 @@ async def list_findings(
     severity: Severity | None = None,
     area: AuditArea | None = None,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> list[Finding]:
     """List findings for a repository, filtered by status, severity, and area."""
-    findings = await manager.list_findings(repo, status=status, severity=severity, area=area)
+    tenant_id = str(context.tenant_id)
+    findings = await manager.list_findings(
+        repo, status=status, severity=severity, area=area, tenant_id=tenant_id
+    )
     return findings
 
 
@@ -311,13 +331,17 @@ async def update_finding(
     update: FindingUpdate,
     repo: str,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> Finding:
     """Update a finding's status, owner, sprint, or resolution note.
 
     The ``repo`` query parameter scopes the update to a single repository and
     prevents accidental cross-repo modifications.
     """
-    updated = await manager.update_finding(finding_id, update, repo=repo)
+    tenant_id = str(context.tenant_id)
+    updated = await manager.update_finding(
+        finding_id, update, repo=repo, tenant_id=tenant_id
+    )
     if updated is None:
         raise HTTPException(status_code=404, detail="Finding not found")
     return updated
@@ -327,9 +351,11 @@ async def update_finding(
 async def get_sprint_plan(
     repo: str,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> list[Sprint]:
     """Return the current sprint plan for a repository."""
-    return await manager.get_sprints(repo)
+    tenant_id = str(context.tenant_id)
+    return await manager.get_sprints(repo, tenant_id=tenant_id)
 
 
 @router.get("/report/{run_id}", response_model=None)
@@ -337,9 +363,11 @@ async def get_report(
     run_id: str,
     format: ReportFormat = ReportFormat.MARKDOWN,
     manager: PersistenceManager = Depends(get_manager),
+    context: RequestContext = Depends(require_tenant_admin),
 ) -> PlainTextResponse | JSONResponse:
     """Download the audit report for a run as Markdown or JSON."""
-    run = await manager.get_run(run_id)
+    tenant_id = str(context.tenant_id)
+    run = await manager.get_run(run_id, tenant_id=tenant_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Audit run not found")
 
@@ -348,14 +376,14 @@ async def get_report(
             raise HTTPException(status_code=404, detail="Scorecard not available")
         from .reporter import generate_full_report
 
-        sprints = await manager.get_sprints(run.scorecard.repo_name)
+        sprints = await manager.get_sprints(run.scorecard.repo_name, tenant_id=tenant_id)
         content = generate_full_report(run.scorecard, sprints)
         return PlainTextResponse(content=content, media_type="text/markdown")
 
     # JSON format returns the scorecard with sprint plan metadata.
     if run.scorecard is None:
         raise HTTPException(status_code=404, detail="Scorecard not available")
-    sprints = await manager.get_sprints(run.scorecard.repo_name)
+    sprints = await manager.get_sprints(run.scorecard.repo_name, tenant_id=tenant_id)
     return JSONResponse(
         content={
             "run_id": run_id,
@@ -415,7 +443,7 @@ async def github_webhook(
     trigger_type = "webhook"
     should_trigger = False
 
-    if event_type == "push" and ("push" in repo_url or ref.startswith("refs/heads/")):
+    if event_type == "push" and ref.startswith("refs/heads/"):
         should_trigger = True
     elif event_type in {"release", "released"}:
         should_trigger = True
@@ -426,7 +454,12 @@ async def github_webhook(
         config = config_manager.load_or_default(
             overrides={"repo_url": repo_url, "repo_name": repo_name}
         )
-        background_tasks.add_task(_background_run, config, trigger_type, None)
+        # Placeholder tenant until multi-tenant webhook routing is designed.
+        webhook_tenant_id = "github-webhook"
+        config.tenant_id = webhook_tenant_id
+        background_tasks.add_task(
+            _background_run, config, trigger_type, None, None, webhook_tenant_id
+        )
 
         if _PROMETHEUS_AVAILABLE:
             AUDIT_RUNS_TOTAL.labels(trigger_type=trigger_type, status="pending").inc()

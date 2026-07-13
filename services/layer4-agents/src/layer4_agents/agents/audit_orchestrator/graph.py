@@ -442,6 +442,7 @@ async def node_persist(state: AuditState) -> dict[str, Any]:
     """Persist the audit run, scorecard, findings, and sprints."""
     config = state["config"]
     scorecard = state.get("scorecard")
+    tenant_id = config.tenant_id
 
     try:
         manager = PersistenceManager(
@@ -461,15 +462,26 @@ async def node_persist(state: AuditState) -> dict[str, Any]:
             previous_run_id=state.get("previous_run_id"),
             files_changed_since_last=state.get("files_changed_since_last", []),
             areas_reanalyzed=state.get("areas_reanalyzed", []),
+            tenant_id=tenant_id,
         )
 
-        await manager.save_run(audit_run)
+        await manager.save_run(audit_run, tenant_id=tenant_id)
         if scorecard is not None:
-            await manager.save_scorecard(audit_run.id, scorecard)
+            await manager.save_scorecard(audit_run.id, scorecard, tenant_id=tenant_id)
         if state.get("findings"):
-            await manager.save_findings(audit_run.id, state["findings"], repo_name=config.repo_name)
+            await manager.save_findings(
+                audit_run.id,
+                state["findings"],
+                repo_name=config.repo_name,
+                tenant_id=tenant_id,
+            )
         if state.get("sprints"):
-            await manager.save_sprints(audit_run.id, state["sprints"], repo_name=config.repo_name)
+            await manager.save_sprints(
+                audit_run.id,
+                state["sprints"],
+                repo_name=config.repo_name,
+                tenant_id=tenant_id,
+            )
 
         return {"current_step": "persist"}
     except Exception as exc:
@@ -505,6 +517,7 @@ async def node_handle_error(state: AuditState) -> dict[str, Any]:
     """Error handler that preserves partial results and persists a failed run."""
     error_message = state.get("error") or "unknown error"
     config = state["config"]
+    tenant_id = config.tenant_id
     completed_at = datetime.now(UTC)
 
     try:
@@ -523,8 +536,9 @@ async def node_handle_error(state: AuditState) -> dict[str, Any]:
             previous_run_id=state.get("previous_run_id"),
             files_changed_since_last=state.get("files_changed_since_last", []),
             areas_reanalyzed=state.get("areas_reanalyzed", []),
+            tenant_id=tenant_id,
         )
-        await manager.save_run(audit_run)
+        await manager.save_run(audit_run, tenant_id=tenant_id)
     except Exception:
         logger.exception("Failed to persist failed audit run from error handler")
 
@@ -669,8 +683,11 @@ async def run_audit_async(
     trigger_type: str = "manual",
     previous_run_id: str | None = None,
     run_id: str | None = None,
+    tenant_id: str | None = None,
 ) -> AuditState:
     """Asynchronous entrypoint that executes the full audit graph."""
+    if tenant_id is not None:
+        config.tenant_id = tenant_id
     graph = create_audit_graph()
     initial_state = _initial_state(config, trigger_type, previous_run_id, run_id)
     final_state = await graph.ainvoke(initial_state)
@@ -684,9 +701,10 @@ def run_audit(
     trigger_type: str = "manual",
     previous_run_id: str | None = None,
     run_id: str | None = None,
+    tenant_id: str | None = None,
 ) -> AuditState:
     """Synchronous entrypoint that executes the full audit graph."""
-    return asyncio.run(run_audit_async(config, trigger_type, previous_run_id, run_id))
+    return asyncio.run(run_audit_async(config, trigger_type, previous_run_id, run_id, tenant_id))
 
 
 __all__ = [

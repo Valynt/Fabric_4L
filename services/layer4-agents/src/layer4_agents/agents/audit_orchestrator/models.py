@@ -235,6 +235,12 @@ class Finding(BaseModel):
         description="Raw command output that led to this finding",
     )
 
+    # --- Tenant isolation ---
+    tenant_id: str | None = Field(
+        default=None,
+        description="Tenant that owns this finding",
+    )
+
     def mark_seen(self) -> None:
         """Update last_seen_at and increment times_seen for a new observation."""
         self.last_seen_at = datetime.now(UTC)
@@ -381,6 +387,12 @@ class Scorecard(BaseModel):
         description="Executive summary of the audit results",
     )
 
+    # --- Tenant isolation ---
+    tenant_id: str | None = Field(
+        default=None,
+        description="Tenant that owns this scorecard",
+    )
+
     @field_validator("area_scores")
     @classmethod
     def _validate_area_scores(cls, v: list[AreaScore]) -> list[AreaScore]:
@@ -494,6 +506,12 @@ class Sprint(BaseModel):
         description="Actual score impact after sprint completion",
     )
 
+    # --- Tenant isolation ---
+    tenant_id: str | None = Field(
+        default=None,
+        description="Tenant that owns this sprint",
+    )
+
     def start(self) -> None:
         """Mark the sprint as started."""
         self.status = SprintStatus.IN_PROGRESS
@@ -565,6 +583,12 @@ class AuditRun(BaseModel):
     areas_reanalyzed: list[str] = Field(
         default_factory=list,
         description="Audit areas that were fully re-analyzed in this run",
+    )
+
+    # --- Tenant isolation ---
+    tenant_id: str | None = Field(
+        default=None,
+        description="Tenant that owns this audit run",
     )
 
     def mark_completed(self, scorecard: Scorecard | None = None) -> None:
@@ -743,6 +767,12 @@ class AuditConfig(BaseModel):
     trigger_on_release: bool = Field(
         default=True,
         description="Trigger audit on release events",
+    )
+
+    # --- Tenant isolation ---
+    tenant_id: str | None = Field(
+        default=None,
+        description="Tenant that owns this audit run",
     )
 
     @field_validator("area_weights")

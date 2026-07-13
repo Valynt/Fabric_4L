@@ -337,7 +337,7 @@ async def test_fallback_atomic_write(
 ) -> None:
     await fallback_manager.save_run(sample_run)
     run_path = (
-        fallback_manager._fallback_repo_dir(sample_run.scorecard.repo_name)
+        fallback_manager._fallback_repo_dir(None, sample_run.scorecard.repo_name)
         / "runs"
         / f"{sample_run.id}.json"
     )
@@ -563,3 +563,167 @@ def test_repo_name_from_path_uses_git_remote(
 
     monkeypatch.setattr("subprocess.run", fake_run)
     assert _repo_name_from_path(str(git_dir)) == "acme/widget"
+
+
+# ---------------------------------------------------------------------------
+# Tenant isolation tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+async def test_fallback_tenant_isolation_for_findings(
+    fallback_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+    sample_finding: Finding,
+) -> None:
+    """Tenant A cannot read Tenant B's findings in fallback mode."""
+    tenant_a = "tenant-a"
+    tenant_b = "tenant-b"
+
+    await fallback_manager.save_run(sample_run, tenant_id=tenant_a)
+    await fallback_manager.save_scorecard(
+        sample_run.id, sample_scorecard, tenant_id=tenant_a
+    )
+    await fallback_manager.save_findings(
+        sample_run.id,
+        [sample_finding],
+        repo_name=sample_scorecard.repo_name,
+        tenant_id=tenant_a,
+    )
+
+    a_findings = await fallback_manager.list_findings(
+        sample_scorecard.repo_name, tenant_id=tenant_a
+    )
+    assert len(a_findings) == 1
+
+    b_findings = await fallback_manager.list_findings(
+        sample_scorecard.repo_name, tenant_id=tenant_b
+    )
+    assert b_findings == []
+
+
+@pytest.mark.unit
+async def test_fallback_tenant_isolation_for_runs(
+    fallback_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+) -> None:
+    """Tenant A cannot read Tenant B's runs in fallback mode."""
+    tenant_a = "tenant-a"
+    tenant_b = "tenant-b"
+
+    await fallback_manager.save_run(sample_run, tenant_id=tenant_a)
+    await fallback_manager.save_scorecard(
+        sample_run.id, sample_scorecard, tenant_id=tenant_a
+    )
+
+    a_run = await fallback_manager.get_run(sample_run.id, tenant_id=tenant_a)
+    assert a_run is not None
+
+    b_run = await fallback_manager.get_run(sample_run.id, tenant_id=tenant_b)
+    assert b_run is None
+
+
+@pytest.mark.unit
+async def test_db_tenant_isolation_for_findings(
+    db_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+    sample_finding: Finding,
+) -> None:
+    """Tenant A cannot read Tenant B's findings in DB mode."""
+    tenant_a = "tenant-a"
+    tenant_b = "tenant-b"
+
+    await db_manager.save_run(sample_run, tenant_id=tenant_a)
+    await db_manager.save_scorecard(sample_run.id, sample_scorecard, tenant_id=tenant_a)
+    await db_manager.save_findings(
+        sample_run.id,
+        [sample_finding],
+        repo_name=sample_scorecard.repo_name,
+        tenant_id=tenant_a,
+    )
+
+    a_findings = await db_manager.list_findings(
+        sample_scorecard.repo_name, tenant_id=tenant_a
+    )
+    assert len(a_findings) == 1
+
+    b_findings = await db_manager.list_findings(
+        sample_scorecard.repo_name, tenant_id=tenant_b
+    )
+    assert b_findings == []
+
+
+@pytest.mark.unit
+async def test_db_tenant_isolation_for_runs(
+    db_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+) -> None:
+    """Tenant A cannot read Tenant B's runs in DB mode."""
+    tenant_a = "tenant-a"
+    tenant_b = "tenant-b"
+
+    await db_manager.save_run(sample_run, tenant_id=tenant_a)
+    await db_manager.save_scorecard(sample_run.id, sample_scorecard, tenant_id=tenant_a)
+
+    a_run = await db_manager.get_run(sample_run.id, tenant_id=tenant_a)
+    assert a_run is not None
+
+    b_run = await db_manager.get_run(sample_run.id, tenant_id=tenant_b)
+    assert b_run is None
+
+
+# ---------------------------------------------------------------------------
+# Incremental run field round-trip tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+async def test_incremental_fields_round_trip_db(
+    db_manager: PersistenceManager,
+    sample_scorecard: Any,
+) -> None:
+    """Incremental run fields survive a DB round trip."""
+    run = AuditRun(
+        status="completed",
+        trigger_type="manual",
+        repo_path="/tmp/owner/repo",
+        previous_run_id="prev-run-123",
+        files_changed_since_last=["src/app.py", "README.md"],
+        areas_reanalyzed=["C: Correctness, Data Integrity, Contracts"],
+    )
+    run.mark_completed(sample_scorecard)
+
+    await db_manager.save_run(run)
+    loaded = await db_manager.get_run(run.id)
+    assert loaded is not None
+    assert loaded.previous_run_id == "prev-run-123"
+    assert loaded.files_changed_since_last == ["src/app.py", "README.md"]
+    assert loaded.areas_reanalyzed == ["C: Correctness, Data Integrity, Contracts"]
+
+
+@pytest.mark.unit
+async def test_incremental_fields_round_trip_fallback(
+    fallback_manager: PersistenceManager,
+    sample_scorecard: Any,
+) -> None:
+    """Incremental run fields survive a JSON fallback round trip."""
+    run = AuditRun(
+        status="completed",
+        trigger_type="manual",
+        repo_path="/tmp/owner/repo",
+        previous_run_id="prev-run-456",
+        files_changed_since_last=["src/main.py"],
+        areas_reanalyzed=["E: Security and Supply Chain"],
+    )
+    run.mark_completed(sample_scorecard)
+
+    await fallback_manager.save_run(run)
+    loaded = await fallback_manager.get_run(run.id)
+    assert loaded is not None
+    assert loaded.previous_run_id == "prev-run-456"
+    assert loaded.files_changed_since_last == ["src/main.py"]
+    assert loaded.areas_reanalyzed == ["E: Security and Supply Chain"]

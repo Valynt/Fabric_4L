@@ -523,6 +523,7 @@ def calculate_area_score(
     findings: list[Finding],
     metrics: dict[str, Any],
     weight: float | None = None,
+    grade_thresholds: dict[str, tuple[int, int]] | None = None,
 ) -> AreaScore:
     """Calculate the score for a single audit area.
 
@@ -543,6 +544,8 @@ def calculate_area_score(
         metrics: Dictionary of collected metrics for the area.
         weight: Optional weight for this area. Falls back to
             :data:`DEFAULT_AREA_WEIGHTS` if not provided.
+        grade_thresholds: Optional custom grade thresholds. Uses
+            :data:`GRADE_THRESHOLDS` when ``None``.
 
     Returns:
         An :class:`AreaScore` instance with the computed score and metadata.
@@ -587,7 +590,7 @@ def calculate_area_score(
         area_confidence = Confidence.MEDIUM
 
     # --- Determine grade ---
-    grade = score_to_grade(final_score)
+    grade = score_to_grade(final_score, thresholds=grade_thresholds)
 
     # --- Build diagnosis ---
     if finding_deduction > metric_deduction:
@@ -696,6 +699,7 @@ def build_scorecard(
     metrics_by_area: dict[AuditArea, dict[str, Any]] | None = None,
     historical_scores: dict[AuditArea | None, list[int]] | None = None,
     area_weights: dict[AuditArea, float] | None = None,
+    grade_thresholds: dict[str, tuple[int, int]] | None = None,
     branch: str = "main",
     commit_sha: str | None = None,
     total_files: int = 0,
@@ -719,6 +723,8 @@ def build_scorecard(
             the overall score history.
         area_weights: Optional custom area weights. Uses
             :data:`DEFAULT_AREA_WEIGHTS` when ``None``.
+        grade_thresholds: Optional custom grade thresholds. Uses
+            :data:`DEFAULT_GRADE_THRESHOLDS` when ``None``.
         branch: Git branch that was audited.
         commit_sha: Optional git commit SHA.
         total_files: Total number of files analyzed.
@@ -734,6 +740,7 @@ def build_scorecard(
     metrics_by_area = metrics_by_area or {}
     historical_scores = historical_scores or {}
     weights = area_weights or DEFAULT_AREA_WEIGHTS
+    thresholds = grade_thresholds or DEFAULT_GRADE_THRESHOLDS
 
     area_scores: list[AreaScore] = []
     for area in AuditArea:
@@ -741,7 +748,7 @@ def build_scorecard(
         area_metrics = metrics_by_area.get(area, {})
         area_weight = weights.get(area, DEFAULT_AREA_WEIGHTS.get(area, 0.1))
         area_score = calculate_area_score(
-            area, area_findings, area_metrics, weight=area_weight
+            area, area_findings, area_metrics, weight=area_weight, grade_thresholds=thresholds
         )
 
         # Apply trend if historical data exists
@@ -751,7 +758,7 @@ def build_scorecard(
 
         area_scores.append(area_score)
 
-    overall_score, overall_grade = calculate_overall_score(area_scores)
+    overall_score, overall_grade = calculate_overall_score(area_scores, thresholds=thresholds)
 
     if confidence is None:
         if all(a.confidence == Confidence.HIGH for a in area_scores):

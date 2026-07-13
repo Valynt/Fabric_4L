@@ -522,3 +522,23 @@ def test_calculate_area_score_minimum_clamp() -> None:
     )
     # Finding cap 60 + metric cap 30 = 90 deduction, floor at 10.
     assert area_score.score == 10
+
+
+@pytest.mark.unit
+def test_build_scorecard_uses_custom_grade_thresholds(perfect_finding: Finding) -> None:
+    """Custom grade_thresholds in build_scorecard must be honored for overall and area grades."""
+    perfect_finding.area = AuditArea.CORRECTNESS
+    custom_thresholds = {
+        "Pass": (90, 100),
+        "Marginal": (70, 89),
+        "Fail": (0, 69),
+    }
+    scorecard = build_scorecard(
+        repo_name="test/repo",
+        findings=[perfect_finding],
+        grade_thresholds=custom_thresholds,
+    )
+    assert scorecard.overall_grade == "Pass"
+    correctness = scorecard.get_area_score(AuditArea.CORRECTNESS)
+    assert correctness is not None
+    assert correctness.grade == "Pass"
