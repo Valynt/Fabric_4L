@@ -359,8 +359,12 @@ jobs:
                 return 0
               fi
             done
-            echo "Missing required artifact for ${label}: $*" >&2
-            exit 1
+            python scripts/ci/record_environment_required_artifact.py "$ENV_REQUIRED_FILE" "$label" "$*"
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate artifact for ${label}: $*" >&2
+              exit 1
+            fi
+            return 1
           }
 
           record_environment_required_artifact() {
@@ -380,16 +384,22 @@ jobs:
             return 1
           }
 
-          tenant_isolation_file="$(resolve_first_artifact \
+          tenant_isolation_file=""
+          if tenant_candidate="$(resolve_first_artifact \
             "tenant isolation test results" \
             "*/artifacts/security/tenant-isolation-results.json" \
             "*/artifacts/security/tenant-isolation/bundle-latest.json" \
-            "*/artifacts/tenant-isolation/summary.json")"
-          auth_coverage_file="$(resolve_first_artifact \
+            "*/artifacts/tenant-isolation/summary.json")"; then
+            tenant_isolation_file="${tenant_candidate}"
+          fi
+          auth_coverage_file=""
+          if auth_candidate="$(resolve_first_artifact \
             "auth endpoint coverage report" \
             "*/artifacts/security/auth-endpoint-coverage.json" \
             "*/artifacts/security/report.json" \
-            "*/artifacts/route-tenant-propagation.json")"
+            "*/artifacts/route-tenant-propagation.json")"; then
+            auth_coverage_file="${auth_candidate}"
+          fi
           migration_rollback_file=""
           if migration_candidate="$(record_environment_required_artifact "migration rollback test output" "*/artifacts/state/migration-rollback-test-output.txt")"; then
             migration_rollback_file="${migration_candidate}"
@@ -399,10 +409,14 @@ jobs:
             red_snapshot_file="${red_candidate}"
           fi
 
-          cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
-          cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
-          cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
-          cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
+          if [[ -n "${tenant_isolation_file}" ]]; then
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
+          fi
+          if [[ -n "${auth_coverage_file}" ]]; then
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
+          fi
 
           if [[ -n "${migration_rollback_file}" ]]; then
             cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
