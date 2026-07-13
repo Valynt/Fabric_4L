@@ -84,7 +84,7 @@ def _merged_prs(repo: str, base: str, lookback: int, exclude: int) -> list[dict[
                 "number,title",
             ]
         )
-    except subprocess.CalledProcessError as exc:
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"PR overlap guard: could not list merged PRs ({exc}). Skipping history check.")
         return []
 
