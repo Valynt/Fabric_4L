@@ -29,7 +29,11 @@ labels:
 
 patches:
   - path: prod-replicas-patch.yml
-  - path: neo4j-aura-patch.yml
+  - path: neo4j-aura-delete-deployment.yml
+  - path: neo4j-aura-delete-service.yml
+  - path: neo4j-aura-delete-pvc-data.yml
+  - path: neo4j-aura-delete-pvc-logs.yml
+  - path: neo4j-aura-delete-pdb.yml
   - path: layer4-aura-wait-patch.yml
 
 # Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
