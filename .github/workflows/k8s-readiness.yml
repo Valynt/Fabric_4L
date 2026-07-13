@@ -74,10 +74,10 @@ jobs:
           kubeconform -summary -strict -ignore-missing-schemas /tmp/dev.yaml
           kubeconform -summary -strict -ignore-missing-schemas /tmp/prod.yaml
 
-      - name: Client dry-run precheck
-        run: |
-          kubectl apply --dry-run=client --validate=false -f /tmp/dev.yaml > /dev/null
-          kubectl apply --dry-run=client --validate=false -f /tmp/prod.yaml > /dev/null
+      # Client dry-run is intentionally omitted here: it requires a live
+      # apiserver to discover CRD-backed kinds (ExternalSecret, ClusterPolicy,
+      # ClusterSecretStore, etc.). The downstream k8s-server-dry-run job
+      # validates the same rendered manifests against a kind cluster.
 
   k8s-server-dry-run:
     name: K8s Server Dry Run (Required)
