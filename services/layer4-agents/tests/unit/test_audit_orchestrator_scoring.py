@@ -356,6 +356,102 @@ def test_calculate_area_score_applies_catalog_metric_adjustments(
 
 
 @pytest.mark.unit
+def test_calculate_area_score_applies_mypy_disabled_codes_metric(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """mypy_disabled_codes emitted by the catalog must reduce Code Quality score."""
+    from layer4_agents.agents.audit_orchestrator import analyzers
+    from layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog import (
+        _check_mypy_disabled,
+    )
+    from layer4_agents.agents.audit_orchestrator.models import AuditConfig
+
+    fake_mypy = {
+        "disable_error_code": ["arg-type", "assignment"],
+        "ignore_missing_imports": True,
+    }
+    monkeypatch.setattr(
+        analyzers.finding_catalog,
+        "_pyproject_sections",
+        lambda _repo_path, _section: [(tmp_path / "pyproject.toml", fake_mypy)],
+    )
+
+    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    result = _check_mypy_disabled(tmp_path, config)
+    assert "mypy_disabled_codes" in result
+    assert result["mypy_disabled_codes"] == 3
+
+    area_score = calculate_area_score(
+        AuditArea.CODE_QUALITY,
+        [],
+        {"mypy_disabled_codes": result["mypy_disabled_codes"]},
+    )
+    assert area_score.score == 97
+    assert (
+        "mypy" in area_score.diagnosis.lower()
+        or "metric gaps" in area_score.diagnosis.lower()
+    )
+
+
+@pytest.mark.unit
+def test_calculate_area_score_applies_migration_issue_count_metric(
+    tmp_path: Path,
+) -> None:
+    """migration_issue_count emitted by the catalog must reduce Correctness score."""
+    from layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog import (
+        _check_migration_downgrades,
+    )
+    from layer4_agents.agents.audit_orchestrator.models import AuditConfig
+
+    services_dir = tmp_path / "services" / "layerX"
+    versions_dir = services_dir / "migrations" / "versions"
+    versions_dir.mkdir(parents=True)
+    (versions_dir / "001_initial.py").write_text("def upgrade(): pass\n")
+
+    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    result = _check_migration_downgrades(tmp_path, config)
+    assert "migration_issue_count" in result
+    assert result["migration_issue_count"] == 1
+
+    area_score = calculate_area_score(
+        AuditArea.CORRECTNESS,
+        [],
+        {"migration_issue_count": result["migration_issue_count"]},
+    )
+    assert area_score.score == 97
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "area",
+    [
+        AuditArea.TESTING,
+        AuditArea.SECURITY,
+        AuditArea.CICD,
+        AuditArea.RELIABILITY,
+        AuditArea.DOCUMENTATION,
+        AuditArea.AGENT_READINESS,
+    ],
+)
+def test_calculate_area_score_missing_optional_metrics_preserves_baseline(
+    area: AuditArea,
+) -> None:
+    """Areas with only catalog-produced metrics must not KeyError or deduct when optional metrics are absent."""
+    area_score = calculate_area_score(area, [], {})
+    assert area_score.score == 100
+
+
+@pytest.mark.unit
+def test_calculate_area_score_missing_metrics_no_keyerror() -> None:
+    """All area adjusters must tolerate entirely absent metric dictionaries."""
+    for area in AuditArea:
+        area_score = calculate_area_score(area, [], {})
+        assert 0 <= area_score.score <= 100
+        assert area_score.grade
+
+
+@pytest.mark.unit
 def test_calculate_area_score_default_weight(perfect_finding: Finding) -> None:
     perfect_finding.area = AuditArea.CORRECTNESS
     area_score = calculate_area_score(AuditArea.CORRECTNESS, [perfect_finding], {})

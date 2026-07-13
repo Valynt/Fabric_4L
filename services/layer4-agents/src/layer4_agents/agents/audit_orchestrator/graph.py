@@ -501,12 +501,37 @@ async def node_update_kg(state: AuditState) -> dict[str, Any]:
         return {"error": f"knowledge-graph update failed: {exc}", "current_step": "update_kg"}
 
 
-def node_handle_error(state: AuditState) -> dict[str, Any]:
-    """Error handler that preserves partial results and marks the run failed."""
+async def node_handle_error(state: AuditState) -> dict[str, Any]:
+    """Error handler that preserves partial results and persists a failed run."""
+    error_message = state.get("error") or "unknown error"
+    config = state["config"]
+    completed_at = datetime.now(UTC)
+
+    try:
+        manager = PersistenceManager(
+            postgres_dsn=config.postgres_dsn,
+            fallback_dir=config.cache_dir,
+        )
+        audit_run = AuditRun(
+            id=state["run_id"],
+            status="failed",
+            trigger_type=state["trigger_type"],
+            started_at=state["started_at"],
+            completed_at=completed_at,
+            repo_path=state.get("repo_path") or ".",
+            error_message=error_message,
+            previous_run_id=state.get("previous_run_id"),
+            files_changed_since_last=state.get("files_changed_since_last", []),
+            areas_reanalyzed=state.get("areas_reanalyzed", []),
+        )
+        await manager.save_run(audit_run)
+    except Exception:
+        logger.exception("Failed to persist failed audit run from error handler")
+
     return {
         "status": "failed",
-        "completed_at": datetime.now(UTC),
-        "error_message": state.get("error") or "unknown error",
+        "completed_at": completed_at,
+        "error_message": error_message,
         "current_step": "handle_error",
     }
 
@@ -649,6 +674,8 @@ async def run_audit_async(
     graph = create_audit_graph()
     initial_state = _initial_state(config, trigger_type, previous_run_id, run_id)
     final_state = await graph.ainvoke(initial_state)
+    if final_state.get("error"):
+        raise RuntimeError(f"Audit run failed: {final_state['error']}")
     return final_state
 
 

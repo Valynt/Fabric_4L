@@ -288,17 +288,25 @@ def _check_bare_excepts(repo_path: Path, _config: AuditConfig) -> dict[str, Any]
 
 def _check_mypy_disabled(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
     disabled: list[str] = []
+    disabled_code_count = 0
     for pyproject, mypy in _pyproject_sections(repo_path, "mypy"):
         if mypy.get("disable_error_code"):
             disabled.append(f"{pyproject}: disable_error_code={mypy['disable_error_code']}")
+            error_codes = mypy["disable_error_code"]
+            if isinstance(error_codes, list):
+                disabled_code_count += len(error_codes)
+            else:
+                # Treat a single string/code as one disabled code.
+                disabled_code_count += 1
         if mypy.get("ignore_missing_imports"):
             disabled.append(f"{pyproject}: ignore_missing_imports=true")
+            disabled_code_count += 1
     return {
         "triggered": bool(disabled),
         "evidence": "; ".join(disabled[:5]),
-        "check_output": f"{len(disabled)} mypy configuration entries disable checks",
-        "mypy_disabled_configs": len(disabled),
-        "observed_fact": f"{len(disabled)} mypy configuration(s) disable strictness checks.",
+        "check_output": f"{disabled_code_count} mypy error codes disabled",
+        "mypy_disabled_codes": disabled_code_count,
+        "observed_fact": f"{disabled_code_count} mypy error code(s) are disabled across configuration files.",
     }
 
 
@@ -372,7 +380,7 @@ def _check_migration_downgrades(repo_path: Path, _config: AuditConfig) -> dict[s
     missing: list[str] = []
     services_dir = repo_path / "services"
     if not services_dir.exists():
-        return {"triggered": False, "migration_files": 0, "migrations_missing_downgrade": 0}
+        return {"triggered": False, "migration_files": 0, "migration_issue_count": 0}
     migration_files = [
         p
         for p in _walk_files(repo_path, roots=[services_dir], extensions={".py"})
@@ -387,7 +395,7 @@ def _check_migration_downgrades(repo_path: Path, _config: AuditConfig) -> dict[s
         "evidence": "; ".join(missing[:10]),
         "check_output": f"{len(missing)} migrations missing downgrade",
         "migration_files": len(migration_files),
-        "migrations_missing_downgrade": len(missing),
+        "migration_issue_count": len(missing),
         "observed_fact": f"{len(missing)} Alembic migration file(s) are missing a downgrade function.",
     }
 

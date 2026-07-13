@@ -7,13 +7,17 @@ produced.
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from layer4_agents.agents.audit_orchestrator.graph import (
     create_audit_graph,
     run_audit,
+    run_audit_async,
 )
 from layer4_agents.agents.audit_orchestrator.models import AuditArea, AuditConfig
+from layer4_agents.agents.audit_orchestrator.persistence import PersistenceManager
 
 
 @pytest.mark.unit
@@ -85,3 +89,63 @@ def test_run_audit_without_sprints():
     assert state["scorecard"] is not None
     assert state["sprints"] == []
     assert state["report_markdown"]
+
+
+@pytest.mark.unit
+@pytest.mark.timeout(60)
+def test_graph_failure_persists_failed_audit_run(tmp_path, monkeypatch):
+    """An internal graph failure must persist a failed AuditRun record."""
+    run_id = "failed-run-001"
+    cache_dir = str(tmp_path / "audit_cache")
+    config = AuditConfig(
+        repo_url=".",
+        repo_name="test/failed-repo",
+        incremental=False,
+        sprints_enabled=False,
+        output_dir=str(tmp_path / "reports"),
+        cache_dir=cache_dir,
+    )
+
+    async def _failing_node(state):
+        return {"error": "injected analyzer failure", "current_step": "analyze_code"}
+
+    monkeypatch.setattr(
+        "layer4_agents.agents.audit_orchestrator.graph.node_analyze_code",
+        _failing_node,
+    )
+
+    with pytest.raises(RuntimeError, match="injected analyzer failure"):
+        run_audit(config, trigger_type="manual", run_id=run_id)
+
+    manager = PersistenceManager(fallback_dir=cache_dir)
+    run = asyncio.run(manager.get_run(run_id))
+    assert run is not None
+    assert run.status == "failed"
+    assert run.error_message is not None
+    assert "injected analyzer failure" in run.error_message
+    assert run.completed_at is not None
+
+
+@pytest.mark.unit
+@pytest.mark.timeout(60)
+async def test_run_audit_async_raises_on_failed_state(tmp_path, monkeypatch):
+    """run_audit_async must raise when the graph terminates with an error."""
+    config = AuditConfig(
+        repo_url=".",
+        repo_name="test/async-failed-repo",
+        incremental=False,
+        sprints_enabled=False,
+        output_dir=str(tmp_path / "reports"),
+        cache_dir=str(tmp_path / "audit_cache"),
+    )
+
+    async def _failing_node(state):
+        return {"error": "async injected failure", "current_step": "analyze_code"}
+
+    monkeypatch.setattr(
+        "layer4_agents.agents.audit_orchestrator.graph.node_analyze_code",
+        _failing_node,
+    )
+
+    with pytest.raises(RuntimeError, match="async injected failure"):
+        await run_audit_async(config, trigger_type="manual")
