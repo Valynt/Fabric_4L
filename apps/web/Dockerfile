@@ -36,11 +36,19 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
+COPY packages/feature-flags/package.json ./packages/feature-flags/
+COPY packages/platform-contract/package.json ./packages/platform-contract/
+COPY packages/shared/package.json ./packages/shared/
 
 # Install from workspace root
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build only the web app using workspace filter
+# Copy workspace source needed for the web build
+COPY apps/web ./apps/web
+COPY packages/config ./packages/config
+COPY packages/feature-flags ./packages/feature-flags
+COPY packages/platform-contract ./packages/platform-contract
+COPY packages/shared ./packages/shared
 RUN pnpm --filter ./apps/web build
 
 FROM node@sha256:1b2479dd35a99687d6638f5976fd235e26c5b37e8122f786fcd5fe231d63de5b AS runtime
@@ -61,13 +69,16 @@ COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plug
 COPY packages/config/package.json ./packages/config/
 
 # Install from workspace root (production only)
-RUN pnpm install --frozen-lockfile --prod
+# Ignore lifecycle scripts in the runtime stage: the app is already built in the
+# builder stage, and dev-only workspace packages (e.g. eslint-plugin) do not need
+# to compile inside the production image.
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Security: Run as non-root user (node is built-in to node:alpine images)
 # Set USER after all root-requiring operations (pnpm install)
 USER node
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/apps/web/dist ./dist
 
 EXPOSE 3000
 
