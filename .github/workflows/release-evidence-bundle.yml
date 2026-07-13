@@ -45,6 +45,8 @@ jobs:
           python -m pytest -q tests/release/test_observability_deployment_readiness.py --no-mandatory-dep-check
       - name: Generate release safety artifact
         run: python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate
+      - name: Verify release safety artifact
+        run: test -s artifacts/release/release-safety.json
       - name: Upload release safety artifact
         uses: actions/upload-artifact@v4
         with:

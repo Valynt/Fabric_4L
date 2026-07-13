@@ -2379,16 +2379,6 @@ jobs:
         run: |
           pnpm run gate-engineering:test
 
-      - name: Upload gate-engineering artifacts
-        if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
-        with:
-          name: gate-engineering-results
-          path: |
-            artifacts/release/release-readiness-report.json
-            artifacts/release/release-readiness-report.md
-          retention-days: 14
-
   unified-readiness-gate:
     name: Unified Readiness Gate
     runs-on: ubuntu-latest

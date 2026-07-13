@@ -187,7 +187,6 @@ jobs:
         with:
           name: db-readiness-artifacts
           path: |
-            artifacts/release/junit/
             artifacts/database/**
 
   observability-readiness:
