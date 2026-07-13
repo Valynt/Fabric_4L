@@ -160,7 +160,7 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Workflow Maintenance
 
-**Last Updated:** 2026-06-25
+**Last Updated:** 2026-07-13
 
 **Total Workflows:** 26
 
