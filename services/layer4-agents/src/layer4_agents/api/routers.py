@@ -8,6 +8,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from ..agents.audit_orchestrator.api import router as audit_orchestrator_router
 from ..config.settings import get_settings
 from ..feature_flags.api import feature_flags_router
 from ..registry.api.routes import router as models_router
@@ -62,6 +63,9 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workflows.router, prefix="/v1", tags=["workflows"])
     app.include_router(tools.router, prefix="/v1", tags=["tools"])
     app.include_router(audit_router.router, prefix="/v1", tags=["audit"])
+    app.include_router(
+        audit_orchestrator_router, prefix="/v1/repo-audit", tags=["repo-audit"]
+    )
     app.include_router(analysis.router, prefix="/v1", tags=["analysis"])
     app.include_router(accounts.router, prefix="/v1", tags=["Accounts"])
     app.include_router(signals.router, prefix="/v1", tags=["signals"])

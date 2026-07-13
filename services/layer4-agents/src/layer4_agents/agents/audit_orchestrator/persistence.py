@@ -477,6 +477,39 @@ def _run_to_dict(run: AuditRun) -> dict[str, Any]:
     }
 
 
+def _run_from_dict_with_repo(data: dict[str, Any], repo_name: str) -> AuditRun:
+    """Reconstruct an AuditRun from fallback storage, attaching repo metadata."""
+    return AuditRun(
+        id=data["id"],
+        status=data.get("status", "unknown"),
+        trigger_type=data.get("trigger_type", "manual"),
+        started_at=_parse_datetime(data.get("started_at")) or datetime.now(UTC),
+        completed_at=_parse_datetime(data.get("completed_at")),
+        repo_path=data.get("repo_path", ""),
+        error_message=data.get("error_message"),
+        previous_run_id=data.get("previous_run_id"),
+        files_changed_since_last=data.get("files_changed_since_last", []),
+        areas_reanalyzed=data.get("areas_reanalyzed", []),
+    )
+
+
+def _run_from_db_with_scorecard(row: AuditRunDB, scorecard: Scorecard | None) -> AuditRun:
+    """Reconstruct an AuditRun from a DB row, optionally attaching its scorecard."""
+    return AuditRun(
+        id=row.id,
+        status=row.status,
+        trigger_type=row.trigger_type,
+        started_at=row.started_at or datetime.now(UTC),
+        completed_at=row.completed_at,
+        repo_path=scorecard.repo_name if scorecard else row.repo_name,
+        scorecard=scorecard,
+        error_message=row.error_message,
+        previous_run_id=None,
+        files_changed_since_last=[],
+        areas_reanalyzed=[],
+    )
+
+
 def _repo_name_from_git_url(url: str) -> str:
     """Extract owner/repo from a git remote URL.
 
@@ -1279,6 +1312,162 @@ class PersistenceManager:
             if update.status == FindingStatus.RESOLVED and row.resolved_at is None:
                 row.resolved_at = datetime.now(UTC)
             return _finding_from_db(row)
+
+    # -----------------------------------------------------------------------
+    # Audit-run read API
+    # -----------------------------------------------------------------------
+
+    def _fallback_load_run(self, repo_name: str, run_id: str) -> AuditRun | None:
+        """Load a single audit run from the JSON fallback store."""
+        path = self._fallback_repo_dir(repo_name) / "runs" / f"{run_id}.json"
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return _run_from_dict_with_repo(data, repo_name)
+
+    def _fallback_find_run(self, run_id: str) -> tuple[str, dict[str, Any]] | None:
+        """Search all repo fallback directories for a run file."""
+        for repo_dir in self._fallback_dir.glob("*"):
+            if not repo_dir.is_dir():
+                continue
+            path = repo_dir / "runs" / f"{run_id}.json"
+            if path.exists():
+                repo_name = repo_dir.name.replace("__", "/")
+                return repo_name, json.loads(path.read_text(encoding="utf-8"))
+        return None
+
+    def _fallback_load_scorecard_for_run(
+        self,
+        repo_name: str,
+        run_id: str,
+    ) -> Scorecard | None:
+        """Load the scorecard associated with a specific run from fallback storage."""
+        for ts, data, _path in self._fallback_list_scorecards(repo_name):
+            if data.get("run_id") == run_id:
+                findings = self._fallback_load_findings_for_run(repo_name, run_id)
+                return _scorecard_from_dict(data, findings)
+        return None
+
+    async def get_run(self, run_id: str) -> AuditRun | None:
+        """Return a single audit run by ID, or None if not found."""
+        if self._use_fallback:
+            found = self._fallback_find_run(run_id)
+            if found is None:
+                return None
+            repo_name, data = found
+            run = _run_from_dict_with_repo(data, repo_name)
+            scorecard = self._fallback_load_scorecard_for_run(repo_name, run_id)
+            if scorecard is not None:
+                run.scorecard = scorecard
+            return run
+
+        async with self._session() as session:
+            row = await session.get(AuditRunDB, run_id)
+            if row is None:
+                return None
+            scorecard = await self._db_get_scorecard_for_run(session, run_id)
+            return _run_from_db_with_scorecard(row, scorecard)
+
+    async def list_runs(
+        self,
+        repo: str,
+        limit: int = 20,
+    ) -> list[AuditRun]:
+        """List recent audit runs for a repository."""
+        if self._use_fallback:
+            runs: list[tuple[datetime, AuditRun]] = []
+            base = self._fallback_repo_dir(repo) / "runs"
+            if base.exists():
+                for path in base.glob("*.json"):
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    run = _run_from_dict_with_repo(data, repo)
+                    scorecard = self._fallback_load_scorecard_for_run(repo, run.id)
+                    if scorecard is not None:
+                        run.scorecard = scorecard
+                    runs.append((run.started_at or datetime.fromtimestamp(0, tz=UTC), run))
+            runs.sort(key=lambda x: x[0], reverse=True)
+            return [r for _, r in runs[:limit]]
+
+        async with self._session() as session:
+            result = await session.execute(
+                select(AuditRunDB)
+                .where(AuditRunDB.repo_name == repo)
+                .order_by(AuditRunDB.started_at.desc())
+                .limit(limit)
+            )
+            rows = result.scalars().all()
+            runs: list[AuditRun] = []
+            for row in rows:
+                scorecard = await self._db_get_scorecard_for_run(session, row.id)
+                runs.append(_run_from_db_with_scorecard(row, scorecard))
+            return runs
+
+    async def _db_get_scorecard_for_run(
+        self,
+        session: AsyncSession,
+        run_id: str,
+    ) -> Scorecard | None:
+        """Load the scorecard linked to a specific audit run."""
+        result = await session.execute(
+            select(ScorecardDB).where(ScorecardDB.run_id == run_id)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return None
+
+        area_rows = await session.execute(
+            select(AreaScoreDB).where(AreaScoreDB.scorecard_id == row.id)
+        )
+        area_scores = [_area_score_from_db(a) for a in area_rows.scalars()]
+
+        finding_rows = await session.execute(
+            select(FindingDB)
+            .join(
+                FindingOccurrenceDB,
+                FindingDB.id == FindingOccurrenceDB.finding_id,
+            )
+            .where(FindingOccurrenceDB.run_id == run_id)
+            .distinct()
+        )
+        findings = [_finding_from_db(f) for f in finding_rows.scalars()]
+
+        return _scorecard_from_db(row, area_scores, findings)
+
+    async def get_sprints(self, repo: str) -> list[Sprint]:
+        """Return the sprints for the most recent audit run of a repository."""
+        if self._use_fallback:
+            base = self._fallback_repo_dir(repo) / "sprints"
+            if not base.exists():
+                return []
+            entries: list[tuple[datetime, list[Sprint], Path]] = []
+            for path in base.glob("*.json"):
+                data = json.loads(path.read_text(encoding="utf-8"))
+                sprints = [_sprint_from_dict(s) for s in data.get("sprints", [])]
+                run_id = data.get("run_id", "")
+                run_path = self._fallback_repo_dir(repo) / "runs" / f"{run_id}.json"
+                started_at = datetime.fromtimestamp(0, tz=UTC)
+                if run_path.exists():
+                    run_data = json.loads(run_path.read_text(encoding="utf-8"))
+                    started_at = _parse_datetime(run_data.get("started_at")) or started_at
+                entries.append((started_at, sprints, path))
+            if not entries:
+                return []
+            entries.sort(key=lambda x: x[0], reverse=True)
+            return entries[0][1]
+
+        async with self._session() as session:
+            result = await session.execute(
+                select(SprintDB)
+                .join(AuditRunDB, SprintDB.run_id == AuditRunDB.id)
+                .where(AuditRunDB.repo_name == repo)
+                .order_by(AuditRunDB.started_at.desc())
+            )
+            rows = result.scalars().all()
+            if not rows:
+                return []
+            # Rows are ordered by run; take the latest run's sprints.
+            latest_run_id = rows[0].run_id
+            return [_sprint_from_db(r) for r in rows if r.run_id == latest_run_id]
 
 
 # ---------------------------------------------------------------------------

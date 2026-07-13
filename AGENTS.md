@@ -392,6 +392,7 @@ Layer 3: Knowledge Graph & Semantic Layer
 Layer 4: Agentic Workflow Engine
 - Port: 8004
 - Responsibilities: LangGraph workflows, ROI calculator, business case generation, checkpoints, agent orchestration
+- AuditOrchestrator router is mounted at `/v1/repo-audit` (the legacy audit-log router remains at `/v1/audit`)
 
 Layer 5: Ground Truth
 - Port: 8005
