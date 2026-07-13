@@ -10,17 +10,29 @@ WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
 
 def test_package_json_scripts_do_not_invoke_pnpm_through_corepack() -> None:
     """Scripts must use the repository-installed pnpm directly, not corepack."""
-    for pkg_path in REPO_ROOT.rglob("package.json"):
-        # Skip dependency caches that may have been copied into the tree.
-        if "node_modules" in pkg_path.parts:
+    corepack_pnpm = re.compile(r"\bcorepack\s+pnpm\b")
+    skip_dirs = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", "node_modules"}
+
+    stack = [REPO_ROOT]
+    while stack:
+        current = stack.pop()
+        if current.name in skip_dirs:
             continue
-        pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
-        for name, script in pkg.get("scripts", {}).items():
-            assert isinstance(script, str)
-            assert "corepack pnpm" not in script, (
-                f"{pkg_path} script '{name}' invokes pnpm through corepack; "
-                "use plain 'pnpm' instead"
-            )
+
+        for entry in current.iterdir():
+            if entry.is_dir():
+                stack.append(entry)
+                continue
+            if entry.name != "package.json":
+                continue
+
+            pkg = json.loads(entry.read_text(encoding="utf-8"))
+            for name, script in pkg.get("scripts", {}).items():
+                assert isinstance(script, str)
+                assert not corepack_pnpm.search(script), (
+                    f"{entry} script '{name}' invokes pnpm through corepack; "
+                    "use plain 'pnpm' instead"
+                )
 
 
 def test_workflows_use_supported_pnpm_action_setup() -> None:
