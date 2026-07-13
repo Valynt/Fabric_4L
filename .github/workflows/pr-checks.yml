@@ -2057,25 +2057,18 @@ jobs:
         include:
           - layer: layer1-ingestion
             context: services/layer1-ingestion
-            dockerfile: ./Dockerfile
           - layer: layer2-extraction
             context: services/layer2-extraction
-            dockerfile: ./Dockerfile
           - layer: layer3-knowledge
             context: services/layer3-knowledge
-            dockerfile: ./Dockerfile
           - layer: layer4-agents
             context: services/layer4-agents
-            dockerfile: ./Dockerfile
           - layer: layer5-ground-truth
             context: services/layer5-ground-truth
-            dockerfile: ./Dockerfile
           - layer: layer6-benchmarks
             context: services/layer6-benchmarks
-            dockerfile: ./Dockerfile
           - layer: frontend
             context: apps/web
-            dockerfile: ./Dockerfile
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2090,7 +2083,6 @@ jobs:
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # v5
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
           push: false
           load: true
           tags: local/${{ matrix.layer }}:${{ github.sha }}
