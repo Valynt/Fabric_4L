@@ -50,6 +50,9 @@ EXCLUDE_DIRS = {
     ".next",
     "*.egg-info",
     "prototypes",  # Prototypes are temporary/experimental and don't need automated updates
+    ".worktrees",  # Git worktrees are not part of the canonical source tree
+    ".agents",     # Agent skill templates are copied/checked-in scaffolding
+    ".claude",     # Claude skill templates are copied/checked-in scaffolding
 }
 
 
@@ -96,6 +99,15 @@ def _pattern_matches_path(pattern: str, path_str: str) -> bool:
     return False
 
 
+def _dependabot_updates(config):
+    """Return the updates list whether the YAML root is a dict or a list."""
+    if isinstance(config, list):
+        return config
+    if isinstance(config, dict):
+        return config.get("updates", []) or []
+    return []
+
+
 def get_dependabot_entries(config: Dict) -> Dict[str, Set[str]]:
     """
     Extract dependabot entries by ecosystem.
@@ -103,7 +115,7 @@ def get_dependabot_entries(config: Dict) -> Dict[str, Set[str]]:
     """
     entries = {"pip": set(), "npm": set(), "docker": set(), "github-actions": set()}
 
-    for update in config.get("updates", []):
+    for update in _dependabot_updates(config):
         ecosystem = update.get("package-ecosystem")
         directory = update.get("directory", "")
 
@@ -121,7 +133,7 @@ def get_dependabot_entries_with_reviewers(config: Dict) -> List[Tuple[str, str, 
     Returns: [(ecosystem, directory, reviewers), ...]
     """
     entries: List[Tuple[str, str, List[str]]] = []
-    for update in config.get("updates", []):
+    for update in _dependabot_updates(config):
         ecosystem = update.get("package-ecosystem", "")
         directory = update.get("directory", "")
         reviewers = update.get("reviewers", [])
@@ -263,14 +275,15 @@ def validate_stale_dependabot_entries(
     return stale_entries
 
 
-def discover_packages() -> Dict[str, Set[Path]]:
+def discover_packages(repo_root: Path | None = None) -> Dict[str, Set[Path]]:
     """
     Discover all packages in the repository by ecosystem.
     Returns: {ecosystem: set_of_package_paths}
     """
+    root = repo_root or REPO_ROOT
     packages = {"pip": set(), "npm": set(), "docker": set()}
 
-    for root, dirs, files in os.walk(REPO_ROOT):
+    for root_dir, dirs, files in os.walk(root):
         # Skip excluded directories
         dirs[:] = [
             d
@@ -278,7 +291,7 @@ def discover_packages() -> Dict[str, Set[Path]]:
             if d not in EXCLUDE_DIRS and not any(d.startswith(ex.lstrip("*")) for ex in EXCLUDE_DIRS if ex.startswith("*"))
         ]
 
-        rel_root = Path(root).relative_to(REPO_ROOT)
+        rel_root = Path(root_dir).relative_to(root)
 
         # Check for Python packages
         for pattern in PACKAGE_PATTERNS["pip"]:

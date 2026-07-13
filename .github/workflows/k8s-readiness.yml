@@ -34,7 +34,7 @@ jobs:
       - name: Install kustomize
         run: |
           curl -sSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz -o kustomize.tar.gz
-          echo "366c0e6b8f2571be6d034a5627e18b43f32a074eb89d4f740fdda80fa7d8bf3e  kustomize.tar.gz" | sha256sum -c
+          echo "3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7  kustomize.tar.gz" | sha256sum -c
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
@@ -71,13 +71,13 @@ jobs:
 
       - name: Schema validate overlays
         run: |
-          kubeconform -summary -strict /tmp/dev.yaml
-          kubeconform -summary -strict /tmp/prod.yaml
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/dev.yaml
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/prod.yaml
 
-      - name: Client dry-run precheck
-        run: |
-          kubectl apply --dry-run=client -f /tmp/dev.yaml > /dev/null
-          kubectl apply --dry-run=client -f /tmp/prod.yaml > /dev/null
+      # Client dry-run is intentionally omitted here: it requires a live
+      # apiserver to discover CRD-backed kinds (ExternalSecret, ClusterPolicy,
+      # ClusterSecretStore, etc.). The downstream k8s-server-dry-run job
+      # validates the same rendered manifests against a kind cluster.
 
   k8s-server-dry-run:
     name: K8s Server Dry Run (Required)

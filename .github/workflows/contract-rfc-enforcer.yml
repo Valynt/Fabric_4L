@@ -29,7 +29,11 @@ jobs:
         run: |
           files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
             | grep -E '^contracts/(openapi|jsonschema)/' || true)
-          echo "files=$files" >> $GITHUB_OUTPUT
+          {
+            echo 'files<<EOF'
+            echo "$files"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
           if [ -n "$files" ]; then
             echo "Contract files changed:"
             echo "$files"

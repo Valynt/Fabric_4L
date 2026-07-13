@@ -324,11 +324,188 @@ export interface paths {
         /**
          * Get Target Decisions
          * @description Get recent crawl decisions for a target's jobs.
-         *
-         *     Returns the most recent crawl decisions across all jobs
-         *     for this target, showing routing choices and outcomes.
          */
         get: operations["get_target_decisions_api_v1_ingestion_targets__target_id__decisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/jobs/licensing-company-intake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Licensing Company Intake Job
+         * @description Create a skill-aware job for licensing company ontology intake.
+         */
+        post: operations["create_licensing_company_intake_job_api_v1_ingestion_jobs_licensing_company_intake_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/jobs/prospect-research": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Prospect Research Job
+         * @description Create a skill-aware job for prospect research.
+         */
+        post: operations["create_prospect_research_job_api_v1_ingestion_jobs_prospect_research_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/jobs/{job_id}/skill-output": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Job Skill Output
+         * @description Retrieve the skill-specific output for a completed job.
+         */
+        get: operations["get_job_skill_output_api_v1_ingestion_jobs__job_id__skill_output_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/corpuses/{corpus_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Source Corpus
+         * @description Retrieve a SourceCorpus by ID.
+         */
+        get: operations["get_source_corpus_api_v1_ingestion_corpuses__corpus_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/source-corpora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Source Corpora
+         * @description List SourceCorpus records for the authenticated tenant.
+         */
+        get: operations["list_source_corpora_api_v1_ingestion_source_corpora_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/source-corpora/{corpus_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Source Corpus Detail
+         * @description Retrieve a SourceCorpus by ID including full provenance.
+         */
+        get: operations["get_source_corpus_detail_api_v1_ingestion_source_corpora__corpus_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/intelligence-packets/{packet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Account Intelligence Packet
+         * @description Retrieve an AccountIntelligencePacket by ID.
+         */
+        get: operations["get_account_intelligence_packet_api_v1_ingestion_intelligence_packets__packet_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/account-intelligence-packets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Account Intelligence Packets
+         * @description List AccountIntelligencePacket records for the authenticated tenant.
+         */
+        get: operations["list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingestion/account-intelligence-packets/{packet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Account Intelligence Packet Detail
+         * @description Retrieve an AccountIntelligencePacket by ID including full source references.
+         */
+        get: operations["get_account_intelligence_packet_detail_api_v1_ingestion_account_intelligence_packets__packet_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -347,9 +524,6 @@ export interface paths {
         /**
          * Get Job Router Report
          * @description Get routing quality report for a specific job.
-         *
-         *     Provides metrics on routing accuracy, fallback rates,
-         *     and performance characteristics for analysis.
          */
         get: operations["get_job_router_report_api_v1_ingestion_jobs__job_id__router_report_get"];
         put?: never;
@@ -370,9 +544,6 @@ export interface paths {
         /**
          * Get Domain Fallback Stats
          * @description Get fallback statistics for a specific domain.
-         *
-         *     Shows how often the router falls back to browser for this
-         *     domain, helping identify SPA-heavy sites or routing issues.
          */
         get: operations["get_domain_fallback_stats_api_v1_ingestion_domains__domain__fallback_stats_get"];
         put?: never;
@@ -481,196 +652,6 @@ export interface paths {
          * @description Retry a failed or partially successful job.
          */
         post: operations["retry_job_api_v1_ingestion_jobs__job_id__retry_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/jobs/licensing-company-intake": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Licensing Company Intake Job
-         * @description Create a skill-aware job for licensing company ontology intake.
-         */
-        post: operations["create_licensing_company_intake_job_api_v1_ingestion_jobs_licensing_company_intake_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/jobs/prospect-research": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Prospect Research Job
-         * @description Create a skill-aware job for prospect research.
-         */
-        post: operations["create_prospect_research_job_api_v1_ingestion_jobs_prospect_research_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/corpuses/{corpus_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Source Corpus
-         * @description Retrieve a SourceCorpus by ID.
-         */
-        get: operations["get_source_corpus_api_v1_ingestion_corpuses__corpus_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/intelligence-packets/{packet_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Account Intelligence Packet
-         * @description Retrieve an AccountIntelligencePacket by ID.
-         */
-        get: operations["get_account_intelligence_packet_api_v1_ingestion_intelligence_packets__packet_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/jobs/{job_id}/skill-output": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Job Skill Output
-         * @description Retrieve the skill-specific output for a completed job.
-         */
-        get: operations["get_job_skill_output_api_v1_ingestion_jobs__job_id__skill_output_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/source-corpora": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Source Corpora
-         * @description List SourceCorpus records for the authenticated tenant.
-         *
-         *     Returns summary objects only - provenance arrays are excluded.
-         *     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
-         */
-        get: operations["list_source_corpora_api_v1_ingestion_source_corpora_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/source-corpora/{corpus_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Source Corpus Detail
-         * @description Retrieve a SourceCorpus by ID including full provenance.
-         *
-         *     Returns 404 for cross-tenant access.
-         */
-        get: operations["get_source_corpus_detail_api_v1_ingestion_source_corpora__corpus_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/account-intelligence-packets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Account Intelligence Packets
-         * @description List AccountIntelligencePacket records for the authenticated tenant.
-         *
-         *     Returns summary objects only - source_references arrays are excluded.
-         *     Tenant isolation is enforced from auth context; no cross-tenant query params accepted.
-         */
-        get: operations["list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingestion/account-intelligence-packets/{packet_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Account Intelligence Packet Detail
-         * @description Retrieve an AccountIntelligencePacket by ID including full source references.
-         *
-         *     Returns 404 for cross-tenant access.
-         */
-        get: operations["get_account_intelligence_packet_detail_api_v1_ingestion_account_intelligence_packets__packet_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -829,8 +810,6 @@ export interface paths {
         /**
          * Trigger Cleanup
          * @description Trigger content cleanup for old data.
-         *
-         *     SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
          */
         post: operations["trigger_cleanup_api_v1_ingestion_admin_cleanup_post"];
         delete?: never;
@@ -2390,7 +2369,7 @@ export interface components {
              */
             created_by: string;
             /** Last Error At */
-            last_error_at: string | null;
+            last_error_at?: string | null;
         };
         /**
          * ScrapingTargetSummary
@@ -3440,6 +3419,302 @@ export interface operations {
             };
         };
     };
+    create_licensing_company_intake_job_api_v1_ingestion_jobs_licensing_company_intake_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLicensingCompanyIntakeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_prospect_research_job_api_v1_ingestion_jobs_prospect_research_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProspectResearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_skill_output_api_v1_ingestion_jobs__job_id__skill_output_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_corpus_api_v1_ingestion_corpuses__corpus_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                corpus_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceCorpusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_source_corpora_api_v1_ingestion_source_corpora_get: {
+        parameters: {
+            query?: {
+                company_id?: string | null;
+                job_id?: string | null;
+                extraction_status?: string | null;
+                created_after?: string | null;
+                created_before?: string | null;
+                limit?: number;
+                /** @description ISO-8601 created_at of last seen item for cursor pagination */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceCorpusListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_corpus_detail_api_v1_ingestion_source_corpora__corpus_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                corpus_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceCorpusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_intelligence_packet_api_v1_ingestion_intelligence_packets__packet_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                packet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIntelligencePacketResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                job_id?: string | null;
+                created_after?: string | null;
+                created_before?: string | null;
+                limit?: number;
+                /** @description ISO-8601 created_at of last seen item for cursor pagination */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIntelligencePacketListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_intelligence_packet_detail_api_v1_ingestion_account_intelligence_packets__packet_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                packet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIntelligencePacketResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_job_router_report_api_v1_ingestion_jobs__job_id__router_report_get: {
         parameters: {
             query?: never;
@@ -3644,9 +3919,6 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
-                format?: string;
-                include_raw?: boolean;
-                fields?: string[] | null;
             };
             header?: never;
             path: {
@@ -3698,302 +3970,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_licensing_company_intake_job_api_v1_ingestion_jobs_licensing_company_intake_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLicensingCompanyIntakeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SkillJobResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_prospect_research_job_api_v1_ingestion_jobs_prospect_research_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProspectResearchRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SkillJobResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_source_corpus_api_v1_ingestion_corpuses__corpus_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                corpus_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SourceCorpusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_account_intelligence_packet_api_v1_ingestion_intelligence_packets__packet_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                packet_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountIntelligencePacketResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_job_skill_output_api_v1_ingestion_jobs__job_id__skill_output_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_source_corpora_api_v1_ingestion_source_corpora_get: {
-        parameters: {
-            query?: {
-                company_id?: string | null;
-                job_id?: string | null;
-                extraction_status?: string | null;
-                created_after?: string | null;
-                created_before?: string | null;
-                limit?: number;
-                /** @description ISO-8601 created_at of last seen item for cursor pagination */
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SourceCorpusListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_source_corpus_detail_api_v1_ingestion_source_corpora__corpus_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                corpus_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SourceCorpusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_account_intelligence_packets_api_v1_ingestion_account_intelligence_packets_get: {
-        parameters: {
-            query?: {
-                account_id?: string | null;
-                job_id?: string | null;
-                created_after?: string | null;
-                created_before?: string | null;
-                limit?: number;
-                /** @description ISO-8601 created_at of last seen item for cursor pagination */
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountIntelligencePacketListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_account_intelligence_packet_detail_api_v1_ingestion_account_intelligence_packets__packet_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                packet_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountIntelligencePacketResponse"];
                 };
             };
             /** @description Validation Error */

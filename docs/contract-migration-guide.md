@@ -23,7 +23,7 @@
 
 ## 1. Overview
 
-This guide is the single source of truth for migrating Fabric 4L services from deprecated cross-layer patterns to the five newly ratified canonical contracts (ADR-028 through ADR-032). Each section contains:
+This guide is the single source of truth for migrating Fabric 4L services from deprecated cross-layer patterns to the five newly ratified canonical contracts (ADR-028, ADR-029, ADR-033, ADR-031, and ADR-032). Each section contains:
 
 - **What you need to change** — specific code patterns to eliminate
 - **Before/after code examples** — realistic Python and TypeScript
@@ -80,7 +80,7 @@ This guide is the single source of truth for migrating Fabric 4L services from d
 |----------|-----------------|-------------------|----------------|
 | ADR-028: Tenant Context | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
 | ADR-029: Middleware Flow | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
-| ADR-030: Tool Boundary | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
+| ADR-033: Tool Boundary | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
 | ADR-031: Agent Output | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
 | ADR-032: UI Route/State | v1.2.0 (2026-07-10) | v1.3.0 (2026-10-10) | v1.4.0 (2027-01-10) |
 
@@ -470,7 +470,7 @@ npx eslint src/ --rule 'no-middleware-res-write: error'
 
 ---
 
-## 5. Contract 3: Tool Invocation Boundary (ADR-030)
+## 5. Contract 3: Tool Invocation Boundary (ADR-033)
 
 ### What You Need to Change
 
@@ -1292,7 +1292,7 @@ Use this checklist for each contract migration. Copy into your PR description.
 - [ ] Pipeline manifest validator passes at startup
 - [ ] Integration test `phase-ordering` passes
 
-#### ADR-030: Tool Boundary
+#### ADR-033: Tool Boundary
 - [ ] All inline tool lambdas extracted to `tools/` with `defineTool()`
 - [ ] All framework-specific business logic wrappers removed
 - [ ] All tool handlers return `ToolResult<T>` (no `throw`)
@@ -1330,7 +1330,7 @@ Use this checklist for each contract migration. Copy into your PR description.
 
 ### Per-Service Migration Tracking
 
-| Service | ADR-028 | ADR-029 | ADR-030 | ADR-031 | ADR-032 | Overall |
+| Service | ADR-028 | ADR-029 | ADR-033 | ADR-031 | ADR-032 | Overall |
 |---------|---------|---------|---------|---------|---------|---------|
 | `services/api/` | ⬜ | ⬜ | — | — | — | 0/2 |
 | `services/web/` | ⬜ | ⬜ | — | — | ⬜ | 0/3 |

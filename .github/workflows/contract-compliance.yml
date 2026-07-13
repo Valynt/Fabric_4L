@@ -139,6 +139,11 @@ jobs:
             pnpm contract:breaking --base-ref origin/main
           fi
 
+      - name: Verify OpenAPI breaking-change artifacts
+        run: |
+          test -s artifacts/contract-breaking/openapi-breaking-report.json
+          test -s artifacts/contract-breaking/openapi-breaking-report.md
+
       - name: Upload OpenAPI breaking-change report
         uses: actions/upload-artifact@v4
         if: always()

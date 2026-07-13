@@ -30,21 +30,21 @@ def _load_inventory() -> list[dict[str, object]]:
     return inventory
 
 
-def _run_check(entry: dict[str, object]) -> int:
+def _run_check(entry: dict[str, object]) -> dict[str, object]:
     check_id = str(entry.get("check_id", "unknown"))
     subcommand = str(entry.get("subcommand", "unknown"))
     command = str(entry.get("command", "")).strip()
     if not command:
         print(f"FAIL {check_id} ({subcommand}) has no command")
-        return 1
+        return {"check_id": check_id, "subcommand": subcommand, "status": "fail", "exit_code": 1, "command": command}
 
     print(f"-> {check_id} {subcommand}: {command}")
     completed = subprocess.run(command, cwd=ROOT, shell=True)
     if completed.returncode != 0:
         print(f"FAIL {check_id} ({subcommand}) exited {completed.returncode}")
-        return completed.returncode
+        return {"check_id": check_id, "subcommand": subcommand, "status": "fail", "exit_code": completed.returncode, "command": command}
     print(f"PASS {check_id} ({subcommand})")
-    return 0
+    return {"check_id": check_id, "subcommand": subcommand, "status": "pass", "exit_code": 0, "command": command}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,16 +53,28 @@ def main(argv: list[str] | None = None) -> int:
     run_all = subparsers.add_parser("run-all", help="Run every required inventory check")
     run_all.add_argument("--strict", action="store_true", help="Fail when any required check fails")
     run_all.add_argument("--include-optional", action="store_true", help="Run optional checks too")
+    run_all.add_argument("--json", action="store_true", help="Emit a JSON summary to stdout after the human-readable log")
 
     args = parser.parse_args(argv)
     inventory = _load_inventory()
 
+    results: list[dict[str, object]] = []
     failures = 0
     for entry in inventory:
         required = bool(entry.get("required", False))
         if not required and not args.include_optional:
             continue
-        failures += 1 if _run_check(entry) != 0 else 0
+        result = _run_check(entry)
+        results.append(result)
+        failures += 1 if result["status"] != "pass" else 0
+
+    if args.json:
+        summary = {
+            "status": "fail" if failures else "pass",
+            "failures": failures,
+            "checks": results,
+        }
+        print(json.dumps(summary, indent=2))
 
     if failures:
         print(f"Compatibility shim gate failed: {failures} check(s) failed")
