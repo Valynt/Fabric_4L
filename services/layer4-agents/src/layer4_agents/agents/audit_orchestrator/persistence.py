@@ -96,22 +96,41 @@ except ImportError:  # pragma: no cover
 _engine_cache: dict[str, AsyncEngine] = {}
 
 
+def _is_in_memory_sqlite(dsn: str) -> bool:
+    """Return True when the DSN targets an in-memory SQLite database."""
+    return ":memory:" in dsn
+
+
 def get_engine(dsn: str) -> AsyncEngine:
     """Return a cached async engine for the given DSN, creating it if needed.
 
     Engines are intentionally cached by DSN so that repeated
     ``PersistenceManager`` constructions reuse the same connection pool.
+    In-memory SQLite databases are never cached, because each such engine
+    owns a distinct, ephemeral database and sharing one would leak state
+    across tests or requests.
+
     Callers are responsible for disposing engines at application shutdown.
     """
-    if dsn in _engine_cache:
+    if not _is_in_memory_sqlite(dsn) and dsn in _engine_cache:
         return _engine_cache[dsn]
 
     if not _SQLALCHEMY_AVAILABLE:  # pragma: no cover
         raise RuntimeError("SQLAlchemy is required when using PostgreSQL persistence")
 
     engine = create_async_engine(dsn, pool_pre_ping=True, future=True)
-    _engine_cache[dsn] = engine
+    if not _is_in_memory_sqlite(dsn):
+        _engine_cache[dsn] = engine
     return engine
+
+
+def clear_engine_cache() -> None:
+    """Clear the module-level engine cache.
+
+    Useful in tests to guarantee a fresh engine (and therefore a fresh
+    connection pool) between test cases.
+    """
+    _engine_cache.clear()
 
 
 # ---------------------------------------------------------------------------

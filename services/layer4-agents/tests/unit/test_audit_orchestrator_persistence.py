@@ -26,6 +26,7 @@ from layer4_agents.agents.audit_orchestrator.persistence import (
     PersistenceManager,
     _repo_name_from_git_url,
     _repo_name_from_path,
+    clear_engine_cache,
 )
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
 
@@ -123,6 +124,7 @@ def sample_run(sample_scorecard: Any) -> AuditRun:
 @pytest.fixture
 async def db_manager(tmp_path: Path) -> PersistenceManager:
     """Return a PersistenceManager backed by an in-memory SQLite database."""
+    clear_engine_cache()
     manager = PersistenceManager(
         postgres_dsn="sqlite+aiosqlite:///:memory:",
         fallback_dir=tmp_path / "fallback",
