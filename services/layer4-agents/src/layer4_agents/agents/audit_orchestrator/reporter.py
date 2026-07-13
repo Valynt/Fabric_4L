@@ -83,9 +83,8 @@ def generate_diff_report(current: Scorecard, previous: Scorecard) -> str:
                 f"{area.score} ({grade}) | {_format_delta(delta)} |"
             )
         else:
-            lines.append(
-                f"| {area_name} | — | {area.score} ({area.grade}) | new |"
-            )
+            grade = _escape_md_table_cell(area.grade or "")
+            lines.append(f"| {area_name} | — | {area.score} ({grade}) | new |")
 
     lines.extend(["", "## New Findings", ""])
     if new_findings:
@@ -127,9 +126,7 @@ def generate_executive_summary(scorecard: Scorecard) -> str:
     """Generate the executive summary section."""
     open_count = len(scorecard.open_findings())
     total = len(scorecard.findings)
-    critical = len(
-        [f for f in scorecard.findings if f.severity.value == "critical"]
-    )
+    critical = len([f for f in scorecard.findings if f.severity.value == "critical"])
     high = len([f for f in scorecard.findings if f.severity.value == "high"])
 
     summary = scorecard.executive_summary or (
@@ -188,11 +185,13 @@ def generate_scorecard_table(scorecard: Scorecard) -> str:
             f"{grade} | {confidence} | {trend_risk} | "
             f"{area.findings_count} |"
         )
-    lines.extend([
-        "",
-        f"**Overall:** {scorecard.overall_score}/100 ({scorecard.overall_grade}) — "
-        f"{scorecard.confidence.value} confidence",
-    ])
+    lines.extend(
+        [
+            "",
+            f"**Overall:** {scorecard.overall_score}/100 ({scorecard.overall_grade}) — "
+            f"{scorecard.confidence.value} confidence",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -213,8 +212,7 @@ def generate_findings_register(findings: Sequence[Finding]) -> str:
         severity = _escape_md_table_cell(finding.severity.value)
         effort = _escape_md_table_cell(finding.effort)
         lines.append(
-            f"| {finding_id} | {severity} | {area} | {status} | {effort} | {owner} | "
-            f"`{evidence}` |"
+            f"| {finding_id} | {severity} | {area} | {status} | {effort} | {owner} | `{evidence}` |"
         )
     return "\n".join(lines)
 
@@ -237,9 +235,7 @@ def generate_governance_gap_matrix(scorecard: Scorecard) -> str:
         area_name = _escape_md_table_cell(area.area.value)
         grade = _escape_md_table_cell(area.grade or "")
         diagnosis = _escape_md_table_cell(area.diagnosis or "")
-        lines.append(
-            f"| {area_name} | {grade} | {risk} | {diagnosis} |"
-        )
+        lines.append(f"| {area_name} | {grade} | {risk} | {diagnosis} |")
     return "\n".join(lines)
 
 
@@ -270,9 +266,7 @@ def generate_quality_gates_plan(scorecard: Scorecard) -> str:
     cicd = scorecard.get_area_score(AuditArea.CICD)
     testing = scorecard.get_area_score(AuditArea.TESTING)
     quality_findings = [
-        f
-        for f in scorecard.findings
-        if f.area in (AuditArea.CICD, AuditArea.TESTING)
+        f for f in scorecard.findings if f.area in (AuditArea.CICD, AuditArea.TESTING)
     ]
     return (
         "## Quality Gates Plan\n\n"
@@ -283,8 +277,7 @@ def generate_quality_gates_plan(scorecard: Scorecard) -> str:
         f"({testing.grade if testing else 'N/A'})\n"
         f"- **Related findings:** {len(quality_findings)}\n\n"
         + (
-            "### Priority actions\n\n"
-            + "\n".join(_finding_bullet(f) for f in quality_findings)
+            "### Priority actions\n\n" + "\n".join(_finding_bullet(f) for f in quality_findings)
             if quality_findings
             else "_No CI/CD or testing findings._"
         )
@@ -380,7 +373,8 @@ def generate_projected_scorecard(
         share = (area.weight / total_weight) * total_projected_impact
         projected = min(100, round(area.score + share))
         area_name = _escape_md_table_cell(area.area.value)
-        lines.append(f"| {area_name} | {area.score} ({area.grade}) | {projected} |")
+        grade = _escape_md_table_cell(area.grade or "")
+        lines.append(f"| {area_name} | {area.score} ({grade}) | {projected} |")
 
     return "\n".join(lines)
 
@@ -453,10 +447,18 @@ def _risk_level(score: int) -> str:
 
 # Grade order from best to worst for delta calculations.
 _GRADE_ORDER = [
-    "A+", "A", "A-",
-    "B+", "B", "B-",
-    "C+", "C", "C-",
-    "D+", "D", "D-",
+    "A+",
+    "A",
+    "A-",
+    "B+",
+    "B",
+    "B-",
+    "C+",
+    "C",
+    "C-",
+    "D+",
+    "D",
+    "D-",
     "F",
 ]
 

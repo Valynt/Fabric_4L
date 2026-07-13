@@ -17,6 +17,7 @@ from layer4_agents.agents.audit_orchestrator.reporter import (
     generate_diff_report,
     generate_findings_register,
     generate_full_report,
+    generate_projected_scorecard,
 )
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
 
@@ -317,3 +318,40 @@ def test_findings_register_escapes_pipes_in_cells() -> None:
     # Without escaping there would be 4 unescaped pipes; escaping keeps 8 separators.
     unescaped_pipes = row.replace("\\|", "").count("|")
     assert unescaped_pipes == 8
+
+
+@pytest.mark.unit
+def test_diff_report_escapes_pipe_in_new_area_grade() -> None:
+    """A grade containing '|' in the new-area diff branch must not break the table."""
+    previous = build_scorecard(repo_name="owner/repo", findings=[])
+    current = build_scorecard(repo_name="owner/repo", findings=[])
+
+    # Simulate a new area by removing it from the previous scorecard.
+    target_area = current.area_scores[0].area
+    previous.area_scores = [a for a in previous.area_scores if a.area != target_area]
+    current.area_scores[0].grade = "B|-"
+
+    report = generate_diff_report(current, previous)
+    row = [line for line in report.splitlines() if line.startswith(f"| {target_area.value}")][0]
+    assert "B\\|-" in row
+    # The row must keep exactly 5 Markdown column separators.
+    unescaped_pipes = row.replace("\\|", "").count("|")
+    assert unescaped_pipes == 5
+
+
+@pytest.mark.unit
+def test_projected_scorecard_escapes_pipe_in_area_grade() -> None:
+    """A grade containing '|' in the projected scorecard must not break the table."""
+    scorecard = build_scorecard(repo_name="owner/repo", findings=[])
+    scorecard.area_scores[0].grade = "C|-"
+
+    report = generate_projected_scorecard(scorecard, [])
+    row = [
+        line
+        for line in report.splitlines()
+        if line.startswith(f"| {scorecard.area_scores[0].area.value}")
+    ][0]
+    assert "C\\|-" in row
+    # The row must keep exactly 4 Markdown column separators.
+    unescaped_pipes = row.replace("\\|", "").count("|")
+    assert unescaped_pipes == 4
