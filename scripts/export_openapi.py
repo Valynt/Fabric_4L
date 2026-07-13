@@ -257,6 +257,10 @@ def _install_protego_shim() -> None:
         return
 
     class _MockProtegoRules:
+        @classmethod
+        def parse(cls, content: str) -> "_MockProtegoRules":
+            return cls()
+
         def can_fetch(self, user_agent: str, path: str) -> bool:
             return True
 
