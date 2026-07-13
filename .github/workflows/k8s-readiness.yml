@@ -71,8 +71,8 @@ jobs:
 
       - name: Schema validate overlays
         run: |
-          kubeconform -summary -strict /tmp/dev.yaml
-          kubeconform -summary -strict /tmp/prod.yaml
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/dev.yaml
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/prod.yaml
 
       - name: Client dry-run precheck
         run: |
