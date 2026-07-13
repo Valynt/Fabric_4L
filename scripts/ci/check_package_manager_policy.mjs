@@ -67,7 +67,7 @@ function checkWorkflowPackageManagerPolicy() {
     for (const [idx, line] of text.split(/\r?\n/).entries()) {
       const trimmed = line.trim();
       if (trimmed.startsWith('#')) continue;
-      if (WORKFLOW_FORBIDDEN_PM_PATTERN.test(line)) {
+      if (WORKFLOW_FORBIDDEN_PM_PATTERN.test(trimmed)) {
         violations.push(`${file}:${idx + 1}: ${trimmed}`);
       }
     }
