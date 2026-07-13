@@ -65,8 +65,10 @@ function checkWorkflowPackageManagerPolicy() {
     if (!file.endsWith('.yml') && !file.endsWith('.yaml')) continue;
     const text = readFileSync(file, 'utf8');
     for (const [idx, line] of text.split(/\r?\n/).entries()) {
-      if (WORKFLOW_FORBIDDEN_PM_PATTERN.test(line) && !line.includes('pnpm')) {
-        violations.push(`${file}:${idx + 1}: ${line.trim()}`);
+      const trimmed = line.trim();
+      if (trimmed.startsWith('#')) continue;
+      if (WORKFLOW_FORBIDDEN_PM_PATTERN.test(line)) {
+        violations.push(`${file}:${idx + 1}: ${trimmed}`);
       }
     }
   }
