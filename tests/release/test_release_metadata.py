@@ -7,6 +7,7 @@ evidence or fail closed so missing traceability cannot be mistaken for readiness
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from datetime import UTC, datetime
@@ -150,6 +151,11 @@ class TestReleaseMetadata:
         )
         assert result.returncode == 0, f"Could not determine current branch: {result.stderr}"
         branch = result.stdout.strip()
+        # GitHub Actions checks out a merge commit (detached HEAD) for pull_request
+        # events. The source branch is available via GITHUB_HEAD_REF so the
+        # release-policy validation still applies.
+        if not branch:
+            branch = os.environ.get("GITHUB_HEAD_REF", "").strip()
         assert branch, "Detached HEAD is not acceptable for release-policy validation"
 
         if branch.startswith("release/"):

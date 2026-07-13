@@ -68,7 +68,7 @@ ACTUAL_NAMESPACES="${TMPDIR}/actual-namespaces.txt"
 yq eval '
   select(.kind != "Namespace" and .metadata.namespace != null) |
   .metadata.namespace
-' "${MANIFEST}" | sort -u > "${ACTUAL_NAMESPACES}"
+' "${MANIFEST}" | sed '/^---$/d' | sort -u > "${ACTUAL_NAMESPACES}"
 
 # Allow only the canonical staging namespace, plus shared infrastructure
 # namespaces that are explicitly expected (e.g., cert-manager, monitoring).
@@ -97,7 +97,7 @@ EXTERNALSECRET_NAMESPACES="${TMPDIR}/externalsecret-namespaces.txt"
 yq eval '
   select(.kind == "ExternalSecret") |
   .metadata.namespace
-' "${MANIFEST}" | sort -u > "${EXTERNALSECRET_NAMESPACES}"
+' "${MANIFEST}" | sed '/^---$/d' | sort -u > "${EXTERNALSECRET_NAMESPACES}"
 
 while IFS= read -r ns; do
   [[ -z "${ns}" ]] && continue
@@ -116,14 +116,15 @@ echo "==> Checking workload/secret namespace alignment ..."
 # Extract all unique (kind, name, namespace) tuples for workloads
 WORKLOAD_NS="${TMPDIR}/workload-namespaces.txt"
 yq eval '
-  select(.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet" or .kind == "Job" or .kind == "CronJob") |
+  select((.kind == "Deployment" or .kind == "StatefulSet" or .kind == "DaemonSet" or .kind == "Job" or .kind == "CronJob") and .metadata.namespace != null) |
   "\(.kind)/\(.metadata.name): \(.metadata.namespace)"
-' "${MANIFEST}" | sort -u > "${WORKLOAD_NS}"
+' "${MANIFEST}" | sed '/^---$/d' | sort -u > "${WORKLOAD_NS}"
 
 # Check that all workloads are in the canonical namespace
 while IFS= read -r line; do
   [[ -z "${line}" ]] && continue
   workload_ns="$(echo "${line}" | sed 's/.*: //')"
+  [[ -z "${workload_ns}" ]] && continue
   if [[ "${workload_ns}" != "${CANONICAL_NS}" ]]; then
     echo "::error::Workload in unexpected namespace: ${line}"
     ERRORS=$((ERRORS + 1))

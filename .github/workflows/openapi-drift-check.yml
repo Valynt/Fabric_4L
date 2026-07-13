@@ -48,8 +48,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install fastapi uvicorn pydantic
-          # Install layer-specific dependencies
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+          # Install layer-specific dependencies if present
           pip install -e services/${{matrix.layer.dir}} || true
 
       - name: Export OpenAPI spec

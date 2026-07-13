@@ -78,12 +78,17 @@ An ADR is ready for review only when it includes:
 | [ADR-021](./ADR-021-layer-3-canonical-runtime-path.md) | Layer 3 Canonical Runtime Path | ✅ Accepted | 2026-05-13 |
 | [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | Proposed | 2026-05-22 |
 | [ADR-023](./ADR-023-billing-service-extraction.md) | Billing Service Extraction | Superseded by Layer 7 ownership rationalization | 2026-05-29 |
+| [ADR-024](./ADR-024-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
 | [ADR-025](./ADR-025-layer-25-signal-refinery.md) | Layer 2.5 Signal Refinery as Official Architecture Extension | ✅ Accepted | 2026-06-10 |
+| [ADR-026](./ADR-026-deterministic-entity-id-generation.md) | Deterministic Entity ID Generation | ✅ Accepted | — |
 | [ADR-027](./ADR-027-shim-removal.md) | Namespace Shim Removal | ✅ Accepted | 2026-06-04 |
-| [ADR-028](./ADR-028-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
-| [ADR-029](./ADR-029-deterministic-entity-id-generation.md) | Deterministic Entity ID Generation | ✅ Accepted | — |
+| [ADR-028](./ADR-028-tenant-context-ratification.md) | Tenant Context Propagation Contract Ratification | ✅ Accepted | 2026-07-10 |
+| [ADR-029](./ADR-029-middleware-auth-ratification.md) | Middleware and Auth Flow Contract Ratification | ✅ Accepted | 2026-07-10 |
 | [ADR-030](./ADR-030-neo4j-hosting-decision.md) | Neo4j Hosting Decision | ✅ Accepted | 2026-06-23 |
-| [ADR-031](./ADR-031-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
+| [ADR-031](./ADR-031-agent-output-ratification.md) | Agent Output Shape and Traceability Contract Ratification | ✅ Accepted | 2026-07-10 |
+| [ADR-032](./ADR-032-ui-route-state-ratification.md) | UI Route/State Progression Contract Ratification | ✅ Accepted | 2026-07-10 |
+| [ADR-033](./ADR-033-tool-boundary-ratification.md) | Tool Invocation Boundary Contract Ratification | ✅ Accepted | 2026-07-10 |
+| [ADR-034](./ADR-034-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
 
 ---
 

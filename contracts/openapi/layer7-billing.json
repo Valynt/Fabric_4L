@@ -221,7 +221,7 @@
           "Billing \u2014 Webhooks"
         ],
         "summary": "Stripe Webhook",
-        "description": "Receive Stripe billing webhooks after HMAC signature verification.\n\nStripe webhooks are authenticated by ``Stripe-Signature`` rather than a\ntenant header or user JWT. The raw request body is verified before JSON is\nparsed, and event IDs are cached within the timestamp tolerance window to\nreject immediate replay attempts.\n\nThis endpoint is the canonical Layer 7 implementation. Layer 4 now\nforwards webhook calls here via a thin HTTP client stub.",
+        "description": "Receive Stripe billing webhooks after HMAC signature verification.\n\nStripe webhooks are authenticated by ``Stripe-Signature`` rather than a\ntenant header or user JWT. The raw request body is verified before JSON is\nparsed, and event IDs are cached within the timestamp tolerance window to\nreject immediate replay attempts.\n\nThis endpoint is the canonical Layer 7 implementation. Layer 4 now\nforwards webhook calls here via a thin HTTP client stub.\n\nIdempotency is enforced via:\n- ``Idempotency-Key`` header (if provided by client)\n- Event ID from Stripe payload (fallback)",
         "operationId": "stripe_webhook_v1_billing_webhook_post",
         "parameters": [
           {
@@ -238,6 +238,22 @@
                 }
               ],
               "title": "Stripe-Signature"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],

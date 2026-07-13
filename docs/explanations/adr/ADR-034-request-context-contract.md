@@ -1,5 +1,5 @@
 ---
-title: "ADR-031: RequestContext Contract Definition"
+title: "ADR-034: RequestContext Contract Definition"
 category: "architecture"
 audience: "advanced"
 last-reviewed: "2026-05-25"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../explanations/adr/ADR-004-jwt-api-key-authentication-strategy", "../../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy"]
 ---
 
-# ADR-031: RequestContext Contract Definition
+# ADR-034: RequestContext Contract Definition
 
 **Status:** ✅ Accepted
 

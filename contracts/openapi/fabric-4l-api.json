@@ -890,6 +890,577 @@
         }
       }
     },
+    "/v1/auth/api-keys": {
+      "get": {
+        "tags": [
+          "API Keys"
+        ],
+        "summary": "List Api Keys",
+        "operationId": "list_api_keys_v1_auth_api_keys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "API Keys"
+        ],
+        "summary": "Create Api Key",
+        "operationId": "create_api_key_v1_auth_api_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/api-keys/{key_id}": {
+      "delete": {
+        "tags": [
+          "API Keys"
+        ],
+        "summary": "Revoke Api Key",
+        "operationId": "revoke_api_key_v1_auth_api_keys__key_id__delete",
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks": {
+      "get": {
+        "tags": [
+          "Benchmarks"
+        ],
+        "summary": "List Benchmarks",
+        "operationId": "list_benchmarks_v1_benchmarks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_str__Any__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmarks/compare": {
+      "post": {
+        "tags": [
+          "Benchmarks"
+        ],
+        "summary": "Compare Benchmarks",
+        "operationId": "compare_benchmarks_v1_benchmarks_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Get Usage",
+        "operationId": "get_usage_v1_usage_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/usage/quotas": {
+      "get": {
+        "tags": [
+          "Usage"
+        ],
+        "summary": "Get Quotas",
+        "operationId": "get_quotas_v1_usage_quotas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/value-drivers/map": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Map Value Drivers",
+        "operationId": "map_value_drivers_v1_value_drivers_map_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueDriversMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/value-models/generate": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Generate Value Model",
+        "operationId": "generate_value_model_v1_value_models_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueModelGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/value-models/validate": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Validate Value Model",
+        "operationId": "validate_value_model_v1_value_models_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueModelValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/value-models/qa": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Qa Value Model",
+        "operationId": "qa_value_model_v1_value_models_qa_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueModelQARequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/assumptions/score": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Score Assumption",
+        "operationId": "score_assumption_v1_assumptions_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumptionScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/evidence/extract-value-signals": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Extract Value Signals",
+        "operationId": "extract_value_signals_v1_evidence_extract_value_signals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cfo-narratives/generate": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Generate Cfo Narrative",
+        "operationId": "generate_cfo_narrative_v1_cfo_narratives_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CFONarrativeGenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/realization/compare": {
+      "post": {
+        "tags": [
+          "Product Endpoints"
+        ],
+        "summary": "Compare Realization",
+        "operationId": "compare_realization_v1_realization_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RealizationCompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get Job Status",
+        "operationId": "get_job_status_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/clerk/tenant": {
       "get": {
         "tags": [
@@ -6324,381 +6895,168 @@
           }
         }
       }
-    },
-    "/v1/auth/api-keys": {
-      "post": {
-        "tags": [
-          "API Keys"
-        ],
-        "summary": "Create an API key",
-        "operationId": "createApiKey",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/APIKeyCreateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "API key created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIKeyCreateResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "API Keys"
-        ],
-        "summary": "List API keys",
-        "operationId": "listApiKeys",
-        "responses": {
-          "200": {
-            "description": "List of API keys",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIKeyListResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/benchmarks": {
-      "get": {
-        "tags": [
-          "Benchmarks"
-        ],
-        "summary": "List accessible benchmark datasets",
-        "operationId": "listBenchmarks",
-        "responses": {
-          "200": {
-            "description": "Paginated benchmark datasets",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_str__Any__"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/benchmarks/compare": {
-      "post": {
-        "tags": [
-          "Benchmarks"
-        ],
-        "summary": "Compare a company value against a benchmark dataset",
-        "operationId": "compareBenchmarks",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BenchmarkComparisonRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Comparison result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BenchmarkComparisonResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/usage": {
-      "get": {
-        "tags": [
-          "Usage"
-        ],
-        "summary": "Current-period usage events",
-        "operationId": "getUsage",
-        "responses": {
-          "200": {
-            "description": "Usage events",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageSummaryResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/value-drivers/map": {
-      "post": {
-        "tags": [
-          "Value Drivers"
-        ],
-        "summary": "map product endpoint",
-        "operationId": "value_drivers_map",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValueDriversMapRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/value-models/generate": {
-      "post": {
-        "tags": [
-          "Value Models"
-        ],
-        "summary": "generate product endpoint",
-        "operationId": "value_models_generate",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValueModelGenerateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/value-models/validate": {
-      "post": {
-        "tags": [
-          "Value Models"
-        ],
-        "summary": "validate product endpoint",
-        "operationId": "value_models_validate",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValueModelValidateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/value-models/qa": {
-      "post": {
-        "tags": [
-          "Value Models"
-        ],
-        "summary": "qa product endpoint",
-        "operationId": "value_models_qa",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValueModelQARequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/assumptions/score": {
-      "post": {
-        "tags": [
-          "Assumptions"
-        ],
-        "summary": "score product endpoint",
-        "operationId": "assumptions_score",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssumptionScoreRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/evidence/extract-value-signals": {
-      "post": {
-        "tags": [
-          "Evidence"
-        ],
-        "summary": "extract value signals product endpoint",
-        "operationId": "evidence_extract_value_signals",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EvidenceExtractRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/cfo-narratives/generate": {
-      "post": {
-        "tags": [
-          "Cfo Narratives"
-        ],
-        "summary": "generate product endpoint",
-        "operationId": "cfo_narratives_generate",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CFONarrativeGenerateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/realization/compare": {
-      "post": {
-        "tags": [
-          "Realization"
-        ],
-        "summary": "compare product endpoint",
-        "operationId": "realization_compare",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RealizationCompareRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Job accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductJobResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
+      "APIKeyCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "read_only",
+              "analyst",
+              "content_admin",
+              "tenant_admin"
+            ],
+            "title": "Role",
+            "default": "analyst"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "APIKeyCreateRequest"
+      },
+      "APIKeyCreateResponse": {
+        "properties": {
+          "key_id": {
+            "type": "string",
+            "title": "Key Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "api_key": {
+            "type": "string",
+            "title": "Api Key"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key_id",
+          "name",
+          "api_key",
+          "prefix",
+          "tenant_id",
+          "role",
+          "permissions",
+          "created_at"
+        ],
+        "title": "APIKeyCreateResponse"
+      },
+      "APIKeyListItem": {
+        "properties": {
+          "key_id": {
+            "type": "string",
+            "title": "Key Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key_id",
+          "name",
+          "prefix",
+          "role",
+          "permissions",
+          "enabled",
+          "created_at",
+          "last_used_at"
+        ],
+        "title": "APIKeyListItem"
+      },
+      "APIKeyListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/APIKeyListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "APIKeyListResponse"
+      },
       "AcceptInviteRequest": {
         "properties": {
           "email": {
@@ -7208,6 +7566,41 @@
         ],
         "title": "AgentRun"
       },
+      "AssumptionScoreRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "assumption": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Assumption",
+            "description": "Assumption text"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence",
+            "description": "Supporting evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assumption"
+        ],
+        "title": "AssumptionScoreRequest"
+      },
       "AuditLogEvent": {
         "properties": {
           "id": {
@@ -7459,6 +7852,39 @@
           "title"
         ],
         "title": "BusinessCase"
+      },
+      "CFONarrativeGenerateRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "value_model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value Model",
+            "description": "Value model to narrate"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience",
+            "description": "Target audience",
+            "default": "cfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_model"
+        ],
+        "title": "CFONarrativeGenerateRequest"
       },
       "ClerkTenantResponse": {
         "properties": {
@@ -7957,6 +8383,33 @@
           "title"
         ],
         "title": "Evidence"
+      },
+      "EvidenceExtractRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "source_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Text",
+            "description": "Text to extract value signals from"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_text"
+        ],
+        "title": "EvidenceExtractRequest"
       },
       "FirmographicsResponse": {
         "properties": {
@@ -8956,6 +9409,73 @@
         ],
         "title": "PaginatedResponse[ValuePack]"
       },
+      "PaginatedResponse_dict_str__Any__": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "PaginatedResponse[dict[str, Any]]"
+      },
+      "ProductJobResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "product_code": {
+            "type": "string",
+            "title": "Product Code"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "accepted"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "product_code"
+        ],
+        "title": "ProductJobResponse"
+      },
       "ROICalculation": {
         "properties": {
           "id": {
@@ -9048,6 +9568,49 @@
           "scenario_id"
         ],
         "title": "ROICalculation"
+      },
+      "RealizationCompareRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id",
+            "description": "Realization plan identifier"
+          },
+          "actuals": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actuals",
+            "description": "Actual outcome data"
+          }
+        },
+        "type": "object",
+        "title": "RealizationCompareRequest"
       },
       "RealizationPlanActualsPatchRequest": {
         "properties": {
@@ -10383,6 +10946,45 @@
         ],
         "title": "ValueDriver"
       },
+      "ValueDriversMapRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Context",
+            "description": "Business context to map drivers from"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry",
+            "description": "Industry segment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "context"
+        ],
+        "title": "ValueDriversMapRequest"
+      },
       "ValueHypothesis": {
         "properties": {
           "id": {
@@ -10585,6 +11187,106 @@
           "name"
         ],
         "title": "ValueLever"
+      },
+      "ValueModelGenerateRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Drivers",
+            "description": "Value drivers to model"
+          },
+          "assumptions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumptions",
+            "description": "Key assumptions"
+          }
+        },
+        "type": "object",
+        "title": "ValueModelGenerateRequest"
+      },
+      "ValueModelQARequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "value_model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value Model",
+            "description": "Value model to question/answer"
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Question",
+            "description": "Question about the model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_model",
+          "question"
+        ],
+        "title": "ValueModelQARequest"
+      },
+      "ValueModelValidateRequest": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Optional account context"
+          },
+          "value_model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value Model",
+            "description": "Value model to validate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_model"
+        ],
+        "title": "ValueModelValidateRequest"
       },
       "ValuePack": {
         "properties": {
@@ -10913,420 +11615,6 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
-      },
-      "APIKeyCreateRequest": {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "read_only",
-              "analyst",
-              "content_admin",
-              "tenant_admin"
-            ]
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "APIKeyCreateResponse": {
-        "type": "object",
-        "required": [
-          "key_id",
-          "name",
-          "api_key",
-          "prefix",
-          "tenant_id",
-          "role",
-          "created_at"
-        ],
-        "properties": {
-          "key_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "api_key": {
-            "type": "string"
-          },
-          "prefix": {
-            "type": "string"
-          },
-          "tenant_id": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "APIKeyListItem": {
-        "type": "object",
-        "properties": {
-          "key_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "prefix": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "last_used_at": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
-        }
-      },
-      "APIKeyListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/APIKeyListItem"
-            }
-          }
-        }
-      },
-      "BenchmarkComparisonRequest": {
-        "type": "object",
-        "required": [
-          "dataset_id",
-          "metric",
-          "company_value",
-          "industry"
-        ],
-        "properties": {
-          "dataset_id": {
-            "type": "string"
-          },
-          "metric": {
-            "type": "string"
-          },
-          "company_value": {
-            "type": "string"
-          },
-          "industry": {
-            "type": "string"
-          },
-          "segment": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "BenchmarkComparisonResponse": {
-        "type": "object",
-        "properties": {
-          "percentile": {
-            "type": "integer"
-          },
-          "peer_median": {
-            "type": "string"
-          },
-          "peer_range": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "sample_size": {
-            "type": "integer"
-          },
-          "confidence": {
-            "type": "string"
-          },
-          "assessment": {
-            "type": "string"
-          }
-        }
-      },
-      "UsageSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "tenant_id": {
-            "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "total": {
-            "type": "integer"
-          }
-        }
-      },
-      "ValueDriversMapRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "context": {
-            "type": "string"
-          },
-          "industry": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "context"
-        ]
-      },
-      "ValueModelGenerateRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "drivers": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "assumptions": {
-            "type": [
-              "object",
-              "null"
-            ]
-          }
-        }
-      },
-      "ValueModelValidateRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "value_model": {
-            "type": "object"
-          }
-        },
-        "required": [
-          "value_model"
-        ]
-      },
-      "ValueModelQARequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "value_model": {
-            "type": "object"
-          },
-          "question": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "value_model",
-          "question"
-        ]
-      },
-      "AssumptionScoreRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "assumption": {
-            "type": "string"
-          },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "assumption"
-        ]
-      },
-      "EvidenceExtractRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "source_text": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "source_text"
-        ]
-      },
-      "CFONarrativeGenerateRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "value_model": {
-            "type": "object"
-          },
-          "audience": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "value_model"
-        ]
-      },
-      "RealizationCompareRequest": {
-        "type": "object",
-        "properties": {
-          "account_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "plan_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "actuals": {
-            "type": [
-              "object",
-              "null"
-            ]
-          }
-        }
-      },
-      "ProductJobResponse": {
-        "type": "object",
-        "properties": {
-          "job_id": {
-            "type": "string"
-          },
-          "product_code": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "result": {
-            "type": [
-              "object",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "job_id",
-          "product_code",
-          "status"
-        ]
-      },
-      "PaginatedResponse_dict_str__Any__": {
-        "properties": {
-          "items": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          },
-          "limit": {
-            "type": "integer",
-            "title": "Limit"
-          },
-          "offset": {
-            "type": "integer",
-            "title": "Offset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "PaginatedResponse[dict[str, Any]]"
       }
     },
     "securitySchemes": {

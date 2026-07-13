@@ -7914,7 +7914,7 @@ export interface components {
          * @description Fine-grained permissions enforced at endpoint level.
          * @enum {string}
          */
-        Permission: "read:health" | "read:metrics" | "read:schema" | "read:search" | "read:graphrag" | "read:analytics" | "read:ingestion" | "read:agents" | "read:models" | "write:models" | "admin:models" | "write:ingestion" | "write:extraction" | "write:schema" | "write:analytics" | "write:agents" | "admin:api_keys" | "admin:users" | "admin:tenants" | "admin:system";
+        Permission: "read:health" | "read:metrics" | "read:schema" | "read:search" | "read:graphrag" | "read:benchmarks" | "read:analytics" | "read:ingestion" | "read:agents" | "read:models" | "write:models" | "admin:models" | "write:ingestion" | "write:extraction" | "write:schema" | "write:analytics" | "write:agents" | "admin:api_keys" | "admin:users" | "admin:tenants" | "admin:system";
         /**
          * PortalRequest
          * @description Request to create a customer portal session.
