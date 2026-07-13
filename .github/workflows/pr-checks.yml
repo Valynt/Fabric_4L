@@ -1271,6 +1271,19 @@ jobs:
     defaults:
       run:
         working-directory: apps/web
+    env:
+      # Canonical public API route prefixes for CI builds. These match
+      # apps/web/.env.example and the gateway routing contract; they contain no
+      # secrets and are embedded in the browser bundle.
+      VITE_API_BASE: /api/v1
+      VITE_L1_PREFIX: /ingest
+      VITE_L2_PREFIX: /extract
+      VITE_L2_5_PREFIX: /signals
+      VITE_L3_PREFIX: /graph
+      VITE_L4_PREFIX: /agents
+      VITE_L5_PREFIX: /truths
+      VITE_L6_PREFIX: /benchmarks
+      VITE_L7_PREFIX: /billing
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4

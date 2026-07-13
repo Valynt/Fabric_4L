@@ -2,6 +2,29 @@
 FROM node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625 AS builder
 WORKDIR /app
 
+# Canonical public API route prefixes for production builds. These match
+# apps/web/.env.example and the gateway routing contract; they contain no
+# secrets and are embedded in the browser bundle. They may be overridden at
+# build time if the deployment uses non-standard gateway paths.
+ARG VITE_API_BASE=/api/v1
+ARG VITE_L1_PREFIX=/ingest
+ARG VITE_L2_PREFIX=/extract
+ARG VITE_L2_5_PREFIX=/signals
+ARG VITE_L3_PREFIX=/graph
+ARG VITE_L4_PREFIX=/agents
+ARG VITE_L5_PREFIX=/truths
+ARG VITE_L6_PREFIX=/benchmarks
+ARG VITE_L7_PREFIX=/billing
+ENV VITE_API_BASE=${VITE_API_BASE}
+ENV VITE_L1_PREFIX=${VITE_L1_PREFIX}
+ENV VITE_L2_PREFIX=${VITE_L2_PREFIX}
+ENV VITE_L2_5_PREFIX=${VITE_L2_5_PREFIX}
+ENV VITE_L3_PREFIX=${VITE_L3_PREFIX}
+ENV VITE_L4_PREFIX=${VITE_L4_PREFIX}
+ENV VITE_L5_PREFIX=${VITE_L5_PREFIX}
+ENV VITE_L6_PREFIX=${VITE_L6_PREFIX}
+ENV VITE_L7_PREFIX=${VITE_L7_PREFIX}
+
 RUN corepack enable
 
 # Copy workspace manifests for pnpm --filter support
