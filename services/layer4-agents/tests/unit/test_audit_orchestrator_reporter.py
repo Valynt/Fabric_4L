@@ -15,6 +15,7 @@ from layer4_agents.agents.audit_orchestrator.models import (
 )
 from layer4_agents.agents.audit_orchestrator.reporter import (
     generate_diff_report,
+    generate_findings_register,
     generate_full_report,
 )
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
@@ -231,3 +232,32 @@ def test_diff_report_handles_no_changes() -> None:
     assert "_No new findings since the previous audit._" in report
     assert "_No findings were resolved since the previous audit._" in report
     assert "→ 0" in report
+
+
+@pytest.mark.unit
+def test_findings_register_escapes_pipes_in_cells() -> None:
+    """Pipe characters inside table cells must be escaped so Markdown renders correctly."""
+    finding = Finding(
+        id="COR-PIPE",
+        severity=Severity.HIGH,
+        confidence=Confidence.HIGH,
+        area="C: Correctness, Data Integrity, Contracts",
+        evidence="src/a.py:1|src/b.py:2",
+        observed_fact="Value contains a pipe",
+        inference_risk="Table breaks",
+        business_impact="Low",
+        recommended_fix="Escape it",
+        effort="XS",
+        risk_of_change="Low",
+        owner="team|platform",
+        analyzer_type="code",
+    )
+    report = generate_findings_register([finding])
+    assert "src/a.py:1\\|src/b.py:2" in report
+    assert "team\\|platform" in report
+    # Verify the escaped pipes prevent extra Markdown table columns.
+    row = [line for line in report.splitlines() if line.startswith("| COR-PIPE")][0]
+    assert row.count("\\|") == 2
+    # Without escaping there would be 4 unescaped pipes; escaping keeps 8 separators.
+    unescaped_pipes = row.replace("\\|", "").count("|")
+    assert unescaped_pipes == 8

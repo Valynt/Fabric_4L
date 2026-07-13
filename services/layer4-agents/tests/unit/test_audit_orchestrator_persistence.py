@@ -7,6 +7,7 @@ or Neo4j is required.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,11 @@ from layer4_agents.agents.audit_orchestrator.models import (
     Severity,
     Sprint,
 )
-from layer4_agents.agents.audit_orchestrator.persistence import PersistenceManager
+from layer4_agents.agents.audit_orchestrator.persistence import (
+    PersistenceManager,
+    _repo_name_from_git_url,
+    _repo_name_from_path,
+)
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
 
 
@@ -329,7 +334,11 @@ async def test_fallback_atomic_write(
     sample_run: AuditRun,
 ) -> None:
     await fallback_manager.save_run(sample_run)
-    run_path = fallback_manager._fallback_dir / "runs" / f"{sample_run.id}.json"
+    run_path = (
+        fallback_manager._fallback_repo_dir(sample_run.scorecard.repo_name)
+        / "runs"
+        / f"{sample_run.id}.json"
+    )
     assert run_path.exists()
     data = __import__("json").loads(run_path.read_text(encoding="utf-8"))
     assert data["id"] == sample_run.id
@@ -380,3 +389,170 @@ async def test_get_latest_scorecard_returns_none_when_empty(
 ) -> None:
     result = await db_manager.get_latest_scorecard("nonexistent/repo")
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Round-trip fidelity tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+async def test_scorecard_round_trip_preserves_all_fields(
+    db_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+) -> None:
+    """Assert every Scorecard and AreaScore field survives a DB round trip."""
+    await db_manager.save_run(sample_run)
+    await db_manager.save_scorecard(sample_run.id, sample_scorecard)
+
+    loaded = await db_manager.get_latest_scorecard(sample_scorecard.repo_name)
+    assert loaded is not None
+    assert loaded.branch == sample_scorecard.branch
+    assert loaded.commit_sha == sample_scorecard.commit_sha
+    assert loaded.version == sample_scorecard.version
+    assert loaded.confidence == sample_scorecard.confidence
+    assert loaded.trend == sample_scorecard.trend
+    assert loaded.total_files == sample_scorecard.total_files
+    assert loaded.total_directories == sample_scorecard.total_directories
+    assert loaded.total_commits == sample_scorecard.total_commits
+    assert loaded.total_contributors == sample_scorecard.total_contributors
+    assert loaded.overall_score == sample_scorecard.overall_score
+    assert loaded.overall_grade == sample_scorecard.overall_grade
+
+    for loaded_area, original_area in zip(loaded.area_scores, sample_scorecard.area_scores):
+        assert loaded_area.area == original_area.area
+        assert loaded_area.weight == original_area.weight
+        assert loaded_area.score == original_area.score
+        assert loaded_area.grade == original_area.grade
+        assert loaded_area.confidence == original_area.confidence
+        assert loaded_area.trend_risk == original_area.trend_risk
+        assert loaded_area.diagnosis == original_area.diagnosis
+        assert loaded_area.findings_count == original_area.findings_count
+
+
+@pytest.mark.unit
+async def test_fallback_scorecard_round_trip_preserves_all_fields(
+    fallback_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+) -> None:
+    """Assert scorecard fields survive a JSON fallback round trip."""
+    await fallback_manager.save_run(sample_run)
+    await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
+
+    loaded = await fallback_manager.get_latest_scorecard(sample_scorecard.repo_name)
+    assert loaded is not None
+    assert loaded.branch == sample_scorecard.branch
+    assert loaded.commit_sha == sample_scorecard.commit_sha
+    assert loaded.total_files == sample_scorecard.total_files
+    assert loaded.total_contributors == sample_scorecard.total_contributors
+    assert loaded.confidence == sample_scorecard.confidence
+    assert loaded.area_scores[0].findings_count == sample_scorecard.area_scores[0].findings_count
+
+
+@pytest.mark.unit
+async def test_save_findings_increments_times_seen(
+    db_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+    sample_finding: Finding,
+) -> None:
+    """Re-saving an existing finding must increment times_seen and last_seen_at."""
+    await db_manager.save_run(sample_run)
+    await db_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
+
+    first_listed = await db_manager.list_findings(sample_scorecard.repo_name)
+    assert first_listed[0].times_seen == 1
+
+    # Resubmit the same finding as if observed again.
+    sample_finding.last_seen_at = datetime.now(UTC)
+    await db_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
+
+    second_listed = await db_manager.list_findings(sample_scorecard.repo_name)
+    assert second_listed[0].times_seen == 2
+    assert second_listed[0].last_seen_at >= first_listed[0].last_seen_at
+
+
+@pytest.mark.unit
+async def test_fallback_save_findings_increments_times_seen(
+    fallback_manager: PersistenceManager,
+    sample_run: AuditRun,
+    sample_scorecard: Any,
+    sample_finding: Finding,
+) -> None:
+    """JSON fallback also increments times_seen for existing findings."""
+    await fallback_manager.save_run(sample_run)
+    await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
+
+    first_listed = await fallback_manager.list_findings(sample_scorecard.repo_name)
+    assert first_listed[0].times_seen == 1
+
+    await fallback_manager.save_findings(
+        sample_run.id, [sample_finding], repo_name=sample_scorecard.repo_name
+    )
+
+    second_listed = await fallback_manager.list_findings(sample_scorecard.repo_name)
+    assert second_listed[0].times_seen == 2
+
+
+# ---------------------------------------------------------------------------
+# Repo-name extraction tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_repo_name_from_path_local_owner_repo() -> None:
+    assert _repo_name_from_path("/tmp/owner/repo") == "owner/repo"
+    assert _repo_name_from_path("/a/b/owner/repo/") == "owner/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_path_single_directory_fallback() -> None:
+    """When only two path components exist, derive owner/repo from them."""
+    assert _repo_name_from_path("/tmp/repo") == "tmp/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_path_empty_fallback() -> None:
+    assert _repo_name_from_path("/") == "unknown/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_git_url_ssh() -> None:
+    assert _repo_name_from_git_url("git@github.com:owner/repo.git") == "owner/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_git_url_https() -> None:
+    assert _repo_name_from_git_url("https://github.com/owner/repo.git") == "owner/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_git_url_bare_path() -> None:
+    assert _repo_name_from_git_url("/path/to/owner/repo.git") == "owner/repo"
+
+
+@pytest.mark.unit
+def test_repo_name_from_path_uses_git_remote(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """When inside a git repo, derive the name from the origin remote."""
+    git_dir = tmp_path / "repo"
+    git_dir.mkdir()
+    (git_dir / ".git").mkdir()
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> Any:
+        class Result:
+            stdout = "git@github.com:acme/widget.git\n"
+            returncode = 0
+
+        return Result()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+    assert _repo_name_from_path(str(git_dir)) == "acme/widget"

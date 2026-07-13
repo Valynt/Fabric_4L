@@ -198,12 +198,19 @@ def generate_findings_register(findings: Sequence[Finding]) -> str:
         "|----|----------|------|--------|--------|-------|----------|",
     ]
     for finding in sorted(findings, key=lambda f: (f.severity.value, f.id)):
+        evidence = _escape_md_table_cell(finding.evidence)
+        owner = _escape_md_table_cell(finding.owner)
         lines.append(
             f"| {finding.id} | {finding.severity.value} | {finding.area.value} | "
-            f"{finding.status.value} | {finding.effort} | {finding.owner} | "
-            f"`{finding.evidence}` |"
+            f"{finding.status.value} | {finding.effort} | {owner} | "
+            f"`{evidence}` |"
         )
     return "\n".join(lines)
+
+
+def _escape_md_table_cell(value: str) -> str:
+    """Escape pipe characters inside a Markdown table cell."""
+    return value.replace("|", "\\|")
 
 
 def generate_governance_gap_matrix(scorecard: Scorecard) -> str:

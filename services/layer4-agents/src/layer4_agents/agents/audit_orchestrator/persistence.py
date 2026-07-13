@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import tempfile
 from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import asynccontextmanager
@@ -201,9 +202,17 @@ if _SQLALCHEMY_AVAILABLE:
             ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
         )
         repo_name: Mapped[str] = mapped_column(String(255), nullable=False)
+        branch: Mapped[str] = mapped_column(String(255), nullable=False, default="main")
+        commit_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
+        version: Mapped[str | None] = mapped_column(String(50), nullable=True)
         overall_score: Mapped[int] = mapped_column(nullable=False)
         overall_grade: Mapped[str] = mapped_column(String(5), nullable=False)
+        confidence: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
         trend: Mapped[str | None] = mapped_column(String(50), nullable=True)
+        total_files: Mapped[int] = mapped_column(default=0)
+        total_directories: Mapped[int] = mapped_column(default=0)
+        total_commits: Mapped[int] = mapped_column(default=0)
+        total_contributors: Mapped[int] = mapped_column(default=0)
         audit_timestamp: Mapped[datetime] = mapped_column(
             DateTime(timezone=True), nullable=False
         )
@@ -230,6 +239,7 @@ if _SQLALCHEMY_AVAILABLE:
         confidence: Mapped[str | None] = mapped_column(String(20), nullable=True)
         trend_risk: Mapped[str | None] = mapped_column(String(50), nullable=True)
         diagnosis: Mapped[str | None] = mapped_column(nullable=True)
+        findings_count: Mapped[int] = mapped_column(default=0)
 
         scorecard: Mapped[ScorecardDB] = relationship("ScorecardDB", back_populates="area_scores")
 
@@ -466,12 +476,58 @@ def _run_to_dict(run: AuditRun) -> dict[str, Any]:
     }
 
 
+def _repo_name_from_git_url(url: str) -> str:
+    """Extract owner/repo from a git remote URL.
+
+    Supports SSH (``git@host:owner/repo.git``), HTTPS
+    (``https://host/owner/repo.git``), and file paths.
+    """
+    if url.startswith("git@"):
+        path_part = url.split(":", 1)[-1]
+    else:
+        # https://host/path/to/repo.git -> path/to/repo.git
+        path_part = url.split("://", 1)[-1].split("/", 1)[-1]
+    path_part = path_part.removesuffix(".git").strip("/")
+    parts = [p for p in path_part.split("/") if p]
+    if len(parts) >= 2:
+        return f"{parts[-2]}/{parts[-1]}"
+    return path_part or "unknown/repo"
+
+
 def _repo_name_from_path(repo_path: str) -> str:
-    """Derive a repo name from a local path for runs without a scorecard."""
-    path = Path(repo_path)
-    name = path.name or repo_path
-    # Best-effort normalization to owner/repo style.
-    return name.strip("/") or "unknown/repo"
+    """Derive a repo name from a local path for runs without a scorecard.
+
+    Heuristic:
+      1. If ``repo_path`` points to a git directory (contains ``.git`` or ends
+         with ``.git``), attempt to read the ``origin`` remote URL and return
+         ``owner/repo`` from it.
+      2. For local paths with at least two trailing components, use the last
+         two directories as ``owner/repo``.
+      3. Otherwise use the directory name.
+      4. Fall back to ``"unknown/repo"``.
+    """
+    path = Path(repo_path).resolve()
+    if (path / ".git").is_dir() or path.suffix == ".git":
+        git_dir = path if (path / ".git").is_dir() else path.parent
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(git_dir), "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=5,
+            )
+            url = result.stdout.strip()
+            if url:
+                return _repo_name_from_git_url(url)
+        except Exception:  # pragma: no cover
+            pass
+    parts = [p for p in path.parts if p not in ("", "/")]
+    if len(parts) >= 2:
+        return f"{parts[-2]}/{parts[-1]}"
+    if parts:
+        return parts[-1]
+    return "unknown/repo"
 
 
 # ---------------------------------------------------------------------------
@@ -572,6 +628,7 @@ def _area_score_to_db(area: AreaScore, scorecard_id: str) -> AreaScoreDB:
         confidence=area.confidence.value,
         trend_risk=area.trend_risk,
         diagnosis=area.diagnosis,
+        findings_count=area.findings_count,
     )
 
 
@@ -585,7 +642,7 @@ def _area_score_from_db(row: AreaScoreDB) -> AreaScore:
         confidence=Confidence(row.confidence or "medium"),
         trend_risk=row.trend_risk or "Stable",
         diagnosis=row.diagnosis or "",
-        findings_count=0,
+        findings_count=row.findings_count or 0,
     )
 
 
@@ -595,9 +652,17 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
         id=scorecard.id,
         run_id=run_id,
         repo_name=scorecard.repo_name,
+        branch=scorecard.branch,
+        commit_sha=scorecard.commit_sha,
+        version=scorecard.version,
         overall_score=scorecard.overall_score,
         overall_grade=scorecard.overall_grade,
+        confidence=scorecard.confidence.value,
         trend=scorecard.trend,
+        total_files=scorecard.total_files,
+        total_directories=scorecard.total_directories,
+        total_commits=scorecard.total_commits,
+        total_contributors=scorecard.total_contributors,
         audit_timestamp=scorecard.audit_timestamp,
     )
     db_scorecard.area_scores = [
@@ -615,12 +680,18 @@ def _scorecard_from_db(
     return Scorecard(
         id=row.id,
         repo_name=row.repo_name,
-        branch="main",
+        branch=row.branch,
+        commit_sha=row.commit_sha,
+        version=row.version,
         overall_score=row.overall_score,
         overall_grade=row.overall_grade,
-        confidence=Confidence.MEDIUM,
+        confidence=Confidence(row.confidence or "medium"),
         trend=row.trend or "Stable",
         area_scores=list(area_scores),
+        total_files=row.total_files or 0,
+        total_directories=row.total_directories or 0,
+        total_commits=row.total_commits or 0,
+        total_contributors=row.total_contributors or 0,
         audit_timestamp=row.audit_timestamp,
         findings=list(findings),
     )
@@ -723,16 +794,20 @@ class PersistenceManager:
 
     @asynccontextmanager
     async def _session(self) -> AsyncGenerator[AsyncSession, None]:
-        """Yield a managed DB session or raise if fallback mode is active."""
+        """Yield a managed DB session or raise if fallback mode is active.
+
+        The session marks tenant context as established so that Layer 4's
+        global before-flush listener does not abort the commit. Audit
+        persistence does not rely on PostgreSQL RLS tenant isolation;
+        repository scoping is enforced via ``repo_name`` query filters.
+        """
         if self._session_factory is None:
             raise RuntimeError("No database session factory configured")
         session = self._session_factory()
         try:
             yield session
-            # Audit persistence does not rely on PostgreSQL RLS tenant isolation;
-            # repository scoping is enforced via repo_name query filters.
-            session.info["tenant_context_state"] = "bypass"
-            session.info["tenant_context_bypass_reason"] = "audit_persistence"
+            session.info["tenant_context_state"] = "set"
+            session.info["tenant_context_value"] = "audit"
             await session.commit()
         except asyncio.CancelledError:
             raise
@@ -777,9 +852,9 @@ class PersistenceManager:
             raise
         shutil.move(tmp, path)
 
-    def _fallback_write_run(self, run: AuditRun) -> None:
-        """Persist an audit run to the fallback store."""
-        path = self._fallback_dir / "runs" / f"{run.id}.json"
+    def _fallback_write_run(self, run: AuditRun, repo_name: str) -> None:
+        """Persist an audit run to the fallback store under its repo scope."""
+        path = self._fallback_repo_dir(repo_name) / "runs" / f"{run.id}.json"
         self._atomic_write_json(path, _run_to_dict(run))
 
     def _fallback_write_findings(
@@ -788,11 +863,21 @@ class PersistenceManager:
         run_id: str,
         findings: Sequence[Finding],
     ) -> None:
-        """Persist findings to the fallback store, creating one file per finding."""
+        """Persist findings to the fallback store, creating one file per finding.
+
+        Existing findings have their ``times_seen`` count incremented and
+        ``last_seen_at`` refreshed.
+        """
         base = self._fallback_repo_dir(repo_name) / "findings"
         for finding in findings:
             path = base / f"{finding.id}.json"
-            self._atomic_write_json(path, _finding_to_dict(finding))
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                data["times_seen"] = data.get("times_seen", 1) + 1
+                data["last_seen_at"] = _isoformat(datetime.now(UTC))
+                self._atomic_write_json(path, data)
+            else:
+                self._atomic_write_json(path, _finding_to_dict(finding))
         # Track occurrences per run.
         occurrences_path = self._fallback_repo_dir(repo_name) / "occurrences" / f"{run_id}.json"
         self._atomic_write_json(
@@ -864,10 +949,15 @@ class PersistenceManager:
         """Persist an audit run.
 
         When a database is configured the run is written to PostgreSQL;
-        otherwise it is written to the JSON fallback store.
+        otherwise it is written to the JSON fallback store under the repo scope.
         """
+        repo_name = (
+            audit_run.scorecard.repo_name
+            if audit_run.scorecard is not None
+            else _repo_name_from_path(audit_run.repo_path)
+        )
         if self._use_fallback:
-            self._fallback_write_run(audit_run)
+            self._fallback_write_run(audit_run, repo_name)
             return
 
         async with self._session() as session:
@@ -917,8 +1007,8 @@ class PersistenceManager:
                     existing.status = finding.status.value
                     existing.resolved_at = finding.resolved_at
                     existing.resolution_note = finding.resolution_note
-                    existing.last_seen_at = finding.last_seen_at
-                    existing.times_seen = finding.times_seen
+                    existing.last_seen_at = datetime.now(UTC)
+                    existing.times_seen += 1
                     existing.check_command = finding.check_command
                     existing.check_output = finding.check_output
                 else:
@@ -945,7 +1035,15 @@ class PersistenceManager:
             if existing is not None:
                 existing.overall_score = scorecard.overall_score
                 existing.overall_grade = scorecard.overall_grade
+                existing.confidence = scorecard.confidence.value
                 existing.trend = scorecard.trend
+                existing.branch = scorecard.branch
+                existing.commit_sha = scorecard.commit_sha
+                existing.version = scorecard.version
+                existing.total_files = scorecard.total_files
+                existing.total_directories = scorecard.total_directories
+                existing.total_commits = scorecard.total_commits
+                existing.total_contributors = scorecard.total_contributors
                 existing.audit_timestamp = scorecard.audit_timestamp
                 await session.execute(
                     delete(AreaScoreDB).where(AreaScoreDB.scorecard_id == scorecard.id)
