@@ -259,6 +259,7 @@ def _install_protego_shim() -> None:
     class _MockProtegoRules:
         @classmethod
         def parse(cls, content: str) -> "_MockProtegoRules":
+            # content is intentionally unused; always returns a permissive instance for schema export
             return cls()
 
         def can_fetch(self, user_agent: str, path: str) -> bool:
