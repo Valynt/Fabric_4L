@@ -24,8 +24,15 @@ runs:
         run_install: false
 
     - name: Setup Node.js
+      if: ${{ inputs.cache != '' }}
       uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: ${{ inputs.cache }}
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Setup Node.js (no cache)
+      if: ${{ inputs.cache == '' }}
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+      with:
+        node-version: ${{ inputs.node-version }}
