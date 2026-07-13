@@ -2068,7 +2068,8 @@ jobs:
           - layer: layer6-benchmarks
             context: services/layer6-benchmarks
           - layer: frontend
-            context: apps/web
+            context: .
+            dockerfile: ./apps/web/Dockerfile
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2083,6 +2084,7 @@ jobs:
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # v5
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
           push: false
           load: true
           tags: local/${{ matrix.layer }}:${{ github.sha }}
