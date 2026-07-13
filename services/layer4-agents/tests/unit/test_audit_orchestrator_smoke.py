@@ -7,6 +7,7 @@ that a complete scorecard and report are produced.
 from __future__ import annotations
 
 import subprocess
+from urllib.parse import urlparse
 
 import pytest
 
@@ -31,13 +32,23 @@ def _derive_repo_name() -> str:
     if url.endswith(".git"):
         url = url[:-4]
 
-    # SSH: git@host:owner/repo  -> owner/repo
-    if ":" in url and "@" in url:
-        path = url.rsplit(":", 1)[-1]
+    path: str
+    if url.startswith(("http://", "https://")):
+        parsed = urlparse(url)
+        path = parsed.path.lstrip("/")
+    elif "@" in url:
+        # SSH-ish: git@host:owner/repo or git@host/owner/repo
+        remainder = url.split("@", 1)[1]
+        if ":" in remainder:
+            path = remainder.split(":", 1)[1]
+        elif "/" in remainder:
+            path = remainder.split("/", 1)[1]
+        else:
+            path = remainder
     else:
-        path = url.rsplit("/", 1)[-1]
+        path = url
 
-    if path.count("/") == 1 and not path.startswith(("/", ".")):
+    if path.count("/") == 1 and ":" not in path:
         return path
     return "local/audit-target"
 
