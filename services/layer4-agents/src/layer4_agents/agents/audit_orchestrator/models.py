@@ -384,7 +384,12 @@ class Scorecard(BaseModel):
     @field_validator("area_scores")
     @classmethod
     def _validate_area_scores(cls, v: list[AreaScore]) -> list[AreaScore]:
-        """Validate that area scores cover all ten audit areas and weights sum to 1.0."""
+        """Validate area scores.
+
+        When ``area_scores`` is non-empty it must contain exactly one score
+        for each of the ten :class:`AuditArea` members and the weights must
+        sum to 1.0 within tolerance. An empty list is explicitly permitted.
+        """
         if not v:
             return v
         seen = {a.area for a in v}
@@ -641,8 +646,8 @@ class AuditConfig(BaseModel):
     )
     clone_depth: int = Field(
         default=1,
-        ge=1,
-        description="Git clone depth (1 for shallow, 0 for full)",
+        ge=0,
+        description="Git clone depth (0 for full clone, ≥1 for shallow)",
     )
 
     # --- Analysis scope ---

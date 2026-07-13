@@ -21,6 +21,7 @@ from typing import Any
 
 from .models import (
     DEFAULT_AREA_WEIGHTS,
+    DEFAULT_GRADE_THRESHOLDS,
     AreaScore,
     AuditArea,
     Confidence,
@@ -34,13 +35,7 @@ from .models import (
 # Grade thresholds (canonical copy used by score_to_grade)
 # ---------------------------------------------------------------------------
 
-GRADE_THRESHOLDS: dict[str, tuple[int, int]] = {
-    "A+": (97, 100), "A": (93, 96), "A-": (90, 92),
-    "B+": (87, 89), "B": (83, 86), "B-": (80, 82),
-    "C+": (77, 79), "C": (73, 76), "C-": (70, 72),
-    "D+": (67, 69), "D": (63, 66), "D-": (60, 62),
-    "F": (0, 59),
-}
+GRADE_THRESHOLDS: dict[str, tuple[int, int]] = DEFAULT_GRADE_THRESHOLDS.copy()
 
 # Ordered from highest to lowest for grade-to-index mapping.
 GRADE_ORDER: list[str] = [
@@ -527,7 +522,7 @@ def calculate_area_score(
     area: AuditArea,
     findings: list[Finding],
     metrics: dict[str, Any],
-    weights: dict[str, float] | None = None,
+    weight: float | None = None,
 ) -> AreaScore:
     """Calculate the score for a single audit area.
 
@@ -546,13 +541,15 @@ def calculate_area_score(
         area: The audit area being scored.
         findings: List of findings that apply to this area.
         metrics: Dictionary of collected metrics for the area.
-        weights: Optional weights configuration (currently reserved for
-            future use; area weights come from the :class:`AuditConfig`).
+        weight: Optional weight for this area. Falls back to
+            :data:`DEFAULT_AREA_WEIGHTS` if not provided.
 
     Returns:
         An :class:`AreaScore` instance with the computed score and metadata.
     """
     baseline = 100
+
+    area_weight = weight if weight is not None else DEFAULT_AREA_WEIGHTS.get(area, 0.1)
 
     # --- Step 2 & 3: Deduct for findings with confidence multiplier ---
     finding_deduction = 0.0
@@ -608,7 +605,7 @@ def calculate_area_score(
 
     return AreaScore(
         area=area,
-        weight=DEFAULT_AREA_WEIGHTS.get(area, 0.1),
+        weight=area_weight,
         score=final_score,
         grade=grade,
         confidence=area_confidence,
@@ -634,7 +631,7 @@ def detect_trend(
         - Computes the average of the last ``window_size`` scores
         - Compares current score against that average
         - ``+3`` or more: ``"Improving"``
-        ``-3`` or less: ``"Declining"``
+        - ``-3`` or less: ``"Declining"``
         - Otherwise: ``"Stable"``
 
     Args:
@@ -697,7 +694,7 @@ def build_scorecard(
     repo_name: str,
     findings: list[Finding],
     metrics_by_area: dict[AuditArea, dict[str, Any]] | None = None,
-    historical_scores: dict[AuditArea, list[int]] | None = None,
+    historical_scores: dict[AuditArea | None, list[int]] | None = None,
     area_weights: dict[AuditArea, float] | None = None,
     branch: str = "main",
     commit_sha: str | None = None,
@@ -718,7 +715,8 @@ def build_scorecard(
         findings: All findings from the audit.
         metrics_by_area: Optional mapping of audit area to metric dict.
         historical_scores: Optional mapping of audit area to chronological
-            list of past scores for trend detection.
+            list of past scores for trend detection. The ``None`` key holds
+            the overall score history.
         area_weights: Optional custom area weights. Uses
             :data:`DEFAULT_AREA_WEIGHTS` when ``None``.
         branch: Git branch that was audited.
@@ -741,10 +739,12 @@ def build_scorecard(
     for area in AuditArea:
         area_findings = [f for f in findings if f.area == area]
         area_metrics = metrics_by_area.get(area, {})
-        area_score = calculate_area_score(area, area_findings, area_metrics)
+        area_weight = weights.get(area, DEFAULT_AREA_WEIGHTS.get(area, 0.1))
+        area_score = calculate_area_score(
+            area, area_findings, area_metrics, weight=area_weight
+        )
 
-        # Override weight and apply trend if historical data exists
-        area_score.weight = weights.get(area, DEFAULT_AREA_WEIGHTS.get(area, 0.1))
+        # Apply trend if historical data exists
         history = historical_scores.get(area, [])
         if history:
             area_score.trend_risk = detect_trend(area_score.score, history)

@@ -9,7 +9,10 @@ from typing import Any
 
 import pytest
 
-from layer4_agents.agents.audit_orchestrator.config import ConfigManager
+from layer4_agents.agents.audit_orchestrator.config import (
+    ConfigManager,
+    _convert_env_value,
+)
 from layer4_agents.agents.audit_orchestrator.models import (
     DEFAULT_AREA_WEIGHTS,
     DEFAULT_GRADE_THRESHOLDS,
@@ -209,6 +212,20 @@ def test_scorecard_weight_sum_validation(sample_finding: Finding) -> None:
 
 
 @pytest.mark.unit
+def test_scorecard_allows_empty_area_scores() -> None:
+    """An empty area_scores list is explicitly permitted by the validator."""
+    scorecard = Scorecard(
+        repo_name="test/repo",
+        overall_score=0,
+        overall_grade="F",
+        confidence=Confidence.LOW,
+        trend="Stable",
+        area_scores=[],
+    )
+    assert scorecard.area_scores == []
+
+
+@pytest.mark.unit
 def test_scorecard_helpers(sample_scorecard: Scorecard) -> None:
     assert sample_scorecard.get_area_score(AuditArea.CORRECTNESS) is not None
     assert sample_scorecard.get_area_score(AuditArea.SECURITY) is not None
@@ -287,6 +304,94 @@ def test_audit_config_weight_validation() -> None:
 def test_audit_config_get_area_weight() -> None:
     config = AuditConfig(repo_url="https://github.com/org/repo", repo_name="repo")
     assert config.get_area_weight(AuditArea.SECURITY) == 0.16
+
+
+@pytest.mark.unit
+def test_audit_config_clone_depth_zero_allows_full_clone() -> None:
+    config = AuditConfig(
+        repo_url="https://github.com/org/repo",
+        repo_name="repo",
+        clone_depth=0,
+    )
+    assert config.clone_depth == 0
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("1", 1),
+        ("0", 0),
+        ("42", 42),
+        ("3.14", 3.14),
+        ("true", True),
+        ("True", True),
+        ("false", False),
+        ("yes", True),
+        ("no", False),
+        ("on", True),
+        ("off", False),
+        ("null", None),
+        ("none", None),
+        ("", None),
+        ("A,B,C", ["A", "B", "C"]),
+        ("a, b ,c", ["a", "b", "c"]),
+        ("plain string", "plain string"),
+        ("https://github.com/org/repo", "https://github.com/org/repo"),
+    ],
+)
+def test_convert_env_value_coercion(raw: str, expected: Any) -> None:
+    assert _convert_env_value(raw) == expected
+
+
+@pytest.mark.unit
+def test_config_manager_env_numeric_and_boolean_coercion(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    for key in list(os.environ.keys()):
+        if key.startswith("AUDIT__"):
+            monkeypatch.delenv(key, raising=False)
+
+    monkeypatch.setenv("AUDIT__REPO_URL", "https://github.com/env/repo")
+    monkeypatch.setenv("AUDIT__REPO_NAME", "env-repo")
+    monkeypatch.setenv("AUDIT__CLONE_DEPTH", "0")
+    monkeypatch.setenv("AUDIT__INCREMENTAL", "0")
+    monkeypatch.setenv("AUDIT__TEAM_SIZE", "1")
+    monkeypatch.setenv("AUDIT__AREAS_ENABLED", "A,B,C")
+
+    mgr = ConfigManager(yaml_path=str(tmp_path / "missing.yaml"))
+    config = mgr.load()
+    # "0" is coerced to int 0 (not bool False), which the int field accepts.
+    assert config.clone_depth == 0
+    # "0" is coerced to int 0, then Pydantic bool field serializes it as False.
+    assert config.incremental is False
+    assert config.team_size == 1
+    assert config.areas_enabled == [
+        AuditArea.ARCHITECTURE,
+        AuditArea.CODE_QUALITY,
+        AuditArea.CORRECTNESS,
+    ]
+
+
+@pytest.mark.unit
+def test_config_manager_env_boolean_word_coercion(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    for key in list(os.environ.keys()):
+        if key.startswith("AUDIT__"):
+            monkeypatch.delenv(key, raising=False)
+
+    monkeypatch.setenv("AUDIT__REPO_URL", "https://github.com/env/repo")
+    monkeypatch.setenv("AUDIT__REPO_NAME", "env-repo")
+    monkeypatch.setenv("AUDIT__INCREMENTAL", "false")
+    monkeypatch.setenv("AUDIT__TRIGGER_ON_PUSH", "yes")
+    monkeypatch.setenv("AUDIT__TRIGGER_ON_RELEASE", "off")
+
+    mgr = ConfigManager(yaml_path=str(tmp_path / "missing.yaml"))
+    config = mgr.load()
+    assert config.incremental is False
+    assert config.trigger_on_push is True
+    assert config.trigger_on_release is False
 
 
 # ---------------------------------------------------------------------------

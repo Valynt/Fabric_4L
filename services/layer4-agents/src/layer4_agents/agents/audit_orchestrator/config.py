@@ -34,8 +34,15 @@ DEFAULT_YAML_PATH: str = ".agent/skills/repo-audit/config.yaml"
 def _convert_env_value(value: str) -> Any:
     """Convert an environment variable string to an appropriate Python type.
 
-    Supports booleans, integers, floats, lists (comma-separated), and
-    falls back to plain strings.
+    Coercion order:
+
+    1. ``null`` / ``none`` / empty → ``None``
+    2. Integers (e.g., ``"1"``, ``"0"``, ``"42"``)
+    3. Floats (e.g., ``"3.14"``)
+    4. Explicit boolean words (``true``/``false``/``yes``/``no``/``on``/``off``);
+       numeric ``"1"`` and ``"0"`` are treated as integers, not booleans.
+    5. Comma-separated lists
+    6. Plain strings
 
     Args:
         value: The raw environment variable string.
@@ -43,13 +50,8 @@ def _convert_env_value(value: str) -> Any:
     Returns:
         The converted value with an appropriate Python type.
     """
-    lower = value.strip().lower()
-
-    # Boolean
-    if lower in ("true", "yes", "1", "on"):
-        return True
-    if lower in ("false", "no", "0", "off"):
-        return False
+    stripped = value.strip()
+    lower = stripped.lower()
 
     # None / empty
     if lower in ("null", "none", ""):
@@ -57,22 +59,28 @@ def _convert_env_value(value: str) -> Any:
 
     # Integer
     try:
-        return int(value)
+        return int(stripped)
     except ValueError:
         pass
 
     # Float
     try:
-        return float(value)
+        return float(stripped)
     except ValueError:
         pass
 
+    # Boolean words only (not numeric "1"/"0")
+    if lower in ("true", "yes", "on"):
+        return True
+    if lower in ("false", "no", "off"):
+        return False
+
     # List (comma-separated)
-    if "," in value:
-        return [item.strip() for item in value.split(",") if item.strip()]
+    if "," in stripped:
+        return [item.strip() for item in stripped.split(",") if item.strip()]
 
     # String (default)
-    return value
+    return stripped
 
 
 def _parse_nested_env(env_vars: dict[str, str]) -> dict[str, Any]:

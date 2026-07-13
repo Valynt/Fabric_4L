@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from layer4_agents.agents.audit_orchestrator.models import (
+    DEFAULT_AREA_WEIGHTS,
     AuditArea,
     Confidence,
     Finding,
@@ -305,6 +306,38 @@ def test_build_scorecard_custom_weights(perfect_finding: Finding) -> None:
     security = scorecard.get_area_score(AuditArea.SECURITY)
     assert security is not None
     assert security.weight == 0.1
+
+
+@pytest.mark.unit
+def test_calculate_area_score_custom_weight(perfect_finding: Finding) -> None:
+    perfect_finding.area = AuditArea.CORRECTNESS
+    area_score = calculate_area_score(
+        AuditArea.CORRECTNESS,
+        [perfect_finding],
+        {},
+        weight=0.25,
+    )
+    assert area_score.weight == 0.25
+
+
+@pytest.mark.unit
+def test_calculate_area_score_default_weight(perfect_finding: Finding) -> None:
+    perfect_finding.area = AuditArea.CORRECTNESS
+    area_score = calculate_area_score(
+        AuditArea.CORRECTNESS, [perfect_finding], {}
+    )
+    assert area_score.weight == DEFAULT_AREA_WEIGHTS[AuditArea.CORRECTNESS]
+
+
+@pytest.mark.unit
+def test_build_scorecard_overall_history(perfect_finding: Finding) -> None:
+    perfect_finding.area = AuditArea.CORRECTNESS
+    scorecard = build_scorecard(
+        repo_name="test/repo",
+        findings=[perfect_finding],
+        historical_scores={None: [88, 90, 92]},
+    )
+    assert scorecard.trend == "Improving"
 
 
 # ---------------------------------------------------------------------------
