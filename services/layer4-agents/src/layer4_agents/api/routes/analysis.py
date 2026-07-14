@@ -71,22 +71,22 @@ get_db_from_context = get_route_db
 
 class export_business_caseResult(TypedDictModel):
     blocked: bool
-    case_id: Any
-    document_url: Any
+    case_id: str
+    document_url: str | None
     download_ready: bool
-    export_id: Any
-    format: Any
+    export_id: str
+    format: str
     manifest: dict[str, Any]
-    manifest_url: Any | None = None
-    remediation_items: Any
-    truth_references: Any
-    url_expires_at: Any | None = None
+    manifest_url: str | None = None
+    remediation_items: list[dict[str, Any]]
+    truth_references: list[dict[str, Any]]
+    url_expires_at: str | None = None
 
 class generate_workspace_intelligenceResult(TypedDictModel):
-    account_id: Any
-    case_id: Any
+    account_id: str
+    case_id: str
     generated: bool
-    stats: dict[str, Any]
+    stats: dict[str, int]
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -1572,7 +1572,7 @@ def _parse_case_account_uuid(account_id: str) -> UUID:
         raise ValidationError(message="account_id must be a UUID") from exc
 
 
-def _isoformat_or_none(value: Any) -> str | None:
+def _isoformat_or_none(value: datetime | str | None) -> str | None:
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -1580,7 +1580,7 @@ def _isoformat_or_none(value: Any) -> str | None:
     return str(value)
 
 
-def _is_workspace_case_create_body(body: Any) -> bool:
+def _is_workspace_case_create_body(body: object) -> bool:
     """Disambiguate the legacy workspace create payload from business-case generation."""
     if not isinstance(body, dict):
         return False
