@@ -639,7 +639,7 @@ Each link records: timestamp, processing version, confidence, evidence quotes.
 ### Communication
 
 - **Layer-to-layer:** REST/HTTP (async `httpx`)
-- **Event streaming:** Redis / RabbitMQ for async Celery tasks
+- **Event streaming:** Redis for async Celery tasks (RabbitMQ was planned but not implemented)
 - **Storage:** PostgreSQL + Neo4j + MinIO (object storage)
 - **Frontend-to-Backend:** REST API + WebSocket for real-time updates
 
