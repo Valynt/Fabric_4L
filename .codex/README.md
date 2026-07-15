@@ -1,7 +1,7 @@
 # Codex Workspace Bridge
 
-This folder documents how Codex should interpret the repository's existing `.windsurf/`
-workspace and provides setup scripts and actions for local development.
+This folder documents how Codex should interpret the repository's existing `.devin/`
+workspace (renamed from `.windsurf/` in commit `342c3249d`) and provides setup scripts and actions for local development.
 
 ## Setup Scripts
 
@@ -32,20 +32,21 @@ Configure these actions in the [Codex app settings](codex://settings) for quick 
 | Run Migrations | `make migrate` | Run database migrations for all layers |
 | View Logs | `docker compose -f docker-compose.dev.yml logs -f` | Tail logs for all Docker services |
 
-## Windsurf Workspace Mapping
+## Devin Workspace Mapping
 
-`.windsurf/` is the project's assistant-runtime source of truth. Codex cannot automatically
-execute that runtime, but it can use the files as local project guidance.
+`.devin/` is the project's assistant-runtime source of truth (renamed from `.windsurf/` in
+commit `342c3249d`). Codex cannot automatically execute that runtime, but it can use the
+files as local project guidance.
 
 ### Mapping
 
-- `.windsurf/AGENTS.md` -> agent roles, boundaries, and task framing reference
-- `.windsurf/CONTEXT.md` -> context assembly and conflict-checking reference
-- `.windsurf/MEMORY.md` -> memory/documentation conventions reference
-- `.windsurf/rules/` -> policy and safety reference
-- `.windsurf/skills/` -> reusable playbook reference
-- `.windsurf/workflows/` -> orchestration playbook reference
-- `.windsurf/mcp/` -> reference manifests only; not automatically active in Codex
+- `.devin/AGENTS.md` -> agent roles, boundaries, and task framing reference
+- `.devin/CONTEXT.md` -> context assembly and conflict-checking reference
+- `.devin/MEMORY.md` -> memory/documentation conventions reference
+- `.devin/rules/` -> policy and safety reference
+- `.devin/skills/` -> reusable playbook reference
+- `.devin/workflows/` -> orchestration playbook reference
+- `.devin/mcp/` -> reference manifests only; not automatically active in Codex
 
 ### Practical Rule
 
@@ -53,6 +54,6 @@ For Codex sessions in this repo, prefer:
 
 1. Root `AGENTS.md`
 2. `packages/platform-contract/CONTRACT.md`
-3. Relevant `.windsurf/` documents for additional local guidance
+3. Relevant `.devin/` documents for additional local guidance
 
 If these sources conflict, follow the higher item in the list.
