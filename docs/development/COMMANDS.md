@@ -64,6 +64,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `verify:frontend` | `pnpm --filter ./apps/web run verify:frontend` | Frontend verification |
 | `verify` | `pnpm run check:default-scope && pnpm run verify:frontend` | Root pnpm verification alias |
 | `check:test-skip-governance` | `python scripts/ci/check_test_skip_governance.py --register config/ci/test_skip_register.yaml` | Test governance |
+| `check:type-escapes` | `make check-type-escape-ratchet` | Type-escape ratchet |
 | `dev:web` | `infisical run --env=dev --path=/shared --path=/apps/web -- pnpm --filter web dev` | Dev server |
 | `dev:layer1` | `infisical run --env=dev --path=/shared --path=/infra --path=/layer1-ingestion -- uvicorn services.layer1-ingestion.src.api.main:app --reload` | Dev server |
 | `dev:layer2` | `infisical run --env=dev --path=/shared --path=/infra --path=/layer2-extraction -- uvicorn services.layer2-extraction.src.api.main:app --reload` | Dev server |
@@ -125,6 +126,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-manifest-secret-hygiene` | Enforce secret-only references and denylisted sensitive patterns in manifests. |
 | `check-path-env-hygiene` | Fail on suspicious path artifacts and unapproved tracked env files. |
 | `check-pytest-skip-governance` | Enforce pytest skip governance. |
+| `check-type-escape-ratchet` | Fail on net-new unapproved Python or TypeScript type escapes. |
 | `check-hermetic-build-inputs` | Enforce digest-pinned Docker base images and approved CI external domains. |
 | `check-production-k8s-mutable-tags` | Fail if production-facing K8s manifests use `:latest` or `:main` image tags. |
 | `check-k8s-image-digests` | Fail if production K8s overlays use mutable image tags. |
