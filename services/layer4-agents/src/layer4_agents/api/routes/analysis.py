@@ -85,29 +85,10 @@ from .analysis_schemas import (
     WorkspaceEvidenceItem,
     WorkspaceEvidenceResponse,
     export_business_caseResult,
+    generate_workspace_intelligenceResult,
 )
 
 get_db_from_context = get_route_db
-
-
-class export_business_caseResult(TypedDictModel):
-    blocked: bool
-    case_id: str
-    document_url: str | None
-    download_ready: bool
-    export_id: str
-    format: str
-    manifest: dict[str, Any]
-    manifest_url: str | None = None
-    remediation_items: list[dict[str, Any]]
-    truth_references: list[dict[str, Any]]
-    url_expires_at: str | None = None
-
-class generate_workspace_intelligenceResult(TypedDictModel):
-    account_id: str
-    case_id: str
-    generated: bool
-    stats: dict[str, int]
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
