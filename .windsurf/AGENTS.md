@@ -44,7 +44,7 @@ services/*/AGENTS.md              ← Service-specific invariants (if present)
 
 | Need | Go To |
 |------|-------|
-| Setup commands | [`AGENTS.md` § Setup](../AGENTS.md#setup) |
+| Setup commands | [`AGENTS.md`](../AGENTS.md) (§ Setup section) |
 | Canonical validation commands | [`docs/development/COMMANDS.md`](../docs/development/COMMANDS.md) |
 | Build system decisions | [`docs/development/BUILD_SYSTEM.md`](../docs/development/BUILD_SYSTEM.md) |
 | Issue routing map | [`docs/development/DISCOVERY_MAP.md`](../docs/development/DISCOVERY_MAP.md) |

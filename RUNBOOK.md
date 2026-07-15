@@ -1,6 +1,6 @@
 # Runbook — Value Fabric
 
-> **This is a root-level entry point.** All detailed runbooks live in [`docs/runbooks/`](docs/runbooks/).
+> **This is a root-level entry point.** All detailed runbooks live in [`docs/runbooks/`](docs/runbooks/README.md).
 >
 > **Canonical runbook index:** [`docs/runbooks/00-runbook-index.md`](docs/runbooks/00-runbook-index.md)
 
@@ -38,7 +38,7 @@
 
 | Scenario | Severity | Runbook |
 |----------|----------|---------|
-| Service outage / SLO breach | SEV-1 | [`docs/runbooks/`](docs/runbooks/00-runbook-index.md) |
+| Service outage / SLO breach | SEV-1 | [`docs/runbooks/00-runbook-index.md`](docs/runbooks/00-runbook-index.md) |
 | Tenant isolation failure | SEV-1 | [`docs/runbooks/00-runbook-index.md`](docs/runbooks/00-runbook-index.md) |
 | Data breach response | SEV-1 | [`docs/runbooks/00-runbook-index.md`](docs/runbooks/00-runbook-index.md) |
 | PostgreSQL HA and restore | SEV-1 | [`docs/runbooks/00-runbook-index.md`](docs/runbooks/00-runbook-index.md) |
@@ -58,7 +58,7 @@
 - **Kubernetes rollback:** `kubectl rollout undo deployment/<service> -n fabric-production`
 - **Database migration rollback:** `alembic downgrade -1` (per service)
 - **Feature flag kill switch:** See [`packages/feature-flags/src/kill-switch-spec.md`](packages/feature-flags/src/kill-switch-spec.md)
-- **Full deployment guide:** [`docs/deployment/`](docs/deployment/)
+- **Full deployment guide:** [`docs/deployment/cloud-kubernetes-production.md`](docs/deployment/cloud-kubernetes-production.md)
 
 ---
 
