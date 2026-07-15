@@ -8,9 +8,7 @@
 name: PR Checks
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write # Required for Infisical OIDC authentication
+  contents: read
 
 "on":
   pull_request:
@@ -374,6 +372,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read # Required for read-only gh PR/file lookups in check_pr_overlap_guard.py; no PR mutations.
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -1852,6 +1853,9 @@ jobs:
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
