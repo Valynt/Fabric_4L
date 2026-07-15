@@ -136,6 +136,8 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-behavior-readiness-audit` | Enforce executable behavior readiness audit. |
 | `check-ui-duplicates` | Block duplicate UI component filenames. |
 | `check-layer4-boundaries` | Check Layer 4 bounded-context dependencies. |
+| `check-layer4-collection` | Check that all Layer 4 tests can be collected without import errors. |
+| `check-layer4-canonical-paths` | Enforce Layer 4 canonical path layout via AST checks. |
 | `check-layer3-legacy-tenant-dependency-imports` | Block legacy Layer 3 tenant dependency imports. |
 | `check-layer3-tenant-dependency-imports` | Compatibility alias for the legacy Layer 3 tenant import gate. |
 | `check-compatibility-shims` | Run the unified registry-driven compatibility shim gate. |
