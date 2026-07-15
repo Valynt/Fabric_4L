@@ -17,8 +17,8 @@ entries:
   marker: test.skip
   reason_pattern: test\.skip\("No\ modal\ trigger\ found\ on\ this\ page"\);
   owner: '@frontend-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P1
   launch_gate: mandatory
@@ -27,13 +27,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in apps/web/e2e/accessibility/keyboard-flow.spec.ts
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-002
   path_pattern: apps/web/e2e/accessibility/keyboard-flow.spec.ts
   marker: test.skip
   reason_pattern: test\.skip\("No\ dropdown\ trigger\ found\ on\ this\ page"\);
   owner: '@frontend-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-30'
   severity: P1
   launch_gate: mandatory
@@ -42,14 +43,15 @@ entries:
     due_on: '2026-09-30'
     work_item: Remove skip path in apps/web/e2e/accessibility/keyboard-flow.spec.ts
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-003
   path_pattern: tests/contract/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Required\ contract\ services\ are\ unavailable\.\
     Skipping\ tests\ instead\ of\ failing\.\ Missing:\ \{missing_services\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -57,13 +59,14 @@ entries:
     ticket_id: VF-SKIP-003
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/contract/conftest.py for registered condition
+  classification: valid_environment_limitation
 - id: skip-004
   path_pattern: tests/contract/conftest_mocked.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("respx\ not\ installed\ \-\ run:\ pip\ install\ respx>=0\.20\.0"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -72,13 +75,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/contract/conftest_mocked.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-005
   path_pattern: tests/contract/test_import_topology.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 4\ agents\ not\ yet\ available:\ \{e\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -87,13 +91,14 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/contract/test_import_topology.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-006
   path_pattern: tests/contract/test_import_topology.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 4\ engine\ not\ yet\ available:\ \{e\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -102,13 +107,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/contract/test_import_topology.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-007
   path_pattern: tests/contract/test_import_topology.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 4\ tools\ not\ yet\ available:\ \{e\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -117,13 +123,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_import_topology.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-008
   path_pattern: tests/contract/test_import_topology.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 4\ models\ not\ yet\ available:\ \{e\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -132,13 +139,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/contract/test_import_topology.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-009
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ ingestion\ jobs\ available\ for\ progress\ check"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -147,13 +155,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-010
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ accounts\ available"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -162,14 +171,15 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-011
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: "pytest\\.skip\\(\"Cannot\\ verify\\ isolation\\ \u2014\\ one\\\
     \ or\\ both\\ tenants\\ returned\\ non\\-200\"\\)"
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -178,13 +188,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-012
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ cases\ available\ for\ export\ test"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -193,13 +204,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-013
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ OpenAPI\ schema\ found\ for\ /v1/accounts/\{account_id\}"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -208,13 +220,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-014
   path_pattern: tests/contract/test_journey_contracts.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ OpenAPI\ schema\ found\ for\ /api/v1/ingestion/jobs"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -223,13 +236,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-015
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -238,14 +252,15 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-016
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Runtime\ preflight\ prerequisites\ not\ met:\ "\
     \+\ "\ \|\ "\.join\(diagnostics\)\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -254,13 +269,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: valid_environment_limitation
 - id: skip-017
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skipif\('
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -269,13 +285,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-018
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("L3\ ingest\ endpoint\ not\ available"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -284,13 +301,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-019
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("L4\ workflow\ endpoint\ not\ available"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -299,13 +317,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-020
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("L1\ OpenAPI\ endpoint\ not\ exposed"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -314,13 +333,14 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-021
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("L2\ OpenAPI\ endpoint\ not\ exposed"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -329,13 +349,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-022
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("L3\ OpenAPI\ endpoint\ not\ exposed"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -344,13 +365,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-023
   path_pattern: tests/contract/test_layer_integration.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Contract\ spec\ not\ found"\)
   owner: '@platform-architecture'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -359,14 +381,15 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-024
   path_pattern: tests/release/test_contract_gate_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("structural_preflight\.py\ not\ found\ \-\ install\
     to\ enforce"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P1
   launch_gate: mandatory
@@ -375,14 +398,15 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/release/test_contract_gate_policy.py for
       registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-025
   path_pattern: tests/release/test_contract_gate_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("python_contract_lint\.py\ not\ found\ \-\ install\
     to\ enforce"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-30'
   severity: P1
   launch_gate: mandatory
@@ -391,13 +415,14 @@ entries:
     due_on: '2026-09-30'
     work_item: Remove skip path in tests/release/test_contract_gate_policy.py for
       registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-026
   path_pattern: tests/release/test_contract_gate_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ \.github/workflows\ directory"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-10-15'
   severity: P1
   launch_gate: mandatory
@@ -406,13 +431,14 @@ entries:
     due_on: '2026-10-15'
     work_item: Remove skip path in tests/release/test_contract_gate_policy.py for
       registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-027
   path_pattern: tests/release/test_contract_gate_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ Makefile\ found"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P1
   launch_gate: mandatory
@@ -421,13 +447,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/release/test_contract_gate_policy.py for
       registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-028
   path_pattern: tests/release/test_secret_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Git\ not\ available\ or\ not\ in\ a\ git\ repository"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-30'
   severity: P1
   launch_gate: mandatory
@@ -436,13 +463,14 @@ entries:
     due_on: '2026-09-30'
     work_item: Remove skip path in tests/release/test_secret_policy.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-029
   path_pattern: tests/release/test_secret_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ \.gitignore\ file\ found"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-10-15'
   severity: P1
   launch_gate: mandatory
@@ -451,13 +479,14 @@ entries:
     due_on: '2026-10-15'
     work_item: Remove skip path in tests/release/test_secret_policy.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-030
   path_pattern: tests/release/test_secret_policy.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"\.gitignore\ may\ be\ missing\ env\ patterns:\ \{missing\}"\)
   owner: '@platform-quality'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P1
   launch_gate: mandatory
@@ -466,13 +495,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/release/test_secret_policy.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-031
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("psycopg2\ not\ installed"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -480,13 +510,14 @@ entries:
     ticket_id: VF-SKIP-031
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-032
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Database\ not\ available\ for\ RLS\ testing:\ \{e\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -494,13 +525,14 @@ entries:
     ticket_id: VF-SKIP-032
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: valid_environment_limitation
 - id: skip-033
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("redis\ not\ installed"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -508,14 +540,15 @@ entries:
     ticket_id: VF-SKIP-033
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: valid_environment_limitation
 - id: skip-034
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Redis\ not\ available\ for\ cache\ isolation\ testing:\
     \{e\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -523,13 +556,14 @@ entries:
     ticket_id: VF-SKIP-034
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: valid_environment_limitation
 - id: skip-035
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("fastapi\ not\ installed"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -537,13 +571,14 @@ entries:
     ticket_id: VF-SKIP-035
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-036
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("FastAPI\ app\ not\ available\ for\ testing"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -551,14 +586,15 @@ entries:
     ticket_id: VF-SKIP-036
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-037
   path_pattern: tests/security/conftest.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Layer\ 4\ FastAPI\ app\ not\ available\ for\ WebSocket\
     testing"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -566,14 +602,15 @@ entries:
     ticket_id: VF-SKIP-037
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-038
   path_pattern: tests/security/test_auth_boundaries.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ TESTCLIENT_AVAILABLE,\ reason="FastAPI\
     TestClient\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -582,14 +619,15 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_auth_boundaries.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-039
   path_pattern: tests/security/test_auth_source_validation.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ TESTCLIENT_AVAILABLE,\ reason="FastAPI\
     TestClient\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -598,13 +636,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_auth_source_validation.py for
       registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-040
   path_pattern: tests/security/test_collection_verification.py
   marker: pytest.skip
   reason_pattern: '"""P1:\ All\ pytest\.skip\(\)\ calls\ must\ have\ meaningful\ reasons\."""'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -613,13 +652,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_collection_verification.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-041
   path_pattern: tests/security/test_collection_verification.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ conftest\.py\ in\ security\ directory"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -628,13 +668,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/test_collection_verification.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-042
   path_pattern: tests/security/test_collection_verification.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ tests\ found"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -643,13 +684,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/test_collection_verification.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-043
   path_pattern: tests/security/test_collection_verification.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ GitHub\ workflows\ directory"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -658,13 +700,14 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_collection_verification.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-044
   path_pattern: tests/security/test_cross_layer_tenant.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 1\ not\ yet\ migrated:\ \{e\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -673,13 +716,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_cross_layer_tenant.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-045
   path_pattern: tests/security/test_cross_layer_tenant.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Layer\ 5\ not\ yet\ migrated:\ \{e\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -688,13 +732,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_cross_layer_tenant.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-046
   path_pattern: tests/security/test_cross_layer_tenant.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"GovernanceCore\ not\ yet\ available:\ \{e\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -703,14 +748,15 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/test_cross_layer_tenant.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-048
   path_pattern: tests/security/test_cross_tenant_write.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ TESTCLIENT_AVAILABLE,\ reason="FastAPI\
     TestClient\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -719,13 +765,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/test_cross_tenant_write.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-049
   path_pattern: tests/security/test_governance_middleware_resolution_order.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("jose\ not\ available"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -734,14 +781,15 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_governance_middleware_resolution_order.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-050
   path_pattern: tests/security/test_input_validation.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skipif\(not\ FASTAPI_AVAILABLE,\ reason="FastAPI\
     not\ available"\)'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -750,14 +798,15 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_input_validation.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-051
   path_pattern: tests/security/test_input_validation.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skipif\(not\ FASTAPI_AVAILABLE,\ reason="FastAPI/Pydantic\
     not\ available"\)'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -766,14 +815,15 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_input_validation.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-052
   path_pattern: tests/security/test_input_validation.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skipif\(not\ FASTAPI_AVAILABLE,\ reason="Pydantic\
     not\ available"\)'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -782,14 +832,15 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/test_input_validation.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-053
   path_pattern: tests/security/test_knowledge_tools_tenant_isolation.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skip\(reason="Rate\ limiting\ is\ not\ implemented\
     at\ the\ tool\ layer,\ but\ at\ the\ API\ layer\."\)'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -798,14 +849,15 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/test_knowledge_tools_tenant_isolation.py
       for registered condition
+  classification: unacceptable_coverage_gap
 - id: skip-057
   path_pattern: tests/security/test_request_context_immutability.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skip\(reason="Requires\ async\ event\ loop\ setup\
     incompatible\ with\ pytest\-xdist"\)'
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Temporary bug waiver: Existing launch-relevant skip marker registered for
+    fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -814,13 +866,14 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_request_context_immutability.py
       for registered condition
+  classification: temporary_bug_waiver
 - id: skip-058
   path_pattern: tests/security/test_secrets_protection.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -829,13 +882,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_secrets_protection.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-059
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Cosign\ not\ available"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -844,13 +898,14 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: valid_environment_limitation
 - id: skip-060
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("No\ local\ images\ to\ verify"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -859,13 +914,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-061
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.mark.skip
   reason_pattern: '@pytest\.mark\.skipif\('
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -874,13 +930,14 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-062
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Syft\ not\ available"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -889,13 +946,14 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: valid_environment_limitation
 - id: skip-063
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\(f"Policy\ file\ not\ found:\ \{policy_file\}"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -904,13 +962,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-064
   path_pattern: tests/security/test_supply_chain.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Grype\ not\ available"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
@@ -919,14 +978,15 @@ entries:
     due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
+  classification: valid_environment_limitation
 - id: skip-065
   path_pattern: tests/security/test_tenant_lifecycle.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ TESTCLIENT_AVAILABLE,\ reason="FastAPI\
     TestClient\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-15'
   severity: P0
   launch_gate: mandatory
@@ -935,13 +995,14 @@ entries:
     due_on: '2026-07-15'
     work_item: Remove skip path in tests/security/test_tenant_lifecycle.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-066
   path_pattern: tests/security/test_tenant_lifecycle.py
   marker: pytest.skip
   reason_pattern: pytest\.skip\("Requires\ database\ state\ management"\)
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-07-30'
   severity: P0
   launch_gate: mandatory
@@ -950,14 +1011,15 @@ entries:
     due_on: '2026-07-30'
     work_item: Remove skip path in tests/security/test_tenant_lifecycle.py for registered
       condition
+  classification: valid_environment_limitation
 - id: skip-067
   path_pattern: tests/security/test_tenant_mismatch.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ TESTCLIENT_AVAILABLE,\ reason="FastAPI\
     TestClient\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-15'
   severity: P0
   launch_gate: mandatory
@@ -966,14 +1028,15 @@ entries:
     due_on: '2026-08-15'
     work_item: Remove skip path in tests/security/test_tenant_mismatch.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-068
   path_pattern: tests/security/test_websocket_auth.py
   marker: pytest.mark.skip
   reason_pattern: pytest\.mark\.skipif\(not\ WEBSOCKET_AVAILABLE,\ reason="WebSocket\
     dependencies\ not\ available"\),
   owner: '@platform-security'
-  reason: Existing launch-relevant skip marker registered for fail-closed governance;
-    remove or renew before expiry.
+  reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
+    for fail-closed governance; remove or renew before expiry.'
   expires_on: '2026-08-30'
   severity: P0
   launch_gate: mandatory
@@ -982,12 +1045,14 @@ entries:
     due_on: '2026-08-30'
     work_item: Remove skip path in tests/security/test_websocket_auth.py for registered
       condition
+  classification: unacceptable_coverage_gap
 - id: skip-069
   path_pattern: tests/contract/test_l3_route_contract_regression.py
   marker: pytest.mark.skip
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Temporary bug waiver: L3 package not importable in contract test environment;
+    pre-existing blocker'
   expires_on: '2026-10-15'
   severity: P2
   launch_gate: optional
@@ -996,12 +1061,14 @@ entries:
     due_on: '2026-10-15'
     work_item: Fix layer3_knowledge import path so L3 contract tests can run without
       pytestmark.skip
+  classification: temporary_bug_waiver
 - id: skip-070
   path_pattern: tests/contract/test_l3_provenance_audit_contract.py
   marker: pytest.mark.skip
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Temporary bug waiver: L3 package not importable in contract test environment;
+    pre-existing blocker'
   expires_on: '2026-10-31'
   severity: P2
   launch_gate: optional
@@ -1010,12 +1077,14 @@ entries:
     due_on: '2026-10-31'
     work_item: Fix layer3_knowledge import path so L3 contract tests can run without
       pytestmark.skip
+  classification: temporary_bug_waiver
 - id: skip-071
   path_pattern: tests/contract/test_layer3_graph_deprecation_contract.py
   marker: pytest.mark.skip
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Temporary bug waiver: L3 package not importable in contract test environment;
+    pre-existing blocker'
   expires_on: '2026-11-15'
   severity: P2
   launch_gate: optional
@@ -1024,12 +1093,14 @@ entries:
     due_on: '2026-11-15'
     work_item: Fix layer3_knowledge import path so L3 contract tests can run without
       pytestmark.skip
+  classification: temporary_bug_waiver
 - id: skip-072
   path_pattern: tests/contract/test_layer3_compat_metrics.py
   marker: pytest.mark.skip
   reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Temporary bug waiver: L3 package not importable in contract test environment;
+    pre-existing blocker'
   expires_on: '2026-10-15'
   severity: P2
   launch_gate: optional
@@ -1038,12 +1109,14 @@ entries:
     due_on: '2026-10-15'
     work_item: Fix layer3_knowledge import path so L3 contract tests can run without
       pytestmark.skip
+  classification: temporary_bug_waiver
 - id: skip-073
   path_pattern: tests/contract/test_entity_contract.py
   marker: pytest.skip
   reason_pattern: layer3_knowledge\ service\ stack\ not\ available
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Valid environment limitation: L3 package not importable in contract test
+    environment; pre-existing blocker'
   expires_on: '2026-10-31'
   severity: P2
   launch_gate: optional
@@ -1051,12 +1124,14 @@ entries:
     ticket_id: VF-SKIP-073
     due_on: '2026-10-31'
     work_item: Fix layer3_knowledge import path so entity contract tests can run
+  classification: valid_environment_limitation
 - id: skip-074
   path_pattern: tests/contract/test_l3_route_alias_parity.py
   marker: pytest.skip
   reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Valid environment limitation: L3 package not importable in contract test
+    environment; pre-existing blocker'
   expires_on: '2026-11-15'
   severity: P2
   launch_gate: optional
@@ -1065,12 +1140,14 @@ entries:
     due_on: '2026-11-15'
     work_item: Fix layer3_knowledge import path so L3 route alias parity tests can
       run
+  classification: valid_environment_limitation
 - id: skip-075
   path_pattern: tests/contract/test_system_route_contract.py
   marker: pytest.skip
   reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
   owner: '@platform-architecture'
-  reason: L3 package not importable in contract test environment; pre-existing blocker
+  reason: 'Valid environment limitation: L3 package not importable in contract test
+    environment; pre-existing blocker'
   expires_on: '2026-10-15'
   severity: P2
   launch_gate: optional
@@ -1079,67 +1156,84 @@ entries:
     due_on: '2026-10-15'
     work_item: Fix layer3_knowledge import path so L3 system route contract tests
       can run
+  classification: valid_environment_limitation
 - id: skip-076
   path_pattern: apps/web/e2e/*.spec.ts
   marker: test.skip
   owner: '@frontend-quality'
-  reason: Bulk registration for E2E preview/prod-build-only skip contexts
+  reason: 'Unacceptable coverage gap: Bulk registration for E2E preview/prod-build-only
+    skip contexts'
   expires_on: '2026-12-31'
   severity: P2
   launch_gate: optional
+  classification: unacceptable_coverage_gap
 - id: skip-077
   path_pattern: tests/ci/*.py
   marker: pytest.skip
   owner: '@platform-quality'
-  reason: Bulk registration for CI tooling and skip-governance test fixtures
+  reason: 'Unacceptable coverage gap: Bulk registration for CI tooling and skip-governance
+    test fixtures'
   expires_on: '2026-12-31'
   severity: P2
   launch_gate: optional
+  classification: unacceptable_coverage_gap
 - id: skip-078
   path_pattern: tests/contract/*.py
   marker: pytest.skip
   owner: '@platform-architecture'
-  reason: Bulk registration for contract test conditional/dependency-based skips
+  reason: 'Unacceptable coverage gap: Bulk registration for contract test conditional/dependency-based
+    skips'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
 - id: skip-079
   path_pattern: tests/contract/*.py
   marker: pytest.mark.skip
   owner: '@platform-architecture'
-  reason: Bulk registration for contract test conditional/dependency-based skips
+  reason: 'Unacceptable coverage gap: Bulk registration for contract test conditional/dependency-based
+    skips'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
 - id: skip-080
   path_pattern: tests/contract/*.py
   marker: pytest.mark.xfail
   owner: '@platform-architecture'
-  reason: Bulk registration for contract test expected-failure markers
+  reason: 'Unacceptable coverage gap: Bulk registration for contract test expected-failure
+    markers'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
 - id: skip-081
   path_pattern: tests/security/*.py
   marker: pytest.skip
   owner: '@platform-security'
-  reason: Bulk registration for security test conditional/dependency-based skips
+  reason: 'Unacceptable coverage gap: Bulk registration for security test conditional/dependency-based
+    skips'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
 - id: skip-082
   path_pattern: tests/security/*.py
   marker: pytest.mark.skip
   owner: '@platform-security'
-  reason: Bulk registration for security test conditional/dependency-based skips
+  reason: 'Unacceptable coverage gap: Bulk registration for security test conditional/dependency-based
+    skips'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
 - id: skip-083
   path_pattern: tests/security/*.py
   marker: pytest.mark.xfail
   owner: '@platform-security'
-  reason: Bulk registration for security test expected-failure markers
+  reason: 'Unacceptable coverage gap: Bulk registration for security test expected-failure
+    markers'
   expires_on: '2026-12-31'
   severity: P0
   launch_gate: mandatory
+  classification: unacceptable_coverage_gap
