@@ -57,6 +57,9 @@ jobs:
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
 
+      - name: Enforce type escape ratchet
+        run: make check-type-escape-ratchet
+
       - name: Verify schema index coverage
         run: pnpm test:schema
 

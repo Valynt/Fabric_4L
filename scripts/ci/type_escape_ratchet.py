@@ -13,6 +13,7 @@ DEFAULT_BASELINE = Path("config/ci/type_escape_baseline.json")
 EXCLUDED_PATTERNS = (
     "apps/web/src/api/generated/**",
     "packages/platform-contract/src/typescript/generated/**",
+    "sdk/python/src/valuefabric/generated/**",
     "**/__pycache__/**",
     "**/.mypy_cache/**",
     "**/node_modules/**",
