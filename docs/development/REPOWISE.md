@@ -12,11 +12,22 @@ Fabric runtime, CI gates, or production services.
 ## Authentication
 
 All clients authenticate with a bearer token supplied via the `REPOWISE_API_KEY`
-environment variable. Set it in your shell (or via `infisical run` / your local
-`.env`, see `.env.example`). **Never commit a real key** — the checked-in
-configs only contain the `${REPOWISE_API_KEY}` placeholder.
+environment variable. Load the token from an approved secret manager (for
+example, Infisical via `infisical run`) or from a local uncommitted env file
+(such as `.env` or `.env.dev`, see `.env.example`). **Never commit a real key**
+— the checked-in configs only contain the `${REPOWISE_API_KEY}` placeholder.
+
+Do not paste Repowise or MCP bearer tokens into prompts, documentation, shell
+history, committed config files, issue trackers, or chat transcripts. If a token
+is exposed, revoke it in the Repowise dashboard or provider control plane before
+creating a replacement with the minimum repository and tool scope required. Store
+the replacement only in the approved secret manager or local uncommitted env file,
+and verify rotation by confirming the revoked token is rejected while the new
+token can access only `bmsull560/fabric_4l` and the intended MCP tools.
 
 ```bash
+# Prefer secret-manager injection for agent clients. For local-only workflows,
+# write this value to an uncommitted env file rather than shell history.
 export REPOWISE_API_KEY=<your key>
 ```
 
