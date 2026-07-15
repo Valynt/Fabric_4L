@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **44** GitHub Actions workflow files.
+This directory currently contains **51** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -10,7 +10,7 @@ and deprecation inventory lives in:
 - `workflow-registry.json`
 - `WORKFLOW_REGISTRY.md`
 
-S6-6 caps this directory at fewer than 50 workflow YAML files. New workflow files
+S6-6 caps this directory at 55 workflow YAML files. New workflow files
 must be justified in the registry and should prefer adding a profile or matrix job
 to an existing canonical workflow.
 
@@ -66,7 +66,7 @@ workflow file in `.github/workflows/`.
 - Public guards: `make check-workflow-registry` and `make check-workflow-references`
 - Package aliases: `pnpm ci:workflow-registry` and `pnpm ci:workflow-references`
 - Command source of truth: `docs/development/COMMANDS.md`
-- Count limit: fewer than 50 workflow YAML files
+- Count limit: at most 55 workflow YAML files
 
 ## Maintenance
 

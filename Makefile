@@ -123,6 +123,7 @@ check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps i
 
 check-workflow-registry: ## Validate GitHub Actions workflow ownership and artifact registry
 	@$(PYTHON) scripts/ci/generate_workflow_registry.py --check
+	@$(PYTHON) scripts/ci/sync_ci_gate_docs.py --check
 	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 
 check-workflow-references: ## Validate GitHub Actions workflow command and artifact references
