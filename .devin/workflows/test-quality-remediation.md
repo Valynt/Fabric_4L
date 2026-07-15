@@ -17,7 +17,7 @@ A step-by-step operational workflow for auditing tests, applying targeted rewrit
 This workflow guides systematic test quality improvement across the Value Fabric repository. It applies to both Python/pytest (backend layers) and TypeScript/Vitest (frontend).
 
 **Prerequisites**:
-- Review `.windsurf/skills/test-quality-auditor/SKILL.md` for evaluation criteria
+- Review `.devin/skills/test-quality-auditor/SKILL.md` for evaluation criteria
 - Access to repository with all layers present
 - Python 3.11+ and Node.js/pnpm installed
 
@@ -85,7 +85,7 @@ Create a concise testing map documenting:
 **Goal**: Evaluate all tests against quality principles.
 
 ### 2.1 Review Skill Documentation
-Read `.windsurf/skills/test-quality-auditor/SKILL.md` before starting evaluation.
+Read `.devin/skills/test-quality-auditor/SKILL.md` before starting evaluation.
 
 ### 2.2 Evaluate Each Test File
 
@@ -388,8 +388,8 @@ done
 [Summary from Discovery phase]
 
 ## Skill and Workflow Summary
-- Created: .windsurf/skills/test-quality-auditor/SKILL.md
-- Created: .windsurf/workflows/test-quality-remediation.md
+- Created: .devin/skills/test-quality-auditor/SKILL.md
+- Created: .devin/workflows/test-quality-remediation.md
 
 ## Audit Summary
 - Total files reviewed: N
