@@ -66,18 +66,27 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
         with:
-          node-version: '22.13.0'
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+          node-version: '22.18.0'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # scripts/export_openapi.py imports every service FastAPI app at module load.
+      # Services pull in runtime utilities (httpx, sqlalchemy, structlog, redis,
+      # limits, jsonschema, ...) that are not needed for schema generation but must
+      # be importable. Optional runtime integrations (celery, playwright, protego,
+      # langgraph checkpoint postgres) are shimmed inside the exporter. We reuse the
+      # maintained mandatory test requirements as the baseline runtime surface and
+      # add uvicorn plus the OpenTelemetry packages imported by Layer 4's app factory.
+      - name: Install Python OpenAPI export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
 
       - name: Run generated API freshness gate
         run: |

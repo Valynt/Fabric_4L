@@ -5,7 +5,7 @@
 # This variant is intentionally scoped to docker-compose.live.yml, where the
 # build context must include both services/layer1-ingestion and value_fabric.
 
-FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS builder
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
         mkdir -p /root/.cache/ms-playwright; \
     fi
 
-FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \

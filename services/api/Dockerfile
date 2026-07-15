@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS builder
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -19,13 +19,16 @@ COPY services/api/app/ ./app/
 COPY services/api/migrations/ ./migrations/
 COPY packages/shared/src/value_fabric/ ./value_fabric/
 
-FROM python@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+
+# Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
+RUN pip install --no-cache-dir --upgrade setuptools wheel
 
 WORKDIR /app
 

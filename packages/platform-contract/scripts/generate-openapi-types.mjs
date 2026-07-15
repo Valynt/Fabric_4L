@@ -90,7 +90,7 @@ for (const spec of SPECS) {
   const key = spec.replace('.json', '').replace(/-/g, '_');
   const out = join(OUTPUT_DIR, `${key}.ts`);
   if (selectedSpecs.includes(spec)) {
-    execSync(`pnpm exec openapi-typescript "${join(OPENAPI_DIR, spec)}" -o "${out}"`, {
+    execSync(`npx --no-install openapi-typescript "${join(OPENAPI_DIR, spec)}" -o "${out}"`, {
       cwd: WEB_APP_DIR,
       stdio: 'pipe',
     });

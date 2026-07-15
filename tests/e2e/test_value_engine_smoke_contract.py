@@ -17,7 +17,6 @@ from tests.e2e.test_value_engine_workflow import (
     ValueEngineE2EClient,
 )
 
-
 EXPECTED_METHODS = [
     "signup",
     "login",

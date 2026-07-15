@@ -2,9 +2,10 @@
 P2-009: Pact contract tests for L5 Ground Truth, L6 Benchmarks, L7 Billing
 Expands consumer/provider coverage beyond L1-L4.
 """
+from pathlib import Path
+
 import pytest
 import requests
-from pathlib import Path
 
 pytestmark = [pytest.mark.contract, pytest.mark.pact]
 

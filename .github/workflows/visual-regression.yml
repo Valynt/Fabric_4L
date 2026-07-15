@@ -125,6 +125,7 @@ jobs:
       - name: Run visual regression tests
         id: visual_test
         run: |
+          mkdir -p playwright-report test-results
           pnpm exec playwright test e2e/visual/regression.spec.ts \
             --project=${{ matrix.project }} \
             --update-snapshots=${{ inputs.update_snapshots || 'false' }}

@@ -98,10 +98,19 @@ def client():
 
     patcher = patch.object(GovernanceMiddleware, "_resolve_identity", _fake_resolve)
     patcher.start()
+
+    async def _fake_status(self, ctx):
+        return None
+
+    status_patcher = patch.object(
+        GovernanceMiddleware, "_enforce_tenant_status", new=_fake_status
+    )
+    status_patcher.start()
     try:
         yield TestClient(app)
     finally:
         patcher.stop()
+        status_patcher.stop()
 
 
 @pytest.fixture

@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 import jwt
 import pytest
-
 from value_fabric.shared.identity.jwt import (
     _JWKS_URL_CACHE,
     _JWKS_URL_CACHE_EXPIRY,

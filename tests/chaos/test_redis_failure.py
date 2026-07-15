@@ -9,13 +9,15 @@ Verifies system behavior when Redis becomes unavailable, including:
 """
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
 # Import Redis exceptions with graceful fallback
 try:
-    from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
+    from redis.exceptions import ConnectionError as RedisConnectionError
+    from redis.exceptions import TimeoutError as RedisTimeoutError
 except ImportError:
     # Fallback exception classes for when redis is not installed
     class RedisConnectionError(ConnectionError):
@@ -232,7 +234,6 @@ class TestRedisPartialFailure:
         The system must have circuit breaker or timeout patterns to prevent
         Redis slowness from affecting overall API availability.
         """
-        import asyncio
         
         mock_redis = AsyncMock()
         mock_redis.zremrangebyscore = AsyncMock(return_value=0)

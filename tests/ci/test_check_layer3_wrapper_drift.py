@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "ci" / "check_layer3_wrapper_drift.py"
 SPEC = importlib.util.spec_from_file_location("check_layer3_wrapper_drift", MODULE_PATH)
 check_layer3_wrapper_drift = importlib.util.module_from_spec(SPEC)

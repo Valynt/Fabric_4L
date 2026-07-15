@@ -5,7 +5,6 @@ from __future__ import annotations
 import urllib.error
 
 import pytest
-
 from tests.contract import conftest as contract_conftest
 
 

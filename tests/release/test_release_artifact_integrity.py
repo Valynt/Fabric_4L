@@ -9,7 +9,6 @@ from pathlib import Path
 
 import yaml
 
-
 BUILD_WORKFLOW = Path(".github/workflows/build-deploy.yml")
 PROMOTION_WORKFLOW = Path(".github/workflows/environment-promotion.yml")
 RELEASE_WORKFLOW = Path(".github/workflows/release-evidence-bundle.yml")

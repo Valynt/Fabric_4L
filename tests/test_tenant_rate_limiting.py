@@ -10,19 +10,18 @@ Verifies:
 - Middleware integration
 """
 
-import pytest
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from types import SimpleNamespace
+import pytest
 from value_fabric.shared.rate_limiting.admin_api import get_tenant_quota
-
 from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
-    TenantRateLimiter,
-    TenantTier,
     RateLimitConfig,
     RateLimitResult,
+    TenantRateLimiter,
+    TenantTier,
 )
 
 
@@ -282,7 +281,8 @@ class TestTenantRateLimitMiddleware:
         ``tenant_tier``.  The middleware used to access
         ``tenant_context.tenant_tier`` directly, raising ``AttributeError``.
         """
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import AsyncMock
+
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
@@ -336,7 +336,8 @@ class TestTenantRateLimitMiddleware:
         Regression for Core GA blocker: RBAC returned 500 (RuntimeError
         ``tenant_rate_limit_unavailable``) when Redis was down.
         """
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import AsyncMock
+
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware
@@ -376,7 +377,8 @@ class TestTenantRateLimitMiddleware:
         the request must proceed to the route handler (where authn/authz are enforced)
         rather than surfacing a 500.
         """
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import AsyncMock
+
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from value_fabric.shared.rate_limiting.middleware import TenantRateLimitMiddleware

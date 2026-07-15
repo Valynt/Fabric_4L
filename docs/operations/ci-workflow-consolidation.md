@@ -46,6 +46,42 @@ the canonical families above:
 | `chaos-smoke.yml` | `chaos-testing.yml` | `retired-recorded`; historical workflow was PR-triggered and blocking. | The current checkout keeps `chaos-testing.yml` as the operational chaos owner and the retired smoke workflow is no longer present or registered. Branch protection must no longer require `chaos-smoke-informational` or `chaos-smoke-required-ready-marker`. | `needs branch-protection update` |
 | `deploy.yml` | `build-deploy.yml`, `environment-promotion.yml` | `present-blocked`; `blocking=true`; owns workflow-call deployment behavior. | Keep enabled: it owns the unique `workflow_call` trigger, `AWS_DEPLOY_ROLE_ARN` and `INFISICAL_IDENTITY_ID` secrets, `${{ steps.evidence.outputs.file }}` and `deployment-record.json` artifacts, plus `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `rollback-on-failure`, `verify`, `evidence`, and `notify` jobs. | `not safe` |
 
+## Marketplace workflow templates: intentionally not adopted
+
+GitHub's suggested marketplace/starter workflow templates (SLSA Generic
+generator, Python application/package, Pylint, Node.js, Webpack, Docker image,
+Publish Docker Container, Super Linter, Build projects with Make, publishing
+templates, and the various language templates for stacks this monorepo does
+not use) are **deliberately not configured**. Do not add them:
+
+- The S6-6 workflow-count cap forbids new workflow files; any addition fails
+  `scripts/ci/verify_workflow_registry.py` and
+  `tests/ci/test_ci_workflow_consolidation.py`.
+- Every applicable template is already covered by canonical workflows using
+  free/open-source tooling:
+
+| Template family | Existing coverage |
+| --- | --- |
+| SLSA Generic generator (OpenSSF) | `supply-chain.yml` (slsa-framework generator, SHA-pinned), `sbom.yml`, `release-evidence-bundle.yml` |
+| Python application / package / Pylint | `pr-checks.yml` per-layer ruff, mypy, pytest jobs; black via pre-commit |
+| Node.js / Webpack | `pr-checks.yml` frontend jobs (Vite build, Vitest, ESLint); templates would also violate the pnpm-only policy (`scripts/ci/check_package_manager_policy.mjs`) |
+| Docker image / Publish Docker Container | `build-deploy.yml`, `deploy.yml` |
+| Super Linter | Redundant with ruff/mypy/ESLint/prettier/gitleaks gates in `pr-checks.yml`, `security-gates.yml`, `.pre-commit-config.yaml` |
+| CodeQL-adjacent security templates | `codeql.yml`, `dependency-scan.yml`, `security-gates.yml`, `penetration-testing.yml`, `zero-trust-validation.yml` |
+| Build projects with Make | `pr-checks.yml` and gates invoke canonical `make verify` / `make production-readiness-gate` targets |
+| Package publishing (PyPI/npm/GitHub Packages) | `publish-sdk.yml`, `sdk-generation.yml` — extend these instead |
+
+- Templates for languages/frameworks the monorepo does not use (Django,
+  Anaconda, Deno, Java, .NET, Ruby, Rust, Go, Swift, iOS/Xcode, PHP, Elixir,
+  Haskell, R, Scala, Dart, Ada, D, Crystal, Clojure, Erlang, CMake, MSBuild,
+  Jekyll, Datadog Synthetics, etc.) would create dead workflows and registry
+  drift.
+
+If a template's capability is genuinely missing, add it as a job in the
+matching canonical workflow above, register it in `workflow-registry.json`,
+keep permissions within the `tests/ci/test_workflow_permissions.py`
+allowlist, and respect the pnpm-only package-manager policy.
+
 ## Guardrails
 
 - Keep branch-protected check names aligned with the canonical workflows before

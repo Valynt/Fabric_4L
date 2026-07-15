@@ -97,7 +97,8 @@ class TestMissingTenantFailsClosed:
         """Missing tenant should be rejected before any persistence occurs."""
         try:
             from layer2_extraction.api import main
-            from layer2_extraction.models.extraction_api import ExtractRequest
+            from layer2_extraction.api.schemas import ExtractRequest
+            from value_fabric.shared.error_handling.exceptions import AuthorizationError
         except ImportError:
             pytest.skip("L2 import infrastructure has pre-existing issues")
 
@@ -110,12 +111,12 @@ class TestMissingTenantFailsClosed:
 
         monkeypatch.setattr(main.job_store, "set", _forbidden_set)
 
-        req = ExtractRequest(source_url="https://example.com", markdown_content="# demo")
-        with pytest.raises(HTTPException) as exc:
+        req = ExtractRequest(content_id="content-123", source_url="https://example.com", markdown_content="# demo")
+        with pytest.raises(AuthorizationError) as exc:
             await main.extract(req, BackgroundTasks(), _Ctx(None))
 
         assert exc.value.status_code == 403
-        assert exc.value.detail["code"] == "tenant_context_required"
+        assert exc.value.details["code"] == "tenant_context_required"
         assert called is False
 
     @pytest.mark.asyncio
@@ -123,7 +124,8 @@ class TestMissingTenantFailsClosed:
         """Empty tenant_id should be rejected."""
         try:
             from layer2_extraction.api import main
-            from layer2_extraction.models.extraction_api import ExtractRequest
+            from layer2_extraction.api.schemas import ExtractRequest
+            from value_fabric.shared.error_handling.exceptions import AuthorizationError
         except ImportError:
             pytest.skip("L2 import infrastructure has pre-existing issues")
 
@@ -136,12 +138,12 @@ class TestMissingTenantFailsClosed:
 
         monkeypatch.setattr(main.job_store, "set", _forbidden_set)
 
-        req = ExtractRequest(source_url="https://example.com", markdown_content="# demo")
-        with pytest.raises(HTTPException) as exc:
+        req = ExtractRequest(content_id="content-123", source_url="https://example.com", markdown_content="# demo")
+        with pytest.raises(AuthorizationError) as exc:
             await main.extract(req, BackgroundTasks(), _Ctx(""))
 
         assert exc.value.status_code == 403
-        assert exc.value.detail["code"] == "tenant_context_required"
+        assert exc.value.details["code"] == "tenant_context_required"
         assert called is False
 
 

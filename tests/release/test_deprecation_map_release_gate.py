@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-
 DEPRECATION_MAP = Path("docs/platform-contract/DEPRECATION_MAP.md")
 ALLOWED_STATUSES = {"complete", "waived-with-exception"}
 

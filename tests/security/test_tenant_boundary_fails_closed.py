@@ -12,8 +12,6 @@ from __future__ import annotations
 
 import re
 import sys
-from pathlib import Path
-
 
 import pytest
 
@@ -21,7 +19,6 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 
 
 # ---------------------------------------------------------------------------
-# DECISION(8fb087961b504eaea8264588b9a38812): ACCEPTED
 # Test constants — extracted to avoid magic strings and aid maintainability
 # ---------------------------------------------------------------------------
 TENANT_A_UUID = "12345678-1234-1234-1234-123456789abc"
@@ -39,15 +36,15 @@ _existing_shared_modules = {
 for name in list(_existing_shared_modules.keys()):
     del sys.modules[name]
 
-# Import the boundary module directly
-from value_fabric.shared.boundaries.tenant_boundary import (
+# Import the boundary module directly  # noqa: E402
+from value_fabric.shared.boundaries.tenant_boundary import (  # noqa: E402
     TenantBoundaryError,
     get_tenant_context,
-    require_tenant_context,
     get_tenant_id,
+    require_tenant_context,
     require_tenant_id,
 )
-from value_fabric.shared.identity.context import RequestContext, set_request_context
+from value_fabric.shared.identity.context import RequestContext, set_request_context  # noqa: E402
 
 # Restore the original root `shared` package so later tests that rely
 # on root-only submodules (e.g. `shared.crypto`) are not affected.
@@ -284,7 +281,7 @@ class TestWebSocketTenantBoundaryFailsClosed:
             try:
                 # Would raise jwt.ExpiredSignatureError in real code
                 raise Exception("Signature has expired")
-            except Exception as e:
+            except Exception:
                 # routes.py:46 - logs warning and returns None, None
                 return None, None
 

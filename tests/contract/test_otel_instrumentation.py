@@ -15,7 +15,6 @@ from typing import Any
 import pytest
 import yaml
 
-
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 

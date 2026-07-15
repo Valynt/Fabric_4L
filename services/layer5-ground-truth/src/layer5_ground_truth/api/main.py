@@ -466,6 +466,186 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ---------------------------------------------------------------------------
 
 
+def _register_routes_and_system_endpoints(app: FastAPI) -> None:
+    """Mount API routers and register system/health/monitoring endpoints.
+
+    Extracted from create_app to keep the application factory focused on
+    high-level configuration and lifecycle wiring.
+    """
+    # CORS — fail-safe via shared resolve_cors_policy()
+    app.state.cors_policy = resolve_cors_policy()
+
+    # Mount the API routers
+    app.include_router(router)
+
+    # Mount the Model Registry router
+    try:
+        from .model_registry_routes import router as model_registry_router
+
+        app.include_router(model_registry_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Model Registry router not available")
+
+    try:
+        from .assumption_governance_routes import (
+            router as assumption_governance_router,
+        )
+
+        app.include_router(assumption_governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning(
+            "Assumption Governance router not available"
+        )
+
+    # Mount the Governance router (new unified governance APIs)
+    try:
+        from .governance_router import governance_router
+
+        app.include_router(governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Governance router not available")
+
+    # Mount the Academy router
+    try:
+        from .academy_router import router as academy_router
+
+        app.include_router(academy_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Academy router not available")
+
+    # Mount the Value Evidence Graph / ValueClaim router
+    try:
+        from .value_claim_routes import router as value_claim_router
+
+        app.include_router(value_claim_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("ValueClaim router not available")
+
+    # Prometheus metrics endpoint — internal only, protected by network/auth
+    @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
+    async def metrics_endpoint(request: Request):
+        """Prometheus metrics endpoint — requires internal access token."""
+        # Verify internal access for metrics (blocks public ingress access).
+        # Delegated to shared.observability so all layers stay aligned.
+        if not verify_metrics_access(request):
+            raise AuthorizationError(
+                message="Metrics endpoint requires internal access"
+            )
+
+        metrics = get_metrics()
+        if not metrics:
+            return Response(
+                content="# Metrics collection is disabled",
+                status_code=503,
+                media_type="text/plain",
+            )
+        try:
+            return Response(
+                content=metrics.get_metrics(),
+                media_type="text/plain; version=0.0.4; charset=utf-8",
+            )
+        except Exception as e:
+            logger.error(f"Error generating metrics: {e}")
+            return Response(
+                content=f"# Error: {e}", status_code=500, media_type="text/plain"
+            )
+
+    # Public health check (matches middleware PUBLIC_PATH_ALLOWLIST)
+    @app.get(
+        "/health",
+        tags=["system"],
+        include_in_schema=False,
+    )
+    @app.get(
+        "/health/live",
+        tags=["system"],
+        include_in_schema=False,
+    )
+    async def public_health() -> dict[str, object]:
+        return normalize_probe_payload(
+            status="ok",
+            service="layer5-ground-truth",
+            extra={
+                "version": __version__,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "database": "ok",
+            },
+        )
+
+    # Readiness check — verifies database connectivity and migration alignment
+    @app.get("/ready", tags=["system"], include_in_schema=False)
+    async def readiness() -> JSONResponse:
+        try:
+            await _check_database_connectivity()
+            schema_state = await _check_schema_migration_alignment()
+            if not schema_state["ready"]:
+                payload = normalize_probe_payload(
+                    status="not_ready",
+                    service="layer5-ground-truth",
+                    extra={
+                        "database": "ok",
+                        "schema": schema_state["schema"],
+                        "not_ready": {
+                            "component": "schema",
+                            "reason": schema_state["reason"],
+                            "current_revisions": schema_state["current_revisions"],
+                            "expected_heads": schema_state["expected_heads"],
+                        },
+                    },
+                )
+                return JSONResponse(
+                    content=payload,
+                    status_code=503,
+                )
+            payload = normalize_probe_payload(
+                status="ready",
+                service="layer5-ground-truth",
+                extra={"database": "ok"},
+            )
+            return JSONResponse(content=payload, status_code=200)
+        except Exception as exc:
+            logger.warning("Readiness check failed: %s", exc)
+            payload = normalize_probe_payload(
+                status="not_ready",
+                service="layer5-ground-truth",
+                extra={"database": "unavailable"},
+            )
+            return JSONResponse(
+                content=payload,
+                status_code=503,
+            )
+
+    @app.get("/health/audit-writes", tags=["system"], include_in_schema=False)
+    async def audit_write_health() -> JSONResponse:
+        from layer5_ground_truth.services.audit_write_monitor import (
+            get_audit_write_stats,
+        )
+
+        stats = get_audit_write_stats()
+        failures = int(stats.get("failures_total", 0))
+        status_code = 200 if failures == 0 else 503
+        return JSONResponse(
+            content={
+                "status": "ok" if failures == 0 else "degraded",
+                "audit_write_failures_total": failures,
+            },
+            status_code=status_code,
+        )
+
+    # Root redirect to docs
+    @app.get("/", include_in_schema=False)
+    async def root() -> JSONResponse:
+        return JSONResponse(
+            content={
+                "service": "Value Fabric Ground Truth Layer (L5)",
+                "version": __version__,
+                "docs": "/docs",
+                "health": "/health",
+                "metrics": "/metrics",
+            }
+        )
+
+
 def create_app() -> FastAPI:
     app = create_fabric_app(
         service_name="layer5-ground-truth",
@@ -742,178 +922,7 @@ def create_app() -> FastAPI:
             "GovernanceMiddleware is required. shared.identity.middleware is not importable."
         )
 
-    # CORS — fail-safe via shared resolve_cors_policy()
-    app.state.cors_policy = resolve_cors_policy()
-
-    # Mount the API routers
-    app.include_router(router)
-
-    # Mount the Model Registry router
-    try:
-        from .model_registry_routes import router as model_registry_router
-
-        app.include_router(model_registry_router)
-    except ImportError:
-        logging.getLogger(__name__).warning("Model Registry router not available")
-
-    try:
-        from .assumption_governance_routes import (
-            router as assumption_governance_router,
-        )
-
-        app.include_router(assumption_governance_router)
-    except ImportError:
-        logging.getLogger(__name__).warning(
-            "Assumption Governance router not available"
-        )
-
-    # Mount the Governance router (new unified governance APIs)
-    try:
-        from .governance_router import governance_router
-
-        app.include_router(governance_router)
-    except ImportError:
-        logging.getLogger(__name__).warning("Governance router not available")
-
-    # Mount the Academy router
-    try:
-        from .academy_router import router as academy_router
-
-        app.include_router(academy_router)
-    except ImportError:
-        logging.getLogger(__name__).warning("Academy router not available")
-
-    # Mount the Value Evidence Graph / ValueClaim router
-    try:
-        from .value_claim_routes import router as value_claim_router
-
-        app.include_router(value_claim_router)
-    except ImportError:
-        logging.getLogger(__name__).warning("ValueClaim router not available")
-
-    # Prometheus metrics endpoint — internal only, protected by network/auth
-    @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
-    async def metrics_endpoint(request: Request):
-        """Prometheus metrics endpoint — requires internal access token."""
-        # Verify internal access for metrics (blocks public ingress access).
-        # Delegated to shared.observability so all layers stay aligned.
-        if not verify_metrics_access(request):
-            raise AuthorizationError(
-                message="Metrics endpoint requires internal access"
-            )
-
-        metrics = get_metrics()
-        if not metrics:
-            return Response(
-                content="# Metrics collection is disabled",
-                status_code=503,
-                media_type="text/plain",
-            )
-        try:
-            return Response(
-                content=metrics.get_metrics(),
-                media_type="text/plain; version=0.0.4; charset=utf-8",
-            )
-        except Exception as e:
-            logger.error(f"Error generating metrics: {e}")
-            return Response(
-                content=f"# Error: {e}", status_code=500, media_type="text/plain"
-            )
-
-    # Public health check (matches middleware PUBLIC_PATH_ALLOWLIST)
-    @app.get(
-        "/health",
-        tags=["system"],
-        include_in_schema=False,
-    )
-    @app.get(
-        "/health/live",
-        tags=["system"],
-        include_in_schema=False,
-    )
-    async def public_health() -> dict[str, object]:
-        return normalize_probe_payload(
-            status="ok",
-            service="layer5-ground-truth",
-            extra={
-                "version": __version__,
-                "timestamp": datetime.now(UTC).isoformat(),
-                "database": "ok",
-            },
-        )
-
-    # Readiness check — verifies database connectivity and migration alignment
-    @app.get("/ready", tags=["system"], include_in_schema=False)
-    async def readiness() -> JSONResponse:
-        try:
-            await _check_database_connectivity()
-            schema_state = await _check_schema_migration_alignment()
-            if not schema_state["ready"]:
-                payload = normalize_probe_payload(
-                    status="not_ready",
-                    service="layer5-ground-truth",
-                    extra={
-                        "database": "ok",
-                        "schema": schema_state["schema"],
-                        "not_ready": {
-                            "component": "schema",
-                            "reason": schema_state["reason"],
-                            "current_revisions": schema_state["current_revisions"],
-                            "expected_heads": schema_state["expected_heads"],
-                        },
-                    },
-                )
-                return JSONResponse(
-                    content=payload,
-                    status_code=503,
-                )
-            payload = normalize_probe_payload(
-                status="ready",
-                service="layer5-ground-truth",
-                extra={"database": "ok"},
-            )
-            return JSONResponse(content=payload, status_code=200)
-        except Exception as exc:
-            logger.warning("Readiness check failed: %s", exc)
-            payload = normalize_probe_payload(
-                status="not_ready",
-                service="layer5-ground-truth",
-                extra={"database": "unavailable"},
-            )
-            return JSONResponse(
-                content=payload,
-                status_code=503,
-            )
-
-    @app.get("/health/audit-writes", tags=["system"], include_in_schema=False)
-    async def audit_write_health() -> JSONResponse:
-        from layer5_ground_truth.services.audit_write_monitor import (
-            get_audit_write_stats,
-        )
-
-        stats = get_audit_write_stats()
-        failures = int(stats.get("failures_total", 0))
-        status_code = 200 if failures == 0 else 503
-        return JSONResponse(
-            content={
-                "status": "ok" if failures == 0 else "degraded",
-                "audit_write_failures_total": failures,
-            },
-            status_code=status_code,
-        )
-
-    # Root redirect to docs
-    @app.get("/", include_in_schema=False)
-    async def root() -> JSONResponse:
-        return JSONResponse(
-            content={
-                "service": "Value Fabric Ground Truth Layer (L5)",
-                "version": __version__,
-                "docs": "/docs",
-                "health": "/health",
-                "metrics": "/metrics",
-            }
-        )
+    _register_routes_and_system_endpoints(app)
 
     return app
 

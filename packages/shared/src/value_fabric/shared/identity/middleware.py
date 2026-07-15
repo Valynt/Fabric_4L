@@ -829,7 +829,31 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         prepopulated_context = getattr(request.state, "governance_context", None)
         if isinstance(prepopulated_context, RequestContext):
+            # Validate tenant_id format. Allow legacy test identifiers only when
+            # explicitly permitted by environment (mirrors JWT claim coercion).
+            if prepopulated_context.tenant_id is not None:
+                try:
+                    UUID(str(prepopulated_context.tenant_id))
+                except (TypeError, ValueError):
+                    if not _allow_legacy_test_tenant_ids():
+                        logger.warning(
+                            "prepopulated_context_invalid_tenant_id",
+                            extra={
+                                "tenant_id": str(prepopulated_context.tenant_id),
+                                **_request_log_context(request),
+                            },
+                        )
+                        return None
             return prepopulated_context
+
+        # Reject malformed tenant identifiers early, before any resolver runs.
+        raw_tenant_header = request.headers.get(TENANT_ID_HEADER)
+        if raw_tenant_header is not None:
+            try:
+                UUID(raw_tenant_header)
+            except ValueError:
+                logger.debug("Invalid X-Tenant-ID header: %r", raw_tenant_header)
+                return None
 
         # 1. Bearer JWT
         ctx = await self._resolve_bearer_jwt(request)

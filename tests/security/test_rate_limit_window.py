@@ -18,6 +18,7 @@ import pytest
 
 try:
     import importlib
+
     import value_fabric.shared.identity.middleware as _middleware_module
     from value_fabric.shared.identity.middleware import (
         _RATE_LIMIT_WINDOW_SECONDS,

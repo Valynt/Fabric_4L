@@ -71,7 +71,7 @@ def load_yaml_documents(repo_root: Path) -> dict[str, list[dict]]:
     
     for yaml_file in k8s_base.rglob("*.yml"):
         try:
-            with open(yaml_file, "r", encoding="utf-8") as f:
+            with open(yaml_file, encoding="utf-8") as f:
                 content = yaml.safe_load_all(f.read())
                 file_docs = [doc for doc in content if doc is not None]
                 if file_docs:

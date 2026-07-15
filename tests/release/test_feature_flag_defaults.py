@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 POLICY = Path("config/production-readiness/feature_flag_rollout_policy.json")
 
 

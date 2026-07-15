@@ -35,7 +35,7 @@ from ...engine.executor import (
     OrchestrationController,
     WorkflowExecutionError,
 )
-from ...engine.scheduler import TaskPriority
+from ...engine.types import TaskPriority
 from ...workflows import list_workflow_types
 from ..common.audit import emit_route_audit
 from ..common.errors import raise_normalized_with_log

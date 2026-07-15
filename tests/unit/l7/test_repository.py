@@ -6,7 +6,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from layer7_billing import repository
 
 pytestmark = [pytest.mark.unit]

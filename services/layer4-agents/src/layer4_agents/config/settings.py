@@ -63,8 +63,11 @@ from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from value_fabric.shared.security.neo4j import validate_neo4j_aura_config
 
+from ._billing_mixin import BillingSettingsMixin
+from ._runtime_mixin import RuntimeSettingsMixin
 
-class Settings(BaseSettings):
+
+class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
     """Layer 4 Agents service settings with strict validation.
 
     All secrets must be provided via environment variables.
@@ -374,11 +377,6 @@ class Settings(BaseSettings):
         description="Signed URL TTL for export downloads in seconds"
     )
 
-    @property
-    def is_billing_configured(self) -> bool:
-        """Check if Stripe billing is properly configured."""
-        return self.billing_enabled and self.stripe_secret_key is not None
-
     # ==========================================================================
     # Validators (P0-29: Fail fast on invalid config)
     # ==========================================================================
@@ -595,7 +593,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_prod_neo4j_aura(self) -> Settings:
-        """Production/staging must use managed Aura, not in-cluster Neo4j."""
+        """Production/staging must use managed Aura, not in-cluster Neo4j.
+
+        Kept on Settings because it depends on both runtime (environment,
+        oidc_state_store_backend) and Neo4j (neo4j_uri, neo4j_password) fields.
+        """
         validate_neo4j_aura_config(
             uri=self.neo4j_uri,
             password=self.neo4j_password,
@@ -606,56 +608,6 @@ class Settings(BaseSettings):
                 "FATAL: OIDC state store backend must be 'redis' in production/staging."
             )
         return self
-
-
-
-    # ==========================================================================
-    # Computed Properties
-    # ==========================================================================
-
-    @property
-    def is_production(self) -> bool:
-        """Check if running in production environment."""
-        return self.environment == "production"
-
-    @property
-    def is_development(self) -> bool:
-        """Check if running in development environment."""
-        return self.environment == "development"
-
-    @property
-    def cors_origins_list(self) -> list[str]:
-        """Get CORS origins as a list.
-
-        Returns explicit origins when configured. Falls back to wildcard only
-        in development; all other environments return an empty list (the
-        validator above will have already raised for production).
-        """
-        if not self.cors_origins:
-            return ["*"] if self.is_development else []
-        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-        # Wildcard is only permitted in development.
-        if "*" in origins and not self.is_development:
-            raise ValueError(
-                "CORS_ORIGINS cannot contain '*' outside of development. "
-                "Specify exact allowed origins."
-            )
-        return origins
-
-    @property
-    def database_url_safe(self) -> str:
-        """Get database URL with password masked for logging."""
-        url = self.database_url
-        # Simple masking - replace password with ***
-        if "://" in url:
-            parts = url.split("@")
-            if len(parts) == 2:
-                auth_part = parts[0].split(":")
-                if len(auth_part) >= 3:
-                    # postgresql://user:pass@host -> postgresql://user:***@host
-                    return f"{auth_part[0]}:***@{parts[1]}"
-        return url
-
 
 # ==========================================================================
 # Lazy Settings Accessor (P2-002)

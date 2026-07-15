@@ -4,16 +4,16 @@ Tests verify that vulnerabilities identified in the adversarial security audit
 are patched and cannot be exploited.
 """
 
+import ast
 import inspect
 import os
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch
-import yaml
-import ast
 import re
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from unittest.mock import Mock, patch
 
+import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -87,8 +87,9 @@ def test_query_param_auth_rejected():
 
 def test_x_tenant_id_requires_service_secret():
     """F-1: X-Tenant-ID header should require X-Service-Auth."""
-    from value_fabric.shared.identity.middleware_sync import GovernanceMiddlewareSync
     from uuid import uuid4
+
+    from value_fabric.shared.identity.middleware_sync import GovernanceMiddlewareSync
 
     tenant_id = str(uuid4())
 
@@ -139,8 +140,8 @@ def test_x_tenant_id_requires_service_secret():
 
 def test_safe_eval_blocks_unsafe_expressions():
     """P0-2: AST evaluator should reject dangerous constructs."""
-    from src.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
+    from src.services.signal_quantification import SignalQuantificationService
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
 
@@ -165,8 +166,8 @@ def test_safe_eval_blocks_unsafe_expressions():
 
 def test_safe_eval_allows_safe_expressions():
     """P0-2: AST evaluator should allow safe arithmetic."""
-    from src.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
+    from src.services.signal_quantification import SignalQuantificationService
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
 
@@ -289,8 +290,8 @@ def test_cypher_write_operations_blocked():
 
 def test_xbrl_parser_uses_defusedxml():
     """P1-20: XBRL parser should use defusedxml to prevent XXE."""
+
     from layer1_ingestion.adapters.xbrl_parser import XBRLParser
-    import inspect
 
     source = inspect.getsource(XBRLParser.parse)
     

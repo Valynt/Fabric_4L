@@ -17,9 +17,8 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from value_fabric.shared.error_handling.exceptions import AuthenticationError
-
 from src.api.routes.benchmarks import _get_authenticated_tenant_id
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
 pytestmark = pytest.mark.tenant_boundary
 

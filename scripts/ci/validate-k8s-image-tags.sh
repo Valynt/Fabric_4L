@@ -45,9 +45,17 @@ ERRORS=0
 
 echo "==> Checking for mutable image tags ..."
 
-# Extract all image references from the rendered manifest
+# Extract container images from pod specs in the rendered manifest.
+# Intentionally narrow: Deployment/StatefulSet/DaemonSet/CronJob/Job containers
+# and initContainers. This avoids Kyverno policy patterns and other non-image
+# fields that happen to be named "image".
 IMAGES="${TMPDIR}/images.txt"
-yq eval '.. | select(has("image")) | .image' "${MANIFEST}" | sort -u > "${IMAGES}" || true
+yq eval '
+  (.spec.template.spec.containers // [])[].image,
+  (.spec.template.spec.initContainers // [])[].image,
+  (.spec.jobTemplate.spec.template.spec.containers // [])[].image,
+  (.spec.jobTemplate.spec.template.spec.initContainers // [])[].image
+' "${MANIFEST}" | sort -u > "${IMAGES}" || true
 
 while IFS= read -r img; do
   [[ -z "${img}" ]] && continue

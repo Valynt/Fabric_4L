@@ -7,7 +7,6 @@ from pathlib import Path
 
 from jsonschema import Draft7Validator
 
-
 CONTRACT_PATH = Path("contracts/jsonschema/layer3-entity-resolution-contract.json")
 
 

@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import jsonschema
 import pytest
-
 from value_fabric.shared.audit.models import MemoryAccessRecord, ReplaySnapshotRecord
 from value_fabric.shared.governance.memory_gateway import MemoryGateway
 from value_fabric.shared.governance.replay import ReplayRecorder
@@ -169,7 +168,6 @@ class TestReplayRecorder:
             r.record_tool_invocations([{"tool": "a"}])
             return r.build_snapshot()["snapshot_hash"]
 
-        # DECISION(dc68d9e7d123447998238299b7541cac): ACCEPTED
         # Note: timestamps differ between calls, so hashes will differ.
         # This test only validates the hash format, not determinism.
         h = _build()

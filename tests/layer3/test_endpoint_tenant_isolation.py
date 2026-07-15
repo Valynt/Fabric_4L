@@ -4,11 +4,10 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
-from value_fabric.shared.identity import RequestContext
-
 from src.api.dependencies_tenant import Neo4jTenantSession
 from src.api.models import GraphRAGQuery, SearchRequest, SearchType
 from src.api.routes import entities, query_search
+from value_fabric.shared.identity import RequestContext
 
 
 class _FakeSession:

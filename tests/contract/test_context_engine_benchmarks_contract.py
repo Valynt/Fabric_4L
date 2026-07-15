@@ -9,8 +9,8 @@ except ModuleNotFoundError as exc:  # pragma: no cover
         allow_module_level=True,
     )
 
-from app.models.schemas import ContextEngineItem
 from app.main import app
+from app.models.schemas import ContextEngineItem
 
 
 def test_context_engine_item_forbids_untyped_payload_keys() -> None:

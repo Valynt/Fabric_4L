@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 README = Path(__file__).with_name("README.md")
 
 EXPECTED_RETENTION_RULES = {

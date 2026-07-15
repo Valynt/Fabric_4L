@@ -12,7 +12,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 POLICY_FILE = Path(__file__).parent.parent.parent / ".fabric" / "prod-gates.policy.yaml"
 
 
@@ -26,7 +25,7 @@ class TestNoPlaceholderGates:
 
     def test_policy_file_is_valid_yaml(self):
         """Policy file must be valid YAML."""
-        with open(POLICY_FILE, "r", encoding="utf-8") as f:
+        with open(POLICY_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         assert isinstance(data, dict), "Policy file must be a YAML mapping"
         assert "profiles" in data, "Policy file must have 'profiles' section"
@@ -34,7 +33,7 @@ class TestNoPlaceholderGates:
 
     def test_release_candidate_profile_exists(self):
         """release-candidate profile must exist in policy."""
-        with open(POLICY_FILE, "r", encoding="utf-8") as f:
+        with open(POLICY_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         assert "release-candidate" in data.get("profiles", {}), \
             "release-candidate profile must exist in policy"
@@ -45,7 +44,7 @@ class TestNoPlaceholderGates:
         Rationale: Placeholder gates indicate known gaps in production readiness.
         A release-candidate with placeholder gates is not production-ready.
         """
-        with open(POLICY_FILE, "r", encoding="utf-8") as f:
+        with open(POLICY_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         profiles = data.get("profiles", {})
@@ -78,7 +77,7 @@ class TestNoPlaceholderGates:
 
         Rationale: Placeholder status must be intentional and documented.
         """
-        with open(POLICY_FILE, "r", encoding="utf-8") as f:
+        with open(POLICY_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         gate_definitions = data.get("gate-definitions", {})
@@ -97,7 +96,7 @@ class TestNoPlaceholderGates:
 
     def test_placeholder_gates_documented_in_gate_definitions(self):
         """All gates in release-candidate must have definitions in gate-definitions."""
-        with open(POLICY_FILE, "r", encoding="utf-8") as f:
+        with open(POLICY_FILE, encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         profiles = data.get("profiles", {})

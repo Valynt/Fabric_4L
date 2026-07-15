@@ -9,7 +9,6 @@ from types import SimpleNamespace
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNNER_PATH = REPO_ROOT / "scripts" / "ci" / "run_backend_integrated_reproducibility.py"
 

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import pytest
-
 from layer1_ingestion.compliance.pii_scanner import (
     PIIEntity,
-    PIIScanResult,
     PIIScanner,
+    PIIScanResult,
 )
 from layer1_ingestion.shared.models import PIIStatus
 

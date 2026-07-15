@@ -431,7 +431,7 @@ class TestAggregateDepAudit:
         ]
 
         total = 0
-        by_file: Dict[str, int] = {}
+        by_file: dict[str, int] = {}
 
         for route_dir in route_dirs:
             if not route_dir.exists():

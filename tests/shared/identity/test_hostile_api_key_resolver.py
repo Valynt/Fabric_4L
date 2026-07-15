@@ -29,7 +29,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from tests.shared.identity.hostile_api_key_cases import (
     INVALID_API_KEY_CONTEXT_ERROR_CODE,
     hostile_api_key_records,
@@ -37,7 +36,6 @@ from tests.shared.identity.hostile_api_key_cases import (
 )
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.middleware_sync import GovernanceMiddlewareSync
-
 
 # ---------------------------------------------------------------------------
 # Helpers

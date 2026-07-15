@@ -16,11 +16,11 @@ import base64
 import hashlib
 import os
 import secrets
+from datetime import UTC
 from unittest.mock import Mock, patch
 
 import httpx
 import pytest
-
 from value_fabric.shared.audit import AuditAction, AuditOutcome
 from value_fabric.shared.identity.middleware import extract_context_from_jwt
 from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
@@ -510,9 +510,10 @@ class TestVerifyIdTokenHardening:
 
     @pytest.fixture
     def rsa_keypair(self):
-        from cryptography.hazmat.primitives.asymmetric import rsa
-        from cryptography.hazmat.primitives import serialization
         import base64
+
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
 
         private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         pem_private = private_key.private_bytes(
@@ -533,9 +534,10 @@ class TestVerifyIdTokenHardening:
         return pem_private, jwk
 
     def _make_token(self, private_pem: bytes, issuer: str, audience: str, **overrides) -> str:
+        from datetime import datetime, timedelta, timezone
+
         import jwt as pyjwt
-        from datetime import datetime, timezone, timedelta
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         claims = {
             "sub": "user-1", "iss": issuer, "aud": audience,
             "iat": int((now - timedelta(seconds=5)).timestamp()),
@@ -572,12 +574,13 @@ class TestVerifyIdTokenHardening:
     @pytest.mark.asyncio
     async def test_verify_id_token_rejects_stale_iat(self, rsa_keypair):
         """verify_id_token raises InvalidTokenError when iat is older than max_iat_age_seconds."""
+        from datetime import datetime, timedelta, timezone
+
         import jwt as pyjwt
-        from datetime import datetime, timezone, timedelta
         private_pem, jwk = rsa_keypair
         issuer = "https://idp.example.com"
 
-        stale_iat = int((datetime.now(timezone.utc) - timedelta(seconds=700)).timestamp())
+        stale_iat = int((datetime.now(UTC) - timedelta(seconds=700)).timestamp())
         token = self._make_token(private_pem, issuer, "client-id", iat=stale_iat, nonce=None)
 
         client = OIDCClient()

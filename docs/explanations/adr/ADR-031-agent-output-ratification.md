@@ -498,7 +498,7 @@ interface TokenUsage {
 
 - CONTRACT.md Section 2.5: Agent Output Shape and Traceability
 - ADR-028: Tenant Context Propagation Contract Ratification
-- ADR-030: Tool Invocation Boundary Contract Ratification
+- ADR-033: Tool Invocation Boundary Contract Ratification
 - `examples/canonical/agent/orchestrator.ts`: Reference implementation
 - `test/agent-output-validation.spec.ts`: Compliance test
 - INC-2026-0115, INC-2026-0305, INC-2026-0520, INC-2026-0625: Incident reports

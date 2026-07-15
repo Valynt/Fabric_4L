@@ -2,7 +2,6 @@ import os
 from uuid import uuid4
 
 import jwt
-
 from value_fabric.shared.identity.jwt import decode_jwt
 
 RSA_PRIVATE = """-----BEGIN PRIVATE KEY-----

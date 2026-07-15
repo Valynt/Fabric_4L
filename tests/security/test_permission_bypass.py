@@ -14,16 +14,14 @@ unrecognised permission claims must deny access, never grant it.
 from __future__ import annotations
 
 import pytest
-
+from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import (
+    ROLE_PERMISSIONS,
     Permission,
     Role,
     get_role_permissions,
     role_has_permission,
-    ROLE_PERMISSIONS,
 )
-from value_fabric.shared.identity.context import RequestContext
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -6,13 +6,12 @@ Endpoint inventory covered by this module:
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
-
-import importlib.util
 
 pytestmark = pytest.mark.tenant_boundary
 

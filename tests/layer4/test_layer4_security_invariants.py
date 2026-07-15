@@ -13,9 +13,10 @@ Each invariant has:
 3. Adversarial test proving attacks are blocked
 """
 
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
-from uuid import uuid4
 
 # Constants
 TENANT_A = "tenant-a"

@@ -12,9 +12,7 @@ Covers:
 from __future__ import annotations
 
 import pytest
-
 from value_fabric.shared.crypto.canonical import canonical_hash, canonical_json_encode
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Round-trip stability

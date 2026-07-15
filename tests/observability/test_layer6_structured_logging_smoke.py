@@ -1,9 +1,8 @@
 import json
 
 import structlog
-from structlog.processors import JSONRenderer
-
 from layer6_benchmarks.logging_config import configure_structured_logging
+from structlog.processors import JSONRenderer
 
 
 def test_layer6_structured_logging_json() -> None:

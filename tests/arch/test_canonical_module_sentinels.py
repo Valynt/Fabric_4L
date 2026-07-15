@@ -124,8 +124,8 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
     layer5_ground_truth.* directly. The value_fabric/layer5/ shim was
     removed per ADR-027 and must not be restored.
     """
-    import re
     import os
+    import re
 
     pattern = re.compile(r"from value_fabric\.layer5|import value_fabric\.layer5")
     violations: list[str] = []
@@ -152,7 +152,7 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
                     continue
-                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
+                if rel_path == "tests/ci/test_layer6_canonical_service_imports.py":
                     continue
                 if "test_import_topology" in rel_path:
                     continue
@@ -190,8 +190,8 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
     direct service-path imports where possible. The value_fabric/layer6/
     shim was removed per ADR-027 and must not be restored.
     """
-    import re
     import os
+    import re
 
     pattern = re.compile(r"from value_fabric\.layer6|import value_fabric\.layer6")
     violations: list[str] = []
@@ -218,19 +218,19 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "test_canonical_module_sentinels" in rel_path:
                     continue
-                if "tests/ci/test_layer6_canonical_service_imports.py" == rel_path:
+                if rel_path == "tests/ci/test_layer6_canonical_service_imports.py":
                     continue
                 if "test_import_topology" in rel_path:
                     continue
-                if "scripts/ci/check_layer6_imports.py" == rel_path:
+                if rel_path == "scripts/ci/check_layer6_imports.py":
                     continue
-                if "tests/ci/test_layer6_repository_tenant_predicates.py" == rel_path:
+                if rel_path == "tests/ci/test_layer6_repository_tenant_predicates.py":
                     continue
-                if "tests/security/test_cross_layer_tenant_isolation_matrix.py" == rel_path:
+                if rel_path == "tests/security/test_cross_layer_tenant_isolation_matrix.py":
                     continue
                 # This test inspects BenchmarkRepository source for tenant-filter
                 # predicates; it uses the shim for import convenience, not production use.
-                if "tests/security/test_tenant_repository_filter_presence.py" == rel_path:
+                if rel_path == "tests/security/test_tenant_repository_filter_presence.py":
                     continue
                 if rel_path.startswith("services/layer6-benchmarks/tests/"):
                     continue

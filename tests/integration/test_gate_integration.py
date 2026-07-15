@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import types
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -51,12 +51,12 @@ _mock_span.get_span_context.return_value = MagicMock(trace_id=0)
 _otel_trace.get_current_span = MagicMock(return_value=_mock_span)
 
 # Now import GATE components
-from value_fabric.shared.crypto.canonical import canonical_hash
-from value_fabric.shared.audit.models import AuditAction
-from value_fabric.shared.governance.abom import AgentBillOfMaterials
-
 # Import governance components that don't need heavy deps
 import importlib.util
+
+from value_fabric.shared.audit.models import AuditAction
+from value_fabric.shared.crypto.canonical import canonical_hash
+from value_fabric.shared.governance.abom import AgentBillOfMaterials
 
 
 def _load_module(name, path):
@@ -174,15 +174,15 @@ class TestAgentReplayIntegration:
         snapshot = {
             "agent_id": "context_extraction-abc12345",
             "run_id": "run-001",
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
+            "completed_at": datetime.now(UTC).isoformat(),
             "steps": [
                 {
                     "step_index": 0,
                     "tool_name": "query_graph",
                     "input_hash": canonical_hash({"query": "test"}),
                     "output_hash": canonical_hash({"result": "ok"}),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             ],
             "status": "completed",
@@ -253,7 +253,7 @@ class TestGraphRAGProvenanceIntegration:
                     "relevance_score": 0.87,
                 },
             ],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "scope": {"account_id": "acct-123", "tenant_id": "tenant-1"},
         }
 

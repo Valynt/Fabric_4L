@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADR_README = REPO_ROOT / "docs" / "explanations" / "adr" / "README.md"
 

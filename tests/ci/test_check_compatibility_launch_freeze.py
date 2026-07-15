@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from importlib.util import module_from_spec, spec_from_file_location
-from pathlib import Path
 import shutil
 import sys
-
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "ci" / "check_compatibility_launch_freeze.py"
 SPEC = spec_from_file_location("check_compatibility_launch_freeze", MODULE_PATH)

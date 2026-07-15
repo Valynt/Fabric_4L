@@ -259,10 +259,10 @@ class TestPackLoaderIntegration:
         """Pack loader module must be importable and expose expected functions."""
         try:
             from api.routes.pack_loader import (
-                load_pack_manifest,
-                load_pack_formulas,
-                load_pack_variables,
                 get_available_packs,
+                load_pack_formulas,
+                load_pack_manifest,
+                load_pack_variables,
             )
             # Verify all expected functions are callable
             assert callable(load_pack_formulas)

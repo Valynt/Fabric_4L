@@ -7,7 +7,6 @@ from typing import Any
 
 import yaml
 
-
 ROLLOUT_FILES = [
     Path("k8s/gitops/rollouts/layer1-ingestion-rollout.yaml"),
     Path("k8s/gitops/rollouts/layer4-agents-rollout.yaml"),

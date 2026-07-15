@@ -10,15 +10,15 @@ Note: Query param fallback was removed in P0 fix (self._allow_query_param = Fals
 Tests focus on actual middleware implementation patterns.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from fastapi import Request, HTTPException
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException, Request
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
-    decode_jwt,
     _is_external_auth_bootstrap_path,
+    decode_jwt,
     extract_context_from_jwt,
 )
 
@@ -220,6 +220,7 @@ class TestGovernanceMiddlewareDispatch:
     async def test_public_path_bypasses_auth(self):
         """POSITIVE: /health bypasses authentication via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         async def mock_app(scope, receive, send):
@@ -243,6 +244,7 @@ class TestGovernanceMiddlewareDispatch:
     async def test_missing_credentials_returns_401(self):
         """NEGATIVE: Missing auth header on protected path → 401 via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
@@ -264,6 +266,7 @@ class TestGovernanceMiddlewareDispatch:
     async def test_invalid_jwt_returns_401(self):
         """NEGATIVE: Invalid JWT token → 401 via dispatch."""
         from unittest.mock import AsyncMock
+
         from starlette.responses import JSONResponse
 
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)

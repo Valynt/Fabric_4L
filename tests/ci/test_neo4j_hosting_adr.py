@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADR = REPO_ROOT / "docs" / "explanations" / "adr" / "ADR-030-neo4j-hosting-decision.md"
 ADR_INDEX = REPO_ROOT / "docs" / "explanations" / "adr" / "README.md"

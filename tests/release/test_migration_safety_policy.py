@@ -11,7 +11,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 MIGRATION_ROOTS = [
     Path("services/layer1-ingestion/migrations/versions"),
     Path("services/layer2-extraction/migrations/versions"),
@@ -77,7 +76,7 @@ class TestMigrationSafetyPolicy:
             Path("services/api/migrations/versions"),
         ]
 
-        assert MIGRATION_ROOTS == expected
+        assert expected == MIGRATION_ROOTS
         assert len(MIGRATION_ROOTS) == len(set(MIGRATION_ROOTS))
         missing = [root for root in MIGRATION_ROOTS if not root.exists()]
         assert not missing, f"Migration roots are missing: {missing}"

@@ -5,9 +5,8 @@ import json
 
 import pytest
 from fastapi import HTTPException
-from starlette.requests import Request
-
 from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+from starlette.requests import Request
 
 # Alias kept for test readability — tests call extract_tenant_from_bearer directly below.
 _get_tenant_context = extract_tenant_from_bearer
@@ -22,7 +21,7 @@ def _token(payload: dict[str, str]) -> str:
 
 
 def _request(token: str, *, tenant_header: str | None = None) -> Request:
-    headers = [(b"authorization", f"Bearer {token}".encode("utf-8"))]
+    headers = [(b"authorization", f"Bearer {token}".encode())]
     if tenant_header is not None:
         headers.append((b"x-tenant-id", tenant_header.encode("utf-8")))
     return Request({"type": "http", "method": "GET", "path": "/v1/models", "headers": headers})

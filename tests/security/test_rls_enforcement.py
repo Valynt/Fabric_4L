@@ -53,9 +53,9 @@ _L4_MODELS_DIR = (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _extract_rls_tables_from_migrations() -> Set[str]:
+def _extract_rls_tables_from_migrations() -> set[str]:
     """Extract all table names that have RLS policies from migration files."""
-    tables: Set[str] = set()
+    tables: set[str] = set()
 
     for migration_file in sorted(_L4_MIGRATIONS_DIR.glob("*.py")):
         source = migration_file.read_text()
@@ -68,9 +68,9 @@ def _extract_rls_tables_from_migrations() -> Set[str]:
     return tables
 
 
-def _extract_model_tables_with_tenant_id() -> Set[str]:
+def _extract_model_tables_with_tenant_id() -> set[str]:
     """Find all SQLAlchemy model classes that have a tenant_id column."""
-    tables: Set[str] = set()
+    tables: set[str] = set()
 
     model_files = list(_L4_MODELS_DIR.glob("*.py"))
     # Also check tenant models

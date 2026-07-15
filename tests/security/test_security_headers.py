@@ -19,35 +19,25 @@ from __future__ import annotations
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 from fastapi.responses import PlainTextResponse
-
-from services.shared.src.value_fabric.shared.security_middleware import (
-    SecurityHeadersMiddleware,
-    Environment,
-    disable_security_headers,
-    security_header_override,
-    add_security_headers,
-    # Constants
+from fastapi.testclient import TestClient
+from value_fabric.shared.security_middleware import (
+    COEP_DEV,
+    COEP_PROD,
+    COOP_DEV,
+    COOP_PROD,
+    CORP_DEV,
+    CORP_PROD,
     HSTS_VALUE_PROD,
-    HSTS_VALUE_DEV,
+    PERMISSIONS_POLICY,
+    REFERRER_POLICY,
     X_CONTENT_TYPE_OPTIONS,
     X_FRAME_OPTIONS,
-    REFERRER_POLICY,
-    PERMISSIONS_POLICY,
-    COEP_PROD,
-    COOP_PROD,
-    CORP_PROD,
-    COEP_DEV,
-    COOP_DEV,
-    CORP_DEV,
-    CSP_DEFAULT_SRC,
-    CSP_OBJECT_SRC,
-    CSP_FRAME_ANCESTORS,
-    CSP_BASE_URI,
-    CSP_FORM_ACTION,
+    Environment,
+    SecurityHeadersMiddleware,
+    disable_security_headers,
+    security_header_override,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -72,12 +62,12 @@ def base_app() -> FastAPI:
 
     @app.get("/embed")
     @security_header_override("X-Frame-Options", "SAMEORIGIN")
-    async def embed():
+    async def embed(request: Request):
         return {"widget": "test"}
 
     @app.get("/no-headers")
     @disable_security_headers
-    async def no_headers():
+    async def no_headers(request: Request):
         return {"headers": "disabled"}
 
     return app
@@ -110,12 +100,12 @@ def dev_client(base_app: FastAPI) -> TestClient:
 
     @app.get("/embed")
     @security_header_override("X-Frame-Options", "SAMEORIGIN")
-    async def embed():
+    async def embed(request: Request):
         return {"widget": "test"}
 
     @app.get("/no-headers")
     @disable_security_headers
-    async def no_headers():
+    async def no_headers(request: Request):
         return {"headers": "disabled"}
 
     app.add_middleware(SecurityHeadersMiddleware, environment=Environment.DEVELOPMENT)

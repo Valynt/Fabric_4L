@@ -75,34 +75,38 @@ async def save_deletion_job(
     Persist a DeletionReport to the append-only gdpr_deletion_jobs table.
 
     Also writes a hot cache entry (Redis, TTL 24h) for fast status polling.
-    """
-    db: AsyncSession = await anext(get_db_session())
-    try:
-        report_dict = report.to_dict()
-        report_json = json.dumps(report_dict, sort_keys=True, default=str)
 
+    Uses the canonical async session lifecycle: the session is borrowed from
+    get_db_session(), which commits on successful exit and rolls back on
+    exception. Route-level code therefore never calls db.commit()/rollback().
+    """
+    report_dict = report.to_dict()
+    report_json = json.dumps(report_dict, sort_keys=True, default=str)
+
+    effective_status = status.value if status else report.status.value
+    effective_error = error or report.error_summary
+
+    stmt = text(
+        """
+        INSERT INTO gdpr_deletion_jobs (
+            request_id, tenant_id, initiated_by, initiated_at,
+            completed_at, status, total_records_deleted,
+            verification_passed, audit_log_hash, error_summary,
+            reason, report_json, previous_hash
+        ) VALUES (
+            :request_id, :tenant_id, :initiated_by, :initiated_at,
+            :completed_at, :status, :total_records_deleted,
+            :verification_passed, :audit_log_hash, :error_summary,
+            :reason, :report_json, :previous_hash
+        )
+        """
+    )
+
+    async for db in get_db_session():
         # Hash chain: link to previous record for this tenant
         prev_hash = await _get_previous_hash(db, report.tenant_id)
         chain_hash = _compute_chain_hash(report_json, prev_hash)
 
-        effective_status = status.value if status else report.status.value
-        effective_error = error or report.error_summary
-
-        stmt = text(
-            """
-            INSERT INTO gdpr_deletion_jobs (
-                request_id, tenant_id, initiated_by, initiated_at,
-                completed_at, status, total_records_deleted,
-                verification_passed, audit_log_hash, error_summary,
-                reason, report_json, previous_hash
-            ) VALUES (
-                :request_id, :tenant_id, :initiated_by, :initiated_at,
-                :completed_at, :status, :total_records_deleted,
-                :verification_passed, :audit_log_hash, :error_summary,
-                :reason, :report_json, :previous_hash
-            )
-            """
-        )
         await db.execute(
             stmt,
             {
@@ -121,15 +125,12 @@ async def save_deletion_job(
                 "previous_hash": chain_hash,
             },
         )
-        await db.commit()
+        break
 
-        # Hot cache for polling
-        redis = await get_redis()
-        cache_key = _cache_key(report.request_id)
-        await redis.setex(cache_key, 86400, report_json)
-
-    finally:
-        await db.close()
+    # Hot cache for polling (written after the session lifecycle commits)
+    redis = await get_redis()
+    cache_key = _cache_key(report.request_id)
+    await redis.setex(cache_key, 86400, report_json)
 
 
 async def get_deletion_job(

@@ -38,13 +38,13 @@ _TEST_JWT_SECRET = os.environ["JWT_SECRET"]
 _TEST_ISSUER = os.environ["JWT_ISSUER"]
 _TEST_AUDIENCE = os.environ["JWT_AUDIENCE"]
 
+# Canonical UUID tenant identifiers. GovernanceMiddleware validates that
+# X-Tenant-ID headers are well-formed UUIDs before comparing them to the JWT
+# tenant claim, so tests must use UUIDs (not legacy "tenant-a" strings) when
+# exercising the header-vs-JWT consistency path.
+_TENANT_A_UUID = "11111111-1111-1111-1111-111111111111"
+_TENANT_B_UUID = "22222222-2222-2222-2222-222222222222"
 
-# ---------------------------------------------------------------------------
-# DECISION(6833087cf5684cc19eac194dc9bc7966): ACCEPTED
-# Module-level fixtures — override the shared conftest equivalents so these
-# tests exercise the real GovernanceMiddleware rather than the L1 app.
-# Pattern mirrors test_adversarial_auth.py and test_cross_tenant_jwt.py.
-# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def _mismatch_app():
@@ -78,7 +78,7 @@ def tenant_a_token():
     return _jwt.encode(
         {
             "sub": "user-123",
-            "tenant_id": "tenant-a",
+            "tenant_id": _TENANT_A_UUID,
             "roles": ["analyst"],
             "iss": _TEST_ISSUER,
             "aud": _TEST_AUDIENCE,
@@ -97,19 +97,19 @@ class TestTenantHeaderMismatch:
         self, client: TestClient, tenant_a_token: str
     ):
         """P0: JWT tenant A + X-Tenant-ID header B = Rejected.
-        
+
         This prevents tenant spoofing via headers.
         """
         response = client.get(
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "tenant-b-id"  # Attempted spoof
-            }
+                "X-Tenant-ID": _TENANT_B_UUID,  # Attempted spoof
+            },
         )
-        
+
         # Should reject the mismatch
-        assert response.status_code in [400, 403], (
+        assert response.status_code == 403, (
             f"Tenant mismatch should be rejected, got {response.status_code}. "
             "P0: X-Tenant-ID header can override JWT claim - SPOOFING VULNERABILITY."
         )
@@ -122,10 +122,10 @@ class TestTenantHeaderMismatch:
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "tenant-a"  # Matches JWT
-            }
+                "X-Tenant-ID": _TENANT_A_UUID,  # Matches JWT
+            },
         )
-        
+
         # Should be allowed (or 404 if no data, but not 401/403)
         assert response.status_code not in [401, 403, 400], (
             f"Matching tenant header should succeed, got {response.status_code}"
@@ -141,11 +141,12 @@ class TestTenantSpoofingAttempts:
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "../../../etc/passwd"  # Path traversal attempt
-            }
+                "X-Tenant-ID": "../../../etc/passwd",  # Path traversal attempt
+            },
         )
-        
-        assert response.status_code in [400, 403], (
+
+        # Malformed X-Tenant-ID fails identity resolution before the JWT is used.
+        assert response.status_code == 401, (
             f"Invalid tenant header format should be rejected, got {response.status_code}"
         )
 
@@ -155,11 +156,12 @@ class TestTenantSpoofingAttempts:
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "tenant-a' OR '1'='1"
-            }
+                "X-Tenant-ID": "tenant-a' OR '1'='1",
+            },
         )
-        
-        assert response.status_code in [400, 403, 500], (
+
+        # Non-UUID header is rejected as unauthenticated.
+        assert response.status_code == 401, (
             "SQL injection in tenant header should be blocked"
         )
 
@@ -169,10 +171,10 @@ class TestTenantSpoofingAttempts:
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "<script>alert('xss')</script>"
-            }
+                "X-Tenant-ID": "<script>alert('xss')</script>",
+            },
         )
-        
+
         # Should not execute/render the script
         assert "<script>" not in response.text
 
@@ -189,7 +191,7 @@ class TestHeaderVsJwtPriority:
             headers={"Authorization": f"Bearer {tenant_a_token}"}
             # No X-Tenant-ID header
         )
-        
+
         # Should succeed based on JWT claim
         assert response.status_code not in [401, 403], (
             f"JWT-only auth should work, got {response.status_code}"
@@ -203,16 +205,88 @@ class TestHeaderVsJwtPriority:
             "/api/v1/entities",
             headers={
                 "Authorization": f"Bearer {tenant_a_token}",
-                "X-Tenant-ID": "malicious-tenant"
-            }
+                "X-Tenant-ID": _TENANT_B_UUID,
+            },
         )
-        
-        # Should either reject mismatch or ignore header (not use malicious value)
-        # If it succeeds, it should use tenant-a data, not malicious-tenant
-        if response.status_code == 200:
-            data = response.json()
-            # Any returned entities should be from tenant-a
-            for entity in data.get("entities", []):
-                assert entity.get("tenant_id") == "tenant-a", (
-                    "JWT tenant claim overridden by header - SPOOFING VULNERABILITY"
+
+        # Mismatched header is rejected; JWT claim remains authoritative.
+        assert response.status_code == 403, (
+            f"Expected 403 for header/JWT mismatch, got {response.status_code}"
+        )
+
+
+class TestKillSwitchFailSafe:
+    """GovernanceMiddleware Redis-unavailable fail-safe behavior."""
+
+    def test_redis_unavailable_returns_503(
+        self, client: TestClient, tenant_a_token: str, monkeypatch
+    ):
+        """P0: When Redis is unavailable, kill switch returns 503 (fail-safe)."""
+        from value_fabric.shared.tenant_kill_switch import (
+            TenantKillSwitch,
+            TenantSuspensionStatus,
+        )
+
+        # The shared security conftest intentionally treats UNKNOWN as ACTIVE for
+        # auth/RBAC smoke tests. For this kill-switch-specific test we need the
+        # real UNKNOWN -> 503 mapping, so override check_status locally.
+        async def _unknown_status(_self, _tenant_id: str) -> TenantSuspensionStatus:
+            return TenantSuspensionStatus.UNKNOWN
+
+        monkeypatch.setattr(TenantKillSwitch, "check_status", _unknown_status)
+
+        response = client.get(
+            "/api/v1/entities",
+            headers={"Authorization": f"Bearer {tenant_a_token}"},
+        )
+        # The _mismatch_app fixture has rate_limiter=None, so Redis is unreachable.
+        # The middleware MUST fail safe with 503 rather than allow the request.
+        assert response.status_code == 503, (
+            f"Expected 503 when Redis is unavailable, got {response.status_code}. "
+            "Fail-open would be a security vulnerability."
+        )
+        data = response.json()
+        assert data.get("error") == "tenant_status_unavailable", (
+            f"Expected error code 'tenant_status_unavailable', got {data.get('error')}"
+        )
+
+    def test_redis_available_allows_active_tenant(self, tenant_a_token: str):
+        """P0: When Redis reports ACTIVE, the request proceeds."""
+        from value_fabric.shared.identity.middleware import GovernanceMiddleware
+        from value_fabric.shared.identity.rate_limiter import RateLimitResult
+
+        class _FakeRedisClient:
+            async def sismember(self, key: str, member: str) -> bool:
+                return False  # tenant is not in the suspended set -> ACTIVE
+
+        class _FakeRateLimiter:
+            redis_client = _FakeRedisClient()
+
+            async def check(self, key: str, config: object) -> RateLimitResult:
+                return RateLimitResult(
+                    allowed=True, remaining=100, reset_at=0.0, retry_after=None
                 )
+
+        app = FastAPI()
+        app.add_middleware(GovernanceMiddleware, rate_limiter=_FakeRateLimiter())
+
+        @app.get("/api/v1/entities")
+        def entities(request: Request):
+            ctx = getattr(request.state, "governance_context", None)
+            if ctx is None:
+                raise HTTPException(status_code=401, detail="Unauthenticated")
+            return {"items": [], "tenant_id": str(ctx.tenant_id)}
+
+        with TestClient(app, raise_server_exceptions=False) as active_client:
+            response = active_client.get(
+                "/api/v1/entities",
+                headers={"Authorization": f"Bearer {tenant_a_token}"},
+            )
+
+        assert response.status_code == 200, (
+            f"Expected 200 for active tenant when Redis is available, got {response.status_code}"
+        )
+        data = response.json()
+        assert data.get("tenant_id") == _TENANT_A_UUID, (
+            f"Expected {_TENANT_A_UUID}, got {data.get('tenant_id')}"
+        )

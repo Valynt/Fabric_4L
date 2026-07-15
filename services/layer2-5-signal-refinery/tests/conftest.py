@@ -44,6 +44,9 @@ from value_fabric.shared.identity.context import (  # noqa: E402
     RequestContext,
     set_request_context,
 )
+from value_fabric.shared.testing.governance import (  # noqa: E402
+    patch_governance_middleware_for_tests,
+)
 
 # ---------------------------------------------------------------------------
 # Shared test tenant IDs
@@ -113,6 +116,7 @@ def _make_client_fixture(tenant_id: uuid.UUID):
     @pytest_asyncio.fixture
     async def _client(connection) -> AsyncGenerator[AsyncClient, None]:
         app = create_app()
+        patch_governance_middleware_for_tests(app)
 
         from layer2_5_signal_refinery import database as db_mod
 

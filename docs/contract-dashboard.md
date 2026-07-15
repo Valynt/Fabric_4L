@@ -13,7 +13,7 @@
 | Tenant Context Propagation | **RATIFIED** | 2026-07-10 | ESLint + Runtime | `check_tenant_context` | [ADR-028](ADR-028-tenant-context-ratification.md) | @team-platform |
 | DB Session and Isolation | **RATIFIED** | 2026-04-25 | CI + Integration | `platform_contract_lint` | ADR-021 | @team-data |
 | Middleware and Auth Flow | **RATIFIED** | 2026-07-10 | Manifest Validator | `check_middleware` | [ADR-029](ADR-029-middleware-auth-ratification.md) | @team-platform |
-| Tool Invocation Boundary | **RATIFIED** | 2026-07-10 | Registry Validator | `check_tool_registry` | [ADR-030](ADR-030-tool-boundary-ratification.md) | @team-agents |
+| Tool Invocation Boundary | **RATIFIED** | 2026-07-10 | Registry Validator | `check_tool_registry` | [ADR-033](ADR-033-tool-boundary-ratification.md) | @team-agents |
 | Agent Output Shape | **RATIFIED** | 2026-07-10 | Shape Validator | `check_agent_output` | [ADR-031](ADR-031-agent-output-ratification.md) | @team-agents |
 | UI Route/State Progression | **RATIFIED** | 2026-07-10 | Route Validator | `check_ui_route_state` | [ADR-032](ADR-032-ui-route-state-ratification.md) | @team-web |
 

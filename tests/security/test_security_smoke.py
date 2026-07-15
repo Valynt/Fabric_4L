@@ -34,7 +34,7 @@ def _disable_rate_limiting_for_smoke(monkeypatch):
     per window, causing spurious 429s that mask the actual outcomes.
     """
     try:
-        from value_fabric.shared.identity.rate_limiter import RedisRateLimiter, RateLimitResult
+        from value_fabric.shared.identity.rate_limiter import RateLimitResult, RedisRateLimiter
     except ImportError:
         return
 
@@ -47,6 +47,8 @@ def _disable_rate_limiting_for_smoke(monkeypatch):
     try:
         from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
             RateLimitResult as TenantRateLimitResult,
+        )
+        from value_fabric.shared.rate_limiting.tenant_rate_limiter import (
             TenantRateLimiter,
         )
     except ImportError:

@@ -9,13 +9,13 @@ third-party APIs become unavailable:
 """
 
 import asyncio
-import pytest
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from datetime import datetime, timedelta
 
 import httpx
-from httpx import ConnectError, TimeoutException, HTTPStatusError
+import pytest
+from httpx import ConnectError, HTTPStatusError, TimeoutException
 from value_fabric.shared.security.redaction import redact_credentials
 
 pytestmark = [pytest.mark.chaos]

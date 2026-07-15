@@ -5,7 +5,6 @@ import os
 import subprocess
 from pathlib import Path
 
-
 os.environ.setdefault("CONTRACT_TEST_MODE", "mock")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

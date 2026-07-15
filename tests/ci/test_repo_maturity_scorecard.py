@@ -5,7 +5,6 @@ import json
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "reports" / "generate_repo_maturity_scorecard.py"
 SCHEMA = REPO_ROOT / "reports" / "scorecards" / "repo-maturity.schema.json"
@@ -179,7 +178,7 @@ def _readiness_summary(status_by_key: dict[str, str]) -> dict:
 
 def test_readiness_threshold_scorecard_fails_below_minimum(monkeypatch) -> None:
     module = _load_module()
-    statuses = {key: "passed" for key in module.READINESS_DIMENSION_KEYS}
+    statuses = dict.fromkeys(module.READINESS_DIMENSION_KEYS, "passed")
     statuses["security_suite"] = "failed"
     monkeypatch.setattr(
         module,
@@ -197,7 +196,7 @@ def test_readiness_threshold_scorecard_fails_below_minimum(monkeypatch) -> None:
 
 def test_readiness_threshold_scorecard_passes_only_at_ten(monkeypatch) -> None:
     module = _load_module()
-    statuses = {key: "passed" for key in module.READINESS_DIMENSION_KEYS}
+    statuses = dict.fromkeys(module.READINESS_DIMENSION_KEYS, "passed")
     monkeypatch.setattr(
         module,
         "_readiness_regressions",
@@ -213,7 +212,7 @@ def test_readiness_threshold_scorecard_passes_only_at_ten(monkeypatch) -> None:
 
 def test_readiness_threshold_scorecard_writes_final_artifacts(tmp_path: Path, monkeypatch) -> None:
     module = _load_module()
-    statuses = {key: "passed" for key in module.READINESS_DIMENSION_KEYS}
+    statuses = dict.fromkeys(module.READINESS_DIMENSION_KEYS, "passed")
     monkeypatch.setattr(
         module,
         "_readiness_regressions",

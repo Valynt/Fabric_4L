@@ -4,7 +4,6 @@ import inspect
 from types import SimpleNamespace
 
 import pytest
-
 from src.db.query_execution import (
     TenantExecutionContext,
     TenantQueryExecutor,

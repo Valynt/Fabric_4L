@@ -75,7 +75,7 @@ class TestSecretsNotInPlaintextLogs:
         handler.flush()
 
         log_output = log_stream.getvalue()
-        assert "vf_live_" not in log_output, f"API key prefix found in log"
+        assert "vf_live_" not in log_output, "API key prefix found in log"
         assert hashed in log_output, "Expected hash in log output"
 
     def test_jwt_token_not_logged_in_plaintext(self, log_capture) -> None:

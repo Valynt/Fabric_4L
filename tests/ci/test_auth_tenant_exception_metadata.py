@@ -4,9 +4,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
-from scripts.ci import prod_stub_scan
-from scripts.ci import python_contract_lint
 from scripts.ci.python_contract_lint import check_file_with_regex
+
+from scripts.ci import prod_stub_scan, python_contract_lint
 
 REFERENCE_DATE = date(2030, 1, 1)
 

@@ -17,7 +17,6 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
-
 from value_fabric.shared.idempotency import (
     IdempotencyConflictError,
     IdempotencyRecord,

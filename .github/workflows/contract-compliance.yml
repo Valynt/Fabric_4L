@@ -106,16 +106,17 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -137,6 +138,11 @@ jobs:
           else
             pnpm contract:breaking --base-ref origin/main
           fi
+
+      - name: Verify OpenAPI breaking-change artifacts
+        run: |
+          test -s artifacts/contract-breaking/openapi-breaking-report.json
+          test -s artifacts/contract-breaking/openapi-breaking-report.md
 
       - name: Upload OpenAPI breaking-change report
         uses: actions/upload-artifact@v4
@@ -161,16 +167,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -222,16 +229,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
       - name: Install frontend dependencies
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
@@ -271,16 +279,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
       - name: Install plugin
         working-directory: packages/eslint-plugin-fabric-contracts
         run: pnpm install --frozen-lockfile && pnpm run build
@@ -315,16 +324,17 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
-
       - name: Install Python contract test dependencies
         run: pip install -r packages/platform-contract/requirements-test.txt
 
@@ -685,7 +695,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.13.0'
+          node-version: '22.18.0'
 
       - name: Validate deprecations.json schema
         run: |

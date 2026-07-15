@@ -712,7 +712,7 @@ check-deprecations: ## CI gate — check for overdue deprecations
 
 check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md §2.4)
 	@echo "→ Checking tool contracts in Layer 4..."
-	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/tools/
+	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 	@echo "✅ Tool contract check passed"
 
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules

@@ -1,4 +1,4 @@
-# ADR: Deterministic Entity ID Generation for Layer 2 Extraction
+# ADR-026: Deterministic Entity ID Generation for Layer 2 Extraction
 
 ## Status
 Accepted

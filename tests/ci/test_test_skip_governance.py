@@ -4,9 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import yaml
-
 from scripts.ci.check_test_skip_governance import evaluate
-
 
 TODAY = date(2026, 5, 11)
 
@@ -33,6 +31,7 @@ def _entry(**overrides: str) -> dict[str, str]:
         "expires_on": "2026-06-30",
         "severity": "P0",
         "launch_gate": "mandatory",
+        "classification": "temporary_bug_waiver",
     }
     entry.update(overrides)
     return entry
@@ -59,6 +58,12 @@ def test_registered_non_expired_skip_passes(tmp_path: Path) -> None:
         "forbidden_markers": 0,
         "matched_register_entries": 1,
         "mandatory_p0_register_entries": 1,
+        "classification_counts": {
+            "obsolete_test": 0,
+            "temporary_bug_waiver": 1,
+            "unacceptable_coverage_gap": 0,
+            "valid_environment_limitation": 0,
+        },
     }
 
 
@@ -118,3 +123,17 @@ def test_release_mode_reports_mandatory_p0_entries(tmp_path: Path) -> None:
     assert report["register_errors"] == []
     assert report["mandatory_p0_entries"][0]["id"] == "skip-001"
     assert report["summary"]["mandatory_p0_register_entries"] == 1
+
+
+def test_register_entry_requires_classification(tmp_path: Path) -> None:
+    _write(tmp_path / "tests/security/test_auth.py", 'import pytest\npytest.skip("dependency missing")\n')
+    bad_entry = _entry()
+    del bad_entry["classification"]
+    report = evaluate(tmp_path, _register(tmp_path, [bad_entry]), ["tests/security"], TODAY)
+    assert any("classification" in error for error in report["register_errors"])
+
+
+def test_classification_counts_are_reported(tmp_path: Path) -> None:
+    _write(tmp_path / "tests/security/test_auth.py", 'import pytest\npytest.skip("dependency missing")\n')
+    report = evaluate(tmp_path, _register(tmp_path, [_entry()]), ["tests/security"], TODAY)
+    assert report["summary"]["classification_counts"]["temporary_bug_waiver"] == 1

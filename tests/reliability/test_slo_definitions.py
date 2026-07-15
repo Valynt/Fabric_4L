@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import pytest
-
 from tests.production_readiness.manifest import assert_contains_all, assert_paths_exist
-
 
 pytestmark = [pytest.mark.reliability, pytest.mark.production_readiness]
 

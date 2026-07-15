@@ -134,6 +134,8 @@ def _gate_executed_behavior() -> dict:
         sys.executable,
         "-m",
         "pytest",
+        "-c",
+        "pytest.ini",
         "--no-mandatory-dep-check",
         "--tb=short",
         "-q",

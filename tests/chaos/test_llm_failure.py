@@ -8,10 +8,11 @@ Verifies system behavior when OpenAI, Anthropic, or other LLM providers become u
 """
 
 import asyncio
-import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from datetime import datetime
+
+import pytest
 
 pytestmark = [pytest.mark.chaos, pytest.mark.slow]
 

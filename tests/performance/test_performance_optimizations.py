@@ -30,8 +30,8 @@ SUBGRAPH_P95_MAX_TIME_MS = 100  # 95th percentile subgraph query budget
 LAYOUT_CALCULATION_MAX_TIME_MS = 10  # Layout calculation budget
 
 try:
-    from src.retrieval.hybrid_search import HybridSearch
     from src.retrieval.graph_rag import GraphRAGEngine
+    from src.retrieval.hybrid_search import HybridSearch
 except ImportError as _exc:
     pytest.skip(
         f"Layer 3 retrieval import failed: {_exc}",

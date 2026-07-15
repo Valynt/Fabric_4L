@@ -109,7 +109,7 @@ function RequireClerkAuthOrgCheck({
       navigateTo(redirectTo, { replace: true });
     } else if (status === 403) {
       hasNavigated.current = true;
-      navigateTo("/forbidden?wfStep=0", { replace: true });
+      navigateTo("forbidden", undefined, { query: { wfStep: "0" }, replace: true });
     }
   }, [
     tenantError,

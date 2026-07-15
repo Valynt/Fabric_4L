@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from uuid import uuid4
 
 import pytest
-
 from value_fabric.shared.projections.consistency import (
     CanonicalEvent,
     CrossStoreProjectionRebuilder,

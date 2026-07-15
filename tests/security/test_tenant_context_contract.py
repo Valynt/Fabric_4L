@@ -62,7 +62,7 @@ _ALL_ROUTE_DIRS = [
 # billing.py      — Stripe webhook endpoint uses HMAC signature auth (non-webhook
 #                   endpoints now use get_db_from_context + require_authenticated)
 # provisioning.py — Webhook endpoint uses token-based auth from external systems
-ALLOWED_GET_DB_FILES: Set[str] = {
+ALLOWED_GET_DB_FILES: set[str] = {
     "oidc.py",
     "registration.py",
     "crm_webhooks.py",
@@ -91,15 +91,7 @@ def _find_depends_calls(filepath: Path, dep_name: str) -> list[dict]:
         # Match: Depends(get_db) or Depends(get_db_from_context)
         if isinstance(node, ast.Call):
             func = node.func
-            if isinstance(func, ast.Name) and func.id == "Depends":
-                for arg in node.args:
-                    if isinstance(arg, ast.Name) and arg.id == dep_name:
-                        results.append({
-                            "line": node.lineno,
-                            "file": str(filepath.relative_to(_PROJECT_ROOT)),
-                            "dep_name": dep_name,
-                        })
-            elif isinstance(func, ast.Attribute) and func.attr == "Depends":
+            if isinstance(func, ast.Name) and func.id == "Depends" or isinstance(func, ast.Attribute) and func.attr == "Depends":
                 for arg in node.args:
                     if isinstance(arg, ast.Name) and arg.id == dep_name:
                         results.append({
@@ -160,7 +152,6 @@ def _find_optional_context_in_write_routes(filepath: Path) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# DECISION(e0978bcfb2784578880fecc434b0c943): ACCEPTED
 # Module loading helpers (avoids sqlalchemy import chain)
 # ---------------------------------------------------------------------------
 
@@ -476,7 +467,7 @@ class TestImportConsistency:
         # This is informational — import errors would be caught at runtime
         # but we want to catch them statically
         assert not violations, (
-            f"Import consistency violations:\n"
+            "Import consistency violations:\n"
             + "\n".join(f"  - {v}" for v in violations)
         )
 

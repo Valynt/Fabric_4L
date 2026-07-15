@@ -1,5 +1,12 @@
 # This file is a compatibility shim. New code must import from layer4_agents.*
 # ruff: noqa: F401,F403
+
+# INTENTIONAL_DB_ADAPTER_BYPASS: This shim intentionally re-exports the Layer 4
+# database module directly, bypassing the shared RuntimeDatabaseAdapter. The
+# marker is required by the runtime DB contract test so that deliberately
+# non-shared database entrypoints are explicitly flagged and reviewed.
+INTENTIONAL_DB_ADAPTER_BYPASS = True
+
 from layer4_agents.database import *  # noqa: F401,F403
 
 # Re-export private symbols that tests patch via this shim path.
@@ -11,3 +18,5 @@ from layer4_agents.database import (  # noqa: F401
     _emit_tenant_context_set_audit,
     get_session_factory,
 )
+
+INTENTIONAL_DB_ADAPTER_BYPASS = True
