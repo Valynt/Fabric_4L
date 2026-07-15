@@ -27,13 +27,23 @@ Six-layer architecture — from ingestion to benchmarks — built for teams that
 
 ## Quickstart
 
+The canonical command references are [docs/development/BUILD_SYSTEM.md](docs/development/BUILD_SYSTEM.md), [docs/development/COMMANDS.md](docs/development/COMMANDS.md), [docs/development/DISCOVERY_MAP.md](docs/development/DISCOVERY_MAP.md), and [AGENTS.md](AGENTS.md). Use those files as the source of truth when local setup, Makefile targets, or contributor-agent workflows drift.
+
+Prerequisites: Python 3.11+, Node.js 22.x with pnpm 10.18.1 via Corepack, Docker with Docker Compose, `make`, and the Infisical CLI if you want the recommended generated environment file.
+
 ```bash
 git clone https://github.com/bmsull560/Fabric_4L.git
-cd Fabric_4L && make setup
+cd Fabric_4L
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+pnpm install --frozen-lockfile
+make setup
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
+make migrate
 make verify
 ```
 
-That is it. `make setup` installs dependencies, spins up the dev stack, and applies migrations. `make verify` runs the full test suite, type checks, lint, and contract tests to confirm everything is green.
+`make setup` installs Python service development dependencies into the pytest Python environment; it does not install frontend dependencies, start Docker infrastructure, or apply migrations. Start the dev stack and run `make migrate` separately before using commands that require live services. If you do not have Infisical access, follow the environment guidance in [AGENTS.md](AGENTS.md) and use the legacy `.env` flow instead of `pnpm env:dev`.
 
 > **New contributor?** See the [GitHub Codespaces guide](codespaces.md) for a one-click dev environment.
 
