@@ -3,6 +3,7 @@ from __future__ import annotations
 """Targeted tests for analysis routes executor integration."""
 
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
@@ -21,6 +22,15 @@ from layer4_agents.config.settings import settings
 async def _async_return(value: Any) -> Any:
     """Helper to create an awaitable that returns a value."""
     return value
+
+
+def _async_dependency(value: Any) -> Callable[[], Awaitable[Any]]:
+    """Build an async FastAPI dependency override returning ``value``."""
+
+    async def dependency() -> Any:
+        return value
+
+    return dependency
 
 
 @dataclass
@@ -131,8 +141,8 @@ async def test_post_cases_success_path(analysis_app: FastAPI, monkeypatch) -> No
     )
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: None
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(fake_db)
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(None)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.post(
@@ -177,8 +187,8 @@ async def test_post_cases_uses_optional_case_id(analysis_app: FastAPI, monkeypat
     )
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: None
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(fake_db)
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(None)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.post(
@@ -225,9 +235,9 @@ async def test_get_case_retrieval(analysis_app: FastAPI) -> None:
         async def get(self, model: Any, key: str) -> Any:
             return None  # No DB record — tenant check falls back to metadata
 
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(fake_executor)
     analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeDb())
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.get("/v1/cases/case-42")
@@ -286,9 +296,9 @@ async def test_export_route_uses_get_result_dependency(analysis_app: FastAPI, mo
             permissions=frozenset(["read:agents", "write:agents"]),
         )
 
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(fake_executor)
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated_export
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeDb())
     monkeypatch.setattr(settings, "export_storage_endpoint", "http://storage.local", raising=False)
     # Stub AccountService to avoid real DB lookup
     async def _fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:
@@ -367,9 +377,9 @@ async def test_export_route_rejects_draft_case_before_document_generation(
     async def fail_upload(**kwargs: Any) -> None:
         raise AssertionError("draft export must not upload artifacts")
 
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(fake_executor)
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeDb())
     monkeypatch.setattr(analysis, "AccountService", lambda db: SimpleNamespace(get_account=fake_get_account))
     monkeypatch.setattr(analysis, "emit_and_persist_audit", capture_audit)
     monkeypatch.setattr(analysis, "upload_bytes", fail_upload)
@@ -460,9 +470,9 @@ async def test_export_route_approved_case_uploads_tenant_scoped_artifacts_and_au
         audit_events.append(kwargs)
 
     monkeypatch.setattr(analysis, "get_settings", lambda: SimpleNamespace(export_storage_endpoint="http://storage.local", export_signed_url_ttl_seconds=900))
-    analysis_app.dependency_overrides[analysis.get_executor] = lambda: fake_executor
+    analysis_app.dependency_overrides[analysis.get_executor] = _async_dependency(fake_executor)
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeDb())
     monkeypatch.setattr(analysis, "AccountService", lambda db: SimpleNamespace(get_account=fake_get_account))
     monkeypatch.setattr(analysis, "upload_bytes", capture_upload)
     monkeypatch.setattr(analysis, "generate_download_url", fake_download_url)
@@ -502,7 +512,7 @@ async def test_save_and_list_business_case_scenarios_are_server_side(
 ) -> None:
     fake_db = FakeScenarioDb()
     analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(fake_db)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         create_response = await client.post(
@@ -536,7 +546,7 @@ async def test_save_and_list_business_case_scenarios_are_server_side(
 async def test_delete_business_case_scenario_is_tenant_scoped(analysis_app: FastAPI) -> None:
     fake_db = FakeScenarioDb(delete_rowcount=0)
     analysis_app.dependency_overrides[analysis.require_authenticated] = _mock_context
-    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(fake_db)
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.delete("/v1/cases/case-123/scenarios/scenario-missing")
@@ -604,7 +614,7 @@ async def test_get_workspace_tab_returns_empty_shape_when_missing(analysis_app: 
         )
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeScenarioDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeScenarioDb())
 
     test_case_id = "test-case-456"
 
@@ -627,7 +637,7 @@ async def test_get_workspace_tab_invalid_tab_key(analysis_app: FastAPI) -> None:
         )
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeScenarioDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeScenarioDb())
 
     async with AsyncClient(transport=ASGITransport(app=analysis_app), base_url="http://test") as client:
         response = await client.get("/v1/cases/test-case/workspace/invalid-tab")
@@ -649,7 +659,7 @@ async def test_get_workspace_tab_all_valid_tabs_return_empty_shape(analysis_app:
         )
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
-    analysis_app.dependency_overrides[get_route_db] = lambda: FakeScenarioDb()
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(FakeScenarioDb())
 
     test_case_id = "test-case-tabs"
     valid_tabs = [
@@ -685,7 +695,7 @@ async def test_update_workspace_tab_persists_payload(analysis_app: FastAPI) -> N
 
     analysis_app.dependency_overrides[analysis.require_authenticated] = mock_require_authenticated
     fake_db = FakeScenarioDb()
-    analysis_app.dependency_overrides[get_route_db] = lambda: fake_db
+    analysis_app.dependency_overrides[get_route_db] = _async_dependency(fake_db)
 
     test_case_id = "test-case-update"
     test_signals = [
