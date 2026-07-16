@@ -243,7 +243,9 @@ describe("ProspectPromptBuilder state contract", () => {
   });
 
   it("preserves public callback and payload type contracts", () => {
-    expectTypeOf(buildPayload).returns.toEqualTypeOf<ProspectSetupPromptPayload>();
+    expectTypeOf(
+      buildPayload
+    ).returns.toEqualTypeOf<ProspectSetupPromptPayload>();
     expectTypeOf(resolveNavigationAccountId).returns.toEqualTypeOf<
       string | undefined
     >();
@@ -253,9 +255,9 @@ describe("ProspectPromptBuilder state contract", () => {
     expectTypeOf<
       NonNullable<ProspectPromptBuilderProps["onNavigateToWorkspace"]>
     >().parameters.toEqualTypeOf<[path: string, accountId: string]>();
-    expectTypeOf<CreateSetupResult>().toEqualTypeOf<
-      { accountId: string } | void
-    >();
+    expectTypeOf<CreateSetupResult>().toEqualTypeOf<{
+      accountId: string;
+    } | void>();
     expectTypeOf<BuilderAction>().toMatchTypeOf<
       Parameters<typeof builderReducer>[1]
     >();
