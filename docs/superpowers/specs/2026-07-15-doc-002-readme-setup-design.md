@@ -14,6 +14,8 @@ Extend the existing documentation contract test to assert both the canonical des
 
 - `README.md`: correct the `make setup` command-table description.
 - `tests/docs/test_command_map.py`: add the focused regression assertion.
+- `docs/superpowers/specs/2026-07-15-doc-002-readme-setup-design.md`: record this approved bounded design.
+- `docs/superpowers/plans/2026-07-15-doc-002-readme-setup.md`: record the implementation checklist for the bounded remediation.
 
 No runtime code, public contracts, dependencies, lockfiles, generated files, workflows, migrations, or security controls change.
 

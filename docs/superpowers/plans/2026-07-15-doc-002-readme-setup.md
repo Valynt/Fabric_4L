@@ -70,4 +70,4 @@ Expected: no whitespace errors and the documented repository docs validation pas
 
 - [ ] **Step 5: Review scope and publish**
 
-Confirm the branch changes only the approved design record, README row, and focused documentation test. Commit any remaining approved files with a conventional message and `Co-authored-by: Ona <no-reply@ona.com>`, push the finding branch, and open or update a draft PR containing finding ID `DOC-002`, inspected files, exact validation results, rollback, and residual risk.
+Confirm the branch changes only the approved design record, implementation plan, README row, and focused documentation test. Commit any remaining approved files with a conventional message and `Co-authored-by: Ona <no-reply@ona.com>`, push the finding branch, and open or update a draft PR containing finding ID `DOC-002`, inspected files, exact validation results, rollback, and residual risk.
