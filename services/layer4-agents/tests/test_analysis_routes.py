@@ -14,7 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling import register_exception_handlers
 
 from layer4_agents.api.common.db import get_route_db
-from layer4_agents.api.routes import analysis
+from layer4_agents.api.routes import analysis, analysis_workspace
 from layer4_agents.config.settings import settings
 
 
@@ -551,6 +551,46 @@ async def test_delete_business_case_scenario_is_tenant_scoped(analysis_app: Fast
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def test_workspace_route_signatures_are_owned_by_focused_router() -> None:
+    """Workspace contracts stay ordered while moving out of the hotspot module."""
+    workspace_router = analysis_workspace.build_workspace_router(
+        get_executor=analysis.get_executor,
+        get_neo4j_driver=analysis._get_neo4j_driver,
+    )
+    workspace_routes = [
+        (
+            route.path,
+            tuple(sorted(route.methods or set())),
+            route.endpoint.__module__,
+        )
+        for route in workspace_router.routes
+        if "/workspace/" in route.path
+    ]
+
+    assert workspace_routes == [
+        (
+            "/cases/{case_id}/workspace/evidence",
+            ("GET",),
+            "layer4_agents.api.routes.analysis_workspace",
+        ),
+        (
+            "/cases/{case_id}/workspace/{tab_key}",
+            ("GET",),
+            "layer4_agents.api.routes.analysis_workspace",
+        ),
+        (
+            "/cases/{case_id}/workspace/{tab_key}",
+            ("PUT",),
+            "layer4_agents.api.routes.analysis_workspace",
+        ),
+        (
+            "/cases/{case_id}/workspace/generate",
+            ("POST",),
+            "layer4_agents.api.routes.analysis_workspace",
+        ),
+    ]
+
+
 @pytest.mark.asyncio
 async def test_get_workspace_tab_returns_empty_shape_when_missing(analysis_app: FastAPI) -> None:
     """GET /cases/{case_id}/workspace/{tab_key} returns the canonical empty shape."""
@@ -663,6 +703,5 @@ async def test_update_workspace_tab_persists_payload(analysis_app: FastAPI) -> N
         assert payload["data"] == {"signals": test_signals}
         assert fake_db.added[0].case_id == test_case_id
         assert fake_db.added[0].tab_key == "signals"
+        assert fake_db.added[0].tenant_id == "12345678-1234-1234-1234-123456789abc"
         assert fake_db.added[0].data == {"signals": test_signals}
-
-
