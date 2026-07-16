@@ -232,7 +232,7 @@ def build_workspace_router(
                     }
                 )
 
-        tab_data = {
+        tab_data: dict[str, dict[str, Any]] = {
             "signals": {"signals": signals},
             "drivers": {"drivers": hypotheses},
             "evidence": {"evidence": []},
