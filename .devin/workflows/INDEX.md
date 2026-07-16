@@ -160,8 +160,6 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Workflow Maintenance
 
-**Last Updated:** 2026-07-13
-
 **Total Workflows:** 26
 
 **Workflows with Frontmatter:** 26/26 (100%)
