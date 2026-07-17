@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import subprocess
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -15,7 +16,7 @@ ENFORCEMENT_CHECK = REPO_ROOT / "scripts" / "ci" / "validate_mandatory_security_
 def test_mandatory_security_gate_contract_is_enforced_locally() -> None:
     """The checked-in workflow, policy, and owners must expose one stable gate."""
     result = subprocess.run(
-        ["python", str(CONTRACT_CHECK)],
+        [sys.executable, str(CONTRACT_CHECK)],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
