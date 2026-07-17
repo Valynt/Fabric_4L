@@ -59,9 +59,15 @@ def validate(protection: dict[str, Any], rulesets: list[dict[str, Any]], contrac
 
     if _enabled(protection, "required_conversation_resolution") is not policy["require_conversation_resolution"]:
         errors.append("branch protection must require conversation resolution")
-    if _enabled(protection, "allow_force_pushes") is not policy["allow_force_pushes"]:
+
+    if "allow_force_pushes" not in protection:
+        errors.append("branch protection payload missing allow_force_pushes setting")
+    elif _enabled(protection, "allow_force_pushes") is not policy["allow_force_pushes"]:
         errors.append("branch protection force-push setting drifted")
-    if _enabled(protection, "allow_deletions") is not policy["allow_deletions"]:
+
+    if "allow_deletions" not in protection:
+        errors.append("branch protection payload missing allow_deletions setting")
+    elif _enabled(protection, "allow_deletions") is not policy["allow_deletions"]:
         errors.append("branch protection deletion setting drifted")
 
     active_rulesets = [ruleset for ruleset in rulesets if ruleset.get("enforcement") == "active"]
