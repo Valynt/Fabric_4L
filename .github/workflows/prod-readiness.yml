@@ -68,7 +68,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run architecture conformance gate
         run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -89,7 +89,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Install pnpm dependencies
@@ -159,7 +159,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run dependency chaos gate
         run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -181,7 +181,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run cross-domain smoke gate
         run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -202,7 +202,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run agent provenance gate
         run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -223,7 +223,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run state consistency gate
         run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -244,7 +244,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" psycopg2-binary "psycopg[pool]"
       - name: Run DB production readiness gate
         run: |
           make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
@@ -270,7 +270,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run observability readiness gate
         run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -322,7 +322,7 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Install pnpm dependencies
@@ -409,6 +409,15 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Download all artifacts
         uses: actions/download-artifact@v4
       - name: Build launch-readiness evidence bundle
