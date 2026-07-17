@@ -608,6 +608,12 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/download-artifact@v4
+        with:
+          # Extract the release-policy bundle at the repo root so its
+          # contents land at artifacts/release/... (without pattern/path,
+          # download-artifact nests everything under release-artifacts/).
+          pattern: release-artifacts
+          path: .
       - name: Build PR summary
         run: make gate-summary
       - name: Assert machine-readable gate result exists
