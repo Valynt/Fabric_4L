@@ -71,6 +71,35 @@ def test_effective_enforcement_accepts_only_the_governed_context(tmp_path: Path)
     assert result.returncode == 0, result.stderr or result.stdout
 
 
+def test_effective_enforcement_rejects_ruleset_bypass_actors(tmp_path: Path) -> None:
+    protection = {
+        "required_status_checks": {
+            "strict": True,
+            "checks": [{"context": "mandatory-security-regression", "app_id": 15368}],
+        },
+        "enforce_admins": {"enabled": True},
+        "required_pull_request_reviews": {
+            "require_code_owner_reviews": True,
+            "required_approving_review_count": 1,
+        },
+        "required_conversation_resolution": {"enabled": True},
+        "allow_force_pushes": {"enabled": False},
+        "allow_deletions": {"enabled": False},
+    }
+    rulesets = [
+        {
+            "name": "Protect",
+            "enforcement": "active",
+            "bypass_actors": [{"actor_id": 1}],
+        }
+    ]
+
+    result = _enforcement_result(tmp_path, protection, rulesets)
+
+    assert result.returncode != 0
+    assert "bypass actors" in result.stderr
+
+
 def test_effective_enforcement_rejects_administrator_bypass(tmp_path: Path) -> None:
     protection = {
         "required_status_checks": {
