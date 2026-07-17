@@ -46,8 +46,13 @@ tolerates cross-layer matrix failures as partial success.
 
 ## Follow-up
 
-**Not verified:** clean, failed, skipped, cancelled, and timed-out live pull
-request demonstrations remain to be recorded after the enforcement pull
-request itself has a runnable green baseline. The branch-protection payload
-and deterministic validators provide current configuration evidence; they do
-not substitute for those behavioral demonstrations.
+**Verified:** temporary PR #1019 was made ready for review with its required
+`mandatory-security-regression` context still queued/unsatisfied. A normal
+merge attempt by the repository administrator was rejected with “the base
+branch policy prohibits the merge”; no `--admin` emergency override was used.
+
+**Externally constrained:** clean, failed, skipped, cancelled, and timed-out
+terminal live results remain to be recorded once GitHub Actions runners leave
+the current queue and the enforcement PR has a runnable green baseline. The
+branch-protection payload and deterministic validators provide current
+configuration evidence; they do not substitute for those behavioral cases.

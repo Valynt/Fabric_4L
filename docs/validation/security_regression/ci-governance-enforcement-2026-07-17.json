@@ -37,7 +37,14 @@
   "live_behavior_cases": {
     "clean": "not-yet-recorded",
     "intentional_failure": "not-yet-recorded",
-    "skipped": "not-yet-recorded",
+    "missing_or_queued": {
+      "pull_request": 1019,
+      "mandatory_check_status": "QUEUED",
+      "merge_state": "BLOCKED",
+      "normal_administrator_merge": "rejected by base branch policy",
+      "emergency_admin_override_used": false
+    },
+    "skipped": "awaiting-runner",
     "cancelled_or_timed_out": "not-yet-recorded",
     "administrator_failed_merge": "not-yet-recorded"
   }
