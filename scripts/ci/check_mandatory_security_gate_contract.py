@@ -26,9 +26,20 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+class GithubActionsLoader(yaml.SafeLoader):
+    """YAML loader that keeps GitHub Actions' `on` key as a string."""
+
+
+for first, resolvers in list(GithubActionsLoader.yaml_implicit_resolvers.items()):
+    GithubActionsLoader.yaml_implicit_resolvers[first] = [
+        (tag, regexp)
+        for tag, regexp in resolvers
+        if tag != "tag:yaml.org,2002:bool"
+    ]
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
-    # BaseLoader prevents YAML 1.1 from treating the GitHub Actions `on` key as bool.
-    payload = yaml.load(path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    payload = yaml.load(path.read_text(encoding="utf-8"), Loader=GithubActionsLoader)
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a YAML mapping")
     return payload
