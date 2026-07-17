@@ -67,11 +67,11 @@ def main() -> int:
         if pattern == "main" and "branches/main/protection" not in workflow_text:
             errors.append("workflow does not validate main branch")
 
-    if governance_metadata.get("enforcement", {}).get("pull_request_merges") and "validate_branch_protection_checks.py" not in workflow_text:
-        errors.append("workflow does not assert strict required status checks (PR merge up-to-date enforcement)")
+    if governance_metadata.get("enforcement", {}).get("pull_request_merges") and "validate_mandatory_security_gate_enforcement.py" not in workflow_text:
+        errors.append("workflow does not assert mandatory security gate enforcement (PR merge strict up-to-date enforcement)")
 
     if governance_metadata.get("enforcement", {}).get("direct_pushes") and "validate_mandatory_security_gate_enforcement.py" not in workflow_text:
-        errors.append("workflow does not assert required status check contexts (direct push enforcement)")
+        errors.append("workflow does not assert mandatory security gate enforcement (direct push enforcement)")
 
     if errors:
         for error in errors:
