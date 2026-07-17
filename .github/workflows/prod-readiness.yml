@@ -416,6 +416,20 @@ jobs:
 
   release-policy:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valuefabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     needs:
       - determine-profile
       - arch-conformance
@@ -440,7 +454,19 @@ jobs:
       - name: Install gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            ruff -r services/layer1-ingestion/requirements.txt
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Create per-service databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for db in ingestion extraction signal_refinery layer4_agents ground_truth; do
+            psql -h localhost -U postgres -d valuefabric -c "CREATE DATABASE $db;"
+          done
       - name: Download all artifacts
         uses: actions/download-artifact@v4
       - name: Build launch-readiness evidence bundle
