@@ -7880,25 +7880,25 @@
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 96,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 144,
+      "line": 149,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def load_deprecation_register() -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 167,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def save_deprecation_register(register: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 180,
+      "line": 185,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def sync_deprecation_register(register: dict[str, Any], all_deprecations: list[dict[str, Any]]) -> dict[str, Any]:"
     },
