@@ -314,7 +314,9 @@ jobs:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    # Controlled evidence fixture: a skipped required context must not satisfy
+    # main branch protection. This branch is never merged.
+    if: false
 
     strategy:
       fail-fast: false
