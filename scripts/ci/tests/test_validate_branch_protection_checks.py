@@ -29,8 +29,8 @@ class ValidateBranchProtectionChecksTests(unittest.TestCase):
         payload = {
             "required_status_checks": {
                 "checks": [
-                    {"name": "check-a"},
-                    {"name": "check-b"},
+                    {"context": "check-a"},
+                    {"context": "check-b"},
                 ]
             }
         }

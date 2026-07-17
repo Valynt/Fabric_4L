@@ -21,7 +21,11 @@ def load_expected_checks(config_path: Path) -> list[str]:
 def load_enforced_checks(api_payload: dict) -> list[str]:
     required = api_payload.get("required_status_checks") or {}
     checks = required.get("checks") or []
-    names = [item["name"] for item in checks if isinstance(item, dict) and isinstance(item.get("name"), str)]
+    names = [
+        item.get("context", item.get("name"))
+        for item in checks
+        if isinstance(item, dict) and isinstance(item.get("context", item.get("name")), str)
+    ]
     return names
 
 
