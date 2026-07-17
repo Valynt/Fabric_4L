@@ -617,6 +617,9 @@ jobs:
       - name: Build PR summary
         run: make gate-summary
       - name: Assert machine-readable gate result exists
-        run: test -s artifacts/release/gate-result.json
+        # The release-artifacts bundle strips the leading artifacts/ prefix
+        # (upload common-ancestor semantics), so the extracted path is
+        # release/gate-result.json, not artifacts/release/gate-result.json.
+        run: test -s release/gate-result.json
       - name: Publish summary
         run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
