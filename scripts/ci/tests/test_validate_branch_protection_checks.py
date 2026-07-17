@@ -36,6 +36,17 @@ class ValidateBranchProtectionChecksTests(unittest.TestCase):
         }
         self.assertEqual(load_enforced_checks(payload), ["check-a", "check-b"])
 
+    def test_load_enforced_checks_from_legacy_name_shape(self) -> None:
+        payload = {
+            "required_status_checks": {
+                "checks": [
+                    {"name": "check-a"},
+                    {"name": "check-b"},
+                ]
+            }
+        }
+        self.assertEqual(load_enforced_checks(payload), ["check-a", "check-b"])
+
 
 if __name__ == "__main__":
     unittest.main()
