@@ -33,7 +33,7 @@ def _enforcement_result(tmp_path: Path, protection: dict, rulesets: list[dict]) 
     rulesets_path.write_text(json.dumps(rulesets), encoding="utf-8")
     return subprocess.run(
         [
-            "python",
+            sys.executable,
             str(ENFORCEMENT_CHECK),
             "--branch-protection-file",
             str(protection_path),
