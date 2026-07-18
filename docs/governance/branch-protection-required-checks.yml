@@ -1,9 +1,9 @@
 version: 1
-validated_on: 2026-06-05
+validated_on: 2026-07-18
 required_status_checks:
   - mandatory-security-regression
   - contract-compliance
-  - structural-preflight
+  - Structural Preflight
   - prod-readiness
   - behavior-tests
   - Layer 5 - Source Contract
