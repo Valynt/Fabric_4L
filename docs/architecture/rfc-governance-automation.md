@@ -324,7 +324,25 @@ The PoC demonstrates the representative composite and the profile-selection mech
 3. Profile-aware steps are **preserved** and **invoked in the appropriate context**, not skipped or weakened.
 4. Production-oriented steps are present in the workflow graph and gated by the profile, so they run when the context demands.
 
-### 6.3 What the PoC Does Not Do
+### 6.3 Validation Evidence
+
+The PoC workflow was exercised in GitHub Actions on branch `poc/governance-automation`:
+
+| Context | Profile Selected | Matched Explicit Trigger | Run URL |
+|---|---|---|---|
+| `pull_request` targeting `main` | `pr-fast` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635110847 |
+| `workflow_dispatch` with `profile=release-candidate` | `release-candidate` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635193620 |
+| `workflow_dispatch` with `profile=production-core` | `production-core` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635194181 |
+
+All runs completed successfully. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected gate list for each profile.
+
+Static validation performed locally:
+
+- YAML syntax check passed for all new files.
+- Profile selector logic verified for all documented contexts.
+- `make check-workflow-references` passed.
+
+### 6.4 What the PoC Does Not Do
 
 - It does not migrate any existing workflow.
 - It does not modify branch protection or required checks.
