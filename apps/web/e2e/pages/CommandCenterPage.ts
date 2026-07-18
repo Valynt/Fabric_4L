@@ -42,7 +42,7 @@ export class CommandCenterPage {
 
     // Main input area
     this.domainInput = page.getByPlaceholder(/enter company domain/i);
-    this.synthesizeButton = page.getByRole('button', { name: /synthesize/i });
+    this.synthesizeButton = page.getByRole('button', { name: /synthesis|synthesize/i });
     this.advancedToggle = page.getByRole('button', { name: /advanced configuration/i });
 
     // KPI cards - using semantic selectors
