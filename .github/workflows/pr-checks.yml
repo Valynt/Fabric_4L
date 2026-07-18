@@ -2213,6 +2213,16 @@ jobs:
           chmod +x scripts/ci/validate-alertmanager-config.sh
           ./scripts/ci/validate-alertmanager-config.sh
 
+      - name: Install kubectl
+        run: |
+          set -e
+          KUBECTL_VERSION="v1.30.0"
+          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mkdir -p "$HOME/.local/bin"
+          mv kubectl "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Check kustomize build for monitoring manifests
         run: |
           if command -v kubectl &> /dev/null; then
