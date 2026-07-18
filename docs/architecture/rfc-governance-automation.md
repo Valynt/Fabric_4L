@@ -430,6 +430,7 @@ Each phase includes:
 | 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
 | 2026-07-18 | Pre-existing hygiene noise identified | `repo-hygiene` check flags unrelated `critical-gates.yml` (`service: frontend` label) and `deploy.yml` (`value-fabric` cluster name) as obsolete-path violations; these are false positives from the existing scanner regex, not caused by this PR |
 | 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
+| 2026-07-18 | Review requested | Comment posted to PR #1026 explicitly requesting review from SRE, Security, and Maintainers |
 
 **Current disposition:** Submitted for review; awaiting approval or explicit documented decision not to proceed.
 
