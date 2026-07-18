@@ -333,15 +333,16 @@ The PoC workflow was exercised in GitHub Actions on branch `poc/governance-autom
 
 | Context | Profile Selected | Matched Explicit Trigger | Run URL |
 |---|---|---|---|
-| `pull_request` targeting `main` | `pr-fast` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635110847 |
-| `workflow_dispatch` with `profile=release-candidate` | `release-candidate` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635193620 |
-| `workflow_dispatch` with `profile=production-core` | `production-core` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635194181 |
+| `pull_request` targeting `main` | `pr-fast` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29642705854 |
+| `workflow_dispatch` with `profile=release-candidate` | `release-candidate` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29642715112 |
+| `workflow_dispatch` with `profile=production-core` | `production-core` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29642715781 |
 
-All runs completed successfully. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected profile name and gate list for each context. This validates deterministic context-to-profile routing and step activation; it does not execute infrastructure-dependent gates such as Cosign signing, Kubernetes deployment, Prometheus checks, or backup/restore drills.
+All runs completed successfully after the fail-closed and registry fixes. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected profile name and gate list for each context. This validates deterministic context-to-profile routing and step activation; it does not execute infrastructure-dependent gates such as Cosign signing, Kubernetes deployment, Prometheus checks, or backup/restore drills.
 
 Static validation performed locally:
 
 - YAML syntax check passed for all new files.
+- Shell-injection finding in `setup-fabric-ci` remediated.
 - Profile selector logic verified for all documented contexts, including fail-closed behavior for unmatched contexts and invalid fallbacks.
 - `make check-workflow-references` passed.
 
