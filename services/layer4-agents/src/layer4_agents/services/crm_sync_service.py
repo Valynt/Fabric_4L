@@ -23,7 +23,7 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..integrations.core.connector import CRMConnector
-from ..integrations.core.errors import AuthError, TransientError
+from ..integrations.core.errors import AuthError, CRMError, TransientError
 from ..integrations.core.observations import (
     ErrorClass,
     SyncFailed,

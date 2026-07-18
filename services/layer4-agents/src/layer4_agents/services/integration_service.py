@@ -802,6 +802,7 @@ class IntegrationService:
 
         # Salesforce OAuth token endpoint
         instance_url = integration.instance_url or "https://login.salesforce.com"
+
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
 
