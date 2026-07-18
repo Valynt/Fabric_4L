@@ -1627,7 +1627,9 @@ jobs:
 
       - name: Install Kyverno (CRDs only)
         run: |
-          kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
+          # Server-side apply avoids the 262144-byte last-applied-configuration
+          # annotation limit that hits CRDs such as clusterpolicies.kyverno.io.
+          kubectl apply --server-side=true -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
 
       - name: Create required StorageClasses for dry-run
         run: |
