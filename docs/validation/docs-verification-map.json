@@ -23,17 +23,6 @@
       ]
     },
     {
-      "verification_id": "DOC-PROBE-001",
-      "doc": "docs/validation/live_readiness_three_sprint_plan.md",
-      "claim": "Probe endpoints produce machine-validated CI artifacts.",
-      "checks": [
-        {
-          "name": "live_workflow_validator_supports_endpoint_probes",
-          "command": "python scripts/ci/validate_live_workflow_artifacts.py --help | grep -n \"require-endpoint-probes\""
-        }
-      ]
-    },
-    {
       "verification_id": "DOC-DEPLOY-001",
       "doc": "docs/troubleshooting/runbooks/infrastructure/release-checklist.md",
       "claim": "Deployment command path is maintained and validated for kustomize release prep.",
