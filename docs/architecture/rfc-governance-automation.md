@@ -428,6 +428,7 @@ Each phase includes:
 | 2026-07-18 | PoC implemented | `.github/actions/setup-fabric-ci`, `.github/actions/determine-ci-profile`, `.github/ci-profiles.yml`, `.github/workflows/poc-governance-automation.yml` |
 | 2026-07-18 | Static validation | YAML syntax, profile selector logic, `make check-workflow-references` passed |
 | 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
+| 2026-07-18 | Pre-existing hygiene noise identified | `repo-hygiene` check flags unrelated `critical-gates.yml` (`service: frontend` label) and `deploy.yml` (`value-fabric` cluster name) as obsolete-path violations; these are false positives from the existing scanner regex, not caused by this PR |
 | 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
 
 **Current disposition:** Submitted for review; awaiting approval or explicit documented decision not to proceed.
