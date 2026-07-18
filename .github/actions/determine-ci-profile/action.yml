@@ -10,9 +10,9 @@ inputs:
     required: false
     default: '.github/ci-profiles.yml'
   fallback-profile:
-    description: 'Profile to use when no trigger matches'
+    description: 'Explicit profile to use when no trigger matches; leave empty to fail closed'
     required: false
-    default: 'pr-fast'
+    default: ''
   workflow-inputs:
     description: 'JSON object of workflow_dispatch inputs (e.g., {"profile":"release-candidate"})'
     required: false
@@ -99,10 +99,25 @@ runs:
                 break
 
         matched = "true"
+        used_fallback = False
         if not selected:
+            if not fallback:
+                print(
+                    f"::error::No CI profile trigger matched for event={event_name} ref={ref} "
+                    f"and no fallback-profile was provided. Failing closed.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if fallback not in registry.get("profiles", {}):
+                print(
+                    f"::error::Explicit fallback profile '{fallback}' is not defined in {registry_path}.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             selected = fallback
             matched = "false"
-            spec = registry.get("profiles", {}).get(selected, {})
+            used_fallback = True
+            spec = registry["profiles"][selected]
 
         gates = spec.get("gates", [])
         description = spec.get("description", "")
@@ -129,5 +144,5 @@ runs:
         echo "## CI Profile: ${PROFILE}" >> "$GITHUB_STEP_SUMMARY"
         echo "${DESCRIPTION}" >> "$GITHUB_STEP_SUMMARY"
         if [[ "${MATCHED}" != "true" ]]; then
-          echo "::warning::No explicit profile trigger matched; using fallback profile ${PROFILE}"
+          echo "::warning::No explicit profile trigger matched; using authorized fallback profile ${PROFILE}"
         fi

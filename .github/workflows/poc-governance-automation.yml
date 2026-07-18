@@ -20,10 +20,15 @@ name: PoC — Governance Automation (Composite + Profile Selection)
   workflow_dispatch:
     inputs:
       profile:
-        description: 'Override CI profile (pr-fast, mainline-full, release-candidate, production-core)'
-        required: false
-        default: ''
-        type: string
+        description: 'Override CI profile'
+        required: true
+        default: 'pr-fast'
+        type: choice
+        options:
+          - pr-fast
+          - mainline-full
+          - release-candidate
+          - production-core
 
 permissions:
   contents: read

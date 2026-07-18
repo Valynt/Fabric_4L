@@ -78,8 +78,14 @@ runs:
 
     - name: Summarize Fabric CI setup
       shell: bash
+      env:
+        PYTHON_VERSION: ${{ inputs.python-version }}
+        NODE_VERSION: ${{ inputs.node-version }}
+        PNPM_VERSION: ${{ inputs.pnpm-version }}
       run: |
-        echo "## Fabric CI setup" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Python: ${{ inputs.python-version }}" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Node.js: ${{ inputs.node-version }}" >> "$GITHUB_STEP_SUMMARY"
-        echo "- pnpm: ${{ inputs.pnpm-version }}" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "## Fabric CI setup"
+          printf '%s\n' "- Python: ${PYTHON_VERSION}"
+          printf '%s\n' "- Node.js: ${NODE_VERSION}"
+          printf '%s\n' "- pnpm: ${PNPM_VERSION}"
+        } >> "$GITHUB_STEP_SUMMARY"
