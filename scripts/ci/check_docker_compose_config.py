@@ -62,6 +62,7 @@ ONE_SHOT_SERVICE_PATTERNS = (
     "seed",
     "runner",
     "test",
+    "backup",
 )
 
 SKIPPED_BIND_SOURCES = {
@@ -421,6 +422,44 @@ def is_one_shot_service(service_name: str, service: dict[str, Any]) -> bool:
     ):
         return True
     return False
+
+
+def service_has_extends_healthcheck(
+    service: dict[str, Any],
+    compose_file: Path,
+) -> bool:
+    """Check if a service inherits a healthcheck via Docker Compose `extends`."""
+    extends = service.get("extends")
+    if not isinstance(extends, dict):
+        return False
+
+    extends_file = extends.get("file")
+    extends_service = extends.get("service")
+    if not extends_file or not extends_service:
+        return False
+
+    base_path = (compose_file.parent / extends_file).resolve()
+    try:
+        base_data = yaml.safe_load(base_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+
+    if not isinstance(base_data, dict):
+        return False
+
+    base_services = base_data.get("services") or {}
+    if not isinstance(base_services, dict):
+        return False
+
+    base_service = base_services.get(extends_service)
+    if not isinstance(base_service, dict):
+        return False
+
+    if "healthcheck" in base_service:
+        return True
+
+    # Recursively follow chained extends
+    return service_has_extends_healthcheck(base_service, base_path)
 
 
 def iter_environment_entries(service: dict[str, Any]) -> list[tuple[str, str]]:
@@ -807,6 +846,8 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
         has_healthcheck = "healthcheck" in service
         if not has_healthcheck and dockerfile_path:
             has_healthcheck = dockerfile_has_healthcheck(dockerfile_path)
+        if not has_healthcheck:
+            has_healthcheck = service_has_extends_healthcheck(service, compose_file)
         if not has_healthcheck and not is_one_shot_service(service_name, service):
             failures.append(
                 ComposeFailure(
