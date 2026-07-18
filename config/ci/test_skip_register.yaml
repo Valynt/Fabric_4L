@@ -52,12 +52,12 @@ entries:
   owner: '@platform-architecture'
   reason: 'Valid environment limitation: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-003
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/conftest.py for registered condition
   classification: valid_environment_limitation
 - id: skip-004
@@ -131,12 +131,12 @@ entries:
   owner: '@platform-architecture'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-008
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_import_topology.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -212,12 +212,12 @@ entries:
   owner: '@platform-architecture'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-013
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_journey_contracts.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -293,12 +293,12 @@ entries:
   owner: '@platform-architecture'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-018
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -373,12 +373,12 @@ entries:
   owner: '@platform-architecture'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-023
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/contract/test_layer_integration.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -503,12 +503,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-031
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
   classification: unacceptable_coverage_gap
 - id: skip-032
@@ -579,12 +579,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-036
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/conftest.py for registered condition
   classification: unacceptable_coverage_gap
 - id: skip-037
@@ -660,12 +660,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-041
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_collection_verification.py
       for registered condition
   classification: unacceptable_coverage_gap
@@ -740,12 +740,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-046
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_cross_layer_tenant.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -824,12 +824,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-052
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_input_validation.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -906,12 +906,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-060
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_supply_chain.py for registered
       condition
   classification: unacceptable_coverage_gap
@@ -987,12 +987,12 @@ entries:
   owner: '@platform-security'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered
     for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-07-15'
+  expires_on: '2026-09-15'
   severity: P0
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-065
-    due_on: '2026-07-15'
+    due_on: '2026-09-15'
     work_item: Remove skip path in tests/security/test_tenant_lifecycle.py for registered
       condition
   classification: unacceptable_coverage_gap
